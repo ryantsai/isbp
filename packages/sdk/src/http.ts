@@ -1,0 +1,103 @@
+import { z } from 'zod';
+
+/** Standard list query: `?page=1&pageSize=25&q=term&sort=-createdAt`. */
+export const listQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(200).default(25),
+  q: z.string().trim().max(200).optional(),
+  sort: z
+    .string()
+    .regex(/^-?[a-zA-Z][\w.]*$/)
+    .optional()
+    .describe('Field name, prefix with "-" for descending'),
+});
+export type ListQuery = z.infer<typeof listQuerySchema>;
+
+export function pageSchema<T extends z.ZodType>(item: T) {
+  return z.object({
+    items: z.array(item),
+    total: z.number().int(),
+    page: z.number().int(),
+    pageSize: z.number().int(),
+  });
+}
+
+export interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export const errorBodySchema = z.object({
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+    details: z.unknown().optional(),
+    requestId: z.string().optional(),
+  }),
+});
+export type ErrorBody = z.infer<typeof errorBodySchema>;
+
+/** Stable, translatable error codes shared by API and UI. */
+export const ErrorCodes = {
+  BAD_REQUEST: 'BAD_REQUEST',
+  VALIDATION_FAILED: 'VALIDATION_FAILED',
+  UNAUTHENTICATED: 'UNAUTHENTICATED',
+  FORBIDDEN: 'FORBIDDEN',
+  CSRF_INVALID: 'CSRF_INVALID',
+  NOT_FOUND: 'NOT_FOUND',
+  CONFLICT: 'CONFLICT',
+  RATE_LIMITED: 'RATE_LIMITED',
+  MODULE_DISABLED: 'MODULE_DISABLED',
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+  ACCOUNT_LOCKED: 'ACCOUNT_LOCKED',
+  ACCOUNT_INACTIVE: 'ACCOUNT_INACTIVE',
+  INTERNAL: 'INTERNAL',
+  /** You tried to grant permissions you do not hold yourself (`details.missing`). */
+  PRIVILEGE_ESCALATION: 'PRIVILEGE_ESCALATION',
+  /** The action would lock you out (offboard/suspend yourself, drop your own admin role). */
+  SELF_LOCKOUT: 'SELF_LOCKOUT',
+  SYSTEM_ROLE_READONLY: 'SYSTEM_ROLE_READONLY',
+  SYSTEM_GROUP: 'SYSTEM_GROUP',
+  SYSTEM_MODULE: 'SYSTEM_MODULE',
+  MODULE_DEPENDENCY: 'MODULE_DEPENDENCY',
+  PRINCIPAL_OFFBOARDED: 'PRINCIPAL_OFFBOARDED',
+  HAS_CHILDREN: 'HAS_CHILDREN',
+  INVALID_PARENT: 'INVALID_PARENT',
+  INVALID_STATE: 'INVALID_STATE',
+  PASSWORD_MANAGED_EXTERNALLY: 'PASSWORD_MANAGED_EXTERNALLY',
+} as const;
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes] | (string & {});
+
+/** Error thrown by route handlers; the kernel renders it as `{ error: { code, message } }`. */
+export class HttpError extends Error {
+  readonly statusCode: number;
+  readonly code: ErrorCode;
+  readonly details?: unknown;
+
+  constructor(statusCode: number, code: ErrorCode, message: string, details?: unknown) {
+    super(message);
+    this.name = 'HttpError';
+    this.statusCode = statusCode;
+    this.code = code;
+    this.details = details;
+  }
+}
+
+export const httpErrors = {
+  badRequest: (message = 'Bad request', details?: unknown) =>
+    new HttpError(400, ErrorCodes.BAD_REQUEST, message, details),
+  unauthenticated: (message = 'Authentication required') =>
+    new HttpError(401, ErrorCodes.UNAUTHENTICATED, message),
+  forbidden: (message = 'You do not have permission to perform this action') =>
+    new HttpError(403, ErrorCodes.FORBIDDEN, message),
+  notFound: (message = 'Not found') => new HttpError(404, ErrorCodes.NOT_FOUND, message),
+  conflict: (message = 'Conflict', details?: unknown) =>
+    new HttpError(409, ErrorCodes.CONFLICT, message, details),
+};
+
+/** `%term%` with LIKE wildcards in user input escaped — use with `ilike()`. */
+export function likePattern(term: string): string {
+  return `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+}

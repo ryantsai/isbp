@@ -1,0 +1,12 @@
+pnpm-lock.yaml
+**/migrations/**/*.sql
+**/migrations/meta/**
+**/generated/**
+infra/helm/**/templates/**
+.next
+dist
+coverage
+e2e/.auth
+playwright-report
+test-results
+.dev-data

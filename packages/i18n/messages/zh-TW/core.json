@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "name": "核心平台",
+    "description": "身分識別、存取控制、稽核，以及所有其他模組賴以建構的模組系統。"
+  },
+  "nav": {
+    "dashboard": "儀表板",
+    "users": "人員",
+    "groups": "群組",
+    "departments": "部門",
+    "roles": "角色與存取權",
+    "audit": "稽核日誌",
+    "modules": "模組",
+    "identity": "登入提供者",
+    "sectionMain": "工作區",
+    "sectionAdmin": "系統管理"
+  },
+  "permissions": {
+    "usersRead": "檢視人員及其個人資料",
+    "usersCreate": "建立人員，並為新進人員預先建立帳號",
+    "usersUpdate": "編輯人員的個人資料",
+    "usersLifecycle": "辦理人員的到職啟用、停權、重新啟用及離職停用",
+    "usersCredentials": "重設本機帳號的密碼",
+    "groupsRead": "檢視群組及成員",
+    "groupsManage": "建立群組並管理成員",
+    "departmentsRead": "檢視組織架構",
+    "departmentsManage": "建立、移動及刪除部門",
+    "rolesRead": "檢視角色、權限及指派",
+    "rolesManage": "建立及編輯自訂角色",
+    "rolesAssign": "授予及撤銷角色",
+    "auditRead": "檢視稽核日誌",
+    "modulesRead": "檢視已安裝的模組",
+    "modulesManage": "啟用、停用及設定模組",
+    "idpRead": "檢視登入提供者",
+    "idpManage": "設定登入提供者及目錄同步"
+  },
+  "settings": {
+    "productName": "產品名稱",
+    "supportEmail": "支援服務電子郵件",
+    "loginBanner": "登入橫幅",
+    "loginBannerHelp": "顯示於登入頁面，例如資訊資源使用規範公告。"
+  },
+  "systemRoles": {
+    "platform-admin": { "name": "平台管理員", "description": "擁有所有功能的完整存取權" },
+    "identity-admin": { "name": "身分識別管理員", "description": "管理人員、群組、部門及角色指派" },
+    "security-auditor": { "name": "安全性稽核員", "description": "可唯讀存取所有模組及稽核軌跡" },
+    "module-admin": { "name": "模組管理員", "description": "啟用、停用及設定模組" },
+    "everyone": { "name": "所有人", "description": "授予每位啟用中使用者的基本存取權" }
+  }
+}

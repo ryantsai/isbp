@@ -1,0 +1,52 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalDependencies": [".env"],
+  "globalEnv": ["NODE_ENV"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": ["API_INTERNAL_URL", "NEXT_PUBLIC_*"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^typecheck"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    },
+    "test": {
+      "outputs": ["coverage/**"]
+    },
+    "db:generate": {
+      "cache": false
+    }
+  },
+  "globalPassThroughEnv": [
+    "DATABASE_URL",
+    "DATABASE_POOL_MAX",
+    "REDIS_URL",
+    "PUBLIC_URL",
+    "API_INTERNAL_URL",
+    "WEB_PORT",
+    "PORT",
+    "HOST",
+    "METRICS_PORT",
+    "LOG_LEVEL",
+    "LOG_PRETTY",
+    "AUTO_MIGRATE",
+    "ISBP_*",
+    "SESSION_*",
+    "LOGIN_*",
+    "RATE_LIMIT_MAX",
+    "WORKER_CONCURRENCY",
+    "API_DOCS",
+    "OTEL_*",
+    "SEED_*",
+    "E2E_*"
+  ]
+}

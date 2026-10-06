@@ -1,0 +1,55 @@
+{
+  "title": "儀表板",
+  "greeting": {
+    "morning": "早安，{name}",
+    "afternoon": "午安，{name}",
+    "evening": "晚安，{name}"
+  },
+  "subtitle": "以下是平台今天的整體動態。",
+  "kpi": {
+    "people": "啟用中人員",
+    "peopleHint": "目錄中共 {total} 人",
+    "pending": "等待到職啟用",
+    "pendingHint": "預先建立的帳號",
+    "groups": "群組",
+    "roles": "角色",
+    "departments": "部門",
+    "sessions": "使用中的工作階段",
+    "expiring": "即將到期的存取權",
+    "expiringHint": "7 天內",
+    "modules": "已啟用的模組",
+    "modulesHint": "已安裝 {total} 個"
+  },
+  "activity": {
+    "title": "平台活動",
+    "description": "過去 14 天的稽核事件",
+    "security": "安全性",
+    "other": "其他",
+    "total": "總計",
+    "tooltip": "{date}：共 {total} 個事件，其中 {security} 個與安全性相關"
+  },
+  "sources": {
+    "title": "人員登入方式",
+    "description": "依身分識別來源統計的啟用中帳號"
+  },
+  "recent": {
+    "title": "近期活動",
+    "empty": "尚無任何活動。"
+  },
+  "quick": {
+    "title": "快速動作",
+    "createUser": "新增人員",
+    "grantAccess": "授予角色",
+    "reviewAudit": "檢閱稽核日誌",
+    "configureSso": "設定單一登入"
+  },
+  "modules": {
+    "title": "您的模組",
+    "description": "這裡的每項功能都是以同一套 SDK 建構的模組。",
+    "manage": "管理模組"
+  },
+  "welcome": {
+    "title": "歡迎使用 IS Big Platform",
+    "body": "使用搜尋（⌘K / Ctrl K）即可快速前往任何位置。如需存取更多模組，請洽詢您的管理員。"
+  }
+}

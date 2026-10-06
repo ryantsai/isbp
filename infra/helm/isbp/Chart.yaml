@@ -1,0 +1,17 @@
+apiVersion: v2
+name: isbp
+description: IS Big Platform — API, background worker, web app and database migrations
+type: application
+# Chart version (SemVer) — bump on every chart change.
+version: 0.1.0
+# Default image tag for isbp-api and isbp-web.
+appVersion: '0.1.0'
+kubeVersion: '>=1.27.0-0'
+keywords:
+  - isbp
+  - itsm
+  - identity
+  - rbac
+annotations:
+  # Postgres and Redis are deliberately not bundled — see values.yaml (secrets) and docs/deployment.md.
+  category: Infrastructure

@@ -1,0 +1,104 @@
+{
+  "title": "個人資料與偏好設定",
+  "description": "管理您對他人顯示的資訊、平台的外觀，以及帳號的安全性。",
+  "nav": {
+    "label": "設定區段",
+    "profile": "個人資料",
+    "preferences": "偏好設定",
+    "security": "密碼",
+    "sessions": "工作階段",
+    "access": "我的存取權"
+  },
+  "profile": {
+    "title": "個人資料",
+    "description": "您的顯示名稱會出現在整個平台中，例如人員目錄及稽核日誌。",
+    "displayName": "顯示名稱",
+    "username": "使用者名稱",
+    "signIn": "登入方式",
+    "saved": "已更新個人資料",
+    "managedHint": "電子郵件、使用者名稱及部門由貴組織管理。如需變更，請聯絡 IT 支援人員。"
+  },
+  "preferences": {
+    "title": "偏好設定",
+    "description": "無論您在哪個裝置登入，這些設定都會隨之套用。",
+    "language": {
+      "label": "語言",
+      "hint": "用於選單、訊息及電子郵件。"
+    },
+    "theme": {
+      "hint": "選擇「跟隨系統」時，會依照裝置的淺色或深色設定顯示。"
+    },
+    "timezone": {
+      "label": "時區",
+      "hint": "日期及時間會以此時區顯示。",
+      "search": "搜尋時區…",
+      "noMatch": "沒有相符的時區。",
+      "saved": "時區已設為 {zone}",
+      "useBrowser": "使用此裝置的時區（{zone}）"
+    }
+  },
+  "password": {
+    "title": "密碼",
+    "description": "變更您以本機帳號登入時使用的密碼。",
+    "current": "目前的密碼",
+    "new": "新密碼",
+    "confirm": "確認新密碼",
+    "submit": "變更密碼",
+    "signOutNote": "您的其他工作階段將會被登出。",
+    "changed": "密碼已變更。您的其他工作階段已被登出。",
+    "wrongCurrent": "目前的密碼不正確。",
+    "mismatch": "兩次輸入的密碼不一致。",
+    "mustChange": "您的管理員要求您設定新密碼。",
+    "rules": {
+      "label": "密碼規則",
+      "length": "至少 {min} 個字元",
+      "variety": "不可過於重複（至少包含 5 個不同的字元）",
+      "match": "兩次輸入的新密碼一致",
+      "met": "已符合",
+      "notMet": "尚未符合"
+    },
+    "external": {
+      "title": "您是透過貴組織登入",
+      "body": "您的密碼由貴組織的身分識別提供者管理。請在該處變更，或聯絡 IT 支援人員。"
+    }
+  },
+  "sessions": {
+    "title": "使用中的工作階段",
+    "description": "目前已登入您帳號的裝置及瀏覽器。若有您不認得的項目，請將其登出。",
+    "device": "{os} 上的 {browser}",
+    "unknownDevice": "未知的裝置",
+    "thisDevice": "此裝置",
+    "activeNow": "目前使用中",
+    "lastActive": "上次活動：{time}",
+    "signedIn": "登入時間：{date}",
+    "revoke": "登出",
+    "revokeLabel": "登出 {device}",
+    "revoked": "已登出工作階段",
+    "revokeOthers": "登出其他工作階段",
+    "revokeOthersTitle": "要登出其他所有裝置嗎？",
+    "revokeOthersBody": "{count, plural, one {將登出 # 個其他工作階段。此裝置會保持登入。} other {將登出 # 個其他工作階段。此裝置會保持登入。}}",
+    "revokedOthers": "{count, plural, one {已登出 # 個工作階段} other {已登出 # 個工作階段}}"
+  },
+  "access": {
+    "title": "我的存取權",
+    "description": "您擁有的角色及其取得方式。若缺少任何權限，請洽詢管理員。",
+    "summary": "{roles, plural, one {# 個角色} other {# 個角色}} · {permissions, plural, one {# 項權限} other {# 項權限}}",
+    "none": "您目前尚未擁有任何角色。",
+    "permissionCount": "{count, plural, one {# 項權限} other {# 項權限}}",
+    "allPermissions": "所有權限",
+    "expires": "有效至 {date}",
+    "via": {
+      "direct": "直接指派給您",
+      "group": "透過群組 {group}",
+      "everyone": "所有人"
+    }
+  },
+  "validation": {
+    "required": "此欄位為必填。",
+    "invalid": "此值無效。",
+    "tooShort": "至少需要 {min} 個字元。",
+    "tooLong": "最多 {max} 個字元。",
+    "url": "請輸入完整的 URL。",
+    "format": "格式不符合預期。"
+  }
+}

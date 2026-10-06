@@ -1,0 +1,105 @@
+{
+  "title": "模組",
+  "description": "此平台上安裝的功能。可在執行階段隨時啟用或停用——無須重新部署，也不會刪除任何資料。",
+  "summary": "已啟用 {enabled} 個，共 {total} 個",
+  "empty": "尚未安裝任何模組",
+  "noDescription": "未提供描述。",
+  "openDetails": "檢視 {name} 的詳細資料",
+  "systemHint": "系統模組，一律啟用",
+  "statusOn": "所有擁有存取權的人員皆可使用",
+  "statusOff": "已對所有人停用",
+  "off": "已停用",
+  "toggle": {
+    "label": "啟用 {name}",
+    "enabledToast": "已啟用 {name}",
+    "disabledToast": "已停用 {name}",
+    "needsDependencies": "請先啟用 {names}，此模組相依於這些模組。",
+    "hasDependents": "請先停用 {names}，這些模組相依於此模組。"
+  },
+  "disable": {
+    "title": "要停用 {name} 嗎？",
+    "body": "所有人都會立即無法使用此模組。其資料會予以保留，您可以隨時重新啟用。",
+    "confirm": "停用模組",
+    "impact": {
+      "pages": "其頁面及導覽項目會隱藏",
+      "api": "其 API 端點會停止回應",
+      "jobs": "其背景作業會暫停",
+      "events": "其事件處理常式會停止接收事件"
+    },
+    "blockedTitle": "{count, plural, one {另有一個模組相依於此模組，請先停用該模組：} other {有 # 個模組相依於此模組，請先停用這些模組：}}",
+    "inactiveDependents": "{names} 也需要此模組（目前已停用）。"
+  },
+  "stats": {
+    "permissions": "{count, plural, one {權限} other {權限}}",
+    "events": "事件",
+    "eventsDetail": "{emits, plural, one {發出 # 個} other {發出 # 個}}，{consumes, plural, one {接收 # 個} other {接收 # 個}}",
+    "aiTools": "{count, plural, one {AI 工具} other {AI 工具}}",
+    "jobs": "{count, plural, one {作業} other {作業}}"
+  },
+  "tabs": {
+    "overview": "概觀",
+    "permissions": "權限",
+    "events": "事件",
+    "aiTools": "AI 工具",
+    "jobs": "作業",
+    "settings": "設定"
+  },
+  "overview": {
+    "id": "模組 ID",
+    "version": "版本",
+    "installed": "安裝時間",
+    "lastChanged": "上次啟用／停用",
+    "neverChanged": "從未變更，自安裝起即已啟用",
+    "navigation": "導覽",
+    "navEntries": "{count, plural, =0 {沒有選單項目} one {# 個選單項目} other {# 個選單項目}}",
+    "dependsOn": "相依於",
+    "dependents": "被下列模組需要",
+    "noDependencies": "不相依於其他模組。",
+    "noDependents": "沒有其他模組相依於此模組。"
+  },
+  "permissions": {
+    "hint": "此模組新增的權限。請在「角色與存取權」頁面透過角色授予。"
+  },
+  "events": {
+    "hint": "模組之間透過事件相互溝通。其他模組可對此模組發出的事件做出回應。",
+    "emits": "發出",
+    "consumes": "監聽",
+    "noEmits": "此模組不會發出事件。",
+    "noConsumes": "此模組不會監聽任何事件。"
+  },
+  "ai": {
+    "hint": "這些工具將透過 MCP 閘道提供給 AI 代理程式。只有在代理程式所代表的人員擁有必要權限時，代理程式才能呼叫該工具。",
+    "requiresConfirmation": "需要確認",
+    "permission": "所需權限"
+  },
+  "jobs": {
+    "onDemand": "依需求執行",
+    "cron": "自訂排程",
+    "everySeconds": "{count, plural, one {每秒} other {每 # 秒}}",
+    "everyMinutes": "{count, plural, one {每分鐘} other {每 # 分鐘}}",
+    "everyHours": "{count, plural, one {每小時} other {每 # 小時}}",
+    "hourlyAt": "每小時第 {minute} 分",
+    "dailyAt": "每天 {time}"
+  },
+  "settings": {
+    "saved": "已儲存設定",
+    "stored": "已儲存",
+    "choose": "請選擇…",
+    "secretEmpty": "未設定",
+    "secretKeep": "留空即保留已儲存的值。",
+    "readOnly": "您可以檢視這些設定，但無法變更。",
+    "showAdvanced": "{count, plural, one {顯示 # 項進階設定} other {顯示 # 項進階設定}}",
+    "discard": "捨棄變更",
+    "none": "此模組沒有任何設定。"
+  },
+  "validation": {
+    "number": "請輸入數字。",
+    "tooLong": "最多 {max} 個字元。"
+  },
+  "howTo": {
+    "title": "模組的運作方式",
+    "body": "每項功能（包括核心平台）都是一個模組：一份宣告其頁面、API 路由、權限、事件、背景作業、設定及 AI 工具的資訊清單。內建模組與自訂模組都使用同一套 SDK。",
+    "scaffold": "若要自行建構模組，請在存放庫根目錄執行下列指令產生骨架：",
+    "placeholder": "name"
+  }
+}

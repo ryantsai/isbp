@@ -1,0 +1,78 @@
+{
+  "meta": {
+    "name": "お知らせ",
+    "description": "サービスのお知らせ、メンテナンス時間帯、障害情報を全員に届けます。"
+  },
+  "nav": {
+    "feed": "お知らせ"
+  },
+  "permissions": {
+    "read": "公開されたお知らせを閲覧",
+    "manage": "お知らせの作成・公開・アーカイブ・削除"
+  },
+  "settings": {
+    "defaultSeverity": "新規お知らせの既定の重要度",
+    "maxPinned": "固定表示できるお知らせの上限"
+  },
+  "severity": {
+    "info": "情報",
+    "maintenance": "メンテナンス",
+    "incident": "障害"
+  },
+  "severityHint": {
+    "info": "ニュースと変更点",
+    "maintenance": "計画作業",
+    "incident": "サービス障害"
+  },
+  "status": {
+    "draft": "下書き",
+    "published": "公開中",
+    "archived": "アーカイブ済み"
+  },
+  "views": {
+    "current": "現在",
+    "drafts": "下書き",
+    "archive": "アーカイブ"
+  },
+  "empty": {
+    "current": "現在お知らせはありません。すべてのシステムは正常です。",
+    "drafts": "下書きはありません。",
+    "archive": "アーカイブされたお知らせはまだありません。"
+  },
+  "new": "お知らせを作成",
+  "search": "お知らせを検索…",
+  "pinned": "固定表示",
+  "by": "投稿者：{name}",
+  "publishedAt": "公開日時",
+  "archive": "アーカイブ",
+  "notFound": "このお知らせは存在しないか、公開されていません。",
+  "previous": "前のページ",
+  "next": "次のページ",
+  "saved": "変更を保存しました",
+  "draftSaved": "下書きを保存しました",
+  "publishedToast": "お知らせを公開しました",
+  "archivedToast": "お知らせをアーカイブしました",
+  "deletedToast": "お知らせを削除しました",
+  "editor": {
+    "createTitle": "お知らせを作成",
+    "editTitle": "お知らせを編集",
+    "hint": "公開されたお知らせは全員に表示され、他のモジュール（通知など）が利用できるイベントとして発行されます。",
+    "severity": "重要度",
+    "title": "タイトル",
+    "body": "本文",
+    "startsAt": "開始日時",
+    "endsAt": "終了日時",
+    "windowHint": "任意。公開中のお知らせは終了日時を過ぎると自動的にアーカイブされます。",
+    "pinned": "上部に固定",
+    "pinnedHint": "固定したお知らせは新しいお知らせより上に表示されます。",
+    "saveDraft": "下書き保存",
+    "publish": "公開"
+  },
+  "audit": {
+    "post_created": "お知らせを作成",
+    "post_updated": "お知らせを編集",
+    "post_published": "お知らせを公開",
+    "post_archived": "お知らせをアーカイブ",
+    "post_deleted": "お知らせを削除"
+  }
+}

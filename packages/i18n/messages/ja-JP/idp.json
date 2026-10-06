@@ -1,0 +1,277 @@
+{
+  "title": "サインイン プロバイダー",
+  "description": "組織の ID プロバイダーまたはディレクトリを使用してサインインできるようにします。ローカル アカウントも引き続き併用できます。",
+  "add": "プロバイダーを追加",
+  "localNote": "新しいプロバイダーは無効の状態で作成されます。各カードに表示されている値を ID プロバイダーに登録し、接続をテストしてからオンにしてください。オンにすると、サインイン ページに表示されます。",
+  "empty": {
+    "title": "サインイン プロバイダーはまだありません",
+    "description": "Microsoft Entra ID、任意の OpenID Connect または SAML 2.0 プロバイダー、あるいは LDAP / Active Directory サーバーに接続します。"
+  },
+  "typeLabel": {
+    "entra": "Entra ID · OIDC",
+    "oidc": "OIDC",
+    "saml": "SAML 2.0",
+    "ldap": "LDAP"
+  },
+  "choices": {
+    "preset": "プリセット",
+    "entra": {
+      "title": "Microsoft Entra ID",
+      "description": "Microsoft 365 を利用する組織向けのシングル サインオンです。スコープとクレームは事前に設定されているため、必要なのはテナント ID、クライアント ID、シークレットのみです。"
+    },
+    "oidc": {
+      "title": "汎用 OpenID Connect",
+      "description": "Okta、Google Workspace、Keycloak、Auth0 など、任意の OpenID Connect プロバイダーに対応します。"
+    },
+    "saml": {
+      "title": "SAML 2.0",
+      "description": "AD FS、Shibboleth、PingFederate などの SAML ID プロバイダーに対応します。"
+    },
+    "ldap": {
+      "title": "LDAP / Active Directory",
+      "description": "ディレクトリのパスワードでサインインし、ユーザーとグループをスケジュールに従って同期します。"
+    }
+  },
+  "create": {
+    "step": "ステップ {step} / {total}",
+    "chooseTitle": "サインイン プロバイダーの追加",
+    "chooseDescription": "組織で使用しているものを選択してください。複数追加することもできます。",
+    "changeType": "種類を変更"
+  },
+  "created": {
+    "sheetTitle": "プロバイダーを追加しました",
+    "sheetDescription": "ユーザーが使用できるようにするには、いくつかの手順が必要です。",
+    "title": "{name} を追加しました",
+    "body": "オンにするまでは無効のままのため、まだ誰にも表示されません。",
+    "register": {
+      "oidc": "このリダイレクト URI を ID プロバイダーのアプリ登録に登録します",
+      "saml": "これらの値を ID プロバイダーに登録します",
+      "ldap": "このサーバーからディレクトリに接続できることを確認します"
+    },
+    "test": "接続をテストします",
+    "enable": "オンにします",
+    "enableHint": "プロバイダーのカードにあるスイッチを使用します。オンにすると、サインイン ページに表示されます。",
+    "done": "完了"
+  },
+  "card": {
+    "linkedUsers": "リンクされたユーザー",
+    "newPeople": "新規ユーザー",
+    "jitOn": "初回サインイン時に作成",
+    "jitOff": "事前の作成が必要",
+    "groupMappings": "グループ マッピング",
+    "toggle": "{name} を有効にする"
+  },
+  "sync": {
+    "title": "ディレクトリ同期",
+    "manual": "手動のみ",
+    "status": {
+      "never": "未同期",
+      "success": "成功",
+      "failed": "失敗",
+      "running": "実行中"
+    }
+  },
+  "actions": {
+    "test": "接続をテスト",
+    "sync": "今すぐ同期",
+    "more": "{name} のその他の操作"
+  },
+  "toast": {
+    "enabled": "{name} を有効にしました。サインイン ページに表示されます",
+    "disabled": "{name} を無効にしました",
+    "syncQueued": "{name} の同期をキューに登録しました。完了すると、結果がここに表示されます",
+    "deleted": "{name} を削除しました"
+  },
+  "disable": {
+    "title": "{name} を無効にしますか?",
+    "body": "{count, plural, one {# 人のユーザーがこのプロバイダーでサインインしています。再びオンにするまで、これらのユーザーはサインインできなくなります。} other {# 人のユーザーがこのプロバイダーでサインインしています。再びオンにするまで、これらのユーザーはサインインできなくなります。}}",
+    "confirm": "プロバイダーを無効化"
+  },
+  "delete": {
+    "title": "{name} を削除しますか?",
+    "body": "{count, plural, =0 {構成と保存されているシークレットが削除されます。この操作は元に戻せません。} one {リンクされている # 人のユーザーのアカウントは保持されますが、このプロバイダーではサインインできなくなります。構成と保存されているシークレットが削除されます。この操作は元に戻せません。} other {リンクされている # 人のユーザーのアカウントは保持されますが、このプロバイダーではサインインできなくなります。構成と保存されているシークレットが削除されます。この操作は元に戻せません。}}",
+    "confirm": "プロバイダーを削除"
+  },
+  "endpoints": {
+    "title": "ID プロバイダーに登録する値",
+    "copy": "{label} をコピー",
+    "copyFailed": "コピーできませんでした。テキストを選択して手動でコピーしてください。",
+    "labels": {
+      "redirectUri": "リダイレクト URI",
+      "acsUrl": "Assertion Consumer Service (ACS) URL",
+      "metadataUrl": "サービス プロバイダーのメタデータ URL",
+      "entityId": "サービス プロバイダーのエンティティ ID"
+    }
+  },
+  "test": {
+    "title": "接続テスト · {name}",
+    "hint": {
+      "oidc": "発行者とクライアント ID を使用して、プロバイダーの検出ドキュメントを取得します。",
+      "saml": "ID プロバイダーの署名証明書が有効であることを確認します。",
+      "ldap": "サービス アカウントでバインドし、ベース DN を検索します。"
+    },
+    "running": "接続をテストしています…",
+    "ok": "接続に成功しました",
+    "failed": "接続に失敗しました",
+    "couldNotRun": "テストを実行できませんでした。",
+    "again": "再テスト",
+    "details": {
+      "issuer": "発行者",
+      "authorizationEndpoint": "承認エンドポイント",
+      "tokenEndpoint": "トークン エンドポイント",
+      "pkce": "PKCE (S256)",
+      "subject": "サブジェクト",
+      "validTo": "有効期限",
+      "expired": "期限切れ",
+      "sampleUsers": "サンプル エントリ"
+    }
+  },
+  "cron": {
+    "everyMinutes": "{count, plural, one {毎分} other {# 分ごと}}",
+    "everyHours": "{count, plural, one {毎時} other {# 時間ごと}}",
+    "hourlyAt": "毎時 {minute} 分",
+    "dailyAt": "毎日 {time}",
+    "presets": {
+      "hourly": "毎時",
+      "every6h": "6 時間ごと",
+      "every12h": "12 時間ごと",
+      "daily": "毎日 02:00"
+    }
+  },
+  "form": {
+    "createTitle": {
+      "entra": "Microsoft Entra ID に接続",
+      "oidc": "OpenID Connect プロバイダーに接続",
+      "saml": "SAML 2.0 プロバイダーに接続",
+      "ldap": "LDAP / Active Directory に接続"
+    },
+    "createDescription": {
+      "entra": "Entra 管理センターの [アプリの登録] → 対象のアプリ → [概要]、および [証明書とシークレット] で確認できます。",
+      "oidc": "プロバイダーのアプリケーションまたはクライアントの設定に記載されている値を使用します。",
+      "saml": "ID プロバイダーの SAML メタデータに記載されている値を使用します。",
+      "ldap": "サインインとディレクトリ同期には、読み取り専用のサービス アカウントで十分です。"
+    },
+    "editTitle": "{name} の編集",
+    "editDescription": "変更内容は次回のサインインから適用され、監査ログに記録されます。",
+    "createdToast": "{name} を追加しました",
+    "savedToast": "{name} を保存しました",
+    "submitCreate": "プロバイダーを追加",
+    "sections": {
+      "basics": "基本情報",
+      "connection": "接続"
+    },
+    "name": "表示名",
+    "nameHint": "サインイン ボタンに表示されます。",
+    "namePlaceholder": {
+      "entra": "Microsoft Entra ID",
+      "oidc": "Okta",
+      "saml": "AD FS",
+      "ldap": "社内 Active Directory"
+    },
+    "key": "キー",
+    "keyHint": "URL で使用されます。英小文字、数字、「-」、「_」を使用でき、後から変更することはできません。",
+    "keyLocked": "キーは ID プロバイダーに登録された URL の一部であるため、変更できません。",
+    "secretStoredBadge": "保存済み",
+    "secretStored": "•••• 保存済み (維持する場合は空欄のまま)",
+    "secretKeep": "保存されている値を維持するには、空欄のままにします。シークレットは暗号化され、再表示されることはありません。",
+    "entra": {
+      "defaultName": "Microsoft Entra ID",
+      "tenantId": "ディレクトリ (テナント) ID",
+      "tenantHint": "GUID、または contoso.onmicrosoft.com などの確認済みドメインを指定します。",
+      "issuerPreview": "発行者: {issuer}",
+      "issuerOverride": "テナント ID から生成されます。ソブリン クラウドを使用する場合にのみ変更してください。",
+      "clientId": "アプリケーション (クライアント) ID",
+      "clientSecret": "クライアント シークレット",
+      "clientSecretHint": "[証明書とシークレット] に表示されるシークレットの [値] です (シークレット ID ではありません)。"
+    },
+    "oidc": {
+      "issuer": "発行者 URL",
+      "issuerHint": "設定は、この URL 配下の /.well-known/openid-configuration から検出されます。",
+      "clientId": "クライアント ID",
+      "clientSecret": "クライアント シークレット",
+      "clientSecretHint": "PKCE を使用するパブリック クライアントの場合にのみ、空欄にします。",
+      "scopes": "スコープ",
+      "allowedDomains": "許可するメール ドメイン",
+      "allowedDomainsHint": "これらのメール ドメインのユーザーのみがサインインできます。すべてのドメインを許可するには、空欄のままにします。"
+    },
+    "saml": {
+      "entryPoint": "シングル サインオン URL",
+      "entryPointHint": "サインイン時のユーザーの送信先です (IdP の SSO / SingleSignOnService URL)。",
+      "issuer": "このプラットフォームのエンティティ ID",
+      "issuerHint": "ID プロバイダーに登録された識別子 (audience) と一致する必要があります。",
+      "certificate": "ID プロバイダーの署名証明書",
+      "certificateHint": "IdP のメタデータにある PEM または Base64 形式の証明書です。署名された応答の検証に使用されます。",
+      "wantAssertionsSigned": "署名付きアサーションを必須にする",
+      "wantAssertionsSignedHint": "推奨設定です。アサーションが署名されていない応答を拒否します。"
+    },
+    "ldap": {
+      "url": "サーバー URL",
+      "urlHint": "パスワードが転送中に暗号化されるよう、ldaps:// (ポート 636) の使用をお勧めします。",
+      "bindDn": "サービス アカウント (バインド DN)",
+      "bindPassword": "サービス アカウントのパスワード",
+      "baseDn": "検索ベース (ベース DN)",
+      "baseDnHint": "このエントリ以下でユーザーが検索されます。",
+      "userFilter": "ユーザー フィルター",
+      "userFilterHint": "{token} は、ユーザーが入力したユーザー名に置き換えられます。",
+      "groupBaseDn": "グループの検索ベース",
+      "groupFilter": "グループ フィルター",
+      "verifyTls": "サーバー証明書を検証する",
+      "verifyTlsHint": "自己署名証明書でテストする場合にのみオフにしてください。"
+    },
+    "claimMapping": "クレーム マッピング",
+    "claimMappingHint": "各値を保持する ID トークンのクレームです。標準のクレーム名を使用する場合は、空欄のままにします。",
+    "attributeMapping": "属性マッピング",
+    "samlAttributeHint": "アサーションの属性名です。一般的な Microsoft / OASIS のクレーム URI を使用する場合は、空欄のままにします。",
+    "mapping": {
+      "email": "メール アドレス",
+      "name": "表示名",
+      "username": "ユーザー名",
+      "groups": "グループ",
+      "memberOf": "グループ メンバーシップ"
+    },
+    "provisioning": "プロビジョニング",
+    "jit": "初回サインイン時にユーザーを作成する",
+    "jitHint": "オフの場合、既にアカウントを持つユーザー (メール アドレスで照合) のみがサインインできます。",
+    "defaultDepartment": "既定の部署",
+    "noDefaultDepartment": "部署なし",
+    "defaultDepartmentHint": "このプロバイダー経由で作成されたユーザーに割り当てられます。",
+    "groupMappings": "グループ マッピング",
+    "groupMappingsHint": "プロバイダーから通知されたグループに基づいて、ユーザーをプラットフォームのグループに追加します。メンバーシップはサインインまたは同期のたびに更新されます。",
+    "externalValue": "プロバイダーからの値",
+    "mappedGroup": "プラットフォームのグループ",
+    "externalPlaceholder": {
+      "entra": "グループのオブジェクト ID",
+      "oidc": "グループ名または ID",
+      "saml": "グループ名",
+      "ldap": "CN=VPN-Users,OU=Groups,DC=corp,DC=example"
+    },
+    "chooseGroup": "グループを選択",
+    "unknownGroup": "不明なグループ",
+    "removeMapping": "マッピングを削除",
+    "addMapping": "マッピングを追加",
+    "directorySync": "ディレクトリ同期",
+    "syncEnabled": "スケジュールに従って同期する",
+    "syncEnabledHint": "ディレクトリからユーザーを作成および更新し、ディレクトリから削除されたユーザーを一時停止します。",
+    "syncSchedule": "スケジュール",
+    "syncPresets": "一般的なスケジュール",
+    "cronHint": "cron 式 (分 時 日 月 曜日) で指定します。サーバーのタイム ゾーンが適用されます。",
+    "display": "表示",
+    "displayOrder": "表示順",
+    "displayOrderHint": "数値が小さいほど、サインイン ページで先に表示されます。"
+  },
+  "validation": {
+    "required": "必須です。",
+    "invalid": "この値は無効です。",
+    "tooShort": "{min} 文字以上で入力してください。",
+    "tooLong": "{max} 文字以内で入力してください。",
+    "url": "https:// で始まる完全な URL を入力してください。",
+    "format": "想定された形式ではありません。",
+    "key": "英小文字、数字、「-」、「_」を使用し、英小文字または数字で始めてください。",
+    "keyTaken": "このキーは別のプロバイダーで既に使用されています。",
+    "ldapUrl": "ldap:// または ldaps:// で始まる必要があります。",
+    "certificate": "証明書全体を貼り付けてください。",
+    "chooseGroup": "グループを選択してください。",
+    "integer": "整数を入力してください。",
+    "cron": "5 つのフィールドから成る cron 式を入力してください (例: 0 */6 * * *)。"
+  }
+}

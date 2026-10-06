@@ -1,0 +1,50 @@
+# Postgres + Redis only — for running the API/worker/web on the host with `pnpm dev`.
+# (No Docker? `pnpm dev:services` starts an embedded equivalent on the same ports and credentials.)
+#
+#   docker compose -f infra/compose/docker-compose.dev.yml up -d
+#   pnpm db:migrate && pnpm db:seed && pnpm dev          # → http://localhost:3000
+#
+#   postgres://isbp:isbp@localhost:5432/isbp        app database
+#   postgres://isbp:isbp@localhost:5432/isbp_test   integration tests (created by initdb/)
+#   redis://localhost:6379
+#
+# DEVELOPMENT-ONLY credentials. Ports bind to 127.0.0.1 so the weak password is never reachable from
+# the network. Wipe all data with `docker compose -f infra/compose/docker-compose.dev.yml down -v`.
+
+name: isbp-dev
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: isbp
+      POSTGRES_PASSWORD: isbp
+      POSTGRES_DB: isbp
+    ports:
+      - '127.0.0.1:${DEV_PG_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    shm_size: 256mb
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U isbp -d isbp']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Ephemeral like `pnpm dev:services`; BullMQ requires the `noeviction` policy.
+    command: ['redis-server', '--save', '', '--appendonly', 'no', '--maxmemory-policy', 'noeviction']
+    ports:
+      - '127.0.0.1:${DEV_REDIS_PORT:-6379}:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

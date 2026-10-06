@@ -1,0 +1,103 @@
+{{- $c := .Values.api }}
+{{- $ctx := dict "root" . "component" "api" "values" $c }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "isbp.componentName" $ctx }}
+  labels:
+    {{- include "isbp.componentLabels" $ctx | nindent 4 }}
+spec:
+  {{- if not $c.autoscaling.enabled }}
+  replicas: {{ $c.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  {{- with $c.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "isbp.componentSelectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "isbp.componentLabels" $ctx | nindent 8 }}
+        {{- with $c.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- include "isbp.checksumAnnotations" . | nindent 8 }}
+        {{- with $c.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- include "isbp.podSpecCommon" $ctx | nindent 6 }}
+      containers:
+        - name: api
+          image: {{ include "isbp.image" (dict "root" . "image" $c.image) | quote }}
+          imagePullPolicy: {{ include "isbp.imagePullPolicy" (dict "root" . "image" $c.image) }}
+          command: ["node"]
+          args: ["--import", "./dist/telemetry.js", "dist/main.js"]
+          ports:
+            - name: http
+              containerPort: {{ $c.containerPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ $c.metricsPort }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: {{ $c.containerPort | toString | quote }}
+            - name: METRICS_PORT
+              value: {{ $c.metricsPort | toString | quote }}
+            - name: OTEL_SERVICE_NAME
+              value: isbp-api
+            {{- with $c.env }}
+            {{- include "isbp.envMap" . | trim | nindent 12 }}
+            {{- end }}
+            {{- with $c.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "isbp.fullname" . }}-config
+            - secretRef:
+                name: {{ include "isbp.secretName" . }}
+            {{- with $c.extraEnvFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with $c.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $c.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $c.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if $c.preStopSleepSeconds }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "{{ $c.preStopSleepSeconds }}"]
+          {{- end }}
+          resources:
+            {{- toYaml $c.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- with $c.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        {{- with $c.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}

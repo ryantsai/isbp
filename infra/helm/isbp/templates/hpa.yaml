@@ -1,0 +1,44 @@
+{{- range $component := list "api" "worker" "web" }}
+{{- $c := index $.Values $component }}
+{{- if $c.autoscaling.enabled }}
+{{- $ctx := dict "root" $ "component" $component }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "isbp.componentName" $ctx }}
+  labels:
+    {{- include "isbp.componentLabels" $ctx | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "isbp.componentName" $ctx }}
+  minReplicas: {{ $c.autoscaling.minReplicas }}
+  maxReplicas: {{ $c.autoscaling.maxReplicas }}
+  {{- if not (or $c.autoscaling.targetCPUUtilizationPercentage $c.autoscaling.targetMemoryUtilizationPercentage) }}
+  {{- fail (printf "%s.autoscaling needs targetCPUUtilizationPercentage and/or targetMemoryUtilizationPercentage" $component) }}
+  {{- end }}
+  metrics:
+    {{- with $c.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+    {{- with $c.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+  {{- with $c.autoscaling.behavior }}
+  behavior:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

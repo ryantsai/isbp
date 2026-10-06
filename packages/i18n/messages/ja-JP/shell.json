@@ -1,0 +1,38 @@
+{
+  "skipToContent": "メイン コンテンツにスキップ",
+  "toggleSidebar": "サイドバーの切り替え",
+  "openNavigation": "ナビゲーションを開く",
+  "searchPlaceholder": "検索またはジャンプ…",
+  "searchShortcut": "検索",
+  "commandPalette": {
+    "placeholder": "コマンドを入力するか、ユーザー、グループ、ロールを検索…",
+    "navigate": "移動",
+    "actions": "操作",
+    "results": "検索結果",
+    "searching": "検索しています…",
+    "empty": "一致する項目はありません。",
+    "toggleTheme": "ライト / ダーク テーマの切り替え",
+    "changeLanguage": "言語の変更",
+    "signOut": "サインアウト",
+    "createUser": "ユーザーを作成",
+    "openApiDocs": "API ドキュメントを開く"
+  },
+  "theme": {
+    "label": "テーマ",
+    "light": "ライト",
+    "dark": "ダーク",
+    "system": "システム設定に従う"
+  },
+  "language": "言語",
+  "profile": "プロファイルと設定",
+  "signOut": "サインアウト",
+  "apiDocs": "API ドキュメント",
+  "breadcrumbHome": "ホーム",
+  "moduleNotFound": "このページは存在しないか、モジュールが無効になっています。",
+  "forbidden": "このページへのアクセス権がありません。",
+  "notFoundTitle": "ページが見つかりません",
+  "notFoundBody": "お探しのページは存在しないか、移動された可能性があります。",
+  "goHome": "ダッシュボードに移動",
+  "errorTitle": "問題が発生しました",
+  "errorBody": "予期しないエラーが発生しました。詳細はログに記録されています。"
+}

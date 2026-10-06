@@ -1,0 +1,199 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* Workspace packages and modules render Tailwind classes too. */
+@source '../../../../packages/ui/src';
+@source '../../../../modules';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+
+  --background: oklch(0.985 0.003 264);
+  --foreground: oklch(0.2 0.02 264);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 264);
+  --primary: oklch(0.51 0.2 268);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.955 0.008 264);
+  --secondary-foreground: oklch(0.25 0.03 264);
+  --muted: oklch(0.96 0.005 264);
+  --muted-foreground: oklch(0.48 0.02 264);
+  --accent: oklch(0.955 0.014 268);
+  --accent-foreground: oklch(0.27 0.06 268);
+  --destructive: oklch(0.58 0.22 27);
+  --success: oklch(0.56 0.14 155);
+  --warning: oklch(0.76 0.15 75);
+  --warning-foreground: oklch(0.45 0.11 60);
+  --info: oklch(0.56 0.13 240);
+  --border: oklch(0.915 0.006 264);
+  --input: oklch(0.885 0.008 264);
+  --ring: oklch(0.6 0.16 268);
+
+  --sidebar: oklch(0.975 0.004 264);
+  --sidebar-foreground: oklch(0.3 0.02 264);
+  --sidebar-accent: oklch(0.93 0.012 268);
+  --sidebar-accent-foreground: oklch(0.22 0.04 268);
+  --sidebar-border: oklch(0.91 0.006 264);
+
+  /* Validated with the dataviz palette checker (CVD + contrast) for light and dark surfaces. */
+  --chart-1: oklch(0.53 0.19 268);
+  --chart-2: oklch(0.62 0.12 195);
+  --chart-3: oklch(0.72 0.15 75);
+  --chart-4: oklch(0.62 0.18 330);
+  --chart-5: oklch(0.6 0.14 150);
+
+  /* CJK glyphs fall through Geist to platform fonts tuned per script. */
+  --font-cjk:
+    'PingFang TC', 'Hiragino Sans', 'Noto Sans CJK TC', 'Noto Sans TC', 'Microsoft JhengHei', 'Yu Gothic UI',
+    sans-serif;
+}
+
+:lang(zh-Hant-TW) {
+  --font-cjk: 'PingFang TC', 'Noto Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', sans-serif;
+}
+
+:lang(ja) {
+  --font-cjk:
+    'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Noto Sans CJK JP', 'Yu Gothic UI',
+    'Meiryo', sans-serif;
+}
+
+.dark {
+  --background: oklch(0.155 0.008 264);
+  --foreground: oklch(0.96 0.005 264);
+  --card: oklch(0.195 0.01 264);
+  --card-foreground: oklch(0.96 0.005 264);
+  --popover: oklch(0.21 0.011 264);
+  --popover-foreground: oklch(0.96 0.005 264);
+  --primary: oklch(0.7 0.15 268);
+  --primary-foreground: oklch(0.17 0.03 268);
+  --secondary: oklch(0.26 0.012 264);
+  --secondary-foreground: oklch(0.95 0.005 264);
+  --muted: oklch(0.25 0.01 264);
+  --muted-foreground: oklch(0.71 0.015 264);
+  --accent: oklch(0.27 0.025 268);
+  --accent-foreground: oklch(0.95 0.01 268);
+  --destructive: oklch(0.68 0.19 22);
+  --success: oklch(0.74 0.15 155);
+  --warning: oklch(0.8 0.14 80);
+  --warning-foreground: oklch(0.86 0.12 85);
+  --info: oklch(0.74 0.12 235);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.62 0.14 268);
+
+  --sidebar: oklch(0.175 0.009 264);
+  --sidebar-foreground: oklch(0.86 0.01 264);
+  --sidebar-accent: oklch(0.255 0.02 268);
+  --sidebar-accent-foreground: oklch(0.97 0.01 268);
+  --sidebar-border: oklch(1 0 0 / 8%);
+
+  --chart-1: oklch(0.66 0.15 268);
+  --chart-2: oklch(0.66 0.11 190);
+  --chart-3: oklch(0.8 0.13 80);
+  --chart-4: oklch(0.72 0.15 330);
+  --chart-5: oklch(0.72 0.13 150);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), var(--font-cjk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  :lang(zh-Hant-TW) body,
+  :lang(ja) body {
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+  ::selection {
+    @apply bg-primary/20;
+  }
+}
+
+/* Subtle shimmer for skeletons; static under reduced motion. */
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklch, var(--foreground) 6%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

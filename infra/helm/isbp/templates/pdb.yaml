@@ -1,0 +1,23 @@
+{{- range $component := list "api" "worker" "web" }}
+{{- $c := index $.Values $component }}
+{{- if $c.pdb.enabled }}
+{{- $ctx := dict "root" $ "component" $component }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "isbp.componentName" $ctx }}
+  labels:
+    {{- include "isbp.componentLabels" $ctx | nindent 4 }}
+spec:
+  {{- if not (kindIs "invalid" $c.pdb.minAvailable) }}
+  minAvailable: {{ $c.pdb.minAvailable }}
+  {{- else }}
+  # maxUnavailable (rather than minAvailable) never blocks node drains of single-replica components.
+  maxUnavailable: {{ $c.pdb.maxUnavailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "isbp.componentSelectorLabels" $ctx | nindent 6 }}
+{{- end }}
+{{- end }}

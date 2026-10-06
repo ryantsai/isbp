@@ -1,0 +1,105 @@
+{{- $c := .Values.web }}
+{{- $ctx := dict "root" . "component" "web" "values" $c }}
+{{- $apiUrl := $c.apiInternalUrl | default (printf "http://%s:%v" (include "isbp.componentName" (dict "root" . "component" "api")) .Values.api.service.port) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "isbp.componentName" $ctx }}
+  labels:
+    {{- include "isbp.componentLabels" $ctx | nindent 4 }}
+spec:
+  {{- if not $c.autoscaling.enabled }}
+  replicas: {{ $c.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  {{- with $c.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "isbp.componentSelectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "isbp.componentLabels" $ctx | nindent 8 }}
+        {{- with $c.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $c.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "isbp.podSpecCommon" $ctx | nindent 6 }}
+      containers:
+        - name: web
+          image: {{ include "isbp.image" (dict "root" . "image" $c.image) | quote }}
+          imagePullPolicy: {{ include "isbp.imagePullPolicy" (dict "root" . "image" $c.image) }}
+          command: ["node"]
+          args: ["apps/web/server.js"]
+          ports:
+            - name: http
+              containerPort: {{ $c.containerPort }}
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: {{ $c.containerPort | toString | quote }}
+            # Kubernetes sets HOSTNAME to the pod name; the Next.js standalone server binds to $HOSTNAME.
+            - name: HOSTNAME
+              value: "0.0.0.0"
+            - name: API_INTERNAL_URL
+              value: {{ $apiUrl | quote }}
+            {{- with $c.env }}
+            {{- include "isbp.envMap" . | trim | nindent 12 }}
+            {{- end }}
+            {{- with $c.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with $c.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $c.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $c.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $c.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if $c.preStopSleepSeconds }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "{{ $c.preStopSleepSeconds }}"]
+          {{- end }}
+          resources:
+            {{- toYaml $c.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            # Next.js writes its cache (image optimisation, fetch cache) here; the rest of / is read-only.
+            - name: next-cache
+              mountPath: /app/apps/web/.next/cache
+            {{- with $c.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: next-cache
+          emptyDir:
+            sizeLimit: {{ $c.cacheSizeLimit | default "512Mi" }}
+        {{- with $c.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}

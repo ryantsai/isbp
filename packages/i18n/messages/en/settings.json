@@ -1,0 +1,104 @@
+{
+  "title": "Profile & preferences",
+  "description": "How you appear to others, how the platform looks for you, and how your account is secured.",
+  "nav": {
+    "label": "Settings sections",
+    "profile": "Profile",
+    "preferences": "Preferences",
+    "security": "Password",
+    "sessions": "Sessions",
+    "access": "My access"
+  },
+  "profile": {
+    "title": "Profile",
+    "description": "Your display name is shown across the platform, for example in the people directory and audit log.",
+    "displayName": "Display name",
+    "username": "Username",
+    "signIn": "Signs in with",
+    "saved": "Profile updated",
+    "managedHint": "Email, username and department are managed by your organisation. Contact IT support to change them."
+  },
+  "preferences": {
+    "title": "Preferences",
+    "description": "These follow you to every device you sign in on.",
+    "language": {
+      "label": "Language",
+      "hint": "Used for menus, messages and emails."
+    },
+    "theme": {
+      "hint": "System follows your device's light or dark setting."
+    },
+    "timezone": {
+      "label": "Time zone",
+      "hint": "Dates and times are shown in this time zone.",
+      "search": "Search time zones…",
+      "noMatch": "No matching time zone.",
+      "saved": "Time zone set to {zone}",
+      "useBrowser": "Use this device's time zone ({zone})"
+    }
+  },
+  "password": {
+    "title": "Password",
+    "description": "Change the password you use to sign in with your local account.",
+    "current": "Current password",
+    "new": "New password",
+    "confirm": "Confirm new password",
+    "submit": "Change password",
+    "signOutNote": "Your other sessions will be signed out.",
+    "changed": "Password changed. Your other sessions were signed out.",
+    "wrongCurrent": "That's not your current password.",
+    "mismatch": "The passwords don't match.",
+    "mustChange": "Your administrator asked you to choose a new password.",
+    "rules": {
+      "label": "Password requirements",
+      "length": "At least {min} characters",
+      "variety": "Not too repetitive (at least 5 different characters)",
+      "match": "Both new passwords match",
+      "met": "met",
+      "notMet": "not met yet"
+    },
+    "external": {
+      "title": "You sign in through your organisation",
+      "body": "Your password is managed by your organisation's identity provider. Change it there, or contact IT support."
+    }
+  },
+  "sessions": {
+    "title": "Active sessions",
+    "description": "Devices and browsers that are signed in to your account. Sign out any you don't recognise.",
+    "device": "{browser} on {os}",
+    "unknownDevice": "Unknown device",
+    "thisDevice": "This device",
+    "activeNow": "Active now",
+    "lastActive": "Last active {time}",
+    "signedIn": "Signed in {date}",
+    "revoke": "Sign out",
+    "revokeLabel": "Sign out {device}",
+    "revoked": "Session signed out",
+    "revokeOthers": "Sign out other sessions",
+    "revokeOthersTitle": "Sign out everywhere else?",
+    "revokeOthersBody": "{count, plural, one {# other session will be signed out. This device stays signed in.} other {# other sessions will be signed out. This device stays signed in.}}",
+    "revokedOthers": "{count, plural, one {# session signed out} other {# sessions signed out}}"
+  },
+  "access": {
+    "title": "My access",
+    "description": "Roles you hold and how you got them. Ask an administrator if something is missing.",
+    "summary": "{roles, plural, one {# role} other {# roles}} · {permissions, plural, one {# permission} other {# permissions}}",
+    "none": "You don't have any roles yet.",
+    "permissionCount": "{count, plural, one {# permission} other {# permissions}}",
+    "allPermissions": "All permissions",
+    "expires": "Until {date}",
+    "via": {
+      "direct": "Assigned to you",
+      "group": "Via {group}",
+      "everyone": "Everyone"
+    }
+  },
+  "validation": {
+    "required": "Required.",
+    "invalid": "This value isn't valid.",
+    "tooShort": "Use at least {min} characters.",
+    "tooLong": "Use at most {max} characters.",
+    "url": "Enter a full URL.",
+    "format": "This doesn't have the expected format."
+  }
+}

@@ -1,0 +1,89 @@
+{{- if .Values.migrations.enabled }}
+{{- $m := .Values.migrations }}
+{{- $ctx := dict "root" . "component" "migrate" }}
+{{- $image := include "isbp.image" (dict "root" . "image" .Values.api.image) }}
+{{- $pullPolicy := include "isbp.imagePullPolicy" (dict "root" . "image" .Values.api.image) }}
+{{- /* Env is rendered inline: the release ConfigMap may not exist yet (first install) or be stale (upgrade). */}}
+{{- $migrate := include "isbp.migrateContainerBody" (dict "root" . "service" "isbp-migrate") }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "isbp.componentName" $ctx }}
+  labels:
+    {{- include "isbp.componentLabels" $ctx | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ $m.backoffLimit }}
+  activeDeadlineSeconds: {{ $m.activeDeadlineSeconds }}
+  {{- with $m.ttlSecondsAfterFinished }}
+  ttlSecondsAfterFinished: {{ . }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "isbp.componentLabels" $ctx | nindent 8 }}
+        {{- with $m.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $m.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ $m.serviceAccountName | default "default" }}
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with $m.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with $m.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $m.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $m.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $m.seedDemoData }}
+      # Demo data is loaded after (and only if) the migrations succeed.
+      initContainers:
+        - name: migrate
+          image: {{ $image | quote }}
+          imagePullPolicy: {{ $pullPolicy }}
+          command: ["node"]
+          args: ["dist/migrate.js"]
+          {{- $migrate | nindent 10 }}
+      containers:
+        - name: seed
+          image: {{ $image | quote }}
+          imagePullPolicy: {{ $pullPolicy }}
+          command: ["node"]
+          args: ["dist/seed.js"]
+          {{- include "isbp.migrateContainerBody" (dict "root" . "service" "isbp-seed") | nindent 10 }}
+      {{- else }}
+      containers:
+        - name: migrate
+          image: {{ $image | quote }}
+          imagePullPolicy: {{ $pullPolicy }}
+          command: ["node"]
+          args: ["dist/migrate.js"]
+          {{- $migrate | nindent 10 }}
+      {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+{{- end }}

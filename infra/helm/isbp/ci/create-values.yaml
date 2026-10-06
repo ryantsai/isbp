@@ -1,0 +1,37 @@
+# Values for `helm lint` / `helm template` / chart-testing (ct) — NOT for real deployments.
+# Exercises secrets.mode=create plus every optional feature.
+secrets:
+  mode: create
+  values:
+    DATABASE_URL: postgres://isbp:isbp@postgres:5432/isbp
+    REDIS_URL: redis://redis:6379
+    # 32 zero bytes — a placeholder, never use it.
+    ISBP_MASTER_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+    SEED_ADMIN_PASSWORD: ci-only-admin-password
+
+ingress:
+  enabled: true
+  className: nginx
+  host: isbp.ci.local
+  tls:
+    enabled: true
+
+api:
+  autoscaling:
+    enabled: true
+  env:
+    LOG_LEVEL: debug
+web:
+  autoscaling:
+    enabled: true
+
+migrations:
+  seedDemoData: true
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: kube-prometheus-stack
+
+networkPolicy:
+  enabled: true

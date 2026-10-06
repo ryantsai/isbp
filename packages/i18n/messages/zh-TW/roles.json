@@ -1,0 +1,230 @@
+{
+  "title": "角色與存取權",
+  "description": "決定人員可以執行哪些操作，再加以授予——可套用於全域、單一部門或單一記錄。",
+  "newRole": "新增角色",
+  "grantRole": "授予角色",
+  "searchRoles": "搜尋角色…",
+  "systemRoles": "系統角色",
+  "systemRolesHint": "由模組定義，且為唯讀。建立複本即可自訂。",
+  "customRoles": "自訂角色",
+  "customRolesHint": "由貴組織建立。",
+  "noRolesMatch": "沒有符合「{q}」的角色",
+  "noCustomRoles": {
+    "title": "尚無自訂角色",
+    "description": "將團隊所需的權限精確組合成角色，再授予人員或群組。"
+  },
+  "tabs": {
+    "roles": "角色",
+    "assignments": "指派"
+  },
+  "badges": {
+    "system": "系統",
+    "custom": "自訂",
+    "module": "模組：{module}"
+  },
+  "card": {
+    "permissions": "{count, plural, =0 {沒有權限} one {# 項權限} other {# 項權限}}",
+    "assignments": "{count, plural, =0 {未指派} one {# 個有效指派} other {# 個有效指派}}",
+    "more": "+{count} 項",
+    "noDescription": "沒有描述",
+    "fullAccess": "*（全部）"
+  },
+  "resources": {
+    "core": {
+      "users": "人員",
+      "groups": "群組",
+      "departments": "部門",
+      "roles": "角色",
+      "audit": "稽核日誌",
+      "modules": "模組",
+      "idp": "登入提供者"
+    }
+  },
+  "permissions": {
+    "patterns": "萬用字元及其他模式",
+    "covers": "{count, plural, =0 {尚未符合任何權限} one {涵蓋 # 項權限} other {涵蓋 # 項權限}}",
+    "notInCatalog": "不在權限清單中",
+    "removePattern": "移除 {pattern}",
+    "filter": "篩選權限…",
+    "emptyCatalog": "尚未註冊任何權限。",
+    "selectModule": "授予 {module} 中的所有權限",
+    "selectResource": "授予 {resource} 的所有權限",
+    "selectedOf": "{count}/{total}",
+    "scopes": "支援的範圍",
+    "notHeld": "您本身未擁有此權限，因此無法授予。",
+    "impliedBy": "已由 <code>{pattern}</code> 涵蓋",
+    "granted": "已授予",
+    "notGranted": "未授予",
+    "selectAllHint": "選取 {pattern}，包括日後新增至其中的權限",
+    "advanced": "新增自訂模式",
+    "addPattern": "權限模式",
+    "patternHint": "module.resource.action，任一段皆可使用 *，例如 core.users.* 或 *.*.read。",
+    "patternInvalid": "這不是有效的模式。請使用 module.resource.action 格式，並可搭配 * 萬用字元。",
+    "patternExists": "此角色已有該模式。",
+    "patternNotHeld": "您只能授予自己擁有的權限。"
+  },
+  "form": {
+    "createTitle": "新增角色",
+    "duplicateTitle": "建立角色複本",
+    "editTitle": "編輯 {name}",
+    "createDescription": "角色是一組權限的集合，建立後即可授予人員或群組。",
+    "editDescription": "所有變更都會記錄在稽核日誌中。",
+    "sections": {
+      "details": "詳細資料",
+      "permissions": "權限"
+    },
+    "name": "名稱",
+    "namePlaceholder": "例如：服務台專員",
+    "key": "索引鍵",
+    "keyHint": "供整合服務使用的固定識別碼。可使用小寫英文字母、數字、「-」及「_」。",
+    "description": "描述",
+    "descriptionPlaceholder": "這個角色適用於哪些人？",
+    "permissionsHint": "先從最少的權限開始，之後隨時都能變更。",
+    "permissionsInvalid": "有一或多個權限模式無效。",
+    "selected": "{count, plural, =0 {未選取任何項目} one {已選取 # 項} other {已選取 # 項}}",
+    "submit": "建立角色",
+    "created": "已建立角色「{name}」",
+    "saved": "已儲存變更"
+  },
+  "grant": {
+    "title": "授予角色",
+    "description": "將角色中的權限授予人員或群組。每次授予都會記錄在稽核日誌中。",
+    "role": "角色",
+    "rolePlaceholder": "選擇角色",
+    "roleNotHeld": "包含您未擁有的權限",
+    "to": "授予對象",
+    "principalType": "授予人員或群組",
+    "person": "人員",
+    "group": "群組",
+    "userPlaceholder": "搜尋人員…",
+    "groupPlaceholder": "搜尋群組…",
+    "userHint": "只有此人員會獲得該角色。",
+    "groupHint": "群組中的每位成員都會獲得該角色，包括日後加入的人員。",
+    "duration": "存取期限",
+    "expiry": {
+      "never": "永久",
+      "7": "7 天",
+      "30": "30 天",
+      "90": "90 天",
+      "custom": "自訂日期…"
+    },
+    "customDate": "結束日期",
+    "endsAt": "存取權將於 {date} 結束。",
+    "permanentHint": "存取權會持續有效，直到有人撤銷為止。臨時需求建議改用有期限的存取權。",
+    "reason": "原因",
+    "reasonPlaceholder": "例如：上線期間支援服務台（CHG-1042）",
+    "reasonHint": "會記錄在稽核日誌中，並顯示給其他管理員。",
+    "limitScope": "限定於部門或記錄",
+    "scope": "範圍",
+    "scopeHint": {
+      "global": "此角色在全域生效。",
+      "department": "適用於該部門及其子部門，僅限支援部門範圍的權限。",
+      "record": "僅適用於單一記錄（例如單一群組），僅限支援記錄範圍的權限。"
+    },
+    "chooseDepartment": "選擇部門",
+    "recordType": "記錄類型",
+    "recordId": "記錄 ID",
+    "submit": "授予存取權",
+    "granted": "已將 {role} 授予 {name}",
+    "validation": {
+      "role": "請選擇角色。",
+      "user": "請選擇人員。",
+      "group": "請選擇群組。",
+      "department": "請選擇部門。",
+      "recordType": "請輸入記錄類型。",
+      "recordId": "請輸入記錄 ID。",
+      "date": "請選擇結束日期。",
+      "future": "結束日期必須是未來的日期。",
+      "reason": "原因不得超過 500 個字元。"
+    }
+  },
+  "groupPicker": {
+    "placeholder": "選擇群組",
+    "search": "搜尋群組…",
+    "members": "{count, plural, =0 {沒有成員} one {# 位成員} other {# 位成員}}"
+  },
+  "scope": {
+    "global": "全域",
+    "department": "部門：{name}",
+    "record": "記錄：{record}"
+  },
+  "expiry": {
+    "never": "永不到期",
+    "expired": "已到期",
+    "soon": "即將到期"
+  },
+  "principal": {
+    "user": "人員",
+    "group": "群組"
+  },
+  "revoke": {
+    "title": "要撤銷 {name} 的 {role} 嗎？",
+    "body": "{name} 將立即失去此角色中的權限。此動作會記錄在稽核日誌中。",
+    "bodyGroup": "{name} 中的每位成員都將立即失去此角色中的權限，除非他們透過其他方式擁有該角色。此動作會記錄在稽核日誌中。",
+    "scope": "範圍：",
+    "confirm": "撤銷",
+    "done": "已撤銷 {name} 的 {role}"
+  },
+  "assignments": {
+    "label": "角色指派",
+    "searchPlaceholder": "搜尋人員、群組或角色…",
+    "columns": {
+      "principal": "授予對象",
+      "role": "角色",
+      "scope": "範圍",
+      "expires": "到期時間",
+      "grantedBy": "授予者",
+      "grantedAt": "授予時間"
+    },
+    "filters": {
+      "role": "角色",
+      "allRoles": "所有角色",
+      "includeExpired": "包含已到期"
+    },
+    "revoke": "撤銷",
+    "revokeLabel": "撤銷 {name} 的 {role}",
+    "empty": {
+      "title": "尚未將角色授予任何人",
+      "description": "使用「授予角色」為人員或群組提供存取權。",
+      "filtered": "沒有符合這些篩選條件的指派",
+      "filteredHint": "請嘗試其他搜尋條件，或清除篩選條件。"
+    }
+  },
+  "detail": {
+    "notFound": "此角色不存在或已被刪除。",
+    "more": "更多動作",
+    "duplicate": "建立複本",
+    "copyOf": "{name} 的複本",
+    "systemTitle": "系統角色。",
+    "systemNotice": "此角色由模組定義並與其保持同步，因此無法編輯。建立複本即可取得可編輯的版本。",
+    "permissions": "權限",
+    "permissionsHint": "勾選個別權限，或選取整個模組或資源，以萬用字元一併授予。",
+    "permissionsReadOnly": "擁有此角色的人可以執行的操作。",
+    "unsavedRegion": "未儲存的權限變更",
+    "unsaved": "{count, plural, one {# 項未儲存的變更} other {# 項未儲存的變更}}",
+    "added": "{count, plural, one {新增 # 項} other {新增 # 項}}",
+    "removed": "{count, plural, one {移除 # 項} other {移除 # 項}}",
+    "blocked": "此角色包含您未擁有的權限，因此無法儲存：{permissions}",
+    "discard": "捨棄",
+    "saved": "已儲存權限",
+    "deleted": "已刪除角色「{name}」",
+    "deleteTitle": "要刪除 {name} 嗎？",
+    "deleteBody": "此角色將被永久移除。此動作會記錄在稽核日誌中。",
+    "deleteBodyAssigned": "此角色及其 {count, plural, one {# 個指派} other {# 個指派}}將被永久移除。此動作會記錄在稽核日誌中。",
+    "deleteWarning": "{count, plural, one {# 個人員或群組} other {# 個人員或群組}}將立即失去這些權限。",
+    "deleteConfirm": "刪除角色",
+    "assignments": "擁有此角色的對象",
+    "assignmentsHint": "目前授予人員及群組的有效指派。",
+    "grant": "授予",
+    "noAssignments": "尚未授予任何人",
+    "viewAll": "檢視全部 {count} 個",
+    "manageAssignments": "管理指派"
+  },
+  "errors": {
+    "escalation": "您無法授予自己未擁有的權限：{permissions}",
+    "ownAdmin": "您無法移除自己的平台管理員角色，請洽詢其他管理員。",
+    "offboarded": "此人員已離職停用，無法授予角色。",
+    "systemReadOnly": "系統角色由模組定義，無法變更。",
+    "keyTaken": "已有使用此索引鍵的角色。"
+  }
+}

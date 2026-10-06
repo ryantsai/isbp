@@ -1,0 +1,230 @@
+{
+  "title": "ロールとアクセス",
+  "description": "ユーザーが実行できる操作を定義し、全体、特定の部署、または単一のレコードを対象に付与します。",
+  "newRole": "新しいロール",
+  "grantRole": "ロールを付与",
+  "searchRoles": "ロールを検索…",
+  "systemRoles": "システム ロール",
+  "systemRolesHint": "モジュールによって定義され、読み取り専用です。カスタマイズするには複製してください。",
+  "customRoles": "カスタム ロール",
+  "customRolesHint": "組織で作成したロールです。",
+  "noRolesMatch": "「{q}」に一致するロールはありません",
+  "noCustomRoles": {
+    "title": "カスタム ロールはまだありません",
+    "description": "チームに必要な権限だけをロールにまとめ、ユーザーやグループに付与します。"
+  },
+  "tabs": {
+    "roles": "ロール",
+    "assignments": "割り当て"
+  },
+  "badges": {
+    "system": "システム",
+    "custom": "カスタム",
+    "module": "モジュール: {module}"
+  },
+  "card": {
+    "permissions": "{count, plural, =0 {権限なし} one {# 個の権限} other {# 個の権限}}",
+    "assignments": "{count, plural, =0 {未割り当て} one {# 件の有効な割り当て} other {# 件の有効な割り当て}}",
+    "more": "+{count} 件",
+    "noDescription": "説明なし",
+    "fullAccess": "* (すべて)"
+  },
+  "resources": {
+    "core": {
+      "users": "ユーザー",
+      "groups": "グループ",
+      "departments": "部署",
+      "roles": "ロール",
+      "audit": "監査ログ",
+      "modules": "モジュール",
+      "idp": "サインイン プロバイダー"
+    }
+  },
+  "permissions": {
+    "patterns": "ワイルドカードとその他のパターン",
+    "covers": "{count, plural, =0 {まだ何にも一致しません} one {# 個の権限が対象} other {# 個の権限が対象}}",
+    "notInCatalog": "カタログにありません",
+    "removePattern": "{pattern} を除外",
+    "filter": "権限をフィルター…",
+    "emptyCatalog": "登録されている権限はまだありません。",
+    "selectModule": "{module} のすべてを付与",
+    "selectResource": "{resource} のすべてを付与",
+    "selectedOf": "{count} / {total}",
+    "scopes": "サポートされるスコープ",
+    "notHeld": "この権限は自分が保持していないため、付与できません。",
+    "impliedBy": "<code>{pattern}</code> に含まれます",
+    "granted": "付与済み",
+    "notGranted": "未付与",
+    "selectAllHint": "{pattern} を選択します (後から追加される権限も含まれます)",
+    "advanced": "カスタム パターンを追加",
+    "addPattern": "権限パターン",
+    "patternHint": "module.resource.action の形式です。任意のセグメントに * を使用できます (例: core.users.* や *.*.read)。",
+    "patternInvalid": "有効なパターンではありません。module.resource.action の形式で、必要に応じて * ワイルドカードを使用してください。",
+    "patternExists": "このロールには既にそのパターンがあります。",
+    "patternNotHeld": "付与できるのは、自分が保持している権限のみです。"
+  },
+  "form": {
+    "createTitle": "新しいロール",
+    "duplicateTitle": "ロールの複製",
+    "editTitle": "{name} の編集",
+    "createDescription": "ロールは権限をまとめたものです。作成後にユーザーやグループに付与します。",
+    "editDescription": "変更内容は監査ログに記録されます。",
+    "sections": {
+      "details": "詳細",
+      "permissions": "権限"
+    },
+    "name": "名前",
+    "namePlaceholder": "例: サービス デスク担当者",
+    "key": "キー",
+    "keyHint": "連携機能で使用される不変の識別子です。英小文字、数字、「-」、「_」を使用できます。",
+    "description": "説明",
+    "descriptionPlaceholder": "このロールの対象者を入力してください",
+    "permissionsHint": "まずは最小限から始めましょう。権限はいつでも変更できます。",
+    "permissionsInvalid": "無効な権限パターンが 1 つ以上あります。",
+    "selected": "{count, plural, =0 {選択なし} one {# 件を選択中} other {# 件を選択中}}",
+    "submit": "ロールを作成",
+    "created": "ロール「{name}」を作成しました",
+    "saved": "変更を保存しました"
+  },
+  "grant": {
+    "title": "ロールの付与",
+    "description": "ロールに含まれる権限をユーザーまたはグループに付与します。すべての付与は監査ログに記録されます。",
+    "role": "ロール",
+    "rolePlaceholder": "ロールを選択",
+    "roleNotHeld": "自分が保持していない権限を含みます",
+    "to": "付与先",
+    "principalType": "ユーザーまたはグループに付与",
+    "person": "ユーザー",
+    "group": "グループ",
+    "userPlaceholder": "ユーザーを検索…",
+    "groupPlaceholder": "グループを検索…",
+    "userHint": "このユーザーのみにロールが付与されます。",
+    "groupHint": "グループの全員にロールが付与されます。後から参加したユーザーも含まれます。",
+    "duration": "アクセス期間",
+    "expiry": {
+      "never": "無期限",
+      "7": "7 日間",
+      "30": "30 日間",
+      "90": "90 日間",
+      "custom": "期限を指定…"
+    },
+    "customDate": "終了日",
+    "endsAt": "アクセスは {date} に終了します。",
+    "permanentHint": "取り消されるまでアクセスが継続します。一時的な用途には期限付きのアクセスをお勧めします。",
+    "reason": "理由",
+    "reasonPlaceholder": "例: 展開期間中のサービス デスク対応 (CHG-1042)",
+    "reasonHint": "監査ログに記録され、他の管理者にも表示されます。",
+    "limitScope": "部署またはレコードに限定",
+    "scope": "スコープ",
+    "scopeHint": {
+      "global": "ロールはすべての対象に適用されます。",
+      "department": "部署スコープをサポートする権限について、その部署と下位部署の範囲内で適用されます。",
+      "record": "レコード スコープをサポートする権限について、1 つのレコード (例: 単一のグループ) のみに適用されます。"
+    },
+    "chooseDepartment": "部署を選択",
+    "recordType": "レコードの種類",
+    "recordId": "レコード ID",
+    "submit": "アクセスを付与",
+    "granted": "{name} に {role} を付与しました",
+    "validation": {
+      "role": "ロールを選択してください。",
+      "user": "ユーザーを選択してください。",
+      "group": "グループを選択してください。",
+      "department": "部署を選択してください。",
+      "recordType": "レコードの種類を入力してください。",
+      "recordId": "レコード ID を入力してください。",
+      "date": "終了日を選択してください。",
+      "future": "終了日には将来の日付を指定してください。",
+      "reason": "理由は 500 文字以内で入力してください。"
+    }
+  },
+  "groupPicker": {
+    "placeholder": "グループを選択",
+    "search": "グループを検索…",
+    "members": "{count, plural, =0 {メンバーなし} one {メンバー # 人} other {メンバー # 人}}"
+  },
+  "scope": {
+    "global": "グローバル",
+    "department": "部署: {name}",
+    "record": "レコード: {record}"
+  },
+  "expiry": {
+    "never": "無期限",
+    "expired": "期限切れ",
+    "soon": "まもなく期限切れ"
+  },
+  "principal": {
+    "user": "ユーザー",
+    "group": "グループ"
+  },
+  "revoke": {
+    "title": "{name} から {role} を取り消しますか?",
+    "body": "{name} はこのロールの権限を直ちに失います。この操作は監査ログに記録されます。",
+    "bodyGroup": "{name} の全員が、他の経路で付与されていない限り、このロールの権限を直ちに失います。この操作は監査ログに記録されます。",
+    "scope": "スコープ:",
+    "confirm": "取り消し",
+    "done": "{name} から {role} を取り消しました"
+  },
+  "assignments": {
+    "label": "ロールの割り当て",
+    "searchPlaceholder": "ユーザー、グループ、ロールで検索…",
+    "columns": {
+      "principal": "付与先",
+      "role": "ロール",
+      "scope": "スコープ",
+      "expires": "有効期限",
+      "grantedBy": "付与者",
+      "grantedAt": "付与日時"
+    },
+    "filters": {
+      "role": "ロール",
+      "allRoles": "すべてのロール",
+      "includeExpired": "期限切れを含める"
+    },
+    "revoke": "取り消し",
+    "revokeLabel": "{name} から {role} を取り消す",
+    "empty": {
+      "title": "まだ誰にもロールが付与されていません",
+      "description": "「ロールを付与」を使用して、ユーザーまたはグループにアクセス権を付与します。",
+      "filtered": "これらのフィルターに一致する割り当てはありません",
+      "filteredHint": "検索条件を変更するか、フィルターをクリアしてください。"
+    }
+  },
+  "detail": {
+    "notFound": "このロールは存在しないか、削除されました。",
+    "more": "その他の操作",
+    "duplicate": "複製",
+    "copyOf": "{name} のコピー",
+    "systemTitle": "システム ロールです。",
+    "systemNotice": "モジュールによって定義され、モジュールと同期されているため、編集できません。複製すると、編集可能なコピーを作成できます。",
+    "permissions": "権限",
+    "permissionsHint": "個々の権限をオンにするか、モジュールまたはリソース全体を選択してワイルドカードで付与します。",
+    "permissionsReadOnly": "このロールを持つユーザーが実行できる操作です。",
+    "unsavedRegion": "未保存の権限の変更",
+    "unsaved": "{count, plural, one {未保存の変更 # 件} other {未保存の変更 # 件}}",
+    "added": "{count, plural, one {+# 件追加} other {+# 件追加}}",
+    "removed": "{count, plural, one {−# 件除外} other {−# 件除外}}",
+    "blocked": "自分が保持していない権限が含まれているため、このロールを保存できません: {permissions}",
+    "discard": "破棄",
+    "saved": "権限を保存しました",
+    "deleted": "ロール「{name}」を削除しました",
+    "deleteTitle": "{name} を削除しますか?",
+    "deleteBody": "ロールは完全に削除されます。この操作は監査ログに記録されます。",
+    "deleteBodyAssigned": "ロールとその {count, plural, one {# 件の割り当て} other {# 件の割り当て}}は完全に削除されます。この操作は監査ログに記録されます。",
+    "deleteWarning": "{count, plural, one {# 件のユーザーまたはグループ} other {# 件のユーザーまたはグループ}}が、これらの権限を直ちに失います。",
+    "deleteConfirm": "ロールを削除",
+    "assignments": "このロールの付与先",
+    "assignmentsHint": "ユーザーとグループへの有効な付与です。",
+    "grant": "付与",
+    "noAssignments": "まだ誰にも付与されていません",
+    "viewAll": "{count} 件すべてを表示",
+    "manageAssignments": "割り当ての管理"
+  },
+  "errors": {
+    "escalation": "自分が保持していない権限は付与できません: {permissions}",
+    "ownAdmin": "自分のプラットフォーム管理者ロールは取り消せません。他の管理者に依頼してください。",
+    "offboarded": "このユーザーはオフボーディング済みのため、ロールを付与できません。",
+    "systemReadOnly": "システム ロールはモジュールによって定義されているため、変更できません。",
+    "keyTaken": "このキーを持つロールは既に存在します。"
+  }
+}

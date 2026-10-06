@@ -1,0 +1,109 @@
+{
+  "title": "Groups",
+  "description": "Collections of people that share access. Grant a role to a group and every member inherits it.",
+  "add": "New group",
+  "searchPlaceholder": "Search name or key…",
+  "clearSearch": "Clear search",
+  "systemBadge": "System",
+  "filters": {
+    "source": "Source",
+    "allSources": "All sources"
+  },
+  "columns": {
+    "name": "Group",
+    "description": "Description",
+    "source": "Source",
+    "members": "Members",
+    "roles": "Roles"
+  },
+  "empty": {
+    "title": "No groups found",
+    "description": "Try a different search or clear the filters.",
+    "firstTitle": "No groups yet",
+    "firstDescription": "Create a group to grant the same access to many people at once."
+  },
+  "form": {
+    "createTitle": "New group",
+    "createDescription": "Groups bundle people so you can grant roles once instead of person by person.",
+    "editTitle": "Edit {name}",
+    "editDescription": "Changes are recorded in the audit log.",
+    "name": "Name",
+    "namePlaceholder": "e.g. Finance Team",
+    "key": "Key",
+    "keyHint": "Used by integrations and directory sync. Lowercase letters, digits, “-” and “_”. It can't be changed later.",
+    "keyLocked": "The key can't be changed.",
+    "keyTaken": "Another group already uses this key.",
+    "description": "Description",
+    "descriptionPlaceholder": "What is this group for?",
+    "created": "Group “{name}” created",
+    "saved": "Changes saved"
+  },
+  "detail": {
+    "notFound": "Group not found",
+    "notFoundDescription": "It may have been deleted, or you no longer have access to it.",
+    "noDescription": "No description.",
+    "summary": "{members, plural, one {# member} other {# members}} · {roles, plural, one {# role} other {# roles}}",
+    "tabs": {
+      "members": "Members",
+      "roles": "Roles",
+      "activity": "Activity"
+    },
+    "edit": "Edit",
+    "more": "More actions",
+    "delete": "Delete group",
+    "systemLocked": "Built-in groups can't be deleted.",
+    "deleteTitle": "Delete “{name}”?",
+    "deleteBody": "{count, plural, =0 {This group has no members.} one {Its # member will lose any roles granted through this group.} other {Its # members will lose any roles granted through this group.}} Accounts themselves are not affected. This can't be undone.",
+    "deleted": "Group “{name}” deleted"
+  },
+  "members": {
+    "searchPlaceholder": "Search members…",
+    "add": "Add members",
+    "removeSelected": "Remove {count, plural, one {# member} other {# members}}",
+    "columns": {
+      "person": "Person",
+      "status": "Status",
+      "source": "Added via",
+      "added": "Added"
+    },
+    "empty": {
+      "title": "No members yet",
+      "description": "Add people to give them the roles granted to this group.",
+      "searchTitle": "No members match",
+      "searchDescription": "Try a different search."
+    },
+    "everyoneTitle": "Everyone is a member",
+    "everyoneBody": "Membership is implicit: every active person belongs to this group automatically ({count, plural, one {# person} other {# people}} right now), so it can't be edited here. Grant roles to this group to give everyone baseline access.",
+    "syncedNotice": "Membership is managed by directory sync ({source}). Manual changes may be overwritten on the next sync.",
+    "removeTitle": "Remove {count, plural, one {# member} other {# members}} from “{group}”?",
+    "removeBody": "They lose any roles granted through this group. Their accounts are not affected.",
+    "removed": "{count, plural, =0 {Nobody was removed} one {Removed # member} other {Removed # members}}",
+    "addTitle": "Add members to “{group}”",
+    "addDescription": "Find people and add them to the list. People who are already members are skipped.",
+    "pickLabel": "Find a person",
+    "pickPlaceholder": "Search by name or email…",
+    "picked": "{count, plural, =0 {Nobody selected yet} one {# person selected} other {# people selected}}",
+    "listEmpty": "People you pick appear here.",
+    "removeFromList": "Remove {name} from the list",
+    "clearList": "Clear list",
+    "addConfirm": "{count, plural, =0 {Add members} one {Add # member} other {Add # members}}",
+    "added": "{count, plural, =0 {Everyone you picked was already a member} one {Added # member} other {Added # members}}"
+  },
+  "roles": {
+    "title": "Roles granted to this group",
+    "description": "Every member of the group receives these roles.",
+    "grant": "Grant a role",
+    "emptyTitle": "No roles granted",
+    "emptyDescription": "Members only get access from their own roles and the Everyone group.",
+    "scope": "{type}: {label}",
+    "expires": "Expires {date}",
+    "grantedBy": "Granted by {name}",
+    "grantedAutomatically": "Granted automatically",
+    "reason": "Reason: {reason}"
+  },
+  "activity": {
+    "description": "Changes to this group and its membership.",
+    "empty": "No activity recorded yet.",
+    "people": "{count, plural, one {# person} other {# people}}"
+  }
+}

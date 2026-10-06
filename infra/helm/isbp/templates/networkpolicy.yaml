@@ -1,0 +1,83 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $np := .Values.networkPolicy }}
+{{- $api := dict "root" . "component" "api" }}
+{{- $worker := dict "root" . "component" "worker" }}
+{{- $web := dict "root" . "component" "web" }}
+# web: only the ingress controller (ingressFrom) may reach :3000.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "isbp.componentName" $web }}
+  labels:
+    {{- include "isbp.componentLabels" $web | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "isbp.componentSelectorLabels" $web | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: http
+          protocol: TCP
+      {{- with $np.ingressFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+# api: :4000 from the web pods and the ingress controller; :9464 from the monitoring stack only.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "isbp.componentName" $api }}
+  labels:
+    {{- include "isbp.componentLabels" $api | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "isbp.componentSelectorLabels" $api | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: http
+          protocol: TCP
+      from:
+        - podSelector:
+            matchLabels:
+              {{- include "isbp.componentSelectorLabels" $web | nindent 14 }}
+        {{- with $np.ingressFrom }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    {{- with $np.metricsFrom }}
+    - ports:
+        - port: metrics
+          protocol: TCP
+      from:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+---
+# worker: no inbound traffic except metrics scraping.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "isbp.componentName" $worker }}
+  labels:
+    {{- include "isbp.componentLabels" $worker | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "isbp.componentSelectorLabels" $worker | nindent 6 }}
+  policyTypes:
+    - Ingress
+  {{- with $np.metricsFrom }}
+  ingress:
+    - ports:
+        - port: metrics
+          protocol: TCP
+      from:
+        {{- toYaml . | nindent 8 }}
+  {{- else }}
+  ingress: []
+  {{- end }}
+{{- end }}

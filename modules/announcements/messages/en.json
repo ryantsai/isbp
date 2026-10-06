@@ -1,0 +1,78 @@
+{
+  "meta": {
+    "name": "Announcements",
+    "description": "Service notices, maintenance windows and incident updates for everyone."
+  },
+  "nav": {
+    "feed": "Announcements"
+  },
+  "permissions": {
+    "read": "Read published announcements",
+    "manage": "Write, publish, archive and delete announcements"
+  },
+  "settings": {
+    "defaultSeverity": "Default severity for new announcements",
+    "maxPinned": "Maximum pinned announcements"
+  },
+  "severity": {
+    "info": "Information",
+    "maintenance": "Maintenance",
+    "incident": "Incident"
+  },
+  "severityHint": {
+    "info": "News and changes",
+    "maintenance": "Planned work",
+    "incident": "Service disruption"
+  },
+  "status": {
+    "draft": "Draft",
+    "published": "Published",
+    "archived": "Archived"
+  },
+  "views": {
+    "current": "Current",
+    "drafts": "Drafts",
+    "archive": "Archive"
+  },
+  "empty": {
+    "current": "No current announcements — all systems normal.",
+    "drafts": "No drafts.",
+    "archive": "Nothing archived yet."
+  },
+  "new": "New announcement",
+  "search": "Search announcements…",
+  "pinned": "Pinned",
+  "by": "by {name}",
+  "publishedAt": "Published",
+  "archive": "Archive",
+  "notFound": "This announcement does not exist or is not published.",
+  "previous": "Previous page",
+  "next": "Next page",
+  "saved": "Changes saved",
+  "draftSaved": "Draft saved",
+  "publishedToast": "Announcement published",
+  "archivedToast": "Announcement archived",
+  "deletedToast": "Announcement deleted",
+  "editor": {
+    "createTitle": "New announcement",
+    "editTitle": "Edit announcement",
+    "hint": "Published announcements are visible to everyone and emitted as events other modules (e.g. notifications) can react to.",
+    "severity": "Severity",
+    "title": "Title",
+    "body": "Message",
+    "startsAt": "Window starts",
+    "endsAt": "Window ends",
+    "windowHint": "Optional. Published announcements are archived automatically when the window ends.",
+    "pinned": "Pin to the top",
+    "pinnedHint": "Pinned announcements stay above newer ones.",
+    "saveDraft": "Save draft",
+    "publish": "Publish"
+  },
+  "audit": {
+    "post_created": "Wrote announcement",
+    "post_updated": "Edited announcement",
+    "post_published": "Published announcement",
+    "post_archived": "Archived announcement",
+    "post_deleted": "Deleted announcement"
+  }
+}

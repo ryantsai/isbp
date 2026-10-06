@@ -1,0 +1,319 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# One run per PR / ref. Superseded PR runs are cancelled; runs on main always finish because each one
+# publishes images.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  NEXT_TELEMETRY_DISABLED: 1
+  # CI uses Redis service containers; skip redis-memory-server's download/compile on install.
+  REDISMS_DISABLE_POSTINSTALL: true
+  FORCE_COLOR: 1
+
+jobs:
+  quality:
+    name: Format, lint, typecheck & unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/setup
+
+      - name: Restore Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-quality-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-quality-${{ runner.os }}-
+
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - name: Module registries are in sync
+        run: pnpm modules:check
+      - run: pnpm test
+
+  integration:
+    name: Integration tests (Postgres + Redis)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: isbp
+          POSTGRES_PASSWORD: isbp
+          POSTGRES_DB: isbp_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U isbp -d isbp_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/setup
+
+      - run: pnpm test:integration
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://isbp:isbp@localhost:5432/isbp_test
+          REDIS_URL: redis://localhost:6379
+
+  e2e:
+    name: End-to-end (Playwright)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: isbp
+          POSTGRES_PASSWORD: isbp
+          POSTGRES_DB: isbp
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U isbp -d isbp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    # Runtime configuration for the API/worker/web processes. NODE_ENV=production is set on the steps
+    # that run them (not job-wide, so `pnpm install` still installs devDependencies).
+    env:
+      DATABASE_URL: postgres://isbp:isbp@localhost:5432/isbp
+      REDIS_URL: redis://localhost:6379
+      PUBLIC_URL: http://localhost:3000
+      API_INTERNAL_URL: http://127.0.0.1:4000
+      LOG_LEVEL: info
+      SEED_ADMIN_PASSWORD: ChangeMe-2026!
+      E2E_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/setup
+
+      - name: Build API and web
+        run: pnpm turbo run build --filter=@isbp/api --filter=@isbp/web
+
+      # Same layout as the web image: the standalone server only serves these when they sit next to it.
+      - name: Assemble Next.js standalone output
+        run: |
+          cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
+          cp -r apps/web/public apps/web/.next/standalone/apps/web/public
+
+      - name: Generate a throwaway master key
+        run: |
+          key="$(openssl rand -base64 32)"
+          echo "::add-mask::$key"
+          echo "ISBP_MASTER_KEY=$key" >> "$GITHUB_ENV"
+
+      - name: Migrate and seed demo data
+        env:
+          NODE_ENV: production
+        run: node apps/api/dist/migrate.js && node apps/api/dist/seed.js
+
+      - name: Start API, worker and web
+        env:
+          NODE_ENV: production
+        run: |
+          logs="$RUNNER_TEMP/logs" && mkdir -p "$logs"
+          (cd apps/api && nohup node --import ./dist/telemetry.js dist/main.js > "$logs/api.log" 2>&1 &)
+          (cd apps/api && METRICS_PORT=9465 OTEL_SERVICE_NAME=isbp-worker \
+            nohup node --import ./dist/telemetry.js dist/worker.js > "$logs/worker.log" 2>&1 &)
+          (PORT=3000 HOSTNAME=0.0.0.0 nohup node apps/web/.next/standalone/apps/web/server.js > "$logs/web.log" 2>&1 &)
+          timeout 120 bash -c 'until curl -fsS http://127.0.0.1:4000/readyz >/dev/null; do sleep 2; done'
+          timeout 120 bash -c 'until curl -fsS http://127.0.0.1:9465/readyz >/dev/null; do sleep 2; done'
+          timeout 120 bash -c 'until curl -fsS http://localhost:3000/healthz >/dev/null; do sleep 2; done'
+          echo "API, worker and web are up"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright (Chromium + system deps)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @isbp/e2e exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @isbp/e2e exec playwright install-deps chromium
+
+      - name: Run Playwright
+        run: pnpm e2e
+
+      - name: Upload Playwright report and server logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+            ${{ runner.temp }}/logs
+          retention-days: 7
+          if-no-files-found: ignore
+
+  docker:
+    name: Docker image (isbp-${{ matrix.component }})
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [api, web]
+    # Smoke-test dependencies for the API image (reached from containers via --network host).
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: isbp
+          POSTGRES_PASSWORD: isbp
+          POSTGRES_DB: isbp
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U isbp -d isbp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      LOCAL_TAG: isbp-${{ matrix.component }}:ci
+    steps:
+      - uses: actions/checkout@v5
+
+      # GHCR repository names must be lowercase.
+      - name: Image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/isbp-${{ matrix.component }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=isbp-${{ matrix.component }}
+
+      - name: Build (load for smoke test)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/${{ matrix.component }}.Dockerfile
+          platforms: linux/amd64
+          load: true
+          push: false
+          provenance: false
+          tags: ${{ env.LOCAL_TAG }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.meta.outputs.version }}
+            VCS_REF=${{ github.sha }}
+          cache-from: type=gha,scope=isbp-${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=isbp-${{ matrix.component }}
+
+      - name: Smoke test isbp-api (migrate, API, worker)
+        if: matrix.component == 'api'
+        run: |
+          set -euo pipefail
+          test "$(docker run --rm --entrypoint id "$LOCAL_TAG" -u)" = 10001
+          key="$(openssl rand -base64 32)"
+          run=(docker run --network host --read-only --tmpfs /tmp
+            -e DATABASE_URL=postgres://isbp:isbp@localhost:5432/isbp -e REDIS_URL=redis://localhost:6379
+            -e ISBP_MASTER_KEY="$key" -e PUBLIC_URL=http://localhost:3000)
+          "${run[@]}" --rm "$LOCAL_TAG" node dist/migrate.js
+          "${run[@]}" -d --name api "$LOCAL_TAG"
+          "${run[@]}" -d --name worker -e METRICS_PORT=9465 "$LOCAL_TAG" node --import ./dist/telemetry.js dist/worker.js
+          timeout 90 bash -c 'until curl -fsS http://127.0.0.1:4000/readyz; do sleep 2; done'
+          timeout 90 bash -c 'until curl -fsS http://127.0.0.1:9465/readyz; do sleep 2; done'
+          metrics="$(curl -fsS http://127.0.0.1:9464/metrics)"
+          grep -q '^isbp_' <<<"$metrics"
+
+      - name: Smoke test isbp-web
+        if: matrix.component == 'web'
+        run: |
+          set -euo pipefail
+          test "$(docker run --rm --entrypoint id "$LOCAL_TAG" -u)" = 10001
+          docker run -d --name web --read-only --tmpfs /tmp --tmpfs /app/apps/web/.next/cache \
+            -p 3000:3000 -e API_INTERNAL_URL=http://127.0.0.1:4000 "$LOCAL_TAG"
+          timeout 90 bash -c 'until curl -fsS http://127.0.0.1:3000/healthz; do sleep 2; done'
+          curl -fsS -o /dev/null http://127.0.0.1:3000/icon.svg
+
+      - name: Container logs
+        if: failure()
+        run: for c in api worker web; do docker logs "$c" 2>&1 | tail -n 200 || true; done
+
+      - name: Log in to GHCR
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Fully cached by the build above; only runs for pushes to main.
+      - name: Push
+        if: env.PUSH == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/${{ matrix.component }}.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.meta.outputs.version }}
+            VCS_REF=${{ github.sha }}
+          cache-from: type=gha,scope=isbp-${{ matrix.component }}

@@ -1,0 +1,15 @@
+{
+  "table": {
+    "showing": "{total, plural, =0 {No results} other {{from}–{to} of {total}}}",
+    "rowsPerPage": "Rows per page",
+    "pageOf": "Page {page} of {pageCount}",
+    "previous": "Previous page",
+    "next": "Next page",
+    "empty": "Nothing here yet.",
+    "selectAll": "Select all rows on this page",
+    "selectRow": "Select row"
+  },
+  "search": {
+    "clear": "Clear search"
+  }
+}

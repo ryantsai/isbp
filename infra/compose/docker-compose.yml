@@ -1,0 +1,220 @@
+# IS Big Platform — full stack: Postgres (pgvector) · Redis · migrations · API · worker · web.
+#
+#   cd infra/compose
+#   cp .env.example .env              # then set ISBP_MASTER_KEY=$(openssl rand -base64 32)
+#   docker compose up -d --build      # → http://localhost:3000
+#
+# Profiles (combine freely):
+#   --profile demo           runs the idempotent demo seed after migrations (admin / ChangeMe-2026! by default)
+#   --profile observability  Jaeger UI http://localhost:16686 (set OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+#                            in .env) and Prometheus http://localhost:9090 scraping api/worker :9464
+#
+# Only the web app is published (WEB_PORT); it proxies /api/* to the API. Postgres, Redis and the metrics
+# ports stay on the internal network. See docs/deployment.md for details.
+
+name: isbp
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
+# Hardening mirrored from the Helm chart: read-only root FS, no capabilities, no privilege escalation.
+x-hardening: &hardening
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+
+# api, worker, migrate and seed all run the same image. Every service carries the build section so that any
+# of them can be started on its own; BuildKit's layer cache makes the repeated builds no-ops.
+x-api-image: &api-image
+  image: ${ISBP_API_IMAGE:-isbp-api}:${ISBP_IMAGE_TAG:-local}
+  build:
+    context: ../..
+    dockerfile: infra/docker/api.Dockerfile
+    args:
+      APP_VERSION: ${ISBP_IMAGE_TAG:-local}
+
+x-api-env: &api-env
+  NODE_ENV: production
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DATABASE_URL: postgres://${POSTGRES_USER:-isbp}:${POSTGRES_PASSWORD:-isbp}@postgres:5432/${POSTGRES_DB:-isbp}
+  DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
+  REDIS_URL: redis://redis:6379
+  PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+  ISBP_MASTER_KEY: ${ISBP_MASTER_KEY:?ISBP_MASTER_KEY is not set. Copy .env.example to .env and set it to the output of openssl rand -base64 32}
+  ISBP_MASTER_KEY_PREVIOUS: ${ISBP_MASTER_KEY_PREVIOUS:-}
+  # Migrations run once in the `migrate` service; app processes never migrate on their own.
+  AUTO_MIGRATE: 'false'
+  API_DOCS: ${API_DOCS:-true}
+  # Empty = tracing disabled. With --profile observability use http://jaeger:4318.
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-isbp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-isbp}
+      POSTGRES_DB: ${POSTGRES_DB:-isbp}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    shm_size: 256mb
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # AOF persistence keeps queued jobs across restarts; BullMQ requires the `noeviction` policy.
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging: *logging
+
+  # One-shot: core + module migrations (advisory-locked, idempotent). Re-run on every upgrade.
+  migrate:
+    <<: [*api-image, *hardening]
+    command: ['node', 'dist/migrate.js']
+    environment:
+      <<: *api-env
+      OTEL_SERVICE_NAME: isbp-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: 'no'
+    healthcheck:
+      disable: true
+    logging: *logging
+
+  # One-shot demo data (profile `demo`). Idempotent: does nothing once the admin account exists.
+  seed:
+    <<: [*api-image, *hardening]
+    profiles: ['demo']
+    command: ['node', 'dist/seed.js']
+    environment:
+      <<: *api-env
+      OTEL_SERVICE_NAME: isbp-seed
+      # Demo-only credentials — never use the seed on a real deployment.
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-ChangeMe-2026!}
+      SEED_DEMO_PASSWORD: ${SEED_DEMO_PASSWORD:-Demo-2026!pass}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: 'no'
+    healthcheck:
+      disable: true
+    logging: *logging
+
+  api:
+    <<: [*api-image, *hardening]
+    restart: unless-stopped
+    environment:
+      <<: *api-env
+      OTEL_SERVICE_NAME: isbp-api
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:4000/readyz',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    logging: *logging
+
+  worker:
+    <<: [*api-image, *hardening]
+    restart: unless-stopped
+    command: ['node', '--import', './dist/telemetry.js', 'dist/worker.js']
+    environment:
+      <<: *api-env
+      OTEL_SERVICE_NAME: isbp-worker
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # Uses the image's HEALTHCHECK (internal metrics server :9464/healthz).
+    logging: *logging
+
+  web:
+    <<: *hardening
+    image: ${ISBP_WEB_IMAGE:-isbp-web}:${ISBP_IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        APP_VERSION: ${ISBP_IMAGE_TAG:-local}
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://api:4000
+    tmpfs:
+      - /tmp
+      - /app/apps/web/.next/cache
+    ports:
+      - '${WEB_BIND:-127.0.0.1}:${WEB_PORT:-3000}:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    logging: *logging
+
+  # ── observability profile ──────────────────────────────────────────────────────────────────────────
+  # Jaeger v2 (an OpenTelemetry Collector distribution): OTLP gRPC :4317 / HTTP :4318, UI :16686,
+  # in-memory storage (traces are lost on restart — fine for local troubleshooting).
+  jaeger:
+    image: jaegertracing/jaeger:${JAEGER_VERSION:-2.5.0}
+    profiles: ['observability']
+    restart: unless-stopped
+    environment:
+      JAEGER_LISTEN_HOST: 0.0.0.0
+    expose:
+      - '4317'
+      - '4318'
+    ports:
+      - '127.0.0.1:${JAEGER_UI_PORT:-16686}:16686'
+    logging: *logging
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION:-v3.5.0}
+    profiles: ['observability']
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    ports:
+      - '127.0.0.1:${PROMETHEUS_PORT:-9090}:9090'
+    logging: *logging
+
+volumes:
+  pgdata:
+  redisdata:
+  promdata:

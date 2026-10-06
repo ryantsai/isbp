@@ -1,0 +1,55 @@
+{
+  "title": "Dashboard",
+  "greeting": {
+    "morning": "Good morning, {name}",
+    "afternoon": "Good afternoon, {name}",
+    "evening": "Good evening, {name}"
+  },
+  "subtitle": "Here's what's happening across the platform today.",
+  "kpi": {
+    "people": "Active people",
+    "peopleHint": "{total} in directory",
+    "pending": "Awaiting onboarding",
+    "pendingHint": "Pre-boarded accounts",
+    "groups": "Groups",
+    "roles": "Roles",
+    "departments": "Departments",
+    "sessions": "Active sessions",
+    "expiring": "Access expiring",
+    "expiringHint": "Within 7 days",
+    "modules": "Modules enabled",
+    "modulesHint": "{total} installed"
+  },
+  "activity": {
+    "title": "Platform activity",
+    "description": "Audit events over the last 14 days",
+    "security": "Security",
+    "other": "Other",
+    "total": "Total",
+    "tooltip": "{date}: {total} events, {security} security"
+  },
+  "sources": {
+    "title": "How people sign in",
+    "description": "Active accounts by identity source"
+  },
+  "recent": {
+    "title": "Recent activity",
+    "empty": "No activity yet."
+  },
+  "quick": {
+    "title": "Quick actions",
+    "createUser": "Add a person",
+    "grantAccess": "Grant a role",
+    "reviewAudit": "Review the audit log",
+    "configureSso": "Configure single sign-on"
+  },
+  "modules": {
+    "title": "Your modules",
+    "description": "Everything here is a module built on the same SDK.",
+    "manage": "Manage modules"
+  },
+  "welcome": {
+    "title": "Welcome to IS Big Platform",
+    "body": "Use the search (⌘K / Ctrl K) to jump anywhere. Ask your administrator if you need access to more modules."
+  }
+}

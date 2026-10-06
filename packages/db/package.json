@@ -1,0 +1,37 @@
+{
+  "name": "@isbp/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./migrations": "./migrations/index.ts"
+  },
+  "bin": {
+    "isbp-embed-migrations": "./scripts/embed-migrations.ts"
+  },
+  "scripts": {
+    "db:generate": "drizzle-kit generate && tsx scripts/embed-migrations.ts migrations",
+    "db:custom": "drizzle-kit generate --custom",
+    "db:embed": "tsx scripts/embed-migrations.ts migrations",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@isbp/sdk": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "pg": "catalog:",
+    "uuid": "catalog:"
+  },
+  "devDependencies": {
+    "@isbp/eslint-config": "workspace:*",
+    "@isbp/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "drizzle-kit": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}

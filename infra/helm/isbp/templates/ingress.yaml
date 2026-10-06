@@ -1,0 +1,42 @@
+{{- if .Values.ingress.enabled }}
+{{- $ing := .Values.ingress }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "isbp.fullname" . }}
+  labels:
+    {{- include "isbp.labels" . | nindent 4 }}
+  {{- with $ing.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $ing.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if $ing.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ $ing.host | quote }}
+      secretName: {{ $ing.tls.secretName | default (printf "%s-tls" (include "isbp.fullname" .)) }}
+  {{- end }}
+  rules:
+    - host: {{ required "ingress.host is required when ingress.enabled=true" $ing.host | quote }}
+      http:
+        paths:
+          # API calls go straight to the API (same origin, so cookies and CSRF work unchanged).
+          - path: {{ $ing.apiPath | default "/api" }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "isbp.componentName" (dict "root" . "component" "api") }}
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "isbp.componentName" (dict "root" . "component" "web") }}
+                port:
+                  name: http
+{{- end }}

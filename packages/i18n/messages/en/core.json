@@ -1,0 +1,59 @@
+{
+  "meta": {
+    "name": "Core platform",
+    "description": "Identity, access control, audit and the module system that every other module builds on."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "People",
+    "groups": "Groups",
+    "departments": "Departments",
+    "roles": "Roles & access",
+    "audit": "Audit log",
+    "modules": "Modules",
+    "identity": "Sign-in providers",
+    "sectionMain": "Workspace",
+    "sectionAdmin": "Administration"
+  },
+  "permissions": {
+    "usersRead": "View people and their profiles",
+    "usersCreate": "Create people and pre-board new hires",
+    "usersUpdate": "Edit people's profiles",
+    "usersLifecycle": "Onboard, suspend, reactivate and offboard people",
+    "usersCredentials": "Reset passwords of local accounts",
+    "groupsRead": "View groups and members",
+    "groupsManage": "Create groups and manage membership",
+    "departmentsRead": "View the organisation hierarchy",
+    "departmentsManage": "Create, move and delete departments",
+    "rolesRead": "View roles, permissions and assignments",
+    "rolesManage": "Create and edit custom roles",
+    "rolesAssign": "Grant and revoke roles",
+    "auditRead": "Read the audit log",
+    "modulesRead": "View installed modules",
+    "modulesManage": "Enable, disable and configure modules",
+    "idpRead": "View sign-in providers",
+    "idpManage": "Configure sign-in providers and directory sync"
+  },
+  "settings": {
+    "productName": "Product name",
+    "supportEmail": "Support email",
+    "loginBanner": "Sign-in banner",
+    "loginBannerHelp": "Shown on the sign-in page, e.g. an acceptable-use notice."
+  },
+  "systemRoles": {
+    "platform-admin": { "name": "Platform administrator", "description": "Full access to everything" },
+    "identity-admin": {
+      "name": "Identity administrator",
+      "description": "Manage people, groups, departments and role assignments"
+    },
+    "security-auditor": {
+      "name": "Security auditor",
+      "description": "Read-only access to every module and the audit trail"
+    },
+    "module-admin": {
+      "name": "Module administrator",
+      "description": "Enable, disable and configure modules"
+    },
+    "everyone": { "name": "Everyone", "description": "Baseline access granted to every active user" }
+  }
+}

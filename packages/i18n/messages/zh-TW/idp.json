@@ -1,0 +1,277 @@
+{
+  "title": "登入提供者",
+  "description": "讓人員使用貴組織的身分識別提供者或目錄登入。本機帳號仍可同時使用。",
+  "add": "新增提供者",
+  "localNote": "新提供者預設為停用。請將各卡片上顯示的值註冊到您的身分識別提供者並測試連線，再將其開啟——之後便會顯示在登入頁面上。",
+  "empty": {
+    "title": "尚無登入提供者",
+    "description": "連接 Microsoft Entra ID、任何 OpenID Connect 或 SAML 2.0 提供者，或 LDAP / Active Directory 伺服器。"
+  },
+  "typeLabel": {
+    "entra": "Entra ID · OIDC",
+    "oidc": "OIDC",
+    "saml": "SAML 2.0",
+    "ldap": "LDAP"
+  },
+  "choices": {
+    "preset": "預先設定",
+    "entra": {
+      "title": "Microsoft Entra ID",
+      "description": "適用於 Microsoft 365 組織的單一登入。範圍及宣告皆已預先填入，您只需提供租用戶 ID、用戶端 ID 及用戶端密碼。"
+    },
+    "oidc": {
+      "title": "通用 OpenID Connect",
+      "description": "Okta、Google Workspace、Keycloak、Auth0 或任何其他 OpenID Connect 提供者。"
+    },
+    "saml": {
+      "title": "SAML 2.0",
+      "description": "AD FS、Shibboleth、PingFederate 及其他 SAML 身分識別提供者。"
+    },
+    "ldap": {
+      "title": "LDAP / Active Directory",
+      "description": "使用目錄密碼登入，並依排程同步人員及群組。"
+    }
+  },
+  "create": {
+    "step": "第 {step} 步，共 {total} 步",
+    "chooseTitle": "新增登入提供者",
+    "chooseDescription": "貴組織使用哪一種？您可以新增多個提供者。",
+    "changeType": "變更類型"
+  },
+  "created": {
+    "sheetTitle": "已新增提供者",
+    "sheetDescription": "人員開始使用前，還需完成幾個步驟。",
+    "title": "已新增 {name}",
+    "body": "在您開啟之前，此提供者會保持停用，因此目前還沒有人看得到。",
+    "register": {
+      "oidc": "在身分識別提供者的應用程式註冊中，註冊此重新導向 URI",
+      "saml": "在身分識別提供者中註冊這些值",
+      "ldap": "確認此伺服器能連線至目錄"
+    },
+    "test": "測試連線",
+    "enable": "開啟提供者",
+    "enableHint": "使用提供者卡片上的開關。開啟後即會顯示在登入頁面上。",
+    "done": "完成"
+  },
+  "card": {
+    "linkedUsers": "已連結的人員",
+    "newPeople": "新人員",
+    "jitOn": "首次登入時建立",
+    "jitOff": "必須事先存在",
+    "groupMappings": "群組對應",
+    "toggle": "啟用 {name}"
+  },
+  "sync": {
+    "title": "目錄同步",
+    "manual": "僅限手動",
+    "status": {
+      "never": "從未同步",
+      "success": "成功",
+      "failed": "失敗",
+      "running": "執行中"
+    }
+  },
+  "actions": {
+    "test": "測試連線",
+    "sync": "立即同步",
+    "more": "{name} 的更多動作"
+  },
+  "toast": {
+    "enabled": "已啟用 {name}，並已顯示在登入頁面上",
+    "disabled": "已停用 {name}",
+    "syncQueued": "已將 {name} 的同步排入佇列，完成後結果會顯示在這裡",
+    "deleted": "已刪除 {name}"
+  },
+  "disable": {
+    "title": "要停用 {name} 嗎？",
+    "body": "{count, plural, one {有 # 位人員使用此提供者登入，在重新開啟之前將無法登入。} other {有 # 位人員使用此提供者登入，在重新開啟之前將無法登入。}}",
+    "confirm": "停用提供者"
+  },
+  "delete": {
+    "title": "要刪除 {name} 嗎？",
+    "body": "{count, plural, =0 {其設定及已儲存的機密資訊將被移除。此動作無法復原。} one {# 位已連結的人員會保留帳號，但無法再使用此提供者登入。其設定及已儲存的機密資訊將被移除。此動作無法復原。} other {# 位已連結的人員會保留帳號，但無法再使用此提供者登入。其設定及已儲存的機密資訊將被移除。此動作無法復原。}}",
+    "confirm": "刪除提供者"
+  },
+  "endpoints": {
+    "title": "在您的身分識別提供者中註冊",
+    "copy": "複製{label}",
+    "copyFailed": "無法複製，請選取文字後手動複製。",
+    "labels": {
+      "redirectUri": "重新導向 URI",
+      "acsUrl": "判斷提示取用者服務（ACS）URL",
+      "metadataUrl": "服務提供者中繼資料 URL",
+      "entityId": "服務提供者實體 ID"
+    }
+  },
+  "test": {
+    "title": "測試連線 · {name}",
+    "hint": {
+      "oidc": "使用簽發者及用戶端 ID 擷取提供者的探索文件。",
+      "saml": "檢查身分識別提供者的簽署憑證是否有效。",
+      "ldap": "以服務帳號繫結並搜尋基底 DN。"
+    },
+    "running": "正在測試連線…",
+    "ok": "連線成功",
+    "failed": "連線失敗",
+    "couldNotRun": "無法執行測試。",
+    "again": "重新測試",
+    "details": {
+      "issuer": "簽發者",
+      "authorizationEndpoint": "授權端點",
+      "tokenEndpoint": "權杖端點",
+      "pkce": "PKCE（S256）",
+      "subject": "主體",
+      "validTo": "有效期限至",
+      "expired": "已到期",
+      "sampleUsers": "範例項目"
+    }
+  },
+  "cron": {
+    "everyMinutes": "{count, plural, one {每分鐘} other {每 # 分鐘}}",
+    "everyHours": "{count, plural, one {每小時} other {每 # 小時}}",
+    "hourlyAt": "每小時第 {minute} 分",
+    "dailyAt": "每天 {time}",
+    "presets": {
+      "hourly": "每小時",
+      "every6h": "每 6 小時",
+      "every12h": "每 12 小時",
+      "daily": "每天 02:00"
+    }
+  },
+  "form": {
+    "createTitle": {
+      "entra": "連接 Microsoft Entra ID",
+      "oidc": "連接 OpenID Connect 提供者",
+      "saml": "連接 SAML 2.0 提供者",
+      "ldap": "連接 LDAP / Active Directory"
+    },
+    "createDescription": {
+      "entra": "請在 Entra 系統管理中心依序前往：應用程式註冊 → 您的應用程式 → 概觀，以及憑證及祕密。",
+      "oidc": "請使用提供者的應用程式或用戶端設定中的值。",
+      "saml": "請使用身分識別提供者 SAML 中繼資料中的值。",
+      "ldap": "使用唯讀服務帳號即足以支援登入及目錄同步。"
+    },
+    "editTitle": "編輯 {name}",
+    "editDescription": "變更將於下次登入時生效，並會記錄在稽核日誌中。",
+    "createdToast": "已新增 {name}",
+    "savedToast": "已儲存 {name}",
+    "submitCreate": "新增提供者",
+    "sections": {
+      "basics": "基本資訊",
+      "connection": "連線"
+    },
+    "name": "顯示名稱",
+    "nameHint": "顯示在登入按鈕上。",
+    "namePlaceholder": {
+      "entra": "Microsoft Entra ID",
+      "oidc": "Okta",
+      "saml": "AD FS",
+      "ldap": "企業 Active Directory"
+    },
+    "key": "索引鍵",
+    "keyHint": "用於 URL 中。可使用小寫英文字母、數字、「-」及「_」；建立後即無法變更。",
+    "keyLocked": "索引鍵是已在身分識別提供者中註冊之 URL 的一部分，因此無法變更。",
+    "secretStoredBadge": "已儲存",
+    "secretStored": "•••• 已儲存，留空即保留",
+    "secretKeep": "留空即保留已儲存的值。機密資訊會加密儲存，且不會再次顯示。",
+    "entra": {
+      "defaultName": "Microsoft Entra ID",
+      "tenantId": "目錄（租用戶）ID",
+      "tenantHint": "GUID，或已驗證的網域，例如 contoso.onmicrosoft.com。",
+      "issuerPreview": "簽發者：{issuer}",
+      "issuerOverride": "根據租用戶 ID 產生。僅在使用主權雲端時才需變更。",
+      "clientId": "應用程式（用戶端）ID",
+      "clientSecret": "用戶端密碼",
+      "clientSecretHint": "「憑證及祕密」中該密碼的「值」（而非其 ID）。"
+    },
+    "oidc": {
+      "issuer": "簽發者 URL",
+      "issuerHint": "系統會從此 URL 下的 /.well-known/openid-configuration 自動探索設定。",
+      "clientId": "用戶端 ID",
+      "clientSecret": "用戶端密碼",
+      "clientSecretHint": "僅限依賴 PKCE 的公用用戶端可留空。",
+      "scopes": "範圍",
+      "allowedDomains": "允許的電子郵件網域",
+      "allowedDomainsHint": "只有使用這些電子郵件網域的人員才能登入。留空則允許任何網域。"
+    },
+    "saml": {
+      "entryPoint": "單一登入 URL",
+      "entryPointHint": "人員登入時會被導向的位置（IdP 的 SSO／SingleSignOnService URL）。",
+      "issuer": "此平台的實體 ID",
+      "issuerHint": "必須與身分識別提供者中註冊的識別碼（對象）相符。",
+      "certificate": "身分識別提供者簽署憑證",
+      "certificateHint": "PEM 或 base64 格式，取自 IdP 的中繼資料。用於驗證已簽署的回應。",
+      "wantAssertionsSigned": "要求判斷提示須經簽署",
+      "wantAssertionsSignedHint": "建議啟用。會拒絕判斷提示未經簽署的回應。"
+    },
+    "ldap": {
+      "url": "伺服器 URL",
+      "urlHint": "建議使用 ldaps://（連接埠 636），讓密碼在傳輸過程中加密。",
+      "bindDn": "服務帳號（繫結 DN）",
+      "bindPassword": "服務帳號密碼",
+      "baseDn": "搜尋基底（基底 DN）",
+      "baseDnHint": "會在此項目之下搜尋人員。",
+      "userFilter": "使用者篩選條件",
+      "userFilterHint": "{token} 會替換為人員輸入的使用者名稱。",
+      "groupBaseDn": "群組搜尋基底",
+      "groupFilter": "群組篩選條件",
+      "verifyTls": "驗證伺服器憑證",
+      "verifyTlsHint": "僅在使用自我簽署憑證進行測試時才關閉。"
+    },
+    "claimMapping": "宣告對應",
+    "claimMappingHint": "各項值分別來自哪個 ID 權杖宣告。留空則使用標準宣告名稱。",
+    "attributeMapping": "屬性對應",
+    "samlAttributeHint": "判斷提示屬性名稱。留空則使用常見的 Microsoft／OASIS 宣告 URI。",
+    "mapping": {
+      "email": "電子郵件",
+      "name": "顯示名稱",
+      "username": "使用者名稱",
+      "groups": "群組",
+      "memberOf": "群組成員資格"
+    },
+    "provisioning": "佈建",
+    "jit": "首次登入時建立人員",
+    "jitHint": "若未啟用，只有已擁有帳號（依電子郵件比對）的人員才能登入。",
+    "defaultDepartment": "預設部門",
+    "noDefaultDepartment": "無部門",
+    "defaultDepartmentHint": "指派給透過此提供者建立的人員。",
+    "groupMappings": "群組對應",
+    "groupMappingsHint": "根據提供者回報的群組，將人員加入平台群組。成員資格會在每次登入或同步時更新。",
+    "externalValue": "提供者傳回的值",
+    "mappedGroup": "平台群組",
+    "externalPlaceholder": {
+      "entra": "群組物件 ID",
+      "oidc": "群組名稱或 ID",
+      "saml": "群組名稱",
+      "ldap": "CN=VPN-Users,OU=Groups,DC=corp,DC=example"
+    },
+    "chooseGroup": "選擇群組",
+    "unknownGroup": "未知的群組",
+    "removeMapping": "移除對應",
+    "addMapping": "新增對應",
+    "directorySync": "目錄同步",
+    "syncEnabled": "依排程同步",
+    "syncEnabledHint": "從目錄建立及更新人員，並將已從目錄中移除的人員停權。",
+    "syncSchedule": "排程",
+    "syncPresets": "常用排程",
+    "cronHint": "Cron 運算式（分 時 日 月 星期），採用伺服器的時區。",
+    "display": "顯示",
+    "displayOrder": "顯示順序",
+    "displayOrderHint": "數字較小者在登入頁面上會排在前面。"
+  },
+  "validation": {
+    "required": "此欄位為必填。",
+    "invalid": "此值無效。",
+    "tooShort": "至少需要 {min} 個字元。",
+    "tooLong": "最多 {max} 個字元。",
+    "url": "請輸入以 https:// 開頭的完整 URL。",
+    "format": "格式不符合預期。",
+    "key": "請使用小寫英文字母、數字、「-」及「_」，並以英文字母或數字開頭。",
+    "keyTaken": "已有其他提供者使用此索引鍵。",
+    "ldapUrl": "必須以 ldap:// 或 ldaps:// 開頭。",
+    "certificate": "請貼上完整的憑證。",
+    "chooseGroup": "請選擇群組。",
+    "integer": "請輸入整數。",
+    "cron": "請輸入包含 5 個欄位的 Cron 運算式，例如 0 */6 * * *。"
+  }
+}

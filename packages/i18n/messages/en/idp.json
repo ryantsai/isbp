@@ -1,0 +1,277 @@
+{
+  "title": "Sign-in providers",
+  "description": "Let people sign in with your organisation's identity provider or directory. Local accounts keep working alongside them.",
+  "add": "Add provider",
+  "localNote": "New providers start disabled. Register the values shown on each card with your identity provider, test the connection, then switch it on — it then appears on the sign-in page.",
+  "empty": {
+    "title": "No sign-in providers yet",
+    "description": "Connect Microsoft Entra ID, any OpenID Connect or SAML 2.0 provider, or an LDAP / Active Directory server."
+  },
+  "typeLabel": {
+    "entra": "Entra ID · OIDC",
+    "oidc": "OIDC",
+    "saml": "SAML 2.0",
+    "ldap": "LDAP"
+  },
+  "choices": {
+    "preset": "Preset",
+    "entra": {
+      "title": "Microsoft Entra ID",
+      "description": "Single sign-on for Microsoft 365 organisations. Scopes and claims are pre-filled — you only need the tenant ID, client ID and secret."
+    },
+    "oidc": {
+      "title": "Generic OpenID Connect",
+      "description": "Okta, Google Workspace, Keycloak, Auth0 or any other OpenID Connect provider."
+    },
+    "saml": {
+      "title": "SAML 2.0",
+      "description": "AD FS, Shibboleth, PingFederate and other SAML identity providers."
+    },
+    "ldap": {
+      "title": "LDAP / Active Directory",
+      "description": "Sign in with directory passwords, and sync people and groups on a schedule."
+    }
+  },
+  "create": {
+    "step": "Step {step} of {total}",
+    "chooseTitle": "Add a sign-in provider",
+    "chooseDescription": "What does your organisation use? You can add more than one.",
+    "changeType": "Change type"
+  },
+  "created": {
+    "sheetTitle": "Provider added",
+    "sheetDescription": "A few steps before people can use it.",
+    "title": "{name} was added",
+    "body": "It stays disabled until you switch it on, so nobody sees it yet.",
+    "register": {
+      "oidc": "Register this redirect URI in your identity provider's app registration",
+      "saml": "Register these values in your identity provider",
+      "ldap": "Make sure this server can reach the directory"
+    },
+    "test": "Test the connection",
+    "enable": "Switch it on",
+    "enableHint": "Use the switch on the provider's card. It then appears on the sign-in page.",
+    "done": "Done"
+  },
+  "card": {
+    "linkedUsers": "Linked people",
+    "newPeople": "New people",
+    "jitOn": "Created at first sign-in",
+    "jitOff": "Must already exist",
+    "groupMappings": "Group mappings",
+    "toggle": "Enable {name}"
+  },
+  "sync": {
+    "title": "Directory sync",
+    "manual": "Manual only",
+    "status": {
+      "never": "Never synced",
+      "success": "Succeeded",
+      "failed": "Failed",
+      "running": "Running"
+    }
+  },
+  "actions": {
+    "test": "Test connection",
+    "sync": "Sync now",
+    "more": "More actions for {name}"
+  },
+  "toast": {
+    "enabled": "{name} is enabled and appears on the sign-in page",
+    "disabled": "{name} is disabled",
+    "syncQueued": "Sync of {name} queued — results appear here when it finishes",
+    "deleted": "{name} was deleted"
+  },
+  "disable": {
+    "title": "Disable {name}?",
+    "body": "{count, plural, one {# person signs in with this provider and won't be able to until it's switched back on.} other {# people sign in with this provider and won't be able to until it's switched back on.}}",
+    "confirm": "Disable provider"
+  },
+  "delete": {
+    "title": "Delete {name}?",
+    "body": "{count, plural, =0 {Its configuration and stored secrets are removed. This cannot be undone.} one {# linked person keeps their account but can no longer sign in with it. Its configuration and stored secrets are removed. This cannot be undone.} other {# linked people keep their accounts but can no longer sign in with it. Its configuration and stored secrets are removed. This cannot be undone.}}",
+    "confirm": "Delete provider"
+  },
+  "endpoints": {
+    "title": "Register in your identity provider",
+    "copy": "Copy {label}",
+    "copyFailed": "Couldn't copy — select the text and copy it manually.",
+    "labels": {
+      "redirectUri": "Redirect URI",
+      "acsUrl": "Assertion consumer service (ACS) URL",
+      "metadataUrl": "Service provider metadata URL",
+      "entityId": "Service provider entity ID"
+    }
+  },
+  "test": {
+    "title": "Test connection · {name}",
+    "hint": {
+      "oidc": "Fetches the provider's discovery document using the issuer and client ID.",
+      "saml": "Checks that the identity provider's signing certificate is valid.",
+      "ldap": "Binds with the service account and searches the base DN."
+    },
+    "running": "Testing the connection…",
+    "ok": "Connection succeeded",
+    "failed": "Connection failed",
+    "couldNotRun": "The test couldn't be run.",
+    "again": "Test again",
+    "details": {
+      "issuer": "Issuer",
+      "authorizationEndpoint": "Authorization endpoint",
+      "tokenEndpoint": "Token endpoint",
+      "pkce": "PKCE (S256)",
+      "subject": "Subject",
+      "validTo": "Valid until",
+      "expired": "Expired",
+      "sampleUsers": "Sample entries"
+    }
+  },
+  "cron": {
+    "everyMinutes": "{count, plural, one {Every minute} other {Every # minutes}}",
+    "everyHours": "{count, plural, one {Every hour} other {Every # hours}}",
+    "hourlyAt": "Hourly at :{minute}",
+    "dailyAt": "Daily at {time}",
+    "presets": {
+      "hourly": "Every hour",
+      "every6h": "Every 6 hours",
+      "every12h": "Every 12 hours",
+      "daily": "Daily at 02:00"
+    }
+  },
+  "form": {
+    "createTitle": {
+      "entra": "Connect Microsoft Entra ID",
+      "oidc": "Connect an OpenID Connect provider",
+      "saml": "Connect a SAML 2.0 provider",
+      "ldap": "Connect LDAP / Active Directory"
+    },
+    "createDescription": {
+      "entra": "From the Entra admin center: App registrations → your app → Overview, and Certificates & secrets.",
+      "oidc": "Use the values from your provider's application or client settings.",
+      "saml": "Use the values from your identity provider's SAML metadata.",
+      "ldap": "A read-only service account is enough for sign-in and directory sync."
+    },
+    "editTitle": "Edit {name}",
+    "editDescription": "Changes apply to the next sign-in and are recorded in the audit log.",
+    "createdToast": "{name} was added",
+    "savedToast": "{name} was saved",
+    "submitCreate": "Add provider",
+    "sections": {
+      "basics": "Basics",
+      "connection": "Connection"
+    },
+    "name": "Display name",
+    "nameHint": "Shown on the sign-in button.",
+    "namePlaceholder": {
+      "entra": "Microsoft Entra ID",
+      "oidc": "Okta",
+      "saml": "AD FS",
+      "ldap": "Corporate Active Directory"
+    },
+    "key": "Key",
+    "keyHint": "Used in URLs. Lowercase letters, digits, “-” and “_”; it can't be changed later.",
+    "keyLocked": "The key is part of the URLs registered in your identity provider, so it can't be changed.",
+    "secretStoredBadge": "Stored",
+    "secretStored": "•••• stored — leave blank to keep",
+    "secretKeep": "Leave blank to keep the stored value. Secrets are encrypted and never shown again.",
+    "entra": {
+      "defaultName": "Microsoft Entra ID",
+      "tenantId": "Directory (tenant) ID",
+      "tenantHint": "A GUID, or a verified domain such as contoso.onmicrosoft.com.",
+      "issuerPreview": "Issuer: {issuer}",
+      "issuerOverride": "Built from the tenant ID. Change it only for sovereign clouds.",
+      "clientId": "Application (client) ID",
+      "clientSecret": "Client secret",
+      "clientSecretHint": "The secret's Value (not its ID) from Certificates & secrets."
+    },
+    "oidc": {
+      "issuer": "Issuer URL",
+      "issuerHint": "Settings are discovered from /.well-known/openid-configuration under this URL.",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "clientSecretHint": "Leave empty only for public clients that rely on PKCE.",
+      "scopes": "Scopes",
+      "allowedDomains": "Allowed email domains",
+      "allowedDomainsHint": "Only people with these email domains can sign in. Leave empty to allow any domain."
+    },
+    "saml": {
+      "entryPoint": "Single sign-on URL",
+      "entryPointHint": "Where people are sent to sign in (the IdP's SSO / SingleSignOnService URL).",
+      "issuer": "Entity ID of this platform",
+      "issuerHint": "Must match the identifier (audience) registered in your identity provider.",
+      "certificate": "Identity provider signing certificate",
+      "certificateHint": "PEM or base64, from the IdP's metadata. Used to verify signed responses.",
+      "wantAssertionsSigned": "Require signed assertions",
+      "wantAssertionsSignedHint": "Recommended. Rejects responses whose assertions aren't signed."
+    },
+    "ldap": {
+      "url": "Server URL",
+      "urlHint": "Prefer ldaps:// (port 636) so passwords are encrypted in transit.",
+      "bindDn": "Service account (bind DN)",
+      "bindPassword": "Service account password",
+      "baseDn": "Search base (base DN)",
+      "baseDnHint": "People are searched for below this entry.",
+      "userFilter": "User filter",
+      "userFilterHint": "{token} is replaced with the username people type.",
+      "groupBaseDn": "Group search base",
+      "groupFilter": "Group filter",
+      "verifyTls": "Verify the server certificate",
+      "verifyTlsHint": "Turn off only for testing with self-signed certificates."
+    },
+    "claimMapping": "Claim mapping",
+    "claimMappingHint": "Which ID-token claims hold each value. Leave empty for the standard claim names.",
+    "attributeMapping": "Attribute mapping",
+    "samlAttributeHint": "Assertion attribute names. Leave empty to use the common Microsoft / OASIS claim URIs.",
+    "mapping": {
+      "email": "Email",
+      "name": "Display name",
+      "username": "Username",
+      "groups": "Groups",
+      "memberOf": "Group membership"
+    },
+    "provisioning": "Provisioning",
+    "jit": "Create people at first sign-in",
+    "jitHint": "Otherwise only people who already have an account (matched by email) can sign in.",
+    "defaultDepartment": "Default department",
+    "noDefaultDepartment": "No department",
+    "defaultDepartmentHint": "Assigned to people created through this provider.",
+    "groupMappings": "Group mappings",
+    "groupMappingsHint": "Add people to platform groups based on the groups their provider reports. Membership is updated at every sign-in or sync.",
+    "externalValue": "Value from the provider",
+    "mappedGroup": "Platform group",
+    "externalPlaceholder": {
+      "entra": "Group object ID",
+      "oidc": "Group name or ID",
+      "saml": "Group name",
+      "ldap": "CN=VPN-Users,OU=Groups,DC=corp,DC=example"
+    },
+    "chooseGroup": "Choose a group",
+    "unknownGroup": "Unknown group",
+    "removeMapping": "Remove mapping",
+    "addMapping": "Add mapping",
+    "directorySync": "Directory sync",
+    "syncEnabled": "Sync on a schedule",
+    "syncEnabledHint": "Creates and updates people from the directory and suspends those who disappear from it.",
+    "syncSchedule": "Schedule",
+    "syncPresets": "Common schedules",
+    "cronHint": "Cron expression (minute hour day month weekday), in the server's time zone.",
+    "display": "Display",
+    "displayOrder": "Display order",
+    "displayOrderHint": "Lower numbers appear first on the sign-in page."
+  },
+  "validation": {
+    "required": "Required.",
+    "invalid": "This value isn't valid.",
+    "tooShort": "Use at least {min} characters.",
+    "tooLong": "Use at most {max} characters.",
+    "url": "Enter a full URL, starting with https://.",
+    "format": "This doesn't have the expected format.",
+    "key": "Use lowercase letters, digits, “-” and “_”, starting with a letter or digit.",
+    "keyTaken": "Another provider already uses this key.",
+    "ldapUrl": "Must start with ldap:// or ldaps://.",
+    "certificate": "Paste the full certificate.",
+    "chooseGroup": "Choose a group.",
+    "integer": "Enter a whole number.",
+    "cron": "Enter a cron expression with 5 fields, e.g. 0 */6 * * *."
+  }
+}

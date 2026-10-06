@@ -1,0 +1,38 @@
+{
+  "skipToContent": "跳至主要內容",
+  "toggleSidebar": "切換側邊欄",
+  "openNavigation": "開啟導覽選單",
+  "searchPlaceholder": "搜尋或跳至…",
+  "searchShortcut": "搜尋",
+  "commandPalette": {
+    "placeholder": "輸入命令，或搜尋人員、群組、角色…",
+    "navigate": "前往",
+    "actions": "動作",
+    "results": "搜尋結果",
+    "searching": "搜尋中…",
+    "empty": "找不到相符的項目。",
+    "toggleTheme": "切換淺色／深色佈景主題",
+    "changeLanguage": "變更語言",
+    "signOut": "登出",
+    "createUser": "新增人員",
+    "openApiDocs": "開啟 API 文件"
+  },
+  "theme": {
+    "label": "佈景主題",
+    "light": "淺色",
+    "dark": "深色",
+    "system": "跟隨系統"
+  },
+  "language": "語言",
+  "profile": "個人資料與偏好設定",
+  "signOut": "登出",
+  "apiDocs": "API 文件",
+  "breadcrumbHome": "首頁",
+  "moduleNotFound": "此頁面不存在，或該模組已停用。",
+  "forbidden": "您沒有存取此頁面的權限。",
+  "notFoundTitle": "找不到頁面",
+  "notFoundBody": "您要找的頁面不存在或已移動。",
+  "goHome": "前往儀表板",
+  "errorTitle": "發生錯誤",
+  "errorBody": "發生未預期的錯誤，詳細資訊已記錄下來。"
+}

@@ -1,0 +1,56 @@
+{
+  "meta": {
+    "name": "コア プラットフォーム",
+    "description": "ID、アクセス制御、監査、そして他のすべてのモジュールの土台となるモジュール システムです。"
+  },
+  "nav": {
+    "dashboard": "ダッシュボード",
+    "users": "ユーザー",
+    "groups": "グループ",
+    "departments": "部署",
+    "roles": "ロールとアクセス",
+    "audit": "監査ログ",
+    "modules": "モジュール",
+    "identity": "サインイン プロバイダー",
+    "sectionMain": "ワークスペース",
+    "sectionAdmin": "管理"
+  },
+  "permissions": {
+    "usersRead": "ユーザーとプロファイルの表示",
+    "usersCreate": "ユーザーの作成と新入社員の事前登録",
+    "usersUpdate": "ユーザー プロファイルの編集",
+    "usersLifecycle": "ユーザーのオンボーディング、一時停止、再有効化、オフボーディング",
+    "usersCredentials": "ローカル アカウントのパスワードのリセット",
+    "groupsRead": "グループとメンバーの表示",
+    "groupsManage": "グループの作成とメンバーシップの管理",
+    "departmentsRead": "組織階層の表示",
+    "departmentsManage": "部署の作成、移動、削除",
+    "rolesRead": "ロール、権限、割り当ての表示",
+    "rolesManage": "カスタム ロールの作成と編集",
+    "rolesAssign": "ロールの付与と取り消し",
+    "auditRead": "監査ログの閲覧",
+    "modulesRead": "インストール済みモジュールの表示",
+    "modulesManage": "モジュールの有効化、無効化、構成",
+    "idpRead": "サインイン プロバイダーの表示",
+    "idpManage": "サインイン プロバイダーとディレクトリ同期の構成"
+  },
+  "settings": {
+    "productName": "製品名",
+    "supportEmail": "サポート用メール アドレス",
+    "loginBanner": "サインイン バナー",
+    "loginBannerHelp": "サインイン ページに表示されます (例: 利用規定に関する告知)。"
+  },
+  "systemRoles": {
+    "platform-admin": { "name": "プラットフォーム管理者", "description": "すべての機能へのフル アクセス" },
+    "identity-admin": {
+      "name": "ID 管理者",
+      "description": "ユーザー、グループ、部署、ロールの割り当てを管理"
+    },
+    "security-auditor": {
+      "name": "セキュリティ監査者",
+      "description": "すべてのモジュールと監査証跡への読み取り専用アクセス"
+    },
+    "module-admin": { "name": "モジュール管理者", "description": "モジュールの有効化、無効化、構成" },
+    "everyone": { "name": "全員", "description": "すべての有効なユーザーに付与される基本アクセス" }
+  }
+}

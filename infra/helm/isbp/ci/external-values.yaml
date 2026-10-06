@@ -1,0 +1,20 @@
+# Values for `helm lint` / `helm template` / chart-testing (ct) — NOT for real deployments.
+# Exercises secrets.mode=external without an ingress.
+config:
+  PUBLIC_URL: https://isbp.ci.local
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.observability:4318
+
+secrets:
+  mode: external
+  external:
+    secretStoreRef:
+      kind: ClusterSecretStore
+      name: vault
+
+defaultTopologySpread: false
+
+worker:
+  autoscaling:
+    enabled: true
+  pdb:
+    minAvailable: 1

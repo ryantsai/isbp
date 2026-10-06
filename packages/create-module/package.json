@@ -1,0 +1,33 @@
+{
+  "name": "@isbp/create-module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scaffold IS Big Platform modules and keep the installed-module registries in sync",
+  "type": "module",
+  "bin": {
+    "create-module": "./src/cli.ts"
+  },
+  "files": [
+    "src",
+    "templates"
+  ],
+  "scripts": {
+    "new": "tsx src/cli.ts create",
+    "sync": "tsx src/cli.ts sync",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@isbp/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@isbp/eslint-config": "workspace:*",
+    "@isbp/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

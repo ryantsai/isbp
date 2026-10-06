@@ -1,0 +1,55 @@
+{
+  "title": "ダッシュボード",
+  "greeting": {
+    "morning": "おはようございます、{name} さん",
+    "afternoon": "こんにちは、{name} さん",
+    "evening": "こんばんは、{name} さん"
+  },
+  "subtitle": "本日のプラットフォーム全体の状況です。",
+  "kpi": {
+    "people": "有効なユーザー",
+    "peopleHint": "ディレクトリ内 {total} 人",
+    "pending": "オンボーディング待ち",
+    "pendingHint": "事前登録済みのアカウント",
+    "groups": "グループ",
+    "roles": "ロール",
+    "departments": "部署",
+    "sessions": "アクティブなセッション",
+    "expiring": "期限切れ間近のアクセス",
+    "expiringHint": "7 日以内",
+    "modules": "有効なモジュール",
+    "modulesHint": "{total} 個をインストール済み"
+  },
+  "activity": {
+    "title": "プラットフォームのアクティビティ",
+    "description": "過去 14 日間の監査イベント",
+    "security": "セキュリティ",
+    "other": "その他",
+    "total": "合計",
+    "tooltip": "{date}: {total} 件のイベント (うちセキュリティ {security} 件)"
+  },
+  "sources": {
+    "title": "サインイン方法",
+    "description": "ID ソース別の有効なアカウント"
+  },
+  "recent": {
+    "title": "最近のアクティビティ",
+    "empty": "アクティビティはまだありません。"
+  },
+  "quick": {
+    "title": "クイック操作",
+    "createUser": "ユーザーを追加",
+    "grantAccess": "ロールを付与",
+    "reviewAudit": "監査ログを確認",
+    "configureSso": "シングル サインオンを構成"
+  },
+  "modules": {
+    "title": "利用できるモジュール",
+    "description": "ここにあるものはすべて、同じ SDK で構築されたモジュールです。",
+    "manage": "モジュールの管理"
+  },
+  "welcome": {
+    "title": "IS Big Platform へようこそ",
+    "body": "検索 (⌘K / Ctrl K) を使うと、どこへでもすばやく移動できます。他のモジュールへのアクセスが必要な場合は、管理者にお問い合わせください。"
+  }
+}

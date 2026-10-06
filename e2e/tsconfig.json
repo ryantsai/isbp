@@ -1,0 +1,5 @@
+{
+  "extends": "@isbp/tsconfig/node.json",
+  "compilerOptions": { "lib": ["ES2023", "DOM"] },
+  "include": ["**/*.ts"]
+}

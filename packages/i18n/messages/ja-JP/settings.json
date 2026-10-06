@@ -1,0 +1,104 @@
+{
+  "title": "プロファイルと設定",
+  "description": "他のユーザーへの表示内容、プラットフォームの外観、アカウントのセキュリティを管理します。",
+  "nav": {
+    "label": "設定のセクション",
+    "profile": "プロファイル",
+    "preferences": "基本設定",
+    "security": "パスワード",
+    "sessions": "セッション",
+    "access": "自分のアクセス権"
+  },
+  "profile": {
+    "title": "プロファイル",
+    "description": "表示名は、ユーザー ディレクトリや監査ログなど、プラットフォーム全体に表示されます。",
+    "displayName": "表示名",
+    "username": "ユーザー名",
+    "signIn": "サインイン方法",
+    "saved": "プロファイルを更新しました",
+    "managedHint": "メール アドレス、ユーザー名、部署は組織によって管理されています。変更するには、IT サポートにお問い合わせください。"
+  },
+  "preferences": {
+    "title": "基本設定",
+    "description": "これらの設定は、サインインするすべてのデバイスに適用されます。",
+    "language": {
+      "label": "言語",
+      "hint": "メニュー、メッセージ、メールで使用されます。"
+    },
+    "theme": {
+      "hint": "「システム設定に従う」を選択すると、デバイスのライト / ダーク設定が適用されます。"
+    },
+    "timezone": {
+      "label": "タイム ゾーン",
+      "hint": "日付と時刻は、このタイム ゾーンで表示されます。",
+      "search": "タイム ゾーンを検索…",
+      "noMatch": "一致するタイム ゾーンはありません。",
+      "saved": "タイム ゾーンを {zone} に設定しました",
+      "useBrowser": "このデバイスのタイム ゾーンを使用 ({zone})"
+    }
+  },
+  "password": {
+    "title": "パスワード",
+    "description": "ローカル アカウントでのサインインに使用するパスワードを変更します。",
+    "current": "現在のパスワード",
+    "new": "新しいパスワード",
+    "confirm": "新しいパスワードの確認",
+    "submit": "パスワードを変更",
+    "signOutNote": "他のセッションはサインアウトされます。",
+    "changed": "パスワードを変更しました。他のセッションはサインアウトされました。",
+    "wrongCurrent": "現在のパスワードが正しくありません。",
+    "mismatch": "パスワードが一致しません。",
+    "mustChange": "管理者から新しいパスワードの設定を求められています。",
+    "rules": {
+      "label": "パスワードの要件",
+      "length": "{min} 文字以上",
+      "variety": "同じ文字の繰り返しが多すぎない (5 種類以上の文字を使用)",
+      "match": "2 つの新しいパスワードが一致する",
+      "met": "満たしています",
+      "notMet": "まだ満たしていません"
+    },
+    "external": {
+      "title": "組織のアカウントでサインインしています",
+      "body": "パスワードは組織の ID プロバイダーで管理されています。そちらで変更するか、IT サポートにお問い合わせください。"
+    }
+  },
+  "sessions": {
+    "title": "アクティブなセッション",
+    "description": "アカウントにサインインしているデバイスとブラウザーです。心当たりのないものはサインアウトしてください。",
+    "device": "{os} 上の {browser}",
+    "unknownDevice": "不明なデバイス",
+    "thisDevice": "このデバイス",
+    "activeNow": "現在アクティブ",
+    "lastActive": "最終アクティビティ: {time}",
+    "signedIn": "{date} にサインイン",
+    "revoke": "サインアウト",
+    "revokeLabel": "{device} をサインアウト",
+    "revoked": "セッションをサインアウトしました",
+    "revokeOthers": "他のセッションをサインアウト",
+    "revokeOthersTitle": "他のすべての場所からサインアウトしますか?",
+    "revokeOthersBody": "{count, plural, one {他の # 件のセッションがサインアウトされます。このデバイスはサインインしたままになります。} other {他の # 件のセッションがサインアウトされます。このデバイスはサインインしたままになります。}}",
+    "revokedOthers": "{count, plural, one {# 件のセッションをサインアウトしました} other {# 件のセッションをサインアウトしました}}"
+  },
+  "access": {
+    "title": "自分のアクセス権",
+    "description": "保持しているロールと、その付与経路です。不足しているものがあれば、管理者に依頼してください。",
+    "summary": "{roles, plural, one {ロール # 個} other {ロール # 個}} · {permissions, plural, one {権限 # 個} other {権限 # 個}}",
+    "none": "ロールはまだありません。",
+    "permissionCount": "{count, plural, one {# 個の権限} other {# 個の権限}}",
+    "allPermissions": "すべての権限",
+    "expires": "{date} まで",
+    "via": {
+      "direct": "直接割り当て",
+      "group": "{group} 経由",
+      "everyone": "全員"
+    }
+  },
+  "validation": {
+    "required": "必須です。",
+    "invalid": "この値は無効です。",
+    "tooShort": "{min} 文字以上で入力してください。",
+    "tooLong": "{max} 文字以内で入力してください。",
+    "url": "完全な URL を入力してください。",
+    "format": "想定された形式ではありません。"
+  }
+}

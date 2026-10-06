@@ -1,0 +1,44 @@
+# Build context for infra/docker/*.Dockerfile (context = repo root).
+# Keep the context small and free of secrets: images are built from a `turbo prune` of the source tree,
+# so anything generated locally (deps, build output, caches, local data) must stay out.
+
+# VCS / editor / OS noise
+.git
+.gitattributes
+.github
+.vscode
+.idea
+.claude
+**/.DS_Store
+**/*.swp
+
+# Dependencies and package-manager stores (installed fresh inside the image)
+**/node_modules
+.pnpm-store
+
+# Build output and tool caches
+**/dist
+**/.next
+**/out
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+**/next-env.d.ts
+
+# Local data and secrets (never bake into an image)
+.dev-data
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+
+# Test artefacts
+**/playwright-report
+**/test-results
+**/blob-report
+**/*.log
+
+# Not needed to build the apps (Dockerfiles are passed to the builder separately)
+docs
+infra/compose
+infra/helm

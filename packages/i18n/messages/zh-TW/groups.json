@@ -1,0 +1,109 @@
+{
+  "title": "群組",
+  "description": "共用相同存取權的人員集合。將角色授予群組後，每位成員都會繼承該角色。",
+  "add": "新增群組",
+  "searchPlaceholder": "搜尋名稱或索引鍵…",
+  "clearSearch": "清除搜尋",
+  "systemBadge": "系統",
+  "filters": {
+    "source": "來源",
+    "allSources": "所有來源"
+  },
+  "columns": {
+    "name": "群組",
+    "description": "描述",
+    "source": "來源",
+    "members": "成員",
+    "roles": "角色"
+  },
+  "empty": {
+    "title": "找不到群組",
+    "description": "請嘗試其他搜尋條件，或清除篩選條件。",
+    "firstTitle": "尚無群組",
+    "firstDescription": "建立群組，即可一次將相同的存取權授予多位人員。"
+  },
+  "form": {
+    "createTitle": "新增群組",
+    "createDescription": "群組可將人員集中管理，讓您只需授予角色一次，不必逐一授予每位人員。",
+    "editTitle": "編輯 {name}",
+    "editDescription": "所有變更都會記錄在稽核日誌中。",
+    "name": "名稱",
+    "namePlaceholder": "例如：財務團隊",
+    "key": "索引鍵",
+    "keyHint": "供整合服務及目錄同步使用。可使用小寫英文字母、數字、「-」及「_」。建立後即無法變更。",
+    "keyLocked": "索引鍵無法變更。",
+    "keyTaken": "已有其他群組使用此索引鍵。",
+    "description": "描述",
+    "descriptionPlaceholder": "這個群組的用途是什麼？",
+    "created": "已建立群組「{name}」",
+    "saved": "已儲存變更"
+  },
+  "detail": {
+    "notFound": "找不到群組",
+    "notFoundDescription": "此群組可能已被刪除，或您已不再擁有其存取權。",
+    "noDescription": "沒有描述。",
+    "summary": "{members, plural, one {# 位成員} other {# 位成員}} · {roles, plural, one {# 個角色} other {# 個角色}}",
+    "tabs": {
+      "members": "成員",
+      "roles": "角色",
+      "activity": "活動"
+    },
+    "edit": "編輯",
+    "more": "更多動作",
+    "delete": "刪除群組",
+    "systemLocked": "內建群組無法刪除。",
+    "deleteTitle": "要刪除「{name}」嗎？",
+    "deleteBody": "{count, plural, =0 {此群組沒有任何成員。} one {其 # 位成員將失去透過此群組授予的所有角色。} other {其 # 位成員將失去透過此群組授予的所有角色。}}帳號本身不受影響。此動作無法復原。",
+    "deleted": "已刪除群組「{name}」"
+  },
+  "members": {
+    "searchPlaceholder": "搜尋成員…",
+    "add": "新增成員",
+    "removeSelected": "移除 {count, plural, one {# 位成員} other {# 位成員}}",
+    "columns": {
+      "person": "人員",
+      "status": "狀態",
+      "source": "加入方式",
+      "added": "加入時間"
+    },
+    "empty": {
+      "title": "尚無成員",
+      "description": "新增人員，即可讓他們獲得授予此群組的角色。",
+      "searchTitle": "沒有相符的成員",
+      "searchDescription": "請嘗試其他搜尋條件。"
+    },
+    "everyoneTitle": "所有人都是成員",
+    "everyoneBody": "成員資格為隱含設定：每位啟用中的人員都會自動屬於此群組（目前共 {count, plural, one {# 人} other {# 人}}），因此無法在此編輯。將角色授予此群組，即可為所有人提供基本存取權。",
+    "syncedNotice": "成員資格由目錄同步（{source}）管理。手動變更可能會在下次同步時被覆寫。",
+    "removeTitle": "要從「{group}」移除 {count, plural, one {# 位成員} other {# 位成員}}嗎？",
+    "removeBody": "他們將失去透過此群組授予的所有角色，但帳號本身不受影響。",
+    "removed": "{count, plural, =0 {未移除任何人} one {已移除 # 位成員} other {已移除 # 位成員}}",
+    "addTitle": "新增成員至「{group}」",
+    "addDescription": "尋找人員並加入清單。已是成員的人員會自動略過。",
+    "pickLabel": "尋找人員",
+    "pickPlaceholder": "依姓名或電子郵件搜尋…",
+    "picked": "{count, plural, =0 {尚未選取任何人} one {已選取 # 人} other {已選取 # 人}}",
+    "listEmpty": "您選取的人員會顯示在這裡。",
+    "removeFromList": "從清單中移除 {name}",
+    "clearList": "清除清單",
+    "addConfirm": "{count, plural, =0 {新增成員} one {新增 # 位成員} other {新增 # 位成員}}",
+    "added": "{count, plural, =0 {您選取的人員都已是成員} one {已新增 # 位成員} other {已新增 # 位成員}}"
+  },
+  "roles": {
+    "title": "授予此群組的角色",
+    "description": "群組的每位成員都會獲得這些角色。",
+    "grant": "授予角色",
+    "emptyTitle": "尚未授予任何角色",
+    "emptyDescription": "成員僅能從自己的角色及「所有人」群組取得存取權。",
+    "scope": "{type}：{label}",
+    "expires": "{date} 到期",
+    "grantedBy": "由 {name} 授予",
+    "grantedAutomatically": "自動授予",
+    "reason": "原因：{reason}"
+  },
+  "activity": {
+    "description": "此群組及其成員資格的變更。",
+    "empty": "尚未記錄任何活動。",
+    "people": "{count, plural, one {# 人} other {# 人}}"
+  }
+}

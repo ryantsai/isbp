@@ -1,0 +1,35 @@
+{
+  "name": "isbp",
+  "private": true,
+  "description": "IS Big Platform — unified resource management for IT operations",
+  "packageManager": "pnpm@12.4.1",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev --filter=@isbp/api --filter=@isbp/web",
+    "dev:services": "pnpm --filter @isbp/dev-services start",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "pnpm --filter @isbp/api test:integration",
+    "e2e": "pnpm --filter @isbp/e2e e2e",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "turbo run db:generate",
+    "db:migrate": "pnpm --filter @isbp/api migrate",
+    "db:seed": "pnpm --filter @isbp/api seed",
+    "db:reset": "pnpm --filter @isbp/api db:reset",
+    "modules:sync": "tsx packages/create-module/src/cli.ts sync",
+    "modules:check": "tsx packages/create-module/src/cli.ts sync --check",
+    "create-module": "tsx packages/create-module/src/cli.ts create"
+  },
+  "devDependencies": {
+    "prettier": "catalog:",
+    "tsx": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
+  }
+}

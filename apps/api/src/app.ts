@@ -1,0 +1,157 @@
+import cookie from '@fastify/cookie';
+import formbody from '@fastify/formbody';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
+import swagger from '@fastify/swagger';
+import { ErrorCodes, HttpError, type ModuleRouter } from '@isbp/sdk/server';
+import scalar from '@scalar/fastify-api-reference';
+import Fastify, { LogController } from 'fastify';
+import {
+  jsonSchemaTransform,
+  jsonSchemaTransformObject,
+  serializerCompiler,
+  validatorCompiler,
+  type ZodTypeProvider,
+} from 'fastify-type-provider-zod';
+import { v7 as uuidv7 } from 'uuid';
+import { registerAuth } from './kernel/http/auth';
+import { registerErrorHandling } from './kernel/http/errors';
+import type { Kernel } from './kernel/kernel';
+import { httpDuration } from './kernel/metrics';
+import { loggerOptions } from './logger';
+
+const PUBLIC_PREFIXES = ['/api/docs', '/api/openapi.json', '/healthz', '/readyz'];
+
+export async function buildApp(kernel: Kernel) {
+  const { config } = kernel;
+  const app = Fastify({
+    logger: loggerOptions(config),
+    trustProxy: config.trustProxy,
+    bodyLimit: 1_048_576,
+    // One structured line per request is written by the onResponse hook below.
+    logController: new LogController({ disableRequestLogging: true }),
+    requestIdHeader: 'x-request-id',
+    genReqId: () => uuidv7(),
+    routerOptions: { ignoreTrailingSlash: true },
+  }).withTypeProvider<ZodTypeProvider>();
+
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
+  registerErrorHandling(app);
+
+  // Infra routes (docs, probes) are public; everything else is authenticated by default.
+  app.addHook('onRoute', (route) => {
+    if (PUBLIC_PREFIXES.some((p) => route.url.startsWith(p)))
+      route.config = { ...route.config, public: true };
+  });
+
+  await app.register(helmet, {
+    contentSecurityPolicy: false, // JSON API; the web app sets a strict, nonce-based CSP
+    crossOriginResourcePolicy: { policy: 'same-site' },
+  });
+  await app.register(cookie);
+  await app.register(formbody);
+
+  registerAuth(app, kernel);
+
+  await app.register(rateLimit, {
+    global: true,
+    max: config.RATE_LIMIT_MAX,
+    timeWindow: '1 minute',
+    hook: 'preHandler',
+    redis: kernel.redis,
+    nameSpace: 'isbp:rl:',
+    keyGenerator: (req) => req.auth?.user?.id ?? req.ip,
+    errorResponseBuilder: (_req, ctx) =>
+      new HttpError(429, ErrorCodes.RATE_LIMITED, `Too many requests — retry in ${ctx.after}`),
+  });
+
+  if (config.apiDocs) {
+    await app.register(swagger, {
+      openapi: {
+        openapi: '3.1.0',
+        info: {
+          title: 'IS Big Platform API',
+          version: '1.0.0',
+          description:
+            'Every UI action is backed by this API. Authenticate with the session cookie (browser) — API ' +
+            'clients and OAuth client credentials arrive with the Role Query API in Phase 1. Unsafe methods ' +
+            'require the `x-csrf-token` header when using cookie authentication.',
+        },
+        servers: [{ url: config.PUBLIC_URL }],
+        components: {
+          securitySchemes: {
+            session: { type: 'apiKey', in: 'cookie', name: 'isbp_session' },
+            csrf: { type: 'apiKey', in: 'header', name: 'x-csrf-token' },
+          },
+        },
+        security: [{ session: [], csrf: [] }],
+      },
+      transform: jsonSchemaTransform,
+      transformObject: jsonSchemaTransformObject,
+    });
+    await app.register(scalar, {
+      routePrefix: '/api/docs',
+      configuration: {
+        theme: 'default',
+        hideClientButton: false,
+        metaData: { title: 'IS Big Platform API' },
+      },
+    });
+    app.get('/api/openapi.json', { schema: { hide: true } }, () => app.swagger());
+  }
+
+  app.get('/healthz', { schema: { hide: true } }, () => ({ status: 'ok' }));
+  app.get('/readyz', { schema: { hide: true } }, async (_req, reply) => {
+    const ok = await kernel.ready().catch(() => false);
+    return reply.status(ok ? 200 : 503).send({ status: ok ? 'ready' : 'unavailable' });
+  });
+
+  // Mount every installed module through the same SDK contract. Core is the platform's own module
+  // and is mounted at the API root; every other module lives under /api/v1/<id>.
+  for (const mod of kernel.registry.modules) {
+    if (!mod.routes) continue;
+    const id = mod.manifest.id;
+    const prefix = id === 'core' ? '/api/v1' : `/api/v1/${id}`;
+    await app.register(
+      async (scope) => {
+        scope.addHook('onRoute', (route) => {
+          route.schema = { ...route.schema, tags: route.schema?.tags ?? [id] };
+        });
+        if (!mod.manifest.system) {
+          scope.addHook('onRequest', async () => {
+            if (!kernel.registry.isEnabled(id)) {
+              throw new HttpError(404, ErrorCodes.MODULE_DISABLED, `Module "${id}" is disabled`);
+            }
+          });
+        }
+        await mod.routes!(scope as unknown as ModuleRouter, kernel.registry.context(id));
+      },
+      { prefix },
+    );
+  }
+
+  app.addHook('onResponse', (req, reply, done) => {
+    const route = req.routeOptions.url ?? 'unmatched';
+    const seconds = reply.elapsedTime / 1000;
+    httpDuration.observe({ method: req.method, route, status_code: reply.statusCode }, seconds);
+    if (route !== '/healthz' && route !== '/readyz') {
+      req.log.info(
+        {
+          method: req.method,
+          route,
+          url: req.url,
+          status: reply.statusCode,
+          ms: Math.round(reply.elapsedTime),
+          user: req.auth?.user?.id,
+        },
+        'request',
+      );
+    }
+    done();
+  });
+
+  return app;
+}
+
+export type App = Awaited<ReturnType<typeof buildApp>>;

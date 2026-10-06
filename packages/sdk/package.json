@@ -1,0 +1,54 @@
+{
+  "name": "@isbp/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "IS Big Platform module SDK — the same contract for built-in and custom modules",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts",
+    "./web": "./src/web.tsx"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@isbp/i18n": "workspace:*",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "*",
+    "fastify": "*",
+    "fastify-type-provider-zod": "*",
+    "react": "*"
+  },
+  "peerDependenciesMeta": {
+    "drizzle-orm": {
+      "optional": true
+    },
+    "fastify": {
+      "optional": true
+    },
+    "fastify-type-provider-zod": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@isbp/eslint-config": "workspace:*",
+    "@isbp/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "drizzle-orm": "catalog:",
+    "eslint": "catalog:",
+    "fastify": "catalog:",
+    "fastify-type-provider-zod": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

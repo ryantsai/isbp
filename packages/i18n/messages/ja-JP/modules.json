@@ -1,0 +1,105 @@
+{
+  "title": "モジュール",
+  "description": "このプラットフォームにインストールされている機能です。実行中にオン/オフを切り替えられます。再デプロイは不要で、データも削除されません。",
+  "summary": "{total} 個中 {enabled} 個が有効",
+  "empty": "インストールされているモジュールはありません",
+  "noDescription": "説明はありません。",
+  "openDetails": "{name} の詳細を表示",
+  "systemHint": "システム モジュール (常にオン)",
+  "statusOn": "アクセス権を持つすべてのユーザーが利用可能",
+  "statusOff": "すべてのユーザーに対してオフ",
+  "off": "オフ",
+  "toggle": {
+    "label": "{name} を有効にする",
+    "enabledToast": "{name} を有効にしました",
+    "disabledToast": "{name} を無効にしました",
+    "needsDependencies": "先に {names} を有効にしてください。このモジュールはそれらに依存しています。",
+    "hasDependents": "先に {names} を無効にしてください。それらはこのモジュールに依存しています。"
+  },
+  "disable": {
+    "title": "{name} を無効にしますか?",
+    "body": "すべてのユーザーに対して直ちに停止します。データは保持され、いつでも再びオンにできます。",
+    "confirm": "モジュールを無効化",
+    "impact": {
+      "pages": "ページとナビゲーションが非表示になります",
+      "api": "API エンドポイントが応答しなくなります",
+      "jobs": "バックグラウンド ジョブが一時停止されます",
+      "events": "イベント ハンドラーがイベントを受信しなくなります"
+    },
+    "blockedTitle": "{count, plural, one {別のモジュールがこのモジュールに依存しています。先にそのモジュールを無効にしてください:} other {# 個のモジュールがこのモジュールに依存しています。先にそれらを無効にしてください:}}",
+    "inactiveDependents": "{names} (現在無効) でも必要とされています。"
+  },
+  "stats": {
+    "permissions": "{count, plural, one {権限} other {権限}}",
+    "events": "イベント",
+    "eventsDetail": "{emits, plural, one {発行 # 件} other {発行 # 件}}、{consumes, plural, one {受信 # 件} other {受信 # 件}}",
+    "aiTools": "{count, plural, one {AI ツール} other {AI ツール}}",
+    "jobs": "{count, plural, one {ジョブ} other {ジョブ}}"
+  },
+  "tabs": {
+    "overview": "概要",
+    "permissions": "権限",
+    "events": "イベント",
+    "aiTools": "AI ツール",
+    "jobs": "ジョブ",
+    "settings": "設定"
+  },
+  "overview": {
+    "id": "モジュール ID",
+    "version": "バージョン",
+    "installed": "インストール日時",
+    "lastChanged": "最終オン/オフ日時",
+    "neverChanged": "なし (インストール以降有効)",
+    "navigation": "ナビゲーション",
+    "navEntries": "{count, plural, =0 {メニュー項目なし} one {# 個のメニュー項目} other {# 個のメニュー項目}}",
+    "dependsOn": "依存先",
+    "dependents": "依存元",
+    "noDependencies": "他のモジュールには依存していません。",
+    "noDependents": "このモジュールに依存しているモジュールはありません。"
+  },
+  "permissions": {
+    "hint": "このモジュールが追加する権限です。「ロールとアクセス」ページでロールを通じて付与します。"
+  },
+  "events": {
+    "hint": "モジュール同士はイベントを通じて連携します。このモジュールが発行したイベントに、他のモジュールが反応できます。",
+    "emits": "発行",
+    "consumes": "受信",
+    "noEmits": "このモジュールはイベントを発行しません。",
+    "noConsumes": "このモジュールはイベントを受信しません。"
+  },
+  "ai": {
+    "hint": "これらのツールは、MCP ゲートウェイを通じて AI エージェントに提供されます。エージェントがツールを呼び出せるのは、代理で操作している対象のユーザーが必要な権限を保持している場合のみです。",
+    "requiresConfirmation": "確認が必要",
+    "permission": "必要な権限"
+  },
+  "jobs": {
+    "onDemand": "オンデマンド",
+    "cron": "カスタム スケジュール",
+    "everySeconds": "{count, plural, one {毎秒} other {# 秒ごと}}",
+    "everyMinutes": "{count, plural, one {毎分} other {# 分ごと}}",
+    "everyHours": "{count, plural, one {毎時} other {# 時間ごと}}",
+    "hourlyAt": "毎時 {minute} 分",
+    "dailyAt": "毎日 {time}"
+  },
+  "settings": {
+    "saved": "設定を保存しました",
+    "stored": "保存済み",
+    "choose": "選択…",
+    "secretEmpty": "未設定",
+    "secretKeep": "保存されている値を維持するには、空欄のままにします。",
+    "readOnly": "これらの設定を表示することはできますが、変更することはできません。",
+    "showAdvanced": "{count, plural, one {# 件の詳細設定を表示} other {# 件の詳細設定を表示}}",
+    "discard": "変更を破棄",
+    "none": "このモジュールには設定がありません。"
+  },
+  "validation": {
+    "number": "数値を入力してください。",
+    "tooLong": "{max} 文字以内で入力してください。"
+  },
+  "howTo": {
+    "title": "モジュールのしくみ",
+    "body": "コア プラットフォームを含むすべての機能はモジュールです。モジュールとは、ページ、API ルート、権限、イベント、バックグラウンド ジョブ、設定、AI ツールを宣言するマニフェストです。組み込みモジュールとカスタム モジュールは同じ SDK を使用します。",
+    "scaffold": "独自のモジュールを作成するには、リポジトリのルートで次のコマンドを実行してひな形を生成します:",
+    "placeholder": "name"
+  }
+}

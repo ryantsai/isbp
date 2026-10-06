@@ -1,0 +1,38 @@
+{
+  "skipToContent": "Skip to main content",
+  "toggleSidebar": "Toggle sidebar",
+  "openNavigation": "Open navigation",
+  "searchPlaceholder": "Search or jump to…",
+  "searchShortcut": "Search",
+  "commandPalette": {
+    "placeholder": "Type a command or search people, groups, roles…",
+    "navigate": "Go to",
+    "actions": "Actions",
+    "results": "Search results",
+    "searching": "Searching…",
+    "empty": "No matches.",
+    "toggleTheme": "Toggle light / dark theme",
+    "changeLanguage": "Change language",
+    "signOut": "Sign out",
+    "createUser": "Create a person",
+    "openApiDocs": "Open API documentation"
+  },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "language": "Language",
+  "profile": "Profile & preferences",
+  "signOut": "Sign out",
+  "apiDocs": "API documentation",
+  "breadcrumbHome": "Home",
+  "moduleNotFound": "This page does not exist or the module is disabled.",
+  "forbidden": "You don't have access to this page.",
+  "notFoundTitle": "Page not found",
+  "notFoundBody": "The page you're looking for doesn't exist or was moved.",
+  "goHome": "Go to dashboard",
+  "errorTitle": "Something went wrong",
+  "errorBody": "An unexpected error occurred. The details have been logged."
+}

@@ -1,0 +1,105 @@
+{
+  "title": "Modules",
+  "description": "Capabilities installed on this platform. Turn them on or off at runtime — no redeploy, and no data is deleted.",
+  "summary": "{enabled} of {total} enabled",
+  "empty": "No modules are installed",
+  "noDescription": "No description provided.",
+  "openDetails": "View details of {name}",
+  "systemHint": "System module — always on",
+  "statusOn": "Available to everyone with access",
+  "statusOff": "Turned off for everyone",
+  "off": "off",
+  "toggle": {
+    "label": "Enable {name}",
+    "enabledToast": "{name} is now enabled",
+    "disabledToast": "{name} is now disabled",
+    "needsDependencies": "Enable {names} first — this module depends on them.",
+    "hasDependents": "Disable {names} first — they depend on this module."
+  },
+  "disable": {
+    "title": "Disable {name}?",
+    "body": "It stops for everyone immediately. Its data is kept, and you can turn it back on at any time.",
+    "confirm": "Disable module",
+    "impact": {
+      "pages": "Its pages and navigation are hidden",
+      "api": "Its API endpoints stop responding",
+      "jobs": "Its background jobs are paused",
+      "events": "Its event handlers stop receiving events"
+    },
+    "blockedTitle": "{count, plural, one {Another module depends on it. Disable it first:} other {# modules depend on it. Disable them first:}}",
+    "inactiveDependents": "Also required by {names} (currently disabled)."
+  },
+  "stats": {
+    "permissions": "{count, plural, one {Permission} other {Permissions}}",
+    "events": "Events",
+    "eventsDetail": "{emits, plural, one {# emitted} other {# emitted}}, {consumes, plural, one {# consumed} other {# consumed}}",
+    "aiTools": "{count, plural, one {AI tool} other {AI tools}}",
+    "jobs": "{count, plural, one {Job} other {Jobs}}"
+  },
+  "tabs": {
+    "overview": "Overview",
+    "permissions": "Permissions",
+    "events": "Events",
+    "aiTools": "AI tools",
+    "jobs": "Jobs",
+    "settings": "Settings"
+  },
+  "overview": {
+    "id": "Module ID",
+    "version": "Version",
+    "installed": "Installed",
+    "lastChanged": "Last turned on/off",
+    "neverChanged": "Never — enabled since installation",
+    "navigation": "Navigation",
+    "navEntries": "{count, plural, =0 {No menu entries} one {# menu entry} other {# menu entries}}",
+    "dependsOn": "Depends on",
+    "dependents": "Required by",
+    "noDependencies": "No other modules.",
+    "noDependents": "No other modules depend on it."
+  },
+  "permissions": {
+    "hint": "Permissions this module adds. Grant them through roles on the Roles & access page."
+  },
+  "events": {
+    "hint": "Modules talk to each other through events. Others can react to what this module emits.",
+    "emits": "Emits",
+    "consumes": "Listens to",
+    "noEmits": "This module doesn't emit events.",
+    "noConsumes": "This module doesn't listen to any events."
+  },
+  "ai": {
+    "hint": "These tools will be offered to AI agents through the MCP gateway. An agent can only call a tool when the person it acts for holds the required permission.",
+    "requiresConfirmation": "Requires confirmation",
+    "permission": "Requires"
+  },
+  "jobs": {
+    "onDemand": "On demand",
+    "cron": "Custom schedule",
+    "everySeconds": "{count, plural, one {Every second} other {Every # seconds}}",
+    "everyMinutes": "{count, plural, one {Every minute} other {Every # minutes}}",
+    "everyHours": "{count, plural, one {Every hour} other {Every # hours}}",
+    "hourlyAt": "Hourly at :{minute}",
+    "dailyAt": "Daily at {time}"
+  },
+  "settings": {
+    "saved": "Settings saved",
+    "stored": "Stored",
+    "choose": "Choose…",
+    "secretEmpty": "Not set",
+    "secretKeep": "Leave blank to keep the stored value.",
+    "readOnly": "You can view these settings but not change them.",
+    "showAdvanced": "{count, plural, one {Show # advanced setting} other {Show # advanced settings}}",
+    "discard": "Discard changes",
+    "none": "This module has no settings."
+  },
+  "validation": {
+    "number": "Enter a number.",
+    "tooLong": "Use at most {max} characters."
+  },
+  "howTo": {
+    "title": "How modules work",
+    "body": "Every capability — including the core platform — is a module: a manifest that declares its pages, API routes, permissions, events, background jobs, settings and AI tools. Built-in and custom modules use the same SDK.",
+    "scaffold": "To build your own, scaffold one from the repository root:",
+    "placeholder": "name"
+  }
+}

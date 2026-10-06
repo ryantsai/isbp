@@ -1,0 +1,78 @@
+{
+  "meta": {
+    "name": "公告",
+    "description": "服務通知、維護時段與事件更新，所有人都能即時掌握。"
+  },
+  "nav": {
+    "feed": "公告"
+  },
+  "permissions": {
+    "read": "閱讀已發布的公告",
+    "manage": "撰寫、發布、封存及刪除公告"
+  },
+  "settings": {
+    "defaultSeverity": "新公告的預設等級",
+    "maxPinned": "置頂公告數量上限"
+  },
+  "severity": {
+    "info": "資訊",
+    "maintenance": "維護",
+    "incident": "事件"
+  },
+  "severityHint": {
+    "info": "最新消息與異動",
+    "maintenance": "計畫性作業",
+    "incident": "服務中斷"
+  },
+  "status": {
+    "draft": "草稿",
+    "published": "已發布",
+    "archived": "已封存"
+  },
+  "views": {
+    "current": "目前",
+    "drafts": "草稿",
+    "archive": "封存"
+  },
+  "empty": {
+    "current": "目前沒有公告 — 所有系統運作正常。",
+    "drafts": "沒有草稿。",
+    "archive": "尚無封存的公告。"
+  },
+  "new": "新增公告",
+  "search": "搜尋公告…",
+  "pinned": "置頂",
+  "by": "發布者：{name}",
+  "publishedAt": "發布於",
+  "archive": "封存",
+  "notFound": "此公告不存在或尚未發布。",
+  "previous": "上一頁",
+  "next": "下一頁",
+  "saved": "已儲存變更",
+  "draftSaved": "已儲存草稿",
+  "publishedToast": "公告已發布",
+  "archivedToast": "公告已封存",
+  "deletedToast": "公告已刪除",
+  "editor": {
+    "createTitle": "新增公告",
+    "editTitle": "編輯公告",
+    "hint": "已發布的公告所有人皆可看到，並會以事件發布，供其他模組（例如通知）使用。",
+    "severity": "等級",
+    "title": "標題",
+    "body": "內容",
+    "startsAt": "時段開始",
+    "endsAt": "時段結束",
+    "windowHint": "選填。已發布的公告會在時段結束後自動封存。",
+    "pinned": "置頂",
+    "pinnedHint": "置頂公告會固定顯示在較新的公告之上。",
+    "saveDraft": "儲存草稿",
+    "publish": "發布"
+  },
+  "audit": {
+    "post_created": "撰寫公告",
+    "post_updated": "編輯公告",
+    "post_published": "發布公告",
+    "post_archived": "封存公告",
+    "post_deleted": "刪除公告"
+  }
+}

@@ -1,0 +1,273 @@
+import { defineManifest } from '@isbp/sdk';
+import { z } from 'zod';
+
+const userRef = z.object({ userId: z.uuid(), email: z.string() });
+
+/**
+ * The platform's own module. It is declared exactly like any other module; the only privilege it has
+ * is `system: true` (cannot be disabled) and being mounted at `/api/v1`.
+ */
+export const coreManifest = defineManifest({
+  id: 'core',
+  version: '0.1.0',
+  name: 'core.meta.name',
+  description: 'core.meta.description',
+  icon: 'layout-dashboard',
+  system: true,
+  navigation: [
+    {
+      id: 'dashboard',
+      label: 'core.nav.dashboard',
+      href: '/',
+      icon: 'layout-dashboard',
+      section: 'main',
+      order: 0,
+    },
+    {
+      id: 'users',
+      label: 'core.nav.users',
+      href: '/admin/users',
+      icon: 'users',
+      permission: 'core.users.read',
+      section: 'admin',
+      order: 10,
+    },
+    {
+      id: 'groups',
+      label: 'core.nav.groups',
+      href: '/admin/groups',
+      icon: 'users-round',
+      permission: 'core.groups.read',
+      section: 'admin',
+      order: 20,
+    },
+    {
+      id: 'departments',
+      label: 'core.nav.departments',
+      href: '/admin/departments',
+      icon: 'network',
+      permission: 'core.departments.read',
+      section: 'admin',
+      order: 30,
+    },
+    {
+      id: 'roles',
+      label: 'core.nav.roles',
+      href: '/admin/roles',
+      icon: 'shield-check',
+      permission: 'core.roles.read',
+      section: 'admin',
+      order: 40,
+    },
+    {
+      id: 'audit',
+      label: 'core.nav.audit',
+      href: '/admin/audit',
+      icon: 'scroll-text',
+      permission: 'core.audit.read',
+      section: 'admin',
+      order: 50,
+    },
+    {
+      id: 'modules',
+      label: 'core.nav.modules',
+      href: '/admin/modules',
+      icon: 'blocks',
+      permission: 'core.modules.read',
+      section: 'admin',
+      order: 60,
+    },
+    {
+      id: 'identity',
+      label: 'core.nav.identity',
+      href: '/admin/identity-providers',
+      icon: 'key-round',
+      permission: 'core.idp.read',
+      section: 'admin',
+      order: 70,
+    },
+  ],
+  permissions: [
+    {
+      key: 'core.users.read',
+      description: 'core.permissions.usersRead',
+      scopes: ['global', 'department', 'record'],
+    },
+    {
+      key: 'core.users.create',
+      description: 'core.permissions.usersCreate',
+      scopes: ['global', 'department'],
+    },
+    {
+      key: 'core.users.update',
+      description: 'core.permissions.usersUpdate',
+      scopes: ['global', 'department', 'record'],
+    },
+    {
+      key: 'core.users.lifecycle',
+      description: 'core.permissions.usersLifecycle',
+      scopes: ['global', 'department'],
+    },
+    {
+      key: 'core.users.credentials',
+      description: 'core.permissions.usersCredentials',
+      scopes: ['global', 'department'],
+    },
+    { key: 'core.groups.read', description: 'core.permissions.groupsRead' },
+    { key: 'core.groups.manage', description: 'core.permissions.groupsManage', scopes: ['global', 'record'] },
+    { key: 'core.departments.read', description: 'core.permissions.departmentsRead' },
+    {
+      key: 'core.departments.manage',
+      description: 'core.permissions.departmentsManage',
+      scopes: ['global', 'department'],
+    },
+    { key: 'core.roles.read', description: 'core.permissions.rolesRead' },
+    { key: 'core.roles.manage', description: 'core.permissions.rolesManage' },
+    {
+      key: 'core.roles.assign',
+      description: 'core.permissions.rolesAssign',
+      scopes: ['global', 'department'],
+    },
+    { key: 'core.audit.read', description: 'core.permissions.auditRead' },
+    { key: 'core.modules.read', description: 'core.permissions.modulesRead' },
+    { key: 'core.modules.manage', description: 'core.permissions.modulesManage' },
+    { key: 'core.idp.read', description: 'core.permissions.idpRead' },
+    { key: 'core.idp.manage', description: 'core.permissions.idpManage' },
+  ],
+  roles: [
+    {
+      key: 'platform-admin',
+      name: 'Platform administrator',
+      description: 'Full access to everything',
+      permissions: ['*'],
+    },
+    {
+      key: 'identity-admin',
+      name: 'Identity administrator',
+      description: 'Manage people, groups, departments and role assignments',
+      permissions: [
+        'core.users.*',
+        'core.groups.*',
+        'core.departments.*',
+        'core.roles.read',
+        'core.roles.assign',
+        'core.audit.read',
+      ],
+    },
+    {
+      key: 'security-auditor',
+      name: 'Security auditor',
+      description: 'Read-only access to every module and the audit trail',
+      permissions: ['*.*.read'],
+    },
+    {
+      key: 'module-admin',
+      name: 'Module administrator',
+      description: 'Enable, disable and configure modules',
+      permissions: ['core.modules.*'],
+    },
+    {
+      key: 'everyone',
+      name: 'Everyone',
+      description: 'Baseline access granted to every active user',
+      permissions: ['core.departments.read'],
+      grantByDefault: true,
+    },
+  ],
+  events: {
+    emits: [
+      { name: 'core.user.created', schema: userRef.extend({ status: z.string() }) },
+      { name: 'core.user.updated', schema: userRef.extend({ changes: z.array(z.string()) }) },
+      { name: 'core.user.onboarded', schema: userRef },
+      {
+        name: 'core.user.offboarded',
+        description: 'Modules must revoke the user’s access',
+        schema: userRef.extend({ reason: z.string().nullable() }),
+      },
+      { name: 'core.user.suspended', schema: userRef },
+      { name: 'core.user.reactivated', schema: userRef },
+      { name: 'core.group.created', schema: z.object({ groupId: z.uuid() }) },
+      { name: 'core.group.updated', schema: z.object({ groupId: z.uuid() }) },
+      { name: 'core.group.deleted', schema: z.object({ groupId: z.uuid() }) },
+      {
+        name: 'core.group.members_changed',
+        schema: z.object({ groupId: z.uuid(), added: z.array(z.uuid()), removed: z.array(z.uuid()) }),
+      },
+      { name: 'core.department.created', schema: z.object({ departmentId: z.uuid() }) },
+      { name: 'core.department.updated', schema: z.object({ departmentId: z.uuid() }) },
+      { name: 'core.department.deleted', schema: z.object({ departmentId: z.uuid() }) },
+      { name: 'core.role.created', schema: z.object({ roleId: z.uuid() }) },
+      { name: 'core.role.updated', schema: z.object({ roleId: z.uuid() }) },
+      { name: 'core.role.deleted', schema: z.object({ roleId: z.uuid() }) },
+      {
+        name: 'core.role-assignment.granted',
+        schema: z.object({ assignmentId: z.uuid(), roleId: z.uuid() }),
+      },
+      {
+        name: 'core.role-assignment.revoked',
+        schema: z.object({ assignmentId: z.uuid(), roleId: z.uuid() }),
+      },
+      {
+        name: 'core.role-assignment.expired',
+        schema: z.object({ assignmentId: z.uuid(), roleId: z.uuid() }),
+      },
+      { name: 'core.module.enabled', schema: z.object({ moduleId: z.string() }) },
+      { name: 'core.module.disabled', schema: z.object({ moduleId: z.string() }) },
+      {
+        name: 'core.directory.synced',
+        schema: z.object({
+          idpId: z.uuid(),
+          created: z.number(),
+          updated: z.number(),
+          suspended: z.number(),
+        }),
+      },
+    ],
+  },
+  settings: [
+    {
+      key: 'branding.productName',
+      label: 'core.settings.productName',
+      type: 'string',
+      default: 'IS Big Platform',
+    },
+    {
+      key: 'branding.supportEmail',
+      label: 'core.settings.supportEmail',
+      type: 'string',
+      default: 'it-support@example.com',
+    },
+    {
+      key: 'security.loginBanner',
+      label: 'core.settings.loginBanner',
+      description: 'core.settings.loginBannerHelp',
+      type: 'text',
+      default: '',
+      advanced: true,
+    },
+  ],
+  ai: {
+    tools: [
+      {
+        name: 'core.find_users',
+        description: 'Search people by name, email or username and return their status and department.',
+        input: z.object({ query: z.string().min(1), limit: z.number().int().min(1).max(50).default(10) }),
+        permission: 'core.users.read',
+      },
+      {
+        name: 'core.explain_access',
+        description: 'Explain which roles and permissions a user has, and through which group or assignment.',
+        input: z.object({ userId: z.uuid() }),
+        permission: 'core.roles.read',
+      },
+      {
+        name: 'core.offboard_user',
+        description: 'Offboard a user: disable sign-in, revoke sessions, remove groups and role assignments.',
+        input: z.object({ userId: z.uuid(), reason: z.string().max(500) }),
+        permission: 'core.users.lifecycle',
+        destructive: true,
+      },
+    ],
+  },
+  search: { entities: ['user', 'group', 'role', 'department'] },
+});

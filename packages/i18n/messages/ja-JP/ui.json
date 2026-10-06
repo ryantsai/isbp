@@ -1,0 +1,15 @@
+{
+  "table": {
+    "showing": "{total, plural, =0 {結果がありません} other {{total} 件中 {from}–{to} 件}}",
+    "rowsPerPage": "1 ページあたりの行数",
+    "pageOf": "{page} / {pageCount} ページ",
+    "previous": "前のページ",
+    "next": "次のページ",
+    "empty": "まだデータがありません。",
+    "selectAll": "このページのすべての行を選択",
+    "selectRow": "行を選択"
+  },
+  "search": {
+    "clear": "検索をクリア"
+  }
+}
