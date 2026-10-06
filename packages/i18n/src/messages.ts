@@ -17,6 +17,13 @@ export const namespaces = [
   'modules',
   'idp',
   'settings',
+  'approvals',
+  'requests',
+  'workflows',
+  'forms',
+  'fields',
+  'notifications',
+  'applications',
 ] as const;
 
 const loaders: Record<Locale, () => Promise<{ default: Messages }>> = {

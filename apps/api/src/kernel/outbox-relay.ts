@@ -97,7 +97,7 @@ export class OutboxRelay {
               actor: row.actor,
               occurredAt: new Date(row.occurred_at).toISOString(),
             };
-            return this.kernel.registry.subscribersOf(row.name).map((m) => ({
+            return this.kernel.registry.subscribersOf(row.name, row.payload).map((m) => ({
               name: row.name,
               data: { subscriber: m.manifest.id, event } satisfies EventJobData,
               opts: { jobId: `${row.event_id}__${m.manifest.id}`, attempts: 8 },

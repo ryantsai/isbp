@@ -1,5 +1,13 @@
 import { users } from '@isbp/db/schema';
-import { type Db, httpErrors, likePattern, type ModuleContext } from '@isbp/sdk/server';
+import {
+  type Db,
+  ErrorCodes,
+  HttpError,
+  httpErrors,
+  likePattern,
+  type ModuleContext,
+  type WorkflowCompletion,
+} from '@isbp/sdk/server';
 import { and, asc, count, desc, eq, gt, ilike, isNull, lte, or, type SQL, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import type { createPostSchema, postQuerySchema, Severity, updatePostSchema } from '../contracts';
@@ -19,6 +27,7 @@ export function toDto(p: Row, authorName: string | null) {
     endsAt: p.endsAt,
     publishedAt: p.publishedAt,
     author: p.authorId ? { id: p.authorId, displayName: authorName ?? '—' } : null,
+    reviewInstanceId: p.reviewInstanceId,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
   };
@@ -37,7 +46,7 @@ export class PostService {
       .from(posts)
       .leftJoin(users, eq(users.id, posts.authorId))
       .where(eq(posts.id, id));
-    if (!row || (row.post.status === 'draft' && !canManage))
+    if (!row || ((row.post.status === 'draft' || row.post.status === 'pending') && !canManage))
       throw httpErrors.notFound('Announcement not found');
     return toDto(row.post, row.authorName);
   }
@@ -48,7 +57,7 @@ export class PostService {
       q.view === 'current'
         ? currentCondition()
         : q.view === 'drafts'
-          ? eq(posts.status, 'draft')
+          ? or(eq(posts.status, 'draft'), eq(posts.status, 'pending'))
           : or(
               eq(posts.status, 'archived'),
               and(eq(posts.status, 'published'), lte(posts.endsAt, sql`now()`)),
@@ -108,8 +117,7 @@ export class PostService {
           startsAt: input.startsAt ?? null,
           endsAt: input.endsAt ?? null,
           authorId,
-          status: input.publish ? 'published' : 'draft',
-          publishedAt: input.publish ? new Date() : null,
+          status: 'draft',
         })
         .returning();
       await this.ctx.audit.record(
@@ -122,22 +130,133 @@ export class PostService {
         },
         { tx },
       );
-      if (input.publish) await this.publishedEvent(tx, row!);
-      return row!;
+      return input.publish ? this.goLiveOrReview(tx, row!, authorId) : row!;
     });
   }
 
-  private async publishedEvent(tx: Db, row: Row) {
-    await this.ctx.events.publish(
-      'announcements.post.published',
-      { postId: row.id, title: row.title, severity: row.severity },
+  /**
+   * Publishes now, or — when an admin bound a workflow to `announcements.publish` — sends the post
+   * for approval; `onReviewCompleted` publishes it once approved.
+   */
+  private async goLiveOrReview(tx: Db, before: Row, requesterId: string | null): Promise<Row> {
+    const review = await this.ctx.workflows.start(
+      'announcements.publish',
+      {
+        subject: { type: 'post', id: before.id, label: before.title, href: `/announcements/${before.id}` },
+        facts: {
+          post: {
+            severity: before.severity,
+            pinned: before.pinned,
+            hasWindow: Boolean(before.startsAt || before.endsAt),
+          },
+        },
+        requesterId,
+      },
       { tx },
     );
+    if (!review) return this.markPublished(tx, before);
+    const [row] = await tx
+      .update(posts)
+      .set({ status: 'pending', reviewInstanceId: review.instanceId })
+      .where(eq(posts.id, before.id))
+      .returning();
+    await this.ctx.audit.record(
+      {
+        action: 'announcements.post.submitted',
+        entityType: 'announcements.post',
+        entityId: before.id,
+        entityLabel: before.title,
+        metadata: { instanceId: review.instanceId },
+      },
+      { tx },
+    );
+    await this.ctx.events.publish(
+      'announcements.post.submitted',
+      { postId: before.id, title: before.title, instanceId: review.instanceId },
+      { tx },
+    );
+    return row!;
+  }
+
+  private async markPublished(tx: Db, before: Row): Promise<Row> {
+    const [row] = await tx
+      .update(posts)
+      .set({ status: 'published', publishedAt: new Date(), reviewInstanceId: null })
+      .where(eq(posts.id, before.id))
+      .returning();
+    await this.ctx.audit.record(
+      {
+        action: 'announcements.post.published',
+        entityType: 'announcements.post',
+        entityId: before.id,
+        entityLabel: row!.title,
+        changes: { status: [before.status, 'published'] },
+      },
+      { tx },
+    );
+    await this.ctx.events.publish(
+      'announcements.post.published',
+      { postId: row!.id, title: row!.title, severity: row!.severity },
+      { tx },
+    );
+    await this.ctx.notifications.broadcast(
+      {
+        type: 'announcements.post.published',
+        params: { title: row!.title, severity: row!.severity },
+        href: `/announcements/${row!.id}`,
+      },
+      { tx },
+    );
+    return row!;
+  }
+
+  /** Completion of the review workflow (delivered through the outbox; idempotent). */
+  async onReviewCompleted(result: WorkflowCompletion) {
+    const [post] = await this.ctx.db.select().from(posts).where(eq(posts.id, result.subjectId));
+    if (!post || post.status !== 'pending' || post.reviewInstanceId !== result.instanceId) return;
+    await this.ctx.transaction(async (tx) => {
+      if (result.outcome === 'approved') {
+        await this.markPublished(tx, post);
+        await this.ctx.notifications.notify(
+          {
+            type: 'announcements.post.approved',
+            recipients: [post.authorId],
+            params: { title: post.title },
+            href: `/announcements/${post.id}`,
+          },
+          { tx },
+        );
+        return;
+      }
+      await tx.update(posts).set({ status: 'draft', reviewInstanceId: null }).where(eq(posts.id, post.id));
+      await this.ctx.audit.record(
+        {
+          action: 'announcements.post.review_closed',
+          entityType: 'announcements.post',
+          entityId: post.id,
+          entityLabel: post.title,
+          metadata: { outcome: result.outcome, comment: result.comment },
+        },
+        { tx },
+      );
+      if (result.outcome === 'rejected')
+        await this.ctx.notifications.notify(
+          {
+            type: 'announcements.post.rejected',
+            recipients: [post.authorId],
+            params: { title: post.title, comment: result.comment ?? '' },
+            href: `/announcements/${post.id}`,
+          },
+          { tx },
+        );
+    });
   }
 
   async update(id: string, input: z.output<typeof updatePostSchema>) {
     const [before] = await this.ctx.db.select().from(posts).where(eq(posts.id, id));
     if (!before) throw httpErrors.notFound('Announcement not found');
+    if (before.status === 'pending')
+      throw new HttpError(409, ErrorCodes.INVALID_STATE, 'Withdraw the post from review before editing it');
     if (input.pinned && !before.pinned && before.status === 'published') await this.assertPinCapacity(id);
     const changes = this.ctx.audit.diff(
       before as unknown as Record<string, unknown>,
@@ -165,33 +284,34 @@ export class PostService {
     });
   }
 
-  async publish(id: string) {
+  async publish(id: string, requesterId: string | null) {
     const [before] = await this.ctx.db.select().from(posts).where(eq(posts.id, id));
     if (!before) throw httpErrors.notFound('Announcement not found');
-    if (before.status === 'published') return before;
+    if (before.status === 'published' || before.status === 'pending') return before;
     if (before.pinned) await this.assertPinCapacity(id);
+    return this.ctx.transaction((tx) => this.goLiveOrReview(tx, before, requesterId));
+  }
+
+  /** Back to draft, closing the review. */
+  async withdraw(id: string) {
+    const [before] = await this.ctx.db.select().from(posts).where(eq(posts.id, id));
+    if (!before) throw httpErrors.notFound('Announcement not found');
+    if (before.status !== 'pending' || !before.reviewInstanceId)
+      throw new HttpError(409, ErrorCodes.INVALID_STATE, 'This post is not waiting for approval');
     return this.ctx.transaction(async (tx) => {
+      await this.ctx.workflows.cancel(before.reviewInstanceId!, 'Withdrawn by the author', { tx });
       const [row] = await tx
         .update(posts)
-        .set({ status: 'published', publishedAt: new Date() })
+        .set({ status: 'draft', reviewInstanceId: null })
         .where(eq(posts.id, id))
         .returning();
-      await this.ctx.audit.record(
-        {
-          action: 'announcements.post.published',
-          entityType: 'announcements.post',
-          entityId: id,
-          entityLabel: row!.title,
-          changes: { status: [before.status, 'published'] },
-        },
-        { tx },
-      );
-      await this.publishedEvent(tx, row!);
       return row!;
     });
   }
 
   async archive(id: string, reason: 'manual' | 'expired') {
+    const [current] = await this.ctx.db.select().from(posts).where(eq(posts.id, id));
+    if (current?.status === 'pending') await this.withdraw(id);
     return this.ctx.transaction(async (tx) => {
       const [row] = await tx
         .update(posts)
@@ -221,6 +341,7 @@ export class PostService {
   async remove(id: string) {
     const [row] = await this.ctx.db.select().from(posts).where(eq(posts.id, id));
     if (!row) throw httpErrors.notFound('Announcement not found');
+    if (row.status === 'pending') await this.withdraw(id);
     await this.ctx.transaction(async (tx) => {
       await tx.delete(posts).where(eq(posts.id, id));
       await this.ctx.audit.record(

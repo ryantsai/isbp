@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import { AttributeFilters } from '@/components/fields/attribute-filters';
 import { DepartmentSelect } from '@/components/pickers/department-select';
 import { RelativeTime } from '@/components/relative-time';
 import { SourceBadge, UserStatusBadge } from '@/components/status-badge';
@@ -31,6 +32,15 @@ export function UsersView() {
   const sp = useSearchParams();
   const [state, set] = useListState({ pageSize: 25 });
   const canCreate = useCan('core.users.create');
+  // Custom-field filters are repeatable (`attr=key:value`), so they are read from the URL directly.
+  const attr = sp.getAll('attr');
+  const setAttr = (pairs: string[]) => {
+    const next = new URLSearchParams(sp.toString());
+    next.delete('attr');
+    next.delete('page');
+    pairs.forEach((p) => next.append('attr', p));
+    router.replace(`/admin/users${next.size ? `?${next}` : ''}`, { scroll: false });
+  };
   const query = {
     page: state.page,
     pageSize: state.pageSize,
@@ -40,9 +50,10 @@ export function UsersView() {
     authSource: state.authSource as string | undefined,
     departmentId: state.departmentId as string | undefined,
     subtree: state.departmentId ? (state.subtree as string | undefined) : undefined,
+    attr,
   };
   const { data, isLoading, isFetching } = useApiQuery<Page<UserSummary>>('/users', query);
-  const filtered = Boolean(state.q || state.status || state.authSource || state.departmentId);
+  const filtered = Boolean(state.q || state.status || state.authSource || state.departmentId || attr.length);
 
   const columns = useMemo<ColumnDef<UserSummary, unknown>[]>(
     () => [
@@ -185,13 +196,18 @@ export function UsersView() {
               className="w-52"
               aria-label={t('filters.department')}
             />
+            <AttributeFilters entityType="core.user" value={attr} onChange={setAttr} />
             {filtered && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() =>
-                  set({ q: undefined, status: undefined, authSource: undefined, departmentId: undefined })
-                }
+                onClick={() => {
+                  const next = new URLSearchParams(sp.toString());
+                  ['q', 'status', 'authSource', 'departmentId', 'subtree', 'attr', 'page'].forEach((k) =>
+                    next.delete(k),
+                  );
+                  router.replace(`/admin/users${next.size ? `?${next}` : ''}`, { scroll: false });
+                }}
               >
                 {tc('clearFilters')}
               </Button>

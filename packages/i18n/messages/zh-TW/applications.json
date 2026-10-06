@@ -1,0 +1,448 @@
+{
+  "title": "應用程式",
+  "description": "由平台管理存取權的業務應用程式：其權限、角色以及擁有者。應用程式會透過角色查詢 API 詢問某人可以執行哪些操作。",
+  "register": "註冊應用程式",
+  "search": "搜尋應用程式…",
+  "noMatch": "沒有符合「{q}」的應用程式",
+  "empty": {
+    "title": "尚未註冊任何應用程式",
+    "description": "註冊應用程式後，即可在此管理其角色，並讓它透過角色查詢 API 查詢誰可以執行哪些操作。"
+  },
+  "platform": {
+    "badge": "本平台",
+    "description": "本平台。其角色與權限在「角色與存取權」中管理。",
+    "title": "這是平台本身。",
+    "notice": "它的角色就是平台角色——請到「角色與存取權」建立、編輯、授予角色，或開放申請。",
+    "manage": "前往角色與存取權管理"
+  },
+  "card": {
+    "noDescription": "沒有描述",
+    "owner": "負責人：{name}",
+    "noOwner": "沒有負責人",
+    "roles": "{count, plural, other {個角色}}",
+    "permissions": "{count, plural, other {項權限}}",
+    "members": "{count, plural, other {位人員擁有存取權}}",
+    "clients": "{count, plural, other {個 API 用戶端}}"
+  },
+  "copy": {
+    "failed": "無法複製，請選取文字後手動複製。"
+  },
+  "form": {
+    "createTitle": "註冊應用程式",
+    "createDescription": "接著定義其權限與角色，再授予存取權或開放人員申請。",
+    "editTitle": "編輯 {name}",
+    "editDescription": "變更會記錄在稽核日誌中。",
+    "name": "名稱",
+    "namePlaceholder": "例如：財務 ERP",
+    "key": "識別碼",
+    "keyHint": "應用程式呼叫角色查詢 API 時會傳入此識別碼（?application=…），日後無法變更。",
+    "keyLocked": "識別碼無法變更——應用程式以它呼叫角色查詢 API。",
+    "description": "描述",
+    "descriptionPlaceholder": "這個應用程式的用途是什麼？",
+    "homepageUrl": "首頁網址",
+    "homepageHint": "人員開啟應用程式的位置。",
+    "owner": "負責人",
+    "ownerPlaceholder": "選擇業務負責人…",
+    "ownerHint": "負責決定誰可以存取此應用程式的人員。",
+    "submit": "註冊",
+    "created": "已註冊應用程式「{name}」",
+    "saved": "已儲存應用程式",
+    "validation": {
+      "name": "請輸入名稱。",
+      "nameLong": "名稱不得超過 200 個字元。",
+      "key": "請使用 2–64 個小寫英文字母、數字、「-」或「_」，並以字母或數字開頭。",
+      "keyReserved": "此識別碼保留給平台使用。",
+      "keyTaken": "已有使用此識別碼的應用程式。",
+      "descriptionLong": "描述不得超過 2000 個字元。",
+      "url": "請輸入完整的 http(s) 網址，例如 https://erp.example.com。"
+    }
+  },
+  "detail": {
+    "notFound": "此應用程式不存在或已被刪除。",
+    "notFoundDescription": "它可能已被移除，或您沒有存取權。",
+    "openApp": "開啟應用程式",
+    "newTab": "在新分頁開啟"
+  },
+  "tabs": {
+    "overview": "概觀",
+    "roles": "角色",
+    "permissions": "權限",
+    "access": "擁有存取權的人員",
+    "query": "角色查詢"
+  },
+  "overview": {
+    "details": "詳細資料",
+    "detailsHint": "應用程式的識別方式與負責人。",
+    "homepage": "首頁",
+    "owner": "負責人",
+    "noOwner": "沒有負責人",
+    "none": "無",
+    "howTitle": "運作方式",
+    "howHint": "應用程式定義可執行的操作，角色將其組合，平台則回答誰擁有哪些權限。",
+    "steps": {
+      "permissions": {
+        "title": "權限",
+        "body": "{count, plural, =0 {尚無權限——請列出應用程式會檢查的操作。} other {應用程式會檢查 # 項權限。}}",
+        "action": "管理權限"
+      },
+      "roles": {
+        "title": "角色",
+        "body": "{count, plural, =0 {尚無角色——請將權限組合成角色。} other {共有 # 個角色組合這些權限。}}",
+        "action": "管理角色"
+      },
+      "access": {
+        "title": "擁有存取權的人員",
+        "body": "{count, plural, =0 {目前沒有人擁有存取權。} other {共有 # 位人員直接或透過群組擁有角色。}}",
+        "action": "查看擁有存取權的人員"
+      },
+      "clients": {
+        "title": "API 用戶端",
+        "body": "{count, plural, =0 {目前沒有 API 用戶端可以查詢此應用程式。} other {有 # 個 API 用戶端可以透過角色查詢 API 查詢此應用程式。}}",
+        "action": "管理 API 用戶端",
+        "tryIt": "試用角色查詢主控台"
+      }
+    },
+    "danger": {
+      "title": "危險區域",
+      "description": "刪除應用程式會一併移除其權限、角色，以及這些角色的所有授權。",
+      "summary": "{roles, plural, =0 {沒有角色} other {# 個角色}} · {members, plural, =0 {沒有人擁有存取權} other {# 位人員擁有存取權}}",
+      "delete": "刪除應用程式",
+      "confirmTitle": "要刪除 {name} 嗎？",
+      "confirmBody": "此動作無法復原，並會記錄在稽核日誌中。",
+      "loseRoles": "{count, plural, =0 {其權限目錄將被刪除。} other {其權限目錄與 # 個角色將被刪除。}}",
+      "loseAccess": "{count, plural, =0 {目前沒有人擁有存取權。} other {# 位人員將立即失去存取權，包括經申請核准而取得的授權。}}",
+      "loseQuery": "角色查詢 API 將不再回應此應用程式，查詢它的 API 用戶端會收到「找不到」。",
+      "typeKey": "請輸入 <code>{key}</code> 以確認",
+      "confirm": "刪除應用程式",
+      "deleted": "已刪除應用程式「{name}」"
+    }
+  },
+  "permissionPicker": {
+    "add": "新增",
+    "search": "搜尋或輸入模式，例如 invoices.*",
+    "none": "尚無權限",
+    "remove": "移除 {permission}",
+    "covers": "{count, plural, =0 {目前沒有符合的權限} other {涵蓋 # 項權限}}",
+    "notInCatalog": "不在目錄中",
+    "custom": "依輸入內容新增",
+    "wildcards": "包含以下所有項目…",
+    "catalog": "權限",
+    "includedBy": "已由 {pattern} 涵蓋",
+    "selected": "已選取",
+    "notSelected": "未選取",
+    "noMatch": "沒有符合的權限。輸入識別碼或含 * 的模式即可新增。",
+    "emptyCatalog": "目錄是空的。輸入識別碼或含 * 的模式即可新增。",
+    "typeHint": "像 invoices.* 這樣的萬用字元，也會涵蓋日後加入目錄的權限。"
+  },
+  "roles": {
+    "hint": "角色組合應用程式的權限。可以直接授予，或開放申請讓人員申請存取權。",
+    "new": "新增角色",
+    "editLabel": "編輯 {name}",
+    "moreLabel": "{name} 的更多動作",
+    "grant": "授予存取權",
+    "holders": "查看擁有者",
+    "permissionsLabel": "權限",
+    "more": "+{count} 項",
+    "noPermissions": "沒有權限",
+    "grants": "{count, plural, =0 {尚未授予} other {# 筆授權}}",
+    "owner": "負責人：{name}",
+    "notRequestable": "不開放申請",
+    "empty": {
+      "title": "尚無角色",
+      "description": "使用應用程式的權限建立角色，再授予人員或開放申請。"
+    },
+    "deleteTitle": "要刪除 {name} 嗎？",
+    "deleteBody": "此角色將被永久移除，角色查詢 API 也不會再傳回它。此動作會記錄在稽核日誌中。",
+    "deleteWarning": "{count, plural, other {# 個人員或群組}}將立即失去此角色。",
+    "deleteConfirm": "刪除角色",
+    "deleted": "已刪除角色「{name}」"
+  },
+  "roleForm": {
+    "createTitle": "新增角色",
+    "createDescription": "{app} 的角色：名稱、授予的權限，以及是否開放人員申請。",
+    "editTitle": "編輯 {name}",
+    "editDescription": "變更會立即套用到所有擁有此角色的人員，並記錄在稽核日誌中。",
+    "sections": {
+      "details": "詳細資料",
+      "permissions": "權限",
+      "requests": "自助申請"
+    },
+    "name": "名稱",
+    "namePlaceholder": "例如：應付帳款核准者",
+    "key": "識別碼",
+    "keyHint": "由角色查詢 API 傳回。請使用小寫英文字母、數字、「-」和「_」，日後無法變更。",
+    "keyLocked": "識別碼無法變更——應用程式可能依賴它。",
+    "description": "描述",
+    "descriptionPlaceholder": "這個角色適用於哪些人？",
+    "permissionsHint": "從目錄中挑選，或加入萬用字元模式，例如 invoices.*。",
+    "submit": "建立角色",
+    "created": "已建立角色「{name}」",
+    "saved": "已儲存角色",
+    "settingsFailed": "角色已儲存，但申請設定未能儲存：{error}",
+    "validation": {
+      "name": "請輸入名稱。",
+      "nameLong": "名稱不得超過 200 個字元。",
+      "key": "請使用 2–64 個小寫英文字母、數字、「-」或「_」，並以字母或數字開頭。",
+      "keyTaken": "此應用程式已有使用此識別碼的角色。",
+      "descriptionLong": "描述不得超過 2000 個字元。",
+      "permissions": "有一或多個權限不是有效的識別碼或模式。"
+    }
+  },
+  "permissions": {
+    "title": "權限目錄",
+    "hint": "此應用程式會檢查的操作。角色可依識別碼或萬用字元模式授予這些權限。",
+    "key": "權限識別碼",
+    "keyHint": "以點分隔的小寫區段，例如 invoices.approve（最多 6 段）。",
+    "keyInvalid": "請使用以點分隔的小寫區段，例如 invoices.approve。",
+    "keyExists": "目錄中已有此權限。",
+    "descriptionPlaceholder": "例如：核准待付款發票",
+    "add": "新增",
+    "added": "已新增 {key}",
+    "search": "篩選權限…",
+    "noMatch": "沒有符合「{q}」的權限",
+    "columns": {
+      "key": "權限",
+      "roles": "使用中的角色"
+    },
+    "usedBy": "{count, plural, other {# 個角色}}",
+    "unused": "未使用",
+    "remove": "移除",
+    "removeLabel": "移除 {key}",
+    "removeTitle": "要移除 {key} 嗎？",
+    "removeBody": "它會從目錄中移除。此動作會記錄在稽核日誌中。",
+    "removeWarning": "{count, plural, other {有 # 個角色授予此權限。}}直接列出它的角色會保留；萬用字元模式將不再涵蓋它。",
+    "removed": "已移除 {key}",
+    "empty": {
+      "title": "尚無權限",
+      "description": "列出應用程式會檢查的操作，例如 invoices.read 或 payments.release。"
+    }
+  },
+  "access": {
+    "summary": "{members, plural, =0 {目前沒有人擁有存取權} other {# 位人員擁有存取權}}，共 {grants, plural, other {# 筆授權}}（直接或透過群組）。",
+    "grant": "授予存取權",
+    "label": "擁有 {app} 存取權的人員",
+    "columns": {
+      "source": "來源",
+      "granted": "授予"
+    },
+    "empty": {
+      "title": "目前沒有人擁有存取權",
+      "description": "將角色授予人員或群組，或將角色開放申請。"
+    }
+  },
+  "grant": {
+    "title": "授予 {app} 的存取權",
+    "description": "將應用程式的角色授予人員或群組。每次授予都會記錄在稽核日誌中。",
+    "maxDurationNote": "此角色的申請最長為 {duration}；直接授予則不受限制。",
+    "scopeGlobal": "此角色在整個應用程式中生效。",
+    "scopeDepartment": "此角色僅在該部門及其子部門內生效——角色查詢 API 會將其回報為限定範圍。",
+    "reasonPlaceholder": "例如：季末結帳（FIN-2031）"
+  },
+  "query": {
+    "title": "角色查詢主控台",
+    "hint": "查看 {app} 透過角色查詢 API 查詢某位人員時，實際取得的結果。",
+    "person": "人員",
+    "personPlaceholder": "搜尋人員…",
+    "raw": "原始 JSON",
+    "copyJson": "複製 JSON",
+    "error": "查詢失敗",
+    "evaluated": "評估時間",
+    "inactive": "此人員目前為「{status}」，因此 API 不會傳回任何角色或權限。",
+    "roles": "角色",
+    "noRoles": "在 {app} 中沒有角色。",
+    "noExpiry": "永不到期",
+    "permissions": "有效權限",
+    "noPermissions": "沒有全域授予的權限。",
+    "scoped": "限定範圍的權限",
+    "within": "範圍：",
+    "empty": {
+      "title": "選擇人員",
+      "description": "其在 {app} 中的角色（含範圍、到期時間與取得方式）以及有效權限會顯示在這裡。"
+    },
+    "via": {
+      "direct": "直接授予",
+      "group": "透過群組：{name}",
+      "everyone": "所有人"
+    },
+    "check": {
+      "title": "檢查權限",
+      "hint": "{name} 是否可以執行某項操作？",
+      "pickFirst": "請先選擇人員。",
+      "permission": "權限",
+      "permissionHint": "從目錄中挑選，或輸入任何識別碼。",
+      "department": "部門（選填）",
+      "anyDepartment": "不限定部門",
+      "departmentHint": "一併計入授予此部門或其上層部門的角色。",
+      "submit": "檢查",
+      "allowed": "允許",
+      "denied": "拒絕",
+      "summary": "{user} · {permission}",
+      "matched": "授予來源",
+      "stale": "輸入內容已變更——請重新檢查以更新結果。"
+    },
+    "examples": {
+      "title": "自行呼叫",
+      "hint": "應用程式會發出的請求，使用此主機。",
+      "apiKey": "API 金鑰",
+      "oauth": "OAuth 2.0",
+      "apiKeyHint": "以 API 用戶端的密鑰作為 Bearer 權杖傳送。該用戶端必須獲准查詢此應用程式。",
+      "oauthHint": "或以用戶端 ID 與密鑰換取一小時有效的存取權杖，再以它作為 Bearer 權杖。",
+      "user": "某位人員的角色與權限",
+      "check": "檢查單一權限",
+      "members": "所有擁有角色的人員（供帳號佈建同步使用）",
+      "token": "取得存取權杖",
+      "useToken": "使用權杖",
+      "copy": "複製：{name}"
+    }
+  },
+  "clients": {
+    "title": "API 用戶端",
+    "description": "其他系統用來呼叫平台的服務帳號——通常用於透過角色查詢 API 詢問某人在應用程式中可以執行哪些操作。",
+    "create": "建立用戶端",
+    "search": "搜尋用戶端…",
+    "noMatch": "沒有符合「{q}」的用戶端",
+    "allApplications": "所有應用程式",
+    "noApplications": "沒有應用程式",
+    "empty": {
+      "title": "尚無 API 用戶端",
+      "description": "為每個需要查詢「誰可以做什麼」的系統建立一個用戶端。"
+    },
+    "forbidden": {
+      "title": "您無法管理 API 用戶端",
+      "description": "請向平台管理員申請存取權。"
+    },
+    "columns": {
+      "client": "用戶端",
+      "applications": "可查詢",
+      "permissions": "平台權限",
+      "secrets": "有效密鑰",
+      "lastUsed": "上次使用",
+      "status": "狀態"
+    },
+    "status": {
+      "active": "啟用中",
+      "expired": "已到期",
+      "revoked": "已撤銷"
+    },
+    "form": {
+      "createTitle": "建立 API 用戶端",
+      "createDescription": "建立後，密鑰只會顯示一次。",
+      "editTitle": "編輯 {name}",
+      "editDescription": "變更用戶端可存取的範圍。變更會記錄在稽核日誌中。",
+      "tokensRevoked": "儲存後會撤銷此用戶端尚未過期的 OAuth 存取權杖——它必須重新申請。API 金鑰仍可繼續使用。",
+      "name": "名稱",
+      "namePlaceholder": "例如：財務 ERP 角色同步",
+      "description": "描述",
+      "descriptionPlaceholder": "哪個系統使用它？用途為何？",
+      "applications": "可查詢的應用程式",
+      "selectedApps": "指定的應用程式",
+      "allApps": "所有應用程式",
+      "allAppsHint": "可查詢所有應用程式，包括日後註冊的應用程式。",
+      "selectedHint": "只能透過角色查詢 API 查詢這些應用程式。",
+      "advanced": "進階：平台權限、IP 範圍",
+      "advancedSet": "已設定 {count} 項",
+      "permissions": "平台 API 權限",
+      "permissionsHint": "選填。允許用戶端呼叫其他平台 API，例如 core.users.read。您只能授予自己擁有的權限。",
+      "permissionInvalid": "請使用 module.resource.action 格式，可搭配 * 萬用字元。",
+      "notHeld": "您無法授予自己未擁有的權限：{permissions}",
+      "cidrs": "允許的 IP 範圍",
+      "cidrsHint": "選填。只接受來自這些位址的請求，例如 10.0.0.0/8。留空表示允許任何位址。",
+      "cidrInvalid": "請輸入 IP 位址或 CIDR 範圍，例如 10.0.0.0/8。",
+      "duplicate": "{value} 已在清單中。",
+      "removeEntry": "移除 {value}",
+      "secretExpiry": "第一個密鑰的到期時間",
+      "expiry": {
+        "90": "90 天",
+        "180": "180 天",
+        "365": "1 年",
+        "never": "永不到期",
+        "custom": "自訂…"
+      },
+      "customDays": "天數",
+      "daysUnit": "天",
+      "daysInvalid": "請輸入 1 到 730 之間的整數天數。",
+      "expiryHint": "在到期前新增密鑰，即可在不中斷服務的情況下輪替。",
+      "neverHint": "永不到期的密鑰風險較高——請定期輪替。",
+      "submit": "建立用戶端",
+      "saved": "已儲存用戶端",
+      "appsFailed": "無法載入應用程式。",
+      "retry": "重試",
+      "validation": {
+        "name": "請輸入名稱。",
+        "reach": "請至少選擇一個應用程式，或在「進階」中授予平台權限。"
+      }
+    },
+    "reveal": {
+      "title": "「{name}」已就緒",
+      "description": "請將密鑰提供給會使用此用戶端的系統。",
+      "rotatedTitle": "已建立新密鑰",
+      "rotatedDescription": "部署新密鑰後，待舊密鑰不再使用時再將其撤銷。",
+      "warningTitle": "請立即複製密鑰。",
+      "warning": "之後將無法再次檢視——系統只會儲存其指紋。若遺失，請新增密鑰。",
+      "secret": "用戶端密鑰（API 金鑰）",
+      "clientId": "用戶端 ID",
+      "copySecret": "複製密鑰",
+      "copyClientId": "複製用戶端 ID",
+      "tryIt": "立即試用",
+      "stored": "我已將密鑰妥善保存",
+      "done": "完成"
+    },
+    "examples": {
+      "apiKey": "API 金鑰",
+      "oauth": "OAuth 2.0",
+      "apiKeyHint": "以密鑰作為 Bearer 權杖，查詢 {user} 可以執行哪些操作。",
+      "apiKeyHintNoApps": "以密鑰作為 Bearer 權杖傳送。此用戶端目前無法查詢任何應用程式。",
+      "oauthHint": "以用戶端 ID 與密鑰換取一小時有效的存取權杖（用戶端認證）。",
+      "copyApiKey": "複製 API 金鑰請求",
+      "copyOauth": "複製權杖請求"
+    },
+    "secrets": {
+      "title": "密鑰",
+      "hint": "一個用戶端可以同時擁有多個密鑰，方便在不中斷服務的情況下輪替：新增密鑰、完成部署，再撤銷舊密鑰。",
+      "add": "新增密鑰",
+      "addTitle": "新增密鑰",
+      "addDescription": "新密鑰會與現有密鑰並行使用，且只會顯示一次。",
+      "generate": "產生密鑰",
+      "empty": "沒有密鑰",
+      "neverExpires": "永不到期",
+      "columns": {
+        "secret": "密鑰",
+        "created": "建立時間",
+        "expires": "到期",
+        "lastUsed": "上次使用",
+        "status": "狀態",
+        "actions": "動作"
+      },
+      "revoke": "撤銷",
+      "revokeLabel": "撤銷密鑰 {prefix}",
+      "revokeTitle": "要撤銷 {prefix}… 嗎？",
+      "revokeBody": "使用此密鑰的請求會立即失效，用戶端的 OAuth 存取權杖也會被撤銷。",
+      "revokeLastBody": "這是此用戶端最後一個有效密鑰——在新增密鑰前，它將無法驗證。其 OAuth 存取權杖也會被撤銷。",
+      "revoked": "已撤銷密鑰 {prefix}…"
+    },
+    "detail": {
+      "notFound": "此 API 用戶端不存在。",
+      "clientId": "用戶端 ID",
+      "copyClientId": "複製用戶端 ID",
+      "lastUsed": "上次使用",
+      "reach": "存取範圍",
+      "reachHint": "用戶端可以查詢的內容，以及可從哪些位址呼叫。",
+      "applications": "可查詢的應用程式",
+      "permissions": "平台權限",
+      "noPermissions": "無——僅限角色查詢",
+      "cidrs": "允許的 IP 範圍",
+      "anyIp": "任何位址",
+      "by": "建立者：{name}",
+      "examples": "呼叫 API",
+      "examplesHint": "請以此用戶端的任一密鑰取代預留位置。",
+      "dangerTitle": "危險區域",
+      "dangerHint": "撤銷用戶端會停用其所有密鑰與存取權杖，且無法復原。",
+      "revoke": "撤銷用戶端",
+      "revokeTitle": "要撤銷 {name} 嗎？",
+      "revokeBody": "所有密鑰與存取權杖會立即失效。用戶端會保留供稽核追蹤，但無法再變更或使用。",
+      "revoked": "已撤銷用戶端",
+      "revokedTitle": "已撤銷於",
+      "revokedNotice": "它無法驗證，也無法變更。若系統仍需要存取權，請建立新的用戶端。"
+    }
+  }
+}

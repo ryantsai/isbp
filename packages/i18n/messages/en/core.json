@@ -13,7 +13,19 @@
     "modules": "Modules",
     "identity": "Sign-in providers",
     "sectionMain": "Workspace",
-    "sectionAdmin": "Administration"
+    "sectionAdmin": "Administration",
+    "approvals": "Approvals",
+    "requests": "Requests",
+    "applications": "Applications",
+    "apiClients": "API clients",
+    "workflows": "Workflows",
+    "forms": "Forms",
+    "customFields": "Custom fields",
+    "notifications": "Notifications",
+    "groupIdentity": "Identity",
+    "groupAccess": "Access",
+    "groupAutomation": "Automation",
+    "groupPlatform": "Platform"
   },
   "permissions": {
     "usersRead": "View people and their profiles",
@@ -32,16 +44,39 @@
     "modulesRead": "View installed modules",
     "modulesManage": "Enable, disable and configure modules",
     "idpRead": "View sign-in providers",
-    "idpManage": "Configure sign-in providers and directory sync"
+    "idpManage": "Configure sign-in providers and directory sync",
+    "workflowsRead": "View workflows and running approvals",
+    "workflowsManage": "Design, publish and administer workflows",
+    "formsManage": "Build and publish forms",
+    "customFieldsManage": "Add custom fields to people, groups and departments",
+    "notificationsManage": "Configure email, Teams, Slack and webhook notifications",
+    "accessRequestsRead": "See other people's access requests",
+    "applicationsRead": "View applications and who has access to them",
+    "applicationsManage": "Manage applications, their roles and grants",
+    "apiClientsManage": "Create API clients and their keys",
+    "roleQueryRead": "Query roles and permissions through the Role Query API"
   },
   "settings": {
     "productName": "Product name",
     "supportEmail": "Support email",
     "loginBanner": "Sign-in banner",
-    "loginBannerHelp": "Shown on the sign-in page, e.g. an acceptable-use notice."
+    "loginBannerHelp": "Shown on the sign-in page, e.g. an acceptable-use notice.",
+    "emailEnabled": "Send email notifications",
+    "emailHost": "SMTP server",
+    "emailPort": "SMTP port",
+    "emailSecure": "Use TLS from the start",
+    "emailSecureHelp": "On for port 465. Off uses STARTTLS (port 587).",
+    "emailUsername": "SMTP user name",
+    "emailPassword": "SMTP password",
+    "emailFrom": "Sender",
+    "emailFromHelp": "Name and address the email comes from, e.g. IS Big Platform, noreply@example.com",
+    "notificationRetention": "Keep notifications for (days)"
   },
   "systemRoles": {
-    "platform-admin": { "name": "Platform administrator", "description": "Full access to everything" },
+    "platform-admin": {
+      "name": "Platform administrator",
+      "description": "Full access to everything"
+    },
     "identity-admin": {
       "name": "Identity administrator",
       "description": "Manage people, groups, departments and role assignments"
@@ -54,6 +89,103 @@
       "name": "Module administrator",
       "description": "Enable, disable and configure modules"
     },
-    "everyone": { "name": "Everyone", "description": "Baseline access granted to every active user" }
+    "everyone": {
+      "name": "Everyone",
+      "description": "Baseline access granted to every active user"
+    },
+    "workflow-admin": {
+      "name": "Workflow administrator",
+      "description": "Design approval workflows, forms, custom fields and notification channels"
+    },
+    "application-manager": {
+      "name": "Application manager",
+      "description": "Manage an application's roles and permissions (assign it scoped to one application)"
+    }
+  },
+  "entities": {
+    "user": "People",
+    "group": "Groups",
+    "department": "Departments"
+  },
+  "workflows": {
+    "accessRequest": {
+      "name": "Access request",
+      "description": "Decides self-service role requests. Conditions can use the role (risk, owner, application) and the request (duration, scope)."
+    },
+    "formSubmission": {
+      "name": "Form submission",
+      "description": "Runs for forms that have this workflow attached. Conditions can use every submitted value (data.fieldKey)."
+    }
+  },
+  "notifications": {
+    "approval_assigned": {
+      "label": "Approvals waiting for me",
+      "title": "Approval needed: {subject}",
+      "body": "{requester} is waiting for your decision ({step})."
+    },
+    "approval_reminder": {
+      "label": "Approval reminders",
+      "title": "Reminder: {subject} is waiting for you",
+      "body": "Step: {step}"
+    },
+    "approval_escalated": {
+      "label": "Approvals escalated to me",
+      "title": "Escalated to you: {subject}",
+      "body": "The first approver did not answer in time ({step})."
+    },
+    "approval_overdue": {
+      "label": "Overdue approvals",
+      "title": "Overdue: {subject}",
+      "body": "{step} is past its deadline."
+    },
+    "approval_delegated": {
+      "label": "Approvals handed to me",
+      "title": "{actor} asked you to decide: {subject}",
+      "body": "{comment}"
+    },
+    "workflow_fyi": {
+      "label": "Workflow updates (FYI)",
+      "title": "FYI: {subject}",
+      "body": "{message}"
+    },
+    "access_request_approved": {
+      "label": "My access requests approved",
+      "title": "Approved: {role} ({reference})",
+      "body": "{permanent, select, yes {The access does not expire.} other {The access ends on {expiresAt}.}}"
+    },
+    "access_request_rejected": {
+      "label": "My access requests rejected",
+      "title": "Rejected: {role} ({reference})",
+      "body": "{comment}"
+    },
+    "access_request_failed": {
+      "label": "Access that could not be granted",
+      "title": "Could not grant {role} ({reference})",
+      "body": "The request was approved, but the access could not be granted — the person may have left or the role was deleted."
+    },
+    "access_expiring": {
+      "label": "Access ending soon",
+      "title": "Your {role} access ends soon",
+      "body": "It ends on {expiresAt}. Request it again if you still need it."
+    },
+    "access_granted": {
+      "label": "Roles given to me",
+      "title": "You now have the role {role}",
+      "body": "Granted by {actor}."
+    },
+    "form_submission_approved": {
+      "label": "My form requests approved",
+      "title": "Approved: {form} ({reference})",
+      "body": ""
+    },
+    "form_submission_rejected": {
+      "label": "My form requests rejected",
+      "title": "Rejected: {form} ({reference})",
+      "body": "{comment}"
+    },
+    "channel_test": {
+      "title": "Test notification from IS Big Platform",
+      "body": "If you can read this, the channel works."
+    }
   }
 }

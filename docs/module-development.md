@@ -159,6 +159,9 @@ Every route, job, event handler and AI tool receives a `ModuleContext`:
 | `ctx.settings.get(key)`                                                                      | Typed module setting (stored value or manifest default)                             |
 | `ctx.rbac.permissionsFor(userId)`                                                            | Another user's effective permissions                                                |
 | `ctx.logger`                                                                                 | Structured pino logger tagged with the module id                                    |
+| `ctx.workflows.start(trigger, { subject, facts, requesterId }, { tx })`                      | Start the approval workflow bound to one of your triggers (see below)               |
+| `ctx.notifications.notify({ type, recipients, params, href }, { tx })`                       | Notify people in their language, through their preferred channels                   |
+| `ctx.fields.validate(entityType, attributes, existing)`                                      | Validate custom-field values an admin defined for one of your entities              |
 
 ```ts
 await ctx.transaction(async (tx) => {
@@ -210,6 +213,102 @@ export default defineServerModule(manifest, {
 Event handlers and jobs run in the **worker** with a system principal (`module:<id>` / `job:<id>.<name>`),
 so their audit rows are attributed correctly. Disabled modules' handlers are skipped.
 
+### Approval workflows (optional for your module, opt-in for admins)
+
+Declare an **attach point** in the manifest. Admins then design a workflow for it in
+_Administration → Workflows_ and make it the default; until they do, `start()` returns `null` and you
+carry on without approval (set `required: true` plus a `defaultGraph` if approval must always happen).
+
+```ts
+// manifest
+workflows: [
+  {
+    key: 'asset-tracker.dispose',            // `<module>.<name>`
+    name: 'asset-tracker.workflows.dispose.name',
+    subject: 'asset',
+    facts: z.object({ asset: z.object({ value: z.number(), category: z.string() }) }), // offered to conditions
+  },
+],
+```
+
+```ts
+// service — in the same transaction as your own change
+const review = await ctx.workflows.start(
+  'asset-tracker.dispose',
+  {
+    subject: { type: 'asset', id: asset.id, label: asset.tag, href: `/asset-tracker/${asset.id}` },
+    facts: { asset: { value: asset.value, category: asset.category } },
+    requesterId: auth.user!.id,
+  },
+  { tx },
+);
+if (!review) await markDisposed(tx, asset); // no workflow bound: do it now
+else await tx.update(assets).set({ status: 'pending-disposal', reviewInstanceId: review.instanceId });
+
+// server module — called once the instance completes (through the outbox, retried, idempotent)
+workflows: {
+  'asset-tracker.dispose': {
+    onCompleted: async ({ subjectId, outcome, comment }, ctx) => { /* approved | rejected | cancelled */ },
+  },
+},
+```
+
+Facts always include `requester.*` and `subjectUser.*` (department, manager, job title). Use
+`ctx.workflows.cancel(instanceId, reason, { tx })` when the subject is withdrawn or deleted. The
+Announcements module's `announcements.publish` trigger is a complete example.
+
+### Notifications
+
+Declare the types you send; users can turn each one on or off per channel in their settings:
+
+```ts
+notifications: [{ type: 'asset-tracker.asset.assigned', defaultChannels: ['inApp', 'email'] }],
+```
+
+Text lives in your catalog by convention, rendered in each recipient's language and time zone (ICU):
+
+```json
+"notifications": {
+  "asset_assigned": { "label": "Assets assigned to me", "title": "{tag} is now assigned to you", "body": "Pick it up at {location}." }
+}
+```
+
+```ts
+await ctx.notifications.notify(
+  {
+    type: 'asset-tracker.asset.assigned',
+    recipients: [userId],
+    params: { tag, location },
+    href: `/asset-tracker/${id}`,
+  },
+  { tx },
+);
+await ctx.notifications.broadcast({ type: 'asset-tracker.asset.lost', params: { tag } }); // Teams/Slack/webhook channels only
+```
+
+In-app rows commit with your transaction; email and channel deliveries happen in the worker after commit.
+`Date` params are formatted in the recipient's time zone, `LocalizedText` params in their language.
+
+### Custom fields
+
+Let admins extend your entities without code: declare them, give the table an `attributes` JSONB column
+(`jsonb('attributes').notNull().default({})`, ideally with a GIN `jsonb_path_ops` index) and validate on
+write:
+
+```ts
+customFields: { entities: [{ type: 'asset', name: 'asset-tracker.entities.asset' }] },  // → `asset-tracker.asset`
+```
+
+```ts
+const attributes = input.attributes
+  ? await ctx.fields.validate('asset-tracker.asset', input.attributes, before.attributes)
+  : before.attributes;
+```
+
+Invalid values throw `VALIDATION_FAILED` with issues at `attributes.<key>`. In the web app, render the
+fields with `FormFields` (`@isbp/ui/form-renderer`, `namePrefix="attributes"`) using the definitions from
+`GET /api/v1/custom-fields?entityType=asset-tracker.asset`, and show values with `FormAnswers`.
+
 ## 5. Web side
 
 ```tsx
@@ -224,12 +323,16 @@ export default defineWebModule(manifest, {
 
 Pages are client components that receive `{ params }`. Use the same building blocks as core pages:
 
-| Import                | Provides                                                                                                                                                                                 |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@isbp/ui/query`      | `useApiQuery(path, query)`, `useApiMutation(fn, { invalidate, success })`, `applyServerErrors`                                                                                           |
-| `@isbp/sdk/web`       | `useCan(permission)`, `usePlatform()` (user, permissions), `useApi()` (CSRF-aware fetch)                                                                                                 |
-| `@isbp/ui/data-table` | Server-side `DataTable` + `useListState()` (paging/sort/filters kept in the URL)                                                                                                         |
-| `@isbp/ui/*`          | Button, Dialog, Sheet, Form (React Hook Form), Select, Tabs, Badge, Card, EmptyState, PageHeader, SearchInput, RelativeTime, motion primitives (`FadeIn`, `Stagger`, `AnimatedNumber`) … |
+| Import                      | Provides                                                                                                                                                                                 |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@isbp/ui/query`            | `useApiQuery(path, query)`, `useApiMutation(fn, { invalidate, success })`, `applyServerErrors`                                                                                           |
+| `@isbp/sdk/web`             | `useCan(permission)`, `usePlatform()` (user, permissions), `useApi()` (CSRF-aware fetch)                                                                                                 |
+| `@isbp/ui/data-table`       | Server-side `DataTable` + `useListState()` (paging/sort/filters kept in the URL)                                                                                                         |
+| `@isbp/ui/*`                | Button, Dialog, Sheet, Form (React Hook Form), Select, Tabs, Badge, Card, EmptyState, PageHeader, SearchInput, RelativeTime, motion primitives (`FadeIn`, `Stagger`, `AnimatedNumber`) … |
+| `@isbp/ui/form-renderer`    | `FormFields`, `FormAnswers`, `useFieldsResolver` — render and validate admin-defined fields/forms exactly like the API                                                                   |
+| `@isbp/ui/workflow-diagram` | `WorkflowDiagram` — show an approval path with live step states (pair it with `GET /workflow-instances/{id}`)                                                                            |
+| `@isbp/ui/person-picker`    | `PersonPicker`, `usePeople` — pick colleagues (works for every signed-in user)                                                                                                           |
+| `@isbp/ui/localized-input`  | `LocalizedInput` — text admins write in en / zh-TW / ja-JP                                                                                                                               |
 
 UX conventions: `PageHeader` on every page, skeletons while loading, `EmptyState` for empty results,
 advanced options behind a disclosure, permission-gated actions (`useCan`), and motion via
@@ -260,5 +363,7 @@ advanced options behind a disclosure, permission-gated actions (`useCan`), and m
 - [ ] Mutations run in a transaction with an audit record and (where useful) an event.
 - [ ] Event handlers are idempotent; jobs have sensible `attempts`/`timeoutMs`.
 - [ ] Destructive AI tools are marked `destructive: true`.
+- [ ] Workflow triggers have an `onCompleted` handler that is idempotent, and you cancel instances whose subject disappears.
+- [ ] Notification types are declared and have `label`/`title`/`body` text in all three catalogs.
 - [ ] Catalogs exist for en, zh-TW and ja-JP, including `audit` labels.
 - [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm modules:check` pass.

@@ -67,6 +67,34 @@ export const ErrorCodes = {
   INVALID_PARENT: 'INVALID_PARENT',
   INVALID_STATE: 'INVALID_STATE',
   PASSWORD_MANAGED_EXTERNALLY: 'PASSWORD_MANAGED_EXTERNALLY',
+  /** No published workflow is bound to a trigger that requires one. */
+  WORKFLOW_NOT_CONFIGURED: 'WORKFLOW_NOT_CONFIGURED',
+  /** The graph has problems (`details.issues`) and cannot be published. */
+  WORKFLOW_INVALID: 'WORKFLOW_INVALID',
+  /** The approval task was already decided, delegated or closed. */
+  TASK_NOT_PENDING: 'TASK_NOT_PENDING',
+  DELEGATION_NOT_ALLOWED: 'DELEGATION_NOT_ALLOWED',
+  /** The chosen delegate cannot take the task (requester, inactive, already assigned). */
+  INVALID_DELEGATE: 'INVALID_DELEGATE',
+  /** Rejections need a comment so the requester knows why. */
+  COMMENT_REQUIRED: 'COMMENT_REQUIRED',
+  /** Still referenced (e.g. a workflow used by forms or roles); `details` names the users. */
+  IN_USE: 'IN_USE',
+  NOT_REQUESTABLE: 'NOT_REQUESTABLE',
+  /** An open request for the same role and scope already exists (`details.requestId`). */
+  DUPLICATE_REQUEST: 'DUPLICATE_REQUEST',
+  /** The person already holds the role at that scope. */
+  ALREADY_GRANTED: 'ALREADY_GRANTED',
+  DURATION_TOO_LONG: 'DURATION_TOO_LONG',
+  /** The form is not published, paused, archived or not available to you. */
+  FORM_NOT_AVAILABLE: 'FORM_NOT_AVAILABLE',
+  /** OAuth: unknown client, wrong secret or revoked credentials (RFC 6749 `invalid_client`). */
+  INVALID_CLIENT: 'INVALID_CLIENT',
+  /** The webhook URL is not HTTPS or points at a private network. */
+  WEBHOOK_TARGET_INVALID: 'WEBHOOK_TARGET_INVALID',
+  EMAIL_NOT_CONFIGURED: 'EMAIL_NOT_CONFIGURED',
+  /** A test notification could not be delivered (`details.reason`). */
+  DELIVERY_FAILED: 'DELIVERY_FAILED',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes] | (string & {});
 

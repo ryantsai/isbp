@@ -27,7 +27,8 @@
   "status": {
     "draft": "下書き",
     "published": "公開中",
-    "archived": "アーカイブ済み"
+    "archived": "アーカイブ済み",
+    "pending": "承認待ち"
   },
   "views": {
     "current": "現在",
@@ -73,6 +74,35 @@
     "post_updated": "お知らせを編集",
     "post_published": "お知らせを公開",
     "post_archived": "お知らせをアーカイブ",
-    "post_deleted": "お知らせを削除"
-  }
+    "post_deleted": "お知らせを削除",
+    "post_submitted": "お知らせを承認に送信",
+    "post_review_closed": "お知らせのレビューを終了"
+  },
+  "workflows": {
+    "publish": {
+      "name": "お知らせの公開",
+      "description": "お知らせを公開する前の任意のレビュー。条件には post.severity、post.pinned、post.hasWindow を使用できます。"
+    }
+  },
+  "notifications": {
+    "post_published": {
+      "label": "お知らせ（チャネル）",
+      "title": "{severity, select, incident {障害} maintenance {メンテナンス} other {お知らせ}}: {title}",
+      "body": ""
+    },
+    "post_approved": {
+      "label": "自分のお知らせの承認",
+      "title": "公開されました: {title}",
+      "body": "お知らせが承認され、全員に表示されるようになりました。"
+    },
+    "post_rejected": {
+      "label": "差し戻された自分のお知らせ",
+      "title": "差し戻し: {title}",
+      "body": "{comment}"
+    }
+  },
+  "submittedToast": "承認に送信しました。承認されると公開されます",
+  "withdrawnToast": "レビューを取り下げ、下書きに戻しました",
+  "withdraw": "レビューを取り下げ",
+  "pendingHint": "このお知らせは承認待ちです。承認されると自動的に公開されます。変更するには取り下げてください。"
 }

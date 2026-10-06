@@ -27,7 +27,8 @@
   "status": {
     "draft": "草稿",
     "published": "已發布",
-    "archived": "已封存"
+    "archived": "已封存",
+    "pending": "等候核准"
   },
   "views": {
     "current": "目前",
@@ -73,6 +74,35 @@
     "post_updated": "編輯公告",
     "post_published": "發布公告",
     "post_archived": "封存公告",
-    "post_deleted": "刪除公告"
-  }
+    "post_deleted": "刪除公告",
+    "post_submitted": "送出公告審核",
+    "post_review_closed": "結束公告審核"
+  },
+  "workflows": {
+    "publish": {
+      "name": "發佈公告",
+      "description": "公告發佈前的選用審查。條件可使用 post.severity、post.pinned 與 post.hasWindow。"
+    }
+  },
+  "notifications": {
+    "post_published": {
+      "label": "公告（通知管道）",
+      "title": "{severity, select, incident {事件} maintenance {維護} other {公告}}：{title}",
+      "body": ""
+    },
+    "post_approved": {
+      "label": "我的公告已核准",
+      "title": "已發佈：{title}",
+      "body": "您的公告已核准，所有人現在都看得到。"
+    },
+    "post_rejected": {
+      "label": "我的公告遭退回",
+      "title": "已退回：{title}",
+      "body": "{comment}"
+    }
+  },
+  "submittedToast": "已送出審核，核准後即會發佈",
+  "withdrawnToast": "已撤回審核，回到草稿",
+  "withdraw": "撤回審核",
+  "pendingHint": "此公告正在等候核准，核准後會自動發佈；若要修改請先撤回。"
 }

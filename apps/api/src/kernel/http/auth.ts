@@ -84,7 +84,30 @@ export function registerAuth(app: FastifyInstance, kernel: Kernel) {
     const config = req.routeOptions.config ?? {};
 
     const token = req.cookies[SESSION_COOKIE];
-    if (token) {
+    const bearer = /^Bearer\s+(\S+)$/i.exec(req.headers.authorization ?? '')?.[1];
+    if (bearer && !token) {
+      // API clients (Role Query API, automation): service principals with their own grants.
+      const result = await kernel.apiClients.authenticate(bearer, req.ip);
+      if (!result) {
+        void audit
+          .record({
+            action: 'core.api-client.auth_failed',
+            category: 'security',
+            outcome: 'failure',
+            metadata: { route: req.routeOptions.url, method: req.method },
+          })
+          .catch((err) => req.log.error({ err }, 'failed to audit API client failure'));
+        throw new HttpError(401, ErrorCodes.UNAUTHENTICATED, 'Invalid or expired API credentials');
+      }
+      const principal: Principal = {
+        type: 'service',
+        id: result.client.id,
+        name: `client:${result.client.name}`,
+      };
+      req.auth = buildAuthContext(principal, null, null, result.permissions, (p, r) => denied(req, p, r));
+      req.auth.client = { id: result.client.id, clientId: result.client.clientId, name: result.client.name };
+      setPrincipal(principal);
+    } else if (token) {
       const valid = await kernel.sessions.validate(token);
       if (valid) {
         const user = toSessionUser(valid.user);
@@ -102,7 +125,14 @@ export function registerAuth(app: FastifyInstance, kernel: Kernel) {
     }
 
     if (config.public) return;
-    if (!req.auth.user) throw new HttpError(401, ErrorCodes.UNAUTHENTICATED, 'Authentication required');
+    const service = req.auth.principal.type === 'service' && req.auth.client;
+    if (!req.auth.user && !service)
+      throw new HttpError(401, ErrorCodes.UNAUTHENTICATED, 'Authentication required');
+    // Personal routes (`/me`, navigation, …) declare no permission and are for people only.
+    if (service && !config.permission) {
+      denied(req, 'personal-route');
+      throw httpErrors.forbidden('API clients can only call routes that declare a permission');
+    }
 
     if (req.sessionRow && !SAFE_METHODS.has(req.method) && config.csrf !== false) {
       const header = req.headers['x-csrf-token'];

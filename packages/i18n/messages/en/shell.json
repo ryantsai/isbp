@@ -34,5 +34,15 @@
   "notFoundBody": "The page you're looking for doesn't exist or was moved.",
   "goHome": "Go to dashboard",
   "errorTitle": "Something went wrong",
-  "errorBody": "An unexpected error occurred. The details have been logged."
+  "errorBody": "An unexpected error occurred. The details have been logged.",
+  "badgeCount": "{count, plural, one {# waiting} other {# waiting}}",
+  "notifications": {
+    "label": "Notifications",
+    "labelUnread": "{count, plural, one {Notifications, # unread} other {Notifications, # unread}}",
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "viewAll": "View all notifications",
+    "empty": "You're all caught up.",
+    "unread": "Unread:"
+  }
 }

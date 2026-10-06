@@ -1,0 +1,343 @@
+{
+  "status": {
+    "request": {
+      "pending": "承認待ち",
+      "submitted": "送信済み",
+      "approved": "承認済み",
+      "rejected": "却下",
+      "cancelled": "取り下げ",
+      "failed": "付与できませんでした"
+    },
+    "instance": {
+      "running": "進行中",
+      "approved": "承認済み",
+      "rejected": "却下",
+      "cancelled": "取り下げ"
+    },
+    "task": {
+      "pending": "対応待ち",
+      "approved": "承認",
+      "rejected": "却下",
+      "delegated": "委任済み",
+      "cancelled": "終了"
+    }
+  },
+  "due": {
+    "in_hours": "あと {n} 時間で期限",
+    "in_days": "あと {n} 日で期限",
+    "overdue_hours": "{n} 時間超過",
+    "overdue_days": "{n} 日超過"
+  },
+  "facts": {
+    "role_key": "ロール キー",
+    "role_name": "ロール",
+    "role_riskLevel": "リスク レベル",
+    "role_ownerId": "ロール所有者",
+    "role_application": "アプリケーション",
+    "role_id": "ロール",
+    "request_durationDays": "期間（日）",
+    "request_permanent": "無期限のアクセス",
+    "request_scopeType": "範囲",
+    "request_forSomeoneElse": "他の人のための申請",
+    "form_key": "フォーム",
+    "form_category": "フォームのカテゴリ",
+    "requester_departmentCode": "申請者の部署",
+    "requester_jobTitle": "申請者の役職",
+    "subjectUser_departmentCode": "対象者の部署",
+    "post_severity": "お知らせの種類",
+    "post_pinned": "ピン留め",
+    "post_hasWindow": "期間あり"
+  },
+  "factValues": {
+    "role_riskLevel": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "request_scopeType": {
+      "global": "全体",
+      "department": "1 つの部署",
+      "record": "1 つのレコード"
+    },
+    "post_severity": {
+      "info": "情報",
+      "maintenance": "メンテナンス",
+      "incident": "障害"
+    }
+  },
+  "timeline": {
+    "system": "システム",
+    "otherwise": "それ以外",
+    "events": {
+      "started": "{actor} さんが申請を送信",
+      "task_approved": "{actor} さんが承認 — {step}",
+      "task_rejected": "{actor} さんが却下 — {step}",
+      "task_delegated": "{actor} さんが「{step}」を {to} さんに委任",
+      "task_reminded": "リマインダーを送信 — {step}",
+      "task_overdue": "「{step}」の期限切れ",
+      "task_escalated": "「{step}」を承認者 {count} 人にエスカレーション",
+      "task_auto_decided": "「{step}」は期限後に自動で処理されました（{outcome}）",
+      "step_rejected": "「{step}」で却下",
+      "step_skipped": "「{step}」をスキップ",
+      "branch_chosen": "「{branch}」のルートを選択",
+      "notified": "{step}: {count} 人に通知",
+      "completed": "完了: {outcome, select, approved {承認} rejected {却下} cancelled {取り下げ} other {{outcome}}}",
+      "cancelled": "{actor} さんが申請を取り下げ",
+      "other": "{type}"
+    },
+    "reasons": {
+      "condition": "条件に一致しない",
+      "no-approver": "承認者がいない",
+      "cancelled": "キャンセル"
+    }
+  },
+  "list": {
+    "title": "ワークフロー",
+    "description": "アクセス申請、フォーム、モジュールの承認ルートです。公開した変更は新しい申請から適用されます。",
+    "tabs": {
+      "definitions": "ワークフロー",
+      "instances": "実行中と履歴"
+    },
+    "search": "ワークフローを検索…",
+    "showArchived": "アーカイブ済みを表示",
+    "new": "新しいワークフロー",
+    "newFor": "新規",
+    "required": "常に実行",
+    "optional": "任意",
+    "usesDefault": "使用中: {name}",
+    "perForm": "フォームごとにワークフローを選択します。",
+    "noDefault": "未使用 — 既定を選ぶまで承認は不要です。",
+    "empty": "このトリガーのワークフローはまだありません。",
+    "default": "既定",
+    "system": "組み込み",
+    "archived": "アーカイブ済み",
+    "version": "バージョン {version}",
+    "draftOnly": "下書き（未公開）",
+    "unpublished": "未公開の変更あり",
+    "steps": "{count} ステップ",
+    "running": "{count} 件実行中",
+    "create": {
+      "title": "新しいワークフロー",
+      "description": "何を判断するかを選びます。空から、またはコピーから始められます。",
+      "trigger": "用途",
+      "name": "名前",
+      "descriptionLabel": "説明",
+      "copyFrom": "開始点",
+      "blank": "空のワークフロー",
+      "cancel": "キャンセル",
+      "submit": "作成して開く",
+      "created": "ワークフローを作成しました"
+    }
+  },
+  "instances": {
+    "label": "ワークフローの実行",
+    "subject": "申請",
+    "status": "状態",
+    "current": "現在のステップ",
+    "requester": "申請者",
+    "started": "開始",
+    "search": "申請を検索…",
+    "allStatuses": "すべての状態",
+    "trigger": "種類",
+    "allTriggers": "すべての種類"
+  },
+  "issues": {
+    "empty": "ステップを 1 つ以上追加してください。空のワークフローはすべてを自動承認します。",
+    "noApprovers": "承認者を 1 人以上追加してください。",
+    "quorumInvalid": "必要な承認数が承認者の数を超えています。",
+    "requesterApprover": "申請者を承認者にすることはできません。",
+    "escalationTargets": "エスカレーション先を選んでください。",
+    "remindAfterDue": "リマインダーは期限より前にしてください。",
+    "noBranches": "ルートを追加してください。",
+    "noRecipients": "通知先を 1 人以上追加してください。",
+    "duplicateId": "ステップ ID が重複しています。",
+    "tooDeep": "入れ子が深すぎます。",
+    "tooManySteps": "ステップが多すぎます。",
+    "incomplete": "すべての承認者についてユーザー、グループ、ロール、またはフィールドを選んでください。",
+    "unknownGroup": "このステップのグループは存在しません。",
+    "unknownRole": "このステップのロールは存在しません。",
+    "unknownUser": "このステップのユーザーは無効です。"
+  },
+  "builder": {
+    "title": "ワークフロー デザイナー",
+    "back": "ワークフロー",
+    "version": "バージョン {version}",
+    "draftOnly": "未公開",
+    "default": "既定",
+    "unpublished": "未公開の変更あり",
+    "archived": "アーカイブ済み",
+    "unsaved": "未保存の変更があります",
+    "save": "下書きを保存",
+    "publish": "公開",
+    "more": "その他の操作",
+    "makeDefault": "新しい申請に使用",
+    "clearDefault": "使用を停止（承認不要）",
+    "defaultCleared": "このトリガーの承認をオフにしました",
+    "restore": "復元",
+    "archive": "アーカイブ",
+    "zoomOut": "縮小",
+    "zoomReset": "ズームをリセット",
+    "zoomIn": "拡大",
+    "addHere": "ここにステップを追加",
+    "addStep": "ステップを追加",
+    "stepTypes": {
+      "approval": {
+        "name": "承認",
+        "hint": "承認または却下を依頼"
+      },
+      "condition": {
+        "name": "分岐",
+        "hint": "申請内容によってルートを変える"
+      },
+      "parallel": {
+        "name": "並列",
+        "hint": "複数の承認を同時に行う"
+      },
+      "notify": {
+        "name": "通知",
+        "hint": "判断なしで知らせる"
+      }
+    },
+    "stepActions": "ステップの操作",
+    "moveUp": "上へ移動",
+    "moveDown": "下へ移動",
+    "duplicate": "複製",
+    "delete": "削除",
+    "branch": "分岐",
+    "otherwise": "それ以外",
+    "yes": "条件…",
+    "tabs": {
+      "step": "ステップ",
+      "settings": "ワークフロー",
+      "test": "テスト"
+    },
+    "selectStep": "キャンバス上のステップを選択して編集します。",
+    "name": "名前",
+    "description": "説明",
+    "factsFromForm": "フォームのフィールドを使用",
+    "pickForm": "フォームを選択",
+    "factsFromFormHint": "条件でフォームの回答（例: 概算費用）を判定できます。",
+    "usedBy": "使用箇所",
+    "usedByDefault": "この種類のすべての新しい申請。",
+    "usedByNothing": "まだありません。",
+    "versions": "公開済みバージョン",
+    "noVersions": "まだ公開されていません。",
+    "system": "システム",
+    "incomplete": "一部の承認者が未設定です。先に対象を選んでください。",
+    "invalid": "ワークフローの設定が正しくありません。",
+    "saved": "下書きを保存しました",
+    "published": "バージョン {version} を公開しました。新しい申請に適用されます",
+    "fixIssues": "公開する前に強調表示されたステップを修正してください",
+    "approvers": {
+      "type": "承認者の種類",
+      "types": {
+        "user": "特定のユーザー",
+        "group": "グループ",
+        "role": "ロールの保持者",
+        "manager": "上長",
+        "department-head": "部門長",
+        "fact": "フィールドのユーザー",
+        "requester": "申請者"
+      },
+      "pickRole": "ロールを選択",
+      "level": "上長の階層",
+      "levels": "{level, select, 1 {直属の上長} 2 {上長の上長} other {{level} 階層上}}",
+      "pickFact": "フィールドを選択",
+      "hints": {
+        "department-head": "対象者の部署の部門長。",
+        "requester": "申請を送信した人。"
+      },
+      "remove": "削除",
+      "fallback": "見つからない場合の依頼先",
+      "addFallback": "代替の承認者を追加"
+    },
+    "editor": {
+      "legend": "ステップの設定",
+      "name": "ステップ名",
+      "when": "条件",
+      "whenHint": "条件に一致しない申請ではこのステップをスキップします。",
+      "onlySometimes": "特定の場合のみこのステップを実行",
+      "approvers": "承認者",
+      "approversHint": "1 行が 1 人の承認者です。グループやロールは 1 人として数え、メンバーの誰でも回答できます。",
+      "addApprover": "承認者を追加",
+      "mode": "必要な承認",
+      "modes": {
+        "any": "最初の回答で決定",
+        "all": "全員",
+        "quorum": "指定数"
+      },
+      "quorum": "必要な承認数",
+      "ofSlots": "/ {count} 人",
+      "modeHints": {
+        "any": "最初の承認または却下でステップが決まります。",
+        "all": "全員の承認が必要で、1 人でも却下すると却下されます。",
+        "quorum": "必要数の承認が集まると承認されます。"
+      },
+      "deadline": "期限",
+      "deadlineHint": "承認に時間がかかる場合に、リマインド、エスカレーション、自動処理を行います。",
+      "useDeadline": "期限を設定",
+      "dueIn": "対応期限",
+      "remindAfter": "リマインド",
+      "hours": "時間",
+      "whenLate": "期限を過ぎたとき",
+      "breach": {
+        "notify": "承認者に期限切れを通知",
+        "escalate": "他の人にエスカレーション",
+        "approve": "自動で承認",
+        "reject": "自動で却下"
+      },
+      "escalateTo": "エスカレーション先",
+      "options": "オプション",
+      "allowDelegation": "承認者が他の人に委任できる",
+      "allowDelegationHint": "不在時の代理設定は常に適用されます。",
+      "allowSelf": "申請者が自分の申請を承認できる",
+      "allowSelfHint": "既定ではオフ（職務分掌のため）。",
+      "ifNobody": "承認者が見つからない場合",
+      "nobody": {
+        "reject": "申請を却下",
+        "skip": "このステップをスキップ"
+      },
+      "instructions": "承認者への指示",
+      "instructionsPlaceholder": "承認者は何を確認すべきですか？",
+      "paths": "ルート",
+      "pathsHint": "ルールに一致する最初のルートが選ばれ、どれにも一致しなければ最後のルートになります。",
+      "newPath": "ルート {n}",
+      "addPath": "ルートを追加",
+      "pathName": "ルート名",
+      "moveUp": "上へ移動",
+      "moveDown": "下へ移動",
+      "removePath": "ルートを削除",
+      "pathSteps": "このルートには {count} ステップあります",
+      "otherwise": "それ以外",
+      "branches": "分岐",
+      "branchesHint": "すべての分岐は同時に進み、各分岐が承認されるとステップが完了します。",
+      "newBranch": "分岐 {n}",
+      "addBranch": "分岐を追加",
+      "branchName": "分岐名",
+      "removeBranch": "分岐を削除",
+      "recipients": "通知先",
+      "recipientsHint": "アプリ内通知（希望すればメールも）が届きます。",
+      "addRecipient": "通知先を追加",
+      "message": "メッセージ"
+    },
+    "test": {
+      "intro": "例の値と判断でワークフローを試します。保存や送信は行われません。",
+      "facts": "申請の値",
+      "any": "未設定",
+      "decisions": "判断",
+      "approved": "承認",
+      "rejected": "却下",
+      "run": "テストを実行",
+      "clear": "クリア",
+      "outcomeApproved": "結果: 承認",
+      "outcomeRejected": "結果: 却下",
+      "status": {
+        "approved": "承認",
+        "rejected": "却下",
+        "skipped": "スキップ",
+        "active": "待機中",
+        "waiting": "未到達"
+      }
+    }
+  }
+}

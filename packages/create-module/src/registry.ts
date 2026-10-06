@@ -104,6 +104,7 @@ export function syncRegistries(root: string, check = false): string[] {
   const mods = discoverModules(root);
   const outputs: [string, string][] = [
     [join(root, 'apps/api/src/generated/modules.ts'), renderApiRegistry(mods)],
+    [join(root, 'apps/api/src/generated/module-messages.ts'), renderMessagesRegistry(mods)],
     [join(root, 'apps/web/src/generated/modules.ts'), renderWebRegistry(mods)],
     [join(root, 'apps/web/src/generated/module-messages.ts'), renderMessagesRegistry(mods)],
   ];

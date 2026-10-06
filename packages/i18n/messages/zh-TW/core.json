@@ -13,7 +13,19 @@
     "modules": "模組",
     "identity": "登入提供者",
     "sectionMain": "工作區",
-    "sectionAdmin": "系統管理"
+    "sectionAdmin": "系統管理",
+    "approvals": "簽核",
+    "requests": "申請",
+    "applications": "應用程式",
+    "apiClients": "API 用戶端",
+    "workflows": "工作流程",
+    "forms": "表單",
+    "customFields": "自訂欄位",
+    "notifications": "通知",
+    "groupIdentity": "身分識別",
+    "groupAccess": "存取權",
+    "groupAutomation": "自動化",
+    "groupPlatform": "平台"
   },
   "permissions": {
     "usersRead": "檢視人員及其個人資料",
@@ -32,19 +44,148 @@
     "modulesRead": "檢視已安裝的模組",
     "modulesManage": "啟用、停用及設定模組",
     "idpRead": "檢視登入提供者",
-    "idpManage": "設定登入提供者及目錄同步"
+    "idpManage": "設定登入提供者及目錄同步",
+    "workflowsRead": "檢視工作流程與進行中的簽核",
+    "workflowsManage": "設計、發佈與管理工作流程",
+    "formsManage": "建立並發佈表單",
+    "customFieldsManage": "為人員、群組與部門新增自訂欄位",
+    "notificationsManage": "設定電子郵件、Teams、Slack 與 Webhook 通知",
+    "accessRequestsRead": "檢視他人的權限申請",
+    "applicationsRead": "檢視應用程式及其存取者",
+    "applicationsManage": "管理應用程式、其角色與授權",
+    "apiClientsManage": "建立 API 用戶端與金鑰",
+    "roleQueryRead": "透過角色查詢 API 查詢角色與權限"
   },
   "settings": {
     "productName": "產品名稱",
     "supportEmail": "支援服務電子郵件",
     "loginBanner": "登入橫幅",
-    "loginBannerHelp": "顯示於登入頁面，例如資訊資源使用規範公告。"
+    "loginBannerHelp": "顯示於登入頁面，例如資訊資源使用規範公告。",
+    "emailEnabled": "寄送電子郵件通知",
+    "emailHost": "SMTP 伺服器",
+    "emailPort": "SMTP 連接埠",
+    "emailSecure": "一開始即使用 TLS",
+    "emailSecureHelp": "連接埠 465 請開啟；關閉時使用 STARTTLS（連接埠 587）。",
+    "emailUsername": "SMTP 使用者名稱",
+    "emailPassword": "SMTP 密碼",
+    "emailFrom": "寄件者",
+    "emailFromHelp": "郵件的寄件者名稱與地址，例如 IS Big Platform、noreply@example.com",
+    "notificationRetention": "通知保留天數"
   },
   "systemRoles": {
-    "platform-admin": { "name": "平台管理員", "description": "擁有所有功能的完整存取權" },
-    "identity-admin": { "name": "身分識別管理員", "description": "管理人員、群組、部門及角色指派" },
-    "security-auditor": { "name": "安全性稽核員", "description": "可唯讀存取所有模組及稽核軌跡" },
-    "module-admin": { "name": "模組管理員", "description": "啟用、停用及設定模組" },
-    "everyone": { "name": "所有人", "description": "授予每位啟用中使用者的基本存取權" }
+    "platform-admin": {
+      "name": "平台管理員",
+      "description": "擁有所有功能的完整存取權"
+    },
+    "identity-admin": {
+      "name": "身分識別管理員",
+      "description": "管理人員、群組、部門及角色指派"
+    },
+    "security-auditor": {
+      "name": "安全性稽核員",
+      "description": "可唯讀存取所有模組及稽核軌跡"
+    },
+    "module-admin": {
+      "name": "模組管理員",
+      "description": "啟用、停用及設定模組"
+    },
+    "everyone": {
+      "name": "所有人",
+      "description": "授予每位啟用中使用者的基本存取權"
+    },
+    "workflow-admin": {
+      "name": "工作流程管理員",
+      "description": "設計簽核工作流程、表單、自訂欄位與通知管道"
+    },
+    "application-manager": {
+      "name": "應用程式管理員",
+      "description": "管理應用程式的角色與權限（指派時限定於單一應用程式）"
+    }
+  },
+  "entities": {
+    "user": "人員",
+    "group": "群組",
+    "department": "部門"
+  },
+  "workflows": {
+    "accessRequest": {
+      "name": "權限申請",
+      "description": "決定自助式角色申請。條件可使用角色（風險、擁有者、應用程式）與申請內容（期間、範圍）。"
+    },
+    "formSubmission": {
+      "name": "表單送出",
+      "description": "用於附加此工作流程的表單。條件可使用每個送出的值（data.欄位代碼）。"
+    }
+  },
+  "notifications": {
+    "approval_assigned": {
+      "label": "待我簽核",
+      "title": "待簽核：{subject}",
+      "body": "{requester} 正在等候您的決定（{step}）。"
+    },
+    "approval_reminder": {
+      "label": "簽核提醒",
+      "title": "提醒：{subject} 正在等候您簽核",
+      "body": "步驟：{step}"
+    },
+    "approval_escalated": {
+      "label": "轉呈給我的簽核",
+      "title": "已轉呈給您：{subject}",
+      "body": "原簽核者未於期限內回覆（{step}）。"
+    },
+    "approval_overdue": {
+      "label": "逾期的簽核",
+      "title": "已逾期：{subject}",
+      "body": "{step} 已超過期限。"
+    },
+    "approval_delegated": {
+      "label": "委派給我的簽核",
+      "title": "{actor} 請您決定：{subject}",
+      "body": "{comment}"
+    },
+    "workflow_fyi": {
+      "label": "工作流程動態（僅供參考）",
+      "title": "通知：{subject}",
+      "body": "{message}"
+    },
+    "access_request_approved": {
+      "label": "我的權限申請已核准",
+      "title": "已核准：{role}（{reference}）",
+      "body": "{permanent, select, yes {此權限沒有到期日。} other {此權限將於 {expiresAt} 到期。}}"
+    },
+    "access_request_rejected": {
+      "label": "我的權限申請遭駁回",
+      "title": "已駁回：{role}（{reference}）",
+      "body": "{comment}"
+    },
+    "access_request_failed": {
+      "label": "無法授予的權限",
+      "title": "無法授予 {role}（{reference}）",
+      "body": "申請已核准，但無法授予權限，可能是該人員已離職或角色已刪除。"
+    },
+    "access_expiring": {
+      "label": "即將到期的權限",
+      "title": "您的 {role} 權限即將到期",
+      "body": "將於 {expiresAt} 到期。若仍需要，請重新申請。"
+    },
+    "access_granted": {
+      "label": "授予給我的角色",
+      "title": "您已獲得角色 {role}",
+      "body": "由 {actor} 授予。"
+    },
+    "form_submission_approved": {
+      "label": "我的表單申請已核准",
+      "title": "已核准：{form}（{reference}）",
+      "body": ""
+    },
+    "form_submission_rejected": {
+      "label": "我的表單申請遭駁回",
+      "title": "已駁回：{form}（{reference}）",
+      "body": "{comment}"
+    },
+    "channel_test": {
+      "title": "IS Big Platform 測試通知",
+      "body": "若您看得到這則訊息，代表此管道運作正常。"
+    }
   }
 }

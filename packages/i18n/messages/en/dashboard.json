@@ -51,5 +51,15 @@
   "welcome": {
     "title": "Welcome to IS Big Platform",
     "body": "Use the search (⌘K / Ctrl K) to jump anywhere. Ask your administrator if you need access to more modules."
+  },
+  "myWork": {
+    "approvals": "Waiting for your approval",
+    "approvalsHint": "Requests that need your decision.",
+    "open": "Open",
+    "noApprovals": "Nothing is waiting for you.",
+    "requests": "Your open requests",
+    "requestsHint": "Access and other requests you sent.",
+    "newRequest": "New request",
+    "noRequests": "You have no open requests."
   }
 }

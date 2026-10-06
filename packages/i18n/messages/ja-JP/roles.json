@@ -226,5 +226,54 @@
     "offboarded": "このユーザーはオフボーディング済みのため、ロールを付与できません。",
     "systemReadOnly": "システム ロールはモジュールによって定義されているため、変更できません。",
     "keyTaken": "このキーを持つロールは既に存在します。"
+  },
+  "requestSettings": {
+    "title": "セルフサービス申請",
+    "description": "ユーザーが申請ポータルでこのロールを申請できるようにします。承認された申請では自動的に付与され、期限どおりに失効します。",
+    "requestable": "ユーザーがこのロールを申請できる",
+    "requestableShort": "申請",
+    "requestableHint": "申請ポータルに表示されます。承認ワークフローが完了するとアクセスが付与されます。",
+    "notRequestableHint": "申請ポータルには表示されません。付与できるのは管理者のみです。",
+    "risk": "リスク レベル",
+    "riskHint": "申請者と承認者に表示されます。ワークフローでは、リスクの高い申請を追加の承認者に回すことができます。",
+    "riskLevels": {
+      "low": "低リスク",
+      "medium": "中リスク",
+      "high": "高リスク"
+    },
+    "riskShort": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "owner": "ロールの所有者",
+    "ownerHint": "ワークフローにロール所有者の承認ステップがある場合に、申請を承認します。",
+    "ownerPlaceholder": "所有者を選択…",
+    "noOwner": "所有者なし",
+    "maxDuration": "最長の付与期間",
+    "maxDurationHint": "申請ではこれより長い期間を指定できません。管理者による直接の付与には制限はありません。",
+    "duration": {
+      "none": "制限なし",
+      "30": "30 日",
+      "90": "90 日",
+      "365": "1 年",
+      "custom": "カスタム…"
+    },
+    "customDays": "日数",
+    "daysUnit": "日",
+    "days": "{count, plural, other {# 日}}",
+    "years": "{count, plural, other {# 年}}",
+    "daysInvalid": "1～3650 の整数で日数を入力してください。",
+    "workflow": "承認ワークフロー",
+    "workflowHint": "このロールの申請を処理するワークフローです。",
+    "workflowDefault": "既定のアクセス申請ワークフロー",
+    "workflowDefaultNamed": "既定 ({name})",
+    "badges": {
+      "requestable": "申請可能",
+      "maxDuration": "最長 {duration}"
+    },
+    "unsaved": "未保存の変更があります",
+    "reset": "リセット",
+    "saved": "申請の設定を保存しました"
   }
 }

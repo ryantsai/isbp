@@ -11,6 +11,12 @@ export default defineServerModule(manifest, {
   migrations,
   routes,
 
+  workflows: {
+    'announcements.publish': {
+      onCompleted: (result, ctx) => new PostService(ctx).onReviewCompleted(result),
+    },
+  },
+
   events: {
     /** Drafts of people who leave would be orphaned — archive them (published posts stay). */
     'core.user.offboarded': async (event, ctx) => {

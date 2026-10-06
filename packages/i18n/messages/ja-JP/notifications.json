@@ -1,0 +1,230 @@
+{
+  "title": "通知",
+  "description": "自分宛ての承認、申請の進捗、お知らせを新しい順に表示します。",
+  "settingsLink": "通知設定",
+  "markAllRead": "すべて既読にする",
+  "markedAllRead": "すべての通知を既読にしました",
+  "markRead": "既読にする",
+  "markReadLabel": "「{title}」を既読にする",
+  "unread": "未読:",
+  "today": "今日",
+  "yesterday": "昨日",
+  "loadMore": "さらに読み込む",
+  "showing": "{total} 件中 {shown} 件を表示",
+  "tabs": {
+    "label": "通知の絞り込み",
+    "all": "すべて",
+    "unread": "未読"
+  },
+  "empty": {
+    "allTitle": "通知はまだありません",
+    "allBody": "承認依頼、申請の進捗、新しいお知らせなど、対応が必要なことがあるとここに表示されます。",
+    "unreadTitle": "すべて確認済みです",
+    "unreadBody": "前回確認してから新しい通知はありません。",
+    "viewAll": "すべての通知を表示"
+  },
+  "patterns": {
+    "all": "すべての通知",
+    "module": "「{module}」のすべての通知",
+    "reach": "{count, plural, other {# 種類}}"
+  },
+  "channelTypes": {
+    "email": "メール",
+    "teams": "Microsoft Teams",
+    "slack": "Slack",
+    "webhook": "Webhook"
+  },
+  "admin": {
+    "title": "通知の配信",
+    "description": "アプリ内の通知のほか、メールや Microsoft Teams、Slack、独自のシステムに通知を送信できます。",
+    "copyFailed": "コピーできませんでした。テキストを選択して手動でコピーしてください。",
+    "tabs": {
+      "label": "配信設定",
+      "channels": "チャネル",
+      "email": "メール",
+      "log": "配信ログ"
+    },
+    "channels": {
+      "intro": "選択した通知をチーム チャネルや他のシステムに投稿します。たとえば、エスカレーションを IT のオンコール チャネルに送信できます。メッセージはチャネルの言語で作成されます。",
+      "add": "チャネルの追加",
+      "emptyTitle": "チャネルはまだありません",
+      "emptyBody": "Microsoft Teams や Slack のチャネル、または任意の HTTPS エンドポイントを接続して、選択した通知を受け取ります。",
+      "deleteTitle": "{name} を削除しますか?",
+      "deleteBody": "このチャネルへの通知はすぐに停止します。配信履歴はログに残ります。",
+      "delete": "チャネルの削除",
+      "toggle": "{name} に通知を送信",
+      "subscribed": "ここに送信される通知",
+      "language": "メッセージの言語",
+      "lastDelivery": "最終配信",
+      "noDelivery": "まだありません",
+      "lastError": "前回の配信に失敗しました",
+      "editLabel": "{name} の編集",
+      "more": "{name} のその他の操作",
+      "toast": {
+        "deleted": "{name} を削除しました",
+        "enabled": "{name} をオンにしました",
+        "disabled": "{name} をオフにしました"
+      },
+      "test": {
+        "button": "テスト送信",
+        "hint": "チャネルがオフでも、テスト メッセージを今すぐ投稿します",
+        "sent": "テスト メッセージが配信されました。チャネルを確認してください。",
+        "failed": "チャネルがテスト メッセージを受け付けませんでした。",
+        "sentToast": "{name} にテスト メッセージを送信しました",
+        "failedToast": "{name} へのテスト メッセージの送信に失敗しました"
+      },
+      "form": {
+        "createTitle": "チャネルの追加",
+        "editTitle": "{name} の編集",
+        "createDescription": "メッセージの送信先と、送信する通知を選択します。",
+        "editDescription": "名前、言語、通知を変更できます。URL を空欄にすると、現在の URL がそのまま使われます。",
+        "type": "種類",
+        "typeLocked": "変更できません",
+        "guide": {
+          "teams": "Microsoft Teams でチャネルを開き、••• › ワークフロー ›「Webhook 要求の受信時にチャネルに投稿する」を選択して手順を完了し、表示された URL をコピーします。",
+          "slack": "Slack で api.slack.com/apps からアプリを作成し、Incoming Webhooks をオンにして「Add New Webhook to Workspace」を選択し、チャネルを選んで URL (https://hooks.slack.com/services/…) をコピーします。",
+          "webhook": "自社で運用する任意の HTTPS エンドポイントです。タイトル、本文、リンク、種類を含む JSON を POST で送信し、保存後に一度だけ表示されるシークレットで署名するため、各要求が本プラットフォームからのものか確認できます。"
+        },
+        "name": "名前",
+        "namePlaceholder": "例: IT 運用 (Teams)",
+        "url": "Webhook URL",
+        "urlKeepPlaceholder": "空欄のままにすると現在の URL を使用します",
+        "urlKeep": "現在の送信先は {host} です。URL 自体は再表示されません。",
+        "urlHint": "パスワードと同様に扱ってください。URL は暗号化して保存され、再表示されません。",
+        "locale": "メッセージの言語",
+        "localeHint": "このチャネルに投稿されるメッセージはこの言語で作成されます。",
+        "enabled": "このチャネルに通知を送信する",
+        "enabledHint": "オフにすると、設定を残したまま送信を一時停止できます。",
+        "submit": "チャネルの追加",
+        "created": "{name} を追加しました",
+        "saved": "{name} を保存しました",
+        "types": {
+          "label": "通知",
+          "hint": "通知の種類またはモジュール全体を選択します。core.access-request.* のようなパターンは、今後追加される種類にも一致します。",
+          "placeholder": "通知を選択…",
+          "selectedCount": "{count, plural, other {# 件を選択}}",
+          "search": "通知を検索…",
+          "noMatch": "一致する通知はありません。",
+          "everything": "すべて",
+          "selected": "選択済み",
+          "chosen": "選択した通知",
+          "remove": "{pattern} を削除",
+          "customLabel": "またはパターンを追加",
+          "addPattern": "追加",
+          "patternInvalid": "モジュール.エンティティ.動作 の形式で、ワイルドカードには * を使用してください (例: core.access-request.*)",
+          "coverage": "{total} 種類の通知のうち {covered} 種類が対象です"
+        },
+        "validation": {
+          "name": "名前を入力してください。",
+          "nameLength": "200 文字以内で入力してください。",
+          "url": "https:// で始まる完全な URL を入力してください",
+          "urlRequired": "Webhook URL を入力してください。",
+          "types": "通知を 1 つ以上選択してください。",
+          "typesMax": "選択できるのは 50 件までです。",
+          "target": "この URL は使用できません。公開された https:// アドレスを使用してください。内部またはプライベート ネットワークのアドレスや、ユーザー名やパスワードを含む URL は使用できません。",
+          "invalid": "この値は無効です。"
+        }
+      }
+    },
+    "secret": {
+      "title": "{name} の署名シークレット",
+      "description": "エンドポイントはこのシークレットを使用して、要求が本プラットフォームからのものであることを確認します。",
+      "once": "今すぐコピーして安全に保管してください。このシークレットは再表示されません。",
+      "verifyTitle": "要求の検証方法",
+      "step1": "<code>x-isbp-signature</code> ヘッダーを読み取ります。形式は <code>t=1760000000,v1=5257a8…</code> です (秒単位の Unix 時刻と署名)。",
+      "step2": "このシークレットを使用して、タイムスタンプ、ピリオド、未加工の要求本文をつなげたもの (<code>t + \".\" + body</code>) の HMAC-SHA256 を計算し、小文字の 16 進数で表します。",
+      "step3": "結果が v1 と一致し (比較は一定時間で行います)、タイムスタンプが 5 分以内の場合にのみ要求を受け付けます。",
+      "done": "シークレットを保存しました"
+    },
+    "email": {
+      "title": "メール (SMTP)",
+      "description": "通知メールの送信に使用するメール サーバーです。メールで受け取る通知は、各ユーザーが自分の設定で選択します。",
+      "enabled": "通知メールを送信する",
+      "enabledHint": "オフの場合、通知はアプリ内とチャネルにのみ表示されます。",
+      "server": "サーバー",
+      "host": "SMTP サーバー",
+      "port": "ポート",
+      "tls": "暗号化",
+      "tlsModes": {
+        "starttls": "STARTTLS (通常はポート 587)",
+        "tls": "SSL/TLS (通常はポート 465)"
+      },
+      "tlsHint": "どちらを使用するかは、メール プロバイダーのドキュメントを参照してください。",
+      "auth": "サインイン",
+      "authHint": "サーバーがサインインなしで本プラットフォームからのメールを受け付ける場合は、両方とも空欄にします。",
+      "username": "ユーザー名",
+      "password": "パスワード",
+      "passwordStored": "パスワードが保存されています",
+      "passwordReplace": "置き換え",
+      "passwordRemove": "削除",
+      "passwordWillRemove": "保存するとパスワードが削除されます。",
+      "undo": "元に戻す",
+      "passwordNewPlaceholder": "新しいパスワード",
+      "passwordKeep": "現在のパスワードを使用する",
+      "passwordHint": "暗号化して保存され、再表示されません。",
+      "from": "差出人",
+      "fromHint": "メール アドレス (名前を付けることもできます。例: {example})。サーバーがこのアドレスからの送信を許可している必要があります。",
+      "enableNote": "保存するとすぐにメールの送信が始まります。",
+      "discard": "変更を破棄",
+      "saved": "メールの設定を保存しました",
+      "status": {
+        "ready": "準備完了",
+        "incomplete": "未構成",
+        "off": "オフ"
+      },
+      "validation": {
+        "tooLong": "長すぎます。",
+        "port": "1 から 65535 までのポートを入力してください。",
+        "hostRequired": "メールをオンにするには SMTP サーバーを入力してください。",
+        "fromRequired": "メールをオンにするには差出人を入力してください。",
+        "from": "メール アドレスを入力してください (名前を付けることもできます。例: {example})"
+      },
+      "test": {
+        "button": "テスト メールの送信",
+        "saveFirst": "先に変更を保存してください。テストには保存済みの設定が使用されます。",
+        "notReady": "先にメールをオンにして、サーバーと差出人を保存してください。",
+        "title": "テスト メールの送信",
+        "description": "保存済みの設定で短いメッセージを送信し、サーバー、サインイン、差出人を確認します。",
+        "to": "送信先",
+        "invalid": "有効なメール アドレスを入力してください。",
+        "notConfigured": "メールはまだ設定されていません。オンにして、サーバーと差出人を保存してください。",
+        "failed": "メール サーバーがテスト メールを受け付けませんでした。",
+        "sent": "{to} にテスト メールを送信しました。届くまで少し時間がかかることがあります。迷惑メール フォルダーも確認してください。",
+        "send": "送信"
+      }
+    },
+    "log": {
+      "title": "配信ログ",
+      "intro": "本プラットフォームが送信を試みたすべてのメールとチャネル メッセージです。配信に失敗した場合は数回再試行され、その後失敗として記録されます。",
+      "refresh": "最新の情報に更新",
+      "noError": "エラーなし",
+      "notSent": "未送信",
+      "attempts": "{count, plural, other {試行 # 回}}",
+      "emptyTitle": "まだ配信はありません",
+      "emptyBody": "メールとチャネル メッセージが状態とともにここに表示されるため、問題を見つけやすくなります。",
+      "emptyFilteredTitle": "フィルターに一致する配信はありません",
+      "emptyFilteredBody": "別の状態またはチャネルを試してください。",
+      "columns": {
+        "channel": "チャネル",
+        "notification": "通知",
+        "recipient": "受信者",
+        "status": "状態",
+        "error": "最後のエラー",
+        "created": "作成日時",
+        "sent": "送信日時"
+      },
+      "filters": {
+        "status": "状態",
+        "channel": "チャネル",
+        "allStatuses": "すべての状態",
+        "allChannels": "すべてのチャネル"
+      },
+      "status": {
+        "pending": "保留中",
+        "sent": "送信済み",
+        "failed": "失敗",
+        "skipped": "スキップ"
+      }
+    }
+  }
+}

@@ -11,5 +11,118 @@
   },
   "search": {
     "clear": "検索をクリア"
+  },
+  "fieldErrors": {
+    "required": "この項目は必須です",
+    "type": "値が正しくありません",
+    "tooShort": "{min} 文字以上入力してください",
+    "tooLong": "{max} 文字以内で入力してください",
+    "min": "{min} 以上を入力してください",
+    "max": "{max} 以下を入力してください",
+    "pattern": "形式が正しくありません",
+    "option": "選択肢から選んでください",
+    "email": "有効なメール アドレスを入力してください",
+    "url": "https:// で始まる URL を入力してください",
+    "date": "有効な日付を入力してください",
+    "user": "ユーザーを選択してください"
+  },
+  "localized": {
+    "languages": "言語",
+    "filled": "{language}（入力済み）",
+    "missing": "{language}（未入力 — 英語または他の言語で表示）"
+  },
+  "person": {
+    "search": "ユーザーを検索…",
+    "noResults": "見つかりません",
+    "loading": "検索中…",
+    "clear": "選択を解除",
+    "placeholder": "ユーザーを選択"
+  },
+  "select": {
+    "placeholder": "選択…",
+    "none": "なし"
+  },
+  "boolean": {
+    "yes": "はい",
+    "no": "いいえ"
+  },
+  "conditions": {
+    "match": "一致条件:",
+    "all": "すべてのルール",
+    "any": "いずれかのルール",
+    "addRule": "ルールを追加",
+    "removeRule": "ルールを削除",
+    "fact": "フィールド",
+    "op": "演算子",
+    "value": "値",
+    "noRules": "ルールはまだありません。条件は常に成立します。",
+    "ops": {
+      "eq": "が次と等しい",
+      "neq": "が次と等しくない",
+      "gt": "が次より大きい",
+      "gte": "が次以上",
+      "lt": "が次より小さい",
+      "lte": "が次以下",
+      "in": "が次のいずれか",
+      "nin": "が次のいずれでもない",
+      "contains": "が次を含む",
+      "empty": "が空",
+      "notEmpty": "が入力済み"
+    },
+    "valuePlaceholder": "値",
+    "listPlaceholder": "複数の値はカンマ区切り",
+    "true": "はい",
+    "false": "いいえ",
+    "and": "かつ",
+    "or": "または",
+    "always": "常に",
+    "not": "（{condition}）ではない"
+  },
+  "workflow": {
+    "start": "申請の送信",
+    "end": "承認",
+    "rejected": "却下",
+    "cancelled": "取り下げ",
+    "otherwise": "それ以外",
+    "noSteps": "ステップなし（そのまま通過）",
+    "status": {
+      "active": "進行中",
+      "approved": "承認済み",
+      "rejected": "却下",
+      "skipped": "スキップ",
+      "waiting": "未到達"
+    },
+    "types": {
+      "approval": "承認",
+      "parallel": "並列",
+      "condition": "分岐",
+      "notify": "通知"
+    },
+    "mode": {
+      "any": "最初の回答で決定",
+      "all": "全員の承認が必要",
+      "quorum": "{total} 人中 {n} 人の承認が必要"
+    },
+    "sla": "{hours} 時間以内に対応",
+    "approver": {
+      "user": "{name}",
+      "group": "グループ: {name}",
+      "role": "ロール: {name}",
+      "manager": "{level, select, 1 {上長} 2 {上長の上長} other {{level} 階層上の上長}}",
+      "department-head": "部門長",
+      "fact": "「{fact}」のユーザー",
+      "requester": "申請者",
+      "fallback": "{rule}、いない場合は {fallback}"
+    },
+    "when": "{condition} の場合のみ",
+    "skipped": {
+      "condition": "条件に一致しない",
+      "no-approver": "承認者が見つからない",
+      "cancelled": "キャンセル"
+    },
+    "waitingFor": "{names} の対応待ち",
+    "decided": "{name}",
+    "branches": "{count} 分岐",
+    "steps": "{count} ステップ"
   }
 }

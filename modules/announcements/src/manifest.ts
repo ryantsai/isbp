@@ -57,6 +57,11 @@ export const manifest = defineManifest({
         schema: postRef.extend({ reason: z.enum(['manual', 'expired']) }),
       },
       { name: 'announcements.post.deleted', schema: postRef },
+      {
+        name: 'announcements.post.submitted',
+        description: 'Sent for approval because a review workflow is bound to publishing',
+        schema: postRef.extend({ instanceId: z.uuid() }),
+      },
     ],
     consumes: ['core.user.offboarded'],
   },
@@ -109,4 +114,21 @@ export const manifest = defineManifest({
     ],
   },
   search: { entities: ['post'] },
+  workflows: [
+    {
+      key: 'announcements.publish',
+      name: 'announcements.workflows.publish.name',
+      description: 'announcements.workflows.publish.description',
+      subject: 'post',
+      facts: z.object({
+        post: z.object({ severity, pinned: z.boolean(), hasWindow: z.boolean() }),
+      }),
+    },
+  ],
+  notifications: [
+    /** Broadcast to subscribed Teams/Slack channels when a post goes live. */
+    { type: 'announcements.post.published' },
+    { type: 'announcements.post.approved', defaultChannels: ['inApp', 'email'] },
+    { type: 'announcements.post.rejected', defaultChannels: ['inApp', 'email'] },
+  ],
 });

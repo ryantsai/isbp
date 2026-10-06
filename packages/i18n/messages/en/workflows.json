@@ -1,0 +1,343 @@
+{
+  "status": {
+    "request": {
+      "pending": "Waiting for approval",
+      "submitted": "Submitted",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Withdrawn",
+      "failed": "Couldn't be granted"
+    },
+    "instance": {
+      "running": "In progress",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Withdrawn"
+    },
+    "task": {
+      "pending": "Waiting",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "delegated": "Handed over",
+      "cancelled": "Closed"
+    }
+  },
+  "due": {
+    "in_hours": "Due in {n, plural, one {# hour} other {# hours}}",
+    "in_days": "Due in {n, plural, one {# day} other {# days}}",
+    "overdue_hours": "Overdue by {n, plural, one {# hour} other {# hours}}",
+    "overdue_days": "Overdue by {n, plural, one {# day} other {# days}}"
+  },
+  "facts": {
+    "role_key": "Role key",
+    "role_name": "Role",
+    "role_riskLevel": "Risk level",
+    "role_ownerId": "Role owner",
+    "role_application": "Application",
+    "role_id": "Role",
+    "request_durationDays": "Duration (days)",
+    "request_permanent": "Permanent access",
+    "request_scopeType": "Scope",
+    "request_forSomeoneElse": "Requested for someone else",
+    "form_key": "Form",
+    "form_category": "Form category",
+    "requester_departmentCode": "Requester's department",
+    "requester_jobTitle": "Requester's job title",
+    "subjectUser_departmentCode": "Person's department",
+    "post_severity": "Announcement type",
+    "post_pinned": "Pinned",
+    "post_hasWindow": "Has a time window"
+  },
+  "factValues": {
+    "role_riskLevel": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "request_scopeType": {
+      "global": "Everywhere",
+      "department": "One department",
+      "record": "One record"
+    },
+    "post_severity": {
+      "info": "Information",
+      "maintenance": "Maintenance",
+      "incident": "Incident"
+    }
+  },
+  "timeline": {
+    "system": "The system",
+    "otherwise": "Otherwise",
+    "events": {
+      "started": "{actor} submitted the request",
+      "task_approved": "{actor} approved — {step}",
+      "task_rejected": "{actor} rejected — {step}",
+      "task_delegated": "{actor} handed {step} over to {to}",
+      "task_reminded": "Reminder sent — {step}",
+      "task_overdue": "{step} is overdue",
+      "task_escalated": "{step} escalated to {count, plural, one {# more approver} other {# more approvers}}",
+      "task_auto_decided": "{step} was decided automatically after its deadline ({outcome})",
+      "step_rejected": "{step} rejected",
+      "step_skipped": "{step} skipped",
+      "branch_chosen": "Took the path “{branch}”",
+      "notified": "{step}: notified {count, plural, one {# person} other {# people}}",
+      "completed": "Finished: {outcome, select, approved {approved} rejected {rejected} cancelled {withdrawn} other {{outcome}}}",
+      "cancelled": "{actor} withdrew the request",
+      "other": "{type}"
+    },
+    "reasons": {
+      "condition": "condition not met",
+      "no-approver": "nobody to ask",
+      "cancelled": "cancelled"
+    }
+  },
+  "list": {
+    "title": "Workflows",
+    "description": "Approval paths for access requests, forms and modules. Changes apply to new requests once published.",
+    "tabs": {
+      "definitions": "Workflows",
+      "instances": "Running & history"
+    },
+    "search": "Search workflows…",
+    "showArchived": "Show archived",
+    "new": "New workflow",
+    "newFor": "New",
+    "required": "Always runs",
+    "optional": "Optional",
+    "usesDefault": "In use: {name}",
+    "perForm": "Each form chooses its own workflow.",
+    "noDefault": "Not in use — no approval needed until you choose a default.",
+    "empty": "No workflows for this trigger yet.",
+    "default": "Default",
+    "system": "Built-in",
+    "archived": "Archived",
+    "version": "Version {version}",
+    "draftOnly": "Draft, never published",
+    "unpublished": "Unpublished changes",
+    "steps": "{count, plural, one {# step} other {# steps}}",
+    "running": "{count} running",
+    "create": {
+      "title": "New workflow",
+      "description": "Pick what it decides about. You can start blank or from a copy.",
+      "trigger": "Used for",
+      "name": "Name",
+      "descriptionLabel": "Description",
+      "copyFrom": "Start from",
+      "blank": "A blank workflow",
+      "cancel": "Cancel",
+      "submit": "Create and open",
+      "created": "Workflow created"
+    }
+  },
+  "instances": {
+    "label": "Workflow instances",
+    "subject": "Request",
+    "status": "Status",
+    "current": "Waiting at",
+    "requester": "Requested by",
+    "started": "Started",
+    "search": "Search requests…",
+    "allStatuses": "All statuses",
+    "trigger": "Workflow type",
+    "allTriggers": "All types"
+  },
+  "issues": {
+    "empty": "Add at least one step — an empty workflow would approve everything automatically.",
+    "noApprovers": "Add at least one approver.",
+    "quorumInvalid": "The number of approvals needed is higher than the number of approvers.",
+    "requesterApprover": "The requester can't be an approver.",
+    "escalationTargets": "Choose who to escalate to.",
+    "remindAfterDue": "The reminder must come before the deadline.",
+    "noBranches": "Add more paths.",
+    "noRecipients": "Add at least one recipient.",
+    "duplicateId": "Duplicate step id.",
+    "tooDeep": "Too many nested levels.",
+    "tooManySteps": "Too many steps.",
+    "incomplete": "Choose a person, group, role or field for every approver.",
+    "unknownGroup": "A group in this step no longer exists.",
+    "unknownRole": "A role in this step no longer exists.",
+    "unknownUser": "A person in this step is no longer active."
+  },
+  "builder": {
+    "title": "Workflow builder",
+    "back": "Workflows",
+    "version": "Version {version}",
+    "draftOnly": "Not published",
+    "default": "Default",
+    "unpublished": "Unpublished changes",
+    "archived": "Archived",
+    "unsaved": "Unsaved changes",
+    "save": "Save draft",
+    "publish": "Publish",
+    "more": "More actions",
+    "makeDefault": "Use for new requests",
+    "clearDefault": "Stop using (no approval)",
+    "defaultCleared": "Approval turned off for this trigger",
+    "restore": "Restore",
+    "archive": "Archive",
+    "zoomOut": "Zoom out",
+    "zoomReset": "Reset zoom",
+    "zoomIn": "Zoom in",
+    "addHere": "Add a step here",
+    "addStep": "Add a step",
+    "stepTypes": {
+      "approval": {
+        "name": "Approval",
+        "hint": "Ask people to approve or reject"
+      },
+      "condition": {
+        "name": "Decision",
+        "hint": "Take a different path depending on the request"
+      },
+      "parallel": {
+        "name": "In parallel",
+        "hint": "Several approvals at the same time"
+      },
+      "notify": {
+        "name": "Notification",
+        "hint": "Let people know, no decision needed"
+      }
+    },
+    "stepActions": "Step actions",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "duplicate": "Duplicate",
+    "delete": "Delete",
+    "branch": "Branch",
+    "otherwise": "Otherwise",
+    "yes": "If…",
+    "tabs": {
+      "step": "Step",
+      "settings": "Workflow",
+      "test": "Test"
+    },
+    "selectStep": "Select a step on the canvas to edit it.",
+    "name": "Name",
+    "description": "Description",
+    "factsFromForm": "Use the fields of",
+    "pickForm": "Choose a form",
+    "factsFromFormHint": "Conditions can then test the form's answers (for example the estimated cost).",
+    "usedBy": "Used by",
+    "usedByDefault": "Every new request of this type.",
+    "usedByNothing": "Nothing yet.",
+    "versions": "Published versions",
+    "noVersions": "Not published yet.",
+    "system": "System",
+    "incomplete": "Some approvers are incomplete — choose who they are first.",
+    "invalid": "The workflow has invalid settings.",
+    "saved": "Draft saved",
+    "published": "Published version {version} — new requests use it now",
+    "fixIssues": "Fix the highlighted steps before publishing",
+    "approvers": {
+      "type": "Approver type",
+      "types": {
+        "user": "A person",
+        "group": "A group",
+        "role": "Holders of a role",
+        "manager": "Manager",
+        "department-head": "Department head",
+        "fact": "Person in a field",
+        "requester": "The requester"
+      },
+      "pickRole": "Choose a role",
+      "level": "Manager level",
+      "levels": "{level, select, 1 {Direct manager} 2 {Manager's manager} other {Level {level}}}",
+      "pickFact": "Choose a field",
+      "hints": {
+        "department-head": "The manager of the person's department.",
+        "requester": "The person who sent the request."
+      },
+      "remove": "Remove",
+      "fallback": "If nobody is found, ask",
+      "addFallback": "Add a fallback"
+    },
+    "editor": {
+      "legend": "Step settings",
+      "name": "Step name",
+      "when": "Condition",
+      "whenHint": "Skip this step for requests that don't match.",
+      "onlySometimes": "Only run this step in some cases",
+      "approvers": "Approvers",
+      "approversHint": "Each line is one approver. A group or role counts as one: any member can answer.",
+      "addApprover": "Add approver",
+      "mode": "How many must approve",
+      "modes": {
+        "any": "The first answer decides",
+        "all": "Every approver",
+        "quorum": "A number of approvers"
+      },
+      "quorum": "Approvals needed",
+      "ofSlots": "of {count}",
+      "modeHints": {
+        "any": "The first approval or rejection decides the step.",
+        "all": "Every approver must approve; any rejection rejects.",
+        "quorum": "The step is approved once enough approvers agree."
+      },
+      "deadline": "Deadline",
+      "deadlineHint": "Remind, escalate or decide automatically when approvers take too long.",
+      "useDeadline": "Set a deadline",
+      "dueIn": "Due within",
+      "remindAfter": "Remind after",
+      "hours": "hours",
+      "whenLate": "When the deadline passes",
+      "breach": {
+        "notify": "Notify the approvers that it's overdue",
+        "escalate": "Escalate to someone else",
+        "approve": "Approve automatically",
+        "reject": "Reject automatically"
+      },
+      "escalateTo": "Escalate to",
+      "options": "Options",
+      "allowDelegation": "Approvers can hand it to someone else",
+      "allowDelegationHint": "Out-of-office delegations always apply.",
+      "allowSelf": "The requester may approve their own request",
+      "allowSelfHint": "Off by default — keep duties separated.",
+      "ifNobody": "If no approver is found",
+      "nobody": {
+        "reject": "Reject the request",
+        "skip": "Skip this step"
+      },
+      "instructions": "Instructions for approvers",
+      "instructionsPlaceholder": "What should approvers check?",
+      "paths": "Paths",
+      "pathsHint": "The first path whose rules match is taken; otherwise the last one.",
+      "newPath": "Path {n}",
+      "addPath": "Add path",
+      "pathName": "Path name",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "removePath": "Remove path",
+      "pathSteps": "{count, plural, one {# step} other {# steps}} in this path",
+      "otherwise": "Otherwise",
+      "branches": "Branches",
+      "branchesHint": "All branches run at the same time; the step finishes when every branch is approved.",
+      "newBranch": "Branch {n}",
+      "addBranch": "Add branch",
+      "branchName": "Branch name",
+      "removeBranch": "Remove branch",
+      "recipients": "Who to notify",
+      "recipientsHint": "They get an in-app notification (and email, if they want it).",
+      "addRecipient": "Add recipient",
+      "message": "Message"
+    },
+    "test": {
+      "intro": "Try the workflow with example values and decisions. Nothing is saved or sent.",
+      "facts": "Request values",
+      "any": "Not set",
+      "decisions": "Decisions",
+      "approved": "Approve",
+      "rejected": "Reject",
+      "run": "Run test",
+      "clear": "Clear",
+      "outcomeApproved": "Result: approved",
+      "outcomeRejected": "Result: rejected",
+      "status": {
+        "approved": "approved",
+        "rejected": "rejected",
+        "skipped": "skipped",
+        "active": "waiting",
+        "waiting": "not reached"
+      }
+    }
+  }
+}

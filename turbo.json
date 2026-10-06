@@ -47,6 +47,7 @@
     "API_DOCS",
     "OTEL_*",
     "SEED_*",
-    "E2E_*"
+    "E2E_*",
+    "OAUTH_*"
   ]
 }

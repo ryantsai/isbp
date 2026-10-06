@@ -43,6 +43,7 @@ import { useTranslations } from 'next-intl';
 import { type ReactNode, useState } from 'react';
 import { AuditIcon, useActionLabel } from '@/components/audit-action';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { CustomFieldsCard } from '@/components/fields/entity-fields';
 import { type PickedUser, UserPicker } from '@/components/pickers/user-picker';
 import { DateTime, RelativeTime } from '@/components/relative-time';
 import { SourceBadge, UserStatusBadge } from '@/components/status-badge';
@@ -51,9 +52,9 @@ import { UserFormSheet } from './user-form';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[minmax(0,10rem)_1fr] gap-3 py-2 text-sm">
+    <div className="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)] gap-3 py-2 text-sm">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 break-words">{children ?? '—'}</dd>
+      <dd className="min-w-0 wrap-anywhere">{children ?? '—'}</dd>
     </div>
   );
 }
@@ -174,40 +175,43 @@ export function UserDetailView({ id }: { id: string }) {
           {canAudit && <TabsTrigger value="activity">{t('detail.tabs.activity')}</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="overview" className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('detail.profile')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="divide-y">
-                <Field label={tc('email')}>
-                  <a
-                    href={`mailto:${user.email}`}
-                    className="inline-flex items-center gap-1.5 hover:underline"
-                  >
-                    <MailIcon className="size-3.5 text-muted-foreground" />
-                    {user.email}
-                  </a>
-                </Field>
-                <Field label={t('form.username')}>
-                  <code className="font-mono text-xs">{user.username}</code>
-                </Field>
-                <Field label={t('form.givenName')}>{user.givenName}</Field>
-                <Field label={t('form.familyName')}>{user.familyName}</Field>
-                <Field label={t('form.phone')}>
-                  {user.phone && (
-                    <span className="inline-flex items-center gap-1.5">
-                      <PhoneIcon className="size-3.5 text-muted-foreground" />
-                      {user.phone}
-                    </span>
-                  )}
-                </Field>
-                <Field label={t('form.locale')}>{user.locale}</Field>
-                <Field label={t('form.timezone')}>{user.timezone}</Field>
-              </dl>
-            </CardContent>
-          </Card>
+        <TabsContent value="overview" className="grid items-start gap-6 lg:grid-cols-2">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('detail.profile')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="divide-y">
+                  <Field label={tc('email')}>
+                    <a
+                      href={`mailto:${user.email}`}
+                      className="inline-flex items-center gap-1.5 hover:underline"
+                    >
+                      <MailIcon className="size-3.5 text-muted-foreground" />
+                      {user.email}
+                    </a>
+                  </Field>
+                  <Field label={t('form.username')}>
+                    <code className="font-mono text-xs">{user.username}</code>
+                  </Field>
+                  <Field label={t('form.givenName')}>{user.givenName}</Field>
+                  <Field label={t('form.familyName')}>{user.familyName}</Field>
+                  <Field label={t('form.phone')}>
+                    {user.phone && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <PhoneIcon className="size-3.5 text-muted-foreground" />
+                        {user.phone}
+                      </span>
+                    )}
+                  </Field>
+                  <Field label={t('form.locale')}>{user.locale}</Field>
+                  <Field label={t('form.timezone')}>{user.timezone}</Field>
+                </dl>
+              </CardContent>
+            </Card>
+            <CustomFieldsCard entityType="core.user" attributes={user.attributes} />
+          </div>
           <div className="space-y-6">
             <Card>
               <CardHeader>

@@ -226,5 +226,54 @@
     "offboarded": "This person has been offboarded and can’t receive roles.",
     "systemReadOnly": "System roles are defined by modules and can’t be changed.",
     "keyTaken": "A role with this key already exists."
+  },
+  "requestSettings": {
+    "title": "Self-service requests",
+    "description": "Let people ask for this role in the request portal. Approved requests grant it automatically, and it expires on time.",
+    "requestable": "People can request this role",
+    "requestableShort": "Requests",
+    "requestableHint": "It appears in the request portal. Access is granted when the approval workflow finishes.",
+    "notRequestableHint": "Not in the request portal — only administrators can grant it.",
+    "risk": "Risk level",
+    "riskHint": "Shown to requesters and approvers. Workflows can route riskier requests to extra approvers.",
+    "riskLevels": {
+      "low": "Low risk",
+      "medium": "Medium risk",
+      "high": "High risk"
+    },
+    "riskShort": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "owner": "Role owner",
+    "ownerHint": "Approves requests when the workflow has a role-owner step.",
+    "ownerPlaceholder": "Choose the owner…",
+    "noOwner": "No owner",
+    "maxDuration": "Longest grant",
+    "maxDurationHint": "Requests can’t ask for longer than this. Grants made directly by administrators aren’t limited.",
+    "duration": {
+      "none": "No limit",
+      "30": "30 days",
+      "90": "90 days",
+      "365": "1 year",
+      "custom": "Custom…"
+    },
+    "customDays": "Number of days",
+    "daysUnit": "days",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "years": "{count, plural, one {# year} other {# years}}",
+    "daysInvalid": "Enter a whole number of days from 1 to 3650.",
+    "workflow": "Approval workflow",
+    "workflowHint": "The workflow that handles requests for this role.",
+    "workflowDefault": "Default access-request workflow",
+    "workflowDefaultNamed": "Default ({name})",
+    "badges": {
+      "requestable": "Requestable",
+      "maxDuration": "Max {duration}"
+    },
+    "unsaved": "Unsaved changes",
+    "reset": "Reset",
+    "saved": "Request settings saved"
   }
 }

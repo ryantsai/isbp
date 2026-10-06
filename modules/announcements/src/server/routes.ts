@@ -73,10 +73,32 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
     '/posts/:id/publish',
     {
       config: { permission: MANAGE },
-      schema: { tags, summary: 'Publish a draft', params: idParams, response: { 200: postSchema } },
+      schema: {
+        tags,
+        summary: 'Publish a draft (or send it for approval when a review workflow is bound)',
+        params: idParams,
+        response: { 200: postSchema },
+      },
     },
     async (req) => {
-      await svc.publish(req.params.id);
+      await svc.publish(req.params.id, req.auth.user?.id ?? null);
+      return svc.find(req.params.id, true);
+    },
+  );
+
+  app.post(
+    '/posts/:id/withdraw',
+    {
+      config: { permission: MANAGE },
+      schema: {
+        tags,
+        summary: 'Withdraw a post from review (back to draft)',
+        params: idParams,
+        response: { 200: postSchema },
+      },
+    },
+    async (req) => {
+      await svc.withdraw(req.params.id);
       return svc.find(req.params.id, true);
     },
   );

@@ -92,6 +92,10 @@ export interface NavItem {
   href: string;
   icon?: string;
   section: 'main' | 'admin';
+  /** i18n key of a sub-heading within the section. */
+  group?: string;
+  /** Counter key from `GET /me/badges`. */
+  badge?: string;
   order: number;
   moduleId: string;
   children?: NavItem[];
@@ -103,6 +107,8 @@ const navItem: z.ZodType<NavItem> = z.lazy(() =>
     href: z.string(),
     icon: z.string().optional(),
     section: z.enum(['main', 'admin']),
+    group: z.string().optional(),
+    badge: z.string().optional(),
     order: z.number(),
     moduleId: z.string(),
     children: z.array(navItem).optional(),

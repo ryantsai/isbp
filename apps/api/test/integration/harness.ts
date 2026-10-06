@@ -17,19 +17,21 @@ export interface Session {
   userId: string;
 }
 
+/** Tests assert on loosely-shaped JSON bodies. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type LooseJson = any;
+
 export interface Harness {
   kernel: Kernel;
   app: Awaited<ReturnType<typeof buildApp>>;
   ids: { admin: string; hr: string; outsider: string; sales: string; salesTpe: string; finance: string };
   login(username: string, password?: string): Promise<Session>;
-  // Tests assert on loosely-shaped JSON bodies.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   call(
     session: Session | null,
     method: string,
     url: string,
     body?: unknown,
-  ): Promise<{ status: number; body: any }>;
+  ): Promise<{ status: number; body: LooseJson }>;
   close(): Promise<void>;
 }
 

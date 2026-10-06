@@ -277,7 +277,7 @@ export function DataTable<T>({
               ))
             ) : (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={allColumns.length} className="p-0">
+                <TableCell colSpan={allColumns.length} className="p-0 whitespace-normal">
                   {empty ?? (
                     <div className="py-12 text-center text-sm text-muted-foreground">{t('empty')}</div>
                   )}

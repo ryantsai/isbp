@@ -10,6 +10,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { NavIcon } from '../nav-icon';
 import { Brand } from './brand';
+import { useBadges } from './live';
 
 const spring = { type: 'spring', stiffness: 520, damping: 42, mass: 0.8 } as const;
 
@@ -30,8 +31,10 @@ function NavLink({
 }) {
   const pathname = usePathname();
   const t = useTranslations();
+  const badges = useBadges();
   const active = isActivePath(pathname, item.href);
   const label = t.has(item.label) ? t(item.label) : item.label;
+  const count = item.badge ? (badges[item.badge as keyof typeof badges] ?? 0) : 0;
   const link = (
     <Link
       href={item.href}
@@ -78,6 +81,25 @@ function NavLink({
           </motion.span>
         )}
       </AnimatePresence>
+      <AnimatePresence initial={false}>
+        {count > 0 && (
+          <motion.span
+            key="badge"
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.4, opacity: 0 }}
+            className={cn(
+              'relative grid place-items-center rounded-full bg-primary font-semibold text-primary-foreground tabular-nums',
+              collapsed
+                ? 'absolute top-1 right-1.5 size-2 text-[0px]'
+                : 'ml-auto h-5 min-w-5 px-1.5 text-[11px]',
+            )}
+          >
+            <span aria-hidden>{count > 99 ? '99+' : count}</span>
+            <span className="sr-only">{t('shell.badgeCount', { count })}</span>
+          </motion.span>
+        )}
+      </AnimatePresence>
     </Link>
   );
   return collapsed ? (
@@ -101,6 +123,7 @@ export function SidebarNav({
   layoutPrefix?: string;
 }) {
   const t = useTranslations('core.nav');
+  const tAll = useTranslations();
   const sections = [
     { key: 'main' as const, label: t('sectionMain') },
     { key: 'admin' as const, label: t('sectionAdmin') },
@@ -121,15 +144,27 @@ export function SidebarNav({
               >
                 {section.label}
               </div>
-              {sectionItems.map((item) => (
-                <NavLink
-                  key={item.id}
-                  item={item}
-                  collapsed={collapsed}
-                  onNavigate={onNavigate}
-                  layoutPrefix={layoutPrefix}
-                />
-              ))}
+              {sectionItems.map((item, i) => {
+                const heading = item.group && item.group !== sectionItems[i - 1]?.group ? item.group : null;
+                return (
+                  <div key={item.id} className="flex flex-col">
+                    {heading &&
+                      (collapsed ? (
+                        i > 0 && <div aria-hidden className="mx-3 my-2 h-px bg-sidebar-border" />
+                      ) : (
+                        <div className="mt-2 mb-0.5 px-2.5 text-[11px] text-muted-foreground">
+                          {tAll.has(heading) ? tAll(heading) : heading}
+                        </div>
+                      ))}
+                    <NavLink
+                      item={item}
+                      collapsed={collapsed}
+                      onNavigate={onNavigate}
+                      layoutPrefix={layoutPrefix}
+                    />
+                  </div>
+                );
+              })}
             </div>
           );
         })}

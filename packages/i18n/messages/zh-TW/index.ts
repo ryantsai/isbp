@@ -15,6 +15,13 @@ import audit from './audit.json';
 import modules from './modules.json';
 import idp from './idp.json';
 import settings from './settings.json';
+import approvals from './approvals.json';
+import requests from './requests.json';
+import workflows from './workflows.json';
+import forms from './forms.json';
+import fields from './fields.json';
+import notifications from './notifications.json';
+import applications from './applications.json';
 
 const messages: Messages = {
   common,
@@ -32,5 +39,12 @@ const messages: Messages = {
   modules,
   idp,
   settings,
+  approvals,
+  requests,
+  workflows,
+  forms,
+  fields,
+  notifications,
+  applications,
 };
 export default messages;

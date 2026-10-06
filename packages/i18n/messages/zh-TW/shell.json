@@ -34,5 +34,15 @@
   "notFoundBody": "您要找的頁面不存在或已移動。",
   "goHome": "前往儀表板",
   "errorTitle": "發生錯誤",
-  "errorBody": "發生未預期的錯誤，詳細資訊已記錄下來。"
+  "errorBody": "發生未預期的錯誤，詳細資訊已記錄下來。",
+  "badgeCount": "{count} 項待處理",
+  "notifications": {
+    "label": "通知",
+    "labelUnread": "通知，{count} 則未讀",
+    "title": "通知",
+    "markAllRead": "全部標示為已讀",
+    "viewAll": "檢視所有通知",
+    "empty": "沒有新的通知。",
+    "unread": "未讀："
+  }
 }

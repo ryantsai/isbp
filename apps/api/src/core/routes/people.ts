@@ -14,10 +14,18 @@ import {
   userListQuerySchema,
   userSummarySchema,
 } from '@isbp/contracts';
-import { users } from '@isbp/db/schema';
+import { personLookupQuerySchema, personLookupSchema } from '@isbp/contracts';
+import { departments, users } from '@isbp/db/schema';
 import { LOCALE_COOKIE } from '@isbp/i18n';
-import { HttpError, httpErrors, type ModuleContext, type ModuleRouter, pageSchema } from '@isbp/sdk/server';
-import { eq } from 'drizzle-orm';
+import {
+  HttpError,
+  httpErrors,
+  likePattern,
+  type ModuleContext,
+  type ModuleRouter,
+  pageSchema,
+} from '@isbp/sdk/server';
+import { and, asc, eq, ilike, inArray, or } from 'drizzle-orm';
 import { z } from 'zod';
 import { hashPassword, verifyPassword } from '../../kernel/passwords';
 import { getKernel } from '../kernel-ref';
@@ -30,6 +38,50 @@ const idParams = z.object({ id: z.uuid() });
 export function meRoutes(app: ModuleRouter, ctx: ModuleContext, access: AccessService) {
   const kernel = getKernel();
   const tags = ['Me'];
+
+  /** Colleague lookup for pickers (form "person" fields, delegation): active people, minimal profile. */
+  app.get(
+    '/people/lookup',
+    {
+      schema: {
+        tags: ['People'],
+        summary: 'Find active colleagues by name, email or username (or resolve ids)',
+        querystring: personLookupQuerySchema,
+        response: { 200: z.object({ items: z.array(personLookupSchema) }) },
+      },
+    },
+    async (req) => {
+      const { q, ids } = req.query;
+      if (!q && !ids?.length) return { items: [] };
+      const rows = await ctx.db
+        .select({
+          id: users.id,
+          displayName: users.displayName,
+          email: users.email,
+          jobTitle: users.jobTitle,
+          avatarUrl: users.avatarUrl,
+          department: departments.name,
+        })
+        .from(users)
+        .leftJoin(departments, eq(departments.id, users.departmentId))
+        .where(
+          and(
+            eq(users.status, 'active'),
+            ids?.length ? inArray(users.id, ids) : undefined,
+            q
+              ? or(
+                  ilike(users.displayName, likePattern(q)),
+                  ilike(users.email, likePattern(q)),
+                  ilike(users.username, likePattern(q)),
+                )
+              : undefined,
+          ),
+        )
+        .orderBy(asc(users.displayName))
+        .limit(ids?.length ? 50 : 10);
+      return { items: rows };
+    },
+  );
 
   app.get('/me', { schema: { tags, summary: 'My profile', response: { 200: meSchema } } }, async (req) =>
     meDto(req.userRow!),

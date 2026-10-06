@@ -5,8 +5,10 @@ import { cn } from '@isbp/ui';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import {
+  BellIcon,
   KeyRoundIcon,
   LaptopIcon,
+  PlaneTakeoffIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
   UserRoundIcon,
@@ -16,17 +18,21 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { useApiQuery } from '@/lib/api';
 import { AccessCard } from './access-card';
+import { NotificationsCard } from './notifications-card';
+import { OutOfOfficeCard } from './out-of-office-card';
 import { PasswordCard } from './password-card';
 import { PreferencesCard } from './preferences-card';
 import { ProfileCard } from './profile-card';
 import { SessionsCard } from './sessions-card';
 
 const SECTIONS = [
-  { id: 'profile', icon: UserRoundIcon },
-  { id: 'preferences', icon: SlidersHorizontalIcon },
-  { id: 'security', icon: KeyRoundIcon },
-  { id: 'sessions', icon: LaptopIcon },
-  { id: 'access', icon: ShieldCheckIcon },
+  { id: 'profile', nav: 'profile', icon: UserRoundIcon },
+  { id: 'preferences', nav: 'preferences', icon: SlidersHorizontalIcon },
+  { id: 'notifications', nav: 'notifications', icon: BellIcon },
+  { id: 'out-of-office', nav: 'outOfOffice', icon: PlaneTakeoffIcon },
+  { id: 'security', nav: 'security', icon: KeyRoundIcon },
+  { id: 'sessions', nav: 'sessions', icon: LaptopIcon },
+  { id: 'access', nav: 'access', icon: ShieldCheckIcon },
 ] as const;
 
 /** Highlights the section nearest the top of the viewport. */
@@ -63,7 +69,7 @@ export function SettingsView() {
       <div className="grid gap-8 lg:grid-cols-[11rem_minmax(0,1fr)]">
         <nav aria-label={t('nav.label')} className="hidden lg:block">
           <ul className="sticky top-20 space-y-0.5">
-            {SECTIONS.map(({ id, icon: Icon }) => (
+            {SECTIONS.map(({ id, nav, icon: Icon }) => (
               <li key={id}>
                 <a
                   href={`#${id}`}
@@ -81,7 +87,7 @@ export function SettingsView() {
                     />
                   )}
                   <Icon className="relative size-4" aria-hidden />
-                  <span className="relative">{t(`nav.${id}`)}</span>
+                  <span className="relative">{t(`nav.${nav}`)}</span>
                 </a>
               </li>
             ))}
@@ -93,6 +99,12 @@ export function SettingsView() {
           </StaggerItem>
           <StaggerItem>
             <PreferencesCard me={me.data} />
+          </StaggerItem>
+          <StaggerItem>
+            <NotificationsCard />
+          </StaggerItem>
+          <StaggerItem>
+            <OutOfOfficeCard />
           </StaggerItem>
           <StaggerItem>
             <PasswordCard me={me.data} loading={me.isLoading} />

@@ -61,7 +61,7 @@ export async function buildApp(kernel: Kernel) {
     hook: 'preHandler',
     redis: kernel.redis,
     nameSpace: 'isbp:rl:',
-    keyGenerator: (req) => req.auth?.user?.id ?? req.ip,
+    keyGenerator: (req) => req.auth?.user?.id ?? req.auth?.client?.id ?? req.ip,
     errorResponseBuilder: (_req, ctx) =>
       new HttpError(429, ErrorCodes.RATE_LIMITED, `Too many requests — retry in ${ctx.after}`),
   });
@@ -74,18 +74,29 @@ export async function buildApp(kernel: Kernel) {
           title: 'IS Big Platform API',
           version: '1.0.0',
           description:
-            'Every UI action is backed by this API. Authenticate with the session cookie (browser) — API ' +
-            'clients and OAuth client credentials arrive with the Role Query API in Phase 1. Unsafe methods ' +
-            'require the `x-csrf-token` header when using cookie authentication.',
+            'Every UI action is backed by this API. Browsers authenticate with the session cookie; unsafe ' +
+            'methods then require the `x-csrf-token` header. API clients (Role Query API, automation) send ' +
+            '`Authorization: Bearer <API key>` or an OAuth 2.0 client-credentials token from ' +
+            '`POST /api/v1/oauth/token`.',
         },
         servers: [{ url: config.PUBLIC_URL }],
         components: {
           securitySchemes: {
             session: { type: 'apiKey', in: 'cookie', name: 'isbp_session' },
             csrf: { type: 'apiKey', in: 'header', name: 'x-csrf-token' },
+            apiKey: { type: 'http', scheme: 'bearer', description: 'API key `isbp_sk_…` of an API client' },
+            oauth: {
+              type: 'oauth2',
+              flows: {
+                clientCredentials: {
+                  tokenUrl: '/api/v1/oauth/token',
+                  scopes: { 'role-query': 'Query roles and permissions', api: 'Call the platform API' },
+                },
+              },
+            },
           },
         },
-        security: [{ session: [], csrf: [] }],
+        security: [{ session: [], csrf: [] }, { apiKey: [] }, { oauth: [] }],
       },
       transform: jsonSchemaTransform,
       transformObject: jsonSchemaTransformObject,

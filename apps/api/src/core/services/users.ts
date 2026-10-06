@@ -75,6 +75,16 @@ export class UserService {
             ilike(users.employeeId, likePattern(q.q)),
           )
         : undefined,
+      // Custom-field filters use the GIN (jsonb_path_ops) index through `@>` containment.
+      ...(q.attr ?? []).map((pair) => {
+        const at = pair.indexOf(':');
+        const key = at > 0 ? pair.slice(0, at) : pair;
+        const value = at > 0 ? pair.slice(at + 1) : '';
+        const typed: unknown[] = [value];
+        if (value !== '' && Number.isFinite(Number(value))) typed.push(Number(value));
+        if (value === 'true' || value === 'false') typed.push(value === 'true');
+        return or(...typed.map((v) => sql`${users.attributes} @> ${JSON.stringify({ [key]: v })}::jsonb`));
+      }),
     ];
     const where = and(...conditions);
     const order = orderBy(
@@ -167,7 +177,8 @@ export class UserService {
 
   async create(input: z.output<typeof createUserSchema>, auth: AuthContext) {
     auth.require('core.users.create', { departmentId: input.departmentId ?? null });
-    const { password, groupIds, ...fields } = input;
+    const { password, groupIds, attributes: rawAttributes, ...fields } = input;
+    const attributes = rawAttributes ? await this.ctx.fields.validate('core.user', rawAttributes) : {};
     const passwordHash = password ? await hashPassword(password) : null;
     const now = new Date();
     const user = await this.ctx.transaction(async (tx) => {
@@ -175,6 +186,7 @@ export class UserService {
         .insert(users)
         .values({
           ...fields,
+          attributes,
           email: fields.email.toLowerCase(),
           departmentId: fields.departmentId ?? null,
           managerId: fields.managerId ?? null,
@@ -219,7 +231,13 @@ export class UserService {
       auth.require('core.users.update', { departmentId: input.departmentId ?? null });
     }
     if (input.managerId === id) throw httpErrors.badRequest('A user cannot be their own manager');
-    const patch = { ...input, ...(input.email ? { email: input.email.toLowerCase() } : {}) };
+    const patch = {
+      ...input,
+      ...(input.email ? { email: input.email.toLowerCase() } : {}),
+      ...(input.attributes
+        ? { attributes: await this.ctx.fields.validate('core.user', input.attributes, before.attributes) }
+        : {}),
+    };
     const changes = this.ctx.audit.diff(
       before as unknown as Record<string, unknown>,
       patch as Record<string, unknown>,

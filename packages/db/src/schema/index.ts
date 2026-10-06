@@ -2,3 +2,8 @@ export * from './core';
 export * from './identity';
 export * from './rbac';
 export * from './platform';
+export * from './workflow';
+export * from './forms';
+export * from './requests';
+export * from './notifications';
+export * from './clients';

@@ -21,7 +21,8 @@ export function RelativeTime({
       title={format.dateTime(d, { dateStyle: 'medium', timeStyle: 'short' })}
       className={className}
     >
-      {format.relativeTime(d, now)}
+      {/* A just-created record can be a little "in the future" of a stale client clock: show it as now. */}
+      {format.relativeTime(d, d > now && d.getTime() - now.getTime() < 5 * 60_000 ? d : now)}
     </time>
   );
 }

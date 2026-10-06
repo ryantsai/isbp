@@ -1,0 +1,448 @@
+{
+  "title": "Applications",
+  "description": "Business applications whose access the platform manages: their permissions, roles and who holds them. They ask the Role Query API what a person may do.",
+  "register": "Register application",
+  "search": "Search applications…",
+  "noMatch": "No applications match “{q}”",
+  "empty": {
+    "title": "No applications registered yet",
+    "description": "Register an application to manage its roles here and let it ask the Role Query API who may do what."
+  },
+  "platform": {
+    "badge": "This platform",
+    "description": "This platform. Its roles and permissions are managed on Roles & access.",
+    "title": "This is the platform itself.",
+    "notice": "Its roles are platform roles — create, edit, grant and make them requestable on Roles & access.",
+    "manage": "Manage on Roles & access"
+  },
+  "card": {
+    "noDescription": "No description",
+    "owner": "Owner: {name}",
+    "noOwner": "No owner",
+    "roles": "{count, plural, one {role} other {roles}}",
+    "permissions": "{count, plural, one {permission} other {permissions}}",
+    "members": "{count, plural, one {person with access} other {people with access}}",
+    "clients": "{count, plural, one {API client} other {API clients}}"
+  },
+  "copy": {
+    "failed": "Couldn’t copy — select the text and copy it manually."
+  },
+  "form": {
+    "createTitle": "Register an application",
+    "createDescription": "Define its permissions and roles next, then grant access or let people request it.",
+    "editTitle": "Edit {name}",
+    "editDescription": "Changes are recorded in the audit log.",
+    "name": "Name",
+    "namePlaceholder": "e.g. Finance ERP",
+    "key": "Key",
+    "keyHint": "The application passes this key to the Role Query API (?application=…). It can’t be changed later.",
+    "keyLocked": "The key can’t be changed — applications use it to call the Role Query API.",
+    "description": "Description",
+    "descriptionPlaceholder": "What is the application used for?",
+    "homepageUrl": "Homepage URL",
+    "homepageHint": "Where people open the application.",
+    "owner": "Owner",
+    "ownerPlaceholder": "Choose the business owner…",
+    "ownerHint": "The person accountable for who has access to this application.",
+    "submit": "Register",
+    "created": "Application “{name}” registered",
+    "saved": "Application saved",
+    "validation": {
+      "name": "Enter a name.",
+      "nameLong": "Keep the name under 200 characters.",
+      "key": "Use 2–64 lowercase letters, digits, “-” or “_”, starting with a letter or digit.",
+      "keyReserved": "This key is reserved for the platform.",
+      "keyTaken": "An application with this key already exists.",
+      "descriptionLong": "Keep the description under 2000 characters.",
+      "url": "Enter a full http(s) address, e.g. https://erp.example.com."
+    }
+  },
+  "detail": {
+    "notFound": "This application doesn’t exist or was deleted.",
+    "notFoundDescription": "It may have been removed, or you may not have access to it.",
+    "openApp": "Open application",
+    "newTab": "opens in a new tab"
+  },
+  "tabs": {
+    "overview": "Overview",
+    "roles": "Roles",
+    "permissions": "Permissions",
+    "access": "People with access",
+    "query": "Role Query"
+  },
+  "overview": {
+    "details": "Details",
+    "detailsHint": "How the application is identified and who is responsible for it.",
+    "homepage": "Homepage",
+    "owner": "Owner",
+    "noOwner": "No owner",
+    "none": "None",
+    "howTitle": "How it fits together",
+    "howHint": "The application defines what can be done, roles bundle it, and the platform answers who holds what.",
+    "steps": {
+      "permissions": {
+        "title": "Permissions",
+        "body": "{count, plural, =0 {No permissions yet — list the actions the application checks.} one {# permission the application checks.} other {# permissions the application checks.}}",
+        "action": "Manage permissions"
+      },
+      "roles": {
+        "title": "Roles",
+        "body": "{count, plural, =0 {No roles yet — bundle permissions into roles.} one {# role bundles those permissions.} other {# roles bundle those permissions.}}",
+        "action": "Manage roles"
+      },
+      "access": {
+        "title": "People with access",
+        "body": "{count, plural, =0 {Nobody has access yet.} one {# person holds a role, directly or through a group.} other {# people hold a role, directly or through a group.}}",
+        "action": "See who has access"
+      },
+      "clients": {
+        "title": "API clients",
+        "body": "{count, plural, =0 {No API client can query this application yet.} one {# API client can ask the Role Query API about it.} other {# API clients can ask the Role Query API about it.}}",
+        "action": "Manage API clients",
+        "tryIt": "Try the Role Query console"
+      }
+    },
+    "danger": {
+      "title": "Danger zone",
+      "description": "Deleting the application removes its permissions, its roles and every grant of those roles.",
+      "summary": "{roles, plural, =0 {No roles} one {# role} other {# roles}} · {members, plural, =0 {nobody with access} one {# person with access} other {# people with access}}",
+      "delete": "Delete application",
+      "confirmTitle": "Delete {name}?",
+      "confirmBody": "This can’t be undone. It’s recorded in the audit log.",
+      "loseRoles": "{count, plural, =0 {Its permission catalog is deleted.} one {Its permission catalog and # role are deleted.} other {Its permission catalog and # roles are deleted.}}",
+      "loseAccess": "{count, plural, =0 {No one currently has access.} one {# person loses access immediately, including grants from approved requests.} other {# people lose access immediately, including grants from approved requests.}}",
+      "loseQuery": "The Role Query API stops answering for this application, so API clients querying it get “not found”.",
+      "typeKey": "Type <code>{key}</code> to confirm",
+      "confirm": "Delete application",
+      "deleted": "Application “{name}” deleted"
+    }
+  },
+  "permissionPicker": {
+    "add": "Add",
+    "search": "Search or type a pattern, e.g. invoices.*",
+    "none": "No permissions yet",
+    "remove": "Remove {permission}",
+    "covers": "{count, plural, =0 {matches nothing yet} one {covers # permission} other {covers # permissions}}",
+    "notInCatalog": "not in the catalog",
+    "custom": "Add as typed",
+    "wildcards": "Everything under…",
+    "catalog": "Permissions",
+    "includedBy": "Included by {pattern}",
+    "selected": "selected",
+    "notSelected": "not selected",
+    "noMatch": "No matching permissions. Type a key or a pattern with * to add it.",
+    "emptyCatalog": "The catalog is empty. Type a key or a pattern with * to add it.",
+    "typeHint": "Wildcards like invoices.* also cover permissions added to the catalog later."
+  },
+  "roles": {
+    "hint": "Roles bundle the application’s permissions. Grant them directly, or make them requestable so people can ask for access.",
+    "new": "New role",
+    "editLabel": "Edit {name}",
+    "moreLabel": "More actions for {name}",
+    "grant": "Grant access",
+    "holders": "See who has it",
+    "permissionsLabel": "Permissions",
+    "more": "+{count} more",
+    "noPermissions": "No permissions",
+    "grants": "{count, plural, =0 {Not granted} one {# grant} other {# grants}}",
+    "owner": "Owner: {name}",
+    "notRequestable": "Not requestable",
+    "empty": {
+      "title": "No roles yet",
+      "description": "Create a role from the application’s permissions, then grant it or let people request it."
+    },
+    "deleteTitle": "Delete {name}?",
+    "deleteBody": "The role is removed permanently and the Role Query API stops returning it. This is recorded in the audit log.",
+    "deleteWarning": "{count, plural, one {# person or group} other {# people or groups}} will lose this role immediately.",
+    "deleteConfirm": "Delete role",
+    "deleted": "Role “{name}” deleted"
+  },
+  "roleForm": {
+    "createTitle": "New role",
+    "createDescription": "A role of {app}: a name, the permissions it grants, and whether people can request it.",
+    "editTitle": "Edit {name}",
+    "editDescription": "Changes take effect immediately for everyone holding the role, and are recorded in the audit log.",
+    "sections": {
+      "details": "Details",
+      "permissions": "Permissions",
+      "requests": "Self-service requests"
+    },
+    "name": "Name",
+    "namePlaceholder": "e.g. AP approver",
+    "key": "Key",
+    "keyHint": "Returned by the Role Query API. Lowercase letters, digits, “-” and “_”; can’t be changed later.",
+    "keyLocked": "The key can’t be changed — applications may rely on it.",
+    "description": "Description",
+    "descriptionPlaceholder": "Who is this role for?",
+    "permissionsHint": "Pick from the catalog, or add a wildcard pattern such as invoices.*.",
+    "submit": "Create role",
+    "created": "Role “{name}” created",
+    "saved": "Role saved",
+    "settingsFailed": "The role was saved, but its request settings weren’t: {error}",
+    "validation": {
+      "name": "Enter a name.",
+      "nameLong": "Keep the name under 200 characters.",
+      "key": "Use 2–64 lowercase letters, digits, “-” or “_”, starting with a letter or digit.",
+      "keyTaken": "This application already has a role with this key.",
+      "descriptionLong": "Keep the description under 2000 characters.",
+      "permissions": "One or more permissions aren’t valid keys or patterns."
+    }
+  },
+  "permissions": {
+    "title": "Permission catalog",
+    "hint": "The actions this application checks. Roles grant them by key or by wildcard pattern.",
+    "key": "Permission key",
+    "keyHint": "Lowercase segments separated by dots, e.g. invoices.approve (up to 6 segments).",
+    "keyInvalid": "Use lowercase segments separated by dots, e.g. invoices.approve.",
+    "keyExists": "That permission is already in the catalog.",
+    "descriptionPlaceholder": "e.g. Approve invoices for payment",
+    "add": "Add",
+    "added": "Added {key}",
+    "search": "Filter permissions…",
+    "noMatch": "No permissions match “{q}”",
+    "columns": {
+      "key": "Permission",
+      "roles": "Used by"
+    },
+    "usedBy": "{count, plural, one {# role} other {# roles}}",
+    "unused": "Unused",
+    "remove": "Remove",
+    "removeLabel": "Remove {key}",
+    "removeTitle": "Remove {key}?",
+    "removeBody": "It’s removed from the catalog. This is recorded in the audit log.",
+    "removeWarning": "{count, plural, one {# role grants it.} other {# roles grant it.}} Roles that list it by name keep it; wildcard patterns stop covering it.",
+    "removed": "Removed {key}",
+    "empty": {
+      "title": "No permissions yet",
+      "description": "List the actions the application checks, e.g. invoices.read or payments.release."
+    }
+  },
+  "access": {
+    "summary": "{members, plural, =0 {Nobody has access} one {# person has access} other {# people have access}} through {grants, plural, one {# grant} other {# grants}} (directly or through groups).",
+    "grant": "Grant access",
+    "label": "People with access to {app}",
+    "columns": {
+      "source": "Source",
+      "granted": "Granted"
+    },
+    "empty": {
+      "title": "Nobody has access yet",
+      "description": "Grant a role to a person or a group, or make a role requestable."
+    }
+  },
+  "grant": {
+    "title": "Grant access to {app}",
+    "description": "Give a person or group one of the application’s roles. Every grant is recorded in the audit log.",
+    "maxDurationNote": "Requests for this role are limited to {duration}; direct grants aren’t.",
+    "scopeGlobal": "The role applies everywhere in the application.",
+    "scopeDepartment": "The role applies only within this department and its sub-departments — the Role Query API reports it as scoped.",
+    "reasonPlaceholder": "e.g. Quarter-end close (FIN-2031)"
+  },
+  "query": {
+    "title": "Role Query console",
+    "hint": "See exactly what {app} gets back from the Role Query API for a person.",
+    "person": "Person",
+    "personPlaceholder": "Search people…",
+    "raw": "Raw JSON",
+    "copyJson": "Copy JSON",
+    "error": "The query failed",
+    "evaluated": "Evaluated",
+    "inactive": "This person is {status}, so the API returns no roles or permissions.",
+    "roles": "Roles",
+    "noRoles": "No roles in {app}.",
+    "noExpiry": "No expiry",
+    "permissions": "Effective permissions",
+    "noPermissions": "No permissions granted everywhere.",
+    "scoped": "Scoped permissions",
+    "within": "within",
+    "empty": {
+      "title": "Pick a person",
+      "description": "Their roles in {app} (with scope, expiry and how they got them) and effective permissions appear here."
+    },
+    "via": {
+      "direct": "Direct",
+      "group": "Via group: {name}",
+      "everyone": "Everyone"
+    },
+    "check": {
+      "title": "Check a permission",
+      "hint": "Is {name} allowed to do one thing?",
+      "pickFirst": "Pick a person first.",
+      "permission": "Permission",
+      "permissionHint": "Pick from the catalog or type any key.",
+      "department": "Department (optional)",
+      "anyDepartment": "Not department-specific",
+      "departmentHint": "Also count roles granted for this department or a parent department.",
+      "submit": "Check",
+      "allowed": "Allowed",
+      "denied": "Denied",
+      "summary": "{user} · {permission}",
+      "matched": "Granted by",
+      "stale": "The inputs changed — check again to refresh."
+    },
+    "examples": {
+      "title": "Call it yourself",
+      "hint": "Requests your application makes, using this host.",
+      "apiKey": "API key",
+      "oauth": "OAuth 2.0",
+      "apiKeyHint": "Send an API client’s secret as a bearer token. The client must be allowed to query this application.",
+      "oauthHint": "Or exchange the client ID and secret for a one-hour access token, then use it as the bearer token.",
+      "user": "A person’s roles and permissions",
+      "check": "Check one permission",
+      "members": "Everyone with a role (for provisioning sync)",
+      "token": "Get an access token",
+      "useToken": "Use the token",
+      "copy": "Copy: {name}"
+    }
+  },
+  "clients": {
+    "title": "API clients",
+    "description": "Service accounts that other systems use to call the platform — usually to ask the Role Query API what a person may do in an application.",
+    "create": "Create client",
+    "search": "Search clients…",
+    "noMatch": "No clients match “{q}”",
+    "allApplications": "All applications",
+    "noApplications": "No applications",
+    "empty": {
+      "title": "No API clients yet",
+      "description": "Create a client for each system that needs to ask who may do what."
+    },
+    "forbidden": {
+      "title": "You can’t manage API clients",
+      "description": "Ask a platform administrator for access."
+    },
+    "columns": {
+      "client": "Client",
+      "applications": "Can query",
+      "permissions": "Platform permissions",
+      "secrets": "Active secrets",
+      "lastUsed": "Last used",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    },
+    "form": {
+      "createTitle": "Create an API client",
+      "createDescription": "Its secret is shown once, right after you create it.",
+      "editTitle": "Edit {name}",
+      "editDescription": "Change what the client can reach. Changes are recorded in the audit log.",
+      "tokensRevoked": "Saving revokes the client’s outstanding OAuth access tokens — it must request a new one. API keys keep working.",
+      "name": "Name",
+      "namePlaceholder": "e.g. Finance ERP role sync",
+      "description": "Description",
+      "descriptionPlaceholder": "Which system uses it, and for what?",
+      "applications": "Applications it may query",
+      "selectedApps": "Selected applications",
+      "allApps": "All applications",
+      "allAppsHint": "It can query every application, including ones registered later.",
+      "selectedHint": "It can ask the Role Query API about these applications only.",
+      "advanced": "Advanced: platform permissions, IP ranges",
+      "advancedSet": "{count} set",
+      "permissions": "Platform API permissions",
+      "permissionsHint": "Optional. Lets the client call other platform APIs, e.g. core.users.read. You can only give permissions you hold.",
+      "permissionInvalid": "Use module.resource.action, with optional * wildcards.",
+      "notHeld": "You can’t give permissions you don’t hold yourself: {permissions}",
+      "cidrs": "Allowed IP ranges",
+      "cidrsHint": "Optional. Only requests from these addresses are accepted, e.g. 10.0.0.0/8. Leave empty to allow any address.",
+      "cidrInvalid": "Enter an IP address or CIDR range, e.g. 10.0.0.0/8.",
+      "duplicate": "{value} is already in the list.",
+      "removeEntry": "Remove {value}",
+      "secretExpiry": "First secret expires",
+      "expiry": {
+        "90": "90 days",
+        "180": "180 days",
+        "365": "1 year",
+        "never": "Never",
+        "custom": "Custom…"
+      },
+      "customDays": "Number of days",
+      "daysUnit": "days",
+      "daysInvalid": "Enter a whole number of days from 1 to 730.",
+      "expiryHint": "Add a new secret before it expires to rotate without downtime.",
+      "neverHint": "Secrets that never expire are riskier — rotate them regularly.",
+      "submit": "Create client",
+      "saved": "Client saved",
+      "validation": {
+        "name": "Enter a name.",
+        "reach": "Choose at least one application, or give it platform permissions under Advanced."
+      },
+      "appsFailed": "Couldn’t load the applications.",
+      "retry": "Try again"
+    },
+    "reveal": {
+      "title": "“{name}” is ready",
+      "description": "Give the secret to the system that will use this client.",
+      "rotatedTitle": "New secret created",
+      "rotatedDescription": "Deploy it, then revoke the old secret once nothing uses it.",
+      "warningTitle": "Copy the secret now.",
+      "warning": "You won’t be able to see it again — only a fingerprint is stored. If it’s lost, add a new secret.",
+      "secret": "Client secret (API key)",
+      "clientId": "Client ID",
+      "copySecret": "Copy secret",
+      "copyClientId": "Copy client ID",
+      "tryIt": "Try it",
+      "stored": "I’ve stored the secret somewhere safe",
+      "done": "Done"
+    },
+    "examples": {
+      "apiKey": "API key",
+      "oauth": "OAuth 2.0",
+      "apiKeyHint": "Ask what {user} may do, with the secret as a bearer token.",
+      "apiKeyHintNoApps": "Send the secret as a bearer token. This client can’t query any application yet.",
+      "oauthHint": "Exchange the client ID and secret for a one-hour access token (client credentials).",
+      "copyApiKey": "Copy the API key request",
+      "copyOauth": "Copy the token request"
+    },
+    "secrets": {
+      "title": "Secrets",
+      "hint": "A client can hold several secrets, so you can rotate without downtime: add a new one, deploy it, then revoke the old one.",
+      "add": "Add secret",
+      "addTitle": "Add a secret",
+      "addDescription": "The new secret works alongside the existing ones. It’s shown once.",
+      "generate": "Generate secret",
+      "empty": "No secrets",
+      "neverExpires": "Never",
+      "columns": {
+        "secret": "Secret",
+        "created": "Created",
+        "expires": "Expires",
+        "lastUsed": "Last used",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "revoke": "Revoke",
+      "revokeLabel": "Revoke secret {prefix}",
+      "revokeTitle": "Revoke {prefix}…?",
+      "revokeBody": "Requests using this secret stop working immediately, and the client’s OAuth access tokens are revoked.",
+      "revokeLastBody": "This is the client’s last active secret — it can’t authenticate until you add a new one. Its OAuth access tokens are revoked too.",
+      "revoked": "Secret {prefix}… revoked"
+    },
+    "detail": {
+      "notFound": "This API client doesn’t exist.",
+      "clientId": "Client ID",
+      "copyClientId": "Copy client ID",
+      "lastUsed": "Last used",
+      "reach": "Access",
+      "reachHint": "What the client can ask about, and from where.",
+      "applications": "Applications it may query",
+      "permissions": "Platform permissions",
+      "noPermissions": "None — Role Query only",
+      "cidrs": "Allowed IP ranges",
+      "anyIp": "Any address",
+      "by": "by {name}",
+      "examples": "Call the API",
+      "examplesHint": "Use one of the client’s secrets in place of the placeholder.",
+      "dangerTitle": "Danger zone",
+      "dangerHint": "Revoking the client disables all its secrets and access tokens. It can’t be undone.",
+      "revoke": "Revoke client",
+      "revokeTitle": "Revoke {name}?",
+      "revokeBody": "Every secret and access token stops working immediately. The client is kept for the audit trail but can’t be changed or used again.",
+      "revoked": "Client revoked",
+      "revokedTitle": "Revoked",
+      "revokedNotice": "It can’t authenticate or be changed. Create a new client if the system still needs access."
+    }
+  }
+}

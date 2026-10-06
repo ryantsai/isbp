@@ -7,6 +7,11 @@ export const migrations: Migration[] = [
     hash: '541e03f046c871437e5b41c2cd57f7a47cc904eaa8b47e8d2676b2e3364435e3',
     sql: 'CREATE SCHEMA "announcements";\n--> statement-breakpoint\nCREATE TABLE "announcements"."posts" (\n\t"id" uuid PRIMARY KEY NOT NULL,\n\t"title" varchar(200) NOT NULL,\n\t"body" text DEFAULT \'\' NOT NULL,\n\t"severity" varchar(20) DEFAULT \'info\' NOT NULL,\n\t"status" varchar(20) DEFAULT \'draft\' NOT NULL,\n\t"pinned" boolean DEFAULT false NOT NULL,\n\t"starts_at" timestamp with time zone,\n\t"ends_at" timestamp with time zone,\n\t"published_at" timestamp with time zone,\n\t"author_id" uuid,\n\t"created_at" timestamp with time zone DEFAULT now() NOT NULL,\n\t"updated_at" timestamp with time zone DEFAULT now() NOT NULL\n);\n--> statement-breakpoint\nALTER TABLE "announcements"."posts" ADD CONSTRAINT "posts_author_id_users_id_fk" FOREIGN KEY ("author_id") REFERENCES "core"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint\nCREATE INDEX "posts_feed_idx" ON "announcements"."posts" USING btree ("status","pinned","published_at");--> statement-breakpoint\nCREATE INDEX "posts_ends_idx" ON "announcements"."posts" USING btree ("ends_at") WHERE "announcements"."posts"."status" = \'published\';--> statement-breakpoint\nCREATE INDEX "posts_author_idx" ON "announcements"."posts" USING btree ("author_id");',
   },
+  {
+    tag: '0001_review',
+    hash: '04cf7ca2426eedaeed52b919aaeb27ccafaad76b4a94463a318aa8de11589c5a',
+    sql: 'ALTER TABLE "announcements"."posts" ADD COLUMN "review_instance_id" uuid;',
+  },
 ];
 
 export default migrations;

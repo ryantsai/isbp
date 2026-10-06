@@ -4,6 +4,7 @@ import type {
   roleAssignmentQuerySchema,
   updateRoleSchema,
 } from '@isbp/contracts';
+import type { roleRequestSettingsSchema } from '@isbp/contracts';
 import {
   applications,
   departments,
@@ -13,6 +14,7 @@ import {
   rolePermissions,
   roles,
   users,
+  workflowDefinitions,
 } from '@isbp/db/schema';
 import {
   type AuthContext,
@@ -30,6 +32,14 @@ import { getKernel } from '../kernel-ref';
 import { likePattern, orderBy, pageOffset } from '../util';
 
 const grantor = alias(users, 'grantor');
+const owner = alias(users, 'role_owner');
+
+type RoleRow = typeof roles.$inferSelect;
+interface RoleJoin {
+  app: { id: string; key: string; name: string };
+  ownerName: string | null;
+  workflowName: string | null;
+}
 
 /** Roles, the permission catalog, assignments and "why does X have access" explanations. */
 export class AccessService {
@@ -79,8 +89,8 @@ export class AccessService {
     }));
   }
 
-  async listRoles(q: { q?: string }) {
-    const appId = await this.platformAppId();
+  async listRoles(q: { q?: string }, applicationId?: string) {
+    const appId = applicationId ?? (await this.platformAppId());
     const assignmentCounts = this.db
       .select({ roleId: roleAssignments.roleId, n: count().as('n') })
       .from(roleAssignments)
@@ -88,8 +98,17 @@ export class AccessService {
       .groupBy(roleAssignments.roleId)
       .as('rc');
     const rows = await this.db
-      .select({ r: roles, n: assignmentCounts.n })
+      .select({
+        r: roles,
+        n: assignmentCounts.n,
+        app: { id: applications.id, key: applications.key, name: applications.name },
+        ownerName: owner.displayName,
+        workflowName: workflowDefinitions.name,
+      })
       .from(roles)
+      .innerJoin(applications, eq(applications.id, roles.applicationId))
+      .leftJoin(owner, eq(owner.id, roles.ownerId))
+      .leftJoin(workflowDefinitions, eq(workflowDefinitions.id, roles.requestWorkflowId))
       .leftJoin(assignmentCounts, eq(assignmentCounts.roleId, roles.id))
       .where(
         and(
@@ -109,10 +128,10 @@ export class AccessService {
       );
     const byRole = new Map<string, string[]>();
     for (const p of perms) byRole.set(p.roleId, [...(byRole.get(p.roleId) ?? []), p.permission]);
-    return rows.map((r) => this.roleDto(r.r, byRole.get(r.r.id) ?? [], Number(r.n ?? 0)));
+    return rows.map((r) => this.roleDto(r.r, byRole.get(r.r.id) ?? [], Number(r.n ?? 0), r));
   }
 
-  private roleDto(r: typeof roles.$inferSelect, perms: string[], assignmentCount: number) {
+  private roleDto(r: RoleRow, perms: string[], assignmentCount: number, join: RoleJoin) {
     return {
       id: r.id,
       key: r.key,
@@ -120,15 +139,35 @@ export class AccessService {
       description: r.description,
       isSystem: r.isSystem,
       moduleId: r.moduleId,
+      application: { ...join.app, isPlatform: join.app.key === PLATFORM_APP_KEY },
       permissions: perms.sort(),
       assignmentCount,
+      requestable: r.requestable,
+      riskLevel: r.riskLevel,
+      owner: r.ownerId ? { id: r.ownerId, displayName: join.ownerName ?? '?' } : null,
+      maxDurationDays: r.maxDurationDays,
+      requestWorkflow: r.requestWorkflowId
+        ? { id: r.requestWorkflowId, name: join.workflowName ?? '?' }
+        : null,
       updatedAt: r.updatedAt,
     };
   }
 
   async getRole(id: string) {
-    const [r] = await this.db.select().from(roles).where(eq(roles.id, id));
-    if (!r) throw httpErrors.notFound('Role not found');
+    const [row] = await this.db
+      .select({
+        r: roles,
+        app: { id: applications.id, key: applications.key, name: applications.name },
+        ownerName: owner.displayName,
+        workflowName: workflowDefinitions.name,
+      })
+      .from(roles)
+      .innerJoin(applications, eq(applications.id, roles.applicationId))
+      .leftJoin(owner, eq(owner.id, roles.ownerId))
+      .leftJoin(workflowDefinitions, eq(workflowDefinitions.id, roles.requestWorkflowId))
+      .where(eq(roles.id, id));
+    if (!row) throw httpErrors.notFound('Role not found');
+    const r = row.r;
     const [perms, [n]] = await Promise.all([
       this.db.select().from(rolePermissions).where(eq(rolePermissions.roleId, id)),
       this.db
@@ -145,12 +184,14 @@ export class AccessService {
       r,
       perms.map((p) => p.permission),
       n!.n,
+      row,
     );
   }
 
-  async createRole(input: z.output<typeof createRoleSchema>, auth: AuthContext) {
-    this.assertCanGrant(input.permissions, auth);
-    const appId = await this.platformAppId();
+  /** Custom role of the platform, or (with `applicationId`) of an external application. */
+  async createRole(input: z.output<typeof createRoleSchema>, auth: AuthContext, applicationId?: string) {
+    if (!applicationId) this.assertCanGrant(input.permissions, auth);
+    const appId = applicationId ?? (await this.platformAppId());
     const role = await this.ctx.transaction(async (tx) => {
       const [r] = await tx
         .insert(roles)
@@ -180,8 +221,14 @@ export class AccessService {
     return this.getRole(role.id);
   }
 
-  async updateRole(id: string, input: z.output<typeof updateRoleSchema>, auth: AuthContext) {
+  async updateRole(
+    id: string,
+    input: z.output<typeof updateRoleSchema>,
+    auth: AuthContext,
+    opts: { applicationId?: string } = {},
+  ) {
     const before = await this.getRole(id);
+    this.assertSameApp(before, opts.applicationId);
     if (before.isSystem) {
       throw new HttpError(
         409,
@@ -190,7 +237,7 @@ export class AccessService {
       );
     }
     // Only newly added permissions need to be held by the editor; removing access is always allowed.
-    if (input.permissions)
+    if (input.permissions && before.application.isPlatform)
       this.assertCanGrant(
         input.permissions.filter((p) => !before.permissions.includes(p)),
         auth,
@@ -230,8 +277,15 @@ export class AccessService {
     return this.getRole(id);
   }
 
-  async deleteRole(id: string) {
+  /** Platform routes manage platform roles; application routes manage that application's roles. */
+  private assertSameApp(role: { application: { id: string; isPlatform: boolean } }, applicationId?: string) {
+    const ok = applicationId ? role.application.id === applicationId : role.application.isPlatform;
+    if (!ok) throw httpErrors.notFound('Role not found');
+  }
+
+  async deleteRole(id: string, opts: { applicationId?: string } = {}) {
     const role = await this.getRole(id);
+    this.assertSameApp(role, opts.applicationId);
     if (role.isSystem)
       throw new HttpError(409, ErrorCodes.SYSTEM_ROLE_READONLY, 'System roles cannot be deleted');
     await this.ctx.transaction(async (tx) => {
@@ -251,11 +305,70 @@ export class AccessService {
     await getKernel().rbac.bump();
   }
 
+  /** Self-service settings: requestable, risk, owner, longest grant, workflow override. */
+  async updateRequestSettings(
+    id: string,
+    input: z.output<typeof roleRequestSettingsSchema>,
+    auth: AuthContext,
+    opts: { applicationId?: string } = {},
+  ) {
+    const role = await this.getRole(id);
+    this.assertSameApp(role, opts.applicationId);
+    if (role.application.isPlatform) auth.require('core.roles.manage');
+    else
+      auth.require('core.applications.manage', { recordType: 'application', recordId: role.application.id });
+    if (input.requestWorkflowId) {
+      const [w] = await this.db
+        .select()
+        .from(workflowDefinitions)
+        .where(eq(workflowDefinitions.id, input.requestWorkflowId));
+      if (!w || w.archivedAt || w.triggerKey !== 'core.access-request' || w.publishedVersion === null)
+        throw httpErrors.badRequest('Choose a published access-request workflow');
+    }
+    if (input.ownerId) {
+      const [u] = await this.db
+        .select({ status: users.status })
+        .from(users)
+        .where(eq(users.id, input.ownerId));
+      if (!u || u.status !== 'active') throw httpErrors.badRequest('The owner must be an active person');
+    }
+    const [before] = await this.db.select().from(roles).where(eq(roles.id, id));
+    const changes = this.ctx.audit.diff(
+      before as unknown as Record<string, unknown>,
+      input as Record<string, unknown>,
+    );
+    await this.ctx.transaction(async (tx) => {
+      await tx.update(roles).set(input).where(eq(roles.id, id));
+      if (Object.keys(changes).length)
+        await this.ctx.audit.record(
+          {
+            action: 'core.role.request_settings_updated',
+            category: 'security',
+            entityType: 'role',
+            entityId: id,
+            entityLabel: role.name,
+            changes,
+          },
+          { tx },
+        );
+    });
+    return this.getRole(id);
+  }
+
   /* ───────────── assignments ───────────── */
 
-  async listAssignments(q: z.output<typeof roleAssignmentQuerySchema>, auth: AuthContext) {
-    const reach = auth.reach('core.roles.read');
+  async listAssignments(
+    q: z.output<typeof roleAssignmentQuerySchema>,
+    auth: AuthContext,
+    opts: { applicationId?: string } = {},
+  ) {
+    const appId = opts.applicationId ?? q.applicationId ?? (await this.platformAppId());
+    const visible = opts.applicationId
+      ? auth.can('core.applications.read', { recordType: 'application', recordId: appId }) ||
+        auth.can('core.roles.read')
+      : auth.reach('core.roles.read').global;
     const where = and(
+      eq(roles.applicationId, appId),
       q.roleId ? eq(roleAssignments.roleId, q.roleId) : undefined,
       q.userId ? eq(roleAssignments.userId, q.userId) : undefined,
       q.groupId ? eq(roleAssignments.groupId, q.groupId) : undefined,
@@ -269,7 +382,7 @@ export class AccessService {
             ilike(roles.name, likePattern(q.q)),
           )
         : undefined,
-      reach.global ? undefined : sql`false`,
+      visible ? undefined : sql`false`,
     );
     const base = this.db
       .select({
@@ -338,12 +451,21 @@ export class AccessService {
     };
   }
 
-  async assign(input: z.output<typeof createRoleAssignmentSchema>, auth: AuthContext) {
-    if (input.scopeType === 'department')
-      auth.require('core.roles.assign', { departmentId: input.scopeDepartmentId! });
-    else auth.require('core.roles.assign');
+  async assign(
+    input: z.output<typeof createRoleAssignmentSchema>,
+    auth: AuthContext,
+    opts: { applicationId?: string } = {},
+  ) {
     const role = await this.getRole(input.roleId);
-    this.assertCanGrant(role.permissions, auth);
+    this.assertSameApp(role, opts.applicationId);
+    if (role.application.isPlatform) {
+      if (input.scopeType === 'department')
+        auth.require('core.roles.assign', { departmentId: input.scopeDepartmentId! });
+      else auth.require('core.roles.assign');
+      this.assertCanGrant(role.permissions, auth);
+    } else {
+      auth.require('core.applications.manage', { recordType: 'application', recordId: role.application.id });
+    }
 
     const [principal] =
       input.principalType === 'user'
@@ -400,19 +522,32 @@ export class AccessService {
         { assignmentId: a!.id, roleId: role.id },
         { tx },
       );
+      if (input.principalType === 'user')
+        await this.ctx.notifications.notify(
+          {
+            type: 'core.access.granted',
+            recipients: [input.principalId],
+            params: { role: role.name, actor: auth.user?.displayName ?? auth.principal.name },
+            href: '/settings#access',
+          },
+          { tx },
+        );
       return a!;
     });
     await getKernel().rbac.bump();
     return assignment;
   }
 
-  async revoke(id: string, auth: AuthContext) {
+  async revoke(id: string, auth: AuthContext, opts: { applicationId?: string } = {}) {
     const [a] = await this.db.select().from(roleAssignments).where(eq(roleAssignments.id, id));
     if (!a) throw httpErrors.notFound('Assignment not found');
-    if (a.scopeType === 'department')
+    const role = await this.getRole(a.roleId);
+    this.assertSameApp(role, opts.applicationId);
+    if (!role.application.isPlatform)
+      auth.require('core.applications.manage', { recordType: 'application', recordId: role.application.id });
+    else if (a.scopeType === 'department')
       auth.require('core.roles.assign', { departmentId: a.scopeDepartmentId });
     else auth.require('core.roles.assign');
-    const role = await this.getRole(a.roleId);
     if (a.userId && a.userId === auth.user?.id && role.key === 'platform-admin') {
       throw new HttpError(
         409,

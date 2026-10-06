@@ -226,5 +226,54 @@
     "offboarded": "此人員已離職停用，無法授予角色。",
     "systemReadOnly": "系統角色由模組定義，無法變更。",
     "keyTaken": "已有使用此索引鍵的角色。"
+  },
+  "requestSettings": {
+    "title": "自助申請",
+    "description": "讓人員在申請入口網站申請此角色。申請核准後會自動授予，並在期限到時自動到期。",
+    "requestable": "人員可以申請此角色",
+    "requestableShort": "申請",
+    "requestableHint": "此角色會顯示在申請入口網站中。簽核工作流程完成後即授予存取權。",
+    "notRequestableHint": "不在申請入口網站中——只有管理員可以授予。",
+    "risk": "風險等級",
+    "riskHint": "會顯示給申請者與簽核者。工作流程可將風險較高的申請交由更多簽核者審核。",
+    "riskLevels": {
+      "low": "低風險",
+      "medium": "中風險",
+      "high": "高風險"
+    },
+    "riskShort": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "owner": "角色負責人",
+    "ownerHint": "當工作流程包含角色負責人簽核步驟時，由此人簽核申請。",
+    "ownerPlaceholder": "選擇負責人…",
+    "noOwner": "沒有負責人",
+    "maxDuration": "最長授予期限",
+    "maxDurationHint": "申請的期限不得超過此值。管理員直接授予則不受限制。",
+    "duration": {
+      "none": "不限",
+      "30": "30 天",
+      "90": "90 天",
+      "365": "1 年",
+      "custom": "自訂…"
+    },
+    "customDays": "天數",
+    "daysUnit": "天",
+    "days": "{count, plural, other {# 天}}",
+    "years": "{count, plural, other {# 年}}",
+    "daysInvalid": "請輸入 1 到 3650 之間的整數天數。",
+    "workflow": "簽核工作流程",
+    "workflowHint": "負責處理此角色申請的工作流程。",
+    "workflowDefault": "預設的存取權申請工作流程",
+    "workflowDefaultNamed": "預設（{name}）",
+    "badges": {
+      "requestable": "可申請",
+      "maxDuration": "最長 {duration}"
+    },
+    "unsaved": "有未儲存的變更",
+    "reset": "重設",
+    "saved": "已儲存申請設定"
   }
 }

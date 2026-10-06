@@ -51,5 +51,15 @@
   "welcome": {
     "title": "IS Big Platform へようこそ",
     "body": "検索 (⌘K / Ctrl K) を使うと、どこへでもすばやく移動できます。他のモジュールへのアクセスが必要な場合は、管理者にお問い合わせください。"
+  },
+  "myWork": {
+    "approvals": "あなたの承認待ち",
+    "approvalsHint": "あなたの判断が必要な申請です。",
+    "open": "開く",
+    "noApprovals": "承認待ちの項目はありません。",
+    "requests": "進行中の申請",
+    "requestsHint": "送信したアクセス申請やその他の申請。",
+    "newRequest": "新しい申請",
+    "noRequests": "進行中の申請はありません。"
   }
 }

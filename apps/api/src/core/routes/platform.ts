@@ -397,6 +397,8 @@ export function platformRoutes(app: ModuleRouter, ctx: ModuleContext, idps: IdpS
           href: e.href,
           icon: e.icon,
           section: e.section ?? 'main',
+          group: e.group,
+          badge: e.badge,
           order: e.order ?? 100,
           moduleId,
           children: e.children?.filter(visible).map(toItem(moduleId)),

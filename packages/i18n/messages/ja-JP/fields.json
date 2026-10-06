@@ -1,0 +1,200 @@
+{
+  "types": {
+    "text": {
+      "name": "短いテキスト",
+      "description": "1 行: 名前、コード、タイトルなど",
+      "defaultLabel": "短いテキスト"
+    },
+    "textarea": {
+      "name": "長いテキスト",
+      "description": "説明などの複数行のテキスト",
+      "defaultLabel": "詳細"
+    },
+    "number": { "name": "数値", "description": "金額、数量、予算", "defaultLabel": "数値" },
+    "boolean": {
+      "name": "チェック ボックス",
+      "description": "はい/いいえのチェック",
+      "defaultLabel": "確認しました"
+    },
+    "date": { "name": "日付", "description": "カレンダーの日付", "defaultLabel": "日付" },
+    "select": {
+      "name": "ドロップダウン",
+      "description": "一覧から 1 つ選択",
+      "defaultLabel": "1 つ選択してください"
+    },
+    "multiselect": {
+      "name": "複数選択",
+      "description": "1 つ以上の選択肢をチェック",
+      "defaultLabel": "該当するものをすべて選択"
+    },
+    "email": {
+      "name": "メール",
+      "description": "形式をチェックするメール アドレス",
+      "defaultLabel": "メール アドレス"
+    },
+    "url": { "name": "リンク", "description": "Web アドレス（https://…）", "defaultLabel": "リンク" },
+    "user": { "name": "ユーザー", "description": "ディレクトリのユーザー", "defaultLabel": "ユーザー" }
+  },
+  "display": {
+    "heading": {
+      "name": "見出し",
+      "description": "新しいセクションを開始",
+      "defaultText": "新しいセクション"
+    },
+    "paragraph": {
+      "name": "段落",
+      "description": "説明や補足情報",
+      "defaultText": "このフォームを入力するユーザー向けの説明を追加してください。"
+    },
+    "divider": { "name": "区切り線", "description": "セクション間の線" }
+  },
+  "badges": {
+    "required": "必須",
+    "conditionalWhen": "表示条件: {condition}",
+    "archived": "アーカイブ済み"
+  },
+  "editor": {
+    "type": "フィールドの種類",
+    "typeLocked": "種類はロックされています。保存済みの回答がこの種類に依存しています。",
+    "sections": {
+      "basics": "基本",
+      "layout": "動作とレイアウト",
+      "options": "選択肢",
+      "validation": "検証",
+      "default": "既定値",
+      "logic": "条件ロジック",
+      "content": "内容"
+    },
+    "label": "ラベル",
+    "labelPlaceholder": "何を回答してもらいますか?",
+    "key": "キー",
+    "keyHint": "回答の保存先です。英小文字で始め、英字、数字、_ のみ使用できます。",
+    "keyLocked": "ロック済み: このキーで回答が保存されています。",
+    "keyAuto": "英語のラベルから生成",
+    "help": "ヘルプ テキスト",
+    "helpHint": "フィールドの下に表示されます。",
+    "placeholder": "プレースホルダー",
+    "required": "必須",
+    "requiredHint": "回答しないと送信できません。",
+    "requiredHintBoolean": "チェックしないと送信できません（利用規約への同意など）。",
+    "width": "幅",
+    "widthFull": "全幅",
+    "widthHalf": "半幅",
+    "optionN": "選択肢 {n}",
+    "optionLabelN": "選択肢 {n} のラベル",
+    "optionValue": "保存値",
+    "optionValueLocked": "ロック済み: この値を使用した回答があります。",
+    "addOption": "選択肢を追加",
+    "removeOption": "選択肢「{label}」を削除",
+    "moveOptionUp": "選択肢「{label}」を上へ移動",
+    "moveOptionDown": "選択肢「{label}」を下へ移動",
+    "min": "最小値",
+    "max": "最大値",
+    "minChoices": "最小選択数",
+    "maxChoices": "最大選択数",
+    "minLength": "最小文字数",
+    "maxLength": "最大文字数",
+    "pattern": "パターン",
+    "patternHint": "回答全体が一致する必要がある正規表現です。",
+    "patternPresets": "プリセット",
+    "patternTest": "値を入力して試す…",
+    "patternMatches": "一致",
+    "patternNoMatch": "不一致",
+    "presets": {
+      "digits": "数字のみ",
+      "lettersDigits": "英字と数字",
+      "code": "ABC-1234 のようなコード",
+      "phone": "電話番号",
+      "noSpaces": "スペースなし"
+    },
+    "defaultValue": "既定値",
+    "noDefault": "既定値なし",
+    "clearDefault": "クリア",
+    "checkedByDefault": "既定でチェック",
+    "visibleWhen": "次の場合にのみこのフィールドを表示…",
+    "visibleWhenHint": "非表示のフィールドはスキップされ、保存されません。",
+    "noOtherFields": "先に別のフィールドを追加してください。条件では、このフィールドと他のフィールドの回答を比較します。",
+    "text": "テキスト",
+    "dividerHint": "区切り線に編集できる内容はありませんが、表示条件は設定できます。"
+  },
+  "issues": {
+    "labelRequired": "ラベルを入力してください",
+    "keyInvalid": "キーは英小文字で始め、英字、数字、_ のみを使用してください",
+    "keyDuplicate": "キー「{key}」は別のフィールドで使用されています",
+    "optionsRequired": "選択肢を 1 つ以上追加してください",
+    "optionValueRequired": "すべての選択肢に保存値が必要です",
+    "optionValuesDuplicate": "保存値が同じ選択肢があります",
+    "optionLabelRequired": "すべての選択肢にラベルが必要です",
+    "rangeInvalid": "最大値が最小値より小さくなっています",
+    "lengthInvalid": "最大文字数が最小文字数より小さくなっています",
+    "patternInvalid": "このパターンは無効か、処理が非常に遅くなる可能性があります",
+    "defaultInvalid": "既定値がこのフィールドのルールを満たしていません",
+    "conditionSelf": "フィールドを自分自身の条件にすることはできません",
+    "conditionUnknown": "条件が存在しないフィールドを参照しています",
+    "textRequired": "テキストを入力してください"
+  },
+  "dnd": {
+    "roleDescription": "並べ替え可能な項目",
+    "instructions": "Space キーまたは Enter キーで項目を持ち上げ、方向キーで移動し、Space キーまたは Enter キーで配置します。Esc キーでキャンセルします。",
+    "handle": "「{item}」の順序を変更",
+    "picked": "「{item}」を持ち上げました。",
+    "over": "「{item}」は {total} 個中 {position} 番目の位置にあります。",
+    "outside": "「{item}」は配置できる位置にありません。",
+    "dropped": "「{item}」を {total} 個中 {position} 番目に配置しました。",
+    "cancelled": "「{item}」の移動をキャンセルしました。"
+  },
+  "custom": {
+    "title": "カスタム フィールド",
+    "description": "ユーザー、グループ、部署にフィールドを追加します。値はレコードごとに保存され、詳細ページに表示され、絞り込みにも使用できます。",
+    "noAccess": "カスタム フィールドを管理するアクセス許可がありません。",
+    "entities": "レコードの種類",
+    "listTitle": "{entity}のフィールド",
+    "listDescription": "ドラッグして、レコードのフォームでの表示順を変更します。",
+    "showArchived": "アーカイブ済みを表示",
+    "add": "フィールドを追加",
+    "emptyTitle": "{entity}にカスタム フィールドはありません",
+    "emptyDescription": "コスト センターやオフィスなど、組織に必要な情報を記録するフィールドを追加しましょう。",
+    "usage": "{count, plural, =0 {未使用} other {# 件のレコードで使用中}}",
+    "archivedTitle": "アーカイブ済みのフィールド",
+    "restore": "復元",
+    "restored": "フィールドを復元しました",
+    "archive": "アーカイブ",
+    "archived": "フィールドをアーカイブしました",
+    "archiveTitle": "「{label}」をアーカイブしますか?",
+    "archiveBody": "{count, plural, =0 {このフィールドはフォームと絞り込みに表示されなくなります。後で復元できます。} other {このフィールドはフォームと絞り込みに表示されなくなります。# 件のレコードに保存された値は保持され、復元すると再び表示されます。}}",
+    "reordered": "順序を保存しました",
+    "moveUp": "「{label}」を上へ移動",
+    "moveDown": "「{label}」を下へ移動",
+    "moveUpAction": "上へ移動",
+    "moveDownAction": "下へ移動",
+    "edit": "「{label}」を編集",
+    "editAction": "編集",
+    "more": "「{label}」のその他の操作",
+    "addTitle": "{entity}にフィールドを追加",
+    "addDescription": "フィールドは、フォームの「追加情報」セクションとレコードのページに表示されます。",
+    "editTitle": "「{label}」を編集",
+    "editDescription": "作成後はキーと種類を変更できません。それ以外は変更できます。",
+    "usageNote": "{count, plural, other {# 件のレコードに値があります。キー、種類、選択肢の保存値はロックされています。}}",
+    "created": "「{label}」を追加しました",
+    "saved": "フィールドを保存しました",
+    "preview": "プレビュー",
+    "previewHint": "試せます",
+    "previewTitle": "ライブ プレビュー",
+    "previewDescription": "{entity}のフォームでのこのセクションの表示です。回答を入力して、条件付きフィールドの表示を確認できます。",
+    "previewSection": "追加情報",
+    "previewEmpty": "フィールドを追加するとプレビューが表示されます。"
+  },
+  "entity": {
+    "sectionTitle": "追加情報",
+    "cardTitle": "追加情報",
+    "cardDescription": "管理者が定義したカスタム フィールドです。",
+    "notSet": "未設定"
+  },
+  "filters": {
+    "more": "その他のフィルター",
+    "any": "指定なし",
+    "active": "{count, plural, other {# 個のフィルター}}",
+    "clear": "カスタム フィルターをクリア",
+    "title": "カスタム フィールドで絞り込む"
+  }
+}

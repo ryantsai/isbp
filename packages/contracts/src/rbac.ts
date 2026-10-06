@@ -26,8 +26,15 @@ export const roleSchema = z.object({
   description: z.string().nullable(),
   isSystem: z.boolean(),
   moduleId: z.string().nullable(),
+  application: z.object({ id, key: z.string(), name: z.string(), isPlatform: z.boolean() }),
   permissions: z.array(z.string()),
   assignmentCount: z.number().int(),
+  /** Self-service request settings. */
+  requestable: z.boolean(),
+  riskLevel: z.enum(['low', 'medium', 'high']),
+  owner: z.object({ id, displayName: z.string() }).nullable(),
+  maxDurationDays: z.number().int().nullable(),
+  requestWorkflow: z.object({ id, name: z.string() }).nullable(),
   updatedAt: dateTime,
 });
 export type Role = z.input<typeof roleSchema>;
@@ -67,6 +74,7 @@ export type RoleAssignment = z.input<typeof roleAssignmentSchema>;
 
 export const roleAssignmentQuerySchema = listQuerySchema.extend({
   roleId: id.optional(),
+  applicationId: id.optional(),
   userId: id.optional(),
   groupId: id.optional(),
   includeExpired: z.stringbool().default(false),

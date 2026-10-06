@@ -32,11 +32,19 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { type FieldValues, type Resolver, type UseFormReturn, useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
+import {
+  attributesPayload,
+  CustomFieldsSection,
+  useApplyEntityErrors,
+  useAttributeDefaults,
+  useAttributesResolver,
+  useEntityFields,
+} from '@/components/fields/entity-fields';
 import { DepartmentSelect } from '@/components/pickers/department-select';
 import { type PickedUser, UserPicker } from '@/components/pickers/user-picker';
-import { applyServerErrors, useApiMutation, useApiQuery } from '@/lib/api';
+import { useApiMutation, useApiQuery } from '@/lib/api';
 
 type CreateValues = z.input<typeof createUserSchema>;
 
@@ -87,10 +95,17 @@ export function UserFormSheet({
     sort: 'name',
   });
 
-  const form = useForm<CreateValues>({
-    resolver: zodResolver(
+  const custom = useEntityFields('core.user', open);
+  const applyErrors = useApplyEntityErrors();
+  const resolver = useAttributesResolver(
+    zodResolver(
       editing ? (updateUserSchema as unknown as typeof createUserSchema) : createUserSchema,
-    ),
+    ) as Resolver<CreateValues>,
+    custom.fields,
+  );
+
+  const form = useForm<CreateValues>({
+    resolver,
     defaultValues: {
       email: '',
       username: '',
@@ -133,6 +148,14 @@ export function UserFormSheet({
       setManager(null);
     }
   }, [open, user, form]);
+  // Custom fields: stored values (or defaults) once the definitions are known.
+  useAttributeDefaults(
+    form as unknown as UseFormReturn<FieldValues>,
+    custom.fields,
+    custom.ready,
+    open,
+    user?.attributes,
+  );
 
   // Suggest a username from the email while creating.
   const email = useWatch({ control: form.control, name: 'email' });
@@ -161,11 +184,17 @@ export function UserFormSheet({
   const mutation = editing ? update : create;
 
   const onSubmit = form.handleSubmit(async (values) => {
-    const { username: _u, status: _s, groupIds: _g, password: _p, ...editable } = values;
+    const { username: _u, status: _s, groupIds: _g, password: _p, attributes, ...editable } = values;
+    // Custom-field values only once their definitions are loaded (never wipe them by accident).
+    const customValues = custom.ready ? { attributes: attributesPayload(custom.fields, attributes) } : {};
     try {
-      await mutation.mutateAsync(editing ? (editable as CreateValues) : values);
+      await mutation.mutateAsync(
+        editing
+          ? ({ ...editable, ...customValues } as CreateValues)
+          : { ...values, attributes: undefined, ...customValues },
+      );
     } catch (err) {
-      if (!applyServerErrors(err, form.setError as never))
+      if (!applyErrors(err, form.setError as never))
         form.setError('root', { message: (err as Error).message });
     }
   });
@@ -319,6 +348,11 @@ export function UserFormSheet({
                   />
                 </div>
               </Section>
+
+              <CustomFieldsSection
+                elements={custom.elements}
+                form={form as unknown as UseFormReturn<FieldValues>}
+              />
 
               {!editing && (
                 <Section title={t('sections.account')}>

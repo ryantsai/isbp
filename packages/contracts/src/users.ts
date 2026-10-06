@@ -49,6 +49,11 @@ export const userListQuerySchema = listQuerySchema.extend({
   /** With `departmentId`: include people in every sub-department. */
   subtree: z.stringbool().optional(),
   groupId: id.optional(),
+  /** Custom-field filters `key:value`, e.g. `attr=costCenter:CC-1010` (repeatable, all must match). */
+  attr: z
+    .union([z.string().max(200), z.array(z.string().max(200)).max(10)])
+    .transform((v) => (Array.isArray(v) ? v : [v]))
+    .optional(),
 });
 export type UserListQuery = z.input<typeof userListQuerySchema>;
 
@@ -82,6 +87,8 @@ export const createUserSchema = z.object({
   status: z.enum(['pending', 'active']).default('active'),
   password: passwordSchema.optional(),
   groupIds: z.array(id).max(100).default([]),
+  /** Custom-field values (`core.user` custom fields). */
+  attributes: z.record(z.string().max(64), z.unknown()).optional(),
 });
 export type CreateUserInput = z.input<typeof createUserSchema>;
 
@@ -119,3 +126,22 @@ export const sessionInfoSchema = z.object({
   current: z.boolean(),
 });
 export type SessionInfo = z.input<typeof sessionInfoSchema>;
+
+/** Minimal colleague profile for pickers available to every signed-in person. */
+export const personLookupSchema = z.object({
+  id,
+  displayName: z.string(),
+  email: z.string(),
+  jobTitle: z.string().nullable(),
+  avatarUrl: z.string().nullable(),
+  department: z.string().nullable(),
+});
+export type PersonLookup = z.input<typeof personLookupSchema>;
+
+export const personLookupQuerySchema = z.object({
+  q: z.string().trim().min(1).max(100).optional(),
+  ids: z
+    .union([id, z.array(id).max(50)])
+    .transform((v) => (Array.isArray(v) ? v : [v]))
+    .optional(),
+});

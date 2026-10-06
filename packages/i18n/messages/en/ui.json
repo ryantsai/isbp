@@ -11,5 +11,118 @@
   },
   "search": {
     "clear": "Clear search"
+  },
+  "fieldErrors": {
+    "required": "This field is required",
+    "type": "This value is not valid",
+    "tooShort": "Enter at least {min} characters",
+    "tooLong": "Enter at most {max} characters",
+    "min": "Enter at least {min}",
+    "max": "Enter at most {max}",
+    "pattern": "This doesn't match the expected format",
+    "option": "Choose one of the options",
+    "email": "Enter a valid email address",
+    "url": "Enter a web address starting with https://",
+    "date": "Enter a valid date",
+    "user": "Choose a person"
+  },
+  "localized": {
+    "languages": "Languages",
+    "filled": "{language} (filled in)",
+    "missing": "{language} (missing — English or another language is shown)"
+  },
+  "person": {
+    "search": "Search people…",
+    "noResults": "No one found",
+    "loading": "Searching…",
+    "clear": "Clear selection",
+    "placeholder": "Choose a person"
+  },
+  "select": {
+    "placeholder": "Choose…",
+    "none": "None"
+  },
+  "boolean": {
+    "yes": "Yes",
+    "no": "No"
+  },
+  "conditions": {
+    "match": "Match",
+    "all": "all rules",
+    "any": "any rule",
+    "addRule": "Add rule",
+    "removeRule": "Remove rule",
+    "fact": "Field",
+    "op": "Operator",
+    "value": "Value",
+    "noRules": "No rules yet — the condition is always true.",
+    "ops": {
+      "eq": "is",
+      "neq": "is not",
+      "gt": "is more than",
+      "gte": "is at least",
+      "lt": "is less than",
+      "lte": "is at most",
+      "in": "is one of",
+      "nin": "is not one of",
+      "contains": "contains",
+      "empty": "is empty",
+      "notEmpty": "is filled in"
+    },
+    "valuePlaceholder": "Value",
+    "listPlaceholder": "Values, comma-separated",
+    "true": "Yes",
+    "false": "No",
+    "and": "and",
+    "or": "or",
+    "always": "always",
+    "not": "not ({condition})"
+  },
+  "workflow": {
+    "start": "Request submitted",
+    "end": "Approved",
+    "rejected": "Rejected",
+    "cancelled": "Withdrawn",
+    "otherwise": "Otherwise",
+    "noSteps": "No steps — passes straight through",
+    "status": {
+      "active": "In progress",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "skipped": "Skipped",
+      "waiting": "Not reached yet"
+    },
+    "types": {
+      "approval": "Approval",
+      "parallel": "In parallel",
+      "condition": "Decision",
+      "notify": "Notification"
+    },
+    "mode": {
+      "any": "First answer decides",
+      "all": "Everyone must approve",
+      "quorum": "{n} of {total} must approve"
+    },
+    "sla": "Due within {hours, plural, one {# hour} other {# hours}}",
+    "approver": {
+      "user": "{name}",
+      "group": "Group: {name}",
+      "role": "Role: {name}",
+      "manager": "{level, select, 1 {Manager} 2 {Manager's manager} other {Manager, level {level}}}",
+      "department-head": "Department head",
+      "fact": "Person in “{fact}”",
+      "requester": "The requester",
+      "fallback": "{rule}, otherwise {fallback}"
+    },
+    "when": "Only if {condition}",
+    "skipped": {
+      "condition": "Condition not met",
+      "no-approver": "No approver found",
+      "cancelled": "Cancelled"
+    },
+    "waitingFor": "Waiting for {names}",
+    "decided": "{name}",
+    "branches": "{count, plural, one {# branch} other {# branches}}",
+    "steps": "{count, plural, one {# step} other {# steps}}"
   }
 }

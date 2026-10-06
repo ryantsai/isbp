@@ -1,6 +1,7 @@
 # IS Big Platform — Architecture
 
-> Status: Phase 0 (Foundation). This document is the design baseline that later phases extend.
+> Status: Phase 1 (workflows, forms, notifications, access requests, Role Query API) on top of the Phase 0
+> foundation. This document is the design baseline that later phases extend.
 
 ## 1. Shape of the system
 
@@ -410,9 +411,217 @@ labels for its audit actions. See [module-development.md](module-development.md)
 
 | Phase                     | Scope                                                                                                                                                                                                                                     |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0 – Foundation** (this) | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI |
-| 1                         | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                |
+| **0 – Foundation** (done) | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI |
+| **1** (this)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                |
 | 2                         | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                     |
 | 3                         | Asset Management, Project Management, Application Lifecycle                                                                                                                                                                               |
 | 4                         | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                              |
 | 5                         | Integrations Hub, MCP server, AI assistant everywhere                                                                                                                                                                                     |
+
+## 8. Phase 1 design: workflows, forms, notifications, access requests, Role Query API
+
+Phase 1 adds **platform services** that every module consumes through `ModuleContext`, exactly like audit and
+events: `ctx.workflows`, `ctx.notifications` and `ctx.fields`. Their admin APIs and screens belong to the core
+module. Modules opt in from their manifest with three new optional keys:
+
+```ts
+workflows?: WorkflowTriggerDef[];          // attach points, e.g. "announcements.publish"
+notifications?: NotificationTypeDef[];     // types users can tune in their preferences
+customFields?: { entities: CustomFieldEntityDef[] }; // entities whose `attributes` admins can extend
+```
+
+### 8.1 Data model additions (schema `core`)
+
+```mermaid
+erDiagram
+  WORKFLOW_DEFINITIONS ||--o{ WORKFLOW_VERSIONS : "published, immutable"
+  WORKFLOW_DEFINITIONS ||--o{ WORKFLOW_INSTANCES : ""
+  WORKFLOW_INSTANCES ||--o{ APPROVAL_TASKS : ""
+  WORKFLOW_INSTANCES ||--o{ WORKFLOW_EVENTS : "timeline"
+  USERS ||--o{ APPROVAL_TASKS : "assignee"
+  USERS ||--o{ APPROVAL_DELEGATIONS : "out of office"
+  FORMS ||--o{ FORM_VERSIONS : ""
+  FORMS }o--o| WORKFLOW_DEFINITIONS : "attached workflow"
+  FORMS ||--o{ FORM_SUBMISSIONS : ""
+  FORM_SUBMISSIONS |o--o| WORKFLOW_INSTANCES : ""
+  ROLES ||--o{ ACCESS_REQUESTS : "requestable roles"
+  ACCESS_REQUESTS |o--o| WORKFLOW_INSTANCES : ""
+  ACCESS_REQUESTS |o--o| ROLE_ASSIGNMENTS : "granted (source=request)"
+  USERS ||--o{ NOTIFICATIONS : ""
+  NOTIFICATIONS ||--o{ NOTIFICATION_DELIVERIES : "email, Teams, Slack, webhook"
+  NOTIFICATION_CHANNELS ||--o{ NOTIFICATION_DELIVERIES : ""
+  APPLICATIONS ||--o{ API_CLIENTS : "Role Query access"
+  API_CLIENTS ||--o{ API_CLIENT_SECRETS : "rotation"
+
+  WORKFLOW_DEFINITIONS {
+    uuid id PK
+    text key UK
+    text trigger_key "attach point, e.g. core.access-request"
+    bool is_default "partial unique per trigger"
+    jsonb draft "WorkflowGraph being edited"
+    int published_version
+  }
+  WORKFLOW_INSTANCES {
+    uuid id PK
+    uuid definition_id FK
+    int version "pinned at start"
+    text subject_type
+    text subject_id
+    uuid requester_id FK
+    text status "running|approved|rejected|cancelled"
+    jsonb facts "data for conditions"
+    jsonb state "step statuses + branch choices"
+  }
+  APPROVAL_TASKS {
+    uuid id PK
+    uuid instance_id FK
+    text step_id
+    int slot "approver slot within the step"
+    uuid assignee_id FK
+    uuid delegated_from_id FK
+    text status "pending|approved|rejected|delegated|cancelled"
+    timestamptz due_at "SLA"
+    timestamptz remind_at
+  }
+  CUSTOM_FIELDS {
+    uuid id PK
+    text entity_type "core.user, core.group, …"
+    text key "attributes key"
+    jsonb field "FieldDef: type, label (3 locales), validation, visibleWhen"
+  }
+  FORMS {
+    uuid id PK
+    text key UK
+    jsonb name "localized"
+    jsonb draft "FormSchema"
+    int published_version
+    uuid workflow_definition_id FK
+    jsonb audience "everyone | groups"
+  }
+  ACCESS_REQUESTS {
+    uuid id PK
+    bigint number "REQ-00042 (shared sequence)"
+    uuid requester_id FK
+    uuid beneficiary_id FK
+    uuid role_id FK
+    text status "pending|approved|rejected|cancelled|failed"
+    int duration_days "null = permanent"
+  }
+  NOTIFICATIONS {
+    uuid id PK
+    uuid user_id FK
+    text type "core.approval.assigned"
+    text title "rendered in the recipient's locale"
+    timestamptz read_at
+  }
+  API_CLIENTS {
+    uuid id PK
+    text client_id UK
+    uuid_array application_ids "Role Query reach"
+    text_array permissions "platform API patterns"
+  }
+  API_CLIENT_SECRETS {
+    uuid id PK
+    text secret_hash UK "sha256"
+    timestamptz expires_at
+  }
+```
+
+`roles` gains `requestable`, `risk_level`, `owner_id`, `max_duration_days` and an optional
+`request_workflow_id` override. `groups` and `departments` gain an `attributes` JSONB column like `users`,
+each with a GIN index for custom-field filters.
+
+### 8.2 Workflow model
+
+A workflow is a **structured tree of steps**, not a free-form graph, so every definition is valid by
+construction and the visual builder never produces dangling edges:
+
+| Step        | Meaning                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `approval`  | One or more **approver slots** (user, group, platform role, requester's manager chain, department head, or a user id taken from the facts), each with an optional **fallback**. Modes: `any` (first answer wins), `all`, or `quorum` (N of M). Options: SLA (due/remind hours, then notify, escalate, auto-approve or auto-reject), delegation, self-approval (off by default), and what to do when nobody resolves. |
+| `parallel`  | Branches that run at the same time, each a sequence of steps; it completes when every branch is approved                                                                                                                                                                                                                                                                                                             |
+| `condition` | The first branch whose condition matches runs, otherwise the default branch (`role.riskLevel = high`, `form.amount > 1500`, …)                                                                                                                                                                                                                                                                                       |
+| `notify`    | An FYI notification to people (no decision)                                                                                                                                                                                                                                                                                                                                                                          |
+
+Every step may also carry a `when` condition (skipped unless it holds). Any rejection ends the instance.
+The interpreter (`@isbp/sdk` → `advanceWorkflow`) is a **pure function** of graph, state and facts. The API
+uses it to drive instances, and the builder uses the same code to simulate a path in the browser. The
+engine locks the instance row (`SELECT … FOR UPDATE`) while it applies a decision, so concurrent approvers
+on parallel steps are safe.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant R as Requester
+  participant API as core (access requests)
+  participant WF as Workflow engine
+  participant DB as Postgres
+  participant W as Worker
+  participant A as Approver
+  R->>API: POST /access-requests (role, duration, justification)
+  API->>WF: start("core.access-request", subject, facts) in tx
+  WF->>DB: instance + first tasks + notifications + outbox (same tx)
+  W-->>A: in-app (SSE), email, Teams/Slack
+  A->>WF: POST /approvals/:task/approve
+  WF->>DB: lock instance, decide slot, advance → next step or complete
+  WF->>DB: outbox core.workflow.completed
+  W->>API: owner module's onCompleted → role_assignment (expires_at), notify requester
+```
+
+SLA timers are rows (`due_at`, `remind_at`) scanned by a once-a-minute job on partial indexes, rather than
+one delayed job per task. They survive a Redis flush and are idempotent.
+
+### 8.3 Forms and custom fields share one field model
+
+`FieldDef` (in `@isbp/sdk`) describes a field: type (text, textarea, number, boolean, date, select,
+multiselect, email, url, user), a label in en/zh-TW/ja-JP, validation and a `visibleWhen` condition.
+Custom fields are FieldDefs attached to an entity type and stored in that entity's `attributes` JSONB.
+Forms are versioned lists of FieldDefs plus display elements (heading, paragraph, divider). The same
+`validateFields()` function runs in the browser (React Hook Form resolver) and in the API. Hidden fields
+are stripped before validation, so conditional logic can never be bypassed by posting hidden values.
+
+### 8.4 Notifications
+
+`ctx.notifications.notify({ type, recipients, params, href }, { tx })` writes in-app rows in the caller's
+transaction. Each row is rendered in its **recipient's locale** from the module's catalog
+(`<module>.notifications.<name>.title|body`, ICU). The outbox then hands it to the worker, which delivers
+email (SMTP), Microsoft Teams (Workflows webhook, Adaptive Card), Slack (incoming webhook, Block Kit) and
+signed generic webhooks. Delivery honours each user's preferences per type and channel; `mandatory` types
+cannot be switched off. A `notification_deliveries` row per channel makes retries idempotent. Browsers get
+live updates over Server-Sent Events, fanned out from Redis pub/sub. Webhook URLs are secrets, encrypted
+at rest, and private-network targets are refused unless explicitly allowed (SSRF guard).
+
+### 8.5 Role Query API and API clients
+
+External applications live in `core.applications` with their own permission catalog and roles, so access
+to them is granted, requested, approved, expired and audited like platform roles. **API clients** are
+service principals:
+
+- **API keys:** `Authorization: Bearer isbp_sk_…`. Only the SHA-256 is stored, and a client can hold
+  several secrets at once for rotation without downtime.
+- **OAuth 2.0 client credentials:** `POST /api/v1/oauth/token` returns opaque one-hour bearer tokens,
+  held in Redis.
+
+A client's reach is expressed as ordinary grants: `core.role-query.read` scoped to each allowed application
+(record scope `application:<id>`), plus optional platform API permissions. These are checked by the same
+`PermissionSet` code as users, and bearer requests skip CSRF because they carry no ambient cookies. Routes
+without a declared permission (such as `/me/*`) are closed to service principals.
+
+| Endpoint                                              | Answers                                                                                                     |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/role-query/users/{user}?application=app` | Roles (with scope, expiry and source) and effective permissions of a user (id, email or username) in an app |
+| `POST /api/v1/role-query/check`                       | `{ allowed }` for one permission, optionally for a department or record                                     |
+| `GET /api/v1/role-query/applications/{app}/members`   | Everyone holding a role in the app, for provisioning sync                                                   |
+
+### 8.6 Phase 1 decisions
+
+| #   | Decision                                                                             | Why                                                                                                                                 | Alternatives considered                                              |
+| --- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 18  | Structured step tree (sequence / approval / parallel / condition / notify)           | Valid by construction, easy to build visually and to explain; covers sequential, parallel, conditional, delegation, escalation, SLA | BPMN engine (heavy, hard for admins); free-form DAG (invalid graphs) |
+| 19  | Pure interpreter shared by API and browser; persisted step state; pinned versions    | Deterministic, unit-testable; the builder's simulator runs the server's code; running instances never change under the admin        | Engine-only logic (no simulation), live definitions                  |
+| 20  | Completion callbacks through the outbox (`core.workflow.completed` → owner module)   | Same at-least-once, retrying path as every other event; module work never blocks an approver's click                                | Synchronous in-transaction hooks                                     |
+| 21  | SLA timers as indexed rows plus a one-minute scan                                    | Survives Redis loss, idempotent, observable in SQL                                                                                  | One delayed BullMQ job per task                                      |
+| 22  | One field model and validator for custom fields and forms                            | Admins learn one builder; identical validation in browser and API; conditional logic enforced server-side                           | JSON Schema + separate form library                                  |
+| 23  | Notifications rendered at creation in the recipient's locale                         | Email and in-app show the same text; the web app doesn't need every module's notification catalog                                   | Store keys and render on read (stale-locale-safe but complex)        |
+| 24  | SSE + Redis pub/sub for live notifications                                           | One-way, HTTP-friendly through the Next.js proxy and ingress; no WebSocket infra                                                    | WebSockets, polling only                                             |
+| 25  | API clients as service principals with ordinary grants; opaque OAuth tokens in Redis | Role Query and API-first automation use the same RBAC checks and audit as people; instant revocation                                | JWT access tokens (hard to revoke), separate ACL model               |

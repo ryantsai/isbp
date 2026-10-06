@@ -1,0 +1,448 @@
+{
+  "title": "アプリケーション",
+  "description": "プラットフォームがアクセスを管理する業務アプリケーションです。アクセス許可、ロール、およびその保持者を管理します。各アプリケーションはロール クエリ API で、ユーザーが実行できる操作を照会します。",
+  "register": "アプリケーションの登録",
+  "search": "アプリケーションを検索…",
+  "noMatch": "「{q}」に一致するアプリケーションはありません",
+  "empty": {
+    "title": "登録されているアプリケーションはありません",
+    "description": "アプリケーションを登録すると、ここでロールを管理でき、ロール クエリ API で誰が何をできるかを照会できるようになります。"
+  },
+  "platform": {
+    "badge": "このプラットフォーム",
+    "description": "このプラットフォームです。ロールとアクセス許可は [ロールとアクセス] で管理します。",
+    "title": "これはプラットフォーム自体です。",
+    "notice": "このロールはプラットフォーム ロールです。作成、編集、付与、申請の受け付けは [ロールとアクセス] で行います。",
+    "manage": "[ロールとアクセス] で管理"
+  },
+  "card": {
+    "noDescription": "説明なし",
+    "owner": "所有者: {name}",
+    "noOwner": "所有者なし",
+    "roles": "{count, plural, other {ロール}}",
+    "permissions": "{count, plural, other {アクセス許可}}",
+    "members": "{count, plural, other {人がアクセス可能}}",
+    "clients": "{count, plural, other {API クライアント}}"
+  },
+  "copy": {
+    "failed": "コピーできませんでした。テキストを選択して手動でコピーしてください。"
+  },
+  "form": {
+    "createTitle": "アプリケーションの登録",
+    "createDescription": "次にアクセス許可とロールを定義し、アクセスを付与するか申請を受け付けます。",
+    "editTitle": "{name} の編集",
+    "editDescription": "変更は監査ログに記録されます。",
+    "name": "名前",
+    "namePlaceholder": "例: 財務 ERP",
+    "key": "キー",
+    "keyHint": "アプリケーションはこのキーをロール クエリ API に渡します (?application=…)。後から変更することはできません。",
+    "keyLocked": "キーは変更できません。アプリケーションはこのキーでロール クエリ API を呼び出します。",
+    "description": "説明",
+    "descriptionPlaceholder": "このアプリケーションの用途は何ですか?",
+    "homepageUrl": "ホームページの URL",
+    "homepageHint": "ユーザーがアプリケーションを開く場所です。",
+    "owner": "所有者",
+    "ownerPlaceholder": "業務上の所有者を選択…",
+    "ownerHint": "このアプリケーションに誰がアクセスできるかについて責任を持つユーザーです。",
+    "submit": "登録",
+    "created": "アプリケーション「{name}」を登録しました",
+    "saved": "アプリケーションを保存しました",
+    "validation": {
+      "name": "名前を入力してください。",
+      "nameLong": "名前は 200 文字以内で入力してください。",
+      "key": "英小文字、数字、「-」、「_」を使って 2～64 文字で入力し、英字または数字で始めてください。",
+      "keyReserved": "このキーはプラットフォーム用に予約されています。",
+      "keyTaken": "このキーのアプリケーションは既に存在します。",
+      "descriptionLong": "説明は 2000 文字以内で入力してください。",
+      "url": "完全な http(s) アドレスを入力してください (例: https://erp.example.com)。"
+    }
+  },
+  "detail": {
+    "notFound": "このアプリケーションは存在しないか、削除されました。",
+    "notFoundDescription": "削除されたか、アクセス権がない可能性があります。",
+    "openApp": "アプリケーションを開く",
+    "newTab": "新しいタブで開きます"
+  },
+  "tabs": {
+    "overview": "概要",
+    "roles": "ロール",
+    "permissions": "アクセス許可",
+    "access": "アクセス権を持つユーザー",
+    "query": "ロール クエリ"
+  },
+  "overview": {
+    "details": "詳細",
+    "detailsHint": "アプリケーションの識別方法と責任者です。",
+    "homepage": "ホームページ",
+    "owner": "所有者",
+    "noOwner": "所有者なし",
+    "none": "なし",
+    "howTitle": "全体のしくみ",
+    "howHint": "アプリケーションが実行できる操作を定義し、ロールがそれをまとめ、プラットフォームが誰が何を持っているかに答えます。",
+    "steps": {
+      "permissions": {
+        "title": "アクセス許可",
+        "body": "{count, plural, =0 {アクセス許可はまだありません。アプリケーションがチェックする操作を登録してください。} other {アプリケーションがチェックするアクセス許可は # 件です。}}",
+        "action": "アクセス許可の管理"
+      },
+      "roles": {
+        "title": "ロール",
+        "body": "{count, plural, =0 {ロールはまだありません。アクセス許可をロールにまとめてください。} other {# 件のロールがこれらのアクセス許可をまとめています。}}",
+        "action": "ロールの管理"
+      },
+      "access": {
+        "title": "アクセス権を持つユーザー",
+        "body": "{count, plural, =0 {アクセス権を持つユーザーはまだいません。} other {# 人のユーザーが直接またはグループ経由でロールを持っています。}}",
+        "action": "アクセス権を持つユーザーを表示"
+      },
+      "clients": {
+        "title": "API クライアント",
+        "body": "{count, plural, =0 {このアプリケーションを照会できる API クライアントはまだありません。} other {# 件の API クライアントがロール クエリ API でこのアプリケーションを照会できます。}}",
+        "action": "API クライアントの管理",
+        "tryIt": "ロール クエリ コンソールを試す"
+      }
+    },
+    "danger": {
+      "title": "危険な操作",
+      "description": "アプリケーションを削除すると、そのアクセス許可、ロール、およびロールのすべての付与が削除されます。",
+      "summary": "{roles, plural, =0 {ロールなし} other {ロール # 件}} · {members, plural, =0 {アクセス権を持つユーザーなし} other {アクセス権を持つユーザー # 人}}",
+      "delete": "アプリケーションの削除",
+      "confirmTitle": "{name} を削除しますか?",
+      "confirmBody": "この操作は元に戻せません。監査ログに記録されます。",
+      "loseRoles": "{count, plural, =0 {アクセス許可のカタログが削除されます。} other {アクセス許可のカタログとロール # 件が削除されます。}}",
+      "loseAccess": "{count, plural, =0 {現在アクセス権を持つユーザーはいません。} other {# 人のユーザーが直ちにアクセス権を失います。承認された申請による付与も含まれます。}}",
+      "loseQuery": "ロール クエリ API はこのアプリケーションに応答しなくなり、照会する API クライアントには「見つかりません」が返されます。",
+      "typeKey": "確認のため <code>{key}</code> と入力してください",
+      "confirm": "アプリケーションの削除",
+      "deleted": "アプリケーション「{name}」を削除しました"
+    }
+  },
+  "permissionPicker": {
+    "add": "追加",
+    "search": "検索するか、パターンを入力 (例: invoices.*)",
+    "none": "アクセス許可はまだありません",
+    "remove": "{permission} を削除",
+    "covers": "{count, plural, =0 {一致するものはまだありません} other {# 件のアクセス許可を含む}}",
+    "notInCatalog": "カタログにありません",
+    "custom": "入力どおりに追加",
+    "wildcards": "以下のすべて…",
+    "catalog": "アクセス許可",
+    "includedBy": "{pattern} に含まれています",
+    "selected": "選択済み",
+    "notSelected": "未選択",
+    "noMatch": "一致するアクセス許可はありません。キーまたは * を含むパターンを入力すると追加できます。",
+    "emptyCatalog": "カタログは空です。キーまたは * を含むパターンを入力すると追加できます。",
+    "typeHint": "invoices.* のようなワイルドカードは、後からカタログに追加されたアクセス許可も対象になります。"
+  },
+  "roles": {
+    "hint": "ロールはアプリケーションのアクセス許可をまとめたものです。直接付与するか、申請可能にしてユーザーがアクセスを申請できるようにします。",
+    "new": "新しいロール",
+    "editLabel": "{name} の編集",
+    "moreLabel": "{name} のその他の操作",
+    "grant": "アクセスの付与",
+    "holders": "保持者を表示",
+    "permissionsLabel": "アクセス許可",
+    "more": "+{count} 件",
+    "noPermissions": "アクセス許可なし",
+    "grants": "{count, plural, =0 {未付与} other {付与 # 件}}",
+    "owner": "所有者: {name}",
+    "notRequestable": "申請不可",
+    "empty": {
+      "title": "ロールはまだありません",
+      "description": "アプリケーションのアクセス許可からロールを作成し、付与するか申請を受け付けます。"
+    },
+    "deleteTitle": "{name} を削除しますか?",
+    "deleteBody": "ロールは完全に削除され、ロール クエリ API からも返されなくなります。この操作は監査ログに記録されます。",
+    "deleteWarning": "{count, plural, other {# 件のユーザーまたはグループ}}が直ちにこのロールを失います。",
+    "deleteConfirm": "ロールの削除",
+    "deleted": "ロール「{name}」を削除しました"
+  },
+  "roleForm": {
+    "createTitle": "新しいロール",
+    "createDescription": "{app} のロールです。名前、付与するアクセス許可、ユーザーが申請できるかどうかを設定します。",
+    "editTitle": "{name} の編集",
+    "editDescription": "変更はこのロールを持つすべてのユーザーに直ちに適用され、監査ログに記録されます。",
+    "sections": {
+      "details": "詳細",
+      "permissions": "アクセス許可",
+      "requests": "セルフサービス申請"
+    },
+    "name": "名前",
+    "namePlaceholder": "例: 買掛金承認者",
+    "key": "キー",
+    "keyHint": "ロール クエリ API から返されます。英小文字、数字、「-」、「_」を使用します。後から変更することはできません。",
+    "keyLocked": "キーは変更できません。アプリケーションが依存している可能性があります。",
+    "description": "説明",
+    "descriptionPlaceholder": "このロールの対象者は?",
+    "permissionsHint": "カタログから選択するか、invoices.* のようなワイルドカード パターンを追加します。",
+    "submit": "ロールの作成",
+    "created": "ロール「{name}」を作成しました",
+    "saved": "ロールを保存しました",
+    "settingsFailed": "ロールは保存されましたが、申請の設定は保存されませんでした: {error}",
+    "validation": {
+      "name": "名前を入力してください。",
+      "nameLong": "名前は 200 文字以内で入力してください。",
+      "key": "英小文字、数字、「-」、「_」を使って 2～64 文字で入力し、英字または数字で始めてください。",
+      "keyTaken": "このアプリケーションには、このキーのロールが既に存在します。",
+      "descriptionLong": "説明は 2000 文字以内で入力してください。",
+      "permissions": "有効なキーまたはパターンではないアクセス許可があります。"
+    }
+  },
+  "permissions": {
+    "title": "アクセス許可のカタログ",
+    "hint": "このアプリケーションがチェックする操作です。ロールはキーまたはワイルドカード パターンでこれらを付与します。",
+    "key": "アクセス許可のキー",
+    "keyHint": "ドットで区切った小文字のセグメント (例: invoices.approve、最大 6 セグメント)。",
+    "keyInvalid": "ドットで区切った小文字のセグメントを使用してください (例: invoices.approve)。",
+    "keyExists": "このアクセス許可は既にカタログにあります。",
+    "descriptionPlaceholder": "例: 支払いのための請求書の承認",
+    "add": "追加",
+    "added": "{key} を追加しました",
+    "search": "アクセス許可を絞り込み…",
+    "noMatch": "「{q}」に一致するアクセス許可はありません",
+    "columns": {
+      "key": "アクセス許可",
+      "roles": "使用しているロール"
+    },
+    "usedBy": "{count, plural, other {ロール # 件}}",
+    "unused": "未使用",
+    "remove": "削除",
+    "removeLabel": "{key} を削除",
+    "removeTitle": "{key} を削除しますか?",
+    "removeBody": "カタログから削除されます。この操作は監査ログに記録されます。",
+    "removeWarning": "{count, plural, other {# 件のロールがこれを付与しています。}}名前で指定しているロールでは保持されますが、ワイルドカード パターンの対象からは外れます。",
+    "removed": "{key} を削除しました",
+    "empty": {
+      "title": "アクセス許可はまだありません",
+      "description": "アプリケーションがチェックする操作を登録します (例: invoices.read、payments.release)。"
+    }
+  },
+  "access": {
+    "summary": "{members, plural, =0 {アクセス権を持つユーザーはいません} other {# 人のユーザーがアクセス権を持っています}} (付与 {grants, plural, other {# 件}}、直接またはグループ経由)。",
+    "grant": "アクセスの付与",
+    "label": "{app} へのアクセス権を持つユーザー",
+    "columns": {
+      "source": "ソース",
+      "granted": "付与"
+    },
+    "empty": {
+      "title": "アクセス権を持つユーザーはまだいません",
+      "description": "ユーザーまたはグループにロールを付与するか、ロールを申請可能にしてください。"
+    }
+  },
+  "grant": {
+    "title": "{app} へのアクセスの付与",
+    "description": "アプリケーションのロールをユーザーまたはグループに付与します。すべての付与は監査ログに記録されます。",
+    "maxDurationNote": "このロールの申請は {duration} までに制限されています。直接の付与には制限はありません。",
+    "scopeGlobal": "ロールはアプリケーション全体に適用されます。",
+    "scopeDepartment": "ロールはこの部署とその下位部署の範囲内でのみ適用されます。ロール クエリ API ではスコープ付きとして報告されます。",
+    "reasonPlaceholder": "例: 四半期末の決算 (FIN-2031)"
+  },
+  "query": {
+    "title": "ロール クエリ コンソール",
+    "hint": "{app} がロール クエリ API でユーザーを照会したときに返される内容を正確に確認します。",
+    "person": "ユーザー",
+    "personPlaceholder": "ユーザーを検索…",
+    "raw": "生の JSON",
+    "copyJson": "JSON をコピー",
+    "error": "照会に失敗しました",
+    "evaluated": "評価日時",
+    "inactive": "このユーザーは「{status}」のため、API はロールもアクセス許可も返しません。",
+    "roles": "ロール",
+    "noRoles": "{app} のロールはありません。",
+    "noExpiry": "無期限",
+    "permissions": "有効なアクセス許可",
+    "noPermissions": "全体に付与されているアクセス許可はありません。",
+    "scoped": "スコープ付きのアクセス許可",
+    "within": "範囲:",
+    "empty": {
+      "title": "ユーザーを選択",
+      "description": "{app} でのロール (スコープ、有効期限、取得経路) と有効なアクセス許可がここに表示されます。"
+    },
+    "via": {
+      "direct": "直接",
+      "group": "グループ経由: {name}",
+      "everyone": "全員"
+    },
+    "check": {
+      "title": "アクセス許可のチェック",
+      "hint": "{name} は特定の操作を実行できますか?",
+      "pickFirst": "最初にユーザーを選択してください。",
+      "permission": "アクセス許可",
+      "permissionHint": "カタログから選択するか、任意のキーを入力します。",
+      "department": "部署 (省略可能)",
+      "anyDepartment": "部署を指定しない",
+      "departmentHint": "この部署または上位部署に付与されたロールも含めます。",
+      "submit": "チェック",
+      "allowed": "許可",
+      "denied": "拒否",
+      "summary": "{user} · {permission}",
+      "matched": "付与元",
+      "stale": "入力が変更されました。もう一度チェックして結果を更新してください。"
+    },
+    "examples": {
+      "title": "自分で呼び出す",
+      "hint": "アプリケーションが送信するリクエストです (このホストを使用)。",
+      "apiKey": "API キー",
+      "oauth": "OAuth 2.0",
+      "apiKeyHint": "API クライアントのシークレットをベアラー トークンとして送信します。クライアントにはこのアプリケーションの照会が許可されている必要があります。",
+      "oauthHint": "または、クライアント ID とシークレットを 1 時間有効なアクセス トークンと交換し、それをベアラー トークンとして使用します。",
+      "user": "ユーザーのロールとアクセス許可",
+      "check": "1 つのアクセス許可のチェック",
+      "members": "ロールを持つ全員 (プロビジョニング同期用)",
+      "token": "アクセス トークンの取得",
+      "useToken": "トークンの使用",
+      "copy": "コピー: {name}"
+    }
+  },
+  "clients": {
+    "title": "API クライアント",
+    "description": "他のシステムがプラットフォームを呼び出すためのサービス アカウントです。主に、アプリケーションでユーザーが実行できる操作をロール クエリ API で照会するために使用します。",
+    "create": "クライアントの作成",
+    "search": "クライアントを検索…",
+    "noMatch": "「{q}」に一致するクライアントはありません",
+    "allApplications": "すべてのアプリケーション",
+    "noApplications": "アプリケーションなし",
+    "empty": {
+      "title": "API クライアントはまだありません",
+      "description": "誰が何をできるかを照会する必要があるシステムごとにクライアントを作成します。"
+    },
+    "forbidden": {
+      "title": "API クライアントを管理する権限がありません",
+      "description": "プラットフォーム管理者にアクセスを依頼してください。"
+    },
+    "columns": {
+      "client": "クライアント",
+      "applications": "照会可能",
+      "permissions": "プラットフォームのアクセス許可",
+      "secrets": "有効なシークレット",
+      "lastUsed": "最終使用",
+      "status": "状態"
+    },
+    "status": {
+      "active": "有効",
+      "expired": "期限切れ",
+      "revoked": "取り消し済み"
+    },
+    "form": {
+      "createTitle": "API クライアントの作成",
+      "createDescription": "シークレットは作成直後に 1 回だけ表示されます。",
+      "editTitle": "{name} の編集",
+      "editDescription": "クライアントがアクセスできる範囲を変更します。変更は監査ログに記録されます。",
+      "tokensRevoked": "保存すると、このクライアントの未失効の OAuth アクセス トークンが取り消され、新しいトークンを要求する必要があります。API キーは引き続き使用できます。",
+      "name": "名前",
+      "namePlaceholder": "例: 財務 ERP ロール同期",
+      "description": "説明",
+      "descriptionPlaceholder": "どのシステムが何のために使用しますか?",
+      "applications": "照会できるアプリケーション",
+      "selectedApps": "選択したアプリケーション",
+      "allApps": "すべてのアプリケーション",
+      "allAppsHint": "後から登録されるものも含め、すべてのアプリケーションを照会できます。",
+      "selectedHint": "ロール クエリ API で照会できるのは、これらのアプリケーションのみです。",
+      "advanced": "詳細設定: プラットフォームのアクセス許可、IP 範囲",
+      "advancedSet": "{count} 件設定済み",
+      "permissions": "プラットフォーム API のアクセス許可",
+      "permissionsHint": "省略可能。クライアントが他のプラットフォーム API (例: core.users.read) を呼び出せるようにします。付与できるのは自分が持っているアクセス許可のみです。",
+      "permissionInvalid": "module.resource.action の形式で入力してください。* ワイルドカードも使用できます。",
+      "notHeld": "自分が持っていないアクセス許可は付与できません: {permissions}",
+      "cidrs": "許可する IP 範囲",
+      "cidrsHint": "省略可能。これらのアドレスからのリクエストのみを受け付けます (例: 10.0.0.0/8)。空の場合はすべてのアドレスを許可します。",
+      "cidrInvalid": "IP アドレスまたは CIDR 範囲を入力してください (例: 10.0.0.0/8)。",
+      "duplicate": "{value} は既に一覧にあります。",
+      "removeEntry": "{value} を削除",
+      "secretExpiry": "最初のシークレットの有効期限",
+      "expiry": {
+        "90": "90 日",
+        "180": "180 日",
+        "365": "1 年",
+        "never": "無期限",
+        "custom": "カスタム…"
+      },
+      "customDays": "日数",
+      "daysUnit": "日",
+      "daysInvalid": "1～730 の整数で日数を入力してください。",
+      "expiryHint": "期限が切れる前に新しいシークレットを追加すると、ダウンタイムなしでローテーションできます。",
+      "neverHint": "無期限のシークレットはリスクが高くなります。定期的にローテーションしてください。",
+      "submit": "クライアントの作成",
+      "saved": "クライアントを保存しました",
+      "appsFailed": "アプリケーションを読み込めませんでした。",
+      "retry": "再試行",
+      "validation": {
+        "name": "名前を入力してください。",
+        "reach": "アプリケーションを 1 つ以上選択するか、[詳細設定] でプラットフォームのアクセス許可を付与してください。"
+      }
+    },
+    "reveal": {
+      "title": "「{name}」の準備ができました",
+      "description": "このクライアントを使用するシステムにシークレットを渡してください。",
+      "rotatedTitle": "新しいシークレットを作成しました",
+      "rotatedDescription": "新しいシークレットを展開し、古いシークレットが使われなくなったら取り消してください。",
+      "warningTitle": "今すぐシークレットをコピーしてください。",
+      "warning": "再表示することはできません。保存されるのはフィンガープリントのみです。紛失した場合は新しいシークレットを追加してください。",
+      "secret": "クライアント シークレット (API キー)",
+      "clientId": "クライアント ID",
+      "copySecret": "シークレットをコピー",
+      "copyClientId": "クライアント ID をコピー",
+      "tryIt": "試してみる",
+      "stored": "シークレットを安全な場所に保存しました",
+      "done": "完了"
+    },
+    "examples": {
+      "apiKey": "API キー",
+      "oauth": "OAuth 2.0",
+      "apiKeyHint": "シークレットをベアラー トークンとして使い、{user} が実行できる操作を照会します。",
+      "apiKeyHintNoApps": "シークレットをベアラー トークンとして送信します。このクライアントはまだどのアプリケーションも照会できません。",
+      "oauthHint": "クライアント ID とシークレットを 1 時間有効なアクセス トークンと交換します (クライアント資格情報)。",
+      "copyApiKey": "API キーのリクエストをコピー",
+      "copyOauth": "トークンのリクエストをコピー"
+    },
+    "secrets": {
+      "title": "シークレット",
+      "hint": "クライアントは複数のシークレットを保持できるため、ダウンタイムなしでローテーションできます。新しいシークレットを追加して展開し、古いシークレットを取り消します。",
+      "add": "シークレットの追加",
+      "addTitle": "シークレットの追加",
+      "addDescription": "新しいシークレットは既存のシークレットと並行して使用できます。表示は 1 回だけです。",
+      "generate": "シークレットの生成",
+      "empty": "シークレットはありません",
+      "neverExpires": "無期限",
+      "columns": {
+        "secret": "シークレット",
+        "created": "作成日時",
+        "expires": "有効期限",
+        "lastUsed": "最終使用",
+        "status": "状態",
+        "actions": "操作"
+      },
+      "revoke": "取り消し",
+      "revokeLabel": "シークレット {prefix} の取り消し",
+      "revokeTitle": "{prefix}… を取り消しますか?",
+      "revokeBody": "このシークレットを使ったリクエストは直ちに失敗するようになり、クライアントの OAuth アクセス トークンも取り消されます。",
+      "revokeLastBody": "これはこのクライアントの最後の有効なシークレットです。新しいシークレットを追加するまで認証できなくなります。OAuth アクセス トークンも取り消されます。",
+      "revoked": "シークレット {prefix}… を取り消しました"
+    },
+    "detail": {
+      "notFound": "この API クライアントは存在しません。",
+      "clientId": "クライアント ID",
+      "copyClientId": "クライアント ID をコピー",
+      "lastUsed": "最終使用",
+      "reach": "アクセス範囲",
+      "reachHint": "クライアントが照会できる内容と、呼び出し元として許可されるアドレスです。",
+      "applications": "照会できるアプリケーション",
+      "permissions": "プラットフォームのアクセス許可",
+      "noPermissions": "なし (ロール クエリのみ)",
+      "cidrs": "許可する IP 範囲",
+      "anyIp": "すべてのアドレス",
+      "by": "作成者: {name}",
+      "examples": "API の呼び出し",
+      "examplesHint": "プレースホルダーをこのクライアントのいずれかのシークレットに置き換えてください。",
+      "dangerTitle": "危険な操作",
+      "dangerHint": "クライアントを取り消すと、すべてのシークレットとアクセス トークンが無効になります。元に戻すことはできません。",
+      "revoke": "クライアントの取り消し",
+      "revokeTitle": "{name} を取り消しますか?",
+      "revokeBody": "すべてのシークレットとアクセス トークンが直ちに無効になります。クライアントは監査証跡のために残りますが、変更や使用はできなくなります。",
+      "revoked": "クライアントを取り消しました",
+      "revokedTitle": "取り消し日時:",
+      "revokedNotice": "認証も変更もできません。システムで引き続きアクセスが必要な場合は、新しいクライアントを作成してください。"
+    }
+  }
+}

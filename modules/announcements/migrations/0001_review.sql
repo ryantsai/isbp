@@ -1,0 +1,1 @@
+ALTER TABLE "announcements"."posts" ADD COLUMN "review_instance_id" uuid;

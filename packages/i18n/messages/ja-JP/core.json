@@ -13,7 +13,19 @@
     "modules": "モジュール",
     "identity": "サインイン プロバイダー",
     "sectionMain": "ワークスペース",
-    "sectionAdmin": "管理"
+    "sectionAdmin": "管理",
+    "approvals": "承認",
+    "requests": "申請",
+    "applications": "アプリケーション",
+    "apiClients": "API クライアント",
+    "workflows": "ワークフロー",
+    "forms": "フォーム",
+    "customFields": "カスタム フィールド",
+    "notifications": "通知",
+    "groupIdentity": "ID 管理",
+    "groupAccess": "アクセス",
+    "groupAutomation": "自動化",
+    "groupPlatform": "プラットフォーム"
   },
   "permissions": {
     "usersRead": "ユーザーとプロファイルの表示",
@@ -32,16 +44,39 @@
     "modulesRead": "インストール済みモジュールの表示",
     "modulesManage": "モジュールの有効化、無効化、構成",
     "idpRead": "サインイン プロバイダーの表示",
-    "idpManage": "サインイン プロバイダーとディレクトリ同期の構成"
+    "idpManage": "サインイン プロバイダーとディレクトリ同期の構成",
+    "workflowsRead": "ワークフローと進行中の承認を表示",
+    "workflowsManage": "ワークフローの設計、公開、管理",
+    "formsManage": "フォームの作成と公開",
+    "customFieldsManage": "ユーザー、グループ、部署にカスタム フィールドを追加",
+    "notificationsManage": "メール、Teams、Slack、Webhook 通知の構成",
+    "accessRequestsRead": "他のユーザーのアクセス申請を表示",
+    "applicationsRead": "アプリケーションとアクセス権を持つユーザーを表示",
+    "applicationsManage": "アプリケーション、そのロールと付与の管理",
+    "apiClientsManage": "API クライアントとキーの作成",
+    "roleQueryRead": "ロール クエリ API でロールとアクセス許可を照会"
   },
   "settings": {
     "productName": "製品名",
     "supportEmail": "サポート用メール アドレス",
     "loginBanner": "サインイン バナー",
-    "loginBannerHelp": "サインイン ページに表示されます (例: 利用規定に関する告知)。"
+    "loginBannerHelp": "サインイン ページに表示されます (例: 利用規定に関する告知)。",
+    "emailEnabled": "メール通知を送信する",
+    "emailHost": "SMTP サーバー",
+    "emailPort": "SMTP ポート",
+    "emailSecure": "最初から TLS を使用",
+    "emailSecureHelp": "ポート 465 ではオン。オフの場合は STARTTLS（ポート 587）を使用します。",
+    "emailUsername": "SMTP ユーザー名",
+    "emailPassword": "SMTP パスワード",
+    "emailFrom": "差出人",
+    "emailFromHelp": "メールの差出人名とアドレス（例: IS Big Platform、noreply@example.com）",
+    "notificationRetention": "通知の保存期間（日）"
   },
   "systemRoles": {
-    "platform-admin": { "name": "プラットフォーム管理者", "description": "すべての機能へのフル アクセス" },
+    "platform-admin": {
+      "name": "プラットフォーム管理者",
+      "description": "すべての機能へのフル アクセス"
+    },
     "identity-admin": {
       "name": "ID 管理者",
       "description": "ユーザー、グループ、部署、ロールの割り当てを管理"
@@ -50,7 +85,107 @@
       "name": "セキュリティ監査者",
       "description": "すべてのモジュールと監査証跡への読み取り専用アクセス"
     },
-    "module-admin": { "name": "モジュール管理者", "description": "モジュールの有効化、無効化、構成" },
-    "everyone": { "name": "全員", "description": "すべての有効なユーザーに付与される基本アクセス" }
+    "module-admin": {
+      "name": "モジュール管理者",
+      "description": "モジュールの有効化、無効化、構成"
+    },
+    "everyone": {
+      "name": "全員",
+      "description": "すべての有効なユーザーに付与される基本アクセス"
+    },
+    "workflow-admin": {
+      "name": "ワークフロー管理者",
+      "description": "承認ワークフロー、フォーム、カスタム フィールド、通知チャネルを設計"
+    },
+    "application-manager": {
+      "name": "アプリケーション管理者",
+      "description": "アプリケーションのロールとアクセス許可を管理（1 つのアプリケーションに限定して割り当て）"
+    }
+  },
+  "entities": {
+    "user": "ユーザー",
+    "group": "グループ",
+    "department": "部署"
+  },
+  "workflows": {
+    "accessRequest": {
+      "name": "アクセス申請",
+      "description": "セルフサービスのロール申請を判断します。条件にはロール（リスク、所有者、アプリケーション）と申請内容（期間、範囲）を使用できます。"
+    },
+    "formSubmission": {
+      "name": "フォームの送信",
+      "description": "このワークフローが割り当てられたフォームで実行されます。条件には送信されたすべての値（data.フィールドキー）を使用できます。"
+    }
+  },
+  "notifications": {
+    "approval_assigned": {
+      "label": "自分宛ての承認",
+      "title": "承認が必要です: {subject}",
+      "body": "{requester} さんがあなたの判断を待っています（{step}）。"
+    },
+    "approval_reminder": {
+      "label": "承認のリマインダー",
+      "title": "リマインダー: {subject} が承認待ちです",
+      "body": "ステップ: {step}"
+    },
+    "approval_escalated": {
+      "label": "自分にエスカレーションされた承認",
+      "title": "エスカレーション: {subject}",
+      "body": "最初の承認者が期限内に応答しませんでした（{step}）。"
+    },
+    "approval_overdue": {
+      "label": "期限切れの承認",
+      "title": "期限切れ: {subject}",
+      "body": "{step} の期限を過ぎています。"
+    },
+    "approval_delegated": {
+      "label": "委任された承認",
+      "title": "{actor} さんから判断の依頼: {subject}",
+      "body": "{comment}"
+    },
+    "workflow_fyi": {
+      "label": "ワークフローの更新（参考）",
+      "title": "お知らせ: {subject}",
+      "body": "{message}"
+    },
+    "access_request_approved": {
+      "label": "自分のアクセス申請の承認",
+      "title": "承認されました: {role}（{reference}）",
+      "body": "{permanent, select, yes {このアクセスに期限はありません。} other {このアクセスは {expiresAt} に終了します。}}"
+    },
+    "access_request_rejected": {
+      "label": "自分のアクセス申請の却下",
+      "title": "却下されました: {role}（{reference}）",
+      "body": "{comment}"
+    },
+    "access_request_failed": {
+      "label": "付与できなかったアクセス",
+      "title": "{role} を付与できませんでした（{reference}）",
+      "body": "申請は承認されましたが、アクセスを付与できませんでした。退職したか、ロールが削除された可能性があります。"
+    },
+    "access_expiring": {
+      "label": "まもなく終了するアクセス",
+      "title": "{role} のアクセスがまもなく終了します",
+      "body": "{expiresAt} に終了します。引き続き必要な場合は再度申請してください。"
+    },
+    "access_granted": {
+      "label": "付与されたロール",
+      "title": "ロール {role} が付与されました",
+      "body": "付与者: {actor}"
+    },
+    "form_submission_approved": {
+      "label": "自分のフォーム申請の承認",
+      "title": "承認されました: {form}（{reference}）",
+      "body": ""
+    },
+    "form_submission_rejected": {
+      "label": "自分のフォーム申請の却下",
+      "title": "却下されました: {form}（{reference}）",
+      "body": "{comment}"
+    },
+    "channel_test": {
+      "title": "IS Big Platform からのテスト通知",
+      "body": "このメッセージが表示されていれば、チャネルは正常に動作しています。"
+    }
   }
 }

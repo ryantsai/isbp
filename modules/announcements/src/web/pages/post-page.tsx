@@ -12,11 +12,13 @@ import { Skeleton } from '@isbp/ui/skeleton';
 import {
   ArchiveIcon,
   ArrowLeftIcon,
+  ClockIcon,
   FileQuestionIcon,
   PencilIcon,
   PinIcon,
   SendIcon,
   Trash2Icon,
+  UndoIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -38,7 +40,11 @@ export default function PostPage({ params }: WebPageProps) {
   const opts = { invalidate: ['/announcements/'] };
   const publish = useApiMutation((api) => api.post<Post>(`${path}/publish`), {
     ...opts,
-    success: t('publishedToast'),
+    success: (p) => (p.status === 'pending' ? t('submittedToast') : t('publishedToast')),
+  });
+  const withdraw = useApiMutation((api) => api.post<Post>(`${path}/withdraw`), {
+    ...opts,
+    success: t('withdrawnToast'),
   });
   const archive = useApiMutation((api) => api.post<Post>(`${path}/archive`), {
     ...opts,
@@ -68,7 +74,13 @@ export default function PostPage({ params }: WebPageProps) {
               <PinIcon /> {t('pinned')}
             </Badge>
           )}
-          {post.status !== 'published' && <Badge variant="muted">{t(`status.${post.status}`)}</Badge>}
+          {post.status === 'pending' ? (
+            <Badge variant="warning">
+              <ClockIcon /> {t('status.pending')}
+            </Badge>
+          ) : (
+            post.status !== 'published' && <Badge variant="muted">{t(`status.${post.status}`)}</Badge>
+          )}
         </div>
         <h1 className="text-2xl font-semibold tracking-tight text-balance">{post.title}</h1>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -86,16 +98,29 @@ export default function PostPage({ params }: WebPageProps) {
           <p className="leading-relaxed whitespace-pre-wrap">{post.body || '—'}</p>
         </CardContent>
       </Card>
+      {post.status === 'pending' && (
+        <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+          <ClockIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <p>{t('pendingHint')}</p>
+        </div>
+      )}
       {canManage && (
         <div className="flex flex-wrap gap-2">
+          {post.status === 'pending' && (
+            <Button variant="outline" onClick={() => withdraw.mutate(undefined)} loading={withdraw.isPending}>
+              <UndoIcon /> {t('withdraw')}
+            </Button>
+          )}
           {post.status === 'draft' && (
             <Button onClick={() => publish.mutate(undefined)} loading={publish.isPending}>
               <SendIcon /> {t('editor.publish')}
             </Button>
           )}
-          <Button variant="outline" onClick={() => setEditing(true)}>
-            <PencilIcon /> {tc('edit')}
-          </Button>
+          {post.status !== 'pending' && (
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              <PencilIcon /> {tc('edit')}
+            </Button>
+          )}
           {post.status === 'published' && (
             <Button variant="outline" onClick={() => archive.mutate(undefined)} loading={archive.isPending}>
               <ArchiveIcon /> {t('archive')}

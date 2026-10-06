@@ -1,0 +1,230 @@
+{
+  "title": "通知",
+  "description": "與您相關的簽核、申請進度及公告，最新的排在最前面。",
+  "settingsLink": "通知設定",
+  "markAllRead": "全部標示為已讀",
+  "markedAllRead": "已將所有通知標示為已讀",
+  "markRead": "標示為已讀",
+  "markReadLabel": "將「{title}」標示為已讀",
+  "unread": "未讀：",
+  "today": "今天",
+  "yesterday": "昨天",
+  "loadMore": "載入更多",
+  "showing": "顯示 {shown} 則，共 {total} 則",
+  "tabs": {
+    "label": "篩選通知",
+    "all": "全部",
+    "unread": "未讀"
+  },
+  "empty": {
+    "allTitle": "目前還沒有通知",
+    "allBody": "有需要您處理的事項時，例如待簽核項目、申請進度更新或新公告，就會顯示在這裡。",
+    "unreadTitle": "您已讀完所有通知",
+    "unreadBody": "自上次查看後沒有新的通知。",
+    "viewAll": "檢視所有通知"
+  },
+  "patterns": {
+    "all": "所有通知",
+    "module": "所有「{module}」通知",
+    "reach": "{count, plural, other {# 種類型}}"
+  },
+  "channelTypes": {
+    "email": "電子郵件",
+    "teams": "Microsoft Teams",
+    "slack": "Slack",
+    "webhook": "Webhook"
+  },
+  "admin": {
+    "title": "通知傳送",
+    "description": "除了應用程式內的通知匣，通知也可以透過電子郵件，以及傳送到 Microsoft Teams、Slack 或您自己的系統。",
+    "copyFailed": "無法複製，請選取文字後手動複製。",
+    "tabs": {
+      "label": "傳送設定",
+      "channels": "通道",
+      "email": "電子郵件",
+      "log": "傳送紀錄"
+    },
+    "channels": {
+      "intro": "將選定的通知張貼到團隊頻道或其他系統，例如將轉呈的簽核傳送到 IT 值班頻道。訊息會以通道設定的語言撰寫。",
+      "add": "新增通道",
+      "emptyTitle": "尚未設定任何通道",
+      "emptyBody": "連接 Microsoft Teams 或 Slack 頻道，或任何 HTTPS 端點，以接收選定的通知。",
+      "deleteTitle": "要刪除 {name} 嗎？",
+      "deleteBody": "通知會立即停止傳送到此通道，其傳送歷程仍會保留在紀錄中。",
+      "delete": "刪除通道",
+      "toggle": "傳送通知到 {name}",
+      "subscribed": "傳送到此處的通知",
+      "language": "訊息語言",
+      "lastDelivery": "上次傳送",
+      "noDelivery": "尚無",
+      "lastError": "上次傳送失敗",
+      "editLabel": "編輯 {name}",
+      "more": "{name} 的其他動作",
+      "toast": {
+        "deleted": "已刪除 {name}",
+        "enabled": "已開啟 {name}",
+        "disabled": "已關閉 {name}"
+      },
+      "test": {
+        "button": "傳送測試",
+        "hint": "立即張貼一則測試訊息，即使通道已關閉也可以",
+        "sent": "測試訊息已送達，請到頻道查看。",
+        "failed": "通道未接受測試訊息。",
+        "sentToast": "已傳送測試訊息到 {name}",
+        "failedToast": "傳送測試訊息到 {name} 失敗"
+      },
+      "form": {
+        "createTitle": "新增通道",
+        "editTitle": "編輯 {name}",
+        "createDescription": "選擇訊息要傳送到哪裡，以及要傳送哪些通知。",
+        "editDescription": "變更名稱、語言或通知。網址留空即保留目前的網址。",
+        "type": "類型",
+        "typeLocked": "無法變更",
+        "guide": {
+          "teams": "在 Microsoft Teams 中開啟頻道，選擇 ••• › 工作流程 ›「收到 Webhook 要求時張貼到頻道」，完成步驟後複製顯示的網址。",
+          "slack": "在 Slack 中，到 api.slack.com/apps 建立應用程式，開啟 Incoming Webhooks，選擇「Add New Webhook to Workspace」並挑選頻道，然後複製網址（https://hooks.slack.com/services/…）。",
+          "webhook": "您自己維運的任何 HTTPS 端點。我們會以 POST 傳送包含標題、內文、連結及類型的 JSON，並以儲存後顯示一次的密鑰簽章，讓您確認每個要求確實來自本平台。"
+        },
+        "name": "名稱",
+        "namePlaceholder": "例如：IT 維運（Teams）",
+        "url": "Webhook 網址",
+        "urlKeepPlaceholder": "留空即保留目前的網址",
+        "urlKeep": "目前傳送到 {host}。網址本身不會再次顯示。",
+        "urlHint": "請把它當作密碼：網址會加密儲存，之後不會再顯示。",
+        "locale": "訊息語言",
+        "localeHint": "張貼到此通道的訊息會以這個語言撰寫。",
+        "enabled": "傳送通知到此通道",
+        "enabledHint": "關閉即可暫停傳送，設定不會遺失。",
+        "submit": "新增通道",
+        "created": "已新增 {name}",
+        "saved": "已儲存 {name}",
+        "types": {
+          "label": "通知",
+          "hint": "選擇通知類型或整個模組。像 core.access-request.* 這樣的模式也會符合日後新增的類型。",
+          "placeholder": "選擇通知…",
+          "selectedCount": "{count, plural, other {已選 # 項}}",
+          "search": "搜尋通知…",
+          "noMatch": "沒有相符的通知。",
+          "everything": "全部",
+          "selected": "已選取",
+          "chosen": "已選擇的通知",
+          "remove": "移除 {pattern}",
+          "customLabel": "或新增模式",
+          "addPattern": "新增",
+          "patternInvalid": "請使用「模組.實體.動作」格式，可用 * 作為萬用字元，例如 core.access-request.*",
+          "coverage": "涵蓋 {total} 種通知類型中的 {covered} 種"
+        },
+        "validation": {
+          "name": "請輸入名稱。",
+          "nameLength": "最多 200 個字元。",
+          "url": "請輸入以 https:// 開頭的完整網址",
+          "urlRequired": "請輸入 Webhook 網址。",
+          "types": "請至少選擇一種通知。",
+          "typesMax": "最多選擇 50 項。",
+          "target": "無法使用此網址。請使用公開的 https:// 位址，不可使用內部或私人網路位址，網址中也不可包含使用者名稱或密碼。",
+          "invalid": "此值無效。"
+        }
+      }
+    },
+    "secret": {
+      "title": "{name} 的簽章密鑰",
+      "description": "您的端點可使用此密鑰確認要求確實來自本平台。",
+      "once": "請立即複製並妥善保存，此密鑰不會再次顯示。",
+      "verifyTitle": "如何驗證要求",
+      "step1": "讀取 <code>x-isbp-signature</code> 標頭，格式類似 <code>t=1760000000,v1=5257a8…</code>（以秒為單位的 Unix 時間及簽章）。",
+      "step2": "以此密鑰對「時間戳記、一個句點及原始要求內文」（<code>t + \".\" + body</code>）計算 HMAC-SHA256，並以小寫十六進位表示。",
+      "step3": "只有在結果與 v1 相同（請使用固定時間比較）且時間戳記在 5 分鐘內時，才接受該要求。",
+      "done": "我已保存密鑰"
+    },
+    "email": {
+      "title": "電子郵件（SMTP）",
+      "description": "用於寄送通知郵件的郵件伺服器。使用者可在自己的設定中選擇要以電子郵件接收哪些通知。",
+      "enabled": "寄送通知郵件",
+      "enabledHint": "關閉時，通知只會顯示在應用程式內及通道中。",
+      "server": "伺服器",
+      "host": "SMTP 伺服器",
+      "port": "連接埠",
+      "tls": "加密方式",
+      "tlsModes": {
+        "starttls": "STARTTLS（通常為連接埠 587）",
+        "tls": "SSL/TLS（通常為連接埠 465）"
+      },
+      "tlsHint": "請依郵件服務供應商的說明文件選擇。",
+      "auth": "登入",
+      "authHint": "如果伺服器不需登入即可接受本平台的郵件，兩者皆可留空。",
+      "username": "使用者名稱",
+      "password": "密碼",
+      "passwordStored": "已儲存密碼",
+      "passwordReplace": "更換",
+      "passwordRemove": "移除",
+      "passwordWillRemove": "儲存後將移除密碼。",
+      "undo": "復原",
+      "passwordNewPlaceholder": "新密碼",
+      "passwordKeep": "保留目前的密碼",
+      "passwordHint": "密碼會加密儲存，之後不會再顯示。",
+      "from": "寄件者",
+      "fromHint": "電子郵件地址，可附上名稱，例如 {example}。伺服器必須允許以此地址寄信。",
+      "enableNote": "儲存後就會開始寄送郵件。",
+      "discard": "捨棄變更",
+      "saved": "已儲存電子郵件設定",
+      "status": {
+        "ready": "就緒",
+        "incomplete": "尚未設定完成",
+        "off": "已關閉"
+      },
+      "validation": {
+        "tooLong": "內容太長。",
+        "port": "請輸入 1 到 65535 之間的連接埠。",
+        "hostRequired": "要開啟電子郵件，請輸入 SMTP 伺服器。",
+        "fromRequired": "要開啟電子郵件，請輸入寄件者。",
+        "from": "請輸入電子郵件地址，可附上名稱，例如 {example}"
+      },
+      "test": {
+        "button": "寄送測試郵件",
+        "saveFirst": "請先儲存變更，測試會使用已儲存的設定。",
+        "notReady": "請先開啟電子郵件，並儲存伺服器及寄件者。",
+        "title": "寄送測試郵件",
+        "description": "以已儲存的設定寄出一封簡短的郵件，讓您確認伺服器、登入及寄件者是否正確。",
+        "to": "收件者",
+        "invalid": "請輸入有效的電子郵件地址。",
+        "notConfigured": "尚未設定電子郵件。請先開啟並儲存伺服器及寄件者。",
+        "failed": "郵件伺服器未接受測試郵件。",
+        "sent": "已寄送測試郵件到 {to}。可能需要一點時間，也請檢查垃圾郵件資料夾。",
+        "send": "寄送"
+      }
+    },
+    "log": {
+      "title": "傳送紀錄",
+      "intro": "平台嘗試寄送的每封郵件及每則通道訊息。傳送失敗時會重試數次，之後才標示為失敗。",
+      "refresh": "重新整理",
+      "noError": "沒有錯誤",
+      "notSent": "未傳送",
+      "attempts": "{count, plural, other {已嘗試 # 次}}",
+      "emptyTitle": "尚無傳送紀錄",
+      "emptyBody": "電子郵件及通道訊息會連同狀態顯示在這裡，方便您找出問題。",
+      "emptyFilteredTitle": "沒有符合篩選條件的傳送紀錄",
+      "emptyFilteredBody": "請嘗試其他狀態或通道。",
+      "columns": {
+        "channel": "通道",
+        "notification": "通知",
+        "recipient": "收件者",
+        "status": "狀態",
+        "error": "最近的錯誤",
+        "created": "建立時間",
+        "sent": "傳送時間"
+      },
+      "filters": {
+        "status": "狀態",
+        "channel": "通道",
+        "allStatuses": "所有狀態",
+        "allChannels": "所有通道"
+      },
+      "status": {
+        "pending": "等待中",
+        "sent": "已傳送",
+        "failed": "失敗",
+        "skipped": "已略過"
+      }
+    }
+  }
+}

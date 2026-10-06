@@ -38,11 +38,19 @@ import { ChevronDownIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { type FieldValues, type Resolver, type UseFormReturn, useForm } from 'react-hook-form';
 import type { z } from 'zod';
+import {
+  attributesPayload,
+  CustomFieldsSection,
+  useApplyEntityErrors,
+  useAttributeDefaults,
+  useAttributesResolver,
+  useEntityFields,
+} from '@/components/fields/entity-fields';
 import { type PickedUser, UserPicker } from '@/components/pickers/user-picker';
 import { type DepartmentNode, useDepartments } from '@/components/pickers/use-departments';
-import { applyServerErrors, useApiMutation, useErrorText } from '@/lib/api';
+import { useApiMutation, useErrorText } from '@/lib/api';
 
 type Values = z.input<typeof createDepartmentSchema>;
 
@@ -123,10 +131,17 @@ export function DepartmentFormSheet({
   const [advanced, setAdvanced] = useState(false);
   const [manager, setManager] = useState<PickedUser | null>(null);
 
-  const form = useForm<Values>({
-    resolver: zodResolver(
+  const custom = useEntityFields('core.department', open);
+  const applyErrors = useApplyEntityErrors();
+  const resolver = useAttributesResolver(
+    zodResolver(
       editing ? (updateDepartmentSchema as unknown as typeof createDepartmentSchema) : createDepartmentSchema,
-    ),
+    ) as Resolver<Values>,
+    custom.fields,
+  );
+
+  const form = useForm<Values>({
+    resolver,
     defaultValues: { code: '', name: '', description: '', parentId: null, managerId: null, sortOrder: 0 },
   });
 
@@ -163,6 +178,13 @@ export function DepartmentFormSheet({
       setManager(null);
     }
   }, [open, department, parentId, form]);
+  useAttributeDefaults(
+    form as unknown as UseFormReturn<FieldValues>,
+    custom.fields,
+    custom.ready,
+    open,
+    department?.attributes,
+  );
 
   const create = useApiMutation((api, values: Values) => api.post<{ id: string }>('/departments', values), {
     invalidate: DEPARTMENT_INVALIDATE,
@@ -194,11 +216,13 @@ export function DepartmentFormSheet({
       parentId: values.parentId ?? null,
       managerId: values.managerId ?? null,
       sortOrder: values.sortOrder ?? 0,
+      // Custom-field values only once their definitions are loaded (never wipe them by accident).
+      attributes: custom.ready ? attributesPayload(custom.fields, values.attributes) : undefined,
     };
     try {
       await mutation.mutateAsync(payload);
     } catch (err) {
-      if (applyServerErrors(err, form.setError as never)) return;
+      if (applyErrors(err, form.setError as never)) return;
       if (err instanceof ApiError && err.code === 'INVALID_PARENT') {
         form.setError('parentId', { message: t('invalidParent') });
         return;
@@ -304,6 +328,12 @@ export function DepartmentFormSheet({
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+
+              <CustomFieldsSection
+                elements={custom.elements}
+                form={form as unknown as UseFormReturn<FieldValues>}
+                className="pt-1"
               />
 
               <div>

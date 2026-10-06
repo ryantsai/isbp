@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 export const severitySchema = z.enum(['info', 'maintenance', 'incident']);
 export type Severity = z.infer<typeof severitySchema>;
-export const postStatusSchema = z.enum(['draft', 'published', 'archived']);
+export const postStatusSchema = z.enum(['draft', 'pending', 'published', 'archived']);
 export type PostStatus = z.infer<typeof postStatusSchema>;
 
 export const postSchema = z.object({
@@ -18,6 +18,8 @@ export const postSchema = z.object({
   endsAt: dateTime.nullable(),
   publishedAt: dateTime.nullable(),
   author: z.object({ id: z.uuid(), displayName: z.string() }).nullable(),
+  /** The review workflow while the post waits for approval. */
+  reviewInstanceId: z.uuid().nullable(),
   createdAt: dateTime,
   updatedAt: dateTime,
 });

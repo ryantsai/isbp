@@ -89,6 +89,11 @@ config:
   AUTO_MIGRATE: 'false'
   # OTLP/HTTP endpoint for traces, e.g. http://otel-collector.observability:4318 (empty = tracing off).
   OTEL_EXPORTER_OTLP_ENDPOINT: ''
+  # Lifetime of OAuth client-credentials access tokens (Role Query API clients).
+  OAUTH_TOKEN_TTL_SECONDS: '3600'
+  # Let notification webhooks (Teams/Slack/generic) target private network addresses. Keep 'false'
+  # unless your chat or automation endpoints are internal — it is an SSRF guard.
+  ISBP_ALLOW_PRIVATE_WEBHOOKS: 'false'
 
 # ── Secrets ─────────────────────────────────────────────────────────────────────────────────────────────
 # Required keys: DATABASE_URL, REDIS_URL, ISBP_MASTER_KEY. Optional: ISBP_MASTER_KEY_PREVIOUS (key rotation).

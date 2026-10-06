@@ -1,8 +1,9 @@
-import type { JobRun, Principal } from '@isbp/sdk/server';
+import type { EventHandler, JobRun, Principal, WorkflowCompletion } from '@isbp/sdk/server';
 import { type Job, Worker } from 'bullmq';
 import { runWithContext } from './context';
 import type { Kernel } from './kernel';
 import { eventsCounter, jobsCounter } from './metrics';
+import { WORKFLOW_COMPLETED_EVENT } from './modules';
 import { type EventJobData, OutboxRelay } from './outbox-relay';
 import { EVENTS_QUEUE, moduleQueueName } from './queues';
 
@@ -34,7 +35,14 @@ export async function startWorker(kernel: Kernel) {
       async (job) => {
         const { subscriber, event } = job.data;
         const mod = registry.get(subscriber);
-        const handler = mod?.events?.[event.name];
+        const trigger =
+          event.name === WORKFLOW_COMPLETED_EVENT
+            ? (event.payload as WorkflowCompletion).triggerKey
+            : undefined;
+        const onCompleted = trigger ? mod?.workflows?.[trigger]?.onCompleted : undefined;
+        const handler: EventHandler | undefined =
+          mod?.events?.[event.name] ??
+          (onCompleted ? (evt, ctx) => onCompleted(evt.payload as WorkflowCompletion, ctx) : undefined);
         if (!mod || !handler || !registry.isEnabled(subscriber)) return { skipped: true };
         const principal: Principal = {
           type: 'system',

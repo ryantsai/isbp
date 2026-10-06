@@ -23,6 +23,7 @@ import { auditHash } from './kernel/audit';
 import { runWithContext } from './kernel/context';
 import { hashPassword } from './kernel/passwords';
 import { EVERYONE_GROUP_KEY, PLATFORM_APP_KEY } from './kernel/rbac';
+import { seedPhase1 } from './seed-phase1';
 
 const { config, kernel } = await bootstrap('isbp-seed');
 const db = kernel.db;
@@ -764,8 +765,10 @@ async function seedCore() {
 
 try {
   await kernel.migrate();
+  let apiKey: { apiClient: string; apiKey: string } | null = null;
   await runWithContext({ principal: { type: 'system', id: null, name: 'seed' } }, async () => {
     const created = await seedCore();
+    if (created) apiKey = await seedPhase1(kernel);
     for (const m of kernel.registry.modules) {
       if (m.seed && (created || process.argv.includes('--modules'))) {
         await m.seed(kernel.registry.context(m.manifest.id));
@@ -779,6 +782,12 @@ try {
     log.info(
       `Sign in at ${config.PUBLIC_URL}/login → admin / ${ADMIN_PASSWORD}   (demo: helpdesk, hr.partner, auditor / ${DEMO_PASSWORD})`,
     );
+    const key = apiKey as { apiClient: string; apiKey: string } | null;
+    if (key)
+      log.info(
+        `Role Query demo client ${key.apiClient} — API key (shown once): ${key.apiKey}\n` +
+          `  curl -H "Authorization: Bearer ${key.apiKey}" "${config.PUBLIC_URL}/api/v1/role-query/users/hr.partner?application=finance-erp"`,
+      );
   }
 } finally {
   await kernel.close();

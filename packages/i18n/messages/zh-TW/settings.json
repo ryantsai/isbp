@@ -5,6 +5,8 @@
     "label": "設定區段",
     "profile": "個人資料",
     "preferences": "偏好設定",
+    "notifications": "通知",
+    "outOfOffice": "不在辦公室",
     "security": "密碼",
     "sessions": "工作階段",
     "access": "我的存取權"
@@ -35,6 +37,72 @@
       "noMatch": "沒有相符的時區。",
       "saved": "時區已設為 {zone}",
       "useBrowser": "使用此裝置的時區（{zone}）"
+    }
+  },
+  "notifications": {
+    "title": "通知",
+    "description": "選擇要在應用程式內及透過電子郵件接收哪些通知。",
+    "reset": "還原為預設值",
+    "resetDone": "已將通知設定還原為預設值",
+    "autosave": "變更會自動儲存。",
+    "saving": "正在儲存…",
+    "saved": "已儲存",
+    "emailUnavailable": "本平台尚未設定電子郵件通知，因此您只會在應用程式內收到通知。系統管理員可開啟電子郵件功能。",
+    "tableCaption": "通知類型及其傳送管道",
+    "columns": {
+      "type": "通知",
+      "inApp": "應用程式內",
+      "email": "電子郵件"
+    },
+    "mandatory": "基於安全性必須接收",
+    "switchLabel": "{type}：{channel}"
+  },
+  "outOfOffice": {
+    "title": "不在辦公室",
+    "description": "要休假嗎？請指定一位同事，在您不在期間處理送達的簽核。",
+    "add": "排定",
+    "explainer": "在這段期間內，原本會指派給您的新簽核工作會改為交給您的代理人。已在等待您處理的工作仍由您負責。",
+    "none": "您尚未排定任何不在辦公室的期間。",
+    "listTitle": "即將開始及進行中",
+    "goesTo": "簽核交給 {name}",
+    "active": "進行中",
+    "scheduled": "已排定",
+    "end": "立即結束",
+    "remove": "移除",
+    "endLabel": "結束由 {name} 代理的不在辦公室期間",
+    "removeLabel": "移除由 {name} 代理的不在辦公室期間",
+    "endTitle": "要立即結束不在辦公室嗎？",
+    "removeTitle": "要移除此不在辦公室期間嗎？",
+    "endBody": "新的簽核工作會重新指派給您。已交給 {name} 的工作仍由對方處理。",
+    "removeBody": "在 {period} 期間，簽核將不會交給 {name}。",
+    "ended": "已結束不在辦公室",
+    "removed": "已移除不在辦公室期間",
+    "formTitle": "新增不在辦公室期間",
+    "delegate": "將我的簽核交給",
+    "delegatePlaceholder": "選擇同事…",
+    "delegateHint": "代理人會代替您決定新的簽核工作，並在工作送達時收到通知。",
+    "from": "開始",
+    "until": "結束",
+    "quick": {
+      "label": "期間",
+      "days": "{count, plural, other {# 天}}"
+    },
+    "timeZone": "時間以您的時區（{zone}）為準。",
+    "reason": "原因",
+    "reasonPlaceholder": "例如：特休",
+    "reasonHint": "會顯示給簽核被轉交的相關人員。",
+    "save": "排定不在辦公室",
+    "created": "已排定不在辦公室",
+    "validation": {
+      "reason": "最多 300 個字元。",
+      "delegate": "請選擇代為處理簽核的人員。",
+      "date": "請輸入日期及時間。",
+      "afterStart": "結束時間必須晚於開始時間。",
+      "future": "結束時間必須是未來的時間。"
+    },
+    "errors": {
+      "invalidDelegate": "此人員無法代理您的簽核，請選擇其他在職的同事。",
+      "overlap": "這段期間有部分已設定不在辦公室，請先結束或變更該期間。"
     }
   },
   "password": {

@@ -52,6 +52,9 @@ x-api-env: &api-env
   # Migrations run once in the `migrate` service; app processes never migrate on their own.
   AUTO_MIGRATE: 'false'
   API_DOCS: ${API_DOCS:-true}
+  OAUTH_TOKEN_TTL_SECONDS: ${OAUTH_TOKEN_TTL_SECONDS:-3600}
+  # Notification webhooks may only target public HTTPS hosts unless this is true (SSRF guard).
+  ISBP_ALLOW_PRIVATE_WEBHOOKS: ${ISBP_ALLOW_PRIVATE_WEBHOOKS:-false}
   # Empty = tracing disabled. With --profile observability use http://jaeger:4318.
   OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
 

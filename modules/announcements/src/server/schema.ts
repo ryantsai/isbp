@@ -15,8 +15,9 @@ export const posts = announcementsSchema.table(
       .$type<'info' | 'maintenance' | 'incident'>()
       .notNull()
       .default('info'),
+    /** `pending` = waiting for the `announcements.publish` approval workflow (when one is bound). */
     status: varchar('status', { length: 20 })
-      .$type<'draft' | 'published' | 'archived'>()
+      .$type<'draft' | 'pending' | 'published' | 'archived'>()
       .notNull()
       .default('draft'),
     pinned: boolean('pinned').notNull().default(false),
@@ -25,6 +26,8 @@ export const posts = announcementsSchema.table(
     endsAt: timestamp('ends_at', { withTimezone: true }),
     publishedAt: timestamp('published_at', { withTimezone: true }),
     authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+    /** Running review workflow while `pending`. */
+    reviewInstanceId: uuid('review_instance_id'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

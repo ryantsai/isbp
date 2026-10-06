@@ -50,6 +50,7 @@ function PostCard({ post, index }: { post: Post; index: number }) {
               </Badge>
             )}
             {post.status === 'draft' && <Badge variant="muted">{t('status.draft')}</Badge>}
+            {post.status === 'pending' && <Badge variant="warning">{t('status.pending')}</Badge>}
             {post.status === 'archived' && <Badge variant="muted">{t('status.archived')}</Badge>}
             <span className="ml-auto text-xs text-muted-foreground">
               <RelativeTime date={post.publishedAt ?? post.updatedAt} />

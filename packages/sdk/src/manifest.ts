@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isPermissionKey, isPermissionPattern } from './permissions';
+import { type WorkflowGraph, workflowGraphSchema } from './workflow';
 
 export const MODULE_ID_RE = /^[a-z][a-z0-9-]{1,38}[a-z0-9]$/;
 
@@ -47,6 +48,10 @@ export interface NavEntry {
   /** Hidden unless the viewer holds this permission at any scope. */
   permission?: string;
   section?: NavSection;
+  /** i18n key of a sub-heading within the section (entries with the same group sit together). */
+  group?: string;
+  /** Counter shown next to the label, from `GET /me/badges` (e.g. `approvals`). */
+  badge?: string;
   order?: number;
   children?: NavEntry[];
 }
@@ -101,6 +106,49 @@ export interface AiToolDef {
   destructive?: boolean;
 }
 
+/**
+ * An attach point for approval workflows, e.g. "publishing an announcement". Admins bind a workflow
+ * definition to it; the module calls `ctx.workflows.start(key, …)` and gets `onCompleted` back.
+ */
+export interface WorkflowTriggerDef {
+  /** `<module>.<name>`, e.g. `announcements.publish`. */
+  key: string;
+  /** i18n key. */
+  name: string;
+  description?: string;
+  /** Entity type the workflow decides about (shown in approval inboxes), e.g. `post`. */
+  subject: string;
+  /** Shape of the facts passed to `start()` — conditions and "approver from fact" pick from it. */
+  facts?: z.ZodType;
+  /** A workflow always runs: without a bound definition the `defaultGraph` is installed and used. */
+  required?: boolean;
+  /** Installed as a system definition on first sync. */
+  defaultGraph?: WorkflowGraph;
+}
+
+export type NotificationChannelKind = 'inApp' | 'email';
+
+/**
+ * A notification type users can tune. Text comes from the module catalog by convention:
+ * `<module>.notifications.<rest_with_underscores>.{label,title,body}` (ICU, with `params`).
+ */
+export interface NotificationTypeDef {
+  /** `<module>.<entity>.<verb>`, e.g. `core.approval.assigned`. */
+  type: string;
+  /** Channels used until the user changes their preferences (default: in-app only). */
+  defaultChannels?: NotificationChannelKind[];
+  /** Security-relevant notices users cannot switch off. */
+  mandatory?: boolean;
+}
+
+/** An entity whose `attributes` JSONB admins can extend with custom fields. */
+export interface CustomFieldEntityDef {
+  /** Entity name inside the module; the full type is `<module>.<type>`, e.g. `core.user`. */
+  type: string;
+  /** i18n key. */
+  name: string;
+}
+
 export interface ModuleManifest {
   id: string;
   version: string;
@@ -117,6 +165,9 @@ export interface ModuleManifest {
   settings?: SettingDef[];
   ai?: { tools: AiToolDef[] };
   search?: { entities: string[] };
+  workflows?: WorkflowTriggerDef[];
+  notifications?: NotificationTypeDef[];
+  customFields?: { entities: CustomFieldEntityDef[] };
 }
 
 const zNav: z.ZodType<NavEntry> = z.lazy(() =>
@@ -127,6 +178,11 @@ const zNav: z.ZodType<NavEntry> = z.lazy(() =>
     icon: z.string().optional(),
     permission: z.string().refine(isPermissionKey, 'invalid permission key').optional(),
     section: z.enum(['main', 'admin']).optional(),
+    group: z.string().optional(),
+    badge: z
+      .string()
+      .regex(/^[a-z][a-zA-Z0-9]*$/)
+      .optional(),
     order: z.number().optional(),
     children: z.array(zNav).optional(),
   }),
@@ -208,6 +264,33 @@ export const manifestSchema = z
       })
       .optional(),
     search: z.object({ entities: z.array(z.string()) }).optional(),
+    workflows: z
+      .array(
+        z.object({
+          key: z.string().regex(/^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$/),
+          name: z.string().min(1),
+          description: z.string().optional(),
+          subject: z.string().regex(/^[a-z][a-z0-9-]*$/),
+          facts: zZodType.optional(),
+          required: z.boolean().optional(),
+          defaultGraph: workflowGraphSchema.optional(),
+        }),
+      )
+      .optional(),
+    notifications: z
+      .array(
+        z.object({
+          type: z.string().regex(/^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*\.[a-z][a-z0-9_-]*$/),
+          defaultChannels: z.array(z.enum(['inApp', 'email'])).optional(),
+          mandatory: z.boolean().optional(),
+        }),
+      )
+      .optional(),
+    customFields: z
+      .object({
+        entities: z.array(z.object({ type: z.string().regex(/^[a-z][a-z0-9-]*$/), name: z.string().min(1) })),
+      })
+      .optional(),
   })
   .superRefine((m, ctx) => {
     const own = (key: string) => key.startsWith(`${m.id}.`);
@@ -238,6 +321,22 @@ export const manifestSchema = z
         });
       }
     });
+    m.workflows?.forEach((w, i) => {
+      if (!own(w.key))
+        ctx.addIssue({
+          code: 'custom',
+          path: ['workflows', i, 'key'],
+          message: `must start with "${m.id}."`,
+        });
+    });
+    m.notifications?.forEach((n, i) => {
+      if (!own(n.type))
+        ctx.addIssue({
+          code: 'custom',
+          path: ['notifications', i, 'type'],
+          message: `must start with "${m.id}."`,
+        });
+    });
   });
 
 /** Identity helper that gives manifests full type checking and validates them eagerly. */
@@ -251,9 +350,10 @@ export function defineManifest<const M extends ModuleManifest>(manifest: M): M {
 }
 
 /** JSON-safe view of a manifest (Zod schemas converted to JSON Schema) for APIs, admin UI and MCP. */
-export interface SerializedManifest extends Omit<ModuleManifest, 'events' | 'ai'> {
+export interface SerializedManifest extends Omit<ModuleManifest, 'events' | 'ai' | 'workflows'> {
   events?: { emits?: { name: string; description?: string; schema?: unknown }[]; consumes?: string[] };
   ai?: { tools: (Omit<AiToolDef, 'input'> & { input: unknown })[] };
+  workflows?: (Omit<WorkflowTriggerDef, 'facts'> & { facts?: unknown })[];
 }
 
 function toJsonSchema(schema: z.ZodType | undefined): unknown {
@@ -279,5 +379,6 @@ export function serializeManifest(m: ModuleManifest): SerializedManifest {
     ai: m.ai && {
       tools: m.ai.tools.map((t) => ({ ...t, input: toJsonSchema(t.input) })),
     },
+    workflows: m.workflows?.map((w) => ({ ...w, facts: toJsonSchema(w.facts) })),
   };
 }

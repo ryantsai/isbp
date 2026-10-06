@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   index,
+  integer,
   jsonb,
   primaryKey,
   text,
@@ -14,6 +15,9 @@ import {
 } from 'drizzle-orm/pg-core';
 import { core, createdAt, id, scopeType, updatedAt } from './core';
 import { departments, groups, users } from './identity';
+import { workflowDefinitions } from './workflow';
+
+export type RiskLevel = 'low' | 'medium' | 'high';
 
 /**
  * Applications own roles and permissions. `isbp` is this platform; external apps registered here are
@@ -26,6 +30,7 @@ export const applications = core.table(
     key: varchar('key', { length: 64 }).notNull(),
     name: varchar('name', { length: 200 }).notNull(),
     description: text('description'),
+    homepageUrl: varchar('homepage_url', { length: 500 }),
     ownerId: uuid('owner_id').references(() => users.id, { onDelete: 'set null' }),
     isSystem: boolean('is_system').notNull().default(false),
     createdAt: createdAt(),
@@ -66,10 +71,27 @@ export const roles = core.table(
     /** System roles are managed by the platform/module manifests and cannot be deleted. */
     isSystem: boolean('is_system').notNull().default(false),
     moduleId: varchar('module_id', { length: 64 }),
+    /** Listed in the self-service portal; granted through the access-request workflow. */
+    requestable: boolean('requestable').notNull().default(false),
+    /** Available to workflow conditions (`role.riskLevel`), e.g. high-risk roles need a security review. */
+    riskLevel: varchar('risk_level', { length: 10 }).$type<RiskLevel>().notNull().default('low'),
+    /** Business owner — the default access-request workflow asks them to approve. */
+    ownerId: uuid('owner_id').references(() => users.id, { onDelete: 'set null' }),
+    /** Longest grant a request may ask for (null = permanent allowed). */
+    maxDurationDays: integer('max_duration_days'),
+    /** Workflow for requests of this role instead of the trigger default. */
+    requestWorkflowId: uuid('request_workflow_id').references(() => workflowDefinitions.id, {
+      onDelete: 'set null',
+    }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex('roles_app_key_uq').on(t.applicationId, t.key)],
+  (t) => [
+    uniqueIndex('roles_app_key_uq').on(t.applicationId, t.key),
+    index('roles_requestable_idx')
+      .on(t.applicationId)
+      .where(sql`${t.requestable}`),
+  ],
 );
 
 /** Permission patterns per role (wildcards allowed: `core.users.*`, `*.*.read`, `*`). */
@@ -103,6 +125,8 @@ export const roleAssignments = core.table(
     reason: text('reason'),
     grantedBy: uuid('granted_by').references(() => users.id, { onDelete: 'set null' }),
     grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
+    /** When the holder was told the access is about to expire (sent once). */
+    expiryNotifiedAt: timestamp('expiry_notified_at', { withTimezone: true }),
   },
   (t) => [
     check('role_assignments_one_principal', sql`(${t.userId} is null) <> (${t.groupId} is null)`),

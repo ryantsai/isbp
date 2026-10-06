@@ -14,9 +14,13 @@ export const departmentSchema = z.object({
   manager: z.object({ id, displayName: z.string() }).nullable(),
   memberCount: z.number().int(),
   sortOrder: z.number().int(),
+  attributes: z.record(z.string(), z.unknown()),
   createdAt: dateTime,
 });
 export type Department = z.input<typeof departmentSchema>;
+
+/** Custom-field values; validated against the entity's custom field definitions. */
+const attributes = z.record(z.string().max(64), z.unknown());
 
 export const createDepartmentSchema = z.object({
   code: z
@@ -30,6 +34,7 @@ export const createDepartmentSchema = z.object({
   parentId: id.nullish(),
   managerId: id.nullish(),
   sortOrder: z.number().int().default(0),
+  attributes: attributes.optional(),
 });
 export type CreateDepartmentInput = z.input<typeof createDepartmentSchema>;
 /** Explicit (no defaults) so a PATCH never resets fields it does not mention. */
@@ -40,6 +45,7 @@ export const updateDepartmentSchema = z.object({
   parentId: id.nullish(),
   managerId: id.nullish(),
   sortOrder: z.number().int().optional(),
+  attributes: attributes.optional(),
 });
 export type UpdateDepartmentInput = z.input<typeof updateDepartmentSchema>;
 
@@ -56,6 +62,7 @@ export const groupSchema = z.object({
   isSystem: z.boolean(),
   memberCount: z.number().int(),
   roleCount: z.number().int(),
+  attributes: z.record(z.string(), z.unknown()),
   createdAt: dateTime,
 });
 export type Group = z.input<typeof groupSchema>;
@@ -66,6 +73,7 @@ export const createGroupSchema = z.object({
   key: keySchema,
   name: z.string().trim().min(1).max(200),
   description: z.string().trim().max(2000).nullish(),
+  attributes: attributes.optional(),
 });
 export type CreateGroupInput = z.input<typeof createGroupSchema>;
 export const updateGroupSchema = createGroupSchema.omit({ key: true }).partial();

@@ -45,7 +45,9 @@ import { useApiMutation, useApiQuery } from '@/lib/api';
 import { ExpiryCell, PrincipalCell, RevokeAssignmentDialog, ScopeBadge } from './assignment-parts';
 import { GrantRoleSheet } from './grant-role-sheet';
 import { PermissionEditor } from './permission-editor';
+import { RequestBadges } from './request-settings';
 import { RoleFormSheet, type RoleTemplate } from './role-form';
+import { RoleRequestSettingsCard } from './role-request-settings-card';
 import {
   diffPermissions,
   normalizePermissions,
@@ -185,6 +187,7 @@ export function RoleDetailView({ id }: { id: string }) {
                 <BlocksIcon aria-hidden /> {t('badges.module', { module: role.moduleId })}
               </Badge>
             )}
+            <RequestBadges role={role} showDuration />
           </div>
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <code className="font-mono text-xs">{role.key}</code>
@@ -269,7 +272,10 @@ export function RoleDetailView({ id }: { id: string }) {
           </CardContent>
         </Card>
 
-        <RoleAssignmentsCard role={role} onGrant={canAssign ? () => setDialog('grant') : undefined} />
+        <div className="grid gap-6">
+          <RoleAssignmentsCard role={role} onGrant={canAssign ? () => setDialog('grant') : undefined} />
+          <RoleRequestSettingsCard role={role} />
+        </div>
       </div>
 
       <AnimatePresence>

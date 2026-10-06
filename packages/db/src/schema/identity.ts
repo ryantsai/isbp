@@ -26,6 +26,8 @@ export const departments = core.table(
     path: text('path').notNull(),
     managerId: uuid('manager_id').references((): AnyPgColumn => users.id, { onDelete: 'set null' }),
     sortOrder: integer('sort_order').notNull().default(0),
+    /** Custom fields (`core.department`), validated against `core.custom_fields`. */
+    attributes: jsonb('attributes').$type<Record<string, unknown>>().notNull().default({}),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -33,12 +35,17 @@ export const departments = core.table(
     uniqueIndex('departments_code_uq').on(t.code),
     index('departments_parent_idx').on(t.parentId),
     index('departments_path_idx').on(t.path.op('text_pattern_ops')),
+    index('departments_attributes_gin').using('gin', t.attributes.op('jsonb_path_ops')),
   ],
 );
+
+/** Per notification type: which personal channels deliver it (unset = the type's defaults). */
+export type NotificationPreferences = Record<string, { inApp?: boolean; email?: boolean }>;
 
 export interface UserPreferences {
   theme?: 'light' | 'dark' | 'system';
   sidebarCollapsed?: boolean;
+  notifications?: NotificationPreferences;
 }
 
 export const users = core.table(
@@ -84,6 +91,7 @@ export const users = core.table(
     index('users_created_idx').on(t.createdAt),
     index('users_display_name_trgm').using('gin', t.displayName.op('gin_trgm_ops')),
     index('users_email_trgm').using('gin', t.email.op('gin_trgm_ops')),
+    index('users_attributes_gin').using('gin', t.attributes.op('jsonb_path_ops')),
   ],
 );
 
@@ -184,11 +192,14 @@ export const groups = core.table(
     externalId: varchar('external_id', { length: 512 }),
     idpId: uuid('idp_id').references(() => identityProviders.id, { onDelete: 'set null' }),
     isSystem: boolean('is_system').notNull().default(false),
+    /** Custom fields (`core.group`). */
+    attributes: jsonb('attributes').$type<Record<string, unknown>>().notNull().default({}),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     uniqueIndex('groups_key_uq').on(t.key),
+    index('groups_attributes_gin').using('gin', t.attributes.op('jsonb_path_ops')),
     uniqueIndex('groups_external_uq')
       .on(t.idpId, t.externalId)
       .where(sql`${t.externalId} is not null`),

@@ -1,0 +1,230 @@
+{
+  "title": "Notifications",
+  "description": "Approvals, request updates and announcements meant for you, newest first.",
+  "settingsLink": "Notification settings",
+  "markAllRead": "Mark all as read",
+  "markedAllRead": "All notifications marked as read",
+  "markRead": "Mark as read",
+  "markReadLabel": "Mark “{title}” as read",
+  "unread": "Unread:",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "loadMore": "Load more",
+  "showing": "Showing {shown} of {total}",
+  "tabs": {
+    "label": "Filter notifications",
+    "all": "All",
+    "unread": "Unread"
+  },
+  "empty": {
+    "allTitle": "No notifications yet",
+    "allBody": "When something needs your attention — an approval, an update on your request or a new announcement — it shows up here.",
+    "unreadTitle": "You're all caught up",
+    "unreadBody": "There's nothing new since you last looked.",
+    "viewAll": "View all notifications"
+  },
+  "patterns": {
+    "all": "All notifications",
+    "module": "All {module} notifications",
+    "reach": "{count, plural, one {# type} other {# types}}"
+  },
+  "channelTypes": {
+    "email": "Email",
+    "teams": "Microsoft Teams",
+    "slack": "Slack",
+    "webhook": "Webhook"
+  },
+  "admin": {
+    "title": "Notification delivery",
+    "description": "Besides the in-app inbox, notifications can go out by email and to Microsoft Teams, Slack or your own systems.",
+    "copyFailed": "Couldn't copy. Select the text and copy it manually.",
+    "tabs": {
+      "label": "Delivery settings",
+      "channels": "Channels",
+      "email": "Email",
+      "log": "Delivery log"
+    },
+    "channels": {
+      "intro": "Post selected notifications to a team channel or another system — for example escalations to the IT on-call channel. Messages are written in the channel's language.",
+      "add": "Add channel",
+      "emptyTitle": "No channels yet",
+      "emptyBody": "Connect a Microsoft Teams or Slack channel, or any HTTPS endpoint, to receive selected notifications.",
+      "deleteTitle": "Delete {name}?",
+      "deleteBody": "Notifications stop going to this channel right away. Its delivery history stays in the log.",
+      "delete": "Delete channel",
+      "toggle": "Send notifications to {name}",
+      "subscribed": "Notifications sent here",
+      "language": "Message language",
+      "lastDelivery": "Last delivery",
+      "noDelivery": "None yet",
+      "lastError": "Last delivery failed",
+      "editLabel": "Edit {name}",
+      "more": "More actions for {name}",
+      "toast": {
+        "deleted": "{name} deleted",
+        "enabled": "{name} turned on",
+        "disabled": "{name} turned off"
+      },
+      "test": {
+        "button": "Send test",
+        "hint": "Post a test message now, even while the channel is off",
+        "sent": "Test message delivered. Check the channel.",
+        "failed": "The channel didn't accept the test message.",
+        "sentToast": "Test message sent to {name}",
+        "failedToast": "Test message to {name} failed"
+      },
+      "form": {
+        "createTitle": "Add a channel",
+        "editTitle": "Edit {name}",
+        "createDescription": "Choose where messages go and which notifications to send there.",
+        "editDescription": "Change the name, language or notifications. Leave the URL empty to keep the current one.",
+        "type": "Type",
+        "typeLocked": "Can't be changed",
+        "guide": {
+          "teams": "In Microsoft Teams, open the channel, choose ••• › Workflows › “Post to a channel when a webhook request is received”, finish the steps and copy the URL it shows.",
+          "slack": "In Slack, create an app at api.slack.com/apps, turn on Incoming Webhooks, choose “Add New Webhook to Workspace”, pick the channel and copy the URL (https://hooks.slack.com/services/…).",
+          "webhook": "Any HTTPS endpoint you run. We POST JSON with the title, body, link and type, signed with a secret you get once after saving, so you can check each request really comes from us."
+        },
+        "name": "Name",
+        "namePlaceholder": "e.g. IT Operations (Teams)",
+        "url": "Webhook URL",
+        "urlKeepPlaceholder": "Leave empty to keep the current URL",
+        "urlKeep": "Currently sending to {host}. The URL itself is never shown again.",
+        "urlHint": "Treat it like a password: it's stored encrypted and never shown again.",
+        "locale": "Message language",
+        "localeHint": "Messages posted to this channel are written in this language.",
+        "enabled": "Send notifications to this channel",
+        "enabledHint": "Turn off to pause without losing the settings.",
+        "submit": "Add channel",
+        "created": "{name} added",
+        "saved": "{name} saved",
+        "types": {
+          "label": "Notifications",
+          "hint": "Pick notification types or whole modules. Patterns like core.access-request.* also match types added later.",
+          "placeholder": "Choose notifications…",
+          "selectedCount": "{count, plural, one {# selection} other {# selections}}",
+          "search": "Search notifications…",
+          "noMatch": "No matching notifications.",
+          "everything": "Everything",
+          "selected": "selected",
+          "chosen": "Chosen notifications",
+          "remove": "Remove {pattern}",
+          "customLabel": "Or add a pattern",
+          "addPattern": "Add",
+          "patternInvalid": "Use module.entity.verb, with * as a wildcard — for example core.access-request.*",
+          "coverage": "Covers {covered} of {total} notification types"
+        },
+        "validation": {
+          "name": "Enter a name.",
+          "nameLength": "Use at most 200 characters.",
+          "url": "Enter a full URL starting with https://",
+          "urlRequired": "Enter the webhook URL.",
+          "types": "Choose at least one notification.",
+          "typesMax": "Choose at most 50.",
+          "target": "This URL can't be used. Use a public https:// address — no internal or private network addresses, and no user name or password in the URL.",
+          "invalid": "This value isn't valid."
+        }
+      }
+    },
+    "secret": {
+      "title": "Signing secret for {name}",
+      "description": "Your endpoint uses this secret to check that requests really come from the platform.",
+      "once": "Copy it now and store it safely — it won't be shown again.",
+      "verifyTitle": "How to verify a request",
+      "step1": "Read the <code>x-isbp-signature</code> header. It looks like <code>t=1760000000,v1=5257a8…</code> (Unix time in seconds and the signature).",
+      "step2": "Compute HMAC-SHA256 with this secret over the timestamp, a dot and the raw request body (<code>t + \".\" + body</code>), as lowercase hex.",
+      "step3": "Accept the request only if it equals v1 (compare in constant time) and the timestamp is less than 5 minutes old.",
+      "done": "I've saved the secret"
+    },
+    "email": {
+      "title": "Email (SMTP)",
+      "description": "The mail server used for notification emails. People choose which notifications they get by email in their settings.",
+      "enabled": "Send notification emails",
+      "enabledHint": "When off, notifications are only shown in the app and in channels.",
+      "server": "Server",
+      "host": "SMTP server",
+      "port": "Port",
+      "tls": "Encryption",
+      "tlsModes": {
+        "starttls": "STARTTLS (usually port 587)",
+        "tls": "SSL/TLS (usually port 465)"
+      },
+      "tlsHint": "Your mail provider's documentation says which one to use.",
+      "auth": "Sign-in",
+      "authHint": "Leave both empty if the server accepts mail from this platform without signing in.",
+      "username": "User name",
+      "password": "Password",
+      "passwordStored": "A password is stored",
+      "passwordReplace": "Replace",
+      "passwordRemove": "Remove",
+      "passwordWillRemove": "The password will be removed when you save.",
+      "undo": "Undo",
+      "passwordNewPlaceholder": "New password",
+      "passwordKeep": "Keep the current password",
+      "passwordHint": "Stored encrypted and never shown again.",
+      "from": "Sender",
+      "fromHint": "An address, optionally with a name, such as {example}. Your server must allow sending as it.",
+      "enableNote": "Emails start going out as soon as you save.",
+      "discard": "Discard changes",
+      "saved": "Email settings saved",
+      "status": {
+        "ready": "Ready",
+        "incomplete": "Not configured",
+        "off": "Off"
+      },
+      "validation": {
+        "tooLong": "That's too long.",
+        "port": "Enter a port between 1 and 65535.",
+        "hostRequired": "Enter the SMTP server to turn email on.",
+        "fromRequired": "Enter the sender to turn email on.",
+        "from": "Enter an email address, optionally with a name, such as {example}"
+      },
+      "test": {
+        "button": "Send test email",
+        "saveFirst": "Save your changes first — the test uses the saved settings.",
+        "notReady": "Turn email on and save a server and sender first.",
+        "title": "Send a test email",
+        "description": "Sends a short message with the saved settings, so you can check the server, sign-in and sender.",
+        "to": "Send to",
+        "invalid": "Enter a valid email address.",
+        "notConfigured": "Email isn't set up yet. Turn it on and save the server and sender first.",
+        "failed": "The mail server didn't accept the test email.",
+        "sent": "Test email sent to {to}. It may take a minute — check the spam folder too.",
+        "send": "Send"
+      }
+    },
+    "log": {
+      "title": "Delivery log",
+      "intro": "Every email and channel message the platform tried to send. Failed deliveries are retried a few times before they're marked as failed.",
+      "refresh": "Refresh",
+      "noError": "No error",
+      "notSent": "Not sent",
+      "attempts": "{count, plural, one {# attempt} other {# attempts}}",
+      "emptyTitle": "Nothing delivered yet",
+      "emptyBody": "Emails and channel messages show up here with their status, so you can spot problems.",
+      "emptyFilteredTitle": "No deliveries match these filters",
+      "emptyFilteredBody": "Try another status or channel.",
+      "columns": {
+        "channel": "Channel",
+        "notification": "Notification",
+        "recipient": "Recipient",
+        "status": "Status",
+        "error": "Last error",
+        "created": "Created",
+        "sent": "Sent"
+      },
+      "filters": {
+        "status": "Status",
+        "channel": "Channel",
+        "allStatuses": "All statuses",
+        "allChannels": "All channels"
+      },
+      "status": {
+        "pending": "Pending",
+        "sent": "Sent",
+        "failed": "Failed",
+        "skipped": "Skipped"
+      }
+    }
+  }
+}

@@ -2,18 +2,29 @@ import { departments, groups, identityProviders, roles, users } from '@isbp/db/s
 import { type AuthContext, defineServerModule, type ModuleContext, type SearchHit } from '@isbp/sdk/server';
 import { and, eq, ilike, isNotNull, or } from 'drizzle-orm';
 import { z } from 'zod';
+import type { DeliveryEvent } from '../kernel/notifications/service';
 import { moduleQueueName } from '../kernel/queues';
 import { getKernel } from './kernel-ref';
 import { coreManifest } from './manifest';
 import { accessRoutes } from './routes/access';
+import { applicationRoutes } from './routes/applications';
 import { authRoutes } from './routes/auth';
 import { directoryRoutes } from './routes/directory';
+import { formRoutes } from './routes/forms';
+import { notificationRoutes } from './routes/notifications';
 import { meRoutes, userRoutes } from './routes/people';
 import { platformRoutes } from './routes/platform';
+import { requestRoutes } from './routes/requests';
+import { workflowRoutes } from './routes/workflows';
 import { AccessService } from './services/access';
+import { AccessRequestService } from './services/access-requests';
+import { ApiClientService, ApplicationService, RoleQueryService } from './services/applications';
 import { DirectoryService } from './services/directory';
+import { CustomFieldAdminService, FormService } from './services/forms';
 import { IdpService } from './services/idp';
+import { NotificationAdminService } from './services/notifications';
 import { UserService } from './services/users';
+import { ApprovalService, WorkflowAdminService } from './services/workflows';
 import { likePattern, reachFilter } from './util';
 
 async function searchCore(
@@ -115,15 +126,62 @@ export const coreModule = defineServerModule(coreManifest, {
     const access = new AccessService(ctx);
     const directory = new DirectoryService(ctx);
     const idps = new IdpService(ctx);
+    const forms = new FormService(ctx);
     authRoutes(app, ctx, idps);
     meRoutes(app, ctx, access);
     userRoutes(app, ctx, usersSvc, access);
     directoryRoutes(app, directory);
     accessRoutes(app, access);
     platformRoutes(app, ctx, idps);
+    workflowRoutes(app, new WorkflowAdminService(ctx), new ApprovalService(ctx));
+    requestRoutes(app, new AccessRequestService(ctx), forms);
+    formRoutes(app, forms, new CustomFieldAdminService(ctx));
+    notificationRoutes(app, new NotificationAdminService(ctx));
+    applicationRoutes(
+      app,
+      ctx,
+      new ApplicationService(ctx, access),
+      new ApiClientService(ctx),
+      new RoleQueryService(ctx),
+      access,
+    );
+  },
+
+  workflows: {
+    'core.access-request': {
+      onCompleted: (result, ctx) => new AccessRequestService(ctx).onWorkflowCompleted(result),
+    },
+    'core.form-submission': {
+      onCompleted: (result, ctx) => new FormService(ctx).onWorkflowCompleted(result),
+    },
+  },
+
+  events: {
+    /** Delivers email, Teams, Slack and webhook notifications after the creating transaction commits. */
+    'core.notification.created': async (event) => {
+      await getKernel().notifications.deliver(event.payload as DeliveryEvent);
+    },
   },
 
   jobs: {
+    'workflow-timers': {
+      description: 'Sends approval reminders and applies SLA breach policies (escalate, auto-decide)',
+      schedule: { everyMs: 60_000 },
+      handler: async () => getKernel().workflows.tick(),
+    },
+    'notify-expiring-access': {
+      description: 'Tells people a few days before a time-bound role ends',
+      schedule: { cron: '7 * * * *' },
+      handler: async (_job, ctx) => ({ notified: await new AccessRequestService(ctx).notifyExpiring() }),
+    },
+    'purge-notifications': {
+      description: 'Deletes notifications and delivery records older than the retention period',
+      schedule: { cron: '41 3 * * *' },
+      handler: async (_job, ctx) => {
+        const days = Number((await ctx.settings.get<number>('notifications.retentionDays')) ?? 90) || 90;
+        return getKernel().notifications.purge(days);
+      },
+    },
     'expire-role-assignments': {
       description: 'Removes time-bound role assignments once they expire',
       schedule: { everyMs: 5 * 60_000 },

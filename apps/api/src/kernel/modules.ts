@@ -23,6 +23,7 @@ import type { Redis } from 'ioredis';
 import { EVERYONE_GROUP_KEY, PLATFORM_APP_KEY } from './rbac';
 
 const CHANNEL = 'isbp:modules:changed';
+export const WORKFLOW_COMPLETED_EVENT = 'core.workflow.completed';
 
 export interface ModuleState {
   enabled: boolean;
@@ -83,9 +84,16 @@ export class ModuleRegistry {
     return this.modules.filter((m) => this.isEnabled(m.manifest.id));
   }
 
-  /** Modules (enabled or not) with a handler for `eventName`; the worker re-checks enabled state. */
-  subscribersOf(eventName: string): ServerModule[] {
-    return this.modules.filter((m) => m.events?.[eventName]);
+  /**
+   * Modules (enabled or not) with a handler for the event; the worker re-checks enabled state.
+   * Workflow completions also go to the module that owns the trigger (its `workflows` handler).
+   */
+  subscribersOf(eventName: string, payload?: unknown): ServerModule[] {
+    const trigger =
+      eventName === WORKFLOW_COMPLETED_EVENT
+        ? (payload as { triggerKey?: string } | undefined)?.triggerKey
+        : undefined;
+    return this.modules.filter((m) => m.events?.[eventName] || (trigger && m.workflows?.[trigger]));
   }
 
   dependentsOf(id: string): string[] {

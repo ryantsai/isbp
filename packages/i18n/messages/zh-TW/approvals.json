@@ -1,0 +1,59 @@
+{
+  "title": "簽核",
+  "description": "等待您決定的事項，最緊急的排在最前面。",
+  "tabs": {
+    "pending": "待我簽核",
+    "done": "我已簽核"
+  },
+  "search": "搜尋申請…",
+  "approve": "核准",
+  "reject": "駁回",
+  "approveSubject": "核准 {subject}",
+  "rejectSubject": "駁回 {subject}",
+  "escalated": "已轉呈給您",
+  "delegatedBy": "來自 {name}",
+  "emptyPending": "目前沒有待您簽核的項目",
+  "emptyPendingHint": "新的簽核會立即出現在這裡，您也會收到通知。",
+  "emptyDone": "您尚未簽核任何項目",
+  "emptySearch": "沒有符合搜尋條件的簽核",
+  "previous": "上一頁",
+  "next": "下一頁",
+  "pageOf": "第 {page} 頁，共 {pages} 頁",
+  "liveCount": "{count} 筆簽核",
+  "decide": {
+    "approveTitle": "要核准此申請嗎？",
+    "rejectTitle": "要駁回此申請嗎？",
+    "commentOptional": "意見（選填）",
+    "commentRequired": "駁回原因",
+    "approvePlaceholder": "需要讓申請人知道的事項",
+    "rejectPlaceholder": "例如：請改申請唯讀角色",
+    "visibleToRequester": "申請人會看到此意見。",
+    "reasonNeeded": "請提供駁回原因。",
+    "approve": "核准",
+    "reject": "駁回",
+    "cancel": "取消",
+    "approvedToast": "已核准",
+    "rejectedToast": "已駁回，並已通知申請人原因"
+  },
+  "delegate": {
+    "title": "將此簽核交給其他人",
+    "person": "同事",
+    "hint": "對方會在自己的簽核清單中收到此項目。申請人無法簽核自己的申請。",
+    "note": "給對方的備註（選填）",
+    "submit": "轉交",
+    "cancel": "取消",
+    "toast": "已轉交"
+  },
+  "sheet": {
+    "close": "關閉",
+    "requestedBy": "申請人：{name}",
+    "system": "系統",
+    "details": "申請內容",
+    "openSubject": "開啟申請",
+    "progress": "簽核流程",
+    "timeline": "歷程",
+    "approve": "核准",
+    "reject": "駁回",
+    "delegate": "轉交"
+  }
+}

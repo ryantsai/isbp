@@ -37,6 +37,10 @@ const schema = z
 
     WORKER_CONCURRENCY: z.coerce.number().int().positive().default(10),
     API_DOCS: bool.optional(),
+    /** Let notification webhooks target private/loopback addresses (default: only outside production). */
+    ISBP_ALLOW_PRIVATE_WEBHOOKS: bool.optional(),
+    /** OAuth client-credentials access token lifetime. */
+    OAUTH_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(86_400).default(3600),
   })
   .transform((env) => {
     const isProd = env.NODE_ENV === 'production';
@@ -53,6 +57,7 @@ const schema = z
       autoMigrate: env.AUTO_MIGRATE ?? !isProd,
       logPretty: env.LOG_PRETTY ?? (!isProd && process.stdout.isTTY),
       apiDocs: env.API_DOCS ?? true,
+      allowPrivateWebhooks: env.ISBP_ALLOW_PRIVATE_WEBHOOKS ?? !isProd,
       cookieSecure: env.PUBLIC_URL.startsWith('https://'),
       trustProxy: env.TRUST_PROXY === 'true' ? true : env.TRUST_PROXY === 'false' ? false : env.TRUST_PROXY,
     };

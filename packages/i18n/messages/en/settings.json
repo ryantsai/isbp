@@ -5,6 +5,8 @@
     "label": "Settings sections",
     "profile": "Profile",
     "preferences": "Preferences",
+    "notifications": "Notifications",
+    "outOfOffice": "Out of office",
     "security": "Password",
     "sessions": "Sessions",
     "access": "My access"
@@ -35,6 +37,72 @@
       "noMatch": "No matching time zone.",
       "saved": "Time zone set to {zone}",
       "useBrowser": "Use this device's time zone ({zone})"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Choose what reaches you in the app and by email.",
+    "reset": "Reset to defaults",
+    "resetDone": "Notification settings reset to defaults",
+    "autosave": "Changes are saved automatically.",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "emailUnavailable": "Email notifications aren't set up on this platform yet, so you only get notifications in the app. Your administrator can turn email on.",
+    "tableCaption": "Notification types and the channels they are sent to",
+    "columns": {
+      "type": "Notification",
+      "inApp": "In-app",
+      "email": "Email"
+    },
+    "mandatory": "Required for security",
+    "switchLabel": "{type}: {channel}"
+  },
+  "outOfOffice": {
+    "title": "Out of office",
+    "description": "Going on leave? Choose a colleague to handle approvals that arrive while you are away.",
+    "add": "Schedule",
+    "explainer": "During the period, new approval tasks that would be assigned to you go to your delegate instead. Tasks already waiting for you stay with you.",
+    "none": "You haven't scheduled any time away.",
+    "listTitle": "Upcoming and active",
+    "goesTo": "Approvals go to {name}",
+    "active": "Active now",
+    "scheduled": "Scheduled",
+    "end": "End now",
+    "remove": "Remove",
+    "endLabel": "End out of office with {name}",
+    "removeLabel": "Remove out of office with {name}",
+    "endTitle": "End out of office now?",
+    "removeTitle": "Remove this out-of-office period?",
+    "endBody": "New approval tasks will come to you again. Tasks already handed to {name} stay with them.",
+    "removeBody": "Approvals will not go to {name} during {period}.",
+    "ended": "Out of office ended",
+    "removed": "Out-of-office period removed",
+    "formTitle": "New out-of-office period",
+    "delegate": "Send my approvals to",
+    "delegatePlaceholder": "Choose a colleague…",
+    "delegateHint": "They decide on new tasks in your place and are notified when tasks arrive.",
+    "from": "From",
+    "until": "Until",
+    "quick": {
+      "label": "Duration",
+      "days": "{count, plural, one {# day} other {# days}}"
+    },
+    "timeZone": "Times are in your time zone ({zone}).",
+    "reason": "Reason",
+    "reasonPlaceholder": "e.g. Annual leave",
+    "reasonHint": "Shown to people whose approvals are handed over.",
+    "save": "Schedule out of office",
+    "created": "Out of office scheduled",
+    "validation": {
+      "reason": "Use at most 300 characters.",
+      "delegate": "Choose who handles your approvals.",
+      "date": "Enter a date and time.",
+      "afterStart": "The end must be after the start.",
+      "future": "The end must be in the future."
+    },
+    "errors": {
+      "invalidDelegate": "This person can't take your approvals. Choose another active colleague.",
+      "overlap": "You already have out of office during part of this period. End or change that one first."
     }
   },
   "password": {

@@ -11,5 +11,118 @@
   },
   "search": {
     "clear": "清除搜尋"
+  },
+  "fieldErrors": {
+    "required": "此欄位為必填",
+    "type": "此值無效",
+    "tooShort": "請至少輸入 {min} 個字元",
+    "tooLong": "最多可輸入 {max} 個字元",
+    "min": "請輸入至少 {min}",
+    "max": "請輸入最多 {max}",
+    "pattern": "格式不符",
+    "option": "請從選項中選擇",
+    "email": "請輸入有效的電子郵件地址",
+    "url": "請輸入以 https:// 開頭的網址",
+    "date": "請輸入有效的日期",
+    "user": "請選擇人員"
+  },
+  "localized": {
+    "languages": "語言",
+    "filled": "{language}（已填寫）",
+    "missing": "{language}（未填寫，將顯示英文或其他語言）"
+  },
+  "person": {
+    "search": "搜尋人員…",
+    "noResults": "找不到人員",
+    "loading": "搜尋中…",
+    "clear": "清除選擇",
+    "placeholder": "選擇人員"
+  },
+  "select": {
+    "placeholder": "請選擇…",
+    "none": "無"
+  },
+  "boolean": {
+    "yes": "是",
+    "no": "否"
+  },
+  "conditions": {
+    "match": "符合",
+    "all": "所有規則",
+    "any": "任一規則",
+    "addRule": "新增規則",
+    "removeRule": "移除規則",
+    "fact": "欄位",
+    "op": "運算子",
+    "value": "值",
+    "noRules": "尚無規則，條件永遠成立。",
+    "ops": {
+      "eq": "等於",
+      "neq": "不等於",
+      "gt": "大於",
+      "gte": "大於或等於",
+      "lt": "小於",
+      "lte": "小於或等於",
+      "in": "屬於",
+      "nin": "不屬於",
+      "contains": "包含",
+      "empty": "為空白",
+      "notEmpty": "已填寫"
+    },
+    "valuePlaceholder": "值",
+    "listPlaceholder": "多個值以逗號分隔",
+    "true": "是",
+    "false": "否",
+    "and": "且",
+    "or": "或",
+    "always": "永遠",
+    "not": "非（{condition}）"
+  },
+  "workflow": {
+    "start": "送出申請",
+    "end": "已核准",
+    "rejected": "已駁回",
+    "cancelled": "已撤回",
+    "otherwise": "其他情況",
+    "noSteps": "沒有步驟，直接通過",
+    "status": {
+      "active": "進行中",
+      "approved": "已核准",
+      "rejected": "已駁回",
+      "skipped": "已略過",
+      "waiting": "尚未到達"
+    },
+    "types": {
+      "approval": "簽核",
+      "parallel": "平行處理",
+      "condition": "判斷",
+      "notify": "通知"
+    },
+    "mode": {
+      "any": "第一個回覆即決定",
+      "all": "所有人都須核准",
+      "quorum": "{total} 人中須 {n} 人核准"
+    },
+    "sla": "須於 {hours} 小時內處理",
+    "approver": {
+      "user": "{name}",
+      "group": "群組：{name}",
+      "role": "角色：{name}",
+      "manager": "{level, select, 1 {直屬主管} 2 {主管的主管} other {第 {level} 層主管}}",
+      "department-head": "部門主管",
+      "fact": "「{fact}」中的人員",
+      "requester": "申請人",
+      "fallback": "{rule}，否則為 {fallback}"
+    },
+    "when": "僅在 {condition} 時",
+    "skipped": {
+      "condition": "未符合條件",
+      "no-approver": "找不到簽核者",
+      "cancelled": "已取消"
+    },
+    "waitingFor": "等候 {names}",
+    "decided": "{name}",
+    "branches": "{count} 個分支",
+    "steps": "{count} 個步驟"
   }
 }

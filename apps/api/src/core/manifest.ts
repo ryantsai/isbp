@@ -1,7 +1,87 @@
-import { defineManifest } from '@isbp/sdk';
+import { defineManifest, type WorkflowGraph } from '@isbp/sdk';
 import { z } from 'zod';
 
 const userRef = z.object({ userId: z.uuid(), email: z.string() });
+const requestRef = z.object({
+  requestId: z.uuid(),
+  number: z.number(),
+  roleId: z.uuid(),
+  beneficiaryId: z.uuid(),
+});
+const submissionRef = z.object({ submissionId: z.uuid(), number: z.number(), formId: z.uuid() });
+
+/** Facts every access-request workflow can use in conditions and "approver from fact" rules. */
+export const accessRequestFacts = z.object({
+  role: z.object({
+    id: z.uuid(),
+    key: z.string(),
+    name: z.string(),
+    riskLevel: z.enum(['low', 'medium', 'high']),
+    ownerId: z.uuid().nullable(),
+    application: z.string().describe('Application key, e.g. isbp'),
+  }),
+  request: z.object({
+    durationDays: z.number().int().nullable(),
+    permanent: z.boolean(),
+    scopeType: z.enum(['global', 'department', 'record']),
+    forSomeoneElse: z.boolean(),
+  }),
+});
+
+export const formSubmissionFacts = z.object({
+  form: z.object({ key: z.string(), category: z.string().nullable() }),
+  data: z.record(z.string(), z.unknown()).describe('Submitted values by field key, e.g. data.amount'),
+});
+
+/**
+ * Manager → (high-risk only) security review → access owner (or IAM, or platform admins). Installed
+ * once as a published, editable definition.
+ */
+const accessRequestGraph: WorkflowGraph = {
+  steps: [
+    {
+      id: 'manager',
+      type: 'approval',
+      name: { en: 'Manager approval', 'zh-TW': '主管核准', 'ja-JP': '上長の承認' },
+      approvers: [{ type: 'manager' }],
+      mode: 'any',
+      ifNoApprover: 'skip',
+      sla: {
+        dueHours: 48,
+        remindHours: 24,
+        onBreach: 'escalate',
+        escalateTo: [{ type: 'manager', level: 2 }],
+      },
+    },
+    {
+      id: 'security',
+      type: 'approval',
+      name: { en: 'Security review', 'zh-TW': '資安審查', 'ja-JP': 'セキュリティ審査' },
+      when: { fact: 'role.riskLevel', op: 'eq', value: 'high' },
+      approvers: [{ type: 'role', roleKey: 'platform-admin' }],
+      mode: 'any',
+      sla: { dueHours: 72, remindHours: 48, onBreach: 'notify' },
+    },
+    {
+      id: 'owner',
+      type: 'approval',
+      name: { en: 'Access owner approval', 'zh-TW': '權限擁有者核准', 'ja-JP': 'アクセス所有者の承認' },
+      approvers: [
+        {
+          type: 'fact',
+          fact: 'role.ownerId',
+          fallback: {
+            type: 'role',
+            roleKey: 'identity-admin',
+            fallback: { type: 'role', roleKey: 'platform-admin' },
+          },
+        },
+      ],
+      mode: 'any',
+      sla: { dueHours: 72, remindHours: 48, onBreach: 'notify' },
+    },
+  ],
+};
 
 /**
  * The platform's own module. It is declared exactly like any other module; the only privilege it has
@@ -24,12 +104,30 @@ export const coreManifest = defineManifest({
       order: 0,
     },
     {
+      id: 'approvals',
+      label: 'core.nav.approvals',
+      href: '/approvals',
+      icon: 'list-checks',
+      badge: 'approvals',
+      section: 'main',
+      order: 1,
+    },
+    {
+      id: 'requests',
+      label: 'core.nav.requests',
+      href: '/requests',
+      icon: 'clipboard-list',
+      section: 'main',
+      order: 2,
+    },
+    {
       id: 'users',
       label: 'core.nav.users',
       href: '/admin/users',
       icon: 'users',
       permission: 'core.users.read',
       section: 'admin',
+      group: 'core.nav.groupIdentity',
       order: 10,
     },
     {
@@ -39,6 +137,7 @@ export const coreManifest = defineManifest({
       icon: 'users-round',
       permission: 'core.groups.read',
       section: 'admin',
+      group: 'core.nav.groupIdentity',
       order: 20,
     },
     {
@@ -48,6 +147,7 @@ export const coreManifest = defineManifest({
       icon: 'network',
       permission: 'core.departments.read',
       section: 'admin',
+      group: 'core.nav.groupIdentity',
       order: 30,
     },
     {
@@ -57,7 +157,68 @@ export const coreManifest = defineManifest({
       icon: 'shield-check',
       permission: 'core.roles.read',
       section: 'admin',
+      group: 'core.nav.groupAccess',
       order: 40,
+    },
+    {
+      id: 'applications',
+      label: 'core.nav.applications',
+      href: '/admin/applications',
+      icon: 'app-window',
+      permission: 'core.applications.read',
+      section: 'admin',
+      group: 'core.nav.groupAccess',
+      order: 42,
+    },
+    {
+      id: 'api-clients',
+      label: 'core.nav.apiClients',
+      href: '/admin/api-clients',
+      icon: 'plug',
+      permission: 'core.api-clients.manage',
+      section: 'admin',
+      group: 'core.nav.groupAccess',
+      order: 44,
+    },
+    {
+      id: 'workflows',
+      label: 'core.nav.workflows',
+      href: '/admin/workflows',
+      icon: 'workflow',
+      permission: 'core.workflows.read',
+      section: 'admin',
+      group: 'core.nav.groupAutomation',
+      order: 46,
+    },
+    {
+      id: 'forms',
+      label: 'core.nav.forms',
+      href: '/admin/forms',
+      icon: 'file-pen-line',
+      permission: 'core.forms.manage',
+      section: 'admin',
+      group: 'core.nav.groupAutomation',
+      order: 47,
+    },
+    {
+      id: 'custom-fields',
+      label: 'core.nav.customFields',
+      href: '/admin/custom-fields',
+      icon: 'text-cursor-input',
+      permission: 'core.custom-fields.manage',
+      section: 'admin',
+      group: 'core.nav.groupAutomation',
+      order: 48,
+    },
+    {
+      id: 'notifications',
+      label: 'core.nav.notifications',
+      href: '/admin/notifications',
+      icon: 'bell-ring',
+      permission: 'core.notifications.manage',
+      section: 'admin',
+      group: 'core.nav.groupAutomation',
+      order: 49,
     },
     {
       id: 'audit',
@@ -66,6 +227,7 @@ export const coreManifest = defineManifest({
       icon: 'scroll-text',
       permission: 'core.audit.read',
       section: 'admin',
+      group: 'core.nav.groupPlatform',
       order: 50,
     },
     {
@@ -75,6 +237,7 @@ export const coreManifest = defineManifest({
       icon: 'blocks',
       permission: 'core.modules.read',
       section: 'admin',
+      group: 'core.nav.groupPlatform',
       order: 60,
     },
     {
@@ -84,6 +247,7 @@ export const coreManifest = defineManifest({
       icon: 'key-round',
       permission: 'core.idp.read',
       section: 'admin',
+      group: 'core.nav.groupPlatform',
       order: 70,
     },
   ],
@@ -133,6 +297,32 @@ export const coreManifest = defineManifest({
     { key: 'core.modules.manage', description: 'core.permissions.modulesManage' },
     { key: 'core.idp.read', description: 'core.permissions.idpRead' },
     { key: 'core.idp.manage', description: 'core.permissions.idpManage' },
+    { key: 'core.workflows.read', description: 'core.permissions.workflowsRead' },
+    { key: 'core.workflows.manage', description: 'core.permissions.workflowsManage' },
+    { key: 'core.forms.manage', description: 'core.permissions.formsManage' },
+    { key: 'core.custom-fields.manage', description: 'core.permissions.customFieldsManage' },
+    { key: 'core.notifications.manage', description: 'core.permissions.notificationsManage' },
+    {
+      key: 'core.access-requests.read',
+      description: 'core.permissions.accessRequestsRead',
+      scopes: ['global', 'department'],
+    },
+    {
+      key: 'core.applications.read',
+      description: 'core.permissions.applicationsRead',
+      scopes: ['global', 'record'],
+    },
+    {
+      key: 'core.applications.manage',
+      description: 'core.permissions.applicationsManage',
+      scopes: ['global', 'record'],
+    },
+    { key: 'core.api-clients.manage', description: 'core.permissions.apiClientsManage' },
+    {
+      key: 'core.role-query.read',
+      description: 'core.permissions.roleQueryRead',
+      scopes: ['global', 'record'],
+    },
   ],
   roles: [
     {
@@ -152,7 +342,27 @@ export const coreManifest = defineManifest({
         'core.roles.read',
         'core.roles.assign',
         'core.audit.read',
+        'core.access-requests.read',
+        'core.custom-fields.manage',
       ],
+    },
+    {
+      key: 'workflow-admin',
+      name: 'Workflow administrator',
+      description: 'Design approval workflows, forms, custom fields and notification channels',
+      permissions: [
+        'core.workflows.*',
+        'core.forms.*',
+        'core.custom-fields.*',
+        'core.notifications.*',
+        'core.access-requests.read',
+      ],
+    },
+    {
+      key: 'application-manager',
+      name: 'Application manager',
+      description: 'Manage an application’s roles and permissions (assign it scoped to one application)',
+      permissions: ['core.applications.*', 'core.role-query.read'],
     },
     {
       key: 'security-auditor',
@@ -175,6 +385,7 @@ export const coreManifest = defineManifest({
     },
   ],
   events: {
+    consumes: ['core.notification.created'],
     emits: [
       { name: 'core.user.created', schema: userRef.extend({ status: z.string() }) },
       { name: 'core.user.updated', schema: userRef.extend({ changes: z.array(z.string()) }) },
@@ -214,6 +425,41 @@ export const coreManifest = defineManifest({
       { name: 'core.module.enabled', schema: z.object({ moduleId: z.string() }) },
       { name: 'core.module.disabled', schema: z.object({ moduleId: z.string() }) },
       {
+        name: 'core.workflow.completed',
+        description:
+          'A workflow instance finished; the trigger owner gets it through `workflows.onCompleted`',
+        schema: z.object({
+          instanceId: z.uuid(),
+          triggerKey: z.string(),
+          subjectType: z.string(),
+          subjectId: z.string(),
+          outcome: z.enum(['approved', 'rejected', 'cancelled']),
+          requesterId: z.uuid().nullable(),
+          comment: z.string().nullable(),
+        }),
+      },
+      {
+        name: 'core.notification.created',
+        description: 'Internal: hands new notifications to the worker for delivery',
+        schema: z.object({ userIds: z.array(z.uuid()), deliveryIds: z.array(z.uuid()) }),
+      },
+      { name: 'core.access-request.submitted', schema: requestRef },
+      { name: 'core.access-request.approved', schema: requestRef.extend({ assignmentId: z.uuid() }) },
+      { name: 'core.access-request.rejected', schema: requestRef },
+      { name: 'core.access-request.cancelled', schema: requestRef },
+      { name: 'core.access-request.failed', schema: requestRef.extend({ reason: z.string() }) },
+      { name: 'core.form-submission.created', schema: submissionRef },
+      {
+        name: 'core.form-submission.completed',
+        schema: submissionRef.extend({ status: z.enum(['approved', 'rejected', 'cancelled']) }),
+      },
+      { name: 'core.application.created', schema: z.object({ applicationId: z.uuid() }) },
+      { name: 'core.application.updated', schema: z.object({ applicationId: z.uuid() }) },
+      { name: 'core.application.deleted', schema: z.object({ applicationId: z.uuid() }) },
+      { name: 'core.api-client.created', schema: z.object({ apiClientId: z.uuid() }) },
+      { name: 'core.api-client.updated', schema: z.object({ apiClientId: z.uuid() }) },
+      { name: 'core.api-client.revoked', schema: z.object({ apiClientId: z.uuid() }) },
+      {
         name: 'core.directory.synced',
         schema: z.object({
           idpId: z.uuid(),
@@ -245,6 +491,63 @@ export const coreManifest = defineManifest({
       default: '',
       advanced: true,
     },
+    {
+      key: 'notifications.email.enabled',
+      label: 'core.settings.emailEnabled',
+      type: 'boolean',
+      default: false,
+      advanced: true,
+    },
+    {
+      key: 'notifications.email.host',
+      label: 'core.settings.emailHost',
+      type: 'string',
+      default: '',
+      advanced: true,
+    },
+    {
+      key: 'notifications.email.port',
+      label: 'core.settings.emailPort',
+      type: 'number',
+      default: 587,
+      advanced: true,
+    },
+    {
+      key: 'notifications.email.secure',
+      label: 'core.settings.emailSecure',
+      description: 'core.settings.emailSecureHelp',
+      type: 'boolean',
+      default: false,
+      advanced: true,
+    },
+    {
+      key: 'notifications.email.username',
+      label: 'core.settings.emailUsername',
+      type: 'string',
+      default: '',
+      advanced: true,
+    },
+    {
+      key: 'notifications.email.password',
+      label: 'core.settings.emailPassword',
+      type: 'secret',
+      advanced: true,
+    },
+    {
+      key: 'notifications.email.from',
+      label: 'core.settings.emailFrom',
+      description: 'core.settings.emailFromHelp',
+      type: 'string',
+      default: '',
+      advanced: true,
+    },
+    {
+      key: 'notifications.retentionDays',
+      label: 'core.settings.notificationRetention',
+      type: 'number',
+      default: 90,
+      advanced: true,
+    },
   ],
   ai: {
     tools: [
@@ -269,5 +572,45 @@ export const coreManifest = defineManifest({
       },
     ],
   },
-  search: { entities: ['user', 'group', 'role', 'department'] },
+  search: { entities: ['user', 'group', 'role', 'department', 'request'] },
+  workflows: [
+    {
+      key: 'core.access-request',
+      name: 'core.workflows.accessRequest.name',
+      description: 'core.workflows.accessRequest.description',
+      subject: 'access-request',
+      facts: accessRequestFacts,
+      required: true,
+      defaultGraph: accessRequestGraph,
+    },
+    {
+      key: 'core.form-submission',
+      name: 'core.workflows.formSubmission.name',
+      description: 'core.workflows.formSubmission.description',
+      subject: 'form-submission',
+      facts: formSubmissionFacts,
+    },
+  ],
+  notifications: [
+    { type: 'core.approval.assigned', defaultChannels: ['inApp', 'email'] },
+    { type: 'core.approval.reminder', defaultChannels: ['inApp', 'email'] },
+    { type: 'core.approval.escalated', defaultChannels: ['inApp', 'email'] },
+    { type: 'core.approval.overdue', defaultChannels: ['inApp'] },
+    { type: 'core.approval.delegated', defaultChannels: ['inApp', 'email'] },
+    { type: 'core.workflow.fyi', defaultChannels: ['inApp'] },
+    { type: 'core.access-request.approved', defaultChannels: ['inApp', 'email'] },
+    { type: 'core.access-request.rejected', defaultChannels: ['inApp', 'email'] },
+    { type: 'core.access-request.failed', defaultChannels: ['inApp', 'email'], mandatory: true },
+    { type: 'core.access.expiring', defaultChannels: ['inApp', 'email'] },
+    { type: 'core.form-submission.approved', defaultChannels: ['inApp', 'email'] },
+    { type: 'core.form-submission.rejected', defaultChannels: ['inApp', 'email'] },
+    { type: 'core.access.granted', defaultChannels: ['inApp', 'email'] },
+  ],
+  customFields: {
+    entities: [
+      { type: 'user', name: 'core.entities.user' },
+      { type: 'group', name: 'core.entities.group' },
+      { type: 'department', name: 'core.entities.department' },
+    ],
+  },
 });

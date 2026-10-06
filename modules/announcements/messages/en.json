@@ -27,7 +27,8 @@
   "status": {
     "draft": "Draft",
     "published": "Published",
-    "archived": "Archived"
+    "archived": "Archived",
+    "pending": "Awaiting approval"
   },
   "views": {
     "current": "Current",
@@ -73,6 +74,35 @@
     "post_updated": "Edited announcement",
     "post_published": "Published announcement",
     "post_archived": "Archived announcement",
-    "post_deleted": "Deleted announcement"
-  }
+    "post_deleted": "Deleted announcement",
+    "post_submitted": "Sent announcement for approval",
+    "post_review_closed": "Closed announcement review"
+  },
+  "workflows": {
+    "publish": {
+      "name": "Publishing an announcement",
+      "description": "Optional review before a post goes live. Conditions can use post.severity, post.pinned and post.hasWindow."
+    }
+  },
+  "notifications": {
+    "post_published": {
+      "label": "Announcements (channels)",
+      "title": "{severity, select, incident {Incident} maintenance {Maintenance} other {Announcement}}: {title}",
+      "body": ""
+    },
+    "post_approved": {
+      "label": "My announcements approved",
+      "title": "Published: {title}",
+      "body": "Your announcement was approved and everyone can see it now."
+    },
+    "post_rejected": {
+      "label": "My announcements sent back",
+      "title": "Sent back: {title}",
+      "body": "{comment}"
+    }
+  },
+  "submittedToast": "Sent for approval — it goes live once approved",
+  "withdrawnToast": "Withdrawn from review — back to draft",
+  "withdraw": "Withdraw from review",
+  "pendingHint": "This announcement is waiting for approval. It is published automatically once approved; withdraw it to make changes."
 }

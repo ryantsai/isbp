@@ -28,6 +28,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { CustomFieldsCard } from '@/components/fields/entity-fields';
 import { SourceBadge } from '@/components/status-badge';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { GroupFormDialog } from './group-form';
@@ -131,6 +132,8 @@ export function GroupDetailView({ id }: { id: string }) {
           </div>
         )}
       </FadeIn>
+
+      <CustomFieldsCard entityType="core.group" attributes={group.attributes} />
 
       <Tabs defaultValue="members">
         <TabsList>

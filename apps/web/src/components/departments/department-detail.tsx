@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useId } from 'react';
 import type { DepartmentNode } from '@/components/pickers/use-departments';
+import { CustomFieldsCard } from '@/components/fields/entity-fields';
 import { DateTime } from '@/components/relative-time';
 import { ancestorIds } from './department-tree';
 
@@ -206,6 +207,8 @@ export function DepartmentDetail({
             <DateTime date={node.createdAt} />
           </Field>
         </dl>
+
+        <CustomFieldsCard variant="section" entityType="core.department" attributes={node.attributes} />
 
         <section aria-labelledby={subId} className="space-y-2">
           <div className="flex items-center justify-between gap-2">

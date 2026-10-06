@@ -5,15 +5,21 @@ import { sql } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import { Redis } from 'ioredis';
 import type { Config } from '../config';
+import { ApiClientAuth } from './api-clients';
 import { createAuditService } from './audit';
 import { currentPrincipal } from './context';
 import { SecretBox } from './crypto';
 import { createEventPublisher } from './events';
+import { CustomFieldRegistry } from './fields';
 import { ModuleRegistry } from './modules';
+import { NotificationHub } from './notifications/hub';
+import { NotificationCenter } from './notifications/service';
 import { QueueFactory } from './queues';
 import { RbacService } from './rbac';
 import { SessionService } from './sessions';
 import { SettingsService } from './settings';
+import { installDefaultWorkflows } from './workflow/defaults';
+import { WorkflowEngine } from './workflow/engine';
 
 export type Kernel = Awaited<ReturnType<typeof createKernel>>;
 
@@ -46,6 +52,23 @@ export async function createKernel(
   const queues = new QueueFactory(config);
   const audit = createAuditService(db);
 
+  let coreContext: ModuleContext | undefined;
+  const core = () => (coreContext ??= registry.context('core'));
+  const notifications = new NotificationCenter({
+    db,
+    box,
+    settings,
+    registry,
+    redis,
+    config,
+    logger,
+    coreEvents: () => core().events,
+  });
+  const hub = new NotificationHub(redis, logger);
+  const fields = new CustomFieldRegistry(db, registry);
+  const workflows = new WorkflowEngine({ db, registry, notifications, logger, core });
+  const apiClients = new ApiClientAuth(db, redis, config.OAUTH_TOKEN_TTL_SECONDS);
+
   const contexts = new Map<string, ModuleContext>();
   for (const m of registry.modules) {
     const id = m.manifest.id;
@@ -59,6 +82,9 @@ export async function createKernel(
       jobs: queues.forModule(id),
       settings: settings.reader(m.manifest),
       rbac,
+      workflows: workflows.forModule(id),
+      notifications: notifications.forModule(m.manifest),
+      fields: fields.service(),
       transaction: (fn) => db.transaction((tx) => fn(tx as unknown as Db)),
       principal: currentPrincipal,
       isEnabled: () => registry.isEnabled(id),
@@ -77,6 +103,7 @@ export async function createKernel(
       warn: (msg) => logger.warn(msg),
     });
     await registry.sync();
+    await installDefaultWorkflows(db, workflows);
     return applied;
   }
 
@@ -106,6 +133,7 @@ export async function createKernel(
   }
 
   async function close() {
+    await hub.close();
     await registry.close();
     await queues.close();
     redis.disconnect();
@@ -125,6 +153,11 @@ export async function createKernel(
     settings,
     queues,
     audit,
+    notifications,
+    hub,
+    fields,
+    workflows,
+    apiClients,
     migrate,
     ready,
     search,

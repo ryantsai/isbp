@@ -26,6 +26,7 @@ import { AuditIcon, useActionLabel } from '@/components/audit-action';
 import { RelativeTime } from '@/components/relative-time';
 import { useApiQuery } from '@/lib/api';
 import { ActivityChart } from './activity-chart';
+import { MyWork } from './my-work';
 
 function Kpi({
   icon,
@@ -109,6 +110,8 @@ export function DashboardView({ initial }: { initial: Dashboard }) {
         </h1>
         <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
       </FadeIn>
+
+      <MyWork />
 
       {canPeople ? (
         <Stagger className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">

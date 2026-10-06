@@ -5,6 +5,8 @@
     "label": "設定のセクション",
     "profile": "プロファイル",
     "preferences": "基本設定",
+    "notifications": "通知",
+    "outOfOffice": "不在設定",
     "security": "パスワード",
     "sessions": "セッション",
     "access": "自分のアクセス権"
@@ -35,6 +37,72 @@
       "noMatch": "一致するタイム ゾーンはありません。",
       "saved": "タイム ゾーンを {zone} に設定しました",
       "useBrowser": "このデバイスのタイム ゾーンを使用 ({zone})"
+    }
+  },
+  "notifications": {
+    "title": "通知",
+    "description": "アプリ内とメールで受け取る通知を選択します。",
+    "reset": "既定値に戻す",
+    "resetDone": "通知設定を既定値に戻しました",
+    "autosave": "変更は自動的に保存されます。",
+    "saving": "保存しています…",
+    "saved": "保存しました",
+    "emailUnavailable": "このプラットフォームではメール通知がまだ設定されていないため、通知はアプリ内でのみ受け取ります。管理者がメールをオンにできます。",
+    "tableCaption": "通知の種類と送信先",
+    "columns": {
+      "type": "通知",
+      "inApp": "アプリ内",
+      "email": "メール"
+    },
+    "mandatory": "セキュリティのため必須",
+    "switchLabel": "{type}: {channel}"
+  },
+  "outOfOffice": {
+    "title": "不在設定",
+    "description": "休暇の予定はありますか? 不在中に届いた承認を処理する同僚を選択します。",
+    "add": "スケジュール",
+    "explainer": "この期間中、自分に割り当てられるはずの新しい承認タスクは代理人に割り当てられます。すでに自分が担当しているタスクはそのまま残ります。",
+    "none": "不在期間はスケジュールされていません。",
+    "listTitle": "予定および有効な不在期間",
+    "goesTo": "承認の代理人: {name}",
+    "active": "有効",
+    "scheduled": "予定",
+    "end": "今すぐ終了",
+    "remove": "削除",
+    "endLabel": "{name} が代理人の不在設定を終了",
+    "removeLabel": "{name} が代理人の不在設定を削除",
+    "endTitle": "不在設定を今すぐ終了しますか?",
+    "removeTitle": "この不在期間を削除しますか?",
+    "endBody": "新しい承認タスクは再び自分に割り当てられます。すでに {name} に引き継がれたタスクはそのまま {name} が担当します。",
+    "removeBody": "{period} の間、承認は {name} に引き継がれなくなります。",
+    "ended": "不在設定を終了しました",
+    "removed": "不在期間を削除しました",
+    "formTitle": "新しい不在期間",
+    "delegate": "承認の代理人",
+    "delegatePlaceholder": "同僚を選択…",
+    "delegateHint": "代理人が自分の代わりに新しいタスクを承認し、タスクが届くと通知を受け取ります。",
+    "from": "開始",
+    "until": "終了",
+    "quick": {
+      "label": "期間",
+      "days": "{count, plural, other {# 日}}"
+    },
+    "timeZone": "時刻はご利用のタイム ゾーン ({zone}) で表示されます。",
+    "reason": "理由",
+    "reasonPlaceholder": "例: 年次休暇",
+    "reasonHint": "承認が引き継がれる相手に表示されます。",
+    "save": "不在設定をスケジュール",
+    "created": "不在設定をスケジュールしました",
+    "validation": {
+      "reason": "300 文字以内で入力してください。",
+      "delegate": "承認を処理するユーザーを選択してください。",
+      "date": "日付と時刻を入力してください。",
+      "afterStart": "終了は開始より後にしてください。",
+      "future": "終了は未来の日時にしてください。"
+    },
+    "errors": {
+      "invalidDelegate": "このユーザーは承認を引き継げません。別の有効な同僚を選択してください。",
+      "overlap": "この期間の一部にはすでに不在設定があります。先にその設定を終了または変更してください。"
     }
   },
   "password": {

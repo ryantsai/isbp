@@ -92,7 +92,14 @@ export function PostEditor({
     },
     {
       invalidate: ['/announcements/'],
-      success: (p) => (post ? t('saved') : p.status === 'published' ? t('publishedToast') : t('draftSaved')),
+      success: (p) =>
+        post
+          ? t('saved')
+          : p.status === 'published'
+            ? t('publishedToast')
+            : p.status === 'pending'
+              ? t('submittedToast')
+              : t('draftSaved'),
       onSuccess: (p) => {
         onOpenChange(false);
         onSaved?.(p);

@@ -1,0 +1,59 @@
+{
+  "title": "Approvals",
+  "description": "Decisions waiting for you — the most urgent first.",
+  "tabs": {
+    "pending": "Waiting for me",
+    "done": "Decided by me"
+  },
+  "search": "Search requests…",
+  "approve": "Approve",
+  "reject": "Reject",
+  "approveSubject": "Approve {subject}",
+  "rejectSubject": "Reject {subject}",
+  "escalated": "Escalated to you",
+  "delegatedBy": "From {name}",
+  "emptyPending": "Nothing is waiting for you",
+  "emptyPendingHint": "New approvals appear here instantly — you'll also get a notification.",
+  "emptyDone": "You haven't decided anything yet",
+  "emptySearch": "No approvals match your search",
+  "previous": "Previous",
+  "next": "Next",
+  "pageOf": "Page {page} of {pages}",
+  "liveCount": "{count, plural, =0 {No approvals} one {# approval} other {# approvals}}",
+  "decide": {
+    "approveTitle": "Approve this request?",
+    "rejectTitle": "Reject this request?",
+    "commentOptional": "Comment (optional)",
+    "commentRequired": "Why are you rejecting it?",
+    "approvePlaceholder": "Anything the requester should know",
+    "rejectPlaceholder": "For example: please request the read-only role instead",
+    "visibleToRequester": "The requester will see this comment.",
+    "reasonNeeded": "Give the requester a reason.",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "approvedToast": "Approved",
+    "rejectedToast": "Rejected — the requester has been told why"
+  },
+  "delegate": {
+    "title": "Hand this approval to someone else",
+    "person": "Colleague",
+    "hint": "They get it in their inbox. The requester can't decide on their own request.",
+    "note": "Note for them (optional)",
+    "submit": "Hand over",
+    "cancel": "Cancel",
+    "toast": "Handed over"
+  },
+  "sheet": {
+    "close": "Close",
+    "requestedBy": "Requested by {name}",
+    "system": "the system",
+    "details": "What is requested",
+    "openSubject": "Open the request",
+    "progress": "Approval path",
+    "timeline": "History",
+    "approve": "Approve",
+    "reject": "Reject",
+    "delegate": "Hand over"
+  }
+}

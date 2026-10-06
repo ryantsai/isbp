@@ -34,5 +34,15 @@
   "notFoundBody": "お探しのページは存在しないか、移動された可能性があります。",
   "goHome": "ダッシュボードに移動",
   "errorTitle": "問題が発生しました",
-  "errorBody": "予期しないエラーが発生しました。詳細はログに記録されています。"
+  "errorBody": "予期しないエラーが発生しました。詳細はログに記録されています。",
+  "badgeCount": "{count} 件の対応待ち",
+  "notifications": {
+    "label": "通知",
+    "labelUnread": "通知、未読 {count} 件",
+    "title": "通知",
+    "markAllRead": "すべて既読にする",
+    "viewAll": "すべての通知を表示",
+    "empty": "新しい通知はありません。",
+    "unread": "未読:"
+  }
 }

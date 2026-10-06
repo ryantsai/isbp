@@ -33,7 +33,21 @@ Modular monolith: Fastify API + worker (`apps/api`), Next.js 16 web (`apps/web`)
   (not next-themes), lists via `DataTable` + `useListState` (state in the URL). The React Compiler lint
   rules are on: don't create components or mutate outer variables during render.
 - Accessibility & motion: WCAG 2.1 AA (axe scans in e2e), `MotionConfig reducedMotion="user"`; status is
-  never colour-only.
+  never colour-only. Status text uses the `--success/--info/--destructive` tokens (tuned for AA on their
+  own 8–15% tints): check contrast before changing them. Tabs that only filter a list still render a
+  `TabsContent` per tab (axe flags `aria-controls` pointing at nothing); grid items holding truncated text
+  need `min-w-0` / `grid-cols-1` or pages overflow at 375px.
+- Approvals: a module declares triggers in `manifest.workflows` (`required` + `defaultGraph` for ones that
+  must always be approved), starts them with `ctx.workflows.start(trigger, input, { tx })` and reacts in
+  `defineModule({ workflows: { [trigger]: { onCompleted } } })`. The step
+  interpreter (`advanceWorkflow` in `@isbp/sdk`) is pure and shared by the API and the builder's simulator.
+- Notifications: types in `manifest.notifications`, text in the module catalog under
+  `notifications.<type minus module, dots and dashes → _>.{title,body}` (ICU; dates render in the recipient's zone).
+  Send with `ctx.notifications.notify({ type, recipients, params, href }, { tx })`; channels run in the worker.
+- Custom fields and forms share one `FieldDef` model and validator (`@isbp/sdk` `validateFields`);
+  hidden (conditional) fields are stripped. Entities declare support in `manifest.customFields`.
+- API clients/Role Query: service principals never reach personal routes (`/me/*`); grant per application
+  via record-scoped `core.role-query.read`.
 
 ## Gotchas
 
@@ -43,3 +57,10 @@ Modular monolith: Fastify API + worker (`apps/api`), Next.js 16 web (`apps/web`)
 - Turbopack dev can panic after `pnpm install` changes `node_modules`: stop it, `rm -rf apps/web/.next`, restart.
 - The API dev process must run under `tsx watch` to reload; registry changes restart it.
 - tsdown is configured with `fixedExtension: false` so entrypoints stay `dist/*.js` (Docker/Helm/CI rely on it).
+- Drizzle `sql` templates: never interpolate a JS array into `= any(...)` ("malformed array literal"); use
+  `inArray()` or build the list with `sql.join`.
+- Recursive Zod schemas need an explicit `z.ZodType<X, X>` annotation, or `z.input<>` collapses to `unknown`.
+- ICU catalog strings can't contain `<…>` (parsed as tags); a self-referencing `useCallback` fails the
+  React Compiler lint — recurse through an inner function instead.
+- Outbox side effects (grants, deliveries) land asynchronously in the worker: tests poll (`eventually`,
+  `expect.toPass`) instead of asserting right after the request.

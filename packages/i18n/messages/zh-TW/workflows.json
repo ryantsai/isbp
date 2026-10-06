@@ -1,0 +1,343 @@
+{
+  "status": {
+    "request": {
+      "pending": "等待核准",
+      "submitted": "已送出",
+      "approved": "已核准",
+      "rejected": "已駁回",
+      "cancelled": "已撤回",
+      "failed": "無法授予"
+    },
+    "instance": {
+      "running": "進行中",
+      "approved": "已核准",
+      "rejected": "已駁回",
+      "cancelled": "已撤回"
+    },
+    "task": {
+      "pending": "等待中",
+      "approved": "已核准",
+      "rejected": "已駁回",
+      "delegated": "已轉交",
+      "cancelled": "已結束"
+    }
+  },
+  "due": {
+    "in_hours": "{n} 小時內到期",
+    "in_days": "{n} 天內到期",
+    "overdue_hours": "已逾期 {n} 小時",
+    "overdue_days": "已逾期 {n} 天"
+  },
+  "facts": {
+    "role_key": "角色代碼",
+    "role_name": "角色",
+    "role_riskLevel": "風險等級",
+    "role_ownerId": "角色擁有者",
+    "role_application": "應用程式",
+    "role_id": "角色",
+    "request_durationDays": "期間（天）",
+    "request_permanent": "永久權限",
+    "request_scopeType": "範圍",
+    "request_forSomeoneElse": "為他人申請",
+    "form_key": "表單",
+    "form_category": "表單類別",
+    "requester_departmentCode": "申請人部門",
+    "requester_jobTitle": "申請人職稱",
+    "subjectUser_departmentCode": "對象人員部門",
+    "post_severity": "公告類型",
+    "post_pinned": "已置頂",
+    "post_hasWindow": "有時間範圍"
+  },
+  "factValues": {
+    "role_riskLevel": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "request_scopeType": {
+      "global": "全域",
+      "department": "單一部門",
+      "record": "單一紀錄"
+    },
+    "post_severity": {
+      "info": "資訊",
+      "maintenance": "維護",
+      "incident": "事件"
+    }
+  },
+  "timeline": {
+    "system": "系統",
+    "otherwise": "其他情況",
+    "events": {
+      "started": "{actor} 送出申請",
+      "task_approved": "{actor} 已核准：{step}",
+      "task_rejected": "{actor} 已駁回：{step}",
+      "task_delegated": "{actor} 將「{step}」轉交給 {to}",
+      "task_reminded": "已寄送提醒：{step}",
+      "task_overdue": "「{step}」已逾期",
+      "task_escalated": "「{step}」已轉呈給另外 {count} 位簽核者",
+      "task_auto_decided": "「{step}」逾期後已自動處理（{outcome}）",
+      "step_rejected": "「{step}」遭駁回",
+      "step_skipped": "已略過「{step}」",
+      "branch_chosen": "走「{branch}」路徑",
+      "notified": "{step}：已通知 {count} 人",
+      "completed": "已完成：{outcome, select, approved {已核准} rejected {已駁回} cancelled {已撤回} other {{outcome}}}",
+      "cancelled": "{actor} 撤回了申請",
+      "other": "{type}"
+    },
+    "reasons": {
+      "condition": "未符合條件",
+      "no-approver": "找不到簽核者",
+      "cancelled": "已取消"
+    }
+  },
+  "list": {
+    "title": "工作流程",
+    "description": "權限申請、表單與模組的簽核流程。發佈後的變更會套用到新的申請。",
+    "tabs": {
+      "definitions": "工作流程",
+      "instances": "進行中與歷史紀錄"
+    },
+    "search": "搜尋工作流程…",
+    "showArchived": "顯示已封存",
+    "new": "新增工作流程",
+    "newFor": "新增",
+    "required": "一律執行",
+    "optional": "選用",
+    "usesDefault": "使用中：{name}",
+    "perForm": "每張表單各自選擇工作流程。",
+    "noDefault": "未使用：在您選擇預設工作流程前不需要核准。",
+    "empty": "此觸發條件尚無工作流程。",
+    "default": "預設",
+    "system": "內建",
+    "archived": "已封存",
+    "version": "第 {version} 版",
+    "draftOnly": "草稿，尚未發佈",
+    "unpublished": "有未發佈的變更",
+    "steps": "{count} 個步驟",
+    "running": "{count} 筆進行中",
+    "create": {
+      "title": "新增工作流程",
+      "description": "選擇此流程要決定的事項，可以從空白或複製現有流程開始。",
+      "trigger": "用於",
+      "name": "名稱",
+      "descriptionLabel": "說明",
+      "copyFrom": "起點",
+      "blank": "空白工作流程",
+      "cancel": "取消",
+      "submit": "建立並開啟",
+      "created": "已建立工作流程"
+    }
+  },
+  "instances": {
+    "label": "工作流程執行紀錄",
+    "subject": "申請",
+    "status": "狀態",
+    "current": "目前步驟",
+    "requester": "申請人",
+    "started": "開始時間",
+    "search": "搜尋申請…",
+    "allStatuses": "所有狀態",
+    "trigger": "工作流程類型",
+    "allTriggers": "所有類型"
+  },
+  "issues": {
+    "empty": "請至少新增一個步驟，空的工作流程會自動核准所有申請。",
+    "noApprovers": "請至少新增一位簽核者。",
+    "quorumInvalid": "需要的核准人數超過簽核者人數。",
+    "requesterApprover": "申請人不能擔任簽核者。",
+    "escalationTargets": "請選擇轉呈對象。",
+    "remindAfterDue": "提醒時間必須早於期限。",
+    "noBranches": "請新增更多路徑。",
+    "noRecipients": "請至少新增一位收件者。",
+    "duplicateId": "步驟代碼重複。",
+    "tooDeep": "巢狀層數過多。",
+    "tooManySteps": "步驟過多。",
+    "incomplete": "請為每位簽核者選擇人員、群組、角色或欄位。",
+    "unknownGroup": "此步驟中的群組已不存在。",
+    "unknownRole": "此步驟中的角色已不存在。",
+    "unknownUser": "此步驟中的人員已非啟用狀態。"
+  },
+  "builder": {
+    "title": "工作流程設計工具",
+    "back": "工作流程",
+    "version": "第 {version} 版",
+    "draftOnly": "尚未發佈",
+    "default": "預設",
+    "unpublished": "有未發佈的變更",
+    "archived": "已封存",
+    "unsaved": "有未儲存的變更",
+    "save": "儲存草稿",
+    "publish": "發佈",
+    "more": "更多動作",
+    "makeDefault": "用於新的申請",
+    "clearDefault": "停止使用（不需核准）",
+    "defaultCleared": "已關閉此觸發條件的核准",
+    "restore": "還原",
+    "archive": "封存",
+    "zoomOut": "縮小",
+    "zoomReset": "重設縮放",
+    "zoomIn": "放大",
+    "addHere": "在此新增步驟",
+    "addStep": "新增步驟",
+    "stepTypes": {
+      "approval": {
+        "name": "簽核",
+        "hint": "請相關人員核准或駁回"
+      },
+      "condition": {
+        "name": "判斷",
+        "hint": "依申請內容走不同路徑"
+      },
+      "parallel": {
+        "name": "平行處理",
+        "hint": "同時進行多項簽核"
+      },
+      "notify": {
+        "name": "通知",
+        "hint": "告知相關人員，不需決定"
+      }
+    },
+    "stepActions": "步驟動作",
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "duplicate": "複製",
+    "delete": "刪除",
+    "branch": "分支",
+    "otherwise": "其他情況",
+    "yes": "如果…",
+    "tabs": {
+      "step": "步驟",
+      "settings": "工作流程",
+      "test": "測試"
+    },
+    "selectStep": "在畫布上選取步驟即可編輯。",
+    "name": "名稱",
+    "description": "說明",
+    "factsFromForm": "使用表單欄位",
+    "pickForm": "選擇表單",
+    "factsFromFormHint": "條件即可判斷表單的填寫內容（例如預估費用）。",
+    "usedBy": "使用此流程的項目",
+    "usedByDefault": "此類型的所有新申請。",
+    "usedByNothing": "目前沒有。",
+    "versions": "已發佈版本",
+    "noVersions": "尚未發佈。",
+    "system": "系統",
+    "incomplete": "部分簽核者未設定完成，請先選擇對象。",
+    "invalid": "工作流程設定無效。",
+    "saved": "已儲存草稿",
+    "published": "已發佈第 {version} 版，新的申請會立即使用",
+    "fixIssues": "請先修正標示的步驟再發佈",
+    "approvers": {
+      "type": "簽核者類型",
+      "types": {
+        "user": "指定人員",
+        "group": "群組",
+        "role": "角色持有者",
+        "manager": "主管",
+        "department-head": "部門主管",
+        "fact": "欄位中的人員",
+        "requester": "申請人"
+      },
+      "pickRole": "選擇角色",
+      "level": "主管層級",
+      "levels": "{level, select, 1 {直屬主管} 2 {主管的主管} other {第 {level} 層}}",
+      "pickFact": "選擇欄位",
+      "hints": {
+        "department-head": "該人員所屬部門的主管。",
+        "requester": "送出申請的人。"
+      },
+      "remove": "移除",
+      "fallback": "若找不到人，改請",
+      "addFallback": "新增備援簽核者"
+    },
+    "editor": {
+      "legend": "步驟設定",
+      "name": "步驟名稱",
+      "when": "條件",
+      "whenHint": "不符合條件的申請會略過此步驟。",
+      "onlySometimes": "僅在特定情況執行此步驟",
+      "approvers": "簽核者",
+      "approversHint": "每一行代表一位簽核者；群組或角色算一位，任一成員皆可回覆。",
+      "addApprover": "新增簽核者",
+      "mode": "需要多少人核准",
+      "modes": {
+        "any": "第一個回覆即決定",
+        "all": "所有簽核者",
+        "quorum": "指定人數"
+      },
+      "quorum": "需要核准數",
+      "ofSlots": "／共 {count} 位",
+      "modeHints": {
+        "any": "第一個核准或駁回即決定此步驟結果。",
+        "all": "所有簽核者都須核准，任一人駁回即駁回。",
+        "quorum": "達到足夠的核准數後即通過此步驟。"
+      },
+      "deadline": "期限",
+      "deadlineHint": "簽核者處理過久時，可提醒、轉呈或自動處理。",
+      "useDeadline": "設定期限",
+      "dueIn": "須在此時間內處理",
+      "remindAfter": "提醒時間",
+      "hours": "小時",
+      "whenLate": "超過期限時",
+      "breach": {
+        "notify": "通知簽核者已逾期",
+        "escalate": "轉呈給其他人",
+        "approve": "自動核准",
+        "reject": "自動駁回"
+      },
+      "escalateTo": "轉呈對象",
+      "options": "選項",
+      "allowDelegation": "簽核者可轉交給其他人",
+      "allowDelegationHint": "休假代理一律適用。",
+      "allowSelf": "申請人可核准自己的申請",
+      "allowSelfHint": "預設關閉，以落實職務分離。",
+      "ifNobody": "找不到簽核者時",
+      "nobody": {
+        "reject": "駁回申請",
+        "skip": "略過此步驟"
+      },
+      "instructions": "給簽核者的說明",
+      "instructionsPlaceholder": "簽核者應檢查哪些事項？",
+      "paths": "路徑",
+      "pathsHint": "採用第一個符合規則的路徑，否則走最後一條。",
+      "newPath": "路徑 {n}",
+      "addPath": "新增路徑",
+      "pathName": "路徑名稱",
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "removePath": "移除路徑",
+      "pathSteps": "此路徑有 {count} 個步驟",
+      "otherwise": "其他情況",
+      "branches": "分支",
+      "branchesHint": "所有分支同時進行，每個分支都核准後此步驟才完成。",
+      "newBranch": "分支 {n}",
+      "addBranch": "新增分支",
+      "branchName": "分支名稱",
+      "removeBranch": "移除分支",
+      "recipients": "通知對象",
+      "recipientsHint": "對方會收到站內通知（若有設定也會收到電子郵件）。",
+      "addRecipient": "新增收件者",
+      "message": "訊息"
+    },
+    "test": {
+      "intro": "用範例值與決定試跑工作流程，不會儲存或寄送任何內容。",
+      "facts": "申請內容",
+      "any": "未設定",
+      "decisions": "決定",
+      "approved": "核准",
+      "rejected": "駁回",
+      "run": "執行測試",
+      "clear": "清除",
+      "outcomeApproved": "結果：核准",
+      "outcomeRejected": "結果：駁回",
+      "status": {
+        "approved": "已核准",
+        "rejected": "已駁回",
+        "skipped": "已略過",
+        "active": "等待中",
+        "waiting": "未到達"
+      }
+    }
+  }
+}

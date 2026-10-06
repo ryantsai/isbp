@@ -51,5 +51,15 @@
   "welcome": {
     "title": "歡迎使用 IS Big Platform",
     "body": "使用搜尋（⌘K / Ctrl K）即可快速前往任何位置。如需存取更多模組，請洽詢您的管理員。"
+  },
+  "myWork": {
+    "approvals": "待您簽核",
+    "approvalsHint": "需要您決定的申請。",
+    "open": "開啟",
+    "noApprovals": "目前沒有待您簽核的項目。",
+    "requests": "您進行中的申請",
+    "requestsHint": "您送出的權限與其他申請。",
+    "newRequest": "新增申請",
+    "noRequests": "您目前沒有進行中的申請。"
   }
 }

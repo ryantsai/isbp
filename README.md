@@ -4,9 +4,10 @@ A unified resource-management platform for IT operations — identity, access, s
 assets, automation and AI — built as a **modular monolith**: a small kernel plus modules that all use
 the same SDK. The UI ships in **English, 繁體中文（台灣）and 日本語**.
 
-> **Status: Phase 0 (Foundation) complete.** Identity, RBAC, audit, the module system, SSO, the app
-> shell and the deployment/CI foundation are in place. See [docs/architecture.md](docs/architecture.md)
-> for the design and the phase plan.
+> **Status: Phase 1 complete** — approval workflows with a visual builder, a drag-and-drop form builder,
+> custom fields, notifications (in-app, email, Teams, Slack, webhooks), a self-service access-request portal
+> and the Role Query API, on top of the Phase 0 foundation (identity, RBAC, audit, SSO, module system).
+> See [docs/architecture.md](docs/architecture.md) for the design and the phase plan.
 
 ## Quick start (no Docker needed)
 
@@ -33,7 +34,10 @@ pnpm dev
   `docker compose -f infra/compose/docker-compose.dev.yml up -d`.
 - `pnpm db:seed` applies migrations and loads demo data: ~180 people across a 15-department org (English,
   Taiwanese and Japanese names), groups, roles, scoped and time-bound assignments, sample sign-in
-  providers, two weeks of audit history and a few announcements.
+  providers, two weeks of audit history and a few announcements — plus Phase 1 data: approval workflows,
+  three published forms, custom fields, three external applications with roles, access requests and form
+  submissions in every state (some waiting for `admin`), notification channels and an API client whose
+  key is printed once at the end of the seed output.
 - `pnpm dev` starts the API + worker (http://localhost:4000) and the web app (http://localhost:3000). If port 3000 is busy, use `WEB_PORT=3100 pnpm dev`.
 
 Sign in at http://localhost:3000 with **`admin` / `ChangeMe-2026!`**. Other demo accounts (password
@@ -59,6 +63,17 @@ API reference (OpenAPI 3.1, interactive): http://localhost:4000/api/docs · raw 
 | **Module system** | Manifest-driven modules (routes, nav, permissions, roles, events, jobs, settings, AI tools, search), runtime enable/disable, `pnpm create-module <name>` scaffolder, sample **Announcements** module                                                    |
 | **Event bus**     | Transactional outbox → BullMQ with per-subscriber retries; modules react to each other without imports                                                                                                                                                  |
 | **Ops**           | OpenTelemetry tracing, structured JSON logs, Prometheus metrics, health/readiness probes, Docker images, docker-compose, Helm chart, GitHub Actions CI                                                                                                  |
+
+## What's in Phase 1
+
+| Area                              | Highlights                                                                                                                                                                                                                                                        |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Approvals**                     | Inbox with SLA badges, approve / reject (with reason) / hand over, out-of-office delegation, live counters in the navigation, a progress diagram and timeline for every request                                                                                   |
+| **Workflow builder**              | Visual builder: sequential, parallel and conditional steps, approvers (people, groups, roles, manager chain, department head, "person in a field") with fallbacks, quorum, deadlines with reminders/escalation/auto-decisions, a test panel, versioned publishing |
+| **Requests portal**               | Catalog of request types, "request access" wizard with a live preview of who will approve, request numbers (`REQ-01042`), progress tracking and withdrawal                                                                                                        |
+| **Forms & custom fields**         | Drag-and-drop form builder with conditional logic and translations, attachable approval workflows; custom fields on people, groups and departments; one validator shared by browser and API                                                                       |
+| **Notifications**                 | In-app (live via Server-Sent Events), email (SMTP), Microsoft Teams, Slack and signed webhooks; per-person preferences per notification type; delivery log                                                                                                        |
+| **Applications & Role Query API** | External applications with their own permissions and roles; API clients with API keys or OAuth 2.0 client credentials; `GET /role-query/users/{user}?application=…`, `POST /role-query/check`, member listings                                                    |
 
 ## Repository layout
 

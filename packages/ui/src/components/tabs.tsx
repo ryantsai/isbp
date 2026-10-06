@@ -39,7 +39,7 @@ export function TabsList({ className, ...props }: React.ComponentProps<typeof Ta
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        'inline-flex h-9 w-fit max-w-full items-center justify-start gap-1 overflow-x-auto border-b text-muted-foreground',
+        'inline-flex w-fit max-w-full items-center justify-start gap-1 overflow-x-auto border-b text-muted-foreground',
         className,
       )}
       {...props}
@@ -69,7 +69,7 @@ export function TabsTrigger({
       {active && (
         <motion.span
           layoutId={`tab-indicator-${ctx.id}`}
-          className="absolute inset-x-1 -bottom-px h-0.5 rounded-full bg-primary"
+          className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-primary"
           transition={{ type: 'spring', stiffness: 500, damping: 40 }}
         />
       )}

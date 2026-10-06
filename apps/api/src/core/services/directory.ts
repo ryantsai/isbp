@@ -56,6 +56,7 @@ export class DirectoryService {
       manager: r.mgrId ? { id: r.mgrId, displayName: r.mgrName! } : null,
       memberCount: Number(r.members ?? 0),
       sortOrder: r.d.sortOrder,
+      attributes: r.d.attributes,
       createdAt: r.d.createdAt,
     }));
   }
@@ -70,6 +71,9 @@ export class DirectoryService {
     if (input.parentId) auth.require('core.departments.manage', { departmentId: input.parentId });
     else auth.require('core.departments.manage');
     const parent = input.parentId ? await this.findDepartment(input.parentId) : null;
+    const attributes = input.attributes
+      ? await this.ctx.fields.validate('core.department', input.attributes)
+      : {};
     const id = uuidv7();
     const dept = await this.ctx.transaction(async (tx) => {
       const [created] = await tx
@@ -82,6 +86,7 @@ export class DirectoryService {
           parentId: parent?.id ?? null,
           managerId: input.managerId ?? null,
           sortOrder: input.sortOrder,
+          attributes,
           path: `${parent?.path ?? '/'}${id}/`,
         })
         .returning();
@@ -124,6 +129,15 @@ export class DirectoryService {
       managerId: input.managerId,
       sortOrder: input.sortOrder,
       ...(moving ? { parentId: input.parentId ?? null } : {}),
+      ...(input.attributes
+        ? {
+            attributes: await this.ctx.fields.validate(
+              'core.department',
+              input.attributes,
+              before.attributes,
+            ),
+          }
+        : {}),
     };
     const changes = this.ctx.audit.diff(
       before as unknown as Record<string, unknown>,
@@ -232,6 +246,7 @@ export class DirectoryService {
       description: g.description,
       source: g.source,
       isSystem: g.isSystem,
+      attributes: g.attributes,
       createdAt: g.createdAt,
       memberCount: 0,
       roleCount: 0,
@@ -257,10 +272,11 @@ export class DirectoryService {
 
   async createGroup(input: z.output<typeof createGroupSchema>, auth: AuthContext) {
     auth.require('core.groups.manage');
+    const attributes = input.attributes ? await this.ctx.fields.validate('core.group', input.attributes) : {};
     return this.ctx.transaction(async (tx) => {
       const [g] = await tx
         .insert(groups)
-        .values({ key: input.key, name: input.name, description: input.description ?? null })
+        .values({ key: input.key, name: input.name, description: input.description ?? null, attributes })
         .returning();
       await this.ctx.audit.record(
         { action: 'core.group.created', entityType: 'group', entityId: g!.id, entityLabel: g!.name },
@@ -274,12 +290,19 @@ export class DirectoryService {
   async updateGroup(id: string, input: z.output<typeof updateGroupSchema>, auth: AuthContext) {
     const before = await this.findGroup(id);
     auth.require('core.groups.manage', { recordType: 'group', recordId: id });
+    const patch = {
+      name: input.name,
+      description: input.description,
+      ...(input.attributes
+        ? { attributes: await this.ctx.fields.validate('core.group', input.attributes, before.attributes) }
+        : {}),
+    };
     const changes = this.ctx.audit.diff(
       before as unknown as Record<string, unknown>,
-      input as Record<string, unknown>,
+      patch as Record<string, unknown>,
     );
     return this.ctx.transaction(async (tx) => {
-      const [g] = await tx.update(groups).set(input).where(eq(groups.id, id)).returning();
+      const [g] = await tx.update(groups).set(patch).where(eq(groups.id, id)).returning();
       await this.ctx.audit.record(
         { action: 'core.group.updated', entityType: 'group', entityId: id, entityLabel: g!.name, changes },
         { tx },

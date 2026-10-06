@@ -27,9 +27,17 @@ import { LockIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { type FieldValues, type Resolver, type UseFormReturn, useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
-import { applyServerErrors, useApiMutation, useErrorText } from '@/lib/api';
+import {
+  attributesPayload,
+  CustomFieldsSection,
+  useApplyEntityErrors,
+  useAttributeDefaults,
+  useAttributesResolver,
+  useEntityFields,
+} from '@/components/fields/entity-fields';
+import { useApiMutation, useErrorText } from '@/lib/api';
 
 type Values = z.input<typeof createGroupSchema>;
 
@@ -63,10 +71,17 @@ export function GroupFormDialog({
   const errorText = useErrorText();
   const editing = Boolean(group);
 
-  const form = useForm<Values>({
-    resolver: zodResolver(
+  const custom = useEntityFields('core.group', open);
+  const applyErrors = useApplyEntityErrors();
+  const resolver = useAttributesResolver(
+    zodResolver(
       editing ? (updateGroupSchema as unknown as typeof createGroupSchema) : createGroupSchema,
-    ),
+    ) as Resolver<Values>,
+    custom.fields,
+  );
+
+  const form = useForm<Values>({
+    resolver,
     defaultValues: { key: '', name: '', description: '' },
   });
 
@@ -82,6 +97,13 @@ export function GroupFormDialog({
         : { key: '', name: '', description: '' },
     );
   }, [open, group, form]);
+  useAttributeDefaults(
+    form as unknown as UseFormReturn<FieldValues>,
+    custom.fields,
+    custom.ready,
+    open,
+    group?.attributes,
+  );
 
   // Suggest a key from the name until the key is edited by hand.
   const name = useWatch({ control: form.control, name: 'name' });
@@ -109,12 +131,18 @@ export function GroupFormDialog({
 
   const onSubmit = form.handleSubmit(async (values) => {
     const description = values.description?.trim() ? values.description.trim() : null;
+    // Custom-field values only once their definitions are loaded (never wipe them by accident).
+    const customValues = custom.ready
+      ? { attributes: attributesPayload(custom.fields, values.attributes) }
+      : {};
     try {
       await mutation.mutateAsync(
-        editing ? ({ name: values.name, description } as Values) : { ...values, description },
+        editing
+          ? ({ name: values.name, description, ...customValues } as Values)
+          : { ...values, description, attributes: undefined, ...customValues },
       );
     } catch (err) {
-      if (applyServerErrors(err, form.setError as never)) return;
+      if (applyErrors(err, form.setError as never)) return;
       if (!editing && err instanceof ApiError && err.code === 'CONFLICT') {
         form.setError('key', { message: t('keyTaken') }, { shouldFocus: true });
         return;
@@ -194,6 +222,11 @@ export function GroupFormDialog({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+            <CustomFieldsSection
+              elements={custom.elements}
+              form={form as unknown as UseFormReturn<FieldValues>}
+              className="pt-1"
             />
             {form.formState.errors.root && (
               <p role="alert" className="text-sm text-destructive">

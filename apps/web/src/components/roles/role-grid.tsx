@@ -21,6 +21,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useApiQuery } from '@/lib/api';
+import { RequestBadges } from './request-settings';
 import { useRoleText } from './role-utils';
 
 function RoleCard({ role }: { role: Role }) {
@@ -83,6 +84,11 @@ function RoleCard({ role }: { role: Role }) {
                 <UsersIcon className="size-3.5" aria-hidden />
                 {t('card.assignments', { count: role.assignmentCount })}
               </span>
+              {role.requestable && (
+                <span className="ml-auto flex flex-wrap items-center gap-1">
+                  <RequestBadges role={role} />
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>

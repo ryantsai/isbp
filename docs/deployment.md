@@ -303,6 +303,30 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
   `OTEL_EXPORTER_OTLP_ENDPOINT` is set (OTLP/HTTP, e.g. `http://otel-collector:4318`). Service names are
   `isbp-api`, `isbp-worker`, `isbp-migrate`; standard `OTEL_*` variables apply.
 
+## 7a. Notifications, approvals and API clients (Phase 1)
+
+- **Email** is configured in the UI (_Administration → Notifications → Email_): SMTP host, port, TLS mode,
+  user, password (encrypted with the master key) and sender. "Send test email" checks it end to end.
+  Without email, notifications are in-app only and the email column in people's preferences is disabled.
+- **Microsoft Teams / Slack / generic webhooks** are added as channels on the same page and subscribe to
+  notification types (`core.access-request.*`, `announcements.post.published`, …). Webhook URLs are secrets
+  (encrypted, never shown again). Generic webhooks are signed: `x-isbp-signature: t=<unix>,v1=<hex>` is
+  HMAC-SHA256 of `"<t>.<body>"` with the channel's signing secret.
+- Outbound webhooks are an SSRF surface: in production only public `https://` targets are allowed
+  (`ISBP_ALLOW_PRIVATE_WEBHOOKS=true` lifts that for internal chat/automation endpoints). Allow egress from
+  the worker pods to your mail server and webhook hosts (the chart's NetworkPolicy restricts ingress only).
+- Deliveries run in the **worker** after commit with retries (5 attempts); the delivery log on the same
+  page shows failures. Approval reminders, SLA escalations and "access ending soon" notices are worker jobs
+  (`workflow-timers` every minute, `notify-expiring-access` hourly, `purge-notifications` nightly —
+  retention is a core setting, default 90 days).
+- Browsers receive live counters over **Server-Sent Events** (`/api/v1/me/notifications/stream`). Ingress
+  and proxies must not buffer `text/event-stream` responses; the API sets `X-Accel-Buffering: no` and sends
+  a heartbeat every 25 s. Raise idle timeouts above 30 s if your load balancer closes quiet connections.
+- **API clients** (Role Query API) authenticate with `Authorization: Bearer` API keys or OAuth tokens from
+  `POST /api/v1/oauth/token`. Tokens live in Redis for `OAUTH_TOKEN_TTL_SECONDS` (default 3600) and are
+  revoked instantly when a client or secret is revoked. Expose `/api/v1/role-query/*` and `/api/v1/oauth/token`
+  to the networks your applications call from; per-client IP allow-lists are available.
+
 ## 8. Production checklist
 
 - [ ] **TLS everywhere at the edge** and `PUBLIC_URL=https://…` — session cookies are marked `Secure` only when
@@ -323,6 +347,9 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
 - [ ] Immutable image tags or digests (no `latest`); images scanned in your registry.
 - [ ] Requests/limits sized from real metrics; HPA + PDB enabled; ≥ 2 replicas of api, worker and web.
 - [ ] Never run the demo seed (`migrations.seedDemoData`, compose `--profile demo`) against production data.
+- [ ] Email sender configured and tested; webhook channels point at public HTTPS endpoints (or
+      `ISBP_ALLOW_PRIVATE_WEBHOOKS` deliberately enabled); ingress does not buffer Server-Sent Events.
+- [ ] API clients scoped to the applications they need, keys with an expiry, IP allow-lists where possible.
 - [ ] Alerts on `/readyz` failures, 5xx rate and latency (`isbp_http_request_duration_seconds`), job failures
       (`isbp_jobs_total{status="failed"}`), and Postgres/Redis health.
 

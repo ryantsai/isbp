@@ -1,0 +1,59 @@
+{
+  "title": "承認",
+  "description": "あなたの判断を待っている項目です。緊急度の高いものから表示しています。",
+  "tabs": {
+    "pending": "自分の承認待ち",
+    "done": "自分が判断済み"
+  },
+  "search": "申請を検索…",
+  "approve": "承認",
+  "reject": "却下",
+  "approveSubject": "{subject} を承認",
+  "rejectSubject": "{subject} を却下",
+  "escalated": "エスカレーション",
+  "delegatedBy": "{name} さんから委任",
+  "emptyPending": "承認待ちの項目はありません",
+  "emptyPendingHint": "新しい承認はすぐにここに表示され、通知も届きます。",
+  "emptyDone": "まだ判断した項目はありません",
+  "emptySearch": "検索に一致する承認はありません",
+  "previous": "前へ",
+  "next": "次へ",
+  "pageOf": "{page} / {pages} ページ",
+  "liveCount": "承認 {count} 件",
+  "decide": {
+    "approveTitle": "この申請を承認しますか？",
+    "rejectTitle": "この申請を却下しますか？",
+    "commentOptional": "コメント（任意）",
+    "commentRequired": "却下の理由",
+    "approvePlaceholder": "申請者に伝えたいこと",
+    "rejectPlaceholder": "例: 読み取り専用ロールを申請してください",
+    "visibleToRequester": "このコメントは申請者に表示されます。",
+    "reasonNeeded": "申請者に理由を伝えてください。",
+    "approve": "承認",
+    "reject": "却下",
+    "cancel": "キャンセル",
+    "approvedToast": "承認しました",
+    "rejectedToast": "却下し、理由を申請者に通知しました"
+  },
+  "delegate": {
+    "title": "この承認を他の人に委任",
+    "person": "同僚",
+    "hint": "委任先の承認一覧に追加されます。申請者は自分の申請を承認できません。",
+    "note": "委任先へのメモ（任意）",
+    "submit": "委任する",
+    "cancel": "キャンセル",
+    "toast": "委任しました"
+  },
+  "sheet": {
+    "close": "閉じる",
+    "requestedBy": "申請者: {name}",
+    "system": "システム",
+    "details": "申請内容",
+    "openSubject": "申請を開く",
+    "progress": "承認ルート",
+    "timeline": "履歴",
+    "approve": "承認",
+    "reject": "却下",
+    "delegate": "委任"
+  }
+}
