@@ -24,6 +24,7 @@ export const namespaces = [
   'fields',
   'notifications',
   'applications',
+  'ai',
 ] as const;
 
 const loaders: Record<Locale, () => Promise<{ default: Messages }>> = {

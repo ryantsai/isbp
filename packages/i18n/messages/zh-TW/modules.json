@@ -41,6 +41,7 @@
     "permissions": "權限",
     "events": "事件",
     "aiTools": "AI 工具",
+    "ai": "AI",
     "jobs": "作業",
     "settings": "設定"
   },
@@ -70,7 +71,10 @@
   "ai": {
     "hint": "這些工具將透過 MCP 閘道提供給 AI 代理程式。只有在代理程式所代表的人員擁有必要權限時，代理程式才能呼叫該工具。",
     "requiresConfirmation": "需要確認",
-    "permission": "所需權限"
+    "permission": "所需權限",
+    "agentTitle": "以「{name}」身分執行背景 AI，並具備下列權限",
+    "agentHint": "此模組自行執行的工作（例如分類新工單）會以此身分記錄在稽核日誌中，且只能執行這些權限允許的操作。",
+    "agentPermissions": "AI 代理程式的權限"
   },
   "jobs": {
     "onDemand": "依需求執行",

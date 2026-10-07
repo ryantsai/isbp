@@ -1,0 +1,380 @@
+'use client';
+
+import { localize } from '@isbp/sdk';
+import { cn } from '@isbp/ui';
+import { Badge } from '@isbp/ui/badge';
+import { Button } from '@isbp/ui/button';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@isbp/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@isbp/ui/popover';
+import { useApiQuery } from '@isbp/ui/query';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
+import { CheckIcon, ChevronsUpDownIcon, ServerIcon, XIcon } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
+import type { Page } from '@isbp/sdk';
+import type { PersonRef, TicketType } from '../../contracts';
+import { useCategories, useGroupAgents, useGroups } from '../lib';
+import type { CmdbCiOption, CmdbService } from '../types';
+
+export const NONE = '__none__';
+
+type TriggerProps = {
+  id?: string;
+  className?: string;
+  disabled?: boolean;
+  'aria-label'?: string;
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
+  size?: 'sm' | 'default';
+};
+
+function useDebounced(value: string, ms = 200) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const h = setTimeout(() => setDebounced(value.trim()), ms);
+    return () => clearTimeout(h);
+  }, [value, ms]);
+  return debounced;
+}
+
+/* ───────────────────────────── categories ───────────────────────────── */
+
+/** Category tree select (filtered by ticket type); `noneLabel` adds a "no category" option. */
+export function CategorySelect({
+  value,
+  onChange,
+  type,
+  noneLabel,
+  includeInactive,
+  excludeId,
+  ...trigger
+}: {
+  value: string | null | undefined;
+  onChange: (id: string | null) => void;
+  type?: TicketType;
+  noneLabel?: string;
+  includeInactive?: boolean;
+  /** Hide a category and its descendants (choosing a parent for it). */
+  excludeId?: string;
+} & TriggerProps) {
+  const t = useTranslations('itsm.common');
+  const { tree } = useCategories(type, includeInactive);
+  const hidden = new Set<string>();
+  if (excludeId) {
+    hidden.add(excludeId);
+    for (const n of tree) if (n.category.ancestors.some((a) => a.id === excludeId)) hidden.add(n.category.id);
+  }
+  return (
+    <Select value={value ?? NONE} onValueChange={(v) => onChange(v === NONE ? null : v)}>
+      <SelectTrigger
+        id={trigger.id}
+        size={trigger.size}
+        disabled={trigger.disabled}
+        aria-label={trigger['aria-label']}
+        aria-describedby={trigger['aria-describedby']}
+        aria-invalid={trigger['aria-invalid']}
+        className={cn('w-full min-w-0', trigger.className)}
+      >
+        <SelectValue placeholder={t('chooseCategory')} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NONE}>{noneLabel ?? t('noCategory')}</SelectItem>
+        {tree
+          .filter((n) => !hidden.has(n.category.id))
+          .map((n) => (
+            <SelectItem key={n.category.id} value={n.category.id}>
+              <span className="truncate">
+                {n.depth > 0 && (
+                  <span className="text-muted-foreground">{n.path.slice(0, -n.name.length)}</span>
+                )}
+                {n.name}
+                {!n.category.active && <span className="text-muted-foreground"> ({t('inactive')})</span>}
+              </span>
+            </SelectItem>
+          ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+/* ───────────────────────────── groups & agents ───────────────────────────── */
+
+export function GroupSelect({
+  value,
+  onChange,
+  noneLabel,
+  ...trigger
+}: {
+  value: string | null | undefined;
+  onChange: (id: string | null) => void;
+  noneLabel?: string;
+} & TriggerProps) {
+  const t = useTranslations('itsm.common');
+  const { groups } = useGroups();
+  return (
+    <Select value={value ?? NONE} onValueChange={(v) => onChange(v === NONE ? null : v)}>
+      <SelectTrigger
+        id={trigger.id}
+        size={trigger.size}
+        disabled={trigger.disabled}
+        aria-label={trigger['aria-label']}
+        aria-describedby={trigger['aria-describedby']}
+        className={cn('w-full min-w-0', trigger.className)}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NONE}>{noneLabel ?? t('noGroup')}</SelectItem>
+        {groups.map((g) => (
+          <SelectItem key={g.id} value={g.id}>
+            {g.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+/** Agents of the chosen group (keeps showing the current assignee even if they left the group). */
+export function AssigneeSelect({
+  groupId,
+  value,
+  current,
+  onChange,
+  ...trigger
+}: {
+  groupId: string | null | undefined;
+  value: string | null | undefined;
+  current?: PersonRef | null;
+  onChange: (id: string | null) => void;
+} & TriggerProps) {
+  const t = useTranslations('itsm.common');
+  const { agents } = useGroupAgents(groupId);
+  const list = current && !agents.some((a) => a.id === current.id) ? [current, ...agents] : agents;
+  return (
+    <Select value={value ?? NONE} onValueChange={(v) => onChange(v === NONE ? null : v)}>
+      <SelectTrigger
+        id={trigger.id}
+        size={trigger.size}
+        disabled={trigger.disabled || (!groupId && !current)}
+        aria-label={trigger['aria-label']}
+        aria-describedby={trigger['aria-describedby']}
+        className={cn('w-full min-w-0', trigger.className)}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NONE}>{t('unassigned')}</SelectItem>
+        {list.map((a) => (
+          <SelectItem key={a.id} value={a.id}>
+            {a.displayName}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+/* ───────────────────────────── CIs ───────────────────────────── */
+
+export const ciReference = (ci: { number: number; reference?: string | null }) =>
+  ci.reference || `CI-${String(ci.number).padStart(5, '0')}`;
+
+/** Multi-select combobox over the CMDB (`GET /api/v1/cmdb/cis?q=`). */
+export function CiPicker({
+  value,
+  onChange,
+  id,
+  max = 20,
+  'aria-describedby': describedBy,
+  'aria-label': ariaLabel,
+}: {
+  value: CmdbCiOption[];
+  onChange: (cis: CmdbCiOption[]) => void;
+  id?: string;
+  max?: number;
+  'aria-describedby'?: string;
+  'aria-label'?: string;
+}) {
+  const t = useTranslations('itsm.common.ciPicker');
+  const locale = useLocale();
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const debounced = useDebounced(q);
+  const { data, isFetching } = useApiQuery<Page<CmdbCiOption>>(open ? '/cmdb/cis' : null, {
+    q: debounced || undefined,
+    pageSize: 10,
+  });
+  const chosen = new Set(value.map((c) => c.id));
+  const toggle = (ci: CmdbCiOption) =>
+    onChange(chosen.has(ci.id) ? value.filter((c) => c.id !== ci.id) : [...value, ci].slice(0, max));
+
+  return (
+    <div className="grid gap-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            aria-describedby={describedBy}
+            aria-label={ariaLabel}
+            className="w-full justify-between font-normal"
+          >
+            <span className="truncate text-muted-foreground">
+              {value.length ? t('selected', { count: value.length }) : t('placeholder')}
+            </span>
+            <ChevronsUpDownIcon className="opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-(--radix-popover-trigger-width) min-w-72 p-0" align="start">
+          <Command shouldFilter={false}>
+            <CommandInput value={q} onValueChange={setQ} placeholder={t('search')} />
+            <CommandList>
+              <CommandEmpty>{isFetching ? t('loading') : t('noResults')}</CommandEmpty>
+              {(data?.items.length ?? 0) > 0 && (
+                <CommandGroup>
+                  {data!.items.map((ci) => (
+                    <CommandItem key={ci.id} value={ci.id} onSelect={() => toggle(ci)}>
+                      <ServerIcon />
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate">{ci.name}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {ciReference(ci)}
+                          {ci.class ? ` · ${localize(ci.class.name, locale)}` : ''}
+                        </span>
+                      </div>
+                      {chosen.has(ci.id) && <CheckIcon className="ml-auto" />}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {value.length > 0 && (
+        <ul className="flex flex-wrap gap-1.5" aria-label={t('chosen')}>
+          {value.map((ci) => (
+            <li key={ci.id}>
+              <Badge variant="secondary" className="gap-1 py-0.5 pr-0.5 font-normal">
+                <ServerIcon aria-hidden />
+                <span className="max-w-48 truncate">{ci.name}</span>
+                <button
+                  type="button"
+                  onClick={() => onChange(value.filter((c) => c.id !== ci.id))}
+                  aria-label={t('remove', { name: ci.name })}
+                  className="rounded-sm p-0.5 text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                >
+                  <XIcon className="size-3" />
+                </button>
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────────── services ───────────────────────────── */
+
+/** Single business-service combobox (`GET /api/v1/cmdb/services?q=`; everyone may read it). */
+export function ServicePicker({
+  value,
+  onChange,
+  id,
+  'aria-describedby': describedBy,
+}: {
+  value: CmdbService | null;
+  onChange: (service: CmdbService | null) => void;
+  id?: string;
+  'aria-describedby'?: string;
+}) {
+  const t = useTranslations('itsm.common.servicePicker');
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const debounced = useDebounced(q);
+  const { data, isFetching } = useApiQuery<{ items: CmdbService[] }>(open ? '/cmdb/services' : null, {
+    q: debounced || undefined,
+    limit: 50,
+  });
+  const items = data?.items ?? [];
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <div className="relative">
+        <PopoverTrigger asChild>
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            aria-describedby={describedBy}
+            className="h-auto min-h-9 w-full justify-between py-2 text-left font-normal"
+          >
+            {value ? (
+              <span className="flex min-w-0 items-center gap-2">
+                <ServerIcon className="text-muted-foreground" aria-hidden />
+                <span className="truncate">{value.name}</span>
+              </span>
+            ) : (
+              <span className="text-muted-foreground">{t('placeholder')}</span>
+            )}
+            <ChevronsUpDownIcon className="opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            aria-label={t('clear')}
+            className="absolute top-1/2 right-8 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
+            <XIcon className="size-3.5" />
+          </button>
+        )}
+      </div>
+      <PopoverContent className="w-(--radix-popover-trigger-width) min-w-72 p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput value={q} onValueChange={setQ} placeholder={t('search')} />
+          <CommandList>
+            <CommandEmpty>{isFetching ? t('loading') : t('noResults')}</CommandEmpty>
+            {items.length > 0 && (
+              <CommandGroup>
+                {items.map((s) => (
+                  <CommandItem
+                    key={s.id}
+                    value={s.id}
+                    onSelect={() => {
+                      onChange(s);
+                      setOpen(false);
+                    }}
+                  >
+                    <ServerIcon />
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate">{s.name}</span>
+                      {s.description && (
+                        <span className="line-clamp-1 text-xs text-muted-foreground">{s.description}</span>
+                      )}
+                    </div>
+                    {value?.id === s.id && <CheckIcon className="ml-auto" />}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}

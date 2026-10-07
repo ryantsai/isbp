@@ -11,9 +11,13 @@ const { config, kernel } = await bootstrap('isbp-migrate');
 try {
   if (reset) {
     if (config.isProd) throw new Error('Refusing to --reset in production');
+    // A module's Postgres schema is its id with dashes as underscores (`helpdesk-ai` → `helpdesk_ai`).
     const schemas = [
       'core',
-      ...kernel.registry.modules.map((m) => m.manifest.id).filter((id) => id !== 'core'),
+      ...kernel.registry.modules
+        .map((m) => m.manifest.id)
+        .filter((id) => id !== 'core')
+        .map((id) => id.replaceAll('-', '_')),
     ];
     for (const schema of schemas)
       await kernel.db.execute(sql.raw(`drop schema if exists "${schema}" cascade`));

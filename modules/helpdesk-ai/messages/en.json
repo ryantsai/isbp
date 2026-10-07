@@ -1,0 +1,375 @@
+{
+  "meta": {
+    "name": "Helpdesk AI",
+    "description": "AI triage, similar tickets, grounded reply drafts, summaries and the self-service virtual agent."
+  },
+  "nav": {
+    "chat": "Ask IT",
+    "insights": "AI insights"
+  },
+  "permissions": {
+    "chat": "Ask the IT virtual agent",
+    "assist": "Use the AI assist panel on tickets",
+    "insights": "See AI accuracy, deflection and cost, and review conversations"
+  },
+  "settings": {
+    "triageEnabled": "Suggest triage for new tickets",
+    "autoTriage": "Apply confident suggestions automatically",
+    "autoTriageHelp": "Helpdesk AI fills only the fields that are still empty; agents' choices are never overwritten.",
+    "autoTriageThreshold": "Minimum confidence for automatic triage (0–1)",
+    "autoTriageThresholdHelp": "0.8 means the suggestion is applied when the similar tickets agree strongly.",
+    "virtualAgentEnabled": "Virtual agent (Ask IT)",
+    "suggestReplies": "Suggest reply drafts to agents"
+  },
+  "audit": {
+    "triage_suggested": "Suggested ticket triage",
+    "triage_applied": "Applied a triage suggestion",
+    "triage_dismissed": "Dismissed a triage suggestion",
+    "kb_draft_created": "Drafted a knowledge article from a ticket",
+    "conversation_deflected": "Virtual agent solved a question",
+    "conversation_escalated": "Raised a ticket from the virtual agent"
+  },
+  "mode": {
+    "builtin": "Builtin · no LLM",
+    "builtinHint": "No language model is configured: answers come from knowledge-base search, similar tickets and templates.",
+    "llm": "Language model",
+    "llmHint": "Answers are written by a language model ({provider}), grounded in your knowledge base. Personal data is masked before it leaves the platform."
+  },
+  "language": {
+    "en": "English",
+    "zh-TW": "Traditional Chinese",
+    "ja-JP": "Japanese"
+  },
+  "citations": {
+    "label": "Sources"
+  },
+  "assist": {
+    "title": "AI assist",
+    "refresh": "Refresh suggestions",
+    "loading": "Loading AI suggestions",
+    "retry": "Try again"
+  },
+  "triage": {
+    "title": "Triage suggestion",
+    "none": "No suggestion yet for this ticket.",
+    "disabled": "Automatic triage suggestions are turned off. You can still ask for one.",
+    "suggest": "Suggest triage",
+    "refreshed": "Triage suggestion updated",
+    "applied": "Suggestion applied to the ticket",
+    "category": "Category",
+    "group": "Assignment group",
+    "priority": "Priority",
+    "impactUrgency": "Impact {impact} · urgency {urgency}",
+    "empty": "Not set",
+    "to": "changes to",
+    "matches": "(matches the suggestion)",
+    "applyField": "Apply suggested {field}",
+    "apply": "Apply",
+    "applyAll": "Apply all",
+    "dismiss": "Dismiss",
+    "rerun": "Suggest again",
+    "confidence": "Confidence",
+    "fallback": "The AI model was unavailable, so this suggestion comes from similar tickets only.",
+    "decidedBy": "By {name}"
+  },
+  "insightStatus": {
+    "suggested": "Pending",
+    "applied": "Applied",
+    "partially_applied": "Partly applied",
+    "auto_applied": "Applied automatically",
+    "dismissed": "Dismissed"
+  },
+  "similar": {
+    "title": "Similar resolved tickets",
+    "match": "{percent}% match",
+    "none": "No similar resolved tickets yet."
+  },
+  "resolution": {
+    "solved": "Solved",
+    "workaround": "Workaround",
+    "user_error": "User error",
+    "duplicate": "Duplicate",
+    "no_fault_found": "No fault found",
+    "not_reproducible": "Not reproducible",
+    "cancelled_by_requester": "Cancelled by requester"
+  },
+  "articles": {
+    "title": "Suggested articles",
+    "none": "No matching knowledge-base articles.",
+    "insert": "Insert link",
+    "insertFor": "Insert a link to {title} into the reply",
+    "insertText": "This article should help: {link}"
+  },
+  "generated": {
+    "builtin": "Builtin template — review before sending",
+    "llm": "Written by {model} — review before sending",
+    "fallback": "The AI model was unavailable — builtin version shown"
+  },
+  "reply": {
+    "title": "Draft a reply",
+    "hint": "Drafts a reply in the requester's language from the best knowledge-base articles, with numbered sources.",
+    "draft": "Draft a reply",
+    "regenerate": "Draft again",
+    "insert": "Insert into reply",
+    "language": "Written in {language}"
+  },
+  "summary": {
+    "title": "Summary",
+    "hint": "Get the issue, latest updates and current state at a glance.",
+    "run": "Summarize",
+    "refresh": "Summarize again",
+    "issue": "Issue",
+    "updates": "Latest updates",
+    "state": "Current state",
+    "system": "System",
+    "internal": "internal",
+    "noUpdates": "No updates yet."
+  },
+  "ticketStatus": {
+    "new": "New",
+    "pending_approval": "Pending approval",
+    "in_progress": "In progress",
+    "on_hold": "On hold",
+    "resolved": "Resolved",
+    "fulfilled": "Fulfilled",
+    "closed": "Closed",
+    "cancelled": "Cancelled",
+    "investigating": "Investigating",
+    "known_error": "Known error",
+    "draft": "Draft",
+    "assessment": "Assessment",
+    "authorization": "Authorization",
+    "scheduled": "Scheduled",
+    "implementing": "Implementing",
+    "review": "Review",
+    "rejected": "Rejected"
+  },
+  "kb": {
+    "title": "Knowledge article",
+    "hint": "Turn this ticket into a draft article (symptoms, cause, resolution, applies to). Editors review it before it is published.",
+    "noPermission": "You need permission to write knowledge articles to create a draft.",
+    "run": "Draft KB article",
+    "created": "Draft article created",
+    "ready": "Draft {reference} is ready for review"
+  },
+  "askIt": {
+    "title": "Ask IT",
+    "body": "The virtual agent can answer most questions instantly — no ticket needed.",
+    "button": "Ask a question",
+    "close": "Close",
+    "sheetDescription": "Answers come from the IT knowledge base. If it can't help, it prepares a ticket for you to confirm."
+  },
+  "chat": {
+    "title": "Ask IT",
+    "description": "Get instant answers from the IT knowledge base, or raise a ticket when you need a person.",
+    "welcomeTitle": "How can IT help you today?",
+    "welcomeBody": "Describe the problem in your own words, in any language. I'll find the right steps or prepare a ticket.",
+    "starters": "Suggested questions",
+    "placeholder": "Describe your problem…",
+    "disabled": "The virtual agent is turned off.",
+    "inputLabel": "Your question",
+    "send": "Send",
+    "hint": "Enter to send · Shift+Enter for a new line · Answers can be wrong — check the linked articles.",
+    "log": "Conversation",
+    "you": "You",
+    "agent": "Ask IT",
+    "typing": "Ask IT is typing…",
+    "searching": "Searching the knowledge base…",
+    "checkingTickets": "Checking your tickets…",
+    "loading": "Loading conversation",
+    "didItHelp": "Did this solve it?",
+    "solved": "That solved it",
+    "stillNeedHelp": "I still need help",
+    "stillNeedHelpMessage": "That didn't solve it — I still need help.",
+    "resolved": "Glad that helped! Ask again any time.",
+    "ticketRaised": "Ticket {reference} was raised. The service desk will follow up there.",
+    "viewTicket": "View ticket",
+    "viewTicketRef": "Open {reference}",
+    "openFull": "Open full chat",
+    "networkError": "The connection was interrupted. Check your network and try again.",
+    "genericError": "Something went wrong. Please try again.",
+    "dismissError": "Dismiss"
+  },
+  "chatErrors": {
+    "INVALID_STATE": "The virtual agent can't take questions right now.",
+    "AI_PROVIDER_ERROR": "The AI service is not responding. Try again in a moment.",
+    "AI_BUDGET_EXCEEDED": "The AI budget for this month is spent. You can still raise a ticket."
+  },
+  "starters": {
+    "vpn": "My VPN won't connect",
+    "password": "How do I reset my password?",
+    "mfa": "Set up MFA on a new phone",
+    "access": "Request access to an application"
+  },
+  "conversationStatus": {
+    "open": "Open",
+    "resolved": "Solved",
+    "escalated": "Ticket raised"
+  },
+  "proposal": {
+    "title": "Raise a ticket",
+    "hint": "Review the details. Nothing is created until you confirm.",
+    "cta": "Still stuck? I've prepared a ticket for the service desk.",
+    "review": "Review ticket",
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "urgency": "Urgency",
+      "type": "Type"
+    },
+    "titleTooShort": "Give the ticket a title of at least 3 characters.",
+    "urgency": {
+      "1": "High — I can't work",
+      "2": "Medium — my work is slowed",
+      "3": "Low — it can wait"
+    },
+    "type": {
+      "incident": "Something is broken",
+      "service_request": "I need something"
+    },
+    "create": "Create ticket",
+    "notNow": "Not now"
+  },
+  "history": {
+    "title": "Conversations",
+    "new": "New conversation",
+    "untitled": "New conversation",
+    "empty": "Your conversations will appear here."
+  },
+  "review": {
+    "proposed": "Proposed a ticket: {title}"
+  },
+  "insights": {
+    "title": "AI insights",
+    "description": "How well Helpdesk AI triages tickets and answers questions, and what it costs.",
+    "period": "Period",
+    "lastDays": "Last {days} days",
+    "configure": "Configure AI"
+  },
+  "kpi": {
+    "acceptance": "Triage acceptance",
+    "acceptanceHint": "{accepted} of {decided} decided suggestions",
+    "deflection": "Deflection rate",
+    "deflectionHint": "{deflected} solved · {escalated} became tickets",
+    "conversations": "Conversations",
+    "conversationsHint": "{open} still open",
+    "cost": "AI cost",
+    "costHint": "{calls, plural, one {# model call} other {# model calls}}"
+  },
+  "chart": {
+    "title": "Virtual agent conversations",
+    "description": "Per day over the last {days} days, split by whether they became a ticket.",
+    "legend": "Legend",
+    "answered": "Answered by Ask IT",
+    "escalated": "Became a ticket",
+    "deflected": "Solved",
+    "conversations": "Conversations",
+    "date": "Date",
+    "roledescription": "column chart",
+    "aria": "Conversations per day for {days} days. Use the arrow keys to read each day.",
+    "point": "{date}: {total} conversations, {escalated} became tickets",
+    "table": "Show as table",
+    "caption": "Conversations per day"
+  },
+  "config": {
+    "title": "Current AI configuration",
+    "description": "Where answers come from and which automations are on.",
+    "mode": "Answers",
+    "embeddings": "Embeddings",
+    "vectorStore": "Vector search",
+    "store": {
+      "pgvector": "pgvector (HNSW)",
+      "portable": "Portable (no pgvector)"
+    },
+    "triage": "Triage suggestions",
+    "autoTriage": "Automatic triage",
+    "threshold": "at {percent}% confidence",
+    "virtualAgent": "Virtual agent",
+    "replies": "Reply drafts",
+    "on": "On",
+    "off": "Off"
+  },
+  "breakdown": {
+    "title": "What agents did with triage suggestions",
+    "description": "{total, plural, one {# suggestion} other {# suggestions}} in this period.",
+    "confidence": "Average confidence {percent}%.",
+    "kbDrafts": "{count, plural, one {# knowledge article} other {# knowledge articles}} drafted from resolved tickets."
+  },
+  "usage": {
+    "title": "AI usage by feature",
+    "description": "Model calls, tokens and estimated cost from the AI gateway.",
+    "feature": "Feature",
+    "calls": "Calls",
+    "tokens": "Tokens",
+    "cost": "Cost",
+    "errors": "{count, plural, one {# failed} other {# failed}}",
+    "none": "No model calls in this period",
+    "noneBuiltin": "Builtin mode uses no language model, so it costs nothing."
+  },
+  "features": {
+    "triage": "Triage",
+    "reply": "Reply drafts",
+    "summary": "Summaries",
+    "kb_draft": "KB drafts",
+    "chat": "Virtual agent"
+  },
+  "table": {
+    "title": "Recent conversations",
+    "description": "Review what the virtual agent answered and how each conversation ended.",
+    "conversation": "Conversation",
+    "outcome": "Outcome",
+    "language": "Language",
+    "messages": "Messages",
+    "updated": "Updated",
+    "search": "Search conversations…",
+    "allOutcomes": "All outcomes",
+    "empty": "No conversations yet."
+  },
+  "outcome": {
+    "open": "Open",
+    "deflected": "Solved",
+    "escalated": "Ticket raised",
+    "escalatedTo": "Ticket {reference}"
+  },
+  "server": {
+    "reply": {
+      "greeting": "Hi {name},",
+      "greetingNoName": "Hi,",
+      "thanks": "Thanks for reaching out about “{title}”.",
+      "articleLead": "This should sort it out — here are the steps from our article {article}:",
+      "articleNoSteps": "Our article {article} covers this and should help.",
+      "fullArticle": "Full instructions: {link}",
+      "closing": "Let us know if this doesn't solve it and we'll take it from there.",
+      "noArticle": "We're looking into it. To narrow it down, could you tell us when it started, whether anything changed on your device, and the exact error message (a screenshot helps)?",
+      "sources": "Sources:"
+    },
+    "chat": {
+      "found": "Here's what I found in the knowledge base:",
+      "none": "I couldn't find a knowledge-base article that matches this.",
+      "offerTicket": "If this doesn't solve it, I can raise a ticket for the service desk — review the details below and confirm.",
+      "offerTicketNone": "I can raise a ticket so the service desk can help — review the details below and confirm.",
+      "defaultTitle": "Help needed from IT",
+      "proposalIntro": "Raised from the virtual agent (Ask IT).",
+      "proposalUser": "What I described:",
+      "proposalArticles": "Articles suggested: {list}",
+      "ticketCreated": "I've raised {reference} for you. The service desk will follow up there."
+    },
+    "triage": {
+      "neighbour": "{reference} ({percent}%)",
+      "similar": "Most similar resolved tickets: {list}.",
+      "none": "No similar resolved tickets were found; impact and urgency use the defaults.",
+      "keywords": "Raised by keywords: {list}."
+    },
+    "kb": {
+      "symptoms": "Symptoms",
+      "cause": "Cause",
+      "resolution": "Resolution",
+      "appliesTo": "Applies to",
+      "category": "Category: {value}",
+      "cis": "Configuration items: {value}",
+      "source": "Source ticket: {value}",
+      "causeUnknown": "Not recorded on the ticket — confirm the root cause before publishing.",
+      "resolutionMissing": "No resolution notes were recorded — add the steps before publishing."
+    }
+  }
+}

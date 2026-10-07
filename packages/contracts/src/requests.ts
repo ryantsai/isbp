@@ -92,16 +92,41 @@ export const accessRequestQuerySchema = listQuerySchema.extend({
   roleId: id.optional(),
 });
 
-/** One row of "My requests" (access requests and form submissions together). */
+/** A module's progress on a request (e.g. the service-desk ticket fulfilling a form submission). */
+export const fulfilmentSchema = z.object({
+  moduleId: z.string(),
+  reference: z.string(),
+  href: z.string(),
+  state: z.enum(['open', 'done', 'cancelled']),
+  /** i18n key in the module's catalog, e.g. `itsm.status.in_progress`. */
+  statusKey: z.string(),
+  tone: z.enum(['neutral', 'info', 'success', 'warning', 'danger']).nullable(),
+  updatedAt: dateTime,
+});
+export type Fulfilment = z.input<typeof fulfilmentSchema>;
+
+/**
+ * One row of "My requests": access requests, form submissions and module records registered through
+ * `ctx.portal` (e.g. incidents), newest first.
+ */
 export const myRequestSchema = z.object({
-  kind: z.enum(['access', 'form']),
-  id,
-  number: z.number().int(),
+  kind: z.enum(['access', 'form', 'module']),
+  /** Record id (a uuid for access/form; the module's id for module rows). */
+  id: z.string(),
+  number: z.number().int().nullable(),
   reference: z.string(),
   title: localizedTextSchema,
   subtitle: z.string().nullable(),
   icon: z.string(),
+  /** Access/form: their status. Module rows: `open` or `closed` (label from `statusKey`). */
   status: z.string(),
+  /** Module rows: status label key in the module catalog. */
+  statusKey: z.string().nullable(),
+  tone: z.enum(['neutral', 'info', 'success', 'warning', 'danger']).nullable(),
+  /** Where the row links to (module rows); access/form rows open `/requests/<reference>`. */
+  href: z.string().nullable(),
+  moduleId: z.string().nullable(),
+  fulfilment: fulfilmentSchema.nullable(),
   createdAt: dateTime,
   updatedAt: dateTime,
   workflow: workflowInstanceSummarySchema
@@ -134,3 +159,16 @@ export const approvalPreviewSchema = z.object({
   ),
 });
 export type ApprovalPreview = z.input<typeof approvalPreviewSchema>;
+
+/** A module's card in the portal's "What do you need?" (`manifest.portal.entries`). */
+export const portalEntrySchema = z.object({
+  moduleId: z.string(),
+  id: z.string(),
+  /** i18n keys in the module's catalog. */
+  label: z.string(),
+  description: z.string().nullable(),
+  icon: z.string(),
+  href: z.string(),
+  order: z.number(),
+});
+export type PortalEntry = z.input<typeof portalEntrySchema>;

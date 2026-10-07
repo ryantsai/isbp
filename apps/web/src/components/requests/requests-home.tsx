@@ -1,7 +1,8 @@
 'use client';
 
-import type { CatalogItem, MyRequest } from '@isbp/contracts';
+import type { CatalogItem, MyRequest, PortalEntry } from '@isbp/contracts';
 import { localize, type Page } from '@isbp/sdk';
+import { Slot } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
@@ -17,7 +18,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useApiQuery } from '@/lib/api';
 import { NavIcon } from '../nav-icon';
-import { StatusBadge } from '../workflows/status-badges';
+import { fulfilmentOf, RequestStatus, requestHref } from './request-status';
 
 function CatalogCard({
   href,
@@ -64,10 +65,12 @@ function RequestRow({ r }: { r: MyRequest }) {
   const t = useTranslations('requests');
   const locale = useLocale();
   const waiting = r.workflow?.status === 'running' ? r.workflow : null;
+  // A form request being fulfilled shows the fulfilment's status instead of "Approved".
+  const fulfilling = fulfilmentOf(r);
   return (
     <li>
       <Link
-        href={`/requests/${r.reference}`}
+        href={requestHref(r)}
         className="group flex items-center gap-3 px-4 py-3 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50"
       >
         <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground [&_svg]:size-4">
@@ -80,6 +83,12 @@ function RequestRow({ r }: { r: MyRequest }) {
           </span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             <span className="font-mono">{r.reference}</span>
+            {fulfilling && (
+              <>
+                <span aria-hidden>·</span>
+                <span className="font-mono">{fulfilling.reference}</span>
+              </>
+            )}
             <span aria-hidden>·</span>
             <RelativeTime date={r.updatedAt} />
             {waiting && waiting.currentSteps.length > 0 && (
@@ -105,7 +114,7 @@ function RequestRow({ r }: { r: MyRequest }) {
             )}
           </span>
         </span>
-        <StatusBadge status={r.status} />
+        <RequestStatus r={r} />
         <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
       </Link>
     </li>
@@ -119,7 +128,9 @@ export function RequestsHome() {
   const locale = useLocale();
   const [state, set] = useListState({ pageSize: 10 });
   const scope = (state.show as string | undefined) ?? 'open';
+  const root = useTranslations();
   const catalog = useApiQuery<{ items: CatalogItem[] }>('/forms/catalog');
+  const entries = useApiQuery<{ items: PortalEntry[] }>('/portal/entries');
   const mine = useApiQuery<Page<MyRequest>>('/me/requests', {
     status: scope === 'all' ? undefined : scope,
     page: state.page,
@@ -132,11 +143,25 @@ export function RequestsHome() {
     <div className="grid gap-10">
       <PageHeader title={t('home.title')} description={t('home.description')} />
 
+      {/* Extension point: e.g. Helpdesk AI's virtual agent. */}
+      <Slot name="core.requests.assist" props={{}} />
+
       <section aria-labelledby="new-request" className="grid gap-4">
         <h2 id="new-request" className="text-lg font-semibold">
           {t('home.new')}
         </h2>
         <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {(entries.data?.items ?? []).map((e) => (
+            <StaggerItem key={`${e.moduleId}-${e.id}`}>
+              <CatalogCard
+                featured
+                href={e.href}
+                icon={<NavIcon name={e.icon} />}
+                title={root.has(e.label) ? root(e.label) : e.label}
+                description={e.description && root.has(e.description) ? root(e.description) : null}
+              />
+            </StaggerItem>
+          ))}
           <StaggerItem>
             <CatalogCard
               featured

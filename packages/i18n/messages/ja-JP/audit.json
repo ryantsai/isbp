@@ -138,6 +138,9 @@
     "core_idp_created": "サインイン プロバイダーを追加",
     "core_idp_updated": "サインイン プロバイダーを更新",
     "core_idp_deleted": "サインイン プロバイダーを削除",
-    "core_directory_synced": "ディレクトリを同期"
+    "core_directory_synced": "ディレクトリを同期",
+    "core_ai_tool_invoked": "AI ツールを使用",
+    "core_ai_config_updated": "AI 設定を変更",
+    "core_ai_index_rebuilt": "セマンティック インデックスの再構築を開始"
   }
 }

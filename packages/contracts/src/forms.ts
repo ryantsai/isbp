@@ -1,6 +1,7 @@
 import { fieldDefSchema, formSchemaSchema, listQuerySchema, localizedTextSchema } from '@isbp/sdk';
 import { z } from 'zod';
 import { dateTime, id, keySchema } from './common';
+import { fulfilmentSchema } from './requests';
 import { personRefSchema, workflowInstanceSummarySchema } from './workflows';
 
 /* ───────────── custom fields ───────────── */
@@ -157,6 +158,8 @@ export const formSubmissionSchema = z.object({
   completedAt: dateTime.nullable(),
   workflow: workflowInstanceSummarySchema.nullable(),
   canCancel: z.boolean(),
+  /** A module's fulfilment progress (e.g. the service-desk ticket), set through `ctx.forms`. */
+  fulfilment: fulfilmentSchema.nullable(),
 });
 export type FormSubmission = z.input<typeof formSubmissionSchema>;
 

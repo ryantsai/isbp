@@ -1,0 +1,324 @@
+{
+  "title": "AI",
+  "description": "すべての AI 機能を支えるモデル、プラットフォーム外に送信できるデータ、コスト、セマンティック インデックスを管理します。",
+  "tabs": {
+    "label": "AI の設定",
+    "models": "モデル",
+    "privacy": "プライバシーと予算",
+    "usage": "使用状況",
+    "index": "インデックス"
+  },
+  "status": {
+    "generative": "生成 AI",
+    "builtin": "組み込みモード",
+    "on": "オン",
+    "noModel": "チャット モデルなし",
+    "keyMissing": "API キーがありません",
+    "generativeTitle": "{model} ({provider} 経由)",
+    "builtinTitle": "機能は検索とテンプレートを使用します",
+    "builtinBody": "データがプラットフォーム外に送信されることはありません。生成された回答を使用するには、[モデル] でチャット モデルを選択します。",
+    "maskingOn": "プロンプトがプラットフォーム外に送信される前に、個人データはマスクされます。",
+    "maskingOff": "マスクはオフです。プロンプトはそのままプロバイダーに送信されます。",
+    "providers": {
+      "anthropic": "Anthropic",
+      "openaiCompatible": "OpenAI 互換 API"
+    },
+    "embeddings": "埋め込みモデル",
+    "embeddingsBuiltin": "組み込み、オフライン · {dimensions} 次元",
+    "embeddingsExternal": "外部 · {dimensions} 次元",
+    "embeddingsExternalNoDims": "外部 · モデル本来の次元数",
+    "vectorStore": "ベクター ストア",
+    "pgvector": "pgvector (HNSW)",
+    "pgvectorHint": "Postgres 内で近似最近傍検索を行います。",
+    "portable": "ポータブル",
+    "portableHint": "開発用データベースには pgvector がありません。運用環境のイメージには含まれています。",
+    "spend": "今月のコスト",
+    "noBudget": "予算の上限なし",
+    "spendOf": "{spent} / {budget}",
+    "spendPercent": "月間予算の {percent}",
+    "budgetUsed": "予算の {percent} を使用済み",
+    "budgetNear": "{percent} を使用済み、まもなく上限です",
+    "budgetSpent": "予算の上限に達しました。翌月まで AI の呼び出しは拒否されます"
+  },
+  "models": {
+    "provider": "プロバイダー",
+    "baseUrl": "ベース URL",
+    "presets": "プリセット",
+    "discard": "変更を破棄",
+    "saved": "AI の設定を保存しました",
+    "badge": {
+      "on": "オン",
+      "builtin": "組み込み",
+      "keyMissing": "API キーがありません"
+    },
+    "chat": {
+      "title": "チャット モデル",
+      "description": "回答、要約、トリアージの提案を作成します。設定しない場合、AI 機能は組み込みモードで動作します。",
+      "providers": {
+        "none": {
+          "label": "なし",
+          "hint": "組み込みモード: 検索とテンプレートのみ"
+        },
+        "anthropic": {
+          "label": "Anthropic (Claude)",
+          "hint": "Anthropic API 経由の Claude モデル"
+        },
+        "openaiCompatible": {
+          "label": "OpenAI 互換",
+          "hint": "OpenAI、Azure OpenAI、Ollama、vLLM、LM Studio など"
+        }
+      },
+      "noneNote": "AI 機能はナレッジ ベースと類似のチケットから回答し、テンプレートを使用します。プロンプトがプラットフォーム外に送信されることはありません。",
+      "model": "モデル",
+      "modelHintAnthropic": "空欄にすると既定のモデル {model} が使用されます。",
+      "modelHintOpenai": "エンドポイントが想定するモデル名またはデプロイ名を正確に入力します。",
+      "suggestionsLabel": "おすすめのモデル",
+      "suggestions": {
+        "opus": "最も高性能",
+        "sonnet": "高速かつ高性能",
+        "haiku": "最速、最も低コスト"
+      },
+      "prices": "単価 (100 万トークンあたり USD)",
+      "inputPrice": "入力",
+      "outputPrice": "出力",
+      "priceHintKnown": "コストの見積もりに使用します。空欄にするとモデルの既知の単価が使用されます。",
+      "priceHintCustom": "コストの見積もりに使用します。自分でホストしているモデルなど、エンドポイントが無料の場合は空欄にします。",
+      "advanced": "詳細設定",
+      "baseUrlHintAnthropic": "Anthropic API の前段にあるプロキシやゲートウェイを使用する場合のみ入力します。空欄にすると Anthropic を直接呼び出します。",
+      "baseUrlHintOpenai": "/chat/completions の手前までの API ルートです。プリセットを選択してから編集できます。"
+    },
+    "embeddings": {
+      "title": "埋め込み",
+      "description": "記事とチケットをベクターに変換し、セマンティック検索と根拠のある回答に使用します。",
+      "providers": {
+        "builtin": {
+          "label": "組み込み",
+          "hint": "オフライン、384 次元、すべての言語に対応、キー不要"
+        },
+        "openaiCompatible": {
+          "label": "OpenAI 互換",
+          "hint": "OpenAI、Voyage AI、Ollama など"
+        }
+      },
+      "builtinNote": "組み込みの埋め込みはプラットフォーム内で実行されます。キーもコストも不要で、テキストが外部に送信されることはありません。外部モデルのほうが、言い換えた質問に一致する結果を見つけやすい傾向があります。",
+      "baseUrlHint": "/embeddings の手前までの API ルートです。",
+      "model": "モデル",
+      "dimensions": "次元数",
+      "dimensionsHint": "空欄にするとモデル本来の次元数が使用されます。次元数を減らせるのは OpenAI の text-embedding-3 モデルのみです。",
+      "price": "単価 (100 万トークンあたり USD)",
+      "priceHint": "コストの見積もりに使用します。エンドポイントが無料の場合は空欄にします。",
+      "reembedWarning": "埋め込みモデルを変更すると、インデックス済みのすべてのドキュメントがバックグラウンドで再埋め込みされます。完了するまで、セマンティック検索で見つかるのは再埋め込み済みのドキュメントのみです。"
+    },
+    "key": {
+      "label": "API キー",
+      "stored": "キーが保存されています",
+      "replace": "置き換え",
+      "remove": "削除",
+      "willRemove": "保存するとキーが削除されます。",
+      "undo": "元に戻す",
+      "newPlaceholder": "新しいキー",
+      "keep": "保存済みのキーを使用する",
+      "hint": "暗号化して保存され、再表示されません。",
+      "providerChanged": "保存済みのキーは別のプロバイダー用です。新しいキーを入力しない場合、保存時に削除されます。",
+      "urlChanged": "保存済みのキーは新しいアドレスに送信されます。別のサービスのキーである場合は、置き換えるか削除してください。"
+    },
+    "test": {
+      "button": "接続のテスト",
+      "saveFirst": "先に保存してください。テストには保存済みの設定が使用されます。",
+      "nothingToTest": "組み込みモード: テストするチャット モデルがありません。",
+      "ok": "接続しました",
+      "failed": "接続できませんでした",
+      "latency": "{ms, number} ミリ秒",
+      "dimensions": "{count, number} 次元"
+    },
+    "validation": {
+      "tooLong": "長すぎます。",
+      "url": "http:// または https:// で始まるアドレスを入力してください。",
+      "baseUrlRequired": "ベース URL を入力してください。",
+      "modelRequired": "モデル名を入力してください。",
+      "keyRequired": "Anthropic API キーを入力してください。",
+      "price": "0 から 1,000 までの金額を入力してください。",
+      "dimensions": "0 から 4,000 までの整数を入力してください。"
+    }
+  },
+  "privacy": {
+    "discard": "変更を破棄",
+    "saved": "プライバシーと予算の設定を保存しました",
+    "masking": {
+      "title": "マスク",
+      "description": "個人データや機密データは、プロンプトがプラットフォーム外に送信される前にプレースホルダーに置き換えられ、応答で元に戻されます。プロバイダーが実際の値を目にすることはありません。",
+      "enabled": "プラットフォーム外に送信する前にデータをマスクする",
+      "enabledHint": "外部のチャット モデルへのすべての呼び出しに適用されます。",
+      "offWarning": "マスクはオフです。チケットや記事に含まれる個人データを含め、プロンプトはそのままプロバイダーに送信されます。",
+      "categories": "マスクするデータ",
+      "categoriesHint": "各例は、モデルが実際に受け取る内容を示しています。",
+      "example": "例:",
+      "becomes": "変換後",
+      "sentAsIs": "そのまま送信",
+      "category": {
+        "email": {
+          "label": "メール アドレス",
+          "hint": "テキスト内のすべてのアドレス。"
+        },
+        "phone": {
+          "label": "電話番号",
+          "hint": "9 桁以上。日付と時刻は対象外です。"
+        },
+        "ip": {
+          "label": "IP アドレス",
+          "hint": "IPv4 と完全な IPv6 アドレス。"
+        },
+        "card": {
+          "label": "カード番号",
+          "hint": "Luhn チェックを行うため、注文番号やチケット番号はそのままです。"
+        },
+        "id": {
+          "label": "国民 ID",
+          "hint": "台湾の身分証番号、日本のマイナンバー、米国の SSN。"
+        },
+        "secret": {
+          "label": "シークレット",
+          "hint": "API キー、ベアラー トークン、password=…"
+        }
+      },
+      "custom": "カスタム パターン",
+      "customHint": "1 行に 1 つの正規表現を入力します (社員番号や資産番号の形式など)。一致した部分は {placeholder} のように置き換えられます。"
+    },
+    "budget": {
+      "title": "月間予算",
+      "description": "暦月 (UTC) ごとの AI コストの上限です。",
+      "label": "予算",
+      "hint": "0 は上限なしを意味します。今月のコストが予算に達すると、翌月まで AI の呼び出しは拒否されます ({code})。",
+      "spent": "今月はこれまでに {spent} を使用しました。"
+    },
+    "validation": {
+      "tooLong": "長すぎます。",
+      "pattern": "{line, number} 行目は有効な正規表現ではありません。",
+      "patternServer": "いずれかのパターンが有効な正規表現ではありません。",
+      "budget": "0 から 1,000,000 までの金額を、小数点以下 2 桁以内で入力してください。"
+    }
+  },
+  "usage": {
+    "range": "期間",
+    "days": "{count, plural, other {# 日間}}",
+    "kpi": {
+      "calls": "呼び出し",
+      "callsHint": "チャットと埋め込みの要求",
+      "tokens": "トークン",
+      "tokensHint": "入力 {input} · 出力 {output}",
+      "cost": "コスト",
+      "costHint": "モデルの単価から見積もり",
+      "masked": "マスクされた値",
+      "maskedHint": "プラットフォーム外に送信する前に置き換え",
+      "errors": "エラーとブロック",
+      "errorsHint": "エラー {errors, number} 件 · 予算超過 {blocked, number} 件",
+      "toolCalls": "ツール呼び出し",
+      "toolCallsHint": "AI がユーザーの代わりに実行した操作"
+    },
+    "chart": {
+      "titleCost": "日別のコスト",
+      "titleCalls": "日別の呼び出し",
+      "description": "日単位 (UTC) です。日にポインターを合わせるかフォーカスして方向キーを使うと、値を確認できます。",
+      "measure": "指標",
+      "cost": "コスト",
+      "calls": "呼び出し",
+      "date": "日付",
+      "showTable": "表を表示",
+      "showChart": "グラフを表示",
+      "tableLabel": "日別のコストと呼び出し",
+      "label": "日別の{measure}、{from} から {to}",
+      "tooltip": "{date}: {cost}、{calls, plural, other {# 回の呼び出し}}",
+      "callsValue": "{count, plural, other {# 回の呼び出し}}",
+      "costValue": "コスト {cost}",
+      "empty": "この期間に AI の呼び出しはありません。"
+    },
+    "providers": {
+      "anthropic": "Anthropic",
+      "openaiCompatible": "OpenAI 互換",
+      "builtin": "組み込み",
+      "tools": "ツール"
+    },
+    "byFeature": {
+      "title": "機能別",
+      "description": "AI を呼び出した機能とそのコスト。",
+      "empty": "この期間に AI の呼び出しはありません。",
+      "module": "モジュール",
+      "feature": "機能",
+      "calls": "呼び出し",
+      "tokens": "トークン (入力 / 出力)",
+      "tokensValue": "{input} / {output}",
+      "cost": "コスト",
+      "latency": "平均待機時間",
+      "ms": "{ms, number} ミリ秒",
+      "errors": "エラー"
+    },
+    "byModel": {
+      "title": "モデル別",
+      "empty": "この期間にモデルの呼び出しはありません。",
+      "model": "モデル",
+      "calls": "呼び出し",
+      "cost": "コスト"
+    },
+    "recent": {
+      "title": "最近の呼び出し",
+      "description": "期間にかかわらず、最新の 50 件の呼び出しです。",
+      "empty": "AI の呼び出しはまだありません。",
+      "time": "時刻",
+      "feature": "機能",
+      "principal": "代理元",
+      "model": "モデル",
+      "tokens": "トークン (入力 / 出力)",
+      "tokensValue": "{input} / {output}",
+      "cost": "コスト",
+      "latency": "待機時間",
+      "ms": "{ms, number} ミリ秒",
+      "status": "状態",
+      "masked": "{count, plural, other {# 個の値をマスク}}",
+      "kinds": {
+        "chat": "チャット",
+        "embed": "埋め込み",
+        "tool": "ツール"
+      },
+      "statuses": {
+        "ok": "成功",
+        "error": "エラー",
+        "refused": "拒否",
+        "blocked": "予算超過"
+      },
+      "principals": {
+        "system": "システム",
+        "service": "API クライアント",
+        "unknown": "不明",
+        "agent": "(AI エージェント)"
+      }
+    }
+  },
+  "index": {
+    "model": "現在の埋め込みモデル",
+    "store": {
+      "title": "ベクター ストア",
+      "pgvector": "pgvector (HNSW)",
+      "portable": "ポータブル",
+      "pgvectorBody": "ベクターは pgvector 拡張機能で保存され、HNSW インデックスで検索されるため、インデックスが大きくなっても高速です。",
+      "portableBody": "このデータベースには pgvector 拡張機能がないため、ベクターは通常の配列として保存され、SQL で比較されます。結果は同じですが、ドキュメントが多いと検索が遅くなります。pgvector のない開発用データベースではこのモードが使用されます。運用環境のイメージには含まれています。"
+    },
+    "content": {
+      "title": "インデックス済みのコンテンツ",
+      "description": "セマンティック検索と AI の回答が参照できるコンテンツです。各チャンクは元のコンテンツの権限を保持するため、ユーザーが開けない内容が回答に含まれることはありません。",
+      "type": "コンテンツ",
+      "documents": "ドキュメント",
+      "chunks": "チャンク",
+      "model": "埋め込みモデル",
+      "current": "現在",
+      "older": "古いモデル",
+      "empty": "まだ何もインデックスされていません。記事と解決済みのチケットは、公開時に追加されます。",
+      "stale": "{count, plural, =0 {すべてのドキュメントが現在のモデルを使用しています。} other {# 件のドキュメントがまだ古いモデルを使用しています。}}",
+      "reembed": "今すぐ再埋め込み",
+      "reembedStarted": "再埋め込みを開始しました。バックグラウンドで実行されます。"
+    },
+    "types": {
+      "knowledge_article": "ナレッジ記事",
+      "itsm_ticket": "解決済みのチケット"
+    }
+  }
+}

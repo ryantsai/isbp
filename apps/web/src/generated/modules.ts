@@ -2,7 +2,15 @@
 // Client-side registry of every installed module's web entry (pages are lazy-loaded).
 import type { WebModule } from '@isbp/sdk/web';
 import announcements from '@isbp/module-announcements/web';
+import cmdb from '@isbp/module-cmdb/web';
+import helpdeskAi from '@isbp/module-helpdesk-ai/web';
+import itsm from '@isbp/module-itsm/web';
+import knowledge from '@isbp/module-knowledge/web';
 
 export const webModules: Record<string, WebModule> = {
   'announcements': announcements,
+  'cmdb': cmdb,
+  'helpdesk-ai': helpdeskAi,
+  'itsm': itsm,
+  'knowledge': knowledge,
 };

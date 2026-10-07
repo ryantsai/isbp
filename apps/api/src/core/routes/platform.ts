@@ -179,6 +179,9 @@ export function platformRoutes(app: ModuleRouter, ctx: ModuleContext, idps: IdpS
         permission: t.permission,
         destructive: t.destructive ?? false,
       })),
+      aiAgent: m.manifest.ai?.agent
+        ? { name: m.manifest.ai.agent.name, permissions: [...m.manifest.ai.agent.permissions] }
+        : null,
       settings: (m.manifest.settings ?? []).map((s) => ({
         key: s.key,
         label: s.label,

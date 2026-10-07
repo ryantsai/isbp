@@ -122,6 +122,13 @@
     "withdrawTitle": "この申請を取り下げますか？",
     "withdrawBody": "承認者には表示されなくなります。後でもう一度申請できます。",
     "keep": "残す",
-    "withdrawn": "申請を取り下げました"
+    "withdrawn": "申請を取り下げました",
+    "fulfilment": {
+      "open": "対応中",
+      "done": "完了",
+      "cancelled": "対応はキャンセルされました",
+      "updated": "更新",
+      "openRef": "{reference} を開く"
+    }
   }
 }

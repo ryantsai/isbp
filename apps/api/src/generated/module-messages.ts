@@ -10,4 +10,24 @@ export const moduleMessages: Record<string, Record<Locale, Loader>> = {
     'zh-TW': () => import('@isbp/module-announcements/messages/zh-TW.json'),
     'ja-JP': () => import('@isbp/module-announcements/messages/ja-JP.json'),
   },
+  'cmdb': {
+    en: () => import('@isbp/module-cmdb/messages/en.json'),
+    'zh-TW': () => import('@isbp/module-cmdb/messages/zh-TW.json'),
+    'ja-JP': () => import('@isbp/module-cmdb/messages/ja-JP.json'),
+  },
+  'helpdesk-ai': {
+    en: () => import('@isbp/module-helpdesk-ai/messages/en.json'),
+    'zh-TW': () => import('@isbp/module-helpdesk-ai/messages/zh-TW.json'),
+    'ja-JP': () => import('@isbp/module-helpdesk-ai/messages/ja-JP.json'),
+  },
+  'itsm': {
+    en: () => import('@isbp/module-itsm/messages/en.json'),
+    'zh-TW': () => import('@isbp/module-itsm/messages/zh-TW.json'),
+    'ja-JP': () => import('@isbp/module-itsm/messages/ja-JP.json'),
+  },
+  'knowledge': {
+    en: () => import('@isbp/module-knowledge/messages/en.json'),
+    'zh-TW': () => import('@isbp/module-knowledge/messages/zh-TW.json'),
+    'ja-JP': () => import('@isbp/module-knowledge/messages/ja-JP.json'),
+  },
 };

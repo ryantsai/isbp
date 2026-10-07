@@ -141,6 +141,34 @@ export interface NotificationTypeDef {
   mandatory?: boolean;
 }
 
+/**
+ * A card in the request portal's "What do you need?" (e.g. "Report an issue"). Shown only when the module
+ * is enabled and the viewer holds `permission` (if set).
+ */
+export interface PortalEntry {
+  id: string;
+  /** i18n keys. */
+  label: string;
+  description?: string;
+  /** lucide icon name. */
+  icon?: string;
+  /** Absolute web path, e.g. `/itsm/report`. */
+  href: string;
+  permission?: string;
+  order?: number;
+}
+
+/**
+ * The identity a module's background AI work runs as (an `ai_agent` principal). Its permissions are
+ * declared up front — least privilege, visible to admins — and checked like any user's.
+ */
+export interface AiAgentDef {
+  /** Display name in audit logs and timelines, e.g. "Helpdesk AI". */
+  name: string;
+  /** Permission patterns the agent holds (globally). */
+  permissions: string[];
+}
+
 /** An entity whose `attributes` JSONB admins can extend with custom fields. */
 export interface CustomFieldEntityDef {
   /** Entity name inside the module; the full type is `<module>.<type>`, e.g. `core.user`. */
@@ -163,8 +191,9 @@ export interface ModuleManifest {
   roles?: RoleTemplate[];
   events?: { emits?: EventDef[]; consumes?: string[] };
   settings?: SettingDef[];
-  ai?: { tools: AiToolDef[] };
+  ai?: { tools?: AiToolDef[]; agent?: AiAgentDef };
   search?: { entities: string[] };
+  portal?: { entries: PortalEntry[] };
   workflows?: WorkflowTriggerDef[];
   notifications?: NotificationTypeDef[];
   customFields?: { entities: CustomFieldEntityDef[] };
@@ -252,18 +281,41 @@ export const manifestSchema = z
       .optional(),
     ai: z
       .object({
-        tools: z.array(
+        tools: z
+          .array(
+            z.object({
+              name: z.string().regex(/^[a-z][a-z0-9-]*\.[a-z][a-z0-9_]*$/),
+              description: z.string().min(10),
+              input: zZodType,
+              permission: z.string().refine(isPermissionKey),
+              destructive: z.boolean().optional(),
+            }),
+          )
+          .optional(),
+        agent: z
+          .object({
+            name: z.string().min(1).max(80),
+            permissions: z.array(z.string().refine(isPermissionPattern, 'invalid permission pattern')).min(1),
+          })
+          .optional(),
+      })
+      .optional(),
+    search: z.object({ entities: z.array(z.string()) }).optional(),
+    portal: z
+      .object({
+        entries: z.array(
           z.object({
-            name: z.string().regex(/^[a-z][a-z0-9-]*\.[a-z][a-z0-9_]*$/),
-            description: z.string().min(10),
-            input: zZodType,
-            permission: z.string().refine(isPermissionKey),
-            destructive: z.boolean().optional(),
+            id: z.string().regex(/^[a-z][a-z0-9-]*$/),
+            label: z.string().min(1),
+            description: z.string().optional(),
+            icon: z.string().optional(),
+            href: z.string().startsWith('/'),
+            permission: z.string().refine(isPermissionKey, 'invalid permission key').optional(),
+            order: z.number().optional(),
           }),
         ),
       })
       .optional(),
-    search: z.object({ entities: z.array(z.string()) }).optional(),
     workflows: z
       .array(
         z.object({
@@ -312,7 +364,7 @@ export const manifestSchema = z
         });
       }
     });
-    m.ai?.tools.forEach((t, i) => {
+    m.ai?.tools?.forEach((t, i) => {
       if (!own(t.name)) {
         ctx.addIssue({
           code: 'custom',
@@ -352,7 +404,7 @@ export function defineManifest<const M extends ModuleManifest>(manifest: M): M {
 /** JSON-safe view of a manifest (Zod schemas converted to JSON Schema) for APIs, admin UI and MCP. */
 export interface SerializedManifest extends Omit<ModuleManifest, 'events' | 'ai' | 'workflows'> {
   events?: { emits?: { name: string; description?: string; schema?: unknown }[]; consumes?: string[] };
-  ai?: { tools: (Omit<AiToolDef, 'input'> & { input: unknown })[] };
+  ai?: { tools?: (Omit<AiToolDef, 'input'> & { input: unknown })[]; agent?: AiAgentDef };
   workflows?: (Omit<WorkflowTriggerDef, 'facts'> & { facts?: unknown })[];
 }
 
@@ -377,7 +429,8 @@ export function serializeManifest(m: ModuleManifest): SerializedManifest {
       })),
     },
     ai: m.ai && {
-      tools: m.ai.tools.map((t) => ({ ...t, input: toJsonSchema(t.input) })),
+      tools: m.ai.tools?.map((t) => ({ ...t, input: toJsonSchema(t.input) })),
+      agent: m.ai.agent,
     },
     workflows: m.workflows?.map((w) => ({ ...w, facts: toJsonSchema(w.facts) })),
   };

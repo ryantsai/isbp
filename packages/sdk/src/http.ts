@@ -95,6 +95,22 @@ export const ErrorCodes = {
   EMAIL_NOT_CONFIGURED: 'EMAIL_NOT_CONFIGURED',
   /** A test notification could not be delivered (`details.reason`). */
   DELIVERY_FAILED: 'DELIVERY_FAILED',
+  /** No generative AI model is configured (features fall back to their builtin mode). */
+  AI_NOT_CONFIGURED: 'AI_NOT_CONFIGURED',
+  /** The AI provider failed or timed out (`details.reason`). */
+  AI_PROVIDER_ERROR: 'AI_PROVIDER_ERROR',
+  /** The monthly AI budget is spent. */
+  AI_BUDGET_EXCEEDED: 'AI_BUDGET_EXCEEDED',
+  /** A destructive or privileged action needs explicit confirmation (`details.preview`). */
+  CONFIRMATION_REQUIRED: 'CONFIRMATION_REQUIRED',
+  /** The record can't move to that status from its current one (`details.allowed`). */
+  INVALID_TRANSITION: 'INVALID_TRANSITION',
+  /** Resolving or closing needs resolution notes / a resolution code. */
+  RESOLUTION_REQUIRED: 'RESOLUTION_REQUIRED',
+  /** The relationship is not allowed (self-link, duplicate, wrong classes or a containment cycle). */
+  RELATIONSHIP_INVALID: 'RELATIONSHIP_INVALID',
+  /** The planned window overlaps a blackout or is in the past (`details`). */
+  SCHEDULE_CONFLICT: 'SCHEDULE_CONFLICT',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes] | (string & {});
 

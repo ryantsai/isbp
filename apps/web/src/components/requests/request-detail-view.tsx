@@ -14,6 +14,7 @@ import {
   AlertDialogTrigger,
 } from '@isbp/ui/alert-dialog';
 import { UserAvatar } from '@isbp/ui/avatar';
+import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
@@ -24,9 +25,13 @@ import { Skeleton } from '@isbp/ui/skeleton';
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
+  ArrowRightIcon,
   CheckCircle2Icon,
+  CircleCheckIcon,
+  CircleXIcon,
   FileQuestionIcon,
   KeyRoundIcon,
+  LoaderCircleIcon,
   UndoIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -182,6 +187,55 @@ function WorkflowSection({ instanceId }: { instanceId: string }) {
 }
 
 /** One request (access or form) by its number, with its approval path and history. */
+const FULFILMENT_TONE = {
+  neutral: 'muted',
+  info: 'info',
+  success: 'success',
+  warning: 'warning',
+  danger: 'destructive',
+} as const;
+
+/** Where the request is being fulfilled (e.g. the service-desk ticket), reported by the module. */
+function FulfilmentCard({ f }: { f: NonNullable<FormSubmission['fulfilment']> }) {
+  const t = useTranslations('requests.detail');
+  const root = useTranslations();
+  const Icon =
+    f.state === 'done' ? CircleCheckIcon : f.state === 'cancelled' ? CircleXIcon : LoaderCircleIcon;
+  return (
+    <Card>
+      <CardContent className="flex flex-wrap items-center gap-3 pt-6">
+        <span
+          className={
+            'grid size-9 shrink-0 place-items-center rounded-lg [&_svg]:size-4 ' +
+            (f.state === 'done'
+              ? 'bg-success/12 text-success'
+              : f.state === 'cancelled'
+                ? 'bg-muted text-muted-foreground'
+                : 'bg-info/12 text-info')
+          }
+        >
+          <Icon aria-hidden />
+        </span>
+        <span className="grid min-w-0 flex-1 gap-0.5">
+          <span className="font-medium">{t(`fulfilment.${f.state}`)}</span>
+          <span className="text-sm text-muted-foreground">
+            {t('fulfilment.updated')} <RelativeTime date={f.updatedAt} />
+          </span>
+        </span>
+        <Badge variant={FULFILMENT_TONE[f.tone ?? 'neutral']}>
+          {root.has(f.statusKey) ? root(f.statusKey) : f.statusKey.split('.').pop()}
+        </Badge>
+        <Button asChild variant="outline" size="sm">
+          <Link href={f.href}>
+            {t('fulfilment.openRef', { reference: f.reference })}
+            <ArrowRightIcon aria-hidden />
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function RequestDetailView({ reference }: { reference: string }) {
   const t = useTranslations('requests.detail');
   const locale = useLocale();
@@ -234,6 +288,7 @@ export function RequestDetailView({ reference }: { reference: string }) {
         }
         actions={item.canCancel ? <WithdrawButton path={cancelPath} /> : undefined}
       />
+      {!isAccess && data.submission.fulfilment && <FulfilmentCard f={data.submission.fulfilment} />}
       {isAccess ? (
         <AccessDetails r={data.request} />
       ) : (

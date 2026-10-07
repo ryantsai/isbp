@@ -1,0 +1,299 @@
+{
+  "meta": {
+    "name": "Knowledge base",
+    "description": "Answers and how-to guides for everyone, troubleshooting guides for the service desk."
+  },
+  "nav": {
+    "home": "Knowledge",
+    "manage": "Manage articles",
+    "categories": "Categories"
+  },
+  "permissions": {
+    "read": "Read published self-service articles",
+    "readInternal": "Read internal (agents-only) articles",
+    "write": "Write drafts, edit your own drafts and submit them for review",
+    "publish": "Publish, retire and restore articles, and edit any article",
+    "manageCategories": "Create, edit and delete knowledge categories"
+  },
+  "settings": {
+    "reviewIntervalDays": "Review an article this many days after it is published (0 = no default review date)",
+    "reminderRepeatDays": "Repeat overdue-review reminders every N days"
+  },
+  "portal": {
+    "browse": {
+      "label": "Browse knowledge",
+      "description": "Find step-by-step answers to common questions and fix things yourself."
+    }
+  },
+  "workflows": {
+    "publish": {
+      "name": "Publishing a knowledge article",
+      "description": "Optional review before an article goes live. Conditions can use article.audience, article.locale and article.categoryKey."
+    }
+  },
+  "notifications": {
+    "article_feedback": {
+      "label": "Negative feedback on my articles",
+      "title": "Not helpful: {title}",
+      "body": "{hasComment, select, yes {{reader} commented on {reference}: “{comment}”} other {{reader} marked {reference} as not helpful.}}"
+    },
+    "article_review_due": {
+      "label": "My articles due for review",
+      "title": "Review due: {title}",
+      "body": "{reference} was due for review on {reviewAt}. Check it is still accurate, then set a new review date."
+    },
+    "article_approved": {
+      "label": "My articles approved",
+      "title": "Published: {title}",
+      "body": "{reference} was approved and is now live in the knowledge base."
+    },
+    "article_rejected": {
+      "label": "My articles sent back",
+      "title": "Sent back: {title}",
+      "body": "{comment}"
+    }
+  },
+  "audit": {
+    "article_created": "Wrote knowledge article",
+    "article_updated": "Edited knowledge article",
+    "article_submitted": "Submitted knowledge article for review",
+    "article_published": "Published knowledge article",
+    "article_withdrawn": "Withdrew knowledge article from review",
+    "article_restored": "Restored knowledge article as a draft",
+    "article_retired": "Retired knowledge article",
+    "article_deleted": "Deleted knowledge article",
+    "article_review_closed": "Closed knowledge article review",
+    "article_rated": "Rated knowledge article",
+    "article_owner_released": "Released knowledge article ownership",
+    "category_created": "Created knowledge category",
+    "category_updated": "Edited knowledge category",
+    "category_deleted": "Deleted knowledge category"
+  },
+  "status": {
+    "draft": "Draft",
+    "in_review": "In review",
+    "published": "Published",
+    "retired": "Retired"
+  },
+  "audience": {
+    "everyone": "Everyone",
+    "agents": "Agents only"
+  },
+  "audienceHint": {
+    "everyone": "Self-service: anyone who can read the knowledge base.",
+    "agents": "Internal: only people with internal access (service desk)."
+  },
+  "actions": {
+    "submit": "Submit for review",
+    "withdraw": "Withdraw from review",
+    "publish": "Publish",
+    "retire": "Retire",
+    "restore": "Restore as draft"
+  },
+  "toast": {
+    "published": "Article published",
+    "submitted": "Submitted — an editor will publish it",
+    "sentForApproval": "Sent for approval — it goes live once approved",
+    "retired": "Article retired",
+    "draft": "Article is a draft again",
+    "deleted": "Article deleted"
+  },
+  "stats": {
+    "views": "{count, plural, one {# view} other {# views}}",
+    "helpfulShare": "{percent}% found this helpful"
+  },
+  "newArticle": "New article",
+  "home": {
+    "description": "Search answers and step-by-step guides, or browse by topic.",
+    "searchLabel": "How can we help?",
+    "searchPlaceholder": "Describe your problem, e.g. “VPN keeps disconnecting”",
+    "searchHintArrows": "move through results",
+    "searchHintEscape": "clears the search",
+    "clear": "Clear search",
+    "results": "Search results",
+    "resultCount": "{count, plural, =0 {No articles found} one {# article found} other {# articles found}}",
+    "noResults": "No articles match “{query}”",
+    "noResultsHint": "Try other words, or tell us about the problem and we'll help.",
+    "reportIssue": "Report an issue",
+    "keywordMode": "Showing keyword matches.",
+    "categories": "Browse by topic",
+    "articleCount": "{count, plural, =0 {No articles} one {# article} other {# articles}}",
+    "popular": "Popular",
+    "recent": "Recently updated",
+    "empty": "No articles yet.",
+    "emptyCategory": "No published articles in this category yet.",
+    "allCategories": "All topics",
+    "manageHint": "Write and review articles",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {pages}"
+  },
+  "article": {
+    "notFound": "This article doesn't exist or you can't see it.",
+    "backHome": "Back to the knowledge base",
+    "category": "Category",
+    "updated": "Updated",
+    "owner": "Owner",
+    "language": "Language",
+    "stats": "Views and feedback",
+    "translations": "Other languages",
+    "generatedFrom": "Draft generated from {reference}",
+    "tools": "Article actions",
+    "translate": "Translate",
+    "history": "{count, plural, one {History (# version)} other {History (# versions)}}",
+    "emptyBody": "This article has no content yet.",
+    "related": "Related articles",
+    "noRelated": "No related articles yet.",
+    "publishedOn": "Published",
+    "version": "Version {version}",
+    "reviewOn": "Review by {date}",
+    "tags": "Tags",
+    "bannerDraft": "This is a draft. Only its author and editors can see it.",
+    "bannerReview": "Submitted for review: an editor can publish it or send it back.",
+    "bannerApproval": "Waiting for approval. It is published automatically once approved; withdraw it to make changes.",
+    "bannerRetired": "This article is retired: it no longer appears in search. Restore it to edit and publish it again.",
+    "bannerReviewDue": "This article was due for review on {date}. Check it is still accurate, then set a new review date.",
+    "deleteTitle": "Delete this article?",
+    "deleteDescription": "{reference} and its version history will be deleted for good. Retiring keeps the history instead."
+  },
+  "feedback": {
+    "question": "Was this article helpful?",
+    "yes": "Yes",
+    "no": "No",
+    "commentLabel": "What was missing or wrong? (optional)",
+    "commentPlaceholder": "Tell the author how to improve this article",
+    "skip": "Skip",
+    "send": "Send feedback",
+    "thanksYes": "Thanks — glad it helped.",
+    "thanksNo": "Thanks for letting us know.",
+    "thanksComment": "Thanks — the author will see your comment."
+  },
+  "versions": {
+    "title": "Version history",
+    "description": "Every publish of {reference} is kept as a version.",
+    "back": "All versions",
+    "version": "Version {version}",
+    "current": "Live",
+    "by": "by {name}",
+    "empty": "Not published yet."
+  },
+  "manage": {
+    "title": "Manage articles",
+    "description": "Write, review and keep articles up to date.",
+    "noAccess": "You need permission to write knowledge articles.",
+    "search": "Search title, summary or KB number…",
+    "tabs": {
+      "mine": "My drafts",
+      "review": "In review",
+      "published": "Published",
+      "retired": "Retired",
+      "due": "Review due"
+    },
+    "empty": {
+      "mine": "No drafts. Start a new article.",
+      "review": "Nothing is waiting for review.",
+      "published": "No published articles match.",
+      "retired": "No retired articles.",
+      "due": "All articles are up to date."
+    },
+    "columns": {
+      "article": "Article",
+      "category": "Category",
+      "status": "Status",
+      "language": "Language",
+      "owner": "Owner",
+      "views": "Views",
+      "review": "Review by",
+      "updated": "Updated"
+    },
+    "allCategories": "All categories",
+    "allAudiences": "All audiences",
+    "allLanguages": "All languages",
+    "audienceFilter": "Audience",
+    "awaitingApproval": "Awaiting approval",
+    "noOwner": "No owner",
+    "due": "Due"
+  },
+  "editor": {
+    "newTitle": "New article",
+    "editTitle": "Edit article",
+    "translateTitle": "New translation",
+    "hint": "Write in Markdown. Save a draft any time; submit it when it's ready for review.",
+    "publishedHint": "This article is live: saving publishes your changes as a new version.",
+    "cannotEdit": "You can't edit this article in its current state.",
+    "title": "Title",
+    "summary": "Summary",
+    "summaryHint": "One or two sentences shown in search results.",
+    "body": "Article",
+    "write": "Write",
+    "preview": "Preview",
+    "previewEmpty": "Nothing to preview yet.",
+    "markdownHint": "Markdown: ## headings, 1. numbered steps, | tables |, **bold**, [links](/requests). HTML is not rendered.",
+    "category": "Category",
+    "noCategory": "No category",
+    "tags": "Tags",
+    "tagsHint": "Up to 10 keywords people might search for.",
+    "tagsPlaceholder": "Add a tag and press Enter",
+    "tagsFull": "At most {max} tags",
+    "removeTag": "Remove tag {tag}",
+    "audience": "Audience",
+    "language": "Language",
+    "translationOf": "Translation of",
+    "translationOfNone": "Not a translation",
+    "translationOfSearch": "Search articles…",
+    "translationOfEmpty": "No matching articles.",
+    "translationOfClear": "Not a translation",
+    "translationOfHint": "Link translations so readers can switch languages.",
+    "translationOfSet": "Readers can switch between this article and its translations.",
+    "reviewAt": "Review by",
+    "reviewAtHint": "The owner is reminded to check the article on this date.",
+    "saveDraft": "Save draft",
+    "saveAndSubmit": "Save and submit",
+    "submitHint": "Editors publish submitted articles (or an approval workflow decides).",
+    "publishUpdate": "Publish update",
+    "toast": {
+      "saved": "Changes saved",
+      "updatedLive": "Update published as a new version"
+    },
+    "errors": {
+      "titleRequired": "Give the article a title",
+      "tooLong": "Use at most {max} characters",
+      "date": "Enter a valid date",
+      "localeTaken": "{reference} is already the translation in this language"
+    }
+  },
+  "categoriesAdmin": {
+    "title": "Knowledge categories",
+    "description": "Topics that group articles on the knowledge home.",
+    "noAccess": "You need permission to manage knowledge categories.",
+    "add": "New category",
+    "createTitle": "New category",
+    "editTitle": "Edit category",
+    "dialogHint": "Names and descriptions can be written in each language; English is the fallback.",
+    "name": "Name",
+    "key": "Key",
+    "keyHint": "Lowercase letters, digits and dashes. Used in links, filters and workflow conditions; it can't change later.",
+    "descriptionLabel": "Description",
+    "icon": "Icon",
+    "iconHint": "A lucide icon name, e.g. key-round, wifi, printer.",
+    "sortOrder": "Order",
+    "parent": "Parent category",
+    "noParent": "None (top level)",
+    "articles": "Articles",
+    "empty": "No categories yet.",
+    "created": "Category created",
+    "saved": "Category saved",
+    "deleted": "Category deleted",
+    "editLabel": "Edit {name}",
+    "deleteLabel": "Delete {name}",
+    "deleteTitle": "Delete this category?",
+    "deleteDescription": "“{name}” will be deleted. Categories that still have articles can't be deleted.",
+    "errors": {
+      "key": "Use 2–64 lowercase letters, digits or dashes",
+      "icon": "Use a lucide icon name such as key-round",
+      "name": "Enter the name in at least one language",
+      "keyTaken": "This key is already used",
+      "parent": "A category can't sit under itself or its own subcategory"
+    }
+  }
+}

@@ -10,6 +10,7 @@ import {
   myRequestQuerySchema,
   myRequestSchema,
   parseRequestNumber,
+  portalEntrySchema,
   publishedFormSchema,
   requestableRoleQuerySchema,
   requestableRoleSchema,
@@ -17,6 +18,7 @@ import {
 } from '@isbp/contracts';
 import { httpErrors, type ModuleRouter, pageSchema } from '@isbp/sdk/server';
 import { z } from 'zod';
+import { getKernel } from '../kernel-ref';
 import type { AccessRequestService } from '../services/access-requests';
 import type { FormService } from '../services/forms';
 
@@ -25,6 +27,35 @@ const idParams = z.object({ id: z.uuid() });
 /** The self-service portal: request access, fill in forms, follow "My requests". */
 export function requestRoutes(app: ModuleRouter, access: AccessRequestService, forms: FormService) {
   const tags = ['Requests'];
+
+  app.get(
+    '/portal/entries',
+    {
+      schema: {
+        tags,
+        summary: "Modules' cards for the portal's “What do you need?” (enabled modules, your permissions)",
+        response: { 200: z.object({ items: z.array(portalEntrySchema) }) },
+      },
+    },
+    async (req) => ({
+      items: getKernel()
+        .registry.enabledModules()
+        .flatMap((m) =>
+          (m.manifest.portal?.entries ?? [])
+            .filter((e) => !e.permission || req.auth.permissions.hasAny(e.permission))
+            .map((e) => ({
+              moduleId: m.manifest.id,
+              id: e.id,
+              label: e.label,
+              description: e.description ?? null,
+              icon: e.icon ?? 'circle-help',
+              href: e.href,
+              order: e.order ?? 100,
+            })),
+        )
+        .sort((a, b) => a.order - b.order),
+    }),
+  );
 
   app.get(
     '/requestable-roles',

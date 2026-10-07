@@ -25,7 +25,8 @@
     "groupIdentity": "身分識別",
     "groupAccess": "存取權",
     "groupAutomation": "自動化",
-    "groupPlatform": "平台"
+    "groupPlatform": "平台",
+    "ai": "AI"
   },
   "permissions": {
     "usersRead": "檢視人員及其個人資料",
@@ -54,7 +55,8 @@
     "applicationsRead": "檢視應用程式及其存取者",
     "applicationsManage": "管理應用程式、其角色與授權",
     "apiClientsManage": "建立 API 用戶端與金鑰",
-    "roleQueryRead": "透過角色查詢 API 查詢角色與權限"
+    "roleQueryRead": "透過角色查詢 API 查詢角色與權限",
+    "aiManage": "設定 AI 閘道：模型、隱私與預算"
   },
   "settings": {
     "productName": "產品名稱",
@@ -70,7 +72,23 @@
     "emailPassword": "SMTP 密碼",
     "emailFrom": "寄件者",
     "emailFromHelp": "郵件的寄件者名稱與地址，例如 IS Big Platform、noreply@example.com",
-    "notificationRetention": "通知保留天數"
+    "notificationRetention": "通知保留天數",
+    "aiChatProvider": "對話模型供應商",
+    "aiChatBaseUrl": "對話 API 基底 URL",
+    "aiChatApiKey": "對話 API 金鑰",
+    "aiChatModel": "對話模型",
+    "aiChatInputPrice": "輸入價格（每百萬 Token 美元）",
+    "aiChatOutputPrice": "輸出價格（每百萬 Token 美元）",
+    "aiEmbeddingsProvider": "嵌入向量供應商",
+    "aiEmbeddingsBaseUrl": "嵌入向量 API 基底 URL",
+    "aiEmbeddingsApiKey": "嵌入向量 API 金鑰",
+    "aiEmbeddingsModel": "嵌入向量模型",
+    "aiEmbeddingsDimensions": "嵌入向量維度",
+    "aiEmbeddingsPrice": "嵌入向量價格（每百萬 Token 美元）",
+    "aiMasking": "個人資料離開平台前先行遮罩",
+    "aiMaskingCategories": "要遮罩的資料類型",
+    "aiMaskingCustom": "自訂遮罩規則",
+    "aiMonthlyBudget": "每月 AI 預算（美元，0 表示不限）"
   },
   "systemRoles": {
     "platform-admin": {

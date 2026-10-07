@@ -122,6 +122,13 @@
     "withdrawTitle": "要撤回此申請嗎？",
     "withdrawBody": "簽核者將不再看到此申請，您之後可以重新申請。",
     "keep": "保留",
-    "withdrawn": "已撤回申請"
+    "withdrawn": "已撤回申請",
+    "fulfilment": {
+      "open": "處理中",
+      "done": "已完成",
+      "cancelled": "已取消處理",
+      "updated": "更新於",
+      "openRef": "開啟 {reference}"
+    }
   }
 }

@@ -122,6 +122,13 @@
     "withdrawTitle": "Withdraw this request?",
     "withdrawBody": "Approvers won't see it any more. You can send a new request later.",
     "keep": "Keep it",
-    "withdrawn": "Request withdrawn"
+    "withdrawn": "Request withdrawn",
+    "fulfilment": {
+      "open": "Being fulfilled",
+      "done": "Fulfilled",
+      "cancelled": "Fulfilment cancelled",
+      "updated": "Updated",
+      "openRef": "Open {reference}"
+    }
   }
 }

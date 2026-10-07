@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import { Redis } from 'ioredis';
 import type { Config } from '../config';
+import { AiGateway } from './ai/gateway';
 import { ApiClientAuth } from './api-clients';
 import { createAuditService } from './audit';
 import { currentPrincipal } from './context';
@@ -14,6 +15,7 @@ import { CustomFieldRegistry } from './fields';
 import { ModuleRegistry } from './modules';
 import { NotificationHub } from './notifications/hub';
 import { NotificationCenter } from './notifications/service';
+import { createFormsService, createPortalService } from './portal';
 import { QueueFactory } from './queues';
 import { RbacService } from './rbac';
 import { SessionService } from './sessions';
@@ -68,6 +70,13 @@ export async function createKernel(
   const fields = new CustomFieldRegistry(db, registry);
   const workflows = new WorkflowEngine({ db, registry, notifications, logger, core });
   const apiClients = new ApiClientAuth(db, redis, config.OAUTH_TOKEN_TTL_SECONDS);
+  const ai = new AiGateway({
+    db,
+    settings,
+    registry,
+    logger: logger.child({ component: 'ai' }),
+    coreManifest: () => registry.get('core')!.manifest,
+  });
 
   const contexts = new Map<string, ModuleContext>();
   for (const m of registry.modules) {
@@ -85,6 +94,9 @@ export async function createKernel(
       workflows: workflows.forModule(id),
       notifications: notifications.forModule(m.manifest),
       fields: fields.service(),
+      ai: ai.forModule(m.manifest),
+      portal: createPortalService(db, m.manifest),
+      forms: createFormsService(db, m.manifest),
       transaction: (fn) => db.transaction((tx) => fn(tx as unknown as Db)),
       principal: currentPrincipal,
       isEnabled: () => registry.isEnabled(id),
@@ -158,6 +170,7 @@ export async function createKernel(
     fields,
     workflows,
     apiClients,
+    ai,
     migrate,
     ready,
     search,

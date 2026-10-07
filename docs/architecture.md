@@ -1,7 +1,8 @@
 # IS Big Platform — Architecture
 
-> Status: Phase 1 (workflows, forms, notifications, access requests, Role Query API) on top of the Phase 0
-> foundation. This document is the design baseline that later phases extend.
+> Status: Phase 2 (ITSM, CMDB, Knowledge Base, Helpdesk AI and the AI gateway) on top of Phase 1 (workflows,
+> forms, notifications, access requests, Role Query API) and the Phase 0 foundation. This document is the
+> design baseline that later phases extend.
 
 ## 1. Shape of the system
 
@@ -27,9 +28,9 @@ flowchart LR
     subgraph Mods["Modules (same SDK)"]
       CORE["core (system)<br/>identity · RBAC · audit · admin"]
       M1["announcements<br/>(sample, via create-module)"]
-      M2["itsm, assets, … (Phase 2+)"]
+      M2["cmdb · knowledge · itsm · helpdesk-ai<br/>(Phase 2), assets … (Phase 3+)"]
     end
-    GW["AI gateway / MCP<br/>(Phase 5)"]
+    GW["AI gateway (Phase 2)<br/>MCP (Phase 5)"]
     K --- Mods
     GW -. "same permissions" .- K
   end
@@ -412,8 +413,8 @@ labels for its audit actions. See [module-development.md](module-development.md)
 | Phase                     | Scope                                                                                                                                                                                                                                     |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **0 – Foundation** (done) | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI |
-| **1** (this)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                |
-| 2                         | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                     |
+| **1** (done)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                |
+| **2** (done)              | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                     |
 | 3                         | Asset Management, Project Management, Application Lifecycle                                                                                                                                                                               |
 | 4                         | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                              |
 | 5                         | Integrations Hub, MCP server, AI assistant everywhere                                                                                                                                                                                     |
@@ -625,3 +626,239 @@ without a declared permission (such as `/me/*`) are closed to service principals
 | 23  | Notifications rendered at creation in the recipient's locale                         | Email and in-app show the same text; the web app doesn't need every module's notification catalog                                   | Store keys and render on read (stale-locale-safe but complex)        |
 | 24  | SSE + Redis pub/sub for live notifications                                           | One-way, HTTP-friendly through the Next.js proxy and ingress; no WebSocket infra                                                    | WebSockets, polling only                                             |
 | 25  | API clients as service principals with ordinary grants; opaque OAuth tokens in Redis | Role Query and API-first automation use the same RBAC checks and audit as people; instant revocation                                | JWT access tokens (hard to revoke), separate ACL model               |
+
+## 9. Phase 2 design: ITSM, CMDB, Knowledge Base, Helpdesk AI
+
+Phase 2 ships four modules on the SDK, plus the **AI gateway** in the kernel, because Helpdesk AI needs
+one. The MCP server and the assistant on every page are still Phase 5. They will reuse the same gateway
+and tool registry.
+
+| Module        | Depends on          | Owns                                                                                                                                                    |
+| ------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cmdb`        | —                   | Configuration items (CIs): classes, typed directional relationships, impact analysis (upstream/downstream traversal)                                    |
+| `knowledge`   | —                   | Knowledge articles: categories, versions, review and publish workflow, feedback, review dates. They are indexed for semantic search.                    |
+| `itsm`        | `cmdb`              | Incidents, service requests, problems, changes with CAB approval, categories, SLA policies on business calendars, service-catalog fulfilment, dashboard |
+| `helpdesk-ai` | `itsm`, `knowledge` | AI triage, similar tickets, KB-grounded reply drafts, summaries, KB drafts from resolved tickets, the self-service virtual agent, and accuracy metrics  |
+
+A module may **read** (never write) the tables of a module it `dependsOn`. For example, ITSM joins
+`cmdb.cis` to show CI names. Writes and everything cross-cutting go through events, HTTP APIs or the
+**AI tool registry**.
+
+### 9.1 AI gateway (kernel, `ctx.ai`)
+
+```mermaid
+flowchart LR
+  subgraph Modules
+    HA["helpdesk-ai"]
+    KB["knowledge"]
+    IT["itsm"]
+  end
+  subgraph GW["Kernel AI gateway (ctx.ai)"]
+    direction TB
+    P["Providers<br/>builtin · Anthropic · OpenAI-compatible<br/>(OpenAI, Azure, Ollama, vLLM, Voyage…)"]
+    M["Masking<br/>emails, phones, IPs, IDs, secrets<br/>→ placeholders, restored in output"]
+    U["Usage log<br/>tokens · cost · latency per feature"]
+    IX["Semantic index<br/>core.ai_chunks + ACLs<br/>pgvector HNSW (portable fallback)"]
+    T["Tool registry<br/>manifest ai.tools · RBAC · HITL"]
+  end
+  HA -- "chat / stream / embed" --> M --> P
+  P --> U
+  KB -- "index.upsert(article)" --> IX
+  IT -- "index.upsert(resolved ticket)" --> IX
+  HA -- "index.search(query, auth)" --> IX
+  HA -- "tools.invoke('itsm.create_ticket', input, auth)" --> T --> IT
+```
+
+- **Providers.** These are configured in **Administration → AI**, and secrets are encrypted at rest.
+  - _Chat_ has three options: `none`, `anthropic` (official SDK, default model `claude-opus-5-5`), or
+    `openai-compatible` (base URL plus model; covers OpenAI, Azure OpenAI, Ollama, vLLM, LM Studio and
+    LiteLLM).
+  - _Embeddings_ have two options: `builtin`, or `openai-compatible` (OpenAI, Voyage AI, Ollama, …).
+  - The `builtin` embedder runs offline and deterministically. It uses feature hashing of words and
+    character n-grams (CJK uni/bigrams), so retrieval works in every language with no key. This is what
+    the demo data and the tests use.
+  - Without a chat model, every AI feature degrades to a retrieval-based or extractive mode. The UI labels
+    that mode honestly.
+- **Calls.** `ctx.ai.chat({ feature, system, messages, tools?, schema?, effort? }, { auth })`,
+  `ctx.ai.stream(…)` and `ctx.ai.embed(texts)`.
+  - Structured output (`schema`, a Zod schema) is used for triage.
+  - Tool calls come back to the caller, which decides whether to run them.
+  - Every call writes a `core.ai_usage` row: module, feature, principal, provider, model, tokens, cost
+    (from per-model prices in settings), latency and status.
+  - An optional monthly budget refuses calls once it is spent (`AI_BUDGET_EXCEEDED`).
+- **Masking** runs before any external provider call. The categories (email, phone, IP, national-ID and
+  credit-card patterns, API keys/secrets, plus custom regexes) are configurable. Values become stable
+  placeholders (`[EMAIL_1]`) and are restored in the response, so the provider never sees them.
+- **Semantic index.**
+  - `ctx.ai.index.upsert({ type, id, title, text, locale, href, acl, metadata })` chunks the text by
+    heading and paragraph (about 800 characters, with overlap), embeds the chunks and stores them in
+    `core.ai_chunks`.
+  - `ctx.ai.index.search(query, { types, auth, limit, filter })` is **hybrid**: vector kNN plus keyword
+    matching (`pg_trgm`/ILIKE, which also works for CJK), fused with Reciprocal Rank Fusion.
+  - Every chunk carries an **ACL**: a permission and an optional scope, or a list of user ids. Results are
+    filtered with the caller's `AuthContext`, so retrieval can never leak what the UI would hide.
+  - The embedding column is `vector` with an HNSW index when the `pgvector` extension is available at
+    migration time. Production images (`pgvector/pgvector:pg17`) always have it. The Docker-free embedded
+    dev Postgres has no pgvector, so there the column is `real[]` with a SQL cosine function. The schema
+    and API are the same, it is slower, and Admin → AI shows which mode is active. Changing the embedding
+    model re-embeds everything in a background job.
+- **Tool registry.** It holds every enabled module's `manifest.ai.tools` with their handlers.
+  - `ctx.ai.tools.invoke(name, input, { auth, confirmed })` validates the input, requires the tool's
+    permission for that principal, and refuses `destructive` tools unless `confirmed` is set
+    (`CONFIRMATION_REQUIRED` + preview). It also audits `core.ai.tool_invoked`.
+  - Helpdesk AI reaches ITSM and the knowledge base **only** through these tools. It acts either as the signed-in user
+    (interactive features) or as its **agent identity**: an `ai_agent` principal whose permissions the
+    manifest declares up front (`ai.agent.permissions`) and which Admin → Modules shows. Phase 5 exposes
+    the same registry over MCP.
+
+### 9.2 Platform additions for modules
+
+| Addition                | Shape                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web **slots**           | `defineWebModule(m, { routes, slots: [{ slot: 'itsm.ticket.aside', load, permission?, order? }] })`. A host renders `<Slot name="itsm.ticket.aside" props={…} />`, and the contributions of enabled modules appear there. Helpdesk AI fills ITSM's ticket side panel and the request portal this way, without ITSM knowing it exists. |
+| Portal entries          | `manifest.portal.entries` adds cards to "What do you need?" (e.g. ITSM "Report an issue", KB "Browse knowledge")                                                                                                                                                                                                                      |
+| Request registry        | `ctx.portal.track({ kind, id, reference, title, state, statusLabel, href, people }, { tx })` writes `core.portal_items`, so "My requests" lists module records (e.g. incidents) next to access requests and form submissions                                                                                                          |
+| Form fulfilment         | `ctx.forms.submission(id)` reads a submission (form, schema version, answers). `ctx.forms.setFulfilment(id, { reference, href, state, statusLabel }, { tx })` shows a module's fulfilment progress on the request                                                                                                                     |
+| `ai.agent` in manifests | `{ name, permissions[] }`: the least-privilege identity a module's background AI work runs as                                                                                                                                                                                                                                         |
+
+### 9.3 ITSM model (schema `itsm`)
+
+```mermaid
+erDiagram
+  TICKETS ||--o{ TICKET_ACTIVITIES : "timeline"
+  TICKETS ||--o{ TICKET_SLAS : "response / resolution"
+  TICKETS ||--o{ TICKET_LINKS : "problem ↔ incidents, change ↔ tickets, parent/child, duplicate"
+  TICKETS ||--o{ TICKET_CIS : "affected CIs"
+  CMDB_CIS ||--o{ TICKET_CIS : ""
+  TICKETS ||--o| CHANGES : "type = change"
+  TICKETS ||--o| PROBLEMS : "type = problem"
+  CATEGORIES ||--o{ TICKETS : ""
+  SLA_POLICIES }o--|| BUSINESS_CALENDARS : ""
+  SLA_POLICIES ||--o{ TICKET_SLAS : ""
+  CATALOG_ITEMS }o--|| CORE_FORMS : "fulfils (form key)"
+  TICKETS {
+    uuid id PK
+    text type "incident|service_request|problem|change"
+    bigint number "INC-00042 / SR / PRB / CHG (sequence per type)"
+    text status "per-type state machine"
+    int impact "1 high … 3 low"
+    int urgency "1 … 3"
+    int priority "P1–P4 from the ITIL matrix (overridable)"
+    uuid category_id FK
+    uuid requester_id FK
+    uuid assignment_group_id FK "core.groups"
+    uuid assignee_id FK
+    text channel "portal|agent|chat|email|form"
+    jsonb source "form submission it fulfils"
+    bool major "major incident"
+    text resolution_code
+    int satisfaction "1–5 CSAT"
+    jsonb attributes "custom fields (itsm.ticket)"
+  }
+  CHANGES {
+    uuid ticket_id PK
+    text change_type "standard|normal|emergency"
+    text risk "low|medium|high"
+    timestamptz planned_start
+    timestamptz planned_end
+    text implementation_plan
+    text backout_plan
+    uuid approval_instance_id "CAB workflow"
+  }
+  PROBLEMS {
+    uuid ticket_id PK
+    text root_cause
+    text workaround
+    bool known_error
+    uuid kb_article_id
+  }
+  TICKET_SLAS {
+    uuid id PK
+    uuid ticket_id FK
+    text metric "response|resolution"
+    timestamptz due_at "business time"
+    int paused_ms
+    text status "running|paused|met|breached|cancelled"
+    timestamptz warned_at
+  }
+```
+
+- **Lifecycles.** Each ticket type has an explicit state machine, and the API refuses illegal transitions
+  (`INVALID_TRANSITION`).
+  - Incident: `new → in_progress ⇄ on_hold → resolved → closed`, or `cancelled`. A resolved ticket closes
+    automatically after N days unless the requester reopens it.
+  - Service request: `new → pending_approval → in_progress → fulfilled → closed`.
+  - Problem: `new → investigating → known_error → resolved → closed`.
+  - Change: `draft → assessment → authorization → scheduled → implementing → review → closed`, with
+    `rejected`/`cancelled`.
+- **Priority** comes from the ITIL impact × urgency matrix (P1–P4). Agents can override it, and the
+  activity log records the override.
+- **SLA.** A policy matches tickets with a condition from the shared condition builder (type, priority,
+  category, service, …). It sets response and resolution targets per priority on a **business calendar**
+  (time zone, working hours, holidays).
+  - Targets pause in the statuses the policy names (e.g. `on_hold`).
+  - Instances are rows. A one-minute job warns at the configured percentage and marks breaches, the same
+    pattern as Phase 1 approval SLAs.
+  - Business-time arithmetic is a pure, unit-tested function.
+- **Change and CAB.** Submitting a change for authorization starts the `itsm.change` trigger. It is
+  `required` and its default graph is a condition on the change facts:
+  - **standard** changes are pre-approved (no step);
+  - **emergency** changes go to the ECAB group (any one approver);
+  - **normal** changes go to the change manager, then to the CAB group when the risk is high or a
+    critical CI is involved.
+
+  Approval schedules the change. The change calendar flags overlapping changes on the same CI.
+
+- **Service catalog.** The questions are Phase 1 forms; ITSM adds the fulfilment. A catalog item maps a
+  published form to a category, a fulfilment group, a priority and a moment (on submit, or once approved).
+  ITSM handles `core.form-submission.created/completed`. It opens an SR ticket that carries the answers
+  and reports progress back with `ctx.forms.setFulfilment`. The requester follows one reference
+  (`REQ-…`) from approval to fulfilment.
+- **Portal.** "Report an issue" (`/itsm/report`) suggests KB articles while the user types, which deflects
+  tickets. The user's own tickets show in "My requests" through the request registry.
+  - Requesters see a reduced ticket page: public conversation, status, "this is fixed / still broken" and
+    a CSAT rating.
+  - Agents see the full workspace: work notes, assignment, SLA timers, links, CIs, approvals and the AI
+    side panel.
+
+### 9.4 Knowledge Base (module `knowledge`, schema `knowledge`)
+
+- **Articles.** Each article has a title, a Markdown body, a summary, a category, tags, a locale (with
+  translation groups), an audience (everyone, or agents only) and an owner. Status runs
+  `draft → in_review → published → retired`, and every publish snapshots a version.
+- **Publishing** can require approval through the `knowledge.publish` trigger, which is opt-in like
+  announcements.
+- **Review dates** produce reminders to owners.
+- **Feedback.** Readers mark an article helpful or not, with an optional comment. Negative feedback
+  notifies the owner.
+- **Search** uses the hybrid index, so a query in one language finds articles in any language. Markdown is
+  rendered with `react-markdown` with no raw HTML (XSS-safe).
+- **AI tools:** `knowledge.search_articles`, `knowledge.get_article` and `knowledge.create_draft`.
+
+### 9.5 Helpdesk AI
+
+| Feature              | With a chat model                                                                                                                             | Without (builtin)                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Triage on create     | kNN over similar resolved tickets, refined by the model with structured output: category, priority, group, assignee, confidence and rationale | Weighted kNN vote with confidence = agreement of neighbours         |
+| Similar tickets / KB | Hybrid retrieval                                                                                                                              | Same                                                                |
+| Reply draft          | Grounded in the top KB chunks, with numbered citations, in the requester's language                                                           | Templated reply that quotes the best article's steps and links it   |
+| Summary              | Abstractive summary of the description and timeline                                                                                           | Extractive (issue, latest updates, current state)                   |
+| KB draft from ticket | Problem / cause / resolution article, created as a **draft** via `knowledge.create_draft`                                                     | Same structure, filled from the ticket fields                       |
+| Virtual agent        | Streams a grounded answer with citations. It can **propose** a ticket, which the user confirms before `itsm.create_ticket` runs               | Shows the best matching articles, plus a "create a ticket" proposal |
+
+Auto-triage is off by default. When it is enabled and confidence ≥ threshold, the agent identity fills
+only the fields that are still empty (`itsm.triage_ticket`), and the ticket timeline credits "Helpdesk AI".
+Every suggestion stores what the agent did with it, so the admin page reports triage acceptance, virtual
+agent deflection and AI cost.
+
+### 9.6 Phase 2 decisions
+
+| #   | Decision                                                                                   | Why                                                                                                                                                         | Alternatives considered                                  |
+| --- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| 26  | AI gateway in the kernel; `builtin` offline embedder and graceful no-LLM modes             | Every module gets AI through one governed, metered, masked path. Demo and tests run with no key or network, and the UI is honest about which mode it is in. | Per-module SDK calls; requiring an LLM to run            |
+| 27  | One shared semantic index with per-chunk ACLs; hybrid vector + keyword search (RRF)        | Retrieval respects RBAC by construction. CJK works without language-specific tokenizers. Phase 5 assistant/MCP reuse it.                                    | Per-module vector tables; pure vector search             |
+| 28  | pgvector when available, `real[]` fallback chosen at migration time                        | Production gets HNSW. The Docker-free dev setup still works.                                                                                                | Requiring Docker for development; an external vector DB  |
+| 29  | Cross-module AI goes through the tool registry, as the user or a declared agent identity   | The same permission checks, audit and HITL as the UI. Least privilege is visible to admins. MCP in Phase 5 is a transport, not a redesign.                  | Direct table access; a service account with broad rights |
+| 30  | Single `tickets` table with a type discriminator plus 1:1 detail tables for change/problem | Shared queue, SLA, timeline and search across ITIL processes, with type-specific fields kept typed and indexed                                              | One table per process (duplicated plumbing); JSON blobs  |
+| 31  | Catalog = Phase 1 forms + ITSM fulfilment                                                  | Admins build questions and approvals in one builder. Requesters follow one reference. Fulfilment is ordinary ticket work.                                   | A second catalog/form engine inside ITSM                 |
+| 32  | Web slots for cross-module UI                                                              | Helpdesk AI decorates ITSM pages while both stay independently installable                                                                                  | Hard imports between modules                             |

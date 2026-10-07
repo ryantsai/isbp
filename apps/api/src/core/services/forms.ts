@@ -697,6 +697,17 @@ export class FormService {
       completedAt: sub.completedAt,
       workflow,
       canCancel: sub.status === 'pending' && sub.submittedBy === auth.user?.id,
+      fulfilment: sub.fulfilment
+        ? {
+            moduleId: sub.fulfilment.moduleId,
+            reference: sub.fulfilment.reference,
+            href: sub.fulfilment.href,
+            state: sub.fulfilment.state,
+            statusKey: sub.fulfilment.statusKey,
+            tone: sub.fulfilment.tone ?? null,
+            updatedAt: new Date(sub.fulfilment.updatedAt),
+          }
+        : null,
     };
   }
 

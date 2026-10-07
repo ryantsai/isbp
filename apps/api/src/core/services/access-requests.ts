@@ -15,6 +15,8 @@ import {
   roles,
   users,
   workflowInstances,
+  portalItems,
+  type SubmissionFulfilment,
 } from '@isbp/db/schema';
 import {
   type AuthContext,
@@ -690,38 +692,55 @@ export class AccessRequestService {
     const open = q.status === 'open';
     const closed = q.status === 'closed';
     const accessStatus = open ? sql`ar.status = 'pending'` : closed ? sql`ar.status <> 'pending'` : sql`true`;
-    const formStatus = open
-      ? sql`fs.status in ('pending', 'submitted')`
-      : closed
-        ? sql`fs.status not in ('pending', 'submitted')`
-        : sql`true`;
+    // A form request stays open while a module is still fulfilling it.
+    const formOpen = sql`(fs.status in ('pending', 'submitted') or (fs.status = 'approved' and fs.fulfilment->>'state' = 'open'))`;
+    const formStatus = open ? formOpen : closed ? sql`not ${formOpen}` : sql`true`;
+    const moduleStatus = open ? sql`pi.state = 'open'` : closed ? sql`pi.state = 'closed'` : sql`true`;
+    const enabled = getKernel()
+      .registry.enabledModules()
+      .map((m) => m.manifest.id);
     const like = q.q ? likePattern(q.q) : null;
     const union = sql`
-      select 'access' as kind, ar.id, ar.number, ar.status, ar.created_at, ar.updated_at, ar.workflow_instance_id
+      select 'access' as kind, ar.id::text as id, ar.number, ar.status, ar.created_at, ar.updated_at,
+             ar.workflow_instance_id, null::jsonb as fulfilment, null::text as kind_key
         from core.access_requests ar join core.roles r on r.id = ar.role_id
        where (ar.requester_id = ${me} or ar.beneficiary_id = ${me}) and ${accessStatus}
          ${like ? sql`and r.name ilike ${like}` : sql``}
       union all
-      select 'form' as kind, fs.id, fs.number, fs.status, fs.created_at, fs.updated_at, fs.workflow_instance_id
+      select 'form' as kind, fs.id::text, fs.number, fs.status, fs.created_at, fs.updated_at,
+             fs.workflow_instance_id, fs.fulfilment, null::text
         from core.form_submissions fs join core.forms f on f.id = fs.form_id
        where fs.submitted_by = ${me} and ${formStatus}
-         ${like ? sql`and (f.name->>'en' ilike ${like} or f.name->>'zh-TW' ilike ${like} or f.name->>'ja-JP' ilike ${like})` : sql``}`;
+         ${like ? sql`and (f.name->>'en' ilike ${like} or f.name->>'zh-TW' ilike ${like} or f.name->>'ja-JP' ilike ${like} or fs.fulfilment->>'reference' ilike ${like})` : sql``}
+      union all
+      select 'module' as kind, pi.entity_id, null::bigint, pi.state, pi.created_at, pi.updated_at,
+             null::uuid, null::jsonb, pi.kind
+        from core.portal_items pi
+       where pi.people @> ${`{${me}}`}::uuid[] and ${moduleStatus}
+         and pi.module_id in (${sql.join(
+           enabled.map((id) => sql`${id}`),
+           sql`, `,
+         )})
+         ${like ? sql`and (pi.reference ilike ${like} or pi.title::text ilike ${like})` : sql``}`;
     const [page, totalRes] = await Promise.all([
       this.db.execute<{
-        kind: 'access' | 'form';
+        kind: 'access' | 'form' | 'module';
         id: string;
-        number: string;
+        number: string | null;
         status: string;
         created_at: Date;
         updated_at: Date;
         workflow_instance_id: string | null;
+        fulfilment: SubmissionFulfilment | null;
+        kind_key: string | null;
       }>(sql`${union} order by created_at desc limit ${q.pageSize} offset ${pageOffset(q.page, q.pageSize)}`),
       this.db.execute<{ n: number }>(sql`select count(*)::int as n from (${union}) x`),
     ]);
     const rows = page.rows;
     const accessIds = rows.filter((r) => r.kind === 'access').map((r) => r.id);
     const formIds = rows.filter((r) => r.kind === 'form').map((r) => r.id);
-    const [accessInfo, formInfo, instances] = await Promise.all([
+    const moduleKeys = rows.filter((r) => r.kind === 'module');
+    const [accessInfo, formInfo, instances, moduleInfo] = await Promise.all([
       accessIds.length
         ? this.db
             .select({
@@ -755,6 +774,18 @@ export class AccessRequestService {
               .concat('00000000-0000-0000-0000-000000000000'),
           ),
         ),
+      moduleKeys.length
+        ? this.db
+            .select()
+            .from(portalItems)
+            .where(
+              or(
+                ...moduleKeys.map((r) =>
+                  and(eq(portalItems.kind, r.kind_key!), eq(portalItems.entityId, r.id)),
+                ),
+              ),
+            )
+        : Promise.resolve([]),
     ]);
     const summaries = await this.views.summaries(instances);
     const people = await peopleById(
@@ -769,13 +800,43 @@ export class AccessRequestService {
           : null;
         const base = {
           id: r.id,
-          number: Number(r.number),
-          reference: formatRequestNumber(Number(r.number)),
+          number: r.number == null ? null : Number(r.number),
+          reference: r.number == null ? '' : formatRequestNumber(Number(r.number)),
           status: r.status,
+          statusKey: null,
+          tone: null,
+          href: null,
+          moduleId: null,
+          fulfilment: r.fulfilment
+            ? {
+                moduleId: r.fulfilment.moduleId,
+                reference: r.fulfilment.reference,
+                href: r.fulfilment.href,
+                state: r.fulfilment.state,
+                statusKey: r.fulfilment.statusKey,
+                tone: r.fulfilment.tone ?? null,
+                updatedAt: new Date(r.fulfilment.updatedAt),
+              }
+            : null,
           createdAt: new Date(r.created_at),
           updatedAt: new Date(r.updated_at),
           workflow,
         };
+        if (r.kind === 'module') {
+          const m = moduleInfo.find((x) => x.kind === r.kind_key && x.entityId === r.id);
+          return {
+            ...base,
+            kind: 'module' as const,
+            reference: m?.reference ?? '',
+            title: typeof m?.title === 'string' ? { en: m.title } : (m?.title ?? { en: '?' }),
+            subtitle: null,
+            icon: m?.icon ?? 'circle-dot',
+            statusKey: m?.statusKey ?? null,
+            tone: (m?.tone as 'neutral' | 'info' | 'success' | 'warning' | 'danger' | null) ?? null,
+            href: m?.href ?? null,
+            moduleId: m?.moduleId ?? null,
+          };
+        }
         if (r.kind === 'access') {
           const a = accessInfo.find((x) => x.id === r.id);
           const forOther = a && a.beneficiaryId !== me ? ref(people, a.beneficiaryId)?.displayName : null;

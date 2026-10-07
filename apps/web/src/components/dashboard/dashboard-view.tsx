@@ -25,6 +25,7 @@ import type { ReactNode } from 'react';
 import { AuditIcon, useActionLabel } from '@/components/audit-action';
 import { RelativeTime } from '@/components/relative-time';
 import { useApiQuery } from '@/lib/api';
+import { Slot } from '@isbp/sdk/web';
 import { ActivityChart } from './activity-chart';
 import { MyWork } from './my-work';
 
@@ -112,6 +113,11 @@ export function DashboardView({ initial }: { initial: Dashboard }) {
       </FadeIn>
 
       <MyWork />
+
+      {/* Extension point: modules add "your work" cards (e.g. the service desk queue). */}
+      <div className="grid grid-cols-1 gap-4 empty:hidden lg:grid-cols-2">
+        <Slot name="core.dashboard.work" props={{}} />
+      </div>
 
       {canPeople ? (
         <Stagger className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">

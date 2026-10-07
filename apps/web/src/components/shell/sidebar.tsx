@@ -18,21 +18,26 @@ export function isActivePath(pathname: string, href: string) {
   return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
 }
 
+/** The single entry to highlight: the most specific match (`/itsm/problems` beats `/itsm`). */
+export function activeHref(pathname: string, hrefs: readonly string[]): string | null {
+  return hrefs.filter((h) => isActivePath(pathname, h)).sort((a, b) => b.length - a.length)[0] ?? null;
+}
+
 function NavLink({
   item,
+  active,
   collapsed,
   onNavigate,
   layoutPrefix,
 }: {
   item: NavItem;
+  active: boolean;
   collapsed: boolean;
   onNavigate?: () => void;
   layoutPrefix: string;
 }) {
-  const pathname = usePathname();
   const t = useTranslations();
   const badges = useBadges();
-  const active = isActivePath(pathname, item.href);
   const label = t.has(item.label) ? t(item.label) : item.label;
   const count = item.badge ? (badges[item.badge as keyof typeof badges] ?? 0) : 0;
   const link = (
@@ -124,6 +129,11 @@ export function SidebarNav({
 }) {
   const t = useTranslations('core.nav');
   const tAll = useTranslations();
+  const pathname = usePathname();
+  const current = activeHref(
+    pathname,
+    items.map((i) => i.href),
+  );
   const sections = [
     { key: 'main' as const, label: t('sectionMain') },
     { key: 'admin' as const, label: t('sectionAdmin') },
@@ -158,6 +168,7 @@ export function SidebarNav({
                       ))}
                     <NavLink
                       item={item}
+                      active={item.href === current}
                       collapsed={collapsed}
                       onNavigate={onNavigate}
                       layoutPrefix={layoutPrefix}

@@ -4,8 +4,9 @@ import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import type { FastifyBaseLogger, FastifyInstance, RawServerDefault } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import type { z } from 'zod';
 import type { LocalizedText } from './conditions';
-import type { FieldDef } from './fields';
+import type { FieldDef, FormSchema } from './fields';
 import type { ModuleManifest } from './manifest';
 import type { PermissionReach, PermissionSet, ResourceScope } from './permissions';
 
@@ -207,6 +208,227 @@ export interface CustomFieldService {
   ): Promise<Record<string, unknown>>;
 }
 
+/* ───────────────────────────── AI gateway ───────────────────────────── */
+
+export interface AiToolCall {
+  id: string;
+  /** Registry name, e.g. `itsm.create_ticket`. */
+  name: string;
+  input: unknown;
+}
+
+/**
+ * Provider-neutral conversation message. Assistant turns keep the provider's native content so a
+ * conversation continued on the same provider and model is replayed unchanged (append-only history).
+ */
+export interface AiMessage {
+  role: 'user' | 'assistant' | 'tool';
+  content?: string;
+  /** Assistant: tools the model asked to call. */
+  toolCalls?: AiToolCall[];
+  /** Tool result: the call it answers. */
+  toolCallId?: string;
+  isError?: boolean;
+  native?: { provider: string; model: string; content: unknown };
+}
+
+export type AiEffort = 'low' | 'medium' | 'high';
+
+export interface AiChatRequest<T = unknown> {
+  /** Stable key for usage reports, e.g. `helpdesk-ai.triage`. */
+  feature: string;
+  system?: string;
+  messages: AiMessage[];
+  /** Registry tools the model may call (names); schemas come from the manifests. */
+  tools?: string[];
+  /** Structured output: the final answer must match this schema (parsed into `output`). */
+  schema?: z.ZodType<T>;
+  effort?: AiEffort;
+  maxTokens?: number;
+}
+
+export interface AiUsage {
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+}
+
+export interface AiChatResult<T = unknown> {
+  text: string;
+  /** Parsed structured output (when `schema` was given and the reply matched). */
+  output: T | null;
+  toolCalls: AiToolCall[];
+  stopReason: 'end' | 'tool_use' | 'max_tokens' | 'refusal';
+  /** Append to the conversation to continue it. */
+  message: AiMessage;
+  usage: AiUsage;
+  provider: string;
+  model: string;
+}
+
+export type AiStreamEvent<T = unknown> =
+  { type: 'text'; delta: string } | { type: 'done'; result: AiChatResult<T> };
+
+export interface AiStatus {
+  /** A generative model is configured; otherwise features use their builtin (retrieval/extractive) mode. */
+  chat: { available: boolean; provider: 'none' | 'anthropic' | 'openai-compatible'; model: string | null };
+  embeddings: { provider: 'builtin' | 'openai-compatible'; model: string; dimensions: number };
+  vectorStore: 'pgvector' | 'portable';
+}
+
+/** Who may retrieve an indexed document: the permission (at `scope`), or any listed user. */
+export interface AiIndexAcl {
+  permission: string;
+  scope?: ResourceScope;
+  users?: string[];
+}
+
+export interface AiIndexDocument {
+  /** `<module>.<entity>`, e.g. `kb.article`. */
+  type: string;
+  id: string;
+  title: string;
+  /** Plain text or Markdown; chunked by heading/paragraph. */
+  text: string;
+  locale?: string | null;
+  href?: string | null;
+  acl: AiIndexAcl;
+  /** Filterable with `search({ filter })` (JSON containment), returned with hits. */
+  metadata?: Record<string, unknown>;
+}
+
+export interface AiSearchHit {
+  type: string;
+  id: string;
+  title: string;
+  href: string | null;
+  locale: string | null;
+  /** The best-matching chunk of the document. */
+  snippet: string;
+  /** Fused relevance (vector + keyword ranks), 0–1, for ordering. */
+  score: number;
+  /** Cosine similarity of the best chunk to the query, 0–1 — use it for "is this relevant at all" thresholds. */
+  similarity: number;
+  metadata: Record<string, unknown>;
+}
+
+export interface AiSearchOptions {
+  types: string[];
+  /** Results are filtered by this caller's permissions (chunk ACLs). */
+  auth: AuthContext;
+  limit?: number;
+  filter?: Record<string, unknown>;
+  /** Exclude documents, e.g. the ticket you are finding neighbours for. */
+  excludeIds?: string[];
+}
+
+export interface AiToolInfo {
+  name: string;
+  description: string;
+  moduleId: string;
+  permission: string;
+  destructive: boolean;
+}
+
+export interface AiService {
+  status(): Promise<AiStatus>;
+  /** Throws 409 `AI_NOT_CONFIGURED` when no chat model is configured — check `status()` first. */
+  chat<T = unknown>(req: AiChatRequest<T>, opts?: { auth?: AuthContext }): Promise<AiChatResult<T>>;
+  /** Streams text deltas, then one `done` event with the full result. */
+  stream<T = unknown>(req: AiChatRequest<T>, opts?: { auth?: AuthContext }): AsyncIterable<AiStreamEvent<T>>;
+  /** Unit-length embeddings from the configured embedder (builtin works offline). */
+  embed(texts: string[], opts: { feature: string }): Promise<number[][]>;
+  index: {
+    /** Re-chunks and re-embeds the document. Call after commit (e.g. from your own event handler). */
+    upsert(doc: AiIndexDocument): Promise<void>;
+    remove(type: string, id: string): Promise<void>;
+    /** Hybrid (vector + keyword) search, filtered by the caller's permissions. */
+    search(query: string, opts: AiSearchOptions): Promise<AiSearchHit[]>;
+  };
+  tools: {
+    /** Tools of enabled modules the principal may call. */
+    list(auth: AuthContext): AiToolInfo[];
+    /**
+     * Runs a registry tool as `auth`: validates the input, requires the tool's permission, refuses
+     * `destructive` tools unless `confirmed` (409 `CONFIRMATION_REQUIRED`), and audits the call.
+     */
+    invoke<T = unknown>(
+      name: string,
+      input: unknown,
+      opts: { auth: AuthContext; confirmed?: boolean },
+    ): Promise<T>;
+  };
+  /** This module's agent identity (`manifest.ai.agent`); throws if the module declares none. */
+  agent(): AuthContext;
+}
+
+/* ───────────────────────────── request portal ───────────────────────────── */
+
+export type StatusTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
+
+/** A module record listed in the request portal's "My requests" (e.g. an incident someone reported). */
+export interface PortalItem {
+  /** `<module>.<entity>`, e.g. `itsm.ticket`. */
+  kind: string;
+  id: string;
+  /** Human reference, e.g. `INC-00042`. */
+  reference: string;
+  title: string | LocalizedText;
+  /** `open` while something is still happening; `closed` when done. */
+  state: 'open' | 'closed';
+  /** i18n key of the status label in the module catalog, e.g. `itsm.status.in_progress`. */
+  statusKey: string;
+  tone?: StatusTone;
+  href: string;
+  /** lucide icon name. */
+  icon?: string;
+  /** People who see it under "My requests" (requester, requested-for). */
+  people: readonly (string | null | undefined)[];
+  createdAt?: Date;
+}
+
+export interface PortalService {
+  /** Creates or updates the item (idempotent on `kind` + `id`). */
+  track(item: PortalItem, opts?: { tx?: Db }): Promise<void>;
+  untrack(kind: string, id: string, opts?: { tx?: Db }): Promise<void>;
+}
+
+/* ───────────────────────────── forms (Phase 1) ───────────────────────────── */
+
+export interface FormSubmissionInfo {
+  id: string;
+  number: number;
+  /** `REQ-00042`. */
+  reference: string;
+  form: { id: string; key: string; name: LocalizedText; icon: string; category: string | null };
+  version: number;
+  /** The schema the answers were given with. */
+  schema: FormSchema;
+  data: Record<string, unknown>;
+  submittedBy: string | null;
+  status: 'submitted' | 'pending' | 'approved' | 'rejected' | 'cancelled';
+  createdAt: Date;
+}
+
+/** A module's progress on a submission (e.g. the ITSM ticket fulfilling it), shown to the requester. */
+export interface Fulfilment {
+  reference: string;
+  href: string;
+  state: 'open' | 'done' | 'cancelled';
+  /** i18n key of the status label in the module catalog. */
+  statusKey: string;
+  tone?: StatusTone;
+}
+
+export interface FormsService {
+  submission(id: string): Promise<FormSubmissionInfo | null>;
+  /** Published, active forms (for catalog configuration screens). */
+  published(): Promise<
+    { key: string; name: LocalizedText; icon: string; category: string | null; hasApproval: boolean }[]
+  >;
+  setFulfilment(submissionId: string, fulfilment: Fulfilment | null, opts?: { tx?: Db }): Promise<void>;
+}
+
 export interface ModuleContext {
   readonly module: ModuleManifest;
   readonly db: Db;
@@ -219,6 +441,9 @@ export interface ModuleContext {
   readonly workflows: WorkflowService;
   readonly notifications: NotificationService;
   readonly fields: CustomFieldService;
+  readonly ai: AiService;
+  readonly portal: PortalService;
+  readonly forms: FormsService;
   /** Runs `fn` in a DB transaction; pass `tx` to audit/events to keep them atomic. */
   transaction<T>(fn: (tx: Db) => Promise<T>): Promise<T>;
   /** Principal of the current request, job or event (from async context). */
@@ -315,7 +540,7 @@ export function defineServerModule(manifest: ModuleManifest, options: ServerModu
       );
     }
   }
-  const tools = new Set(manifest.ai?.tools.map((t) => t.name) ?? []);
+  const tools = new Set(manifest.ai?.tools?.map((t) => t.name) ?? []);
   for (const name of Object.keys(options.ai ?? {})) {
     if (!tools.has(name))
       throw new Error(`[${manifest.id}] AI handler "${name}" is not declared in manifest.ai.tools`);

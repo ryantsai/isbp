@@ -5,7 +5,8 @@ import pino from 'pino';
 import { buildApp } from '../../src/app';
 import { loadConfig } from '../../src/config';
 import { bindKernel } from '../../src/core/kernel-ref';
-import { installedModules } from '../../src/generated/modules';
+import type { ServerModule } from '@isbp/sdk/server';
+import { coreModule } from '../../src/core';
 import { createKernel, type Kernel } from '../../src/kernel/kernel';
 import { hashPassword } from '../../src/kernel/passwords';
 
@@ -45,7 +46,22 @@ export async function createHarness(): Promise<Harness> {
   if (!dbName.endsWith('_test'))
     throw new Error(`Refusing to reset database "${dbName}" — integration tests need a *_test database`);
 
-  const kernel = await createKernel(config, pino({ level: 'silent' }), installedModules);
+  // `ISBP_TEST_MODULES=announcements,cmdb` loads only those modules besides core (list dependencies too),
+  // so a test can run while another module is mid-change.
+  const only = process.env.ISBP_TEST_MODULES?.split(',')
+    .map((s) => s.trim())
+    .filter((s) => s && s !== 'core');
+  const modules: ServerModule[] = only
+    ? [
+        coreModule,
+        ...(await Promise.all(
+          only.map(
+            async (id) => ((await import(`@isbp/module-${id}/server`)) as { default: ServerModule }).default,
+          ),
+        )),
+      ]
+    : (await import('../../src/generated/modules')).installedModules;
+  const kernel = await createKernel(config, pino({ level: 'silent' }), modules);
   bindKernel(kernel);
   for (const m of kernel.registry.modules) {
     await kernel.db.execute(

@@ -1,0 +1,299 @@
+{
+  "meta": {
+    "name": "知識庫",
+    "description": "提供所有人員的解答與操作指南，以及服務台的疑難排解指引。"
+  },
+  "nav": {
+    "home": "知識庫",
+    "manage": "管理文章",
+    "categories": "分類"
+  },
+  "permissions": {
+    "read": "閱讀已發佈的自助服務文章",
+    "readInternal": "閱讀內部（僅限客服人員）文章",
+    "write": "撰寫草稿、編輯自己的草稿並送出審查",
+    "publish": "發佈、停用與還原文章，以及編輯任何文章",
+    "manageCategories": "建立、編輯與刪除知識庫分類"
+  },
+  "settings": {
+    "reviewIntervalDays": "文章發佈後幾天需要重新審閱（0 = 不設定預設審閱日期）",
+    "reminderRepeatDays": "逾期審閱提醒每隔 N 天重複一次"
+  },
+  "portal": {
+    "browse": {
+      "label": "瀏覽知識庫",
+      "description": "查詢常見問題的逐步解答，自行排除問題。"
+    }
+  },
+  "workflows": {
+    "publish": {
+      "name": "發佈知識庫文章",
+      "description": "文章上線前的選用審查。條件可使用 article.audience、article.locale 與 article.categoryKey。"
+    }
+  },
+  "notifications": {
+    "article_feedback": {
+      "label": "我的文章收到負面回饋",
+      "title": "沒有幫助：{title}",
+      "body": "{hasComment, select, yes {{reader} 對 {reference} 留言：「{comment}」} other {{reader} 將 {reference} 標示為沒有幫助。}}"
+    },
+    "article_review_due": {
+      "label": "我的文章到期需審閱",
+      "title": "需要審閱：{title}",
+      "body": "{reference} 已於 {reviewAt} 到期需要審閱。請確認內容仍然正確，再設定新的審閱日期。"
+    },
+    "article_approved": {
+      "label": "我的文章已核准",
+      "title": "已發佈：{title}",
+      "body": "{reference} 已核准，現已在知識庫上線。"
+    },
+    "article_rejected": {
+      "label": "我的文章被退回",
+      "title": "已退回：{title}",
+      "body": "{comment}"
+    }
+  },
+  "audit": {
+    "article_created": "撰寫知識庫文章",
+    "article_updated": "編輯知識庫文章",
+    "article_submitted": "送出知識庫文章審查",
+    "article_published": "發佈知識庫文章",
+    "article_withdrawn": "撤回知識庫文章審查",
+    "article_restored": "將知識庫文章還原為草稿",
+    "article_retired": "停用知識庫文章",
+    "article_deleted": "刪除知識庫文章",
+    "article_review_closed": "結束知識庫文章審查",
+    "article_rated": "評分知識庫文章",
+    "article_owner_released": "解除知識庫文章擁有者",
+    "category_created": "建立知識庫分類",
+    "category_updated": "編輯知識庫分類",
+    "category_deleted": "刪除知識庫分類"
+  },
+  "status": {
+    "draft": "草稿",
+    "in_review": "審查中",
+    "published": "已發佈",
+    "retired": "已停用"
+  },
+  "audience": {
+    "everyone": "所有人",
+    "agents": "僅限客服人員"
+  },
+  "audienceHint": {
+    "everyone": "自助服務：所有可閱讀知識庫的人員。",
+    "agents": "內部：僅限具內部存取權限的人員（服務台）。"
+  },
+  "actions": {
+    "submit": "送出審查",
+    "withdraw": "撤回審查",
+    "publish": "發佈",
+    "retire": "停用",
+    "restore": "還原為草稿"
+  },
+  "toast": {
+    "published": "文章已發佈",
+    "submitted": "已送出——將由編輯發佈",
+    "sentForApproval": "已送出核准——核准後即會上線",
+    "retired": "文章已停用",
+    "draft": "文章已回到草稿",
+    "deleted": "文章已刪除"
+  },
+  "stats": {
+    "views": "{count, plural, other {# 次瀏覽}}",
+    "helpfulShare": "{percent}% 的人覺得有幫助"
+  },
+  "newArticle": "新增文章",
+  "home": {
+    "description": "搜尋解答與逐步指南，或依主題瀏覽。",
+    "searchLabel": "需要什麼協助？",
+    "searchPlaceholder": "描述您的問題，例如「VPN 一直斷線」",
+    "searchHintArrows": "在結果間移動",
+    "searchHintEscape": "清除搜尋",
+    "clear": "清除搜尋",
+    "results": "搜尋結果",
+    "resultCount": "{count, plural, =0 {找不到文章} other {找到 # 篇文章}}",
+    "noResults": "沒有符合「{query}」的文章",
+    "noResultsHint": "請換個說法，或告訴我們您遇到的問題，我們會協助您。",
+    "reportIssue": "回報問題",
+    "keywordMode": "顯示關鍵字比對結果。",
+    "categories": "依主題瀏覽",
+    "articleCount": "{count, plural, =0 {沒有文章} other {# 篇文章}}",
+    "popular": "熱門文章",
+    "recent": "最近更新",
+    "empty": "尚無文章。",
+    "emptyCategory": "此分類尚無已發佈的文章。",
+    "allCategories": "所有主題",
+    "manageHint": "撰寫與審查文章",
+    "previous": "上一頁",
+    "next": "下一頁",
+    "pageOf": "第 {page} 頁，共 {pages} 頁"
+  },
+  "article": {
+    "notFound": "此文章不存在，或您沒有檢視權限。",
+    "backHome": "返回知識庫",
+    "category": "分類",
+    "updated": "更新於",
+    "owner": "擁有者",
+    "language": "語言",
+    "stats": "瀏覽次數與回饋",
+    "translations": "其他語言",
+    "generatedFrom": "由 {reference} 產生的草稿",
+    "tools": "文章操作",
+    "translate": "翻譯",
+    "history": "{count, plural, other {歷程記錄（# 個版本）}}",
+    "emptyBody": "此文章尚無內容。",
+    "related": "相關文章",
+    "noRelated": "目前沒有相關文章。",
+    "publishedOn": "發佈於",
+    "version": "第 {version} 版",
+    "reviewOn": "請於 {date} 前審閱",
+    "tags": "標籤",
+    "bannerDraft": "這是草稿，只有作者與編輯可以看到。",
+    "bannerReview": "已送出審查：編輯可以發佈或退回。",
+    "bannerApproval": "等待核准中。核准後會自動發佈；若要修改請先撤回。",
+    "bannerRetired": "此文章已停用，不會出現在搜尋結果中。還原後即可編輯並重新發佈。",
+    "bannerReviewDue": "此文章已於 {date} 到期需要審閱。請確認內容仍然正確，再設定新的審閱日期。",
+    "deleteTitle": "要刪除此文章嗎？",
+    "deleteDescription": "{reference} 及其版本歷程記錄將被永久刪除。若要保留歷程記錄，請改為停用。"
+  },
+  "feedback": {
+    "question": "這篇文章有幫助嗎？",
+    "yes": "有",
+    "no": "沒有",
+    "commentLabel": "缺少或錯誤的內容是什麼？（選填）",
+    "commentPlaceholder": "告訴作者如何改善這篇文章",
+    "skip": "略過",
+    "send": "送出回饋",
+    "thanksYes": "謝謝——很高興能幫上忙。",
+    "thanksNo": "謝謝您告訴我們。",
+    "thanksComment": "謝謝——作者會看到您的留言。"
+  },
+  "versions": {
+    "title": "版本歷程記錄",
+    "description": "{reference} 每次發佈都會保留為一個版本。",
+    "back": "所有版本",
+    "version": "第 {version} 版",
+    "current": "線上版本",
+    "by": "由 {name}",
+    "empty": "尚未發佈。"
+  },
+  "manage": {
+    "title": "管理文章",
+    "description": "撰寫、審查並維護文章內容。",
+    "noAccess": "您需要撰寫知識庫文章的權限。",
+    "search": "搜尋標題、摘要或 KB 編號…",
+    "tabs": {
+      "mine": "我的草稿",
+      "review": "審查中",
+      "published": "已發佈",
+      "retired": "已停用",
+      "due": "到期需審閱"
+    },
+    "empty": {
+      "mine": "沒有草稿。開始撰寫新文章吧。",
+      "review": "目前沒有等待審查的文章。",
+      "published": "沒有符合條件的已發佈文章。",
+      "retired": "沒有已停用的文章。",
+      "due": "所有文章都是最新的。"
+    },
+    "columns": {
+      "article": "文章",
+      "category": "分類",
+      "status": "狀態",
+      "language": "語言",
+      "owner": "擁有者",
+      "views": "瀏覽次數",
+      "review": "審閱期限",
+      "updated": "更新時間"
+    },
+    "allCategories": "所有分類",
+    "allAudiences": "所有對象",
+    "allLanguages": "所有語言",
+    "audienceFilter": "對象",
+    "awaitingApproval": "等待核准",
+    "noOwner": "無擁有者",
+    "due": "已到期"
+  },
+  "editor": {
+    "newTitle": "新增文章",
+    "editTitle": "編輯文章",
+    "translateTitle": "新增翻譯",
+    "hint": "使用 Markdown 撰寫。可隨時儲存草稿，準備好後再送出審查。",
+    "publishedHint": "此文章已上線：儲存後會將變更發佈為新版本。",
+    "cannotEdit": "此文章目前的狀態無法編輯。",
+    "title": "標題",
+    "summary": "摘要",
+    "summaryHint": "顯示於搜尋結果的一兩句說明。",
+    "body": "文章內容",
+    "write": "撰寫",
+    "preview": "預覽",
+    "previewEmpty": "目前沒有可預覽的內容。",
+    "markdownHint": "Markdown：## 標題、1. 編號步驟、| 表格 |、**粗體**、[連結](/requests)。不會呈現 HTML。",
+    "category": "分類",
+    "noCategory": "未分類",
+    "tags": "標籤",
+    "tagsHint": "最多 10 個人員可能搜尋的關鍵字。",
+    "tagsPlaceholder": "輸入標籤後按 Enter",
+    "tagsFull": "最多 {max} 個標籤",
+    "removeTag": "移除標籤 {tag}",
+    "audience": "對象",
+    "language": "語言",
+    "translationOf": "翻譯自",
+    "translationOfNone": "非翻譯文章",
+    "translationOfSearch": "搜尋文章…",
+    "translationOfEmpty": "沒有符合的文章。",
+    "translationOfClear": "非翻譯文章",
+    "translationOfHint": "連結翻譯文章，讓讀者可以切換語言。",
+    "translationOfSet": "讀者可以在此文章與其翻譯之間切換。",
+    "reviewAt": "審閱期限",
+    "reviewAtHint": "會在此日期提醒擁有者檢查文章內容。",
+    "saveDraft": "儲存草稿",
+    "saveAndSubmit": "儲存並送出",
+    "submitHint": "送出的文章由編輯發佈（或由核准流程決定）。",
+    "publishUpdate": "發佈更新",
+    "toast": {
+      "saved": "變更已儲存",
+      "updatedLive": "更新已發佈為新版本"
+    },
+    "errors": {
+      "titleRequired": "請輸入文章標題",
+      "tooLong": "最多 {max} 個字元",
+      "date": "請輸入有效的日期",
+      "localeTaken": "{reference} 已是此語言的翻譯"
+    }
+  },
+  "categoriesAdmin": {
+    "title": "知識庫分類",
+    "description": "在知識庫首頁將文章分組的主題。",
+    "noAccess": "您需要管理知識庫分類的權限。",
+    "add": "新增分類",
+    "createTitle": "新增分類",
+    "editTitle": "編輯分類",
+    "dialogHint": "名稱與說明可依語言分別填寫；未填寫時會顯示英文。",
+    "name": "名稱",
+    "key": "代碼",
+    "keyHint": "小寫英文字母、數字與連字號。用於連結、篩選與流程條件，建立後無法變更。",
+    "descriptionLabel": "說明",
+    "icon": "圖示",
+    "iconHint": "lucide 圖示名稱，例如 key-round、wifi、printer。",
+    "sortOrder": "排序",
+    "parent": "上層分類",
+    "noParent": "無（最上層）",
+    "articles": "文章數",
+    "empty": "尚無分類。",
+    "created": "分類已建立",
+    "saved": "分類已儲存",
+    "deleted": "分類已刪除",
+    "editLabel": "編輯 {name}",
+    "deleteLabel": "刪除 {name}",
+    "deleteTitle": "要刪除此分類嗎？",
+    "deleteDescription": "將刪除「{name}」。仍有文章的分類無法刪除。",
+    "errors": {
+      "key": "請使用 2–64 個小寫英文字母、數字或連字號",
+      "icon": "請使用 lucide 圖示名稱，例如 key-round",
+      "name": "請至少以一種語言輸入名稱",
+      "keyTaken": "此代碼已被使用",
+      "parent": "分類不能放在自己或其子分類之下"
+    }
+  }
+}

@@ -3,5 +3,9 @@
 import type { ServerModule } from '@isbp/sdk/server';
 import { coreModule } from '../core';
 import announcements from '@isbp/module-announcements/server';
+import cmdb from '@isbp/module-cmdb/server';
+import helpdeskAi from '@isbp/module-helpdesk-ai/server';
+import itsm from '@isbp/module-itsm/server';
+import knowledge from '@isbp/module-knowledge/server';
 
-export const installedModules: ServerModule[] = [coreModule, announcements];
+export const installedModules: ServerModule[] = [coreModule, announcements, cmdb, helpdeskAi, itsm, knowledge];

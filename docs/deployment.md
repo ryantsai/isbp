@@ -327,6 +327,35 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
   revoked instantly when a client or secret is revoked. Expose `/api/v1/role-query/*` and `/api/v1/oauth/token`
   to the networks your applications call from; per-client IP allow-lists are available.
 
+## 7b. AI gateway and semantic search (Phase 2)
+
+- **Postgres needs pgvector** for semantic search with HNSW indexes. The compose files, Helm and CI use
+  `pgvector/pgvector:pg17`. On managed Postgres, enable the `vector` extension _before_ the first migration.
+  The embedding column type is chosen when migration `0005_ai_vectors` runs:
+  - with pgvector available it is `vector`;
+  - without it (e.g. `pnpm dev:services`) it falls back to a slow portable `real[]` column and the API logs
+    a warning in production.
+
+  Administration → AI shows the active mode.
+
+- **Models are configured in the UI** (_Administration → AI_), not through environment variables. Keys are
+  encrypted with the master key.
+  - Chat: Anthropic (Claude; default model `claude-opus-5-5`, with server-side refusal fallbacks), or any
+    OpenAI-compatible endpoint (OpenAI, Azure OpenAI, Ollama, vLLM, LM Studio, LiteLLM), or none.
+  - Embeddings: the builtin offline embedder, or an OpenAI-compatible one (OpenAI, Voyage AI, Ollama).
+    Changing the embedding model re-embeds the index in the background (`ai-reindex`, every 10 minutes,
+    bounded).
+- **Egress.** Allow the api and worker pods to reach the configured provider (e.g. `api.anthropic.com`).
+  Self-hosted models keep all data inside your network.
+- **Privacy and cost.**
+  - Masking replaces emails, phone numbers, IPs, card numbers, national IDs and secrets with placeholders
+    before a prompt leaves the platform, and restores them in the reply. It is on by default, and custom
+    patterns are supported.
+  - Every call is logged with tokens and estimated cost (`core.ai_usage`).
+  - A monthly budget stops calls once it is spent (`AI_BUDGET_EXCEEDED`).
+- **No model is required.** Without a chat model, Helpdesk AI runs in builtin mode: retrieval-based triage,
+  templated replies, extractive summaries and article search in the virtual agent.
+
 ## 8. Production checklist
 
 - [ ] **TLS everywhere at the edge** and `PUBLIC_URL=https://…` — session cookies are marked `Secure` only when
@@ -350,6 +379,8 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
 - [ ] Email sender configured and tested; webhook channels point at public HTTPS endpoints (or
       `ISBP_ALLOW_PRIVATE_WEBHOOKS` deliberately enabled); ingress does not buffer Server-Sent Events.
 - [ ] API clients scoped to the applications they need, keys with an expiry, IP allow-lists where possible.
+- [ ] pgvector installed before the first migration. If AI is enabled: provider egress allowed, masking
+      categories reviewed with your privacy officer, and a monthly budget set.
 - [ ] Alerts on `/readyz` failures, 5xx rate and latency (`isbp_http_request_duration_seconds`), job failures
       (`isbp_jobs_total{status="failed"}`), and Postgres/Redis health.
 

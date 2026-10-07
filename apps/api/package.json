@@ -20,6 +20,7 @@
     "test:integration": "vitest run --project integration"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "@faker-js/faker": "^10.6.0",
     "@fastify/cookie": "^11.1.2",
     "@fastify/formbody": "^9.0.0",
@@ -30,6 +31,10 @@
     "@isbp/db": "workspace:*",
     "@isbp/i18n": "workspace:*",
     "@isbp/module-announcements": "workspace:*",
+    "@isbp/module-cmdb": "workspace:*",
+    "@isbp/module-helpdesk-ai": "workspace:*",
+    "@isbp/module-itsm": "workspace:*",
+    "@isbp/module-knowledge": "workspace:*",
     "@isbp/sdk": "workspace:*",
     "@node-rs/argon2": "^2.2.1",
     "@node-saml/node-saml": "^5.1.0",

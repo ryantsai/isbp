@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
   ArrowDownLeftIcon,
   ArrowUpRightIcon,
+  BotIcon,
   CalendarClockIcon,
   KeyRoundIcon,
   LockIcon,
@@ -17,7 +18,7 @@ import {
   TriangleAlertIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
+import { type ReactNode, useId } from 'react';
 import { DateTime, RelativeTime } from '@/components/relative-time';
 import { NavIcon } from '@/components/nav-icon';
 import { parseCron } from '@/components/idp/cron';
@@ -86,6 +87,37 @@ function useScheduleText() {
         return t('dailyAt', { time: c.time });
     }
   };
+}
+
+/** The identity a module's background AI work runs as, with the permissions it holds (least privilege). */
+function AiAgentCard({ agent }: { agent: NonNullable<ModuleInfo['aiAgent']> }) {
+  const t = useTranslations('modules.ai');
+  const titleId = useId();
+  return (
+    <section aria-labelledby={titleId} className="rounded-lg border p-3">
+      <div className="flex items-start gap-3">
+        <span className="grid size-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+          <BotIcon className="size-4" aria-hidden />
+        </span>
+        <div className="min-w-0 space-y-1">
+          <h3 id={titleId} className="text-sm font-medium">
+            {t('agentTitle', { name: agent.name })}
+          </h3>
+          <p className="text-sm text-muted-foreground">{t('agentHint')}</p>
+        </div>
+      </div>
+      <ul className="mt-3 flex flex-wrap gap-1.5" aria-label={t('agentPermissions')}>
+        {agent.permissions.map((p) => (
+          <li key={p}>
+            <code className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] break-all">
+              <KeyRoundIcon className="size-3 shrink-0 text-muted-foreground" aria-hidden />
+              {p}
+            </code>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 function ModuleChip({
@@ -186,9 +218,10 @@ export function ModuleSheet({
                       {t('tabs.events')} <CountBadge n={m.events.emits.length + m.events.consumes.length} />
                     </TabsTrigger>
                   )}
-                  {m.aiTools.length > 0 && (
+                  {(m.aiTools.length > 0 || m.aiAgent) && (
                     <TabsTrigger value="ai">
-                      {t('tabs.aiTools')} <CountBadge n={m.aiTools.length} />
+                      {m.aiTools.length > 0 ? t('tabs.aiTools') : t('tabs.ai')}
+                      {m.aiTools.length > 0 && <CountBadge n={m.aiTools.length} />}
                     </TabsTrigger>
                   )}
                   {m.jobs.length > 0 && (
@@ -295,10 +328,13 @@ export function ModuleSheet({
                 </TabsContent>
 
                 <TabsContent value="ai" className="space-y-4 pb-6">
-                  <div className="flex gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
-                    <SparklesIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                    <p>{t('ai.hint')}</p>
-                  </div>
+                  {m.aiAgent && <AiAgentCard agent={m.aiAgent} />}
+                  {m.aiTools.length > 0 && (
+                    <div className="flex gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
+                      <SparklesIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                      <p>{t('ai.hint')}</p>
+                    </div>
+                  )}
                   <Stagger className="space-y-2">
                     {m.aiTools.map((tool) => (
                       <StaggerItem key={tool.name} className="rounded-lg border p-3">

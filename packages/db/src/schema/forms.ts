@@ -16,6 +16,16 @@ import { core, createdAt, id, updatedAt } from './core';
 import { users } from './identity';
 import { workflowDefinitions, workflowInstances } from './workflow';
 
+export interface SubmissionFulfilment {
+  moduleId: string;
+  reference: string;
+  href: string;
+  state: 'open' | 'done' | 'cancelled';
+  statusKey: string;
+  tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
+  updatedAt: string;
+}
+
 /** Request numbers (`REQ-01042`) shared by access requests and form submissions. */
 export const requestNumberSeq = core.sequence('request_number_seq', { startWith: 1000 });
 export const nextRequestNumber = () => sql`nextval('core.request_number_seq')`;
@@ -106,6 +116,8 @@ export const formSubmissions = core.table(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
+    /** A module's progress on the request (e.g. the ITSM ticket fulfilling it), set via `ctx.forms`. */
+    fulfilment: jsonb('fulfilment').$type<SubmissionFulfilment>(),
   },
   (t) => [
     uniqueIndex('form_submissions_number_uq').on(t.number),

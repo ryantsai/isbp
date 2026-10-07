@@ -49,6 +49,21 @@ Modular monolith: Fastify API + worker (`apps/api`), Next.js 16 web (`apps/web`)
 - API clients/Role Query: service principals never reach personal routes (`/me/*`); grant per application
   via record-scoped `core.role-query.read`.
 
+- AI (Phase 2): every module reaches models through the kernel gateway `ctx.ai`, never a provider SDK.
+  `chat`/`stream`/`embed` mask personal data, log `core.ai_usage` per `feature`, and honour the budget.
+  With no chat model (the default) every feature has a builtin mode, and the UI says which mode it is in.
+  Searchable content goes in the shared index with `ctx.ai.index.upsert({ …, acl })` **from an event
+  handler after commit** (embedding may call a remote API). Search with the caller's `auth`.
+- Cross-module calls go through the AI tool registry, `ctx.ai.tools.invoke(name, input, { auth })`. It
+  enforces the same permissions as the UI, with confirmation for `destructive` tools and audit. Background
+  work runs as the module's declared `ai.agent` identity (`ctx.ai.agent()`). A module may _read_ the tables
+  of modules it `dependsOn`, and never writes them.
+- Cross-module UI uses slots: host `<Slot name="<module>.<place>" props />`, contribute via
+  `defineWebModule({ slots })`, and export the props type from the host's contracts.
+- Portal: `manifest.portal.entries` adds cards to "What do you need?". `ctx.portal.track()` lists module
+  records under "My requests". `ctx.forms.setFulfilment()` shows a module's progress on a Phase 1 form
+  request.
+
 ## Gotchas
 
 - pnpm 12: install scripts must be listed under `allowBuilds` in `pnpm-workspace.yaml`.
@@ -64,3 +79,7 @@ Modular monolith: Fastify API + worker (`apps/api`), Next.js 16 web (`apps/web`)
   React Compiler lint — recurse through an inner function instead.
 - Outbox side effects (grants, deliveries) land asynchronously in the worker: tests poll (`eventually`,
   `expect.toPass`) instead of asserting right after the request.
+- `core.ai_chunks.embedding` is `vector` (pgvector, HNSW per dimension) or `real[]` (embedded dev Postgres
+  has no pgvector). The mode is chosen at migration time. The column is not in the Drizzle schema, so use raw SQL.
+- Integration tests reset every module schema in their database. Parallel runs need their own
+  `DATABASE_URL` (`*_test`) and `REDIS_URL` db index.

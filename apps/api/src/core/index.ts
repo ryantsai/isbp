@@ -11,6 +11,7 @@ import { applicationRoutes } from './routes/applications';
 import { authRoutes } from './routes/auth';
 import { directoryRoutes } from './routes/directory';
 import { formRoutes } from './routes/forms';
+import { aiRoutes } from './routes/ai';
 import { notificationRoutes } from './routes/notifications';
 import { meRoutes, userRoutes } from './routes/people';
 import { platformRoutes } from './routes/platform';
@@ -22,6 +23,7 @@ import { ApiClientService, ApplicationService, RoleQueryService } from './servic
 import { DirectoryService } from './services/directory';
 import { CustomFieldAdminService, FormService } from './services/forms';
 import { IdpService } from './services/idp';
+import { AiAdminService } from './services/ai';
 import { NotificationAdminService } from './services/notifications';
 import { UserService } from './services/users';
 import { ApprovalService, WorkflowAdminService } from './services/workflows';
@@ -137,6 +139,7 @@ export const coreModule = defineServerModule(coreManifest, {
     requestRoutes(app, new AccessRequestService(ctx), forms);
     formRoutes(app, forms, new CustomFieldAdminService(ctx));
     notificationRoutes(app, new NotificationAdminService(ctx));
+    aiRoutes(app, new AiAdminService(ctx));
     applicationRoutes(
       app,
       ctx,
@@ -186,6 +189,11 @@ export const coreModule = defineServerModule(coreManifest, {
       description: 'Removes time-bound role assignments once they expire',
       schedule: { everyMs: 5 * 60_000 },
       handler: async (_job, ctx) => ({ expired: await new AccessService(ctx).expireAssignments() }),
+    },
+    'ai-reindex': {
+      description: 'Re-embeds semantic-index documents left on an older embedding model',
+      schedule: { everyMs: 10 * 60_000 },
+      handler: async () => ({ reembedded: await getKernel().ai.reindexStale(100) }),
     },
     'purge-sessions': {
       description: 'Deletes sessions that ended more than 7 days ago',

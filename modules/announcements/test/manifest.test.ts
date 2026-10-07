@@ -16,7 +16,7 @@ describe('announcements module', () => {
   });
 
   it('marks broadcasting as a destructive AI action (requires human confirmation)', () => {
-    expect(manifest.ai?.tools.find((t) => t.name === 'announcements.publish_post')?.destructive).toBe(true);
+    expect(manifest.ai?.tools?.find((t) => t.name === 'announcements.publish_post')?.destructive).toBe(true);
   });
 
   it('rejects windows that end before they start', () => {

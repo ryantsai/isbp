@@ -61,6 +61,8 @@ export const moduleInfoSchema = z.object({
   aiTools: z.array(
     z.object({ name: z.string(), description: z.string(), permission: z.string(), destructive: z.boolean() }),
   ),
+  /** The identity the module's background AI work runs as (`manifest.ai.agent`), if any. */
+  aiAgent: z.object({ name: z.string(), permissions: z.array(z.string()) }).nullable(),
   settings: z.array(
     z.object({
       key: z.string(),

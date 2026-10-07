@@ -1,0 +1,989 @@
+{
+  "meta": {
+    "name": "サービス デスク",
+    "description": "インシデント、サービス要求、問題、変更と SLA の管理"
+  },
+  "nav": {
+    "group": "サービス デスク",
+    "desk": "チケット",
+    "problems": "問題",
+    "changes": "変更",
+    "reports": "サービス デスクのレポート",
+    "settings": "サービス デスク"
+  },
+  "portal": {
+    "report": "問題を報告",
+    "reportDescription": "うまく動かないものがありますか？サービス デスクに伝えて、対応状況を確認できます。"
+  },
+  "entities": {
+    "ticket": "チケット"
+  },
+  "permissions": {
+    "ticketsCreate": "問題を報告し、自分のチケットを確認する",
+    "ticketsRead": "すべてのチケットを表示する",
+    "ticketsWork": "チケットを処理する: 割り当て、更新、作業メモ、解決",
+    "ticketsTriage": "チケットのカテゴリ、優先度、割り当てを設定する",
+    "problemsManage": "問題を調査し、既知のエラーを記録する",
+    "changesRead": "変更と変更カレンダーを表示する",
+    "changesManage": "変更を起票、計画、スケジュールする",
+    "reportsRead": "サービス デスクのレポートを表示する",
+    "configManage": "カテゴリ、SLA ポリシー、営業カレンダー、サービス カタログを構成する"
+  },
+  "workflows": {
+    "change": {
+      "name": "変更の承認",
+      "description": "スケジュール前に変更を承認します (CAB)"
+    }
+  },
+  "types": {
+    "incident": "インシデント",
+    "service_request": "サービス要求",
+    "problem": "問題",
+    "change": "変更"
+  },
+  "typesPlural": {
+    "incident": "インシデント",
+    "service_request": "サービス要求",
+    "problem": "問題",
+    "change": "変更"
+  },
+  "status": {
+    "new": "新規",
+    "pending_approval": "承認待ち",
+    "in_progress": "対応中",
+    "on_hold": "保留",
+    "resolved": "解決済み",
+    "fulfilled": "完了",
+    "closed": "クローズ",
+    "cancelled": "キャンセル",
+    "investigating": "調査中",
+    "known_error": "既知のエラー",
+    "draft": "下書き",
+    "assessment": "評価中",
+    "authorization": "CAB 承認待ち",
+    "scheduled": "スケジュール済み",
+    "implementing": "実施中",
+    "review": "実施後レビュー",
+    "rejected": "却下"
+  },
+  "priority": {
+    "1": "P1 · 緊急",
+    "2": "P2 · 高",
+    "3": "P3 · 中",
+    "4": "P4 · 低"
+  },
+  "priorityShort": {
+    "1": "P1",
+    "2": "P2",
+    "3": "P3",
+    "4": "P4"
+  },
+  "impact": {
+    "1": "高 — 多くのユーザーまたは重要なサービス",
+    "2": "中 — チームまたは部門",
+    "3": "低 — 1 人"
+  },
+  "impactShort": {
+    "1": "高",
+    "2": "中",
+    "3": "低"
+  },
+  "urgency": {
+    "1": "高 — 業務が止まっている",
+    "2": "中 — 業務に支障がある",
+    "3": "低 — 後でもよい"
+  },
+  "urgencyShort": {
+    "1": "高",
+    "2": "中",
+    "3": "低"
+  },
+  "channel": {
+    "portal": "ポータル",
+    "agent": "サービス デスク",
+    "chat": "バーチャル エージェント",
+    "email": "メール",
+    "phone": "電話",
+    "form": "申請フォーム",
+    "ai": "AI"
+  },
+  "resolution": {
+    "solved": "解決",
+    "workaround": "回避策を提供",
+    "user_error": "操作ミス／使い方",
+    "duplicate": "重複",
+    "no_fault_found": "異常なし",
+    "not_reproducible": "再現しない",
+    "cancelled_by_requester": "依頼者によるキャンセル"
+  },
+  "changeType": {
+    "standard": "標準",
+    "normal": "通常",
+    "emergency": "緊急"
+  },
+  "risk": {
+    "low": "低リスク",
+    "medium": "中リスク",
+    "high": "高リスク"
+  },
+  "linkType": {
+    "related": {
+      "outgoing": "関連",
+      "incoming": "関連"
+    },
+    "caused_by": {
+      "outgoing": "原因",
+      "incoming": "引き起こしている"
+    },
+    "duplicate_of": {
+      "outgoing": "重複元",
+      "incoming": "重複先"
+    },
+    "parent_of": {
+      "outgoing": "親チケット",
+      "incoming": "子チケット"
+    },
+    "implements": {
+      "outgoing": "修正を実施",
+      "incoming": "変更で修正"
+    }
+  },
+  "slaMetric": {
+    "response": "初回応答",
+    "resolution": "解決"
+  },
+  "slaStatus": {
+    "running": "順調",
+    "paused": "一時停止",
+    "met": "達成",
+    "breached": "違反",
+    "cancelled": "キャンセル"
+  },
+  "settings": {
+    "autoCloseDays": "解決済みチケットを自動クローズするまでの日数",
+    "autoCloseDaysHelp": "依頼者が確認も再オープンもしていない解決済み・完了済みのチケットは、この日数が経過すると自動的にクローズされます。0 で無効になります。",
+    "defaultGroupKey": "既定の割り当てグループ (キー)",
+    "defaultGroupKeyHelp": "カテゴリにグループが設定されていない新しいチケットは、このグループに割り当てられます (例: service-desk)。",
+    "csatEnabled": "依頼者が解決を確認するときに満足度の評価を依頼する",
+    "majorIncidentBroadcast": "重大インシデントをチャネルで告知する",
+    "majorIncidentBroadcastHelp": "インシデントが重大インシデントとして宣言されたときに、組織が登録している Teams、Slack、Webhook のチャネルに投稿します。"
+  },
+  "notifications": {
+    "ticket_created": {
+      "label": "自分が作成したチケット",
+      "title": "{reference} を受け付けました: {title}",
+      "body": "サービスデスクが{type, select, service_request {リクエスト} other {報告}}を受け付けました。進捗は「マイリクエスト」で確認できます。"
+    },
+    "ticket_assigned": {
+      "label": "自分に割り当てられたチケット",
+      "title": "割り当てられました: {reference} {title}",
+      "body": "優先度 P{priority}。"
+    },
+    "ticket_commented": {
+      "label": "チケットへの返信",
+      "title": "{reference} に新しい返信: {title}",
+      "body": "{author}: {excerpt}"
+    },
+    "ticket_resolved": {
+      "label": "自分のチケットの解決",
+      "title": "{status, select, fulfilled {完了} other {解決}}: {reference} {title}",
+      "body": "{notes} 解決していない場合は、チケットを開いて「まだ解決していない」を選択してください。"
+    },
+    "ticket_reopened": {
+      "label": "依頼者が再オープンしたチケット",
+      "title": "再オープン: {reference} {title}",
+      "body": "{name}: {reason}"
+    },
+    "sla_warning": {
+      "label": "SLA 期限間近",
+      "title": "SLA 期限間近: {reference} {title}",
+      "body": "{metric, select, response {初回応答} other {解決}}の期限まであと {minutes} 分です ({dueAt})。"
+    },
+    "sla_breached": {
+      "label": "SLA 違反",
+      "title": "SLA 違反: {reference} {title}",
+      "body": "{metric, select, response {初回応答} other {解決}}の期限 ({dueAt}) を過ぎました (P{priority})。"
+    },
+    "change_approved": {
+      "label": "自分の変更の承認",
+      "title": "承認されました: {reference} {title}",
+      "body": "変更がスケジュールされました。開始予定: {start}。"
+    },
+    "change_rejected": {
+      "label": "自分の変更の却下",
+      "title": "却下されました: {reference} {title}",
+      "body": "{comment}"
+    },
+    "major_incident_declared": {
+      "label": "重大インシデント (チャネル)",
+      "title": "重大インシデント: {reference} {title}",
+      "body": "{description}"
+    }
+  },
+  "audit": {
+    "ticket_created": "チケットを作成",
+    "ticket_updated": "チケットを更新",
+    "ticket_status_changed": "チケットの状態を変更",
+    "ticket_linked": "チケットをリンク",
+    "ticket_unlinked": "チケットのリンクを解除",
+    "ticket_triaged": "チケットをトリアージ",
+    "problem_updated": "問題を更新",
+    "change_updated": "変更計画を更新",
+    "change_submitted": "変更を承認に提出",
+    "change_approved": "変更が承認されました",
+    "change_rejected": "変更が却下されました",
+    "category_created": "チケットのカテゴリを追加",
+    "category_updated": "チケットのカテゴリを更新",
+    "category_deleted": "チケットのカテゴリを削除",
+    "calendar_created": "営業カレンダーを追加",
+    "calendar_updated": "営業カレンダーを更新",
+    "calendar_deleted": "営業カレンダーを削除",
+    "sla_policy_created": "SLA ポリシーを追加",
+    "sla_policy_updated": "SLA ポリシーを更新",
+    "sla_policy_deleted": "SLA ポリシーを削除",
+    "catalog_item_updated": "サービスカタログの履行設定を変更",
+    "catalog_item_deleted": "サービスカタログからフォームを削除"
+  },
+  "common": {
+    "major": "重大インシデント",
+    "unassigned": "未割り当て",
+    "noGroup": "グループなし",
+    "noCategory": "カテゴリなし",
+    "chooseCategory": "カテゴリを選択",
+    "inactive": "無効",
+    "serviceDesk": "サービス デスク",
+    "sla": {
+      "left": "残り {time}",
+      "breachedAgo": "{time} 超過"
+    },
+    "duration": {
+      "days": "{days}日 {hours}時間",
+      "hours": "{hours}時間 {minutes}分",
+      "minutes": "{minutes}分"
+    },
+    "ciPicker": {
+      "placeholder": "構成アイテムを検索…",
+      "selected": "{count, plural, other {# 件選択済み}}",
+      "search": "名前または CI 番号で検索…",
+      "loading": "検索しています…",
+      "noResults": "構成アイテムが見つかりません",
+      "chosen": "選択した構成アイテム",
+      "remove": "{name} を削除"
+    },
+    "servicePicker": {
+      "placeholder": "サービスを選択 (省略可)",
+      "search": "サービスを検索…",
+      "loading": "検索しています…",
+      "noResults": "サービスが見つかりません",
+      "clear": "サービスをクリア"
+    }
+  },
+  "columns": {
+    "reference": "番号",
+    "title": "タイトル",
+    "requester": "依頼者",
+    "status": "状態",
+    "priority": "優先度",
+    "sla": "SLA",
+    "assignee": "担当者",
+    "group": "グループ",
+    "category": "カテゴリ",
+    "window": "予定期間",
+    "updated": "更新日時",
+    "created": "作成日時"
+  },
+  "filters": {
+    "search": "チケットを検索…",
+    "type": "種類",
+    "allTypes": "すべての種類",
+    "status": "状態",
+    "open": "未完了",
+    "done": "完了",
+    "anyStatus": "すべての状態",
+    "priority": "優先度",
+    "anyPriority": "すべての優先度",
+    "group": "割り当てグループ",
+    "anyGroup": "すべてのグループ",
+    "anyAssignee": "すべての担当者",
+    "category": "カテゴリ",
+    "anyCategory": "すべてのカテゴリ",
+    "assignee": "担当者"
+  },
+  "desk": {
+    "title": "チケット",
+    "description": "サービス デスクの対応を待っているインシデントとサービス要求、およびその SLA です。",
+    "new": "新しいチケット",
+    "queues": {
+      "label": "キュー",
+      "assigned": "自分に割り当て",
+      "groups": "自分のグループ",
+      "unassigned": "未割り当て",
+      "all": "すべての未完了",
+      "breached": "SLA 違反",
+      "at_risk": "違反間近",
+      "major": "重大インシデント",
+      "tickets": "{count, plural, other {件のチケット}}"
+    },
+    "empty": {
+      "assigned": "現在、自分に割り当てられたチケットはありません。",
+      "groups": "自分のグループに未完了のチケットはありません。",
+      "unassigned": "すべてのチケットに担当者がいます。",
+      "all": "未完了のチケットはありません。",
+      "breached": "SLA に違反したチケットはありません。",
+      "at_risk": "SLA 違反が近いチケットはありません。",
+      "major": "対応中の重大インシデントはありません。",
+      "filtered": "フィルターに一致するチケットはありません",
+      "filteredHint": "別の状態を選ぶか、フィルターをクリアしてください。"
+    }
+  },
+  "newTicket": {
+    "title": "新しいチケット",
+    "title_incident": "新しいインシデント",
+    "title_service_request": "新しいサービス要求",
+    "title_problem": "新しい問題",
+    "description": "代理での登録、分類、割り当てを一度に行えます。",
+    "type": "チケットの種類",
+    "requester": "依頼者",
+    "requesterPlaceholder": "自分",
+    "requesterHint": "空欄の場合は自分の名前で登録します。",
+    "titleLabel": "タイトル",
+    "titleTooShort": "3 文字以上入力してください",
+    "titleTooLong": "タイトルは 200 文字未満にしてください",
+    "descriptionLabel": "説明",
+    "markdownHint": "Markdown を使用できます。",
+    "impact": "影響度",
+    "urgency": "緊急度",
+    "priority": "優先度",
+    "category": "カテゴリ",
+    "group": "割り当てグループ",
+    "assignee": "担当者",
+    "cis": "影響を受ける構成アイテム",
+    "major": "重大インシデント",
+    "majorHint": "重大インシデントとして宣言します。関係者に通知され、すべてのキューの先頭に表示されます。",
+    "submit": "チケットを作成",
+    "created": "{reference} を作成しました"
+  },
+  "newChange": {
+    "title": "新しい変更",
+    "description": "何を、いつ変更し、どのように切り戻すかを記述します。通常変更と緊急変更は CAB の承認が必要です。",
+    "titleLabel": "何を変更しますか?",
+    "titlePlaceholder": "例: コア スイッチのファームウェアを更新",
+    "titleTooShort": "3 文字以上入力してください",
+    "descriptionLabel": "詳細",
+    "cis": "構成アイテム",
+    "cisHint": "同じ CI に予定されている他の変更を見つけるために使用します。",
+    "submit": "変更を作成",
+    "created": "{reference} を下書きとして作成しました"
+  },
+  "ticket": {
+    "back": "チケット",
+    "description": "説明",
+    "noDescription": "説明はありません。",
+    "activity": "アクティビティ",
+    "aside": "チケットの詳細",
+    "answers": "申請内容",
+    "resolution": "解決",
+    "rated": "評価 {rating}/5",
+    "fromRequest": "申請 {reference} から · {form}",
+    "majorTitle": "重大インシデント",
+    "majorBody": "ここで対応を調整し、公開の返信で関係者に最新状況を伝えてください。",
+    "notFound": "チケットが見つかりません",
+    "notFoundHint": "{reference} は存在しないか、表示する権限がありません。",
+    "forbidden": "このチケットにアクセスする権限がありません",
+    "loadFailed": "チケットを読み込めませんでした"
+  },
+  "actions": {
+    "label": "チケットの操作",
+    "changeStatus": "状態",
+    "moveTo": "変更先",
+    "resolveButton": "解決",
+    "fulfilButton": "完了",
+    "submitForApproval": "承認を申請",
+    "assignToMe": "自分に割り当て",
+    "assignedToMe": "自分に割り当てました",
+    "editButton": "編集",
+    "statusChanged": "状態を「{status}」に変更しました",
+    "resolve": {
+      "resolve": {
+        "title": "チケットを解決",
+        "submit": "解決"
+      },
+      "fulfil": {
+        "title": "サービス要求を完了",
+        "submit": "完了"
+      },
+      "cancel": {
+        "title": "チケットをキャンセル",
+        "submit": "チケットをキャンセル"
+      },
+      "code": "解決コード",
+      "codePlaceholder": "コードを選択",
+      "codeRequired": "解決コードを選択してください。",
+      "notes": "解決メモ",
+      "notesHint": "依頼者にこのメモが表示され、解決の確認を求められます。",
+      "notesRequired": "実施した対応を依頼者に伝えてください。",
+      "cancelHint": "チケットがキャンセルされたことが依頼者に通知されます。",
+      "reason": "理由",
+      "reasonRequired": "キャンセルの理由を依頼者に伝えてください。"
+    },
+    "edit": {
+      "title": "チケットを編集",
+      "titleLabel": "タイトル",
+      "titleTooShort": "3 文字以上入力してください",
+      "descriptionLabel": "説明",
+      "markdownHint": "Markdown を使用できます。"
+    }
+  },
+  "details": {
+    "title": "詳細",
+    "requester": "依頼者",
+    "requestedFor": "対象者",
+    "sameAsRequester": "依頼者と同じ",
+    "category": "カテゴリ",
+    "group": "割り当てグループ",
+    "assignee": "担当者",
+    "impact": "影響度",
+    "urgency": "緊急度",
+    "priority": "優先度",
+    "priorityAuto": "影響度 × 緊急度から算出 ({priority})",
+    "priorityMatrix": "影響度と緊急度から算出されます。",
+    "priorityOverridden": "手動で変更されています。変更はアクティビティに記録されます。",
+    "major": "重大インシデント",
+    "channel": "受付チャネル",
+    "department": "部署",
+    "created": "作成日時",
+    "firstResponse": "初回応答"
+  },
+  "cis": {
+    "title": "影響を受ける CI",
+    "none": "リンクされた構成アイテムはありません。",
+    "critical": "重要"
+  },
+  "links": {
+    "title": "リンク",
+    "none": "リンクされたチケットはありません。",
+    "add": "リンク",
+    "addTitle": "別のチケットをリンク",
+    "addHint": "{reference} と別のチケットの関係です。",
+    "relation": "このチケットは…",
+    "target": "相手のチケット",
+    "targetHint": "チケット番号 (例: PRB-00012、CHG-00031)。",
+    "targetInvalid": "INC-00042 のようなチケット番号を入力してください。",
+    "added": "チケットをリンクしました",
+    "removed": "リンクを削除しました",
+    "remove": "{reference} へのリンクを削除"
+  },
+  "slas": {
+    "title": "SLA",
+    "none": "このチケットに適用される SLA はありません。",
+    "due": "期限",
+    "stopped": "停止"
+  },
+  "customFields": {
+    "title": "追加情報",
+    "editTitle": "追加情報を編集",
+    "notSet": "未設定"
+  },
+  "timeline": {
+    "label": "タイムライン",
+    "empty": "まだアクティビティはありません。",
+    "truncated": "最新の {count} 件を表示しています。",
+    "system": "システム",
+    "internal": "内部",
+    "status": "{name} が状態を「{from}」から「{to}」に変更しました",
+    "statusSet": "{name} が状態を「{to}」に設定しました",
+    "assigned": "{name} が {to} に割り当てました",
+    "unassigned": "{name} が割り当てを解除しました",
+    "fieldsChanged": "{name} が{fields}を変更しました",
+    "updated": "{name} がチケットを更新しました",
+    "linked": "{name} がリンクしました: {relation} {target}",
+    "unlinked": "{name} がリンクを削除しました: {relation} {target}",
+    "related": "関連",
+    "sla": "SLA",
+    "slaWarning": "{metric}の目標が違反間近です",
+    "slaBreached": "{metric}の目標に違反しました",
+    "approval": {
+      "started": "承認を申請しました",
+      "approved": "承認されました",
+      "rejected": "却下されました",
+      "cancelled": "承認申請を取り下げました",
+      "updated": "承認が更新されました"
+    },
+    "triage": {
+      "aiSet": "{name} が{fields}を設定しました",
+      "aiSuggested": "{name} が{fields}を提案しました",
+      "set": "{name} がトリアージしました: {fields}",
+      "classification": "分類",
+      "confidence": "信頼度 {value}%"
+    },
+    "fields": {
+      "title": "タイトル",
+      "description": "説明",
+      "impact": "影響度",
+      "urgency": "緊急度",
+      "priority": "優先度",
+      "category": "カテゴリ",
+      "categoryId": "カテゴリ",
+      "assignmentGroup": "グループ",
+      "assignmentGroupId": "グループ",
+      "assignee": "担当者",
+      "assigneeId": "担当者",
+      "requester": "依頼者",
+      "requesterId": "依頼者",
+      "requestedFor": "対象者",
+      "requestedForId": "対象者",
+      "cis": "影響を受ける CI",
+      "ciIds": "影響を受ける CI",
+      "major": "重大インシデント",
+      "attributes": "追加情報",
+      "status": "状態",
+      "group": "グループ",
+      "changeType": "変更の種類",
+      "risk": "リスク",
+      "reason": "変更の理由",
+      "plannedStart": "開始予定",
+      "plannedEnd": "終了予定",
+      "implementationPlan": "実施計画",
+      "backoutPlan": "切り戻し計画",
+      "testPlan": "テスト計画",
+      "rootCause": "根本原因",
+      "workaround": "回避策",
+      "knownError": "既知のエラー",
+      "kbArticleId": "ナレッジ記事"
+    },
+    "reopened": "未解決",
+    "rated": "評価 {rating}/5",
+    "confirmed": "{name} が解決を確認し、チケットをクローズしました",
+    "created": "{name} がチケットを作成しました ({channel})",
+    "createdFor": "{name} が {person} の代わりにチケットを作成しました ({channel})",
+    "reopenedStatus": "{name} がまだ解決していないとしてチケットを再オープンしました",
+    "autoClosed": "依頼者からの応答がないため自動的にクローズしました",
+    "assignmentChanged": "{name} が割り当てを変更しました",
+    "offboarded": "前の担当者は退職しました。"
+  },
+  "composer": {
+    "label": "会話に追加",
+    "replyTab": "依頼者に返信",
+    "noteTab": "作業メモ",
+    "replyPlaceholder": "依頼者に表示される返信を入力…",
+    "notePlaceholder": "担当者向けの内部メモを入力…",
+    "noteHint": "作業メモは担当者のみに表示されます。",
+    "hint": "Markdown を使用できます。送信:",
+    "shortcut": "⌘/Ctrl + Enter",
+    "send": "返信を送信",
+    "addNote": "メモを追加",
+    "sent": "返信を送信しました",
+    "noteAdded": "作業メモを追加しました"
+  },
+  "confirm": {
+    "title": "問題は解決しましたか?",
+    "hint": "サービス デスクではこの問題は解決したと考えています。問題がないかお知らせください。",
+    "yes": "はい、クローズします",
+    "no": "いいえ、まだ解決していません",
+    "rateLegend": "今回の対応はいかがでしたか? (省略可)",
+    "rating": {
+      "1": "星 1 つ: とても不満",
+      "2": "星 2 つ: 不満",
+      "3": "星 3 つ: 普通",
+      "4": "星 4 つ: 満足",
+      "5": "星 5 つ: とても満足"
+    },
+    "clearRating": "評価をクリア",
+    "commentLabel": "ほかにお伝えいただくことはありますか? (省略可)",
+    "closeIt": "チケットをクローズ",
+    "reasonLabel": "まだ何が問題ですか?",
+    "reasonRequired": "まだ動作しない点を入力してください。",
+    "reopen": "チケットを再オープン",
+    "closedToast": "ありがとうございました。チケットをクローズしました。",
+    "reopenedToast": "チケットを再オープンしました"
+  },
+  "requester": {
+    "back": "自分の申請",
+    "cancelled": "このチケットはキャンセルされました。",
+    "conversation": "会話",
+    "noMessages": "まだメッセージはありません。ここで返信します。下から詳細を追加することもできます。",
+    "detailsLabel": "報告した内容",
+    "yourReport": "お伝えいただいた内容",
+    "noDescription": "詳細は入力されていません。",
+    "reported": "報告日時",
+    "urgency": "影響の大きさ",
+    "category": "カテゴリ",
+    "service": "影響を受けるサービス",
+    "handledBy": "担当",
+    "statusHint": {
+      "0": "受け付けました。まもなく {group} が対応を開始します。",
+      "1": "{group} が対応しています。",
+      "2": "解決したと考えています。下で確認してください。",
+      "3": "このチケットはクローズされています。"
+    },
+    "steps": {
+      "label": "進捗",
+      "reported": "報告済み",
+      "inProgress": "対応中",
+      "resolved": "解決済み",
+      "fulfilled": "完了",
+      "closed": "クローズ",
+      "done": "完了",
+      "current": "現在のステップ",
+      "upcoming": "未着手"
+    }
+  },
+  "problem": {
+    "title": "問題",
+    "description": "1 件以上のインシデントの根本原因です。",
+    "knownError": "既知のエラー",
+    "rootCause": "根本原因",
+    "rootCauseEmpty": "まだ特定されていません。",
+    "workaround": "回避策",
+    "workaroundEmpty": "回避策はまだありません。",
+    "knownErrorSwitch": "既知のエラー",
+    "knownErrorHint": "原因と回避策が文書化されており、担当者は新しいインシデントに適用できます。",
+    "incidents": "{count, plural, =0 {リンクされたインシデント} other {リンクされたインシデント # 件}}",
+    "noIncidents": "この問題にリンクされたインシデントはまだありません。"
+  },
+  "problems": {
+    "title": "問題",
+    "description": "繰り返し発生するインシデントの根本原因の調査と、そこから得られた既知のエラーです。",
+    "new": "新しい問題",
+    "search": "問題を検索…",
+    "category": "カテゴリ",
+    "anyCategory": "すべてのカテゴリ",
+    "viewsLabel": "問題のビュー",
+    "views": {
+      "open": "未完了",
+      "known": "既知のエラー",
+      "done": "解決済み",
+      "all": "すべて"
+    },
+    "empty": {
+      "open": "未完了の問題はありません。",
+      "known": "記録された既知のエラーはありません。",
+      "done": "解決済みの問題はまだありません。",
+      "all": "問題はまだありません。"
+    }
+  },
+  "changePlan": {
+    "title": "変更計画",
+    "editTitle": "変更計画を編集",
+    "noWindow": "期間は未定です",
+    "empty": "まだ記入されていません。",
+    "changeType": "変更の種類",
+    "typeHint": {
+      "standard": "事前承認済みの低リスクな変更です。CAB は不要です。",
+      "normal": "変更マネージャーが承認し、高リスクの場合は CAB も承認します。",
+      "emergency": "緊急の修正です。緊急 CAB が数時間以内に判断します。"
+    },
+    "risk": "リスク",
+    "reason": "変更の理由",
+    "window": "予定期間",
+    "start": "開始",
+    "end": "終了",
+    "endBeforeStart": "終了は開始より後にしてください。",
+    "implementationPlan": "実施計画",
+    "backoutPlan": "切り戻し計画",
+    "testPlan": "テスト計画",
+    "conflicts": {
+      "found": "{count, plural, other {この期間に同じ CI を対象とする別の変更が # 件あります}}",
+      "shared": "共通: {cis}",
+      "none": "この期間に同じ CI を対象とする別の変更はありません。"
+    },
+    "approval": {
+      "title": "CAB 承認",
+      "notStarted": "計画の準備ができたら承認を申請してください。",
+      "unavailable": "承認を表示できません。",
+      "waitingFor": "承認待ち:",
+      "openInbox": "自分の承認を開く",
+      "status": {
+        "running": "承認待ち",
+        "approved": "承認済み",
+        "rejected": "却下",
+        "cancelled": "取り下げ"
+      }
+    },
+    "facts": {
+      "type": "変更の種類",
+      "risk": "リスク",
+      "impact": "影響度",
+      "ciCount": "CI の数",
+      "durationHours": "所要時間 (時間)",
+      "criticalCis": "重要な CI を含む"
+    }
+  },
+  "changes": {
+    "title": "変更",
+    "description": "予定されている変更とその期間です。同じ CI で期間が重なる作業は警告されます。",
+    "new": "新しい変更",
+    "search": "変更を検索…",
+    "listLabel": "変更",
+    "empty": "一致する変更はありません。",
+    "tabs": {
+      "calendar": "カレンダー",
+      "list": "一覧"
+    },
+    "calendar": {
+      "previous": "前の月",
+      "next": "次の月",
+      "today": "今日",
+      "display": "表示",
+      "month": "月",
+      "agenda": "予定表",
+      "legend": "凡例",
+      "conflict": "競合",
+      "caption": "{month}に予定されている変更",
+      "changesOn": "{day}の変更",
+      "more": "ほか {count} 件",
+      "empty": "今月予定されている変更はありません。",
+      "loadFailed": "カレンダーを読み込めませんでした"
+    }
+  },
+  "report": {
+    "back": "何が必要ですか?",
+    "title": "問題を報告",
+    "description": "うまく動かないことを教えてください。対応状況はここと通知でお知らせします。",
+    "whatsWrong": "何が起きていますか?",
+    "whatsWrongPlaceholder": "例: 自宅から VPN に接続できない",
+    "titleRequired": "何が起きているかを簡単に入力してください。",
+    "tellUsMore": "詳しく教えてください",
+    "tellUsMorePlaceholder": "何が起きたか、いつから始まったか、試したこと、エラー メッセージなど…",
+    "tellUsMoreHint": "詳しい情報があると、より早く解決できます。",
+    "impactLegend": "どのくらい影響がありますか?",
+    "impact": {
+      "blocked": "仕事ができない",
+      "blockedHint": "作業が止まっている",
+      "slow": "仕事が遅れる",
+      "slowHint": "今のところ回避できる",
+      "minor": "軽微",
+      "minorHint": "時間のあるときで構わない"
+    },
+    "whichService": "どのサービスですか?",
+    "whichServiceHint": "どのシステムに関する問題かわかる場合は選択してください。",
+    "optional": "省略可",
+    "cancel": "キャンセル",
+    "submit": "サービス デスクに送信",
+    "created": "{reference} を送信しました。対応を開始します。",
+    "suggestions": {
+      "title": "役に立つかもしれない記事",
+      "empty": "問題を入力し始めると、解決に役立つ記事を提案します。",
+      "hint": "これらの記事で解決した場合は、報告を送信する必要はありません。",
+      "announce": "{count, plural, other {役に立つかもしれない記事が # 件あります}}"
+    }
+  },
+  "reports": {
+    "title": "サービス デスクのレポート",
+    "description": "件数、未処理の滞留、SLA の達成状況、満足度です。",
+    "range": "期間",
+    "lastDays": "過去 {days} 日間",
+    "loadFailed": "レポートを読み込めませんでした",
+    "noData": "この期間のデータはありません。",
+    "viewAs": "表示形式",
+    "chart": "グラフ",
+    "table": "表",
+    "date": "日付",
+    "count": "チケット数",
+    "priority": "優先度",
+    "category": "カテゴリ",
+    "created": "作成",
+    "resolved": "解決",
+    "kpi": {
+      "open": "未完了のチケット",
+      "openHint": "すべての種類",
+      "majorOpen": "{count, plural, other {重大インシデント # 件が対応中}}",
+      "breached": "SLA 違反",
+      "breachedHint": "応答 {response} · 解決 {resolution}",
+      "mttr": "平均解決時間",
+      "mttrHint": "{count, plural, other {解決済みチケット # 件の平均}}",
+      "csat": "満足度",
+      "csatHint": "{count, plural, =0 {評価はまだありません} other {評価 # 件}}",
+      "compliance": "SLA 達成率",
+      "complianceHint": "期間内に達成した目標"
+    },
+    "volume": {
+      "title": "作成と解決",
+      "description": "過去 {days} 日間の 1 日あたりのチケット数です。",
+      "aria": "過去 {days} 日間に 1 日ごとに作成および解決されたチケット数の折れ線グラフ。方向キーで各日の値を確認できます。"
+    },
+    "byPriority": {
+      "title": "優先度別の未完了",
+      "description": "現在未完了のチケットです。"
+    },
+    "backlog": {
+      "title": "滞留期間",
+      "description": "未完了のチケットが待っている期間です。",
+      "age": "期間",
+      "lt1d": "1 日未満",
+      "1to3d": "1～3 日",
+      "3to7d": "3～7 日",
+      "7to30d": "7～30 日",
+      "gt30d": "30 日超"
+    },
+    "categories": {
+      "title": "上位のカテゴリ",
+      "description": "過去 {days} 日間に作成されたチケットが多いカテゴリです。"
+    },
+    "mttr": {
+      "title": "優先度別の解決時間",
+      "description": "過去 {days} 日間に解決されたチケットの平均です。",
+      "hours": "平均時間",
+      "resolved": "解決済み"
+    }
+  },
+  "settingsPage": {
+    "title": "サービス デスクの設定",
+    "description": "カテゴリ、SLA ポリシー、営業カレンダー、サービス カタログです。",
+    "tabs": {
+      "categories": "カテゴリ",
+      "sla": "SLA ポリシー",
+      "calendars": "カレンダー",
+      "catalog": "サービス カタログ"
+    },
+    "categories": {
+      "title": "カテゴリ",
+      "description": "チケットを分類し、既定のグループに振り分けます。",
+      "new": "新しいカテゴリ",
+      "empty": "カテゴリはまだありません。",
+      "inactive": "無効",
+      "tickets": "{count, plural, other {# 件のチケット}}",
+      "createTitle": "新しいカテゴリ",
+      "editTitle": "カテゴリの編集",
+      "sheetHint": "名前はユーザーの言語で表示されます。",
+      "name": "名前",
+      "nameRequired": "少なくとも 1 つの言語で名前を入力してください。",
+      "key": "キー",
+      "keyHint": "英小文字、数字、ハイフン。SLA の条件や連携で使用します。",
+      "parent": "親カテゴリ",
+      "topLevel": "最上位",
+      "types": "チケットの種類",
+      "typesRequired": "チケットの種類を 1 つ以上選択してください。",
+      "defaultGroup": "既定のグループ",
+      "defaultGroupHint": "このカテゴリの新しいチケットはこのグループに振り分けられます。",
+      "sortOrder": "並び順",
+      "active": "有効",
+      "deleteTitle": "このカテゴリを削除しますか?",
+      "deleteBody": "チケットまたは子カテゴリがあるカテゴリは削除できません。代わりに無効にしてください。"
+    },
+    "sla": {
+      "title": "SLA ポリシー",
+      "description": "優先度ごとの応答と解決の目標を、営業カレンダーに基づいて計測します。最初に一致したポリシーが適用されます。",
+      "new": "新しいポリシー",
+      "empty": "SLA ポリシーはまだありません。",
+      "inactive": "無効",
+      "appliesTo": "適用対象",
+      "calendar": "営業カレンダー",
+      "calendarPlaceholder": "カレンダーを選択",
+      "createTitle": "新しい SLA ポリシー",
+      "editTitle": "SLA ポリシーの編集",
+      "sheetHint": "目標は営業時間のみを計測し、選択した状態の間は一時停止します。",
+      "name": "名前",
+      "nameRequired": "名前を入力してください。",
+      "descriptionLabel": "説明",
+      "types": "チケットの種類",
+      "condition": "次の場合のみ",
+      "conditionHint": "省略可。ルールがない場合、これらの種類のすべてのチケットに適用されます。",
+      "targets": "目標",
+      "priority": "優先度",
+      "targetsInvalid": "各目標は 1 分以上にしてください。",
+      "hoursOf": "{target}: 時間",
+      "minutesOf": "{target}: 分",
+      "h": "時間",
+      "m": "分",
+      "warnAt": "警告のタイミング",
+      "warnAtHint": "目標時間のこの割合が経過すると担当者に警告します。",
+      "pauseStatuses": "チケットが次の状態の間は計測を一時停止",
+      "sortOrder": "並び順",
+      "sortOrderHint": "数値が小さいものから順に評価されます。",
+      "active": "有効",
+      "deleteTitle": "この SLA ポリシーを削除しますか?",
+      "deleteBody": "計測中の SLA は現在の目標を維持します。新しいチケットにはこのポリシーは適用されません。",
+      "facts": {
+        "priority": "優先度 (1～4)",
+        "category": "カテゴリ",
+        "major": "重大インシデント",
+        "channel": "受付チャネル",
+        "impact": "影響度 (1～3)",
+        "urgency": "緊急度 (1～3)"
+      }
+    },
+    "calendars": {
+      "title": "営業カレンダー",
+      "description": "SLA の計測に使用する営業時間と休日です。",
+      "new": "新しいカレンダー",
+      "empty": "カレンダーはまだありません。",
+      "summary": "週 {days} 日、{start}～{end}",
+      "closedAllWeek": "週を通して休業",
+      "holidayCount": "{count, plural, =0 {休日なし} other {休日 # 日}}",
+      "usedBy": "{count, plural, =0 {使用しているポリシーはありません} other {# 件のポリシーで使用中}}",
+      "createTitle": "新しいカレンダー",
+      "editTitle": "カレンダーの編集",
+      "sheetHint": "時刻はカレンダーのタイム ゾーンで指定します。",
+      "name": "名前",
+      "nameRequired": "名前を入力してください。",
+      "timezone": "タイム ゾーン",
+      "alwaysOpen": "24 時間 365 日",
+      "alwaysOpenHint": "営業時間を実時間として扱い、営業時間帯と休日は無視します。",
+      "hours": "営業時間",
+      "openOn": "{day}は営業",
+      "from": "{day}: 開始",
+      "to": "{day}: 終了",
+      "removeRange": "{day}のこの時間帯を削除",
+      "addRange": "時間帯を追加",
+      "closed": "休業",
+      "rangeInvalid": "各時間帯の終了は開始より後にしてください。",
+      "holidays": "休日",
+      "noHolidays": "休日はありません。",
+      "addHoliday": "休日を追加",
+      "holidayDate": "休日 {n}: 日付",
+      "holidayName": "休日 {n}: 名前",
+      "holidayNamePlaceholder": "例: 元日",
+      "removeHoliday": "休日 {n} を削除",
+      "holidayInvalid": "各休日には日付と名前が必要です。",
+      "deleteTitle": "このカレンダーを削除しますか?",
+      "deleteBody": "この操作は元に戻せません。",
+      "deleteInUse": "{count, plural, other {# 件の SLA ポリシーで使用されているため、別のカレンダーに切り替えるまで削除できません。}}"
+    },
+    "catalog": {
+      "title": "サービス カタログ",
+      "description": "公開済みの申請フォームと、それぞれをサービス デスクがどのように処理するかです。",
+      "formBuilder": "フォーム ビルダーを開く",
+      "empty": "公開済みのフォームはまだありません。",
+      "emptyHint": "[管理] → [フォーム] で申請フォームを作成して公開すると、ここに表示されます。",
+      "approval": "承認あり",
+      "fulfilled": "サービス デスクが処理",
+      "paused": "一時停止中",
+      "notFulfilled": "サービス デスクでは処理しません",
+      "noRouting": "カテゴリとグループは未設定",
+      "ticketCount": "{count, plural, other {# 件のチケット}}",
+      "setUp": "設定",
+      "sheetHint": "このフォームが送信されるたびに、これらの設定でサービス要求が作成されます。",
+      "active": "サービス要求を作成",
+      "activeHint": "オフにすると、設定を残したまま処理を一時停止します。",
+      "category": "カテゴリ",
+      "group": "処理グループ",
+      "priority": "優先度",
+      "fulfilOn": "チケットを作成するタイミング",
+      "on": {
+        "submitted": "送信時",
+        "submittedHint": "すぐに作業を開始します。",
+        "approved": "承認後",
+        "approvedHint": "フォームの承認が完了してから作業を開始します。",
+        "noApproval": "このフォームには承認ステップがありません。"
+      },
+      "stopTitle": "このフォームの処理を停止しますか?",
+      "stopBody": "新しい申請ではサービス要求が作成されなくなります。既存のチケットは残ります。",
+      "stopped": "処理設定を削除しました"
+    }
+  },
+  "ciRelated": {
+    "title": "未完了のチケット",
+    "none": "この CI に影響する未完了のチケットはありません。",
+    "viewAll": "すべて表示",
+    "unavailable": "チケットを表示できません。"
+  },
+  "dashboardCard": {
+    "title": "サービス デスク",
+    "description": "自分のキューと、最初に対応が必要なチケットです。",
+    "open": "ワークスペースを開く",
+    "queues": "キュー",
+    "mostUrgent": "自分に割り当て (緊急度順)",
+    "nothingAssigned": "自分に割り当てられたチケットはありません。"
+  }
+}

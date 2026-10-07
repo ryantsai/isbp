@@ -1,0 +1,324 @@
+{
+  "title": "AI",
+  "description": "所有 AI 功能背後的模型、哪些資料可以離開平台、花費多少，以及語意索引。",
+  "tabs": {
+    "label": "AI 設定",
+    "models": "模型",
+    "privacy": "隱私與預算",
+    "usage": "使用量",
+    "index": "索引"
+  },
+  "status": {
+    "generative": "生成式 AI",
+    "builtin": "內建模式",
+    "on": "已啟用",
+    "noModel": "未設定對話模型",
+    "keyMissing": "缺少 API 金鑰",
+    "generativeTitle": "{model}，透過 {provider}",
+    "builtinTitle": "功能使用檢索與範本",
+    "builtinBody": "沒有任何資料會離開平台。在「模型」中選擇對話模型，即可啟用生成式回答。",
+    "maskingOn": "提示離開平台前，個人資料會先行遮罩。",
+    "maskingOff": "遮罩已關閉：提示會原封不動地傳送給供應商。",
+    "providers": {
+      "anthropic": "Anthropic",
+      "openaiCompatible": "OpenAI 相容 API"
+    },
+    "embeddings": "嵌入向量模型",
+    "embeddingsBuiltin": "內建、離線 · {dimensions} 維",
+    "embeddingsExternal": "外部 · {dimensions} 維",
+    "embeddingsExternalNoDims": "外部 · 模型原生維度",
+    "vectorStore": "向量儲存區",
+    "pgvector": "pgvector（HNSW）",
+    "pgvectorHint": "在 Postgres 內進行近似最近鄰搜尋。",
+    "portable": "可攜模式",
+    "portableHint": "開發用資料庫沒有 pgvector；正式環境映像檔已內含。",
+    "spend": "本月花費",
+    "noBudget": "未設定預算上限",
+    "spendOf": "{spent} / {budget}",
+    "spendPercent": "已使用每月預算的 {percent}",
+    "budgetUsed": "已使用預算的 {percent}",
+    "budgetNear": "已使用 {percent}，預算即將用完",
+    "budgetSpent": "預算已用完：下個月之前將拒絕 AI 呼叫"
+  },
+  "models": {
+    "provider": "供應商",
+    "baseUrl": "基底 URL",
+    "presets": "預設集",
+    "discard": "捨棄變更",
+    "saved": "已儲存 AI 設定",
+    "badge": {
+      "on": "已啟用",
+      "builtin": "內建",
+      "keyMissing": "缺少 API 金鑰"
+    },
+    "chat": {
+      "title": "對話模型",
+      "description": "撰寫回答、摘要與分類建議。未設定時，AI 功能會以內建模式運作。",
+      "providers": {
+        "none": {
+          "label": "無",
+          "hint": "內建模式：僅使用檢索與範本"
+        },
+        "anthropic": {
+          "label": "Anthropic（Claude）",
+          "hint": "透過 Anthropic API 使用 Claude 模型"
+        },
+        "openaiCompatible": {
+          "label": "OpenAI 相容",
+          "hint": "OpenAI、Azure OpenAI、Ollama、vLLM、LM Studio 等"
+        }
+      },
+      "noneNote": "AI 功能會根據知識庫與類似工單回答，並套用範本。不會有任何提示離開平台。",
+      "model": "模型",
+      "modelHintAnthropic": "留空即使用預設模型 {model}。",
+      "modelHintOpenai": "填寫端點所需的模型或部署名稱，須完全一致。",
+      "suggestionsLabel": "建議模型",
+      "suggestions": {
+        "opus": "能力最強",
+        "sonnet": "快速且能力強",
+        "haiku": "最快、成本最低"
+      },
+      "prices": "價格（每百萬 Token 美元）",
+      "inputPrice": "輸入",
+      "outputPrice": "輸出",
+      "priceHintKnown": "用於估算費用。留空即使用該模型的已知價格。",
+      "priceHintCustom": "用於估算費用。如果端點免費（例如自行架設的模型），請留空。",
+      "advanced": "進階",
+      "baseUrlHintAnthropic": "僅適用於 Anthropic API 前端的 Proxy 或閘道。留空即直接呼叫 Anthropic。",
+      "baseUrlHintOpenai": "API 根路徑，不含 /chat/completions。可先選擇預設集再修改。"
+    },
+    "embeddings": {
+      "title": "嵌入向量",
+      "description": "將文章與工單轉換成向量，用於語意搜尋與有依據的回答。",
+      "providers": {
+        "builtin": {
+          "label": "內建",
+          "hint": "離線、384 維、支援所有語言、不需金鑰"
+        },
+        "openaiCompatible": {
+          "label": "OpenAI 相容",
+          "hint": "OpenAI、Voyage AI、Ollama 等"
+        }
+      },
+      "builtinNote": "內建的嵌入向量模型在平台內執行：不需金鑰、不產生費用，文字也不會離開平台。外部模型通常更能找出換句話說的問題。",
+      "baseUrlHint": "API 根路徑，不含 /embeddings。",
+      "model": "模型",
+      "dimensions": "維度",
+      "dimensionsHint": "留空即使用模型原生維度。只有 OpenAI 的 text-embedding-3 模型可以縮減維度。",
+      "price": "價格（每百萬 Token 美元）",
+      "priceHint": "用於估算費用。如果端點免費，請留空。",
+      "reembedWarning": "變更嵌入向量模型後，系統會在背景重新嵌入所有已索引的文件。完成之前，語意搜尋只會找到已重新嵌入的文件。"
+    },
+    "key": {
+      "label": "API 金鑰",
+      "stored": "已儲存金鑰",
+      "replace": "更換",
+      "remove": "移除",
+      "willRemove": "儲存後將移除金鑰。",
+      "undo": "復原",
+      "newPlaceholder": "新金鑰",
+      "keep": "保留已儲存的金鑰",
+      "hint": "金鑰會加密儲存，之後不會再顯示。",
+      "providerChanged": "已儲存的金鑰屬於其他供應商，除非您輸入新金鑰，否則儲存時會將其移除。",
+      "urlChanged": "已儲存的金鑰將傳送到新的位址。如果金鑰屬於其他服務，請更換或移除。"
+    },
+    "test": {
+      "button": "測試連線",
+      "saveFirst": "請先儲存，測試會使用已儲存的設定。",
+      "nothingToTest": "內建模式：沒有可測試的對話模型。",
+      "ok": "已連線",
+      "failed": "連線失敗",
+      "latency": "{ms, number} 毫秒",
+      "dimensions": "{count, number} 維"
+    },
+    "validation": {
+      "tooLong": "內容太長。",
+      "url": "請輸入以 http:// 或 https:// 開頭的位址。",
+      "baseUrlRequired": "請輸入基底 URL。",
+      "modelRequired": "請輸入模型名稱。",
+      "keyRequired": "請輸入 Anthropic API 金鑰。",
+      "price": "請輸入 0 到 1,000 之間的金額。",
+      "dimensions": "請輸入 0 到 4,000 之間的整數。"
+    }
+  },
+  "privacy": {
+    "discard": "捨棄變更",
+    "saved": "已儲存隱私與預算設定",
+    "masking": {
+      "title": "遮罩",
+      "description": "提示離開平台前，個人與機密資料會替換成預留位置，並在回覆中還原，供應商永遠看不到原始值。",
+      "enabled": "資料離開平台前先行遮罩",
+      "enabledHint": "套用於所有對外部對話模型的呼叫。",
+      "offWarning": "遮罩已關閉：提示（包含工單與文章中的任何個人資料）會原封不動地傳送給供應商。",
+      "categories": "要遮罩的資料",
+      "categoriesHint": "每個範例都顯示模型實際收到的內容。",
+      "example": "範例：",
+      "becomes": "變成",
+      "sentAsIs": "原樣傳送",
+      "category": {
+        "email": {
+          "label": "電子郵件地址",
+          "hint": "文字中的任何地址。"
+        },
+        "phone": {
+          "label": "電話號碼",
+          "hint": "9 位數以上；日期與時間不受影響。"
+        },
+        "ip": {
+          "label": "IP 位址",
+          "hint": "IPv4 與完整的 IPv6 位址。"
+        },
+        "card": {
+          "label": "信用卡號",
+          "hint": "以 Luhn 演算法檢查，訂單編號與工單編號不受影響。"
+        },
+        "id": {
+          "label": "身分證號",
+          "hint": "台灣身分證字號、日本個人編號、美國社會安全號碼。"
+        },
+        "secret": {
+          "label": "機密",
+          "hint": "API 金鑰、Bearer 權杖、password=…"
+        }
+      },
+      "custom": "自訂規則",
+      "customHint": "每行一個規則運算式，例如員工編號或資產編號的格式。符合的內容會變成 {placeholder}，依此類推。"
+    },
+    "budget": {
+      "title": "每月預算",
+      "description": "每個日曆月（UTC）AI 費用的上限。",
+      "label": "預算",
+      "hint": "0 表示不限。本月花費達到預算後，下個月之前的 AI 呼叫都會被拒絕（{code}）。",
+      "spent": "本月目前已花費 {spent}。"
+    },
+    "validation": {
+      "tooLong": "內容太長。",
+      "pattern": "第 {line, number} 行不是有效的規則運算式。",
+      "patternServer": "其中一個規則不是有效的規則運算式。",
+      "budget": "請輸入 0 到 1,000,000 之間的金額，最多 2 位小數。"
+    }
+  },
+  "usage": {
+    "range": "期間",
+    "days": "{count, plural, other {# 天}}",
+    "kpi": {
+      "calls": "呼叫",
+      "callsHint": "對話與嵌入向量請求",
+      "tokens": "Token",
+      "tokensHint": "輸入 {input} · 輸出 {output}",
+      "cost": "費用",
+      "costHint": "依模型價格估算",
+      "masked": "已遮罩的值",
+      "maskedHint": "離開平台前已替換",
+      "errors": "錯誤與封鎖",
+      "errorsHint": "{errors, number} 個錯誤 · {blocked, number} 個超出預算",
+      "toolCalls": "工具呼叫",
+      "toolCallsHint": "AI 代替人員執行的動作"
+    },
+    "chart": {
+      "titleCost": "每日費用",
+      "titleCalls": "每日呼叫",
+      "description": "以日為單位（UTC）。將游標移到某一天或聚焦後使用方向鍵，即可查看數值。",
+      "measure": "量值",
+      "cost": "費用",
+      "calls": "呼叫",
+      "date": "日期",
+      "showTable": "顯示表格",
+      "showChart": "顯示圖表",
+      "tableLabel": "每日費用與呼叫",
+      "label": "每日{measure}，{from} 至 {to}",
+      "tooltip": "{date}：{cost}，{calls, plural, other {# 次呼叫}}",
+      "callsValue": "{count, plural, other {# 次呼叫}}",
+      "costValue": "費用 {cost}",
+      "empty": "此期間沒有 AI 呼叫。"
+    },
+    "providers": {
+      "anthropic": "Anthropic",
+      "openaiCompatible": "OpenAI 相容",
+      "builtin": "內建",
+      "tools": "工具"
+    },
+    "byFeature": {
+      "title": "依功能",
+      "description": "哪些功能呼叫了 AI，以及花費多少。",
+      "empty": "此期間沒有 AI 呼叫。",
+      "module": "模組",
+      "feature": "功能",
+      "calls": "呼叫",
+      "tokens": "Token（輸入 / 輸出）",
+      "tokensValue": "{input} / {output}",
+      "cost": "費用",
+      "latency": "平均延遲",
+      "ms": "{ms, number} 毫秒",
+      "errors": "錯誤"
+    },
+    "byModel": {
+      "title": "依模型",
+      "empty": "此期間沒有模型呼叫。",
+      "model": "模型",
+      "calls": "呼叫",
+      "cost": "費用"
+    },
+    "recent": {
+      "title": "最近的呼叫",
+      "description": "最新 50 筆呼叫，不受期間影響。",
+      "empty": "尚無 AI 呼叫。",
+      "time": "時間",
+      "feature": "功能",
+      "principal": "代表",
+      "model": "模型",
+      "tokens": "Token（輸入 / 輸出）",
+      "tokensValue": "{input} / {output}",
+      "cost": "費用",
+      "latency": "延遲",
+      "ms": "{ms, number} 毫秒",
+      "status": "狀態",
+      "masked": "{count, plural, other {已遮罩 # 個值}}",
+      "kinds": {
+        "chat": "對話",
+        "embed": "嵌入向量",
+        "tool": "工具"
+      },
+      "statuses": {
+        "ok": "成功",
+        "error": "錯誤",
+        "refused": "已拒絕",
+        "blocked": "超出預算"
+      },
+      "principals": {
+        "system": "系統",
+        "service": "API 用戶端",
+        "unknown": "不明",
+        "agent": "（AI 代理程式）"
+      }
+    }
+  },
+  "index": {
+    "model": "目前的嵌入向量模型",
+    "store": {
+      "title": "向量儲存區",
+      "pgvector": "pgvector（HNSW）",
+      "portable": "可攜模式",
+      "pgvectorBody": "向量以 pgvector 擴充功能儲存，並透過 HNSW 索引搜尋，索引再大也能維持快速。",
+      "portableBody": "此資料庫沒有 pgvector 擴充功能，因此向量以一般陣列儲存，並在 SQL 中比對。結果相同，但文件很多時搜尋會變慢。沒有 pgvector 的開發用資料庫會使用此模式；正式環境映像檔已內含。"
+    },
+    "content": {
+      "title": "已索引的內容",
+      "description": "語意搜尋與 AI 回答可以引用的內容。每個區塊都保留來源的權限，因此回答絕不會透露人員無權開啟的內容。",
+      "type": "內容",
+      "documents": "文件",
+      "chunks": "區塊",
+      "model": "嵌入模型",
+      "current": "目前",
+      "older": "舊模型",
+      "empty": "尚未索引任何內容。文章與已解決的工單會在發布時加入。",
+      "stale": "{count, plural, =0 {所有文件都使用目前的模型。} other {仍有 # 份文件使用舊模型。}}",
+      "reembed": "立即重新嵌入",
+      "reembedStarted": "已開始重新嵌入，將在背景執行。"
+    },
+    "types": {
+      "knowledge_article": "知識庫文章",
+      "itsm_ticket": "已解決的工單"
+    }
+  }
+}

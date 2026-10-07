@@ -309,6 +309,55 @@ Invalid values throw `VALIDATION_FAILED` with issues at `attributes.<key>`. In t
 fields with `FormFields` (`@isbp/ui/form-renderer`, `namePrefix="attributes"`) using the definitions from
 `GET /api/v1/custom-fields?entityType=asset-tracker.asset`, and show values with `FormAnswers`.
 
+### AI: models, semantic search and tools (Phase 2)
+
+Every module reaches AI through the kernel gateway, `ctx.ai`. It never calls a provider SDK directly.
+The gateway does the work that must be the same everywhere:
+
+- masking of personal data;
+- usage and cost accounting (`core.ai_usage`);
+- the monthly budget;
+- provider choice (Anthropic, any OpenAI-compatible endpoint, or none).
+
+```ts
+const status = await ctx.ai.status(); // chat.available === false → use your builtin mode
+const res = await ctx.ai.chat(
+  {
+    feature: 'asset-tracker.describe', // usage reports group by this
+    system: 'You describe hardware for IT staff.',
+    messages: [{ role: 'user', content: text }],
+    schema: z.object({ summary: z.string() }), // structured output → res.output
+    effort: 'low',
+  },
+  { auth: req.auth },
+);
+```
+
+- **Builtin mode is mandatory.** Without a chat model (the default install), a feature degrades to
+  retrieval, templates or extractive logic. The UI says which mode it is in.
+- **Semantic index.**
+  - `ctx.ai.index.upsert({ type: 'asset-tracker.asset', id, title, text, href, acl: { permission, scope? }, metadata })`
+    chunks, embeds and stores a document. Call it **from your own event handler after commit**, never
+    inside a transaction, because the embedder may be a remote API.
+  - `ctx.ai.index.search(query, { types, auth })` is hybrid: vector plus keyword, fused. It only returns
+    chunks the caller's permissions cover.
+- **Tools.** `manifest.ai.tools` (Zod input + permission + `destructive`) are your module's governed API
+  for AI.
+  - Other modules call them with `ctx.ai.tools.invoke(name, input, { auth })`. The gateway validates the
+    input, requires the permission, refuses destructive tools unless `confirmed`, and audits
+    `core.ai.tool_invoked`.
+  - Background AI work runs as the identity you declare in `ai.agent: { name, permissions }`, obtained
+    with `ctx.ai.agent()`. Admins see that identity in Admin → Modules.
+
+### Request portal
+
+- `portal.entries` in the manifest adds a card to "What do you need?", e.g. `/asset-tracker/request`.
+- `ctx.portal.track({ kind: 'asset-tracker.loan', id, reference, title, state, statusKey, href, people }, { tx })`
+  lists your record under "My requests" for those people. Call it again on every status change.
+- If your module fulfils Phase 1 form submissions, handle `core.form-submission.created` /
+  `core.form-submission.completed`, read the answers with `ctx.forms.submission(id)`, and report progress
+  with `ctx.forms.setFulfilment(id, { reference, href, state, statusKey })`.
+
 ## 5. Web side
 
 ```tsx
@@ -320,6 +369,11 @@ export default defineWebModule(manifest, {
   ],
 });
 ```
+
+**Slots** let modules decorate each other's pages without imports between them. A host renders
+`<Slot name="itsm.ticket.aside" props={…} />` and exports the props type from its contracts. A contributor
+adds `slots: [{ slot: 'itsm.ticket.aside', load: () => import('./ticket-assist'), permission }]` to
+`defineWebModule`. Contributions only render when their module is enabled and the viewer has the permission.
 
 Pages are client components that receive `{ params }`. Use the same building blocks as core pages:
 
@@ -362,7 +416,8 @@ advanced options behind a disclosure, permission-gated actions (`useCan`), and m
 - [ ] Every route declares a permission (or is deliberately `public`) and scoped routes call `req.auth.require`.
 - [ ] Mutations run in a transaction with an audit record and (where useful) an event.
 - [ ] Event handlers are idempotent; jobs have sensible `attempts`/`timeoutMs`.
-- [ ] Destructive AI tools are marked `destructive: true`.
+- [ ] Destructive AI tools are marked `destructive: true`; tool handlers enforce scope with the passed `auth`.
+- [ ] AI features work in builtin mode (no chat model) and index content from event handlers, with ACLs.
 - [ ] Workflow triggers have an `onCompleted` handler that is idempotent, and you cancel instances whose subject disappears.
 - [ ] Notification types are declared and have `label`/`title`/`body` text in all three catalogs.
 - [ ] Catalogs exist for en, zh-TW and ja-JP, including `audit` labels.

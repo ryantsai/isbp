@@ -24,6 +24,7 @@ import { runWithContext } from './kernel/context';
 import { hashPassword } from './kernel/passwords';
 import { EVERYONE_GROUP_KEY, PLATFORM_APP_KEY } from './kernel/rbac';
 import { seedPhase1 } from './seed-phase1';
+import { seedPhase2 } from './seed-phase2';
 
 const { config, kernel } = await bootstrap('isbp-seed');
 const db = kernel.db;
@@ -769,6 +770,8 @@ try {
   await runWithContext({ principal: { type: 'system', id: null, name: 'seed' } }, async () => {
     const created = await seedCore();
     if (created) apiKey = await seedPhase1(kernel);
+    // Module roles exist after migrate; grant them before module seeds, which rely on them.
+    if (created || process.argv.includes('--modules')) await seedPhase2(kernel);
     for (const m of kernel.registry.modules) {
       if (m.seed && (created || process.argv.includes('--modules'))) {
         await m.seed(kernel.registry.context(m.manifest.id));

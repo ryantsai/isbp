@@ -41,6 +41,7 @@
     "permissions": "Permissions",
     "events": "Events",
     "aiTools": "AI tools",
+    "ai": "AI",
     "jobs": "Jobs",
     "settings": "Settings"
   },
@@ -70,7 +71,10 @@
   "ai": {
     "hint": "These tools will be offered to AI agents through the MCP gateway. An agent can only call a tool when the person it acts for holds the required permission.",
     "requiresConfirmation": "Requires confirmation",
-    "permission": "Requires"
+    "permission": "Requires",
+    "agentTitle": "Runs background AI as “{name}” with these permissions",
+    "agentHint": "Work this module does on its own, such as triaging new tickets, is recorded under this identity in the audit log and can only do what these permissions allow.",
+    "agentPermissions": "Permissions of the AI agent"
   },
   "jobs": {
     "onDemand": "On demand",

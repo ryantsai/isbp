@@ -1,0 +1,324 @@
+{
+  "title": "AI",
+  "description": "The models behind every AI feature, what may leave the platform, what it costs and the semantic index.",
+  "tabs": {
+    "label": "AI settings",
+    "models": "Models",
+    "privacy": "Privacy & budget",
+    "usage": "Usage",
+    "index": "Index"
+  },
+  "status": {
+    "generative": "Generative AI",
+    "builtin": "Builtin mode",
+    "on": "On",
+    "noModel": "No chat model",
+    "keyMissing": "API key missing",
+    "generativeTitle": "{model} via {provider}",
+    "builtinTitle": "Features use retrieval and templates",
+    "builtinBody": "No data leaves the platform. Choose a chat model under Models to turn on generative answers.",
+    "maskingOn": "Personal data is masked before a prompt leaves the platform.",
+    "maskingOff": "Masking is off: prompts are sent to the provider as they are.",
+    "providers": {
+      "anthropic": "Anthropic",
+      "openaiCompatible": "an OpenAI-compatible API"
+    },
+    "embeddings": "Embedding model",
+    "embeddingsBuiltin": "Builtin, offline · {dimensions} dimensions",
+    "embeddingsExternal": "External · {dimensions} dimensions",
+    "embeddingsExternalNoDims": "External · the model's native size",
+    "vectorStore": "Vector store",
+    "pgvector": "pgvector (HNSW)",
+    "pgvectorHint": "Approximate nearest-neighbour search inside Postgres.",
+    "portable": "Portable",
+    "portableHint": "Dev databases without pgvector; production images include it.",
+    "spend": "Spend this month",
+    "noBudget": "No budget limit",
+    "spendOf": "{spent} of {budget}",
+    "spendPercent": "{percent} of the monthly budget",
+    "budgetUsed": "{percent} of the budget used",
+    "budgetNear": "{percent} used, almost spent",
+    "budgetSpent": "Budget spent: AI calls are refused until next month"
+  },
+  "models": {
+    "provider": "Provider",
+    "baseUrl": "Base URL",
+    "presets": "Presets",
+    "discard": "Discard changes",
+    "saved": "AI settings saved",
+    "badge": {
+      "on": "On",
+      "builtin": "Builtin",
+      "keyMissing": "API key missing"
+    },
+    "chat": {
+      "title": "Chat model",
+      "description": "Writes answers, summaries and triage suggestions. Without one, AI features run in builtin mode.",
+      "providers": {
+        "none": {
+          "label": "None",
+          "hint": "Builtin mode: retrieval and templates only"
+        },
+        "anthropic": {
+          "label": "Anthropic (Claude)",
+          "hint": "Claude models through the Anthropic API"
+        },
+        "openaiCompatible": {
+          "label": "OpenAI-compatible",
+          "hint": "OpenAI, Azure OpenAI, Ollama, vLLM, LM Studio and others"
+        }
+      },
+      "noneNote": "AI features answer from the knowledge base and similar tickets, and fill in templates. No prompt leaves the platform.",
+      "model": "Model",
+      "modelHintAnthropic": "Leave empty to use the default model, {model}.",
+      "modelHintOpenai": "The model or deployment name exactly as the endpoint expects it.",
+      "suggestionsLabel": "Suggested models",
+      "suggestions": {
+        "opus": "Most capable",
+        "sonnet": "Fast and capable",
+        "haiku": "Fastest, lowest cost"
+      },
+      "prices": "Prices (USD per million tokens)",
+      "inputPrice": "Input",
+      "outputPrice": "Output",
+      "priceHintKnown": "Used to estimate cost. Leave empty to use the known price of the model.",
+      "priceHintCustom": "Used to estimate cost. Leave empty if the endpoint is free, such as a model you host yourself.",
+      "advanced": "Advanced",
+      "baseUrlHintAnthropic": "Only for a proxy or gateway in front of the Anthropic API. Leave empty to call Anthropic directly.",
+      "baseUrlHintOpenai": "The API root, ending before /chat/completions. Pick a preset to start from."
+    },
+    "embeddings": {
+      "title": "Embeddings",
+      "description": "Turn articles and tickets into vectors for semantic search and grounded answers.",
+      "providers": {
+        "builtin": {
+          "label": "Builtin",
+          "hint": "Offline, 384 dimensions, every language, no key"
+        },
+        "openaiCompatible": {
+          "label": "OpenAI-compatible",
+          "hint": "OpenAI, Voyage AI, Ollama and others"
+        }
+      },
+      "builtinNote": "The builtin embedder runs inside the platform: no key, no cost, and text never leaves it. External models usually find better matches for paraphrased questions.",
+      "baseUrlHint": "The API root, ending before /embeddings.",
+      "model": "Model",
+      "dimensions": "Dimensions",
+      "dimensionsHint": "Leave empty for the model's native size. Only OpenAI's text-embedding-3 models can be shortened.",
+      "price": "Price (USD per million tokens)",
+      "priceHint": "Used to estimate cost. Leave empty if the endpoint is free.",
+      "reembedWarning": "Changing the embedding model re-embeds all indexed documents in the background. Until it finishes, semantic search only finds the documents already re-embedded."
+    },
+    "key": {
+      "label": "API key",
+      "stored": "A key is stored",
+      "replace": "Replace",
+      "remove": "Remove",
+      "willRemove": "The key will be removed when you save.",
+      "undo": "Undo",
+      "newPlaceholder": "New key",
+      "keep": "Keep the stored key",
+      "hint": "Stored encrypted and never shown again.",
+      "providerChanged": "The stored key was saved for another provider, so it is removed when you save unless you enter a new one.",
+      "urlChanged": "The stored key will be sent to the new address. Replace or remove it if it belongs to another service."
+    },
+    "test": {
+      "button": "Test connection",
+      "saveFirst": "Save first: the test uses the saved settings.",
+      "nothingToTest": "Builtin mode: there is no chat model to test.",
+      "ok": "Connected",
+      "failed": "Connection failed",
+      "latency": "{ms, number} ms",
+      "dimensions": "{count, number} dimensions"
+    },
+    "validation": {
+      "tooLong": "That's too long.",
+      "url": "Enter an address that starts with http:// or https://.",
+      "baseUrlRequired": "Enter the base URL.",
+      "modelRequired": "Enter the model name.",
+      "keyRequired": "Enter the Anthropic API key.",
+      "price": "Enter an amount between 0 and 1,000.",
+      "dimensions": "Enter a whole number between 0 and 4,000."
+    }
+  },
+  "privacy": {
+    "discard": "Discard changes",
+    "saved": "Privacy and budget saved",
+    "masking": {
+      "title": "Masking",
+      "description": "Personal and secret data is replaced with placeholders before a prompt leaves the platform and restored in the reply, so the provider never sees the values.",
+      "enabled": "Mask data before it leaves the platform",
+      "enabledHint": "Applies to every call to an external chat model.",
+      "offWarning": "Masking is off: prompts, including any personal data in tickets and articles, are sent to the provider as they are.",
+      "categories": "What to mask",
+      "categoriesHint": "Each example shows what the model receives.",
+      "example": "Example:",
+      "becomes": "becomes",
+      "sentAsIs": "sent as is",
+      "category": {
+        "email": {
+          "label": "Email addresses",
+          "hint": "Any address in the text."
+        },
+        "phone": {
+          "label": "Phone numbers",
+          "hint": "9 digits or more; dates and times are left alone."
+        },
+        "ip": {
+          "label": "IP addresses",
+          "hint": "IPv4 and full IPv6 addresses."
+        },
+        "card": {
+          "label": "Card numbers",
+          "hint": "Luhn-checked, so order and ticket numbers stay."
+        },
+        "id": {
+          "label": "National IDs",
+          "hint": "TW ID, JP My Number, US SSN."
+        },
+        "secret": {
+          "label": "Secrets",
+          "hint": "API keys, bearer tokens, password=…"
+        }
+      },
+      "custom": "Custom patterns",
+      "customHint": "One regular expression per line, such as an employee or asset number format. Matches become {placeholder}, and so on."
+    },
+    "budget": {
+      "title": "Monthly budget",
+      "description": "A ceiling on what AI may cost each calendar month (UTC).",
+      "label": "Budget",
+      "hint": "0 means no limit. Once this month's spend reaches the budget, AI calls are refused ({code}) until the next month.",
+      "spent": "{spent} spent so far this month."
+    },
+    "validation": {
+      "tooLong": "That's too long.",
+      "pattern": "Line {line, number} isn't a valid regular expression.",
+      "patternServer": "One of the patterns isn't a valid regular expression.",
+      "budget": "Enter an amount between 0 and 1,000,000, with at most 2 decimals."
+    }
+  },
+  "usage": {
+    "range": "Period",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "kpi": {
+      "calls": "Calls",
+      "callsHint": "Chat and embedding requests",
+      "tokens": "Tokens",
+      "tokensHint": "{input} in · {output} out",
+      "cost": "Cost",
+      "costHint": "Estimated from model prices",
+      "masked": "Masked values",
+      "maskedHint": "Replaced before leaving the platform",
+      "errors": "Errors and blocked",
+      "errorsHint": "{errors, number} errors · {blocked, number} over budget",
+      "toolCalls": "Tool calls",
+      "toolCallsHint": "Actions AI ran for people"
+    },
+    "chart": {
+      "titleCost": "Daily cost",
+      "titleCalls": "Daily calls",
+      "description": "Per day (UTC). Hover over or focus a day, then use the arrow keys, to read its values.",
+      "measure": "Measure",
+      "cost": "Cost",
+      "calls": "Calls",
+      "date": "Date",
+      "showTable": "Show table",
+      "showChart": "Show chart",
+      "tableLabel": "Daily cost and calls",
+      "label": "{measure} per day, {from} to {to}",
+      "tooltip": "{date}: {cost}, {calls, plural, one {# call} other {# calls}}",
+      "callsValue": "{count, plural, one {# call} other {# calls}}",
+      "costValue": "{cost} cost",
+      "empty": "No AI calls in this period."
+    },
+    "providers": {
+      "anthropic": "Anthropic",
+      "openaiCompatible": "OpenAI-compatible",
+      "builtin": "Builtin",
+      "tools": "Tools"
+    },
+    "byFeature": {
+      "title": "By feature",
+      "description": "Which features call AI, and what they cost.",
+      "empty": "No AI calls in this period.",
+      "module": "Module",
+      "feature": "Feature",
+      "calls": "Calls",
+      "tokens": "Tokens (in / out)",
+      "tokensValue": "{input} / {output}",
+      "cost": "Cost",
+      "latency": "Avg. latency",
+      "ms": "{ms, number} ms",
+      "errors": "Errors"
+    },
+    "byModel": {
+      "title": "By model",
+      "empty": "No model calls in this period.",
+      "model": "Model",
+      "calls": "Calls",
+      "cost": "Cost"
+    },
+    "recent": {
+      "title": "Recent calls",
+      "description": "The latest 50 calls, whatever the period.",
+      "empty": "No AI calls yet.",
+      "time": "Time",
+      "feature": "Feature",
+      "principal": "On behalf of",
+      "model": "Model",
+      "tokens": "Tokens (in / out)",
+      "tokensValue": "{input} / {output}",
+      "cost": "Cost",
+      "latency": "Latency",
+      "ms": "{ms, number} ms",
+      "status": "Status",
+      "masked": "{count, plural, one {# value masked} other {# values masked}}",
+      "kinds": {
+        "chat": "Chat",
+        "embed": "Embedding",
+        "tool": "Tool"
+      },
+      "statuses": {
+        "ok": "OK",
+        "error": "Error",
+        "refused": "Refused",
+        "blocked": "Over budget"
+      },
+      "principals": {
+        "system": "System",
+        "service": "API client",
+        "unknown": "Unknown",
+        "agent": "(AI agent)"
+      }
+    }
+  },
+  "index": {
+    "model": "Current embedding model",
+    "store": {
+      "title": "Vector store",
+      "pgvector": "pgvector (HNSW)",
+      "portable": "Portable",
+      "pgvectorBody": "Vectors are stored with the pgvector extension and searched through an HNSW index, which stays fast as the index grows.",
+      "portableBody": "This database has no pgvector extension, so vectors are stored as plain arrays and compared in SQL. Results are the same but searches slow down with many documents. Dev databases without pgvector use this mode; production images include it."
+    },
+    "content": {
+      "title": "Indexed content",
+      "description": "What semantic search and AI answers can draw on. Every chunk keeps the permissions of its source, so answers never reveal what a person couldn't open.",
+      "type": "Content",
+      "documents": "Documents",
+      "chunks": "Chunks",
+      "model": "Embedded with",
+      "current": "Current",
+      "older": "Older model",
+      "empty": "Nothing is indexed yet. Articles and resolved tickets are added as they are published.",
+      "stale": "{count, plural, =0 {Every document uses the current model.} one {# document still uses an older model.} other {# documents still use an older model.}}",
+      "reembed": "Re-embed now",
+      "reembedStarted": "Re-embedding started. It runs in the background."
+    },
+    "types": {
+      "knowledge_article": "Knowledge articles",
+      "itsm_ticket": "Resolved tickets"
+    }
+  }
+}

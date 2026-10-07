@@ -25,7 +25,8 @@
     "groupIdentity": "ID 管理",
     "groupAccess": "アクセス",
     "groupAutomation": "自動化",
-    "groupPlatform": "プラットフォーム"
+    "groupPlatform": "プラットフォーム",
+    "ai": "AI"
   },
   "permissions": {
     "usersRead": "ユーザーとプロファイルの表示",
@@ -54,7 +55,8 @@
     "applicationsRead": "アプリケーションとアクセス権を持つユーザーを表示",
     "applicationsManage": "アプリケーション、そのロールと付与の管理",
     "apiClientsManage": "API クライアントとキーの作成",
-    "roleQueryRead": "ロール クエリ API でロールとアクセス許可を照会"
+    "roleQueryRead": "ロール クエリ API でロールとアクセス許可を照会",
+    "aiManage": "AI ゲートウェイを構成する: モデル、プライバシー、予算"
   },
   "settings": {
     "productName": "製品名",
@@ -70,7 +72,23 @@
     "emailPassword": "SMTP パスワード",
     "emailFrom": "差出人",
     "emailFromHelp": "メールの差出人名とアドレス（例: IS Big Platform、noreply@example.com）",
-    "notificationRetention": "通知の保存期間（日）"
+    "notificationRetention": "通知の保存期間（日）",
+    "aiChatProvider": "チャット モデルのプロバイダー",
+    "aiChatBaseUrl": "チャット API のベース URL",
+    "aiChatApiKey": "チャット API キー",
+    "aiChatModel": "チャット モデル",
+    "aiChatInputPrice": "入力単価 (100 万トークンあたり USD)",
+    "aiChatOutputPrice": "出力単価 (100 万トークンあたり USD)",
+    "aiEmbeddingsProvider": "埋め込みのプロバイダー",
+    "aiEmbeddingsBaseUrl": "埋め込み API のベース URL",
+    "aiEmbeddingsApiKey": "埋め込み API キー",
+    "aiEmbeddingsModel": "埋め込みモデル",
+    "aiEmbeddingsDimensions": "埋め込みの次元数",
+    "aiEmbeddingsPrice": "埋め込みの単価 (100 万トークンあたり USD)",
+    "aiMasking": "個人データをプラットフォーム外に送る前にマスクする",
+    "aiMaskingCategories": "マスクするデータの種類",
+    "aiMaskingCustom": "マスクするカスタム パターン",
+    "aiMonthlyBudget": "月間 AI 予算 (USD、0 = 上限なし)"
   },
   "systemRoles": {
     "platform-admin": {

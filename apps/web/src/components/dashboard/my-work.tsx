@@ -12,7 +12,8 @@ import Link from 'next/link';
 import { useLocale, useNow, useTranslations } from 'next-intl';
 import { useApiQuery } from '@/lib/api';
 import { useBadges } from '../shell/live';
-import { DueBadge, StatusBadge } from '../workflows/status-badges';
+import { RequestStatus, requestHref } from '../requests/request-status';
+import { DueBadge } from '../workflows/status-badges';
 
 /** "Your work": approvals waiting for you and your open requests — for everyone, admins or not. */
 export function MyWork() {
@@ -98,12 +99,12 @@ export function MyWork() {
               {requests.data.items.map((r) => (
                 <li key={`${r.kind}-${r.id}`}>
                   <Link
-                    href={`/requests/${r.reference}`}
+                    href={requestHref(r)}
                     className="flex items-center gap-3 py-2.5 text-sm outline-none hover:underline focus-visible:underline"
                   >
                     <span className="shrink-0 font-mono text-xs text-muted-foreground">{r.reference}</span>
                     <span className="min-w-0 flex-1 truncate">{localize(r.title, locale)}</span>
-                    <StatusBadge status={r.status} />
+                    <RequestStatus r={r} />
                   </Link>
                 </li>
               ))}

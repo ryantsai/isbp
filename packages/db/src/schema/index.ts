@@ -7,3 +7,4 @@ export * from './forms';
 export * from './requests';
 export * from './notifications';
 export * from './clients';
+export * from './ai';

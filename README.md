@@ -4,9 +4,14 @@ A unified resource-management platform for IT operations — identity, access, s
 assets, automation and AI — built as a **modular monolith**: a small kernel plus modules that all use
 the same SDK. The UI ships in **English, 繁體中文（台灣）and 日本語**.
 
-> **Status: Phase 1 complete** — approval workflows with a visual builder, a drag-and-drop form builder,
-> custom fields, notifications (in-app, email, Teams, Slack, webhooks), a self-service access-request portal
-> and the Role Query API, on top of the Phase 0 foundation (identity, RBAC, audit, SSO, module system).
+> **Status: Phase 2 complete.**
+>
+> - **Phase 2:** ITSM (incidents, requests, problems, changes with CAB approval, SLAs on business calendars),
+>   a CMDB with impact analysis, a knowledge base, and Helpdesk AI, all running on a governed AI gateway.
+> - **Phase 1:** approval workflows, forms and custom fields, notifications, the access-request portal and
+>   the Role Query API.
+> - **Phase 0:** the foundation (identity, RBAC, audit, SSO, module system).
+>
 > See [docs/architecture.md](docs/architecture.md) for the design and the phase plan.
 
 ## Quick start (no Docker needed)
@@ -75,6 +80,19 @@ API reference (OpenAPI 3.1, interactive): http://localhost:4000/api/docs · raw 
 | **Notifications**                 | In-app (live via Server-Sent Events), email (SMTP), Microsoft Teams, Slack and signed webhooks; per-person preferences per notification type; delivery log                                                                                                        |
 | **Applications & Role Query API** | External applications with their own permissions and roles; API clients with API keys or OAuth 2.0 client credentials; `GET /role-query/users/{user}?application=…`, `POST /role-query/check`, member listings                                                    |
 
+## What's in Phase 2
+
+| Area                    | Highlights                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Service desk (ITSM)** | <ul><li>Incidents, service requests, problems and changes, each with its own lifecycle (`INC-00042`, `SR-…`, `PRB-…`, `CHG-…`).</li><li>Priority from the ITIL impact × urgency matrix.</li><li>Agent workspace with queues and live SLA timers.</li><li>Timeline with public replies and internal work notes, links, affected CIs and custom fields.</li><li>A friendly "Report an issue" page that suggests knowledge articles while you type.</li><li>Requesters confirm fixes and rate the service (CSAT).</li></ul> |
+| **SLA management**      | <ul><li>Policies matched by conditions, with response and resolution targets per priority on **business calendars** (time zones, working hours, holidays).</li><li>Timers pause in chosen statuses; warnings and breaches notify the right people.</li></ul>                                                                                                                                                                                                                                                             |
+| **Changes & CAB**       | <ul><li>Standard, normal and emergency changes with a required approval workflow: change manager, CAB or emergency CAB, editable in the workflow builder.</li><li>A change calendar that flags overlapping changes on the same CI.</li></ul>                                                                                                                                                                                                                                                                             |
+| **Service catalog**     | <ul><li>Phase 1 forms become catalog items fulfilled by the service desk.</li><li>Requesters follow one reference (`REQ-…`) from approval to fulfilment.</li></ul>                                                                                                                                                                                                                                                                                                                                                       |
+| **CMDB**                | <ul><li>Configuration items with classes, owners and support groups.</li><li>Typed relationships, and an impact-analysis graph showing what breaks if this CI fails.</li></ul>                                                                                                                                                                                                                                                                                                                                           |
+| **Knowledge base**      | <ul><li>Markdown articles in en, zh-TW and ja-JP with translations, review and publish (optionally with approval), versions, feedback and review dates.</li><li>Instant search that works across languages.</li></ul>                                                                                                                                                                                                                                                                                                    |
+| **Helpdesk AI**         | <ul><li>Triage on every new ticket (with optional auto-apply), similar tickets, reply drafts with citations, summaries, and KB drafts from resolved tickets.</li><li>A virtual agent ("Ask IT") that answers from the knowledge base and opens a ticket only after you confirm.</li><li>Metrics for triage acceptance and deflection.</li></ul>                                                                                                                                                                          |
+| **AI gateway**          | <ul><li>Anthropic (Claude) or any OpenAI-compatible model, including self-hosted ones; works fully offline with the builtin embedder.</li><li>Masks personal data before a prompt leaves the platform; tracks usage and cost; enforces a monthly budget.</li><li>One permission-aware semantic index (pgvector).</li><li>A governed tool registry: same RBAC, confirmation and audit as the UI.</li></ul>                                                                                                                |
+
 ## Repository layout
 
 ```text
@@ -86,7 +104,7 @@ packages/contracts Zod DTOs shared by API and web
 packages/ui       Component library (shadcn/ui on Radix + Motion), DataTable, data hooks
 packages/i18n     Locales and core message catalogs (en, zh-TW, ja-JP)
 packages/create-module  `pnpm create-module` scaffolder + registry sync
-modules/*         Feature modules (announcements is the sample)
+modules/*         Feature modules: announcements (the sample), cmdb, knowledge, itsm, helpdesk-ai
 infra/            Dockerfiles, docker-compose, Helm chart
 e2e/              Playwright end-to-end + accessibility tests
 docs/             Architecture, module guide, API guide, deployment

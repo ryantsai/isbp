@@ -1,0 +1,375 @@
+{
+  "meta": {
+    "name": "服務台 AI",
+    "description": "AI 分派建議、相似工單、以知識庫為依據的回覆草稿、摘要，以及自助式虛擬客服。"
+  },
+  "nav": {
+    "chat": "詢問 IT",
+    "insights": "AI 分析"
+  },
+  "permissions": {
+    "chat": "使用 IT 虛擬客服",
+    "assist": "使用工單上的 AI 輔助面板",
+    "insights": "檢視 AI 準確度、自助解決率與成本，並審閱對話"
+  },
+  "settings": {
+    "triageEnabled": "為新工單提供分派建議",
+    "autoTriage": "自動套用高信心度的建議",
+    "autoTriageHelp": "服務台 AI 只會填入尚未設定的欄位，絕不覆寫服務人員的選擇。",
+    "autoTriageThreshold": "自動分派的最低信心度（0–1）",
+    "autoTriageThresholdHelp": "0.8 表示相似工單高度一致時才會自動套用建議。",
+    "virtualAgentEnabled": "虛擬客服（詢問 IT）",
+    "suggestReplies": "為服務人員提供回覆草稿"
+  },
+  "audit": {
+    "triage_suggested": "提出工單分派建議",
+    "triage_applied": "套用分派建議",
+    "triage_dismissed": "略過分派建議",
+    "kb_draft_created": "從工單建立知識文章草稿",
+    "conversation_deflected": "虛擬客服已解決問題",
+    "conversation_escalated": "從虛擬客服建立工單"
+  },
+  "mode": {
+    "builtin": "內建 · 未使用 LLM",
+    "builtinHint": "尚未設定語言模型：答案來自知識庫搜尋、相似工單與範本。",
+    "llm": "語言模型",
+    "llmHint": "答案由語言模型（{provider}）依據知識庫撰寫。個人資料會在離開平台前遮罩。"
+  },
+  "language": {
+    "en": "英文",
+    "zh-TW": "繁體中文",
+    "ja-JP": "日文"
+  },
+  "citations": {
+    "label": "參考來源"
+  },
+  "assist": {
+    "title": "AI 輔助",
+    "refresh": "重新整理建議",
+    "loading": "正在載入 AI 建議",
+    "retry": "重試"
+  },
+  "triage": {
+    "title": "分派建議",
+    "none": "此工單尚無建議。",
+    "disabled": "自動分派建議已關閉，您仍可手動要求建議。",
+    "suggest": "提供分派建議",
+    "refreshed": "已更新分派建議",
+    "applied": "已將建議套用至工單",
+    "category": "類別",
+    "group": "指派群組",
+    "priority": "優先順序",
+    "impactUrgency": "影響範圍 {impact} · 緊急程度 {urgency}",
+    "empty": "未設定",
+    "to": "變更為",
+    "matches": "（與建議相同）",
+    "applyField": "套用建議的{field}",
+    "apply": "套用",
+    "applyAll": "全部套用",
+    "dismiss": "略過",
+    "rerun": "重新建議",
+    "confidence": "信心度",
+    "fallback": "AI 模型無法使用，此建議僅依據相似工單。",
+    "decidedBy": "由 {name} 處理"
+  },
+  "insightStatus": {
+    "suggested": "待處理",
+    "applied": "已套用",
+    "partially_applied": "部分套用",
+    "auto_applied": "已自動套用",
+    "dismissed": "已略過"
+  },
+  "similar": {
+    "title": "相似的已解決工單",
+    "match": "相符 {percent}%",
+    "none": "尚無相似的已解決工單。"
+  },
+  "resolution": {
+    "solved": "已解決",
+    "workaround": "暫時解決方法",
+    "user_error": "使用者操作錯誤",
+    "duplicate": "重複",
+    "no_fault_found": "查無故障",
+    "not_reproducible": "無法重現",
+    "cancelled_by_requester": "申請人取消"
+  },
+  "articles": {
+    "title": "建議文章",
+    "none": "沒有相符的知識庫文章。",
+    "insert": "插入連結",
+    "insertFor": "將 {title} 的連結插入回覆",
+    "insertText": "這篇文章應該能幫上忙：{link}"
+  },
+  "generated": {
+    "builtin": "內建範本 — 傳送前請先檢查",
+    "llm": "由 {model} 撰寫 — 傳送前請先檢查",
+    "fallback": "AI 模型無法使用 — 顯示內建版本"
+  },
+  "reply": {
+    "title": "撰寫回覆草稿",
+    "hint": "依據最相關的知識庫文章，以申請人的語言撰寫回覆，並附上編號的參考來源。",
+    "draft": "撰寫回覆草稿",
+    "regenerate": "重新撰寫",
+    "insert": "插入回覆",
+    "language": "以{language}撰寫"
+  },
+  "summary": {
+    "title": "摘要",
+    "hint": "一眼掌握問題、最新進度與目前狀態。",
+    "run": "產生摘要",
+    "refresh": "重新產生摘要",
+    "issue": "問題",
+    "updates": "最新進度",
+    "state": "目前狀態",
+    "system": "系統",
+    "internal": "內部",
+    "noUpdates": "尚無進度。"
+  },
+  "ticketStatus": {
+    "new": "新建",
+    "pending_approval": "待核准",
+    "in_progress": "處理中",
+    "on_hold": "暫停",
+    "resolved": "已解決",
+    "fulfilled": "已完成",
+    "closed": "已結案",
+    "cancelled": "已取消",
+    "investigating": "調查中",
+    "known_error": "已知錯誤",
+    "draft": "草稿",
+    "assessment": "評估中",
+    "authorization": "授權中",
+    "scheduled": "已排程",
+    "implementing": "實施中",
+    "review": "檢討中",
+    "rejected": "已拒絕"
+  },
+  "kb": {
+    "title": "知識文章",
+    "hint": "將此工單轉為文章草稿（症狀、原因、解決方法、適用範圍），由編輯審閱後再發布。",
+    "noPermission": "您需要撰寫知識文章的權限才能建立草稿。",
+    "run": "建立知識文章草稿",
+    "created": "已建立文章草稿",
+    "ready": "草稿 {reference} 已可供審閱"
+  },
+  "askIt": {
+    "title": "詢問 IT",
+    "body": "虛擬客服可以立即回答大多數問題，不必開工單。",
+    "button": "提出問題",
+    "close": "關閉",
+    "sheetDescription": "答案來自 IT 知識庫。若無法解決，系統會為您準備工單，經您確認後才建立。"
+  },
+  "chat": {
+    "title": "詢問 IT",
+    "description": "從 IT 知識庫立即取得解答，需要專人協助時再建立工單。",
+    "welcomeTitle": "今天 IT 能幫您什麼？",
+    "welcomeBody": "用您自己的話描述問題，任何語言都可以。我會找出正確的步驟，或為您準備工單。",
+    "starters": "建議的問題",
+    "placeholder": "描述您遇到的問題…",
+    "disabled": "虛擬客服目前已關閉。",
+    "inputLabel": "您的問題",
+    "send": "傳送",
+    "hint": "Enter 傳送 · Shift+Enter 換行 · 答案可能有誤，請參考連結的文章。",
+    "log": "對話",
+    "you": "您",
+    "agent": "詢問 IT",
+    "typing": "詢問 IT 正在輸入…",
+    "searching": "正在搜尋知識庫…",
+    "checkingTickets": "正在查詢您的工單…",
+    "loading": "正在載入對話",
+    "didItHelp": "問題解決了嗎？",
+    "solved": "已解決",
+    "stillNeedHelp": "仍需要協助",
+    "stillNeedHelpMessage": "這樣沒有解決，我仍需要協助。",
+    "resolved": "很高興幫上忙！有問題隨時再問。",
+    "ticketRaised": "已建立工單 {reference}，服務台會在工單中與您聯繫。",
+    "viewTicket": "檢視工單",
+    "viewTicketRef": "開啟 {reference}",
+    "openFull": "開啟完整對話",
+    "networkError": "連線中斷，請檢查網路後再試一次。",
+    "genericError": "發生錯誤，請再試一次。",
+    "dismissError": "關閉"
+  },
+  "chatErrors": {
+    "INVALID_STATE": "虛擬客服目前無法接受提問。",
+    "AI_PROVIDER_ERROR": "AI 服務沒有回應，請稍後再試。",
+    "AI_BUDGET_EXCEEDED": "本月的 AI 預算已用完，您仍可建立工單。"
+  },
+  "starters": {
+    "vpn": "VPN 無法連線",
+    "password": "如何重設密碼？",
+    "mfa": "在新手機上設定 MFA",
+    "access": "申請應用程式的存取權限"
+  },
+  "conversationStatus": {
+    "open": "進行中",
+    "resolved": "已解決",
+    "escalated": "已建立工單"
+  },
+  "proposal": {
+    "title": "建立工單",
+    "hint": "請確認內容。您確認之前不會建立任何工單。",
+    "cta": "還是沒解決嗎？我已為服務台準備好一張工單。",
+    "review": "檢視工單",
+    "fields": {
+      "title": "標題",
+      "description": "說明",
+      "urgency": "緊急程度",
+      "type": "類型"
+    },
+    "titleTooShort": "工單標題至少需要 3 個字元。",
+    "urgency": {
+      "1": "高 — 我無法工作",
+      "2": "中 — 工作受到影響",
+      "3": "低 — 可以稍後處理"
+    },
+    "type": {
+      "incident": "有東西故障了",
+      "service_request": "我需要某項服務"
+    },
+    "create": "建立工單",
+    "notNow": "暫時不要"
+  },
+  "history": {
+    "title": "對話",
+    "new": "新對話",
+    "untitled": "新對話",
+    "empty": "您的對話會顯示在這裡。"
+  },
+  "review": {
+    "proposed": "建議建立工單：{title}"
+  },
+  "insights": {
+    "title": "AI 分析",
+    "description": "服務台 AI 的分派與回答成效，以及所需成本。",
+    "period": "期間",
+    "lastDays": "最近 {days} 天",
+    "configure": "設定 AI"
+  },
+  "kpi": {
+    "acceptance": "分派建議採用率",
+    "acceptanceHint": "已處理的 {decided} 項建議中採用 {accepted} 項",
+    "deflection": "自助解決率",
+    "deflectionHint": "解決 {deflected} 件 · 轉為工單 {escalated} 件",
+    "conversations": "對話數",
+    "conversationsHint": "{open} 件仍在進行中",
+    "cost": "AI 成本",
+    "costHint": "{calls, plural, other {# 次模型呼叫}}"
+  },
+  "chart": {
+    "title": "虛擬客服對話",
+    "description": "最近 {days} 天的每日對話數，依是否轉為工單區分。",
+    "legend": "圖例",
+    "answered": "由詢問 IT 回答",
+    "escalated": "轉為工單",
+    "deflected": "已解決",
+    "conversations": "對話數",
+    "date": "日期",
+    "roledescription": "直條圖",
+    "aria": "{days} 天的每日對話數。使用方向鍵逐日查看。",
+    "point": "{date}：{total} 件對話，{escalated} 件轉為工單",
+    "table": "以表格顯示",
+    "caption": "每日對話數"
+  },
+  "config": {
+    "title": "目前的 AI 設定",
+    "description": "答案的來源，以及已啟用的自動化功能。",
+    "mode": "回答方式",
+    "embeddings": "嵌入模型",
+    "vectorStore": "向量搜尋",
+    "store": {
+      "pgvector": "pgvector（HNSW）",
+      "portable": "可攜模式（無 pgvector）"
+    },
+    "triage": "分派建議",
+    "autoTriage": "自動分派",
+    "threshold": "信心度達 {percent}%",
+    "virtualAgent": "虛擬客服",
+    "replies": "回覆草稿",
+    "on": "開啟",
+    "off": "關閉"
+  },
+  "breakdown": {
+    "title": "服務人員如何處理分派建議",
+    "description": "此期間共 {total, plural, other {# 項建議}}。",
+    "confidence": "平均信心度 {percent}%。",
+    "kbDrafts": "從已解決工單建立了 {count, plural, other {# 篇知識文章草稿}}。"
+  },
+  "usage": {
+    "title": "各功能的 AI 用量",
+    "description": "AI 閘道記錄的模型呼叫次數、權杖數與估計成本。",
+    "feature": "功能",
+    "calls": "呼叫次數",
+    "tokens": "權杖數",
+    "cost": "成本",
+    "errors": "{count, plural, other {# 次失敗}}",
+    "none": "此期間沒有模型呼叫",
+    "noneBuiltin": "內建模式不使用語言模型，因此不產生費用。"
+  },
+  "features": {
+    "triage": "分派",
+    "reply": "回覆草稿",
+    "summary": "摘要",
+    "kb_draft": "知識文章草稿",
+    "chat": "虛擬客服"
+  },
+  "table": {
+    "title": "最近的對話",
+    "description": "審閱虛擬客服的回答，以及每段對話的結果。",
+    "conversation": "對話",
+    "outcome": "結果",
+    "language": "語言",
+    "messages": "訊息數",
+    "updated": "更新時間",
+    "search": "搜尋對話…",
+    "allOutcomes": "所有結果",
+    "empty": "尚無對話。"
+  },
+  "outcome": {
+    "open": "進行中",
+    "deflected": "已解決",
+    "escalated": "已建立工單",
+    "escalatedTo": "工單 {reference}"
+  },
+  "server": {
+    "reply": {
+      "greeting": "{name} 您好：",
+      "greetingNoName": "您好：",
+      "thanks": "感謝您回報「{title}」。",
+      "articleLead": "以下是我們的文章 {article} 中的處理步驟，應該可以解決這個問題：",
+      "articleNoSteps": "我們的文章 {article} 說明了這個問題，應該能幫上忙。",
+      "fullArticle": "完整說明：{link}",
+      "closing": "如果問題仍未解決，請告訴我們，我們會繼續協助您。",
+      "noArticle": "我們正在處理。為了縮小範圍，能否告訴我們問題從何時開始、您的裝置最近是否有變更，以及完整的錯誤訊息（附上螢幕截圖會更有幫助）？",
+      "sources": "參考資料："
+    },
+    "chat": {
+      "found": "我在知識庫中找到以下內容：",
+      "none": "我找不到符合這個問題的知識庫文章。",
+      "offerTicket": "如果這樣仍無法解決，我可以為您向服務台建立工單 — 請確認下方內容。",
+      "offerTicketNone": "我可以為您建立工單，讓服務台協助處理 — 請確認下方內容。",
+      "defaultTitle": "需要 IT 協助",
+      "proposalIntro": "由虛擬客服（詢問 IT）建立。",
+      "proposalUser": "我描述的問題：",
+      "proposalArticles": "已建議的文章：{list}",
+      "ticketCreated": "已為您建立 {reference}，服務台會在工單中與您聯繫。"
+    },
+    "triage": {
+      "neighbour": "{reference}（{percent}%）",
+      "similar": "最相似的已解決工單：{list}。",
+      "none": "找不到相似的已解決工單；影響範圍與緊急程度使用預設值。",
+      "keywords": "依關鍵字調高：{list}。"
+    },
+    "kb": {
+      "symptoms": "症狀",
+      "cause": "原因",
+      "resolution": "解決方法",
+      "appliesTo": "適用範圍",
+      "category": "類別：{value}",
+      "cis": "組態項目：{value}",
+      "source": "來源工單：{value}",
+      "causeUnknown": "工單中未記錄原因 — 發布前請確認根本原因。",
+      "resolutionMissing": "未記錄解決方法 — 發布前請補上步驟。"
+    }
+  }
+}

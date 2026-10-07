@@ -1,0 +1,299 @@
+{
+  "meta": {
+    "name": "ナレッジ ベース",
+    "description": "すべてのユーザー向けの回答と手順ガイド、サービス デスク向けのトラブルシューティング ガイド。"
+  },
+  "nav": {
+    "home": "ナレッジ",
+    "manage": "記事の管理",
+    "categories": "カテゴリ"
+  },
+  "permissions": {
+    "read": "公開済みのセルフサービス記事の閲覧",
+    "readInternal": "社内向け（エージェント専用）記事の閲覧",
+    "write": "下書きの作成、自分の下書きの編集とレビューへの提出",
+    "publish": "記事の公開、廃止、復元、およびすべての記事の編集",
+    "manageCategories": "ナレッジ カテゴリの作成、編集、削除"
+  },
+  "settings": {
+    "reviewIntervalDays": "公開後にレビューするまでの日数（0 = 既定のレビュー日なし）",
+    "reminderRepeatDays": "期限切れレビューの通知を N 日ごとに繰り返す"
+  },
+  "portal": {
+    "browse": {
+      "label": "ナレッジを参照",
+      "description": "よくある質問の手順付きの回答を見つけて、自分で解決できます。"
+    }
+  },
+  "workflows": {
+    "publish": {
+      "name": "ナレッジ記事の公開",
+      "description": "記事を公開する前の任意のレビュー。条件には article.audience、article.locale、article.categoryKey を使用できます。"
+    }
+  },
+  "notifications": {
+    "article_feedback": {
+      "label": "自分の記事への否定的なフィードバック",
+      "title": "役に立たなかった: {title}",
+      "body": "{hasComment, select, yes {{reader} さんが {reference} にコメントしました:「{comment}」} other {{reader} さんが {reference} を役に立たなかったと評価しました。}}"
+    },
+    "article_review_due": {
+      "label": "レビュー期限が来た自分の記事",
+      "title": "レビュー期限: {title}",
+      "body": "{reference} のレビュー期限は {reviewAt} でした。内容が正しいことを確認してから、新しいレビュー日を設定してください。"
+    },
+    "article_approved": {
+      "label": "承認された自分の記事",
+      "title": "公開されました: {title}",
+      "body": "{reference} が承認され、ナレッジ ベースで公開されました。"
+    },
+    "article_rejected": {
+      "label": "差し戻された自分の記事",
+      "title": "差し戻し: {title}",
+      "body": "{comment}"
+    }
+  },
+  "audit": {
+    "article_created": "ナレッジ記事を作成",
+    "article_updated": "ナレッジ記事を編集",
+    "article_submitted": "ナレッジ記事をレビューに提出",
+    "article_published": "ナレッジ記事を公開",
+    "article_withdrawn": "ナレッジ記事のレビューを取り下げ",
+    "article_restored": "ナレッジ記事を下書きに復元",
+    "article_retired": "ナレッジ記事を廃止",
+    "article_deleted": "ナレッジ記事を削除",
+    "article_review_closed": "ナレッジ記事のレビューを終了",
+    "article_rated": "ナレッジ記事を評価",
+    "article_owner_released": "ナレッジ記事の所有者を解除",
+    "category_created": "ナレッジ カテゴリを作成",
+    "category_updated": "ナレッジ カテゴリを編集",
+    "category_deleted": "ナレッジ カテゴリを削除"
+  },
+  "status": {
+    "draft": "下書き",
+    "in_review": "レビュー中",
+    "published": "公開済み",
+    "retired": "廃止"
+  },
+  "audience": {
+    "everyone": "全員",
+    "agents": "エージェントのみ"
+  },
+  "audienceHint": {
+    "everyone": "セルフサービス: ナレッジ ベースを閲覧できるすべてのユーザー。",
+    "agents": "社内向け: 社内アクセス権を持つユーザー（サービス デスク）のみ。"
+  },
+  "actions": {
+    "submit": "レビューに提出",
+    "withdraw": "レビューを取り下げ",
+    "publish": "公開",
+    "retire": "廃止",
+    "restore": "下書きに復元"
+  },
+  "toast": {
+    "published": "記事を公開しました",
+    "submitted": "提出しました — 編集者が公開します",
+    "sentForApproval": "承認に回しました — 承認されると公開されます",
+    "retired": "記事を廃止しました",
+    "draft": "記事を下書きに戻しました",
+    "deleted": "記事を削除しました"
+  },
+  "stats": {
+    "views": "{count, plural, other {# 回表示}}",
+    "helpfulShare": "{percent}% が役に立ったと回答"
+  },
+  "newArticle": "新しい記事",
+  "home": {
+    "description": "回答や手順ガイドを検索するか、トピックから参照します。",
+    "searchLabel": "どのようなことでお困りですか?",
+    "searchPlaceholder": "問題を入力してください（例:「VPN が頻繁に切断される」）",
+    "searchHintArrows": "結果間を移動",
+    "searchHintEscape": "検索をクリア",
+    "clear": "検索をクリア",
+    "results": "検索結果",
+    "resultCount": "{count, plural, =0 {記事が見つかりません} other {# 件の記事が見つかりました}}",
+    "noResults": "「{query}」に一致する記事はありません",
+    "noResultsHint": "別の言葉で試すか、問題を報告してください。サポートします。",
+    "reportIssue": "問題を報告",
+    "keywordMode": "キーワードの一致を表示しています。",
+    "categories": "トピックから探す",
+    "articleCount": "{count, plural, =0 {記事なし} other {# 件の記事}}",
+    "popular": "人気の記事",
+    "recent": "最近の更新",
+    "empty": "まだ記事がありません。",
+    "emptyCategory": "このカテゴリにはまだ公開済みの記事がありません。",
+    "allCategories": "すべてのトピック",
+    "manageHint": "記事の作成とレビュー",
+    "previous": "前へ",
+    "next": "次へ",
+    "pageOf": "{page} / {pages} ページ"
+  },
+  "article": {
+    "notFound": "この記事は存在しないか、表示する権限がありません。",
+    "backHome": "ナレッジ ベースに戻る",
+    "category": "カテゴリ",
+    "updated": "更新",
+    "owner": "所有者",
+    "language": "言語",
+    "stats": "表示回数とフィードバック",
+    "translations": "他の言語",
+    "generatedFrom": "{reference} から生成された下書き",
+    "tools": "記事の操作",
+    "translate": "翻訳",
+    "history": "{count, plural, other {履歴（# バージョン）}}",
+    "emptyBody": "この記事にはまだ内容がありません。",
+    "related": "関連記事",
+    "noRelated": "関連記事はまだありません。",
+    "publishedOn": "公開日",
+    "version": "バージョン {version}",
+    "reviewOn": "{date} までにレビュー",
+    "tags": "タグ",
+    "bannerDraft": "これは下書きです。作成者と編集者のみ表示できます。",
+    "bannerReview": "レビューに提出済み: 編集者が公開または差し戻しできます。",
+    "bannerApproval": "承認待ちです。承認されると自動的に公開されます。変更するには取り下げてください。",
+    "bannerRetired": "この記事は廃止されており、検索に表示されません。復元すると編集して再公開できます。",
+    "bannerReviewDue": "この記事のレビュー期限は {date} でした。内容が正しいことを確認してから、新しいレビュー日を設定してください。",
+    "deleteTitle": "この記事を削除しますか?",
+    "deleteDescription": "{reference} とそのバージョン履歴は完全に削除されます。履歴を残すには廃止してください。"
+  },
+  "feedback": {
+    "question": "この記事は役に立ちましたか?",
+    "yes": "はい",
+    "no": "いいえ",
+    "commentLabel": "足りない点や誤りは何でしたか?（任意）",
+    "commentPlaceholder": "記事を改善する方法を作成者に伝えてください",
+    "skip": "スキップ",
+    "send": "フィードバックを送信",
+    "thanksYes": "ありがとうございます。お役に立ててうれしいです。",
+    "thanksNo": "お知らせいただきありがとうございます。",
+    "thanksComment": "ありがとうございます。作成者にコメントが届きます。"
+  },
+  "versions": {
+    "title": "バージョン履歴",
+    "description": "{reference} を公開するたびにバージョンとして保存されます。",
+    "back": "すべてのバージョン",
+    "version": "バージョン {version}",
+    "current": "公開中",
+    "by": "作成者: {name}",
+    "empty": "まだ公開されていません。"
+  },
+  "manage": {
+    "title": "記事の管理",
+    "description": "記事の作成、レビュー、最新状態の維持。",
+    "noAccess": "ナレッジ記事を作成する権限が必要です。",
+    "search": "タイトル、概要、KB 番号で検索…",
+    "tabs": {
+      "mine": "自分の下書き",
+      "review": "レビュー中",
+      "published": "公開済み",
+      "retired": "廃止",
+      "due": "レビュー期限"
+    },
+    "empty": {
+      "mine": "下書きはありません。新しい記事を作成しましょう。",
+      "review": "レビュー待ちの記事はありません。",
+      "published": "一致する公開済みの記事はありません。",
+      "retired": "廃止された記事はありません。",
+      "due": "すべての記事が最新です。"
+    },
+    "columns": {
+      "article": "記事",
+      "category": "カテゴリ",
+      "status": "状態",
+      "language": "言語",
+      "owner": "所有者",
+      "views": "表示回数",
+      "review": "レビュー期限",
+      "updated": "更新"
+    },
+    "allCategories": "すべてのカテゴリ",
+    "allAudiences": "すべての対象",
+    "allLanguages": "すべての言語",
+    "audienceFilter": "対象",
+    "awaitingApproval": "承認待ち",
+    "noOwner": "所有者なし",
+    "due": "期限切れ"
+  },
+  "editor": {
+    "newTitle": "新しい記事",
+    "editTitle": "記事の編集",
+    "translateTitle": "新しい翻訳",
+    "hint": "Markdown で記述します。下書きはいつでも保存でき、準備ができたらレビューに提出します。",
+    "publishedHint": "この記事は公開中です。保存すると変更が新しいバージョンとして公開されます。",
+    "cannotEdit": "この記事は現在の状態では編集できません。",
+    "title": "タイトル",
+    "summary": "概要",
+    "summaryHint": "検索結果に表示される 1～2 文の説明。",
+    "body": "本文",
+    "write": "編集",
+    "preview": "プレビュー",
+    "previewEmpty": "プレビューする内容がまだありません。",
+    "markdownHint": "Markdown: ## 見出し、1. 番号付き手順、| 表 |、**太字**、[リンク](/requests)。HTML は表示されません。",
+    "category": "カテゴリ",
+    "noCategory": "カテゴリなし",
+    "tags": "タグ",
+    "tagsHint": "ユーザーが検索しそうなキーワードを最大 10 個。",
+    "tagsPlaceholder": "タグを入力して Enter キーを押します",
+    "tagsFull": "タグは最大 {max} 個です",
+    "removeTag": "タグ {tag} を削除",
+    "audience": "対象",
+    "language": "言語",
+    "translationOf": "翻訳元",
+    "translationOfNone": "翻訳ではありません",
+    "translationOfSearch": "記事を検索…",
+    "translationOfEmpty": "一致する記事はありません。",
+    "translationOfClear": "翻訳ではありません",
+    "translationOfHint": "翻訳をリンクすると、読者が言語を切り替えられます。",
+    "translationOfSet": "読者はこの記事とその翻訳を切り替えられます。",
+    "reviewAt": "レビュー期限",
+    "reviewAtHint": "この日に、記事を確認するよう所有者に通知されます。",
+    "saveDraft": "下書きを保存",
+    "saveAndSubmit": "保存して提出",
+    "submitHint": "提出された記事は編集者が公開します（または承認ワークフローが判断します）。",
+    "publishUpdate": "更新を公開",
+    "toast": {
+      "saved": "変更を保存しました",
+      "updatedLive": "更新を新しいバージョンとして公開しました"
+    },
+    "errors": {
+      "titleRequired": "記事のタイトルを入力してください",
+      "tooLong": "{max} 文字以内で入力してください",
+      "date": "有効な日付を入力してください",
+      "localeTaken": "{reference} がすでにこの言語の翻訳です"
+    }
+  },
+  "categoriesAdmin": {
+    "title": "ナレッジ カテゴリ",
+    "description": "ナレッジのホームで記事をまとめるトピック。",
+    "noAccess": "ナレッジ カテゴリを管理する権限が必要です。",
+    "add": "新しいカテゴリ",
+    "createTitle": "新しいカテゴリ",
+    "editTitle": "カテゴリの編集",
+    "dialogHint": "名前と説明は言語ごとに入力できます。未入力の場合は英語が表示されます。",
+    "name": "名前",
+    "key": "キー",
+    "keyHint": "英小文字、数字、ハイフン。リンク、フィルター、ワークフローの条件に使用され、後から変更できません。",
+    "descriptionLabel": "説明",
+    "icon": "アイコン",
+    "iconHint": "lucide のアイコン名（例: key-round、wifi、printer）。",
+    "sortOrder": "並び順",
+    "parent": "親カテゴリ",
+    "noParent": "なし（最上位）",
+    "articles": "記事数",
+    "empty": "カテゴリはまだありません。",
+    "created": "カテゴリを作成しました",
+    "saved": "カテゴリを保存しました",
+    "deleted": "カテゴリを削除しました",
+    "editLabel": "{name} を編集",
+    "deleteLabel": "{name} を削除",
+    "deleteTitle": "このカテゴリを削除しますか?",
+    "deleteDescription": "「{name}」を削除します。記事が残っているカテゴリは削除できません。",
+    "errors": {
+      "key": "2～64 文字の英小文字、数字、ハイフンを使用してください",
+      "icon": "key-round などの lucide アイコン名を使用してください",
+      "name": "少なくとも 1 つの言語で名前を入力してください",
+      "keyTaken": "このキーはすでに使用されています",
+      "parent": "カテゴリを自分自身またはそのサブカテゴリの下に置くことはできません"
+    }
+  }
+}

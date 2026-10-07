@@ -138,6 +138,9 @@
     "core_idp_created": "Added sign-in provider",
     "core_idp_updated": "Updated sign-in provider",
     "core_idp_deleted": "Removed sign-in provider",
-    "core_directory_synced": "Synced directory"
+    "core_directory_synced": "Synced directory",
+    "core_ai_tool_invoked": "AI tool used",
+    "core_ai_config_updated": "AI settings changed",
+    "core_ai_index_rebuilt": "Semantic index rebuild started"
   }
 }

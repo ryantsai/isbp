@@ -1,0 +1,989 @@
+{
+  "meta": {
+    "name": "Service desk",
+    "description": "Incidents, service requests, problems and changes with SLAs"
+  },
+  "nav": {
+    "group": "Service desk",
+    "desk": "Tickets",
+    "problems": "Problems",
+    "changes": "Changes",
+    "reports": "Service desk reports",
+    "settings": "Service desk"
+  },
+  "portal": {
+    "report": "Report an issue",
+    "reportDescription": "Something isn't working? Tell the service desk and follow the fix."
+  },
+  "entities": {
+    "ticket": "Ticket"
+  },
+  "permissions": {
+    "ticketsCreate": "Report issues and follow your own tickets",
+    "ticketsRead": "See all tickets",
+    "ticketsWork": "Work tickets: assign, update, add work notes and resolve",
+    "ticketsTriage": "Set a ticket's category, priority and assignment",
+    "problemsManage": "Investigate problems and record known errors",
+    "changesRead": "See changes and the change calendar",
+    "changesManage": "Raise, plan and schedule changes",
+    "reportsRead": "See service desk reports",
+    "configManage": "Configure categories, SLA policies, calendars and the service catalog"
+  },
+  "workflows": {
+    "change": {
+      "name": "Change authorization",
+      "description": "Approves changes before they are scheduled (CAB)"
+    }
+  },
+  "types": {
+    "incident": "Incident",
+    "service_request": "Service request",
+    "problem": "Problem",
+    "change": "Change"
+  },
+  "typesPlural": {
+    "incident": "Incidents",
+    "service_request": "Service requests",
+    "problem": "Problems",
+    "change": "Changes"
+  },
+  "status": {
+    "new": "New",
+    "pending_approval": "Waiting for approval",
+    "in_progress": "In progress",
+    "on_hold": "On hold",
+    "resolved": "Resolved",
+    "fulfilled": "Fulfilled",
+    "closed": "Closed",
+    "cancelled": "Cancelled",
+    "investigating": "Investigating",
+    "known_error": "Known error",
+    "draft": "Draft",
+    "assessment": "Assessment",
+    "authorization": "Waiting for CAB",
+    "scheduled": "Scheduled",
+    "implementing": "Implementing",
+    "review": "Post-implementation review",
+    "rejected": "Rejected"
+  },
+  "priority": {
+    "1": "P1 · Critical",
+    "2": "P2 · High",
+    "3": "P3 · Moderate",
+    "4": "P4 · Low"
+  },
+  "priorityShort": {
+    "1": "P1",
+    "2": "P2",
+    "3": "P3",
+    "4": "P4"
+  },
+  "impact": {
+    "1": "High — many people or a critical service",
+    "2": "Medium — a team or department",
+    "3": "Low — one person"
+  },
+  "impactShort": {
+    "1": "High",
+    "2": "Medium",
+    "3": "Low"
+  },
+  "urgency": {
+    "1": "High — work is blocked",
+    "2": "Medium — work is slowed down",
+    "3": "Low — it can wait"
+  },
+  "urgencyShort": {
+    "1": "High",
+    "2": "Medium",
+    "3": "Low"
+  },
+  "channel": {
+    "portal": "Portal",
+    "agent": "Service desk",
+    "chat": "Virtual agent",
+    "email": "Email",
+    "phone": "Phone",
+    "form": "Request form",
+    "ai": "AI"
+  },
+  "resolution": {
+    "solved": "Solved",
+    "workaround": "Workaround provided",
+    "user_error": "User error / how-to",
+    "duplicate": "Duplicate",
+    "no_fault_found": "No fault found",
+    "not_reproducible": "Not reproducible",
+    "cancelled_by_requester": "Cancelled by requester"
+  },
+  "changeType": {
+    "standard": "Standard",
+    "normal": "Normal",
+    "emergency": "Emergency"
+  },
+  "risk": {
+    "low": "Low risk",
+    "medium": "Medium risk",
+    "high": "High risk"
+  },
+  "linkType": {
+    "related": {
+      "outgoing": "Related to",
+      "incoming": "Related to"
+    },
+    "caused_by": {
+      "outgoing": "Caused by",
+      "incoming": "Causes"
+    },
+    "duplicate_of": {
+      "outgoing": "Duplicate of",
+      "incoming": "Duplicated by"
+    },
+    "parent_of": {
+      "outgoing": "Parent of",
+      "incoming": "Child of"
+    },
+    "implements": {
+      "outgoing": "Implements fix for",
+      "incoming": "Fixed by change"
+    }
+  },
+  "slaMetric": {
+    "response": "First response",
+    "resolution": "Resolution"
+  },
+  "slaStatus": {
+    "running": "On track",
+    "paused": "Paused",
+    "met": "Met",
+    "breached": "Breached",
+    "cancelled": "Cancelled"
+  },
+  "settings": {
+    "autoCloseDays": "Close resolved tickets automatically after (days)",
+    "autoCloseDaysHelp": "Resolved and fulfilled tickets that the requester has not confirmed or reopened close after this many days. 0 turns it off.",
+    "defaultGroupKey": "Default assignment group (key)",
+    "defaultGroupKeyHelp": "New tickets whose category has no group go to this group, for example service-desk.",
+    "csatEnabled": "Ask requesters to rate the service when they confirm a fix",
+    "majorIncidentBroadcast": "Announce major incidents in team channels",
+    "majorIncidentBroadcastHelp": "Posts to the organisation’s subscribed Teams, Slack and webhook channels when an incident is declared major."
+  },
+  "notifications": {
+    "ticket_created": {
+      "label": "Tickets I raised",
+      "title": "{reference} received: {title}",
+      "body": "The service desk has your {type, select, service_request {request} other {report}} and will be in touch. Follow it under My requests."
+    },
+    "ticket_assigned": {
+      "label": "Tickets assigned to me",
+      "title": "Assigned to you: {reference} {title}",
+      "body": "Priority P{priority}."
+    },
+    "ticket_commented": {
+      "label": "Replies on tickets",
+      "title": "New reply on {reference}: {title}",
+      "body": "{author}: {excerpt}"
+    },
+    "ticket_resolved": {
+      "label": "My tickets resolved",
+      "title": "{status, select, fulfilled {Fulfilled} other {Resolved}}: {reference} {title}",
+      "body": "{notes} If it is not fixed, open the ticket and choose “Still broken”."
+    },
+    "ticket_reopened": {
+      "label": "Tickets reopened by requesters",
+      "title": "Reopened: {reference} {title}",
+      "body": "{name}: {reason}"
+    },
+    "sla_warning": {
+      "label": "SLA at risk",
+      "title": "SLA at risk: {reference} {title}",
+      "body": "{metric, select, response {First response} other {Resolution}} is due in {minutes} min ({dueAt})."
+    },
+    "sla_breached": {
+      "label": "SLA breached",
+      "title": "SLA breached: {reference} {title}",
+      "body": "{metric, select, response {First response} other {Resolution}} was due {dueAt} (P{priority})."
+    },
+    "change_approved": {
+      "label": "My changes approved",
+      "title": "Approved: {reference} {title}",
+      "body": "The change is scheduled. Planned start: {start}."
+    },
+    "change_rejected": {
+      "label": "My changes rejected",
+      "title": "Rejected: {reference} {title}",
+      "body": "{comment}"
+    },
+    "major_incident_declared": {
+      "label": "Major incidents (channels)",
+      "title": "Major incident: {reference} {title}",
+      "body": "{description}"
+    }
+  },
+  "audit": {
+    "ticket_created": "Raised ticket",
+    "ticket_updated": "Updated ticket",
+    "ticket_status_changed": "Changed ticket status",
+    "ticket_linked": "Linked tickets",
+    "ticket_unlinked": "Removed ticket link",
+    "ticket_triaged": "Triaged ticket",
+    "problem_updated": "Updated problem",
+    "change_updated": "Updated change plan",
+    "change_submitted": "Submitted change for approval",
+    "change_approved": "Change approved",
+    "change_rejected": "Change rejected",
+    "category_created": "Added ticket category",
+    "category_updated": "Updated ticket category",
+    "category_deleted": "Deleted ticket category",
+    "calendar_created": "Added business calendar",
+    "calendar_updated": "Updated business calendar",
+    "calendar_deleted": "Deleted business calendar",
+    "sla_policy_created": "Added SLA policy",
+    "sla_policy_updated": "Updated SLA policy",
+    "sla_policy_deleted": "Deleted SLA policy",
+    "catalog_item_updated": "Changed catalog fulfilment",
+    "catalog_item_deleted": "Removed form from the service catalog"
+  },
+  "common": {
+    "major": "Major incident",
+    "unassigned": "Unassigned",
+    "noGroup": "No group",
+    "noCategory": "No category",
+    "chooseCategory": "Choose a category",
+    "inactive": "inactive",
+    "serviceDesk": "the service desk",
+    "sla": {
+      "left": "{time} left",
+      "breachedAgo": "Breached {time} ago"
+    },
+    "duration": {
+      "days": "{days}d {hours}h",
+      "hours": "{hours}h {minutes}m",
+      "minutes": "{minutes}m"
+    },
+    "ciPicker": {
+      "placeholder": "Search configuration items…",
+      "selected": "{count, plural, one {# item selected} other {# items selected}}",
+      "search": "Search by name or CI number…",
+      "loading": "Searching…",
+      "noResults": "No configuration items found",
+      "chosen": "Selected configuration items",
+      "remove": "Remove {name}"
+    },
+    "servicePicker": {
+      "placeholder": "Choose a service (optional)",
+      "search": "Search services…",
+      "loading": "Searching…",
+      "noResults": "No services found",
+      "clear": "Clear the service"
+    }
+  },
+  "columns": {
+    "reference": "Number",
+    "title": "Title",
+    "requester": "Requester",
+    "status": "Status",
+    "priority": "Priority",
+    "sla": "SLA",
+    "assignee": "Assigned to",
+    "group": "Group",
+    "category": "Category",
+    "window": "Planned window",
+    "updated": "Updated",
+    "created": "Created"
+  },
+  "filters": {
+    "search": "Search tickets…",
+    "type": "Type",
+    "allTypes": "All types",
+    "status": "Status",
+    "open": "Open",
+    "done": "Done",
+    "anyStatus": "Any status",
+    "priority": "Priority",
+    "anyPriority": "Any priority",
+    "group": "Assignment group",
+    "anyGroup": "Any group",
+    "anyAssignee": "Anyone",
+    "category": "Category",
+    "anyCategory": "Any category",
+    "assignee": "Assigned to"
+  },
+  "desk": {
+    "title": "Tickets",
+    "description": "Incidents and requests waiting for the service desk, with their SLAs.",
+    "new": "New ticket",
+    "queues": {
+      "label": "Queues",
+      "assigned": "Assigned to me",
+      "groups": "My groups",
+      "unassigned": "Unassigned",
+      "all": "All open",
+      "breached": "Breached SLA",
+      "at_risk": "At risk",
+      "major": "Major incidents",
+      "tickets": "{count, plural, one {ticket} other {tickets}}"
+    },
+    "empty": {
+      "assigned": "Nothing is assigned to you right now.",
+      "groups": "Your groups have no open tickets.",
+      "unassigned": "Every ticket has someone on it.",
+      "all": "No open tickets. Enjoy the quiet.",
+      "breached": "No tickets have breached their SLA.",
+      "at_risk": "No tickets are close to breaching their SLA.",
+      "major": "No major incidents are open.",
+      "filtered": "No tickets match these filters",
+      "filteredHint": "Try another status or clear the filters."
+    }
+  },
+  "newTicket": {
+    "title": "New ticket",
+    "title_incident": "New incident",
+    "title_service_request": "New service request",
+    "title_problem": "New problem",
+    "description": "Log it for someone, classify it and route it in one step.",
+    "type": "Ticket type",
+    "requester": "Requester",
+    "requesterPlaceholder": "You",
+    "requesterHint": "Leave empty to log it as yourself.",
+    "titleLabel": "Title",
+    "titleTooShort": "Enter at least 3 characters",
+    "titleTooLong": "Keep the title under 200 characters",
+    "descriptionLabel": "Description",
+    "markdownHint": "Markdown is supported.",
+    "impact": "Impact",
+    "urgency": "Urgency",
+    "priority": "Priority",
+    "category": "Category",
+    "group": "Assignment group",
+    "assignee": "Assigned to",
+    "cis": "Affected configuration items",
+    "major": "Major incident",
+    "majorHint": "Declares a major incident: stakeholders are informed and it tops every queue.",
+    "submit": "Create ticket",
+    "created": "{reference} created"
+  },
+  "newChange": {
+    "title": "New change",
+    "description": "Describe what will change, when, and how to roll back. Normal and emergency changes go to the CAB.",
+    "titleLabel": "What will change?",
+    "titlePlaceholder": "e.g. Upgrade the core switch firmware",
+    "titleTooShort": "Enter at least 3 characters",
+    "descriptionLabel": "Details",
+    "cis": "Configuration items",
+    "cisHint": "Used to find other changes planned on the same CIs.",
+    "submit": "Create change",
+    "created": "{reference} created as a draft"
+  },
+  "ticket": {
+    "back": "Tickets",
+    "description": "Description",
+    "noDescription": "No description was given.",
+    "activity": "Activity",
+    "aside": "Ticket details",
+    "answers": "Request details",
+    "resolution": "Resolution",
+    "rated": "Rated {rating} out of 5",
+    "fromRequest": "From request {reference} · {form}",
+    "majorTitle": "Major incident",
+    "majorBody": "Coordinate the response here and keep stakeholders updated with public replies.",
+    "notFound": "Ticket not found",
+    "notFoundHint": "{reference} doesn't exist, or you can't see it.",
+    "forbidden": "You don't have access to this ticket",
+    "loadFailed": "The ticket couldn't be loaded"
+  },
+  "actions": {
+    "label": "Ticket actions",
+    "changeStatus": "Status",
+    "moveTo": "Move to",
+    "resolveButton": "Resolve",
+    "fulfilButton": "Fulfil",
+    "submitForApproval": "Submit for approval",
+    "assignToMe": "Assign to me",
+    "assignedToMe": "Assigned to you",
+    "editButton": "Edit",
+    "statusChanged": "Status changed to {status}",
+    "resolve": {
+      "resolve": {
+        "title": "Resolve the ticket",
+        "submit": "Resolve"
+      },
+      "fulfil": {
+        "title": "Fulfil the request",
+        "submit": "Fulfil"
+      },
+      "cancel": {
+        "title": "Cancel the ticket",
+        "submit": "Cancel ticket"
+      },
+      "code": "Resolution code",
+      "codePlaceholder": "Choose a code",
+      "codeRequired": "Choose a resolution code.",
+      "notes": "Resolution notes",
+      "notesHint": "The requester sees these notes and is asked to confirm the fix.",
+      "notesRequired": "Tell the requester what was done.",
+      "cancelHint": "The requester is told the ticket was cancelled.",
+      "reason": "Reason",
+      "reasonRequired": "Tell the requester why it is cancelled."
+    },
+    "edit": {
+      "title": "Edit ticket",
+      "titleLabel": "Title",
+      "titleTooShort": "Enter at least 3 characters",
+      "descriptionLabel": "Description",
+      "markdownHint": "Markdown is supported."
+    }
+  },
+  "details": {
+    "title": "Details",
+    "requester": "Requester",
+    "requestedFor": "Requested for",
+    "sameAsRequester": "Same as the requester",
+    "category": "Category",
+    "group": "Assignment group",
+    "assignee": "Assigned to",
+    "impact": "Impact",
+    "urgency": "Urgency",
+    "priority": "Priority",
+    "priorityAuto": "From impact × urgency ({priority})",
+    "priorityMatrix": "Calculated from impact and urgency.",
+    "priorityOverridden": "Overridden by hand; the change is in the timeline.",
+    "major": "Major incident",
+    "channel": "Channel",
+    "department": "Department",
+    "created": "Opened",
+    "firstResponse": "First response"
+  },
+  "cis": {
+    "title": "Affected CIs",
+    "none": "No configuration items are linked.",
+    "critical": "Critical"
+  },
+  "links": {
+    "title": "Links",
+    "none": "No linked tickets.",
+    "add": "Link",
+    "addTitle": "Link another ticket",
+    "addHint": "How {reference} relates to the other ticket.",
+    "relation": "This ticket…",
+    "target": "Other ticket",
+    "targetHint": "Its number, e.g. PRB-00012 or CHG-00031.",
+    "targetInvalid": "Enter a ticket number such as INC-00042.",
+    "added": "Tickets linked",
+    "removed": "Link removed",
+    "remove": "Remove the link to {reference}"
+  },
+  "slas": {
+    "title": "SLAs",
+    "none": "No SLA applies to this ticket.",
+    "due": "Due",
+    "stopped": "Stopped"
+  },
+  "customFields": {
+    "title": "Additional information",
+    "editTitle": "Edit additional information",
+    "notSet": "Not set"
+  },
+  "timeline": {
+    "label": "Timeline",
+    "empty": "Nothing has happened yet.",
+    "truncated": "Showing the latest {count} entries.",
+    "system": "System",
+    "internal": "Internal",
+    "status": "{name} changed the status from {from} to {to}",
+    "statusSet": "{name} set the status to {to}",
+    "assigned": "{name} assigned it to {to}",
+    "unassigned": "{name} removed the assignment",
+    "fieldsChanged": "{name} changed {fields}",
+    "updated": "{name} updated the ticket",
+    "linked": "{name} linked it: {relation} {target}",
+    "unlinked": "{name} removed the link: {relation} {target}",
+    "related": "related to",
+    "sla": "SLA",
+    "slaWarning": "{metric} target is close to breaching",
+    "slaBreached": "{metric} target breached",
+    "approval": {
+      "started": "Sent for approval",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Approval withdrawn",
+      "updated": "Approval updated"
+    },
+    "triage": {
+      "aiSet": "{name} set {fields}",
+      "aiSuggested": "{name} suggested {fields}",
+      "set": "{name} triaged it: {fields}",
+      "classification": "the classification",
+      "confidence": "{value}% confident"
+    },
+    "fields": {
+      "title": "the title",
+      "description": "the description",
+      "impact": "impact",
+      "urgency": "urgency",
+      "priority": "priority",
+      "category": "category",
+      "categoryId": "category",
+      "assignmentGroup": "group",
+      "assignmentGroupId": "group",
+      "assignee": "assignee",
+      "assigneeId": "assignee",
+      "requester": "requester",
+      "requesterId": "requester",
+      "requestedFor": "requested for",
+      "requestedForId": "requested for",
+      "cis": "affected CIs",
+      "ciIds": "affected CIs",
+      "major": "major incident",
+      "attributes": "additional information",
+      "status": "status",
+      "group": "group",
+      "changeType": "change type",
+      "risk": "risk",
+      "reason": "reason",
+      "plannedStart": "planned start",
+      "plannedEnd": "planned end",
+      "implementationPlan": "implementation plan",
+      "backoutPlan": "backout plan",
+      "testPlan": "test plan",
+      "rootCause": "root cause",
+      "workaround": "workaround",
+      "knownError": "known error",
+      "kbArticleId": "knowledge article"
+    },
+    "reopened": "Still broken",
+    "rated": "Rated {rating}/5",
+    "confirmed": "{name} confirmed the fix and closed the ticket",
+    "created": "{name} opened the ticket ({channel})",
+    "createdFor": "{name} opened the ticket for {person} ({channel})",
+    "reopenedStatus": "{name} said it is still broken and reopened the ticket",
+    "autoClosed": "Closed automatically: the requester didn’t respond",
+    "assignmentChanged": "{name} changed the assignment",
+    "offboarded": "The previous assignee left the organisation."
+  },
+  "composer": {
+    "label": "Add to the conversation",
+    "replyTab": "Reply to requester",
+    "noteTab": "Work note",
+    "replyPlaceholder": "Write a reply the requester will see…",
+    "notePlaceholder": "Write an internal note for agents…",
+    "noteHint": "Only agents see work notes.",
+    "hint": "Markdown supported. Send with",
+    "shortcut": "⌘/Ctrl + Enter",
+    "send": "Send reply",
+    "addNote": "Add note",
+    "sent": "Reply sent",
+    "noteAdded": "Work note added"
+  },
+  "confirm": {
+    "title": "Is it fixed?",
+    "hint": "The service desk thinks this is solved. Let us know if it works for you.",
+    "yes": "Yes, close it",
+    "no": "No, it's still broken",
+    "rateLegend": "How did we do? (optional)",
+    "rating": {
+      "1": "1 star: very poor",
+      "2": "2 stars: poor",
+      "3": "3 stars: okay",
+      "4": "4 stars: good",
+      "5": "5 stars: excellent"
+    },
+    "clearRating": "Clear rating",
+    "commentLabel": "Anything else to tell us? (optional)",
+    "closeIt": "Close the ticket",
+    "reasonLabel": "What's still wrong?",
+    "reasonRequired": "Tell us what's still not working.",
+    "reopen": "Reopen the ticket",
+    "closedToast": "Thanks! Your ticket is closed.",
+    "reopenedToast": "Your ticket is open again"
+  },
+  "requester": {
+    "back": "My requests",
+    "cancelled": "This ticket was cancelled.",
+    "conversation": "Conversation",
+    "noMessages": "No messages yet. We'll reply here; you can add details below.",
+    "detailsLabel": "What you reported",
+    "yourReport": "What you told us",
+    "noDescription": "No details were given.",
+    "reported": "Reported",
+    "urgency": "How much it affects you",
+    "category": "Category",
+    "service": "Affected service",
+    "handledBy": "Handled by",
+    "statusHint": {
+      "0": "We've received it. {group} will pick it up soon.",
+      "1": "{group} is working on it.",
+      "2": "We think it's solved. Please confirm below.",
+      "3": "This ticket is closed."
+    },
+    "steps": {
+      "label": "Progress",
+      "reported": "Reported",
+      "inProgress": "In progress",
+      "resolved": "Resolved",
+      "fulfilled": "Fulfilled",
+      "closed": "Closed",
+      "done": "done",
+      "current": "current step",
+      "upcoming": "not yet"
+    }
+  },
+  "problem": {
+    "title": "Problem",
+    "description": "The underlying cause behind one or more incidents.",
+    "knownError": "Known error",
+    "rootCause": "Root cause",
+    "rootCauseEmpty": "Not identified yet.",
+    "workaround": "Workaround",
+    "workaroundEmpty": "No workaround yet.",
+    "knownErrorSwitch": "Known error",
+    "knownErrorHint": "The cause and a workaround are documented; agents can apply it to new incidents.",
+    "incidents": "{count, plural, =0 {Linked incidents} one {# linked incident} other {# linked incidents}}",
+    "noIncidents": "No incidents are linked to this problem yet."
+  },
+  "problems": {
+    "title": "Problems",
+    "description": "Root-cause investigations behind recurring incidents, and the known errors they produced.",
+    "new": "New problem",
+    "search": "Search problems…",
+    "category": "Category",
+    "anyCategory": "Any category",
+    "viewsLabel": "Problem views",
+    "views": {
+      "open": "Open",
+      "known": "Known errors",
+      "done": "Resolved",
+      "all": "All"
+    },
+    "empty": {
+      "open": "No open problems.",
+      "known": "No known errors are recorded.",
+      "done": "No resolved problems yet.",
+      "all": "No problems yet."
+    }
+  },
+  "changePlan": {
+    "title": "Change plan",
+    "editTitle": "Edit the change plan",
+    "noWindow": "No window planned",
+    "empty": "Not written yet.",
+    "changeType": "Change type",
+    "typeHint": {
+      "standard": "Pre-approved and low risk: no CAB needed.",
+      "normal": "Approved by the change manager, and by the CAB when risky.",
+      "emergency": "Urgent fix: the emergency CAB decides within hours."
+    },
+    "risk": "Risk",
+    "reason": "Reason for the change",
+    "window": "Planned window",
+    "start": "Start",
+    "end": "End",
+    "endBeforeStart": "The end must be after the start.",
+    "implementationPlan": "Implementation plan",
+    "backoutPlan": "Backout plan",
+    "testPlan": "Test plan",
+    "conflicts": {
+      "found": "{count, plural, one {# other change touches the same CIs in this window} other {# other changes touch the same CIs in this window}}",
+      "shared": "Shared: {cis}",
+      "none": "No other changes touch these CIs in this window."
+    },
+    "approval": {
+      "title": "CAB approval",
+      "notStarted": "Submit the change for approval when the plan is ready.",
+      "unavailable": "The approval can't be shown.",
+      "waitingFor": "Waiting for",
+      "openInbox": "Open my approvals",
+      "status": {
+        "running": "Waiting for approval",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "cancelled": "Withdrawn"
+      }
+    },
+    "facts": {
+      "type": "Change type",
+      "risk": "Risk",
+      "impact": "Impact",
+      "ciCount": "Number of CIs",
+      "durationHours": "Duration (hours)",
+      "criticalCis": "Touches a critical CI"
+    }
+  },
+  "changes": {
+    "title": "Changes",
+    "description": "Planned changes and their windows. Overlapping work on the same CIs is flagged.",
+    "new": "New change",
+    "search": "Search changes…",
+    "listLabel": "Changes",
+    "empty": "No changes match.",
+    "tabs": {
+      "calendar": "Calendar",
+      "list": "List"
+    },
+    "calendar": {
+      "previous": "Previous month",
+      "next": "Next month",
+      "today": "Today",
+      "display": "Display",
+      "month": "Month",
+      "agenda": "Agenda",
+      "legend": "Legend",
+      "conflict": "Conflict",
+      "caption": "Changes planned in {month}",
+      "changesOn": "Changes on {day}",
+      "more": "+{count} more",
+      "empty": "No changes are planned this month.",
+      "loadFailed": "The calendar couldn't be loaded"
+    }
+  },
+  "report": {
+    "back": "What do you need?",
+    "title": "Report an issue",
+    "description": "Tell us what's not working. We'll keep you posted here and by notification.",
+    "whatsWrong": "What's wrong?",
+    "whatsWrongPlaceholder": "e.g. I can't connect to the VPN from home",
+    "titleRequired": "Tell us in a few words what's wrong.",
+    "tellUsMore": "Tell us more",
+    "tellUsMorePlaceholder": "What happened, when it started, what you already tried, any error message…",
+    "tellUsMoreHint": "Details help us fix it faster.",
+    "impactLegend": "How much does it affect you?",
+    "impact": {
+      "blocked": "I can't work",
+      "blockedHint": "Work has stopped",
+      "slow": "It slows me down",
+      "slowHint": "There's a way around it, for now",
+      "minor": "It's minor",
+      "minorHint": "Fix it when you can"
+    },
+    "whichService": "Which service?",
+    "whichServiceHint": "If you know which system it's about, pick it here.",
+    "optional": "optional",
+    "cancel": "Cancel",
+    "submit": "Send to the service desk",
+    "created": "{reference} sent. We're on it.",
+    "suggestions": {
+      "title": "These articles might help",
+      "empty": "Start describing the issue and we'll suggest articles that might solve it.",
+      "hint": "If one of these fixes it, you don't need to send the report.",
+      "announce": "{count, plural, one {# article might help} other {# articles might help}}"
+    }
+  },
+  "reports": {
+    "title": "Service desk reports",
+    "description": "Volume, backlog, SLA performance and satisfaction.",
+    "range": "Period",
+    "lastDays": "Last {days} days",
+    "loadFailed": "The report couldn't be loaded",
+    "noData": "No data for this period.",
+    "viewAs": "Show as",
+    "chart": "Chart",
+    "table": "Table",
+    "date": "Date",
+    "count": "Tickets",
+    "priority": "Priority",
+    "category": "Category",
+    "created": "Created",
+    "resolved": "Resolved",
+    "kpi": {
+      "open": "Open tickets",
+      "openHint": "Across every type",
+      "majorOpen": "{count, plural, one {# major incident open} other {# major incidents open}}",
+      "breached": "SLA breaches",
+      "breachedHint": "{response} response · {resolution} resolution",
+      "mttr": "Mean time to resolve",
+      "mttrHint": "{count, plural, one {Over # resolved ticket} other {Over # resolved tickets}}",
+      "csat": "Satisfaction",
+      "csatHint": "{count, plural, =0 {No ratings yet} one {# rating} other {# ratings}}",
+      "compliance": "SLA compliance",
+      "complianceHint": "Targets met in the period"
+    },
+    "volume": {
+      "title": "Created vs. resolved",
+      "description": "Tickets per day over the last {days} days.",
+      "aria": "Line chart of tickets created and resolved per day over the last {days} days. Use the arrow keys to read each day."
+    },
+    "byPriority": {
+      "title": "Open by priority",
+      "description": "Tickets still open right now."
+    },
+    "backlog": {
+      "title": "Backlog age",
+      "description": "How long open tickets have been waiting.",
+      "age": "Age",
+      "lt1d": "Under 1 day",
+      "1to3d": "1–3 days",
+      "3to7d": "3–7 days",
+      "7to30d": "7–30 days",
+      "gt30d": "Over 30 days"
+    },
+    "categories": {
+      "title": "Top categories",
+      "description": "Most tickets created in the last {days} days."
+    },
+    "mttr": {
+      "title": "Time to resolve by priority",
+      "description": "Mean, for tickets resolved in the last {days} days.",
+      "hours": "Mean time",
+      "resolved": "Resolved"
+    }
+  },
+  "settingsPage": {
+    "title": "Service desk settings",
+    "description": "Categories, SLA policies, business calendars and the service catalog.",
+    "tabs": {
+      "categories": "Categories",
+      "sla": "SLA policies",
+      "calendars": "Calendars",
+      "catalog": "Service catalog"
+    },
+    "categories": {
+      "title": "Categories",
+      "description": "Classify tickets and route them to a default group.",
+      "new": "New category",
+      "empty": "No categories yet.",
+      "inactive": "Inactive",
+      "tickets": "{count, plural, one {# ticket} other {# tickets}}",
+      "createTitle": "New category",
+      "editTitle": "Edit category",
+      "sheetHint": "Names are shown in every language people use.",
+      "name": "Name",
+      "nameRequired": "Enter the name in at least one language.",
+      "key": "Key",
+      "keyHint": "Lowercase letters, digits and dashes. Used in SLA conditions and integrations.",
+      "parent": "Parent",
+      "topLevel": "Top level",
+      "types": "Ticket types",
+      "typesRequired": "Choose at least one ticket type.",
+      "defaultGroup": "Default group",
+      "defaultGroupHint": "New tickets in this category go to this group.",
+      "sortOrder": "Order",
+      "active": "Active",
+      "deleteTitle": "Delete this category?",
+      "deleteBody": "Categories that have tickets or children can't be deleted; make them inactive instead."
+    },
+    "sla": {
+      "title": "SLA policies",
+      "description": "Response and resolution targets per priority, counted on a business calendar. The first matching policy applies.",
+      "new": "New policy",
+      "empty": "No SLA policies yet.",
+      "inactive": "Inactive",
+      "appliesTo": "Applies to",
+      "calendar": "Business calendar",
+      "calendarPlaceholder": "Choose a calendar",
+      "createTitle": "New SLA policy",
+      "editTitle": "Edit SLA policy",
+      "sheetHint": "Targets count business time only, and pause in the statuses you choose.",
+      "name": "Name",
+      "nameRequired": "Enter a name.",
+      "descriptionLabel": "Description",
+      "types": "Ticket types",
+      "condition": "Only when",
+      "conditionHint": "Optional. Without rules, the policy applies to every ticket of these types.",
+      "targets": "Targets",
+      "priority": "Priority",
+      "targetsInvalid": "Every target needs at least one minute.",
+      "hoursOf": "{target}: hours",
+      "minutesOf": "{target}: minutes",
+      "h": "h",
+      "m": "m",
+      "warnAt": "Warn at",
+      "warnAtHint": "Agents are warned when this share of the target has passed.",
+      "pauseStatuses": "Pause the clock while the ticket is",
+      "sortOrder": "Order",
+      "sortOrderHint": "Lower numbers are checked first.",
+      "active": "Active",
+      "deleteTitle": "Delete this SLA policy?",
+      "deleteBody": "Running SLAs keep their targets; new tickets stop using this policy.",
+      "facts": {
+        "priority": "Priority (1–4)",
+        "category": "Category",
+        "major": "Major incident",
+        "channel": "Channel",
+        "impact": "Impact (1–3)",
+        "urgency": "Urgency (1–3)"
+      }
+    },
+    "calendars": {
+      "title": "Business calendars",
+      "description": "Working hours and holidays that SLA clocks run on.",
+      "new": "New calendar",
+      "empty": "No calendars yet.",
+      "summary": "{days, plural, one {# day} other {# days}} a week, {start}–{end}",
+      "closedAllWeek": "Closed all week",
+      "holidayCount": "{count, plural, =0 {No holidays} one {# holiday} other {# holidays}}",
+      "usedBy": "{count, plural, =0 {Not used by a policy} one {Used by # policy} other {Used by # policies}}",
+      "createTitle": "New calendar",
+      "editTitle": "Edit calendar",
+      "sheetHint": "Times are in the calendar's own time zone.",
+      "name": "Name",
+      "nameRequired": "Enter a name.",
+      "timezone": "Time zone",
+      "alwaysOpen": "Open 24×7",
+      "alwaysOpenHint": "Business time equals clock time; working hours and holidays are ignored.",
+      "hours": "Working hours",
+      "openOn": "Open on {day}",
+      "from": "{day}: from",
+      "to": "{day}: until",
+      "removeRange": "Remove this {day} range",
+      "addRange": "Add hours",
+      "closed": "Closed",
+      "rangeInvalid": "Each range must end after it starts.",
+      "holidays": "Holidays",
+      "noHolidays": "No holidays.",
+      "addHoliday": "Add holiday",
+      "holidayDate": "Holiday {n}: date",
+      "holidayName": "Holiday {n}: name",
+      "holidayNamePlaceholder": "e.g. Lunar New Year",
+      "removeHoliday": "Remove holiday {n}",
+      "holidayInvalid": "Every holiday needs a date and a name.",
+      "deleteTitle": "Delete this calendar?",
+      "deleteBody": "This can't be undone.",
+      "deleteInUse": "{count, plural, one {# SLA policy uses it, so it can't be deleted until that policy uses another calendar.} other {# SLA policies use it, so it can't be deleted until they use another calendar.}}"
+    },
+    "catalog": {
+      "title": "Service catalog",
+      "description": "Published request forms, and how the service desk fulfils each one.",
+      "formBuilder": "Open the form builder",
+      "empty": "No published forms yet.",
+      "emptyHint": "Build and publish request forms in Administration → Forms; they appear here.",
+      "approval": "Approval",
+      "fulfilled": "Fulfilled by the service desk",
+      "paused": "Paused",
+      "notFulfilled": "Not fulfilled by the service desk",
+      "noRouting": "No category or group",
+      "ticketCount": "{count, plural, one {# ticket} other {# tickets}}",
+      "setUp": "Set up",
+      "sheetHint": "Each submission of this form opens a service request with these settings.",
+      "active": "Create service requests",
+      "activeHint": "Turn off to pause fulfilment without losing the settings.",
+      "category": "Category",
+      "group": "Fulfilment group",
+      "priority": "Priority",
+      "fulfilOn": "Create the ticket",
+      "on": {
+        "submitted": "When submitted",
+        "submittedHint": "Work starts right away.",
+        "approved": "When approved",
+        "approvedHint": "Work starts once the form's approval is complete.",
+        "noApproval": "This form has no approval step."
+      },
+      "stopTitle": "Stop fulfilling this form?",
+      "stopBody": "New submissions won't open service requests. Existing tickets are kept.",
+      "stopped": "Fulfilment removed"
+    }
+  },
+  "ciRelated": {
+    "title": "Open tickets",
+    "none": "No open tickets affect this CI.",
+    "viewAll": "View all",
+    "unavailable": "Tickets can't be shown."
+  },
+  "dashboardCard": {
+    "title": "Service desk",
+    "description": "Your queues and the tickets that need you first.",
+    "open": "Open workspace",
+    "queues": "Queues",
+    "mostUrgent": "Assigned to me, most urgent first",
+    "nothingAssigned": "Nothing is assigned to you."
+  }
+}

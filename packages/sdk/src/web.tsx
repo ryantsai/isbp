@@ -1,7 +1,7 @@
 'use client';
 
 import type { Locale } from '@isbp/i18n';
-import { createContext, use, useMemo, type ComponentType } from 'react';
+import { createContext, Fragment, Suspense, use, useMemo, type ComponentType, type ReactNode } from 'react';
 import type { ErrorBody } from './http';
 import type { ModuleManifest } from './manifest';
 import { PermissionSet, type Grant, type ResourceScope } from './permissions';
@@ -23,17 +23,41 @@ export interface WebRoute {
   permission?: string;
 }
 
+/**
+ * A contribution to another page's extension point, e.g. Helpdesk AI's panel in ITSM's ticket page
+ * (`itsm.ticket.aside`). The host renders `<Slot name=… props=… />`; the slot's props are the host's
+ * contract (export their type from the host module's contracts).
+ */
+export interface WebSlot {
+  /** `<host module>.<place>`, e.g. `itsm.ticket.aside`, `core.requests.assist`. */
+  slot: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  load: () => Promise<{ default: ComponentType<any> }>;
+  /** Shown only to viewers holding this permission at any scope. */
+  permission?: string;
+  /** Lower first (default 100). */
+  order?: number;
+}
+
 export interface WebModule {
   readonly manifest: ModuleManifest;
   readonly routes: readonly WebRoute[];
+  readonly slots: readonly WebSlot[];
 }
 
-export function defineWebModule(manifest: ModuleManifest, options: { routes: WebRoute[] }): WebModule {
+export function defineWebModule(
+  manifest: ModuleManifest,
+  options: { routes: WebRoute[]; slots?: WebSlot[] },
+): WebModule {
   for (const r of options.routes) {
     if (!r.path.startsWith('/'))
       throw new Error(`[${manifest.id}] web route "${r.path}" must start with "/"`);
   }
-  return Object.freeze({ manifest, routes: options.routes });
+  for (const s of options.slots ?? []) {
+    if (!/^[a-z][a-z0-9-]*\.[a-z][a-z0-9.-]*$/.test(s.slot))
+      throw new Error(`[${manifest.id}] slot "${s.slot}" must look like "<module>.<place>"`);
+  }
+  return Object.freeze({ manifest, routes: options.routes, slots: options.slots ?? [] });
 }
 
 /** Matches `/items/:id` style patterns; returns params or null. */
@@ -86,6 +110,63 @@ export function usePlatform() {
 export function useCan(permission: string, resource?: ResourceScope): boolean {
   const { permissions } = usePlatform();
   return resource ? permissions.can(permission, resource) : permissions.hasAny(permission);
+}
+
+/* ───────────────────────────── slots ───────────────────────────── */
+
+export interface SlotContribution {
+  moduleId: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Component: ComponentType<any>;
+  permission?: string;
+  order: number;
+}
+
+/** Slot name → contributions (components created once, outside render — see the web app's registry). */
+export type SlotRegistry = ReadonlyMap<string, readonly SlotContribution[]>;
+
+const SlotContext = createContext<SlotRegistry>(new Map());
+
+export const SlotProvider = SlotContext.Provider;
+
+/** Contributions to `name` from enabled modules the viewer may see, in order. */
+export function useSlot(name: string): readonly SlotContribution[] {
+  const registry = use(SlotContext);
+  const platform = use(PlatformContext);
+  return useMemo(() => {
+    if (!platform) return [];
+    const permissions = new PermissionSet(platform.grants);
+    return (registry.get(name) ?? []).filter(
+      (c) =>
+        platform.enabledModules.includes(c.moduleId) && (!c.permission || permissions.hasAny(c.permission)),
+    );
+  }, [registry, platform, name]);
+}
+
+/**
+ * Renders every contribution to an extension point. `wrap` lets the host place each one (e.g. in a
+ * card); `fallback` shows while a contribution loads.
+ */
+export function Slot<P extends object>({
+  name,
+  props,
+  fallback = null,
+  wrap,
+}: {
+  name: string;
+  props: P;
+  fallback?: ReactNode;
+  wrap?: (node: ReactNode, moduleId: string) => ReactNode;
+}) {
+  const contributions = useSlot(name);
+  return contributions.map(({ moduleId, Component }) => {
+    const node = (
+      <Suspense fallback={fallback}>
+        <Component {...props} />
+      </Suspense>
+    );
+    return <Fragment key={moduleId}>{wrap ? wrap(node, moduleId) : node}</Fragment>;
+  });
 }
 
 /* ───────────────────────────── API client ───────────────────────────── */

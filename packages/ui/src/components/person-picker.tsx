@@ -40,6 +40,7 @@ export function PersonPicker({
   disabled,
   className,
   'aria-describedby': describedBy,
+  'aria-label': ariaLabel,
 }: {
   value: PersonOption | null;
   onChange: (person: PersonOption | null) => void;
@@ -50,6 +51,8 @@ export function PersonPicker({
   disabled?: boolean;
   className?: string;
   'aria-describedby'?: string;
+  /** Name for pickers without a `<label htmlFor={id}>` (e.g. filters); defaults to the placeholder. */
+  'aria-label'?: string;
 }) {
   const t = useTranslations('ui.person');
   const [open, setOpen] = useState(false);
@@ -77,6 +80,7 @@ export function PersonPicker({
             aria-expanded={open}
             aria-invalid={invalid || undefined}
             aria-describedby={describedBy}
+            aria-label={ariaLabel ?? (id ? undefined : (placeholder ?? t('placeholder')))}
             disabled={disabled}
             className="w-full justify-between font-normal aria-invalid:border-destructive"
           >

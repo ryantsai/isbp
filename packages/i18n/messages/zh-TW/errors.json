@@ -36,5 +36,13 @@
   "WEBHOOK_TARGET_INVALID": "Webhook URL 必須使用 HTTPS，且不可指向私人網路。",
   "EMAIL_NOT_CONFIGURED": "尚未設定電子郵件。",
   "DELIVERY_FAILED": "訊息無法傳送。",
+  "AI_NOT_CONFIGURED": "尚未設定 AI 模型。管理員可在「系統管理 → AI」中新增。",
+  "AI_PROVIDER_ERROR": "AI 服務沒有回應，請稍後再試。",
+  "AI_BUDGET_EXCEEDED": "本月的 AI 預算已用完。",
+  "CONFIRMATION_REQUIRED": "執行此動作前請先確認。",
+  "INVALID_TRANSITION": "目前的狀態無法變更為該狀態。",
+  "RESOLUTION_REQUIRED": "請先說明解決方式。",
+  "RELATIONSHIP_INVALID": "不允許建立此關聯。",
+  "SCHEDULE_CONFLICT": "此時段無法使用。",
   "generic": "發生錯誤。"
 }

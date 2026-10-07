@@ -25,7 +25,8 @@
     "groupIdentity": "Identity",
     "groupAccess": "Access",
     "groupAutomation": "Automation",
-    "groupPlatform": "Platform"
+    "groupPlatform": "Platform",
+    "ai": "AI"
   },
   "permissions": {
     "usersRead": "View people and their profiles",
@@ -54,7 +55,8 @@
     "applicationsRead": "View applications and who has access to them",
     "applicationsManage": "Manage applications, their roles and grants",
     "apiClientsManage": "Create API clients and their keys",
-    "roleQueryRead": "Query roles and permissions through the Role Query API"
+    "roleQueryRead": "Query roles and permissions through the Role Query API",
+    "aiManage": "Configure the AI gateway: models, privacy and budget"
   },
   "settings": {
     "productName": "Product name",
@@ -70,7 +72,23 @@
     "emailPassword": "SMTP password",
     "emailFrom": "Sender",
     "emailFromHelp": "Name and address the email comes from, e.g. IS Big Platform, noreply@example.com",
-    "notificationRetention": "Keep notifications for (days)"
+    "notificationRetention": "Keep notifications for (days)",
+    "aiChatProvider": "Chat model provider",
+    "aiChatBaseUrl": "Chat API base URL",
+    "aiChatApiKey": "Chat API key",
+    "aiChatModel": "Chat model",
+    "aiChatInputPrice": "Input price (USD per million tokens)",
+    "aiChatOutputPrice": "Output price (USD per million tokens)",
+    "aiEmbeddingsProvider": "Embedding provider",
+    "aiEmbeddingsBaseUrl": "Embedding API base URL",
+    "aiEmbeddingsApiKey": "Embedding API key",
+    "aiEmbeddingsModel": "Embedding model",
+    "aiEmbeddingsDimensions": "Embedding dimensions",
+    "aiEmbeddingsPrice": "Embedding price (USD per million tokens)",
+    "aiMasking": "Mask personal data before it leaves the platform",
+    "aiMaskingCategories": "Masked data types",
+    "aiMaskingCustom": "Custom patterns to mask",
+    "aiMonthlyBudget": "Monthly AI budget (USD, 0 = no limit)"
   },
   "systemRoles": {
     "platform-admin": {
