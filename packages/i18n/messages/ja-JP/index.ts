@@ -24,6 +24,7 @@ import notifications from './notifications.json';
 import applications from './applications.json';
 import ai from './ai.json';
 import records from './records.json';
+import databases from './databases.json';
 
 const messages: Messages = {
   common,
@@ -50,5 +51,6 @@ const messages: Messages = {
   applications,
   ai,
   records,
+  databases,
 };
 export default messages;

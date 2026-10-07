@@ -1,0 +1,138 @@
+{
+  "title": "Database connections",
+  "description": "External databases that Data APIs, ETL pipelines, SQL jobs and database access management use. Passwords are encrypted and never shown again.",
+  "add": "Add connection",
+  "search": "Search connections",
+  "noMatch": "No connections match “{q}”.",
+  "empty": {
+    "title": "No database connections yet",
+    "description": "Register a SQL Server, PostgreSQL, MySQL or Oracle database so modules can use it."
+  },
+  "forbidden": {
+    "title": "You can't view database connections",
+    "description": "Ask an administrator for the Database connection administrator role."
+  },
+  "columns": {
+    "name": "Connection",
+    "engine": "Engine",
+    "server": "Server",
+    "purposes": "Used for",
+    "status": "Status"
+  },
+  "engines": {
+    "mssql": "SQL Server",
+    "postgres": "PostgreSQL",
+    "mysql": "MySQL",
+    "oracle": "Oracle"
+  },
+  "purposes": {
+    "data": "Data",
+    "admin": "Account admin",
+    "dataHint": "Data APIs, ETL pipelines and SQL jobs.",
+    "adminHint": "Creates accounts and grants roles (Database access). Never usable by Data APIs."
+  },
+  "status": {
+    "ok": "Connected",
+    "error": "Failed",
+    "unknown": "Not tested",
+    "checked": "Checked {when}",
+    "disabled": "Disabled"
+  },
+  "readOnly": "Read-only",
+  "actions": {
+    "test": "Test",
+    "edit": "Edit",
+    "catalog": "Browse catalog",
+    "delete": "Delete",
+    "more": "More actions for {name}"
+  },
+  "form": {
+    "createTitle": "Add a database connection",
+    "editTitle": "Edit {name}",
+    "createDescription": "Modules reach external databases only through connections registered here.",
+    "editDescription": "Leave the password empty to keep the stored one.",
+    "sectionServer": "Server",
+    "sectionSignIn": "Sign-in",
+    "sectionUse": "Use",
+    "name": "Name",
+    "namePlaceholder": "e.g. Finance data warehouse",
+    "key": "Key",
+    "keyHint": "Modules refer to the connection by this key. Lower-case letters, digits and dashes. It can't be changed later.",
+    "description": "Description",
+    "engine": "Engine",
+    "host": "Host",
+    "hostHint": "A host name or IP address the API and worker can reach.",
+    "port": "Port",
+    "database": "Database",
+    "serviceName": "Service name",
+    "instanceName": "Instance name",
+    "instanceHint": "For a named SQL Server instance. The port is then discovered.",
+    "tls": "Encryption",
+    "tlsOff": "Off",
+    "tlsRequire": "Encrypt without verifying the certificate",
+    "tlsVerify": "Encrypt and verify the certificate",
+    "ca": "CA certificate (PEM)",
+    "caStored": "A CA certificate is stored. Paste a new one to replace it.",
+    "username": "User name",
+    "password": "Password",
+    "passwordStored": "Stored. Leave empty to keep it.",
+    "passwordClear": "Remove the stored password",
+    "domain": "Windows domain",
+    "domainHint": "For SQL Server Windows authentication with a service account (NTLM).",
+    "purposes": "Used for",
+    "purposesError": "Choose at least one use.",
+    "readOnly": "Read-only",
+    "readOnlyHint": "Writes are refused, and queries run in read-only transactions where the engine has them. SQL Server relies on the login's permissions.",
+    "enabled": "Enabled",
+    "advanced": "Limits",
+    "poolMax": "Connections per process",
+    "timeout": "Statement timeout (seconds)",
+    "maxRows": "Maximum rows per result",
+    "leastPrivilege": "Use a dedicated login with only the privileges it needs: read-only for Data APIs, role administration only for account management.",
+    "validation": {
+      "name": "Enter a name.",
+      "key": "Use 2–64 lower-case letters, digits and dashes, starting with a letter.",
+      "host": "Enter a host name or IP address.",
+      "username": "Enter a user name.",
+      "port": "Enter a port from 1 to 65535.",
+      "number": "Enter a number from {min} to {max}."
+    },
+    "submit": "Add connection",
+    "saved": "Connection saved.",
+    "created": "Connection added.",
+    "testDraft": "Test connection"
+  },
+  "test": {
+    "running": "Connecting…",
+    "ok": "Connected in {ms} ms",
+    "failed": "Couldn't connect",
+    "code": "Code {code}",
+    "version": "Server: {version}"
+  },
+  "catalog": {
+    "title": "Catalog: {name}",
+    "description": "Tables, views and routines that the connection's login can see.",
+    "search": "Filter tables and routines",
+    "tables": "Tables and views",
+    "routines": "Procedures and functions",
+    "refresh": "Refresh",
+    "keyColumn": "Key column",
+    "view": "View",
+    "table": "Table",
+    "procedure": "Procedure",
+    "function": "Function",
+    "empty": "Nothing is visible to this login.",
+    "noMatch": "Nothing matches “{q}”.",
+    "truncated": "The catalog is large; only the first 20,000 entries are shown.",
+    "columns": "{count, plural, one {# column} other {# columns}}",
+    "params": "{count, plural, =0 {No parameters} one {# parameter} other {# parameters}}",
+    "returns": "Returns {type}",
+    "failed": "Couldn't read the catalog"
+  },
+  "delete": {
+    "title": "Delete {name}?",
+    "description": "Modules that use this connection stop working with it: Data APIs, pipelines and jobs fail until they point at another connection. This can't be undone.",
+    "confirm": "Delete connection",
+    "done": "Connection deleted."
+  }
+}

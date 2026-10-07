@@ -128,6 +128,33 @@ files:
     host: ''
     port: 3310
 
+# ── Script sandbox (Scheduled jobs) ──────────────────────────────────────────────────────────────────────
+# Script jobs (Python, Node.js, PowerShell, shell) never run inside the API or worker. With
+# runner=kubernetes the worker starts one Job per run in `namespace`: non-root, read-only root filesystem,
+# all capabilities dropped, seccomp RuntimeDefault, no service-account token, CPU/memory limits, a deadline,
+# and a NetworkPolicy that denies all traffic unless the job allows egress. none = script jobs can't run.
+sandbox:
+  runner: none
+  namespace: isbp-sandbox
+  # Create the namespace (Pod Security "restricted"), quota and limits. Set false to manage it yourself;
+  # the Role, RoleBinding and NetworkPolicies are still rendered into it.
+  createNamespace: true
+  # Images script jobs may use (pre-pull or mirror them in air-gapped clusters).
+  images:
+    - python:3.13-alpine
+    - node:24-alpine
+    - mcr.microsoft.com/powershell:lts-alpine-3.20
+    - alpine:3.22
+  # Where scripts with network "egress" may connect. Private ranges are excluded so scripts can't reach
+  # cluster services or the platform's databases; add specific CIDRs to `egress.allow` for internal APIs.
+  egress:
+    allow: ['0.0.0.0/0']
+    except: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '169.254.0.0/16', '100.64.0.0/10']
+  quota:
+    pods: '20'
+    cpu: '8'
+    memory: 16Gi
+
 # ── Secrets ─────────────────────────────────────────────────────────────────────────────────────────────
 # Required keys: DATABASE_URL, REDIS_URL, ISBP_MASTER_KEY. Optional: ISBP_MASTER_KEY_PREVIOUS (key rotation).
 # The Secret is loaded with envFrom, so any additional keys it contains also become environment variables.

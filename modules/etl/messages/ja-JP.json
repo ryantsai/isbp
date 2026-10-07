@@ -1,0 +1,614 @@
+{
+  "meta": {
+    "name": "データ API と ETL",
+    "description": "パラメーター化 SQL とストアド プロシージャから REST エンドポイントを作成し、データベース間で ETL パイプラインを実行します"
+  },
+  "nav": {
+    "group": "データ API と ETL",
+    "endpoints": "データ API",
+    "pipelines": "パイプライン",
+    "logs": "呼び出しログ"
+  },
+  "permissions": {
+    "endpointsRead": "データ API、バージョン、ドキュメント、実行ログを表示する",
+    "endpointsManage": "データ API を作成、編集、テスト、公開、廃止する",
+    "endpointsInvoke": "公開済みのデータ API を呼び出す (全体または 1 つのエンドポイント)",
+    "pipelinesRead": "ETL パイプラインとその実行を表示する",
+    "pipelinesManage": "ETL パイプラインを作成、編集、削除する",
+    "pipelinesRun": "ETL パイプラインを今すぐ、またはスケジュールで実行する"
+  },
+  "settings": {
+    "logRetentionDays": "実行ログの保持期間 (日)",
+    "logRetentionDaysHelp": "これより古いデータ API の呼び出しは毎晩削除されます。",
+    "defaultRateLimit": "既定のレート制限 (呼び出し元ごと、1 分あたりの回数)",
+    "defaultRateLimitHelp": "独自の制限を設定していないエンドポイントで使用されます。"
+  },
+  "entities": {
+    "endpoint": "データ API",
+    "pipeline": "ETL パイプライン"
+  },
+  "taskTypes": {
+    "pipeline": {
+      "name": "ETL パイプライン",
+      "description": "データ API と ETL のパイプラインを実行し、読み取り、書き込み、拒否された行数を報告します。"
+    }
+  },
+  "notifications": {
+    "pipeline_failed": {
+      "label": "自分の ETL パイプラインが失敗した",
+      "title": "パイプライン {pipeline} が失敗しました",
+      "body": "読み込みはロールバックされました。{error}"
+    }
+  },
+  "audit": {
+    "endpoint_created": "データ API を作成しました",
+    "endpoint_updated": "データ API を編集しました",
+    "endpoint_deleted": "データ API を削除しました",
+    "endpoint_tested": "データ API をテストしました",
+    "endpoint_published": "データ API のバージョンを公開しました",
+    "endpoint_deprecated": "データ API のバージョンを非推奨にしました",
+    "endpoint_retired": "データ API のバージョンを廃止しました",
+    "endpoint_restored": "データ API のバージョンを復元しました",
+    "endpoint_draft_loaded": "データ API のバージョンを下書きに読み込みました",
+    "endpoint_access_denied": "データ API の呼び出しを拒否しました (許可されていない API クライアント)",
+    "endpoint_connection_missing": "データ API のデータベース接続がなくなりました",
+    "pipeline_created": "パイプラインを作成しました",
+    "pipeline_updated": "パイプラインを編集しました",
+    "pipeline_deleted": "パイプラインを削除しました",
+    "pipeline_run_requested": "パイプラインの実行を要求しました",
+    "pipeline_run_cancelled": "パイプラインの実行をキャンセルしました",
+    "pipeline_run_succeeded": "パイプラインの実行が成功しました",
+    "pipeline_run_failed": "パイプラインの実行が失敗しました",
+    "pipeline_connection_missing": "パイプラインのデータベース接続がなくなりました"
+  },
+  "endpointStatus": {
+    "draft": "下書き",
+    "published": "公開済み",
+    "deprecated": "非推奨",
+    "retired": "廃止"
+  },
+  "versionStatus": {
+    "published": "公開済み",
+    "deprecated": "非推奨",
+    "retired": "廃止"
+  },
+  "runStatus": {
+    "queued": "キュー待ち",
+    "running": "実行中",
+    "succeeded": "成功",
+    "failed": "失敗",
+    "cancelled": "キャンセル済み"
+  },
+  "runTrigger": {
+    "manual": "今すぐ実行",
+    "schedule": "スケジュールされたジョブ"
+  },
+  "kind": {
+    "query": "SQL クエリ",
+    "procedure": "ストアド プロシージャまたは関数"
+  },
+  "routine": {
+    "procedure": "プロシージャ",
+    "function": "関数"
+  },
+  "shape": {
+    "rows": "すべての行 (配列)",
+    "single": "最初の行 (ない場合は 404)"
+  },
+  "writeMode": {
+    "insert": "挿入",
+    "upsert": "更新または挿入",
+    "replace": "置換"
+  },
+  "engine": {
+    "mssql": "SQL Server",
+    "postgres": "PostgreSQL",
+    "mysql": "MySQL",
+    "oracle": "Oracle"
+  },
+  "connection": {
+    "missing": "接続がありません",
+    "unreachable": "到達不能",
+    "readOnly": "読み取り専用"
+  },
+  "duration": {
+    "ms": "{n} ミリ秒",
+    "seconds": "{n} 秒",
+    "minutes": "{m} 分 {s} 秒"
+  },
+  "charts": {
+    "viewAs": "表示形式",
+    "chart": "グラフ",
+    "table": "表"
+  },
+  "stats": {
+    "barLabel": "{at}: 呼び出し {calls} 件、エラー {errors} 件",
+    "period": "期間",
+    "periods": {
+      "24h": "24 時間",
+      "7d": "7 日間"
+    },
+    "summary": "トラフィックの概要",
+    "tiles": {
+      "calls": "呼び出し数",
+      "errorRate": "エラー率",
+      "p95": "p95 レイテンシ",
+      "cacheHits": "キャッシュ ヒット"
+    },
+    "errorsHint": "{count, plural, other {エラー # 件}}",
+    "avgHint": "平均 {avg}",
+    "chartTitle": "呼び出しの推移",
+    "chartDescription": {
+      "24h": "過去 24 時間、1 時間ごと",
+      "7d": "過去 7 日間、1 日ごと"
+    },
+    "ok": "成功",
+    "errors": "エラー",
+    "bucket": "時間"
+  },
+  "fields": {
+    "name": "名前",
+    "slug": "URL スラッグ",
+    "description": "説明",
+    "method": "メソッド",
+    "kind": "種類",
+    "connection": "接続",
+    "status": "状態",
+    "updated": "更新日時",
+    "version": "バージョン",
+    "url": "URL",
+    "access": "アクセス",
+    "rateLimit": "1 分あたりのレート制限",
+    "cache": "キャッシュ",
+    "maxRows": "最大行数",
+    "sql": "SQL",
+    "procedure": "プロシージャまたは関数",
+    "responseShape": "応答",
+    "timeoutSeconds": "タイムアウト (秒)",
+    "cacheSeconds": "キャッシュ期間 (秒)",
+    "allowsWrites": "書き込みを許可",
+    "allowUsers": "サインインしているユーザーが呼び出せる",
+    "allowedClients": "許可する API クライアント",
+    "owner": "所有者",
+    "mode": "書き込みモード",
+    "enabled": "有効",
+    "table": "テーブル",
+    "keys": "キー列",
+    "batchSize": "バッチ サイズ"
+  },
+  "endpoints": {
+    "title": "データ API",
+    "description": "SQL またはストアド プロシージャから作成した、社内データベースの REST エンドポイントです。バージョン管理され、ドキュメントが付きます。",
+    "calls24h": "呼び出し数 (24 時間)",
+    "errors": "{count, plural, other {エラー # 件}}",
+    "empty": "データ API はまだありません",
+    "emptyFiltered": "一致するデータ API はありません",
+    "emptyHint": "データ API は SQL クエリやストアド プロシージャを、ドキュメント付きの REST エンドポイントにします。",
+    "liveCount": "{count, plural, other {データ API # 件}}",
+    "new": "新しいデータ API",
+    "openapi": "OpenAPI",
+    "search": "名前またはスラッグで検索…"
+  },
+  "create": {
+    "title": "新しいデータ API",
+    "hint": "名前を付けてデータ接続を選択します。SQL の記述 (またはプロシージャの選択) は、この後の下書きで行います。",
+    "nameRequired": "名前を入力してください",
+    "slugInvalid": "英小文字、数字、単一のハイフンのみ使用でき、英字で始める必要があります",
+    "connectionRequired": "接続を選択してください",
+    "created": "{name} を作成しました",
+    "namePlaceholder": "地域別の顧客",
+    "slugHint": "呼び出し元は /api/v1/etl/data/{slug} を使用します。バージョンを公開した後は変更できません。",
+    "pickConnection": "接続を選択…",
+    "connectionHint": "管理者がデータ用途を許可した接続のみが表示されます。最小権限のログインを使用してください。"
+  },
+  "endpoint": {
+    "unpublishedChanges": "未公開の変更あり",
+    "details": "詳細",
+    "peopleAllowed": "アクセス許可のあるユーザー",
+    "peopleNotAllowed": "ユーザー不可",
+    "clientsAllowed": "{count, plural, =0 {API クライアントなし} other {API クライアント # 件}}",
+    "perMinute": "呼び出し元ごとに 1 分あたり {n} 回",
+    "cacheFor": "{s} 秒",
+    "cacheOff": "オフ",
+    "viewCalls": "呼び出しを表示",
+    "connectionMissing": "このデータ API のデータベース接続は削除されました。下書きで別の接続を選択し、新しいバージョンを公開してください。",
+    "delete": "削除",
+    "deleteTitle": "{name} を削除しますか?",
+    "deleteBody": "バージョンと実行ログも削除され、以降の呼び出しには 404 が返されます。",
+    "deleted": "データ API を削除しました",
+    "latest": "最新 v{version}",
+    "notFound": "このデータ API は存在しません (または削除されました)。",
+    "publish": "公開",
+    "testToPublish": "テストして公開",
+    "tabs": {
+      "overview": "概要",
+      "definition": "定義",
+      "test": "テスト",
+      "versions": "バージョン",
+      "docs": "ドキュメント",
+      "links": "リンクとファイル"
+    }
+  },
+  "editor": {
+    "statement": "ステートメント",
+    "statementHint": {
+      "query": "1 つの SQL ステートメント。値はドライバーが :name プレースホルダーを通じてバインドし、SQL に直接埋め込まれることはありません。",
+      "procedure": "接続のカタログにあるプロシージャまたは関数。入力引数がパラメーターになります。"
+    },
+    "sqlHint": "パラメーターは :name と記述します。文字列、コメント、:: キャストはパラメーターではありません。",
+    "detected": "SQL 内のパラメーター:",
+    "noneDetected": "なし",
+    "addMissing": "{count, plural, other {不足しているパラメーター # 件を追加}}",
+    "removeUnused": "{count, plural, other {未使用 # 件を削除}}",
+    "writesFound": "この SQL はデータまたはスキーマを変更します ({keywords})。保存するには「書き込みを許可」をオンにしてください。",
+    "writesAllowed": "この SQL はデータまたはスキーマを変更します ({keywords})。書き込みは許可されています。",
+    "procedureHint": "接続のログインから参照できるルーチンから選択します。",
+    "loadingCatalog": "カタログを読み込んでいます…",
+    "pickProcedure": "プロシージャまたは関数を選択…",
+    "arguments": "入力引数:",
+    "general": "全般",
+    "response": "応答と制限",
+    "maxRowsHint": "接続の上限を超えることはできません。",
+    "cacheHint": "0 にするとキャッシュはオフになります。結果はバージョンとパラメーターごとにキャッシュされます。",
+    "allowsWritesHint": "書き込みや DDL のキーワードを含む SQL に必要です。読み取り専用の接続では書き込みは常に拒否されます。",
+    "access": "アクセス",
+    "accessHint": "公開済みバージョンを呼び出せるユーザーやクライアント。変更はすぐに反映され、新しいバージョンは不要です。",
+    "allowUsersHint": "ユーザーには、データ API を呼び出すアクセス許可 (全体またはこのエンドポイント) が必要です。",
+    "noClients": "API クライアントはまだありません。管理者が「アプリケーションと API クライアント」で作成します。",
+    "revoked": "取り消し済み",
+    "rateLimitHint": "空欄の場合は既定値を使用します。現在: 呼び出し元ごとに 1 分あたり {n} 回。",
+    "unsaved": "未保存の変更があります",
+    "allSaved": "すべての変更を保存しました",
+    "discard": "破棄",
+    "save": "下書きを保存",
+    "saved": "下書きを保存しました",
+    "fixFields": "強調表示されたフィールドを修正してください。",
+    "paramsList": "パラメーター: {list}"
+  },
+  "params": {
+    "title": "パラメーター",
+    "hint": "データベースを呼び出す前に型と内容を検証します。無効な入力には 400 とフィールドごとの詳細が返されます。",
+    "name": "名前",
+    "type": "型",
+    "default": "既定値",
+    "more": "詳細",
+    "remove": "パラメーター {name} を削除",
+    "required": "必須",
+    "list": "複数の値",
+    "sensitive": "機密 (ログではマスク)",
+    "description": "説明",
+    "example": "例",
+    "target": "引数",
+    "min": "最小値",
+    "max": "最大値",
+    "minLength": "最小長",
+    "maxLength": "最大長",
+    "pattern": "パターン (正規表現)",
+    "enum": "許可する値",
+    "enumHint": "コンマで区切ります。フィールドを離れたときに適用されます。",
+    "none": "パラメーターはありません。",
+    "add": "パラメーターを追加",
+    "types": {
+      "string": "テキスト",
+      "integer": "整数",
+      "decimal": "10 進数",
+      "number": "数値",
+      "boolean": "はい/いいえ",
+      "date": "日付",
+      "datetime": "日時",
+      "uuid": "UUID"
+    }
+  },
+  "test": {
+    "title": "テスト コンソール",
+    "hint": "これらの値で実際のデータベースに対して実行します。下書きのテストが成功すると公開できます。",
+    "runWhat": "実行対象",
+    "draft": "下書き",
+    "version": "バージョン {version}",
+    "noParams": "このステートメントにはパラメーターがありません。",
+    "run": "テストを実行",
+    "manageOnly": "テストを実行できるのはデータ API の開発者のみです。",
+    "empty": "テストを実行すると、行、列、所要時間、バインドされた SQL が表示されます。",
+    "rows": "{count, plural, other {# 行}}",
+    "truncated": "上限を超える行があります",
+    "shownRows": "最初の {n} 行を表示",
+    "publish": "この下書きを公開",
+    "failed": "データベースが拒否しました ({kind})",
+    "boundSql": "バインドされた SQL (値は別に送信されます)",
+    "results": "結果",
+    "listHint": "コンマ区切り",
+    "required": "必須",
+    "defaultIs": "既定値 {value}",
+    "notSet": "未設定"
+  },
+  "publish": {
+    "title": "バージョン {version} を公開",
+    "hint": "テスト済みの下書きを変更不可のバージョンとして固定します。通常の URL の呼び出し元は以降このバージョンを使用し、バージョンを固定している呼び出し元はそのまま使用できます。",
+    "note": "変更メモ",
+    "notePlaceholder": "変更内容とその理由",
+    "confirm": "v{version} を公開",
+    "published": "バージョン {version} を公開しました"
+  },
+  "versions": {
+    "title": "バージョン",
+    "hint": "公開済みのバージョンは変更されません。非推奨のバージョンは Deprecation ヘッダー付きで応答し、廃止されたバージョンは 410 を返します。",
+    "none": "まだ何も公開されていません。下書きをテストしてから公開してください。",
+    "latest": "最新",
+    "publishedBy": "{name} が公開",
+    "actions": {
+      "deprecate": "非推奨にする",
+      "retire": "廃止",
+      "restore": "復元",
+      "load": "下書きに読み込む"
+    },
+    "compare": "比較",
+    "from": "比較元",
+    "to": "比較先",
+    "draft": "下書き",
+    "statement": "ステートメント",
+    "parameters": "パラメーター",
+    "settings": "設定",
+    "noChanges": "変更はありません。",
+    "added": "追加:",
+    "removed": "削除:",
+    "confirm": {
+      "deprecate": {
+        "title": "バージョン {version} を非推奨にしますか?",
+        "body": "このバージョンは引き続き応答し、Deprecation ヘッダーと最新バージョンへのリンクが付くため、呼び出し元は移行できます。"
+      },
+      "retire": {
+        "title": "バージョン {version} を廃止しますか?",
+        "body": "以降、このバージョンの呼び出しには 410 Gone が返されます。後で復元できます。"
+      },
+      "restore": {
+        "title": "バージョン {version} を復元しますか?",
+        "body": "このバージョンは再び公開され、通常どおり応答します。"
+      },
+      "load": {
+        "title": "バージョン {version} を下書きに読み込みますか?",
+        "body": "下書きはこのバージョンの定義に置き換えられます。未保存の編集は失われます。"
+      }
+    },
+    "done": {
+      "deprecate": "バージョン {version} を非推奨にしました",
+      "retire": "バージョン {version} を廃止しました",
+      "restore": "バージョン {version} を復元しました",
+      "load": "バージョン {version} を下書きに読み込みました"
+    }
+  },
+  "docs": {
+    "unpublished": "公開済みのバージョンはまだありません",
+    "unpublishedHint": "バージョンを公開するとドキュメントが表示されます。",
+    "request": "要求",
+    "requestHint": "GET はクエリ文字列でパラメーターを受け取ります (複数の値はキーを繰り返すかコンマで区切ります)。POST は JSON オブジェクトを受け取ります。",
+    "parameters": "パラメーター",
+    "requiredColumn": "必須",
+    "details": "詳細",
+    "yes": "はい",
+    "defaultValue": "いいえ (既定値 {value})",
+    "exampleValue": "例 {value}",
+    "oneOf": "{values} のいずれか",
+    "minLength": "{n} 文字以上",
+    "maxLength": "{n} 文字以下",
+    "pattern": "{pattern} に一致",
+    "noParams": "パラメーターはありません。",
+    "curl": "要求の例",
+    "csvHint": "CSV を取得するには Accept: text/csv を送信します。応答には RateLimit ヘッダーが付き、X-Cache は結果がキャッシュからのものかを示します。",
+    "response": "応答",
+    "responseHint": {
+      "rows": "data は行の配列です。meta には行数、切り捨ての有無、バージョン、所要時間、キャッシュの有無が含まれます。",
+      "single": "data は最初の行です。一致する行がない場合は 404 が返されます。"
+    },
+    "exampleResponse": "応答の例",
+    "versionTitle": "バージョン",
+    "version": "対象",
+    "latest": "最新 (v{version})",
+    "pinned": "固定 v{version}",
+    "authHint": "API クライアントは API キーまたは OAuth クライアント資格情報トークンで認証します。クライアントはこのエンドポイントの許可リストに含まれている必要があります。",
+    "openapi": "OpenAPI をダウンロード",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "copyFailed": "コピーできませんでした"
+  },
+  "logs": {
+    "title": "呼び出しログ",
+    "description": "データ API のすべての呼び出し: 誰がどのバージョンを呼び出したか、結果、所要時間、行数。機密パラメーターはマスクされます。",
+    "search": "スラッグ、呼び出し元、エラー、要求 ID…",
+    "when": "日時",
+    "endpoint": "データ API",
+    "caller": "呼び出し元",
+    "status": "状態",
+    "duration": "所要時間",
+    "rows": "行数",
+    "cached": "キャッシュ",
+    "ok": "成功",
+    "error": "エラー",
+    "allEndpoints": "すべてのデータ API",
+    "allStatuses": "すべての結果",
+    "allCallers": "すべての呼び出し元",
+    "period": "期間",
+    "periods": {
+      "24h": "過去 24 時間",
+      "7d": "過去 7 日間",
+      "30d": "過去 30 日間"
+    },
+    "empty": "呼び出しはまだありません",
+    "emptyFiltered": "一致する呼び出しはありません",
+    "emptyHint": "ユーザーや API クライアントが公開済みのデータ API を使用すると、ここに呼び出しが表示されます。",
+    "liveCount": "{count, plural, other {呼び出し # 件}}",
+    "call": "呼び出し",
+    "cache": "キャッシュ",
+    "hit": "ヒット",
+    "miss": "ミス",
+    "requestId": "要求 ID",
+    "params": "パラメーター",
+    "maskedHint": "機密パラメーターは ••• として保存されます。",
+    "outcomeOk": "成功",
+    "outcomeError": "失敗"
+  },
+  "pipelines": {
+    "title": "パイプライン",
+    "description": "データベース接続間の ETL: ソース クエリ、ターゲット テーブル、列マッピング、固定の変換。",
+    "search": "パイプラインを検索…",
+    "new": "新しいパイプライン",
+    "newTitle": "新しいパイプライン",
+    "newHint": "ある接続から読み取り、別の接続のテーブルに書き込みます。1 回の実行は 1 つのトランザクションで行われます。",
+    "flow": "ソース → ターゲット",
+    "into": "書き込み先",
+    "lastRun": "前回の実行",
+    "never": "未実行",
+    "written": "{n} 行を書き込み",
+    "incremental": "増分",
+    "disabled": "無効",
+    "empty": "パイプラインはまだありません",
+    "emptyFiltered": "一致するパイプラインはありません",
+    "emptyHint": "パイプラインはソース クエリの行をターゲット テーブルにコピーします。手動またはスケジュールで実行できます。",
+    "liveCount": "{count, plural, other {パイプライン # 件}}",
+    "views": {
+      "failed": "前回の実行が失敗",
+      "running": "実行中",
+      "disabled": "無効"
+    }
+  },
+  "pipeline": {
+    "definition": "定義",
+    "incrementalSummary": "{column} による増分読み込み。次回の実行では {watermark} より後の行を読み取ります。",
+    "key": "(キー)",
+    "last30": "過去 30 日間",
+    "tiles": {
+      "runs": "実行数 (30 日間)",
+      "succeeded": "成功",
+      "failed": "失敗",
+      "rowsWritten": "書き込んだ行数"
+    },
+    "notFound": "このパイプラインは存在しません (または削除されました)。",
+    "ownedBy": "所有者 {name}",
+    "queued": "実行をキューに追加しました",
+    "runNow": "今すぐ実行",
+    "runningNow": "実行中: {read} 行を読み取り、{written} 行を書き込みました。進行状況を表示",
+    "schedule": "スケジュール",
+    "delete": "削除",
+    "deleteTitle": "{name} を削除しますか?",
+    "deleteBody": "パイプラインと実行履歴が削除されます。読み込み済みのデータはターゲットに残ります。",
+    "deleted": "パイプラインを削除しました",
+    "connectionMissing": "このパイプラインのデータベース接続が削除されました。定義で別の接続を選択してください。",
+    "tabs": {
+      "overview": "概要",
+      "runs": "実行",
+      "definition": "定義",
+      "links": "リンクとファイル"
+    }
+  },
+  "pipelineEditor": {
+    "source": "ソース",
+    "sourceHint": "1 つのステートメントを読み取り専用で実行し、バッチでストリーミングします。",
+    "paramValues": "パラメーターの値",
+    "incremental": "増分",
+    "incrementalHint": "前回成功した実行の結果列の最大値を :watermark に渡します。",
+    "watermarkColumn": "ウォーターマーク列",
+    "watermarkInitial": "初回実行の開始点",
+    "currentWatermark": "現在のウォーターマーク: {value}",
+    "preview": "ソースをプレビュー",
+    "previewColumns": "列: {list}",
+    "sample": "サンプル行",
+    "mapping": "列マッピング",
+    "mappingHint": "ソース列 → ターゲット列。固定の変換を指定できます。カスタム コードはありません。",
+    "noMappings": "少なくとも 1 つの列をマッピングしてください。ソースをプレビューしてから自動マッピングを使用します。",
+    "addMapping": "列を追加",
+    "autoMap": "同じ名前を自動マッピング",
+    "ownerHint": "「今すぐ実行」で開始した実行が失敗したときに通知されます。",
+    "target": "ターゲット",
+    "targetHint": "ターゲット接続のカタログにあるテーブル。すべて 1 つのトランザクションで書き込まれます。",
+    "pickTable": "テーブルを選択…",
+    "pickTableFirst": "先にテーブルを選択してください。",
+    "modeHint": {
+      "insert": "すべての行を追加します。",
+      "upsert": "新しい行を挿入し、同じキーの行を更新します。",
+      "replace": "テーブルのすべての行を削除してから挿入します (同じトランザクション内)。"
+    },
+    "uniqueKey": "一意",
+    "readOnlyTarget": "この接続は読み取り専用です。書き込み可能な接続を選択してください。",
+    "create": "パイプラインを作成",
+    "created": "{name} を作成しました",
+    "saved": "パイプラインを保存しました",
+    "save": "パイプラインを保存"
+  },
+  "mapping": {
+    "source": "ソース列",
+    "target": "ターゲット列",
+    "transform": "変換",
+    "pick": "選択…",
+    "castTo": "変換先の型",
+    "value": "値",
+    "remove": "マッピング {n} を削除",
+    "transforms": {
+      "none": "そのまま",
+      "trim": "前後の空白を削除",
+      "upper": "大文字",
+      "lower": "小文字",
+      "cast": "型を変換",
+      "default": "空の場合の既定値",
+      "constant": "定数"
+    },
+    "castTypes": {
+      "string": "テキスト",
+      "integer": "整数",
+      "decimal": "10 進数",
+      "boolean": "はい/いいえ",
+      "date": "日付",
+      "datetime": "日時"
+    }
+  },
+  "runs": {
+    "title": "実行",
+    "recent": "最近の実行",
+    "when": "開始日時",
+    "trigger": "トリガー",
+    "manualBy": "{name} が今すぐ実行",
+    "rows": "行数",
+    "rowCounts": "読み取り {read} · 書き込み {written}",
+    "rejected": "拒否 {n}",
+    "duration": "所要時間",
+    "error": "エラー",
+    "empty": "実行はまだありません",
+    "emptyHint": "「今すぐ実行」を使用するか、スケジュールされたジョブでパイプラインをスケジュールします。"
+  },
+  "run": {
+    "title": "{name} の実行",
+    "notFound": "この実行は存在しません。",
+    "cancel": "実行をキャンセル",
+    "cancelTitle": "この実行をキャンセルしますか?",
+    "cancelBody": "次のバッチで停止し、書き込んだ内容はすべてロールバックされます。",
+    "cancelRequested": "キャンセルしています…",
+    "stopping": "次のバッチで停止します…",
+    "progress": "進行状況",
+    "tiles": {
+      "rowsRead": "読み取った行数",
+      "rowsWritten": "書き込んだ行数",
+      "rowsRejected": "拒否した行数",
+      "duration": "所要時間"
+    },
+    "inProgress": "実行中",
+    "watermark": "ウォーターマーク: {from} → {to}",
+    "log": "ログ",
+    "waiting": "ワーカーを待っています…",
+    "noLog": "ログはありません。",
+    "levels": {
+      "info": "情報",
+      "warn": "警告",
+      "error": "エラー"
+    }
+  },
+  "links": {
+    "unavailable": "リンクとファイルは使用できません",
+    "unavailableHint": "プラットフォームの関連レコードと添付ファイルが無効になっています。"
+  },
+  "taskConfig": {
+    "pipeline": "パイプライン",
+    "pick": "パイプラインを選択…",
+    "loading": "パイプラインを読み込んでいます…",
+    "hint": "「今すぐ実行」と同じ方法でパイプラインを実行します。読み取り、書き込み、拒否された行数がジョブの実行に表示されます。",
+    "disabled": "無効",
+    "open": "{name} を開く"
+  }
+}

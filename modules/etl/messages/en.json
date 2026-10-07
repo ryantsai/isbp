@@ -1,0 +1,614 @@
+{
+  "meta": {
+    "name": "Data APIs & ETL",
+    "description": "REST endpoints from parameterized SQL and stored procedures, and ETL pipelines between databases"
+  },
+  "nav": {
+    "group": "Data APIs & ETL",
+    "endpoints": "Data APIs",
+    "pipelines": "Pipelines",
+    "logs": "Call log"
+  },
+  "permissions": {
+    "endpointsRead": "See Data APIs, their versions, docs and execution logs",
+    "endpointsManage": "Create, edit, test, publish and retire Data APIs",
+    "endpointsInvoke": "Call published Data APIs (globally or for one endpoint)",
+    "pipelinesRead": "See ETL pipelines and their runs",
+    "pipelinesManage": "Create, edit and delete ETL pipelines",
+    "pipelinesRun": "Run ETL pipelines now or on a schedule"
+  },
+  "settings": {
+    "logRetentionDays": "Keep execution logs (days)",
+    "logRetentionDaysHelp": "Data API calls older than this are deleted every night.",
+    "defaultRateLimit": "Default rate limit (calls per caller per minute)",
+    "defaultRateLimitHelp": "Used by endpoints that do not set their own limit."
+  },
+  "entities": {
+    "endpoint": "Data API",
+    "pipeline": "ETL pipeline"
+  },
+  "taskTypes": {
+    "pipeline": {
+      "name": "ETL pipeline",
+      "description": "Runs a Data APIs & ETL pipeline: rows read, written and rejected are reported."
+    }
+  },
+  "notifications": {
+    "pipeline_failed": {
+      "label": "My ETL pipeline failed",
+      "title": "Pipeline {pipeline} failed",
+      "body": "The load was rolled back. {error}"
+    }
+  },
+  "audit": {
+    "endpoint_created": "Data API created",
+    "endpoint_updated": "Data API edited",
+    "endpoint_deleted": "Data API deleted",
+    "endpoint_tested": "Data API tested",
+    "endpoint_published": "Data API version published",
+    "endpoint_deprecated": "Data API version deprecated",
+    "endpoint_retired": "Data API version retired",
+    "endpoint_restored": "Data API version restored",
+    "endpoint_draft_loaded": "Data API version loaded into the draft",
+    "endpoint_access_denied": "Data API call refused (API client not allowed)",
+    "endpoint_connection_missing": "Data API lost its database connection",
+    "pipeline_created": "Pipeline created",
+    "pipeline_updated": "Pipeline edited",
+    "pipeline_deleted": "Pipeline deleted",
+    "pipeline_run_requested": "Pipeline run requested",
+    "pipeline_run_cancelled": "Pipeline run cancelled",
+    "pipeline_run_succeeded": "Pipeline run succeeded",
+    "pipeline_run_failed": "Pipeline run failed",
+    "pipeline_connection_missing": "Pipeline lost a database connection"
+  },
+  "endpointStatus": {
+    "draft": "Draft",
+    "published": "Published",
+    "deprecated": "Deprecated",
+    "retired": "Retired"
+  },
+  "versionStatus": {
+    "published": "Published",
+    "deprecated": "Deprecated",
+    "retired": "Retired"
+  },
+  "runStatus": {
+    "queued": "Queued",
+    "running": "Running",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "cancelled": "Cancelled"
+  },
+  "runTrigger": {
+    "manual": "Run now",
+    "schedule": "Scheduled job"
+  },
+  "kind": {
+    "query": "SQL query",
+    "procedure": "Stored procedure or function"
+  },
+  "routine": {
+    "procedure": "procedure",
+    "function": "function"
+  },
+  "shape": {
+    "rows": "All rows (array)",
+    "single": "First row (404 when none)"
+  },
+  "writeMode": {
+    "insert": "Insert",
+    "upsert": "Upsert",
+    "replace": "Replace"
+  },
+  "engine": {
+    "mssql": "SQL Server",
+    "postgres": "PostgreSQL",
+    "mysql": "MySQL",
+    "oracle": "Oracle"
+  },
+  "connection": {
+    "missing": "Connection missing",
+    "unreachable": "Unreachable",
+    "readOnly": "read-only"
+  },
+  "duration": {
+    "ms": "{n} ms",
+    "seconds": "{n} s",
+    "minutes": "{m} min {s} s"
+  },
+  "charts": {
+    "viewAs": "Show as",
+    "chart": "Chart",
+    "table": "Table"
+  },
+  "stats": {
+    "barLabel": "{at}: {calls} calls, {errors} errors",
+    "period": "Period",
+    "periods": {
+      "24h": "24 hours",
+      "7d": "7 days"
+    },
+    "summary": "Traffic summary",
+    "tiles": {
+      "calls": "Calls",
+      "errorRate": "Error rate",
+      "p95": "p95 latency",
+      "cacheHits": "Cache hits"
+    },
+    "errorsHint": "{count, plural, one {# error} other {# errors}}",
+    "avgHint": "Average {avg}",
+    "chartTitle": "Calls over time",
+    "chartDescription": {
+      "24h": "Per hour, last 24 hours",
+      "7d": "Per day, last 7 days"
+    },
+    "ok": "Successful",
+    "errors": "Errors",
+    "bucket": "Time"
+  },
+  "fields": {
+    "name": "Name",
+    "slug": "URL slug",
+    "description": "Description",
+    "method": "Method",
+    "kind": "Kind",
+    "connection": "Connection",
+    "status": "Status",
+    "updated": "Updated",
+    "version": "Version",
+    "url": "URL",
+    "access": "Access",
+    "rateLimit": "Rate limit per minute",
+    "cache": "Cache",
+    "maxRows": "Max rows",
+    "sql": "SQL",
+    "procedure": "Procedure or function",
+    "responseShape": "Response",
+    "timeoutSeconds": "Timeout (seconds)",
+    "cacheSeconds": "Cache for (seconds)",
+    "allowsWrites": "Allows writes",
+    "allowUsers": "Signed-in people may call it",
+    "allowedClients": "API clients allowed",
+    "owner": "Owner",
+    "mode": "Write mode",
+    "enabled": "Enabled",
+    "table": "Table",
+    "keys": "Key columns",
+    "batchSize": "Batch size"
+  },
+  "endpoints": {
+    "title": "Data APIs",
+    "description": "REST endpoints over company databases, built from SQL or stored procedures, versioned and documented.",
+    "calls24h": "Calls (24 h)",
+    "errors": "{count, plural, one {# error} other {# errors}}",
+    "empty": "No Data APIs yet",
+    "emptyFiltered": "No Data APIs match",
+    "emptyHint": "A Data API turns a SQL query or a stored procedure into a documented REST endpoint.",
+    "liveCount": "{count, plural, one {# Data API} other {# Data APIs}}",
+    "new": "New Data API",
+    "openapi": "OpenAPI",
+    "search": "Search by name or slug…"
+  },
+  "create": {
+    "title": "New Data API",
+    "hint": "Name it and pick a data connection. You write the SQL (or pick a procedure) next, in the draft.",
+    "nameRequired": "Give it a name",
+    "slugInvalid": "Lower-case letters, digits and single dashes, starting with a letter",
+    "connectionRequired": "Pick a connection",
+    "created": "{name} created",
+    "namePlaceholder": "Customers by region",
+    "slugHint": "Callers use /api/v1/etl/data/{slug}. It cannot change once a version is published.",
+    "pickConnection": "Pick a connection…",
+    "connectionHint": "Only connections an administrator allowed for data use are listed. Use a least-privilege login."
+  },
+  "endpoint": {
+    "unpublishedChanges": "Unpublished changes",
+    "details": "Details",
+    "peopleAllowed": "People with access",
+    "peopleNotAllowed": "No people",
+    "clientsAllowed": "{count, plural, =0 {no API clients} one {# API client} other {# API clients}}",
+    "perMinute": "{n} per caller per minute",
+    "cacheFor": "{s} s",
+    "cacheOff": "Off",
+    "viewCalls": "View calls",
+    "connectionMissing": "The database connection of this Data API was deleted. Pick another connection in the draft and publish a new version.",
+    "delete": "Delete",
+    "deleteTitle": "Delete {name}?",
+    "deleteBody": "Its versions and execution log are deleted, and callers get 404 from now on.",
+    "deleted": "Data API deleted",
+    "latest": "Latest v{version}",
+    "notFound": "This Data API does not exist (or was deleted).",
+    "publish": "Publish",
+    "testToPublish": "Test to publish",
+    "tabs": {
+      "overview": "Overview",
+      "definition": "Definition",
+      "test": "Test",
+      "versions": "Versions",
+      "docs": "Docs",
+      "links": "Links & files"
+    }
+  },
+  "editor": {
+    "statement": "Statement",
+    "statementHint": {
+      "query": "One SQL statement. Values are bound by the driver through :name placeholders, never pasted into the SQL.",
+      "procedure": "A procedure or function from the connection’s catalog; its input arguments become parameters."
+    },
+    "sqlHint": "Write :name for a parameter. Strings, comments and :: casts are not parameters.",
+    "detected": "Parameters in the SQL:",
+    "noneDetected": "none",
+    "addMissing": "{count, plural, one {Add # missing parameter} other {Add # missing parameters}}",
+    "removeUnused": "{count, plural, one {Remove # unused} other {Remove # unused}}",
+    "writesFound": "This SQL changes data or schema ({keywords}). Turn on “Allows writes” to save it.",
+    "writesAllowed": "This SQL changes data or schema ({keywords}) and is allowed to.",
+    "procedureHint": "Pick from the routines the connection’s login can see.",
+    "loadingCatalog": "Loading the catalog…",
+    "pickProcedure": "Pick a procedure or function…",
+    "arguments": "Input arguments:",
+    "general": "General",
+    "response": "Response and limits",
+    "maxRowsHint": "Capped by the connection’s limit.",
+    "cacheHint": "0 turns caching off. Results are cached per version and parameters.",
+    "allowsWritesHint": "Needed for SQL with write or DDL keywords. Read-only connections refuse writes anyway.",
+    "access": "Access",
+    "accessHint": "Who may call the published versions. Changes apply at once; no new version is needed.",
+    "allowUsersHint": "People need the permission to call Data APIs, globally or on this endpoint.",
+    "noClients": "No API clients exist yet. An administrator creates them under Applications & API clients.",
+    "revoked": "revoked",
+    "rateLimitHint": "Leave empty for the default. Now: {n} calls per caller per minute.",
+    "unsaved": "Unsaved changes",
+    "allSaved": "All changes saved",
+    "discard": "Discard",
+    "save": "Save draft",
+    "saved": "Draft saved",
+    "fixFields": "Fix the highlighted fields.",
+    "paramsList": "Parameters: {list}"
+  },
+  "params": {
+    "title": "Parameters",
+    "hint": "Typed and validated before the database is called: invalid input is answered with 400 and per-field details.",
+    "name": "Name",
+    "type": "Type",
+    "default": "Default",
+    "more": "More",
+    "remove": "Remove parameter {name}",
+    "required": "Required",
+    "list": "List of values",
+    "sensitive": "Sensitive (masked in logs)",
+    "description": "Description",
+    "example": "Example",
+    "target": "Argument",
+    "min": "Minimum",
+    "max": "Maximum",
+    "minLength": "Min length",
+    "maxLength": "Max length",
+    "pattern": "Pattern (regular expression)",
+    "enum": "Allowed values",
+    "enumHint": "Separate with commas; applied when you leave the field.",
+    "none": "No parameters.",
+    "add": "Add parameter",
+    "types": {
+      "string": "Text",
+      "integer": "Integer",
+      "decimal": "Decimal",
+      "number": "Number",
+      "boolean": "Yes/no",
+      "date": "Date",
+      "datetime": "Date and time",
+      "uuid": "UUID"
+    }
+  },
+  "test": {
+    "title": "Test console",
+    "hint": "Runs against the real database with these values. A successful test of the draft lets you publish it.",
+    "runWhat": "Run",
+    "draft": "The draft",
+    "version": "Version {version}",
+    "noParams": "This statement has no parameters.",
+    "run": "Run test",
+    "manageOnly": "Only Data API developers can run tests.",
+    "empty": "Run a test to see rows, columns, the time and the bound SQL.",
+    "rows": "{count, plural, one {# row} other {# rows}}",
+    "truncated": "More rows exist than the limit",
+    "shownRows": "Showing the first {n}",
+    "publish": "Publish this draft",
+    "failed": "The database refused it ({kind})",
+    "boundSql": "Bound SQL (values travel separately)",
+    "results": "Results",
+    "listHint": "comma-separated",
+    "required": "required",
+    "defaultIs": "default {value}",
+    "notSet": "Not set"
+  },
+  "publish": {
+    "title": "Publish version {version}",
+    "hint": "The tested draft is frozen as an immutable version. Callers of the plain URL get it from now on; pinned callers keep theirs.",
+    "note": "Change note",
+    "notePlaceholder": "What changed and why",
+    "confirm": "Publish v{version}",
+    "published": "Version {version} published"
+  },
+  "versions": {
+    "title": "Versions",
+    "hint": "Published versions never change. Deprecated ones still answer, with a Deprecation header; retired ones answer 410.",
+    "none": "Nothing is published yet. Test the draft, then publish it.",
+    "latest": "latest",
+    "publishedBy": "Published by {name}",
+    "actions": {
+      "deprecate": "Deprecate",
+      "retire": "Retire",
+      "restore": "Restore",
+      "load": "Load into draft"
+    },
+    "compare": "Compare",
+    "from": "From",
+    "to": "To",
+    "draft": "Draft",
+    "statement": "Statement",
+    "parameters": "Parameters",
+    "settings": "Settings",
+    "noChanges": "No changes.",
+    "added": "added:",
+    "removed": "removed:",
+    "confirm": {
+      "deprecate": {
+        "title": "Deprecate version {version}?",
+        "body": "It keeps answering, with a Deprecation header and a link to the latest version, so callers can move."
+      },
+      "retire": {
+        "title": "Retire version {version}?",
+        "body": "Calls to it get 410 Gone from now on. You can restore it later."
+      },
+      "restore": {
+        "title": "Restore version {version}?",
+        "body": "It is published again and answers normally."
+      },
+      "load": {
+        "title": "Load version {version} into the draft?",
+        "body": "The draft is replaced by this version’s definition. Unsaved edits are lost."
+      }
+    },
+    "done": {
+      "deprecate": "Version {version} deprecated",
+      "retire": "Version {version} retired",
+      "restore": "Version {version} restored",
+      "load": "Version {version} loaded into the draft"
+    }
+  },
+  "docs": {
+    "unpublished": "No published version yet",
+    "unpublishedHint": "Docs appear once a version is published.",
+    "request": "Request",
+    "requestHint": "GET takes the parameters in the query string (lists as repeated keys or comma-separated); POST takes a JSON object.",
+    "parameters": "Parameters",
+    "requiredColumn": "Required",
+    "details": "Details",
+    "yes": "Yes",
+    "defaultValue": "No (default {value})",
+    "exampleValue": "example {value}",
+    "oneOf": "one of {values}",
+    "minLength": "at least {n} characters",
+    "maxLength": "at most {n} characters",
+    "pattern": "matches {pattern}",
+    "noParams": "No parameters.",
+    "curl": "Example request",
+    "csvHint": "Send Accept: text/csv for CSV. Responses carry RateLimit headers; X-Cache says whether the result came from the cache.",
+    "response": "Response",
+    "responseHint": {
+      "rows": "data is an array of rows; meta has the row count, whether it was truncated, the version, the time and whether it was cached.",
+      "single": "data is the first row; no matching row answers 404."
+    },
+    "exampleResponse": "Example response",
+    "versionTitle": "Version",
+    "version": "Document",
+    "latest": "Latest (v{version})",
+    "pinned": "Pinned v{version}",
+    "authHint": "API clients authenticate with an API key or an OAuth client-credentials token. The client must be on this endpoint’s allow-list.",
+    "openapi": "Download OpenAPI",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "Could not copy"
+  },
+  "logs": {
+    "title": "Call log",
+    "description": "Every Data API call: who called which version, the outcome, the time and the rows. Sensitive parameters are masked.",
+    "search": "Slug, caller, error or request id…",
+    "when": "When",
+    "endpoint": "Data API",
+    "caller": "Caller",
+    "status": "Status",
+    "duration": "Duration",
+    "rows": "Rows",
+    "cached": "cached",
+    "ok": "Successful",
+    "error": "Errors",
+    "allEndpoints": "All Data APIs",
+    "allStatuses": "All outcomes",
+    "allCallers": "All callers",
+    "period": "Period",
+    "periods": {
+      "24h": "Last 24 hours",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days"
+    },
+    "empty": "No calls yet",
+    "emptyFiltered": "No calls match",
+    "emptyHint": "Calls show up here as soon as people or API clients use a published Data API.",
+    "liveCount": "{count, plural, one {# call} other {# calls}}",
+    "call": "Call",
+    "cache": "Cache",
+    "hit": "Hit",
+    "miss": "Miss",
+    "requestId": "Request id",
+    "params": "Parameters",
+    "maskedHint": "Sensitive parameters are stored as •••.",
+    "outcomeOk": "Succeeded",
+    "outcomeError": "Failed"
+  },
+  "pipelines": {
+    "title": "Pipelines",
+    "description": "ETL between database connections: a source query, a target table, column mapping and fixed transforms.",
+    "search": "Search pipelines…",
+    "new": "New pipeline",
+    "newTitle": "New pipeline",
+    "newHint": "Read from one connection, write to a table of another, in one transaction per run.",
+    "flow": "Source → target",
+    "into": "into",
+    "lastRun": "Last run",
+    "never": "Never run",
+    "written": "{n} written",
+    "incremental": "incremental",
+    "disabled": "Disabled",
+    "empty": "No pipelines yet",
+    "emptyFiltered": "No pipelines match",
+    "emptyHint": "A pipeline copies rows from a source query into a target table, by hand or on a schedule.",
+    "liveCount": "{count, plural, one {# pipeline} other {# pipelines}}",
+    "views": {
+      "failed": "Last run failed",
+      "running": "Running",
+      "disabled": "Disabled"
+    }
+  },
+  "pipeline": {
+    "definition": "Definition",
+    "incrementalSummary": "Incremental on {column}; the next run reads rows after {watermark}.",
+    "key": "(key)",
+    "last30": "Last 30 days",
+    "tiles": {
+      "runs": "Runs (30 days)",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "rowsWritten": "Rows written"
+    },
+    "notFound": "This pipeline does not exist (or was deleted).",
+    "ownedBy": "owned by {name}",
+    "queued": "Run queued",
+    "runNow": "Run now",
+    "runningNow": "Running now: {read} rows read, {written} written. View progress",
+    "schedule": "Schedule",
+    "delete": "Delete",
+    "deleteTitle": "Delete {name}?",
+    "deleteBody": "The pipeline and its run history are deleted. Data already loaded stays in the target.",
+    "deleted": "Pipeline deleted",
+    "connectionMissing": "A database connection of this pipeline was deleted. Pick another one in the definition.",
+    "tabs": {
+      "overview": "Overview",
+      "runs": "Runs",
+      "definition": "Definition",
+      "links": "Links & files"
+    }
+  },
+  "pipelineEditor": {
+    "source": "Source",
+    "sourceHint": "One statement, run read-only and streamed in batches.",
+    "paramValues": "Parameter values",
+    "incremental": "Incremental",
+    "incrementalHint": "Feed :watermark with the highest value of a result column from the last successful run.",
+    "watermarkColumn": "Watermark column",
+    "watermarkInitial": "First run starts after",
+    "currentWatermark": "Current watermark: {value}",
+    "preview": "Preview source",
+    "previewColumns": "Columns: {list}",
+    "sample": "Sample rows",
+    "mapping": "Column mapping",
+    "mappingHint": "Source column → target column, with a fixed transform. There is no custom code.",
+    "noMappings": "Map at least one column. Preview the source, then use Auto-map.",
+    "addMapping": "Add column",
+    "autoMap": "Auto-map same names",
+    "ownerHint": "Told when a run started with Run now fails.",
+    "target": "Target",
+    "targetHint": "A table from the target connection’s catalog. Everything is written in one transaction.",
+    "pickTable": "Pick a table…",
+    "pickTableFirst": "Pick a table first.",
+    "modeHint": {
+      "insert": "Adds every row.",
+      "upsert": "Inserts new rows and updates rows with the same key.",
+      "replace": "Deletes all rows of the table, then inserts (in the same transaction)."
+    },
+    "uniqueKey": "unique",
+    "readOnlyTarget": "This connection is read-only: pick one that may write.",
+    "create": "Create pipeline",
+    "created": "{name} created",
+    "saved": "Pipeline saved",
+    "save": "Save pipeline"
+  },
+  "mapping": {
+    "source": "Source column",
+    "target": "Target column",
+    "transform": "Transform",
+    "pick": "Pick…",
+    "castTo": "Cast to",
+    "value": "Value",
+    "remove": "Remove mapping {n}",
+    "transforms": {
+      "none": "As is",
+      "trim": "Trim spaces",
+      "upper": "Upper case",
+      "lower": "Lower case",
+      "cast": "Convert",
+      "default": "Default if empty",
+      "constant": "Constant"
+    },
+    "castTypes": {
+      "string": "Text",
+      "integer": "Integer",
+      "decimal": "Decimal",
+      "boolean": "Yes/no",
+      "date": "Date",
+      "datetime": "Date and time"
+    }
+  },
+  "runs": {
+    "title": "Runs",
+    "recent": "Recent runs",
+    "when": "Started",
+    "trigger": "Trigger",
+    "manualBy": "Run now by {name}",
+    "rows": "Rows",
+    "rowCounts": "{read} read · {written} written",
+    "rejected": "{n} rejected",
+    "duration": "Duration",
+    "error": "Error",
+    "empty": "No runs yet",
+    "emptyHint": "Use Run now, or schedule the pipeline in Scheduled jobs."
+  },
+  "run": {
+    "title": "Run of {name}",
+    "notFound": "This run does not exist.",
+    "cancel": "Cancel run",
+    "cancelTitle": "Cancel this run?",
+    "cancelBody": "It stops at the next batch and everything it wrote is rolled back.",
+    "cancelRequested": "Cancelling…",
+    "stopping": "Stopping at the next batch…",
+    "progress": "Progress",
+    "tiles": {
+      "rowsRead": "Rows read",
+      "rowsWritten": "Rows written",
+      "rowsRejected": "Rows rejected",
+      "duration": "Duration"
+    },
+    "inProgress": "In progress",
+    "watermark": "Watermark: {from} → {to}",
+    "log": "Log",
+    "waiting": "Waiting for a worker…",
+    "noLog": "No log lines.",
+    "levels": {
+      "info": "Info",
+      "warn": "Warning",
+      "error": "Error"
+    }
+  },
+  "links": {
+    "unavailable": "Links and files are not available",
+    "unavailableHint": "The record panels of the platform are not loaded."
+  },
+  "taskConfig": {
+    "pipeline": "Pipeline",
+    "pick": "Pick a pipeline…",
+    "loading": "Loading pipelines…",
+    "hint": "Runs the pipeline with the same runner as Run now; rows read, written and rejected appear in the job run.",
+    "disabled": "disabled",
+    "open": "Open {name}"
+  }
+}

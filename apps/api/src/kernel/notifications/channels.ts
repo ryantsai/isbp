@@ -16,7 +16,9 @@ export interface OutboundMessage {
 
 /* ───────────────────────────── SSRF guard ───────────────────────────── */
 
-const privateRanges = new BlockList();
+// One list per family: BlockList matches IPv4 addresses against IPv6 rules like `::ffff:0:0/96`, so a
+// shared list would treat every IPv4 address as private.
+const privateV4 = new BlockList();
 for (const [net, prefix] of [
   ['0.0.0.0', 8],
   ['10.0.0.0', 8],
@@ -28,7 +30,8 @@ for (const [net, prefix] of [
   ['198.18.0.0', 15],
   ['224.0.0.0', 4],
 ] as const)
-  privateRanges.addSubnet(net, prefix, 'ipv4');
+  privateV4.addSubnet(net, prefix, 'ipv4');
+const privateV6 = new BlockList();
 for (const [net, prefix] of [
   ['::1', 128],
   ['::', 128],
@@ -36,7 +39,10 @@ for (const [net, prefix] of [
   ['fe80::', 10],
   ['::ffff:0:0', 96],
 ] as const)
-  privateRanges.addSubnet(net, prefix, 'ipv6');
+  privateV6.addSubnet(net, prefix, 'ipv6');
+
+export const isPrivateAddress = (address: string, family: number) =>
+  family === 6 ? privateV6.check(address, 'ipv6') : privateV4.check(address, 'ipv4');
 
 export class WebhookTargetError extends Error {}
 
@@ -59,7 +65,7 @@ export async function assertWebhookTarget(raw: string, allowPrivate: boolean): P
   const host = url.hostname.replace(/^\[|\]$/g, '');
   const addresses = isIP(host) ? [{ address: host, family: isIP(host) }] : await lookup(host, { all: true });
   for (const a of addresses) {
-    if (privateRanges.check(a.address, a.family === 6 ? 'ipv6' : 'ipv4'))
+    if (isPrivateAddress(a.address, a.family))
       throw new WebhookTargetError('Webhook URL resolves to a private network address');
   }
   return url;

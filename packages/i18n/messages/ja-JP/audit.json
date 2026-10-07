@@ -146,6 +146,10 @@
     "core_record_unlinked": "レコードのリンクを削除しました",
     "core_file_uploaded": "添付ファイルをアップロードしました",
     "core_file_deleted": "添付ファイルを削除しました",
-    "core_file_rejected": "アップロードを拒否しました (マルウェア)"
+    "core_file_rejected": "アップロードを拒否しました (マルウェア)",
+    "core_db-connection_created": "データベース接続を追加しました",
+    "core_db-connection_updated": "データベース接続を変更しました",
+    "core_db-connection_deleted": "データベース接続を削除しました",
+    "core_db-connection_tested": "データベース接続をテストしました"
   }
 }

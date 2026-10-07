@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@isbp/i18n": "workspace:*",
+    "@isbp/sql": "workspace:*",
     "zod": "catalog:"
   },
   "peerDependencies": {

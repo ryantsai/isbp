@@ -1,0 +1,672 @@
+{
+  "meta": {
+    "name": "Database access",
+    "description": "Request database roles on SQL Server, Oracle and PostgreSQL: approval, automated provisioning, time-bound access, access reviews and drift"
+  },
+  "nav": {
+    "group": "Database access",
+    "mine": "My database access",
+    "grants": "Access",
+    "reviews": "Access reviews",
+    "servers": "Servers"
+  },
+  "portal": {
+    "request": "Request database access",
+    "requestDescription": "Get a role on a SQL Server, Oracle or PostgreSQL database for a limited time."
+  },
+  "permissions": {
+    "selfRequest": "Request database roles and manage your own database access",
+    "serversManage": "Configure servers and requestable roles, run inventory syncs",
+    "grantsRead": "See all database access, accounts, unmanaged access and orphans",
+    "grantsManage": "Revoke database access, adopt unmanaged access and retry provisioning",
+    "reviewsRead": "See database access review campaigns and their reports",
+    "reviewsManage": "Run database access review campaigns"
+  },
+  "settings": {
+    "retrySeconds": "Provisioning retry delay (seconds)",
+    "retrySecondsHelp": "Wait before the second attempt; each next attempt waits four times longer. After 3 attempts the grant fails and the server's DBA group is alerted."
+  },
+  "workflows": {
+    "request": {
+      "name": "Database access request",
+      "description": "Approves a database role: the requester's manager, the role owner, and information security for high-risk roles"
+    }
+  },
+  "taskTypes": {
+    "sync": {
+      "name": "Database access: inventory sync",
+      "description": "Reads the accounts, roles and memberships of a server and reports unmanaged access"
+    }
+  },
+  "notifications": {
+    "request_approved": {
+      "label": "My database access requests are approved",
+      "title": "{reference} approved: {role}",
+      "body": "{extension, select, yes {Your access on {server} was extended.} other {Your access on {server} is being set up. We'll tell you when it's ready.}}"
+    },
+    "request_rejected": {
+      "label": "My database access requests are rejected",
+      "title": "{reference} rejected: {role}",
+      "body": "Your request for {role} on {server} was not approved. {comment}"
+    },
+    "grant_ready": {
+      "label": "My database access is ready",
+      "title": "Your access is ready: {role}",
+      "body": "Account {account} on {server} now has {role}{permanent, select, yes {.} other { until {expiresAt}.}} Open My database access to see the password once."
+    },
+    "grant_expiring": {
+      "label": "My database access ends soon",
+      "title": "Your access to {role} ends soon",
+      "body": "Your access on {server} ends on {expiresAt}. Request an extension if you still need it."
+    },
+    "grant_revoked": {
+      "label": "My database access was removed",
+      "title": "Access removed: {role}",
+      "body": "{reason, select, expired {Your access on {server} has ended.} review {Your access on {server} was removed after an access review.} other {Your access on {server} was revoked.}} {note}"
+    },
+    "provisioning_failed": {
+      "label": "Database provisioning failed (DBAs)",
+      "title": "{operation, select, revoke {Revocation} other {Provisioning}} failed on {server}",
+      "body": "{role} for {person} could not be {operation, select, revoke {revoked} other {granted}} after 3 attempts: {error}"
+    },
+    "review_assigned": {
+      "label": "Database access reviews assigned to me",
+      "title": "Please review database access: {name}",
+      "body": "{count, plural, one {# grant waits} other {# grants wait}} for your decision. Due on {dueOn}."
+    },
+    "review_reminder": {
+      "label": "Database access review reminders",
+      "title": "Reminder: {name} is due on {dueOn}",
+      "body": "{pending, plural, one {# grant still waits} other {# grants still wait}} for your decision. Undecided access will be {policy, select, revoke {revoked} other {kept}}."
+    }
+  },
+  "audit": {
+    "server_created": "Started managing a database server",
+    "server_updated": "Changed database server settings",
+    "server_deleted": "Stopped managing a database server",
+    "server_synced": "Synced a database server inventory",
+    "role_created": "Made a database role requestable",
+    "role_updated": "Changed a requestable database role",
+    "role_deleted": "Removed a requestable database role",
+    "request_submitted": "Requested database access",
+    "request_approved": "Database access request approved",
+    "request_rejected": "Database access request rejected",
+    "request_cancelled": "Database access request withdrawn",
+    "grant_requested": "Queued database access for provisioning",
+    "grant_provisioned": "Granted a database role (verified)",
+    "grant_provisioning_failed": "Database provisioning failed",
+    "grant_revocation_failed": "Database revocation failed",
+    "grant_revoke_requested": "Started revoking database access",
+    "grant_revoked": "Revoked a database role (verified)",
+    "grant_expired": "Database access expired",
+    "grant_extended": "Extended database access",
+    "grant_adopted": "Adopted unmanaged database access",
+    "grant_retried": "Retried database provisioning",
+    "account_created": "Created a database account",
+    "account_enabled": "Re-enabled a database account",
+    "account_disabled": "Disabled a database account",
+    "credential_revealed": "Revealed a one-time database password",
+    "review_created": "Created a database access review",
+    "review_started": "Started a database access review",
+    "review_decided": "Decided database access in a review",
+    "review_closed": "Closed a database access review",
+    "review_exported": "Exported a database access review report"
+  },
+  "portalStatus": {
+    "pending": "Waiting for approval",
+    "provisioning": "Being set up",
+    "active": "Access granted",
+    "failed": "Setup failed (DBAs alerted)",
+    "rejected": "Rejected",
+    "cancelled": "Withdrawn",
+    "revoking": "Being removed",
+    "revoked": "Removed",
+    "expired": "Ended"
+  },
+  "status": {
+    "provisioning": "Provisioning",
+    "active": "Active",
+    "expiring": "Expiring soon",
+    "revoking": "Revoking",
+    "revoked": "Revoked",
+    "expired": "Expired",
+    "failed": "Failed"
+  },
+  "requestStatus": {
+    "pending": "Waiting for approval",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "cancelled": "Withdrawn"
+  },
+  "risk": {
+    "low": "Low risk",
+    "medium": "Medium risk",
+    "high": "High risk"
+  },
+  "engine": {
+    "mssql": "SQL Server",
+    "postgres": "PostgreSQL",
+    "oracle": "Oracle",
+    "mysql": "MySQL"
+  },
+  "environment": {
+    "production": "Production",
+    "staging": "Staging",
+    "test": "Test",
+    "development": "Development"
+  },
+  "authMode": {
+    "password": "Generated password",
+    "windows": "Windows / Active Directory",
+    "external": "External directory"
+  },
+  "endReason": {
+    "expired": "Ended on schedule",
+    "revoked": "Revoked early",
+    "relinquished": "Given back",
+    "offboarded": "Person left",
+    "review": "Removed by a review"
+  },
+  "source": {
+    "request": "Request",
+    "adopted": "Adopted",
+    "unmanaged": "Unmanaged access"
+  },
+  "reviewStatus": {
+    "scheduled": "Scheduled",
+    "active": "In progress",
+    "closed": "Closed"
+  },
+  "decision": {
+    "keep": "Keep",
+    "revoke": "Revoke",
+    "none": "Not decided"
+  },
+  "reviewerRule": {
+    "owner": "Role owners",
+    "manager": "The person's manager"
+  },
+  "policy": {
+    "revoke": "Revoke undecided access",
+    "keep": "Keep undecided access"
+  },
+  "recurrence": {
+    "none": "Once",
+    "quarterly": "Every quarter"
+  },
+  "sync": {
+    "ok": "Synced",
+    "error": "Sync failed",
+    "never": "Never synced",
+    "now": "Sync now",
+    "nowFor": "Sync now: {name}",
+    "done": "{name}: {accounts} accounts, {roles} roles, {unmanaged} unmanaged",
+    "failed": "{name} could not be synced: {message}"
+  },
+  "reason": {
+    "label": "Reason",
+    "required": "Give a reason (at least 3 characters)."
+  },
+  "reveal": {
+    "title": "Your database password",
+    "description": "The password was generated when your account was created. It is shown once and never sent by e-mail.",
+    "confirm": "The password is shown only once, for 7 days after the account was created. Have your password manager ready, then show it.",
+    "show": "Show the password",
+    "server": "Server",
+    "account": "Account",
+    "password": "Password",
+    "copyAccount": "Copy the account name",
+    "copyPassword": "Copy the password",
+    "copied": "Copied",
+    "onceWarning": "Store it now in your password manager. It cannot be shown again; a DBA can reset it if you lose it.",
+    "expired": "This password was already shown or has expired. Ask a DBA to reset it if you need it."
+  },
+  "mine": {
+    "title": "My database access",
+    "description": "Database roles you hold, what you asked for, and your one-time passwords.",
+    "request": "Request access",
+    "pending": "{count, plural, one {# request waiting for approval} other {# requests waiting for approval}}",
+    "access": "{count, plural, =0 {Your access} one {Your access (#)} other {Your access (#)}}",
+    "empty": "You have no database access yet",
+    "emptyHint": "Request a role on a database: your manager and the role owner approve it, and your account is set up automatically.",
+    "history": "History",
+    "account": "Account",
+    "role": "Database role",
+    "until": "Until",
+    "permanent": "No end date",
+    "requestRef": "Request",
+    "failedHint": "Setting up this access failed. The DBAs were alerted and will retry it.",
+    "provisioningHint": "Your account is being set up on the server. This takes a minute.",
+    "revealPassword": "Show password",
+    "passwordShown": "Password",
+    "extend": "Request extension",
+    "relinquish": "Give back",
+    "relinquishTitle": "Give back {role}?",
+    "relinquishDescription": "The role is removed from your account right away. You can request it again later.",
+    "relinquished": "Your access is being removed"
+  },
+  "wizard": {
+    "title": "Request database access",
+    "description": "Choose the roles you need, say until when and why, and send it for approval.",
+    "extendTitle": "Request an extension",
+    "extendDescription": "Choose a new end date and say why you still need the access.",
+    "myAccess": "My database access",
+    "steps": "Steps",
+    "step": {
+      "choose": "Choose roles",
+      "details": "Duration and reason",
+      "review": "Review and send"
+    },
+    "search": "Search roles, databases or servers…",
+    "server": "Server",
+    "risk": "Risk",
+    "database": "Database",
+    "allServers": "All servers",
+    "allRisks": "Any risk",
+    "allDatabases": "All databases",
+    "roles": "Requestable roles",
+    "noRoles": "No roles match",
+    "noRolesHint": "Try another search, or ask the DBAs to make the role requestable.",
+    "maxDays": "Up to {days} days",
+    "permanentAllowed": "Permanent access allowed",
+    "approvedBy": "Approved by {owner}",
+    "held": "You have this access",
+    "heldUntil": "You have this access until {date}",
+    "pending": "Requested: {reference}",
+    "selected": "{count, plural, =0 {No roles selected} one {# role selected} other {# roles selected}}",
+    "continue": "Continue",
+    "back": "Back",
+    "reviewStep": "Review",
+    "accessUntil": "Access until",
+    "maxUntil": "At most {days} days (until {date})",
+    "noEndDate": "No end date",
+    "justification": "Why do you need it?",
+    "justificationPlaceholder": "For example: month-end reporting for the finance team.",
+    "justificationHint": "The approvers read this. Mention the project, ticket or change if there is one.",
+    "until": "Until {date}",
+    "whoApproves": "Who will approve it",
+    "approver": {
+      "manager": "Your manager",
+      "owner": "The role owner: {owners}",
+      "security": "Information security (high-risk roles)"
+    },
+    "afterApproval": "Once approved, your account is created or updated automatically and you'll get a notification. A generated password is shown to you once.",
+    "send": "Send request",
+    "sent": "{count, plural, one {Request sent} other {# requests sent}}",
+    "errors": {
+      "past": "{role}: choose an end date in the future.",
+      "tooLong": "{role} can be granted for at most {days} days.",
+      "dateRequired": "{role} needs an end date.",
+      "justification": "Say why you need this access (at least 10 characters)."
+    }
+  },
+  "requestPage": {
+    "notFound": "This request does not exist or you can't see it.",
+    "back": "My database access",
+    "cancel": "Withdraw request",
+    "cancelled": "Request withdrawn",
+    "statusHint": {
+      "pending": "Waiting for approval.",
+      "approved": "Approved. The access is set up automatically.",
+      "rejected": "This request was not approved.",
+      "cancelled": "This request was withdrawn."
+    },
+    "approval": "Approval",
+    "comment": "Comment: {comment}",
+    "noWorkflow": "This request was decided without an approval workflow.",
+    "pathHidden": "The approval path is not available to you.",
+    "waitingFor": "Waiting at {step} for",
+    "andMore": "and {count} more",
+    "decide": "Decide in your approvals",
+    "details": "Details",
+    "role": "Database role",
+    "server": "Server",
+    "risk": "Risk",
+    "until": "Access until",
+    "permanent": "No end date",
+    "requester": "Requested by",
+    "submitted": "Submitted",
+    "justification": "Reason",
+    "access": "Access",
+    "openMyAccess": "Open my database access",
+    "path": "Approval path"
+  },
+  "grant": {
+    "title": "Database access",
+    "account": "Account",
+    "role": "Database role",
+    "server": "Engine",
+    "source": "Source",
+    "granted": "Granted",
+    "expires": "Ends",
+    "permanent": "No end date",
+    "ended": "Ended",
+    "endReason": "Why it ended",
+    "request": "Request",
+    "attempts": "Attempts",
+    "lastError": "Last error from the server",
+    "retryGrant": "Retry provisioning",
+    "retryRevoke": "Retry revocation",
+    "retryStarted": "Retrying",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke this access?",
+    "revokeDescription": "The role is removed from {person}'s account right away. They are told why.",
+    "revokeStarted": "The access is being revoked"
+  },
+  "access": {
+    "title": "Access",
+    "description": "Every database role granted through the platform, the accounts on each server, and access no grant explains.",
+    "tabs": {
+      "grants": "Grants",
+      "accounts": "Accounts",
+      "unmanaged": "Unmanaged access"
+    },
+    "grantsTable": "Database grants",
+    "search": "Search people, accounts or roles…",
+    "grantee": "Person",
+    "role": "Role",
+    "risk": "Risk",
+    "status": "Status",
+    "expires": "Ends",
+    "source": "Source",
+    "server": "Server",
+    "permanent": "No end date",
+    "unknownPerson": "Unknown person",
+    "live": "Current (incl. failed)",
+    "ended": "Ended",
+    "allStatuses": "All statuses",
+    "allServers": "All servers",
+    "allRisks": "Any risk",
+    "sources": {
+      "request": "Request",
+      "adopted": "Adopted",
+      "unmanaged": "Unmanaged"
+    },
+    "empty": "No access matches",
+    "emptyHint": "Change the filters to see more.",
+    "unmanagedHint": "Memberships of requestable roles found by the last sync that no grant explains. Adopt them for the right person with an end date, or revoke them."
+  },
+  "accounts": {
+    "table": "Database accounts",
+    "search": "Search accounts…",
+    "account": "Account",
+    "server": "Server",
+    "person": "Person",
+    "orphan": "Orphan",
+    "service": "Service account",
+    "state": "State",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "managed": "Managed",
+    "roles": "Roles",
+    "lastLogin": "Last login",
+    "allServers": "All servers",
+    "allAccounts": "All accounts",
+    "orphansOnly": "Orphans only",
+    "matchedOnly": "Matched to a person",
+    "empty": "No accounts",
+    "emptyHint": "Accounts appear after a server is synced."
+  },
+  "unmanaged": {
+    "title": "Unmanaged access",
+    "empty": "No unmanaged access",
+    "emptyHint": "Every membership of a requestable role is explained by a grant.",
+    "memberOf": "holds",
+    "looksLike": "Looks like {name}",
+    "seen": "Seen",
+    "adopt": "Adopt",
+    "revoke": "Revoke",
+    "adoptTitle": "Adopt {account}",
+    "adoptDescription": "Record this access as a grant for the right person, with an end date. It then expires, is reviewed and is revoked like any other access.",
+    "person": "Person",
+    "until": "Access until",
+    "untilHint": "Leave empty for no end date, if the role allows it.",
+    "note": "Note",
+    "adopted": "Access adopted",
+    "revokeTitle": "Revoke {account}?",
+    "revokeDescription": "The role is removed from the account on the server. The account itself stays.",
+    "revokeStarted": "The access is being revoked"
+  },
+  "servers": {
+    "title": "Servers",
+    "description": "Database servers whose accounts and roles the platform manages, with their last sync and drift.",
+    "connections": "Database connections",
+    "empty": "No servers yet",
+    "emptyHint": "Choose an admin connection below to manage accounts on it.",
+    "connectionMissing": "Connection removed",
+    "roles": "Requestable roles",
+    "liveGrants": "Current grants",
+    "accounts": "Accounts",
+    "unmanaged": "Unmanaged",
+    "orphans": "Orphans",
+    "failed": "Failed",
+    "lastSync": "Last sync:",
+    "open": "Open",
+    "unconfigured": "Admin connections not managed yet",
+    "unconfiguredHint": "Administrators register connections with the admin purpose in Database connections. Manage accounts on one to make its roles requestable.",
+    "manage": "Manage accounts",
+    "notManaged": "MySQL accounts are not managed",
+    "disabled": "Disabled"
+  },
+  "serverForm": {
+    "createTitle": "Manage accounts on a server",
+    "createDescription": "Settings for {connection}. Sync it afterwards to pick requestable roles.",
+    "editTitle": "Settings of {name}",
+    "editDescription": "New accounts follow these settings; existing accounts keep their names.",
+    "displayName": "Display name",
+    "environment": "Environment",
+    "pattern": {
+      "label": "Account name pattern",
+      "preview": "Your account would be {name}. Tokens: '{username}' and '{email_local}'.",
+      "empty": "Enter a pattern.",
+      "invalid": "Only letters, digits, _ and the tokens.",
+      "no_token": "Include a token so every person gets their own account.",
+      "too_long": "At most 60 characters."
+    },
+    "authMode": "New accounts sign in with",
+    "domain": "Windows domain",
+    "passwordLength": "Password length",
+    "passwordHint": "Between {min} and {max} characters (Oracle uses at most 30).",
+    "externalHint": "Accounts authenticate against the server's external directory (LDAP, Kerberos or Microsoft Entra ID): no password is generated.",
+    "ownerGroup": "DBA group",
+    "ownerGroupHint": "Alerted when provisioning fails on this server.",
+    "noGroup": "No group",
+    "autoSync": "Sync every night",
+    "nameRequired": "Enter a display name.",
+    "domainRequired": "Windows logins need a domain.",
+    "create": "Manage accounts",
+    "saved": "Server saved"
+  },
+  "server": {
+    "servers": "Servers",
+    "notFound": "This server does not exist.",
+    "back": "All servers",
+    "summary": "Connection {connection} · accounts named {pattern} · {auth}",
+    "connectionMissing": "removed",
+    "settings": "Settings",
+    "lastSync": "Last sync:",
+    "dbaGroup": "DBA group: {group}",
+    "tabs": {
+      "roles": "Requestable roles ({count})",
+      "inventory": "Inventory",
+      "unmanaged": "Unmanaged ({count})"
+    },
+    "rolesHint": "Roles people can request on this server, with their owner (the approver), risk and durations.",
+    "addRole": "Make a role requestable",
+    "rolesTable": "Requestable roles",
+    "noRoles": "No requestable roles",
+    "noRolesHint": "Pick roles from the synced inventory.",
+    "syncFirst": "Sync the server first: requestable roles come from its inventory.",
+    "role": "Role",
+    "risk": "Risk",
+    "owner": "Owner",
+    "duration": "Duration",
+    "durationDays": "{def} days (at most {max})",
+    "durationPermanent": "Permanent allowed",
+    "liveGrants": "Current grants",
+    "inactive": "Inactive",
+    "edit": "Edit",
+    "editRole": "Edit {role}",
+    "inventoryHint": "Roles and their members as of the last sync.",
+    "seeAccounts": "See the accounts",
+    "inventoryTable": "Roles on the server",
+    "noInventory": "No inventory yet",
+    "database": "Database",
+    "serverLevel": "Server",
+    "members": "Members",
+    "requestable": "Requestable",
+    "yes": "Yes"
+  },
+  "roleForm": {
+    "createTitle": "Make a role requestable",
+    "editTitle": "Requestable role {role}",
+    "description": "People can request it from the portal. The owner approves requests after the requester's manager; high-risk roles also need information security.",
+    "database": "Database",
+    "serverLevel": "Server role",
+    "role": "Role on the server",
+    "rolePlaceholder": "Choose a role…",
+    "roleHint": "Only roles from the last sync can be chosen.",
+    "members": "{count, plural, one {# member} other {# members}}",
+    "name": "Display name",
+    "roleDescription": "What it gives access to",
+    "ownerKind": "Owner type",
+    "ownerGroup": "A group",
+    "ownerPerson": "A person",
+    "owner": "Owner (approver)",
+    "groupPlaceholder": "Choose a group…",
+    "risk": "Risk",
+    "riskHint": "High-risk roles also need information security's approval.",
+    "duration": "Duration",
+    "defaultDays": "Default (days)",
+    "maxDays": "Maximum (days)",
+    "permanentPlaceholder": "Permanent",
+    "noLimitPlaceholder": "No limit",
+    "allowPermanent": "Allow permanent access",
+    "justificationRequired": "Requests need a justification",
+    "active": "Requestable",
+    "roleRequired": "Choose a role from the inventory.",
+    "nameRequired": "Enter a display name.",
+    "ownerRequired": "Choose who approves requests.",
+    "problems": {
+      "max_required": "Set a maximum, or allow permanent access.",
+      "default_over_max": "The default cannot be longer than the maximum."
+    },
+    "create": "Make requestable",
+    "saved": "Role saved"
+  },
+  "reviews": {
+    "title": "Access reviews",
+    "description": "Campaigns where role owners or managers confirm who still needs database access.",
+    "new": "New campaign",
+    "awaiting": "Reviews awaiting you",
+    "awaitingCount": "{count, plural, one {# grant} other {# grants}} to decide · due {due}",
+    "views": {
+      "scheduled": "Scheduled",
+      "active": "In progress",
+      "closed": "Closed"
+    },
+    "name": "Campaign",
+    "status": "Status",
+    "due": "Due",
+    "policy": "Undecided access",
+    "progress": "Progress",
+    "progressText": "{done} of {items} decided · {kept} kept · {revoked} revoked",
+    "empty": "No access reviews",
+    "emptyHint": "Campaigns you take part in appear here.",
+    "emptyHintManager": "Start a campaign to have owners confirm who still needs access."
+  },
+  "reviewForm": {
+    "title": "New access review",
+    "description": "Active grants in scope are snapshotted when the campaign starts and assigned to reviewers.",
+    "name": "Name",
+    "namePlaceholder": "Q1 2027 database access review",
+    "servers": "Servers",
+    "serversHint": "None selected: every server.",
+    "minRisk": "Grants to include",
+    "riskAtLeast": "{risk} and above",
+    "reviewers": "Reviewers",
+    "startOn": "Start",
+    "dueOn": "Due",
+    "policy": "At the due date",
+    "recurrence": "Repeat",
+    "nameRequired": "Enter a name (at least 3 characters).",
+    "dueAfterStart": "The due date must be after the start.",
+    "create": "Create campaign",
+    "created": "{name} created"
+  },
+  "review": {
+    "notFound": "This access review does not exist or you can't see it.",
+    "back": "Access reviews",
+    "summary": "Due {due} · {policy} · reviewers: {reviewers}",
+    "export": "Export CSV",
+    "close": "Close campaign",
+    "closeTitle": "Close this campaign?",
+    "closeDescription": "{pending, plural, =0 {Every grant was decided.} one {# grant is undecided.} other {# grants are undecided.}} Undecided access follows the policy: {policy}. Revocations start right away and the campaign becomes read-only.",
+    "closed": "Campaign closed",
+    "readOnly": "This campaign is closed: decisions can no longer change.",
+    "totals": "Totals",
+    "tiles": {
+      "items": "Grants in scope",
+      "pending": "Undecided",
+      "kept": "Kept",
+      "revoked": "Revoked"
+    },
+    "views": {
+      "mine": "Awaiting me",
+      "undecided": "Undecided",
+      "decided": "Decided",
+      "all": "All"
+    },
+    "items": "Grants to review",
+    "search": "Search people, accounts or roles…",
+    "person": "Person",
+    "access": "Access",
+    "risk": "Risk",
+    "expires": "Ends",
+    "permanent": "No end date",
+    "reviewer": "Reviewer",
+    "unassigned": "Review managers",
+    "decision": "Decision",
+    "outcome": {
+      "kept": "Kept",
+      "revoked": "Revoked"
+    },
+    "keep": "Keep",
+    "revoke": "Revoke",
+    "keepFor": "Keep access of {person}",
+    "revokeFor": "Revoke access of {person}",
+    "keepSelected": "Keep selected",
+    "revokeSelected": "Revoke selected",
+    "revokeTitle": "{count, plural, one {Revoke this access?} other {Revoke # grants?}}",
+    "revokeDescription": "Say why. The access is removed when the campaign closes.",
+    "decided": "{count, plural, one {Decision saved} other {# decisions saved}}",
+    "empty": {
+      "mine": "Nothing waits for you",
+      "undecided": "Everything is decided",
+      "decided": "Nothing decided yet",
+      "all": "No grants in this campaign"
+    }
+  },
+  "taskConfig": {
+    "server": "Server to sync",
+    "placeholder": "Choose a server…",
+    "hint": "Reads accounts, roles and memberships, and reports unmanaged access."
+  },
+  "userSlot": {
+    "title": "Database access",
+    "description": "Database roles {name} holds now.",
+    "none": "No database access.",
+    "until": "until {date}",
+    "permanent": "no end date"
+  },
+  "dashboard": {
+    "title": "Database access",
+    "description": "{reviews, plural, =0 {} one {# review awaits you.} other {# reviews await you.}} {expiring, plural, =0 {} one {# grant ends soon.} other {# grants end soon.}}",
+    "open": "Open",
+    "reviews": "Reviews awaiting you",
+    "pending": "{count, plural, one {# to decide} other {# to decide}} · due {due}",
+    "expiring": "Access expiring soon",
+    "ends": "Ends {date}",
+    "extend": "Extend"
+  }
+}

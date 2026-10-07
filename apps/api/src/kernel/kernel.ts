@@ -8,8 +8,10 @@ import type { Config } from '../config';
 import { AiGateway } from './ai/gateway';
 import { ApiClientAuth } from './api-clients';
 import { createAuditService } from './audit';
+import { createCacheService } from './cache';
 import { currentPrincipal } from './context';
 import { SecretBox } from './crypto';
+import { DatabaseManager } from './databases';
 import { createEventPublisher } from './events';
 import { CustomFieldRegistry } from './fields';
 import { ClamdScanner } from './files/scanner';
@@ -18,12 +20,15 @@ import { FileStore } from './files/store';
 import { ModuleRegistry } from './modules';
 import { NotificationHub } from './notifications/hub';
 import { NotificationCenter } from './notifications/service';
+import { OutboundHttp } from './outbound';
 import { createFormsService, createPortalService } from './portal';
 import { QueueFactory } from './queues';
 import { RbacService } from './rbac';
 import { RecordRegistry } from './records';
+import { Sandbox } from './sandbox';
 import { SessionService } from './sessions';
 import { SettingsService } from './settings';
+import { TaskTypeRegistry } from './task-types';
 import { installDefaultWorkflows } from './workflow/defaults';
 import { WorkflowEngine } from './workflow/engine';
 
@@ -113,6 +118,14 @@ export async function createKernel(
     seal: (plain: string) => box.encrypt(plain),
     open: (sealed: string) => box.decrypt(sealed),
   };
+  const databases = new DatabaseManager({ db, box, logger: logger.child({ component: 'databases' }) });
+  const databasesService = databases.service();
+  const taskTypes = new TaskTypeRegistry(registry);
+  const taskTypesService = taskTypes.service();
+  const outbound = new OutboundHttp(config.allowPrivateWebhooks);
+  const httpClient = outbound.client();
+  const sandbox = Sandbox.fromConfig(config);
+  const sandboxService = sandbox.service();
 
   const contexts = new Map<string, ModuleContext>();
   for (const m of registry.modules) {
@@ -124,7 +137,7 @@ export async function createKernel(
       logger: log,
       audit: createAuditService(db, id),
       events: createEventPublisher(db, m.manifest, log),
-      jobs: queues.forModule(id),
+      jobs: queues.forModule(id, (name) => m.jobs?.[name]),
       settings: settings.reader(m.manifest),
       rbac,
       workflows: workflows.forModule(id),
@@ -136,6 +149,11 @@ export async function createKernel(
       records: records.service(),
       files: files.service(),
       secrets,
+      databases: databasesService,
+      taskTypes: taskTypesService,
+      http: httpClient,
+      cache: createCacheService(redis, id),
+      sandbox: sandboxService,
       transaction: (fn) => db.transaction((tx) => fn(tx as unknown as Db)),
       principal: currentPrincipal,
       isEnabled: () => registry.isEnabled(id),
@@ -185,6 +203,8 @@ export async function createKernel(
 
   async function close() {
     await hub.close();
+    await databases.close();
+    await outbound.close();
     await registry.close();
     await queues.close();
     redis.disconnect();
@@ -212,6 +232,8 @@ export async function createKernel(
     ai,
     records,
     files,
+    databases,
+    sandbox,
     migrate,
     ready,
     search,

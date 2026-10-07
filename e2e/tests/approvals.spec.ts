@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { type APIRequestContext, type Browser, expect, type Page, test } from '@playwright/test';
+import { type APIRequestContext, type Browser, expect, type Page, test } from './fixtures';
 import { settle } from './helpers';
 
 const DEMO_PASSWORD = process.env.E2E_DEMO_PASSWORD ?? 'Demo-2026!pass';

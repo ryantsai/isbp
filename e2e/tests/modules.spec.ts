@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('the announcements module (built with create-module) is served by the module host', async ({ page }) => {
   await page.goto('/announcements');

@@ -146,6 +146,10 @@
     "core_record_unlinked": "Record link removed",
     "core_file_uploaded": "Attachment uploaded",
     "core_file_deleted": "Attachment deleted",
-    "core_file_rejected": "Upload refused (malware)"
+    "core_file_rejected": "Upload refused (malware)",
+    "core_db-connection_created": "Database connection added",
+    "core_db-connection_updated": "Database connection changed",
+    "core_db-connection_deleted": "Database connection deleted",
+    "core_db-connection_tested": "Database connection tested"
   }
 }

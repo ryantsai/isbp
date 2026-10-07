@@ -192,6 +192,24 @@ export interface RecordTypeDef {
   permission: string;
 }
 
+/**
+ * A kind of work Scheduled Jobs can run (`<module>.<type>`, e.g. `etl.pipeline`). The module provides a
+ * `taskTypes[type]` handler in `defineServerModule`; the job form validates `config` with the schema.
+ */
+export interface TaskTypeDef {
+  /** Name inside the module; the full type is `<module>.<type>`. */
+  type: string;
+  /** i18n keys. */
+  name: string;
+  description?: string;
+  /** lucide icon name. */
+  icon?: string;
+  /** Needed (at any scope) to create or edit a job of this type. */
+  permission: string;
+  /** Shape of the job's configuration (JSON). */
+  config: z.ZodType;
+}
+
 export interface ModuleManifest {
   id: string;
   version: string;
@@ -214,6 +232,8 @@ export interface ModuleManifest {
   customFields?: { entities: CustomFieldEntityDef[] };
   /** Record types that can be linked across modules and carry attachments. */
   records?: { types: RecordTypeDef[] };
+  /** Work Scheduled Jobs can run on a schedule (handlers in `defineServerModule({ taskTypes })`). */
+  taskTypes?: TaskTypeDef[];
 }
 
 const zNav: z.ZodType<NavEntry> = z.lazy(() =>
@@ -372,6 +392,18 @@ export const manifestSchema = z
         ),
       })
       .optional(),
+    taskTypes: z
+      .array(
+        z.object({
+          type: z.string().regex(/^[a-z][a-z0-9-]*$/),
+          name: z.string().min(1),
+          description: z.string().optional(),
+          icon: z.string().optional(),
+          permission: z.string().refine(isPermissionKey, 'invalid permission key'),
+          config: zZodType,
+        }),
+      )
+      .optional(),
   })
   .superRefine((m, ctx) => {
     const own = (key: string) => key.startsWith(`${m.id}.`);
@@ -428,6 +460,12 @@ export const manifestSchema = z
         });
       types.add(r.type);
     });
+    const taskTypes = new Set<string>();
+    m.taskTypes?.forEach((t, i) => {
+      if (taskTypes.has(t.type))
+        ctx.addIssue({ code: 'custom', path: ['taskTypes', i, 'type'], message: 'duplicate task type' });
+      taskTypes.add(t.type);
+    });
   });
 
 /** Identity helper that gives manifests full type checking and validates them eagerly. */
@@ -441,13 +479,17 @@ export function defineManifest<const M extends ModuleManifest>(manifest: M): M {
 }
 
 /** JSON-safe view of a manifest (Zod schemas converted to JSON Schema) for APIs, admin UI and MCP. */
-export interface SerializedManifest extends Omit<ModuleManifest, 'events' | 'ai' | 'workflows'> {
+export interface SerializedManifest extends Omit<
+  ModuleManifest,
+  'events' | 'ai' | 'workflows' | 'taskTypes'
+> {
   events?: { emits?: { name: string; description?: string; schema?: unknown }[]; consumes?: string[] };
   ai?: { tools?: (Omit<AiToolDef, 'input'> & { input: unknown })[]; agent?: AiAgentDef };
   workflows?: (Omit<WorkflowTriggerDef, 'facts'> & { facts?: unknown })[];
+  taskTypes?: (Omit<TaskTypeDef, 'config'> & { config: unknown })[];
 }
 
-function toJsonSchema(schema: z.ZodType | undefined): unknown {
+export function toJsonSchema(schema: z.ZodType | undefined): unknown {
   if (!schema) return undefined;
   try {
     return z.toJSONSchema(schema, { unrepresentable: 'any' });
@@ -472,5 +514,6 @@ export function serializeManifest(m: ModuleManifest): SerializedManifest {
       agent: m.ai.agent,
     },
     workflows: m.workflows?.map((w) => ({ ...w, facts: toJsonSchema(w.facts) })),
+    taskTypes: m.taskTypes?.map((t) => ({ ...t, config: toJsonSchema(t.config) })),
   };
 }

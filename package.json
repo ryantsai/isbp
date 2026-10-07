@@ -24,7 +24,9 @@
     "db:reset": "pnpm --filter @isbp/api db:reset",
     "modules:sync": "tsx packages/create-module/src/cli.ts sync",
     "modules:check": "tsx packages/create-module/src/cli.ts sync --check",
-    "create-module": "tsx packages/create-module/src/cli.ts create"
+    "create-module": "tsx packages/create-module/src/cli.ts create",
+    "docs:reference": "tsx packages/create-module/src/cli.ts docs",
+    "docs:check": "tsx packages/create-module/src/cli.ts docs --check"
   },
   "devDependencies": {
     "prettier": "catalog:",

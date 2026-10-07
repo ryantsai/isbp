@@ -1,0 +1,138 @@
+{
+  "title": "データベース接続",
+  "description": "データ API、ETL パイプライン、SQL ジョブ、データベース アクセス管理が使用する外部データベースです。パスワードは暗号化され、再表示されません。",
+  "add": "接続を追加",
+  "search": "接続を検索",
+  "noMatch": "「{q}」に一致する接続はありません。",
+  "empty": {
+    "title": "データベース接続はまだありません",
+    "description": "モジュールが使用できるように、SQL Server、PostgreSQL、MySQL、Oracle のデータベースを登録します。"
+  },
+  "forbidden": {
+    "title": "データベース接続を表示できません",
+    "description": "管理者に「データベース接続管理者」ロールを依頼してください。"
+  },
+  "columns": {
+    "name": "接続",
+    "engine": "エンジン",
+    "server": "サーバー",
+    "purposes": "用途",
+    "status": "状態"
+  },
+  "engines": {
+    "mssql": "SQL Server",
+    "postgres": "PostgreSQL",
+    "mysql": "MySQL",
+    "oracle": "Oracle"
+  },
+  "purposes": {
+    "data": "データ",
+    "admin": "アカウント管理",
+    "dataHint": "データ API、ETL パイプライン、SQL ジョブ。",
+    "adminHint": "アカウントを作成してロールを付与します (データベース アクセス)。データ API からは使用できません。"
+  },
+  "status": {
+    "ok": "接続済み",
+    "error": "失敗",
+    "unknown": "未テスト",
+    "checked": "{when}に確認",
+    "disabled": "無効"
+  },
+  "readOnly": "読み取り専用",
+  "actions": {
+    "test": "テスト",
+    "edit": "編集",
+    "catalog": "カタログを参照",
+    "delete": "削除",
+    "more": "{name} のその他の操作"
+  },
+  "form": {
+    "createTitle": "データベース接続を追加",
+    "editTitle": "{name} を編集",
+    "createDescription": "モジュールは、ここで登録された接続を通じてのみ外部データベースにアクセスします。",
+    "editDescription": "保存済みのパスワードを維持するには、パスワードを空欄のままにします。",
+    "sectionServer": "サーバー",
+    "sectionSignIn": "サインイン",
+    "sectionUse": "用途",
+    "name": "名前",
+    "namePlaceholder": "例: 財務データ ウェアハウス",
+    "key": "キー",
+    "keyHint": "モジュールはこのキーで接続を参照します。英小文字、数字、ハイフンを使用でき、後から変更できません。",
+    "description": "説明",
+    "engine": "エンジン",
+    "host": "ホスト",
+    "hostHint": "API とワーカーから到達できるホスト名または IP アドレス。",
+    "port": "ポート",
+    "database": "データベース",
+    "serviceName": "サービス名",
+    "instanceName": "インスタンス名",
+    "instanceHint": "SQL Server の名前付きインスタンスの場合。ポートは自動的に検出されます。",
+    "tls": "暗号化",
+    "tlsOff": "オフ",
+    "tlsRequire": "暗号化する (証明書は検証しない)",
+    "tlsVerify": "暗号化して証明書を検証する",
+    "ca": "CA 証明書 (PEM)",
+    "caStored": "CA 証明書が保存されています。置き換えるには新しい証明書を貼り付けます。",
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "passwordStored": "保存済みです。維持するには空欄のままにします。",
+    "passwordClear": "保存済みのパスワードを削除",
+    "domain": "Windows ドメイン",
+    "domainHint": "サービス アカウントによる SQL Server の Windows 認証 (NTLM) に使用します。",
+    "purposes": "用途",
+    "purposesError": "用途を 1 つ以上選択してください。",
+    "readOnly": "読み取り専用",
+    "readOnlyHint": "書き込みは拒否され、エンジンが対応していればクエリは読み取り専用トランザクションで実行されます。SQL Server ではログインのアクセス許可に依存します。",
+    "enabled": "有効",
+    "advanced": "制限",
+    "poolMax": "プロセスあたりの接続数",
+    "timeout": "ステートメントのタイムアウト (秒)",
+    "maxRows": "結果あたりの最大行数",
+    "leastPrivilege": "必要最小限のアクセス許可だけを持つ専用ログインを使用してください。データ API には読み取り専用、アカウント管理にはロール管理のみを付与します。",
+    "validation": {
+      "name": "名前を入力してください。",
+      "key": "英字で始まる 2～64 文字の英小文字、数字、ハイフンを使用してください。",
+      "host": "ホスト名または IP アドレスを入力してください。",
+      "username": "ユーザー名を入力してください。",
+      "port": "1～65535 のポートを入力してください。",
+      "number": "{min}～{max} の数値を入力してください。"
+    },
+    "submit": "接続を追加",
+    "saved": "接続を保存しました。",
+    "created": "接続を追加しました。",
+    "testDraft": "接続をテスト"
+  },
+  "test": {
+    "running": "接続しています…",
+    "ok": "{ms} ミリ秒で接続しました",
+    "failed": "接続できませんでした",
+    "code": "コード {code}",
+    "version": "サーバー: {version}"
+  },
+  "catalog": {
+    "title": "カタログ: {name}",
+    "description": "この接続のログインから参照できるテーブル、ビュー、ルーチンです。",
+    "search": "テーブルとルーチンを絞り込む",
+    "tables": "テーブルとビュー",
+    "routines": "プロシージャと関数",
+    "refresh": "最新の情報に更新",
+    "keyColumn": "キー列",
+    "view": "ビュー",
+    "table": "テーブル",
+    "procedure": "プロシージャ",
+    "function": "関数",
+    "empty": "このログインから参照できるものはありません。",
+    "noMatch": "「{q}」に一致するものはありません。",
+    "truncated": "カタログが大きいため、最初の 20,000 件のみ表示しています。",
+    "columns": "{count, plural, other {# 列}}",
+    "params": "{count, plural, =0 {パラメーターなし} other {# 個のパラメーター}}",
+    "returns": "戻り値 {type}",
+    "failed": "カタログを読み取れませんでした"
+  },
+  "delete": {
+    "title": "{name} を削除しますか?",
+    "description": "この接続を使用するモジュールは、この接続では動作しなくなります。データ API、パイプライン、ジョブは別の接続に変更するまで失敗します。この操作は元に戻せません。",
+    "confirm": "接続を削除",
+    "done": "接続を削除しました。"
+  }
+}

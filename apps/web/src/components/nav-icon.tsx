@@ -42,6 +42,16 @@ import {
   ReceiptText,
   Rocket,
   Server,
+  Activity,
+  ArrowRightLeft,
+  ClipboardCheck,
+  Database,
+  DatabaseZap,
+  History,
+  ServerCog,
+  Globe,
+  RefreshCw,
+  SquareTerminal,
 } from 'lucide-react';
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
 
@@ -86,6 +96,16 @@ const STATIC: Record<string, LucideIcon> = {
   'receipt-text': ReceiptText,
   rocket: Rocket,
   server: Server,
+  activity: Activity,
+  'arrow-right-left': ArrowRightLeft,
+  'clipboard-check': ClipboardCheck,
+  database: Database,
+  'database-zap': DatabaseZap,
+  history: History,
+  'server-cog': ServerCog,
+  globe: Globe,
+  'refresh-cw': RefreshCw,
+  'square-terminal': SquareTerminal,
 };
 
 /** Icons named in module manifests (kebab-case lucide names). Common ones are bundled; others lazy-load. */

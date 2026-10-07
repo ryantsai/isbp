@@ -92,8 +92,10 @@ export const createUserSchema = z.object({
 });
 export type CreateUserInput = z.input<typeof createUserSchema>;
 
+// Defaults are dropped first: `.partial()` keeps `.default()`s, which would reset omitted fields.
 export const updateUserSchema = createUserSchema
   .omit({ password: true, status: true, groupIds: true, username: true })
+  .extend({ locale: localeSchema, timezone: z.string().max(64) })
   .partial();
 export type UpdateUserInput = z.input<typeof updateUserSchema>;
 

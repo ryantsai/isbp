@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { type Browser, expect, type Page, test } from '@playwright/test';
+import { type Browser, expect, type Page, test } from './fixtures';
 import { settle } from './helpers';
 
 /*

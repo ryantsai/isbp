@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { type APIRequestContext, expect, type Page, test } from '@playwright/test';
+import { type APIRequestContext, expect, type Page, test } from './fixtures';
 import { settle } from './helpers';
 
 /** The core "Linked records" and "Attachments" panels, hosted on a CMDB CI page and an ITSM change. */

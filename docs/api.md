@@ -169,27 +169,28 @@ English and may change.
 
 ## Main resources
 
-| Area          | Endpoints                                                                                                                                                                                                           |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth & me     | `/auth/providers`, `/auth/login`, `/auth/logout`, `/auth/session`, `/auth/sso/*`, `/me`, `/me/password`, `/me/sessions`, `/me/permissions`                                                                          |
-| People        | `/users` (list/create), `/users/{id}` (get/patch), `/users/{id}/onboard`, `/offboard`, `/status`, `/password`, `/sessions`, `/permissions`                                                                          |
-| Organisation  | `/departments`, `/departments/{id}`, `/groups`, `/groups/{id}`, `/groups/{id}/members` (+ `/remove`)                                                                                                                |
-| Access        | `/permissions`, `/roles`, `/roles/{id}`, `/role-assignments`, `/role-assignments/{id}`                                                                                                                              |
-| Audit         | `/audit-logs`, `/audit-logs/{seq}`, `/audit-logs/{seq}/verify`                                                                                                                                                      |
-| Platform      | `/modules`, `/modules/{id}`, `/modules/{id}/toggle`, `/modules/{id}/settings`, `/identity-providers` (+ `/test`, `/sync`), `/platform/navigation`, `/platform/search`, `/platform/dashboard`, `/platform/ai-tools`  |
-| Workflows     | `/workflow-triggers`, `/workflows` (+ `/{id}`, `/publish`, `/default`, `/archive`, `/restore`), `/workflow-instances` (+ `/{id}`, `/cancel`)                                                                        |
-| Approvals     | `/me/approvals`, `/approvals/{task}/approve`, `/reject`, `/delegate`, `/me/delegations` (out of office)                                                                                                             |
-| Requests      | `/requestable-roles`, `/access-requests` (+ `/preview`, `/{id}`, `/cancel`), `/me/requests`, `/requests/{REQ-number}`, `/forms/catalog`, `/forms/by-key/{key}` (+ `/submissions`), `/form-submissions/{id}`         |
-| Forms         | `/forms` (+ `/{id}`, `/publish`, `/archive`, `/restore`, `/submissions`), `/custom-fields` (+ `/entities`, `/{id}`, `/order`, `/archive`, `/restore`)                                                               |
-| Notifications | `/me/notifications` (+ `/read`, `/stream` — Server-Sent Events), `/me/badges`, `/me/notification-preferences`, `/notification-channels` (+ `/test`), `/notifications/email` (+ `/test`), `/notification-deliveries` |
-| Applications  | `/applications` (+ `/permissions`, `/roles`, `/roles/{id}/request-settings`, `/assignments`), `/roles/{id}/request-settings`, `/api-clients` (+ `/secrets`, `/revoke`), `/oauth/token`, `/role-query/*`             |
-| People        | `/people/lookup` — colleague search for pickers (any signed-in user, active people, minimal profile)                                                                                                                |
-| AI            | `/ai/status` (any signed-in user), `/ai/config` (get/put), `/ai/test`, `/ai/usage`, `/ai/index` (+ `/reindex`) — `core.ai.manage`                                                                                   |
-| Portal        | `/portal/entries` (modules' "What do you need?" cards); `/me/requests` also lists module records (`kind: module`) and fulfilment progress                                                                           |
-| Records       | `/records/types`, `/records/search?q&types`, `/records/{type}/{id}` and `/links` (list, link, unlink): links between records of any modules, visible as the owning module decides; people only                      |
-| Files         | `/records/{type}/{id}/files` (list; `POST` multipart field `file`), `/files/{id}` (download; `?inline=1` for images; `DELETE`): attachments with size/type/malware checks                                           |
-| Modules       | `/cmdb/*`, `/knowledge/*`, `/itsm/*`, `/helpdesk-ai/*`, `/itam/*`, `/projects/*`, `/alm/*` (see each module's tag in the OpenAPI reference, `/api/docs`)                                                            |
-| Probes        | `/healthz`, `/readyz` (and `/metrics` on the internal metrics port 9464)                                                                                                                                            |
+| Area          | Endpoints                                                                                                                                                                                                                                                |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth & me     | `/auth/providers`, `/auth/login`, `/auth/logout`, `/auth/session`, `/auth/sso/*`, `/me`, `/me/password`, `/me/sessions`, `/me/permissions`                                                                                                               |
+| People        | `/users` (list/create), `/users/{id}` (get/patch), `/users/{id}/onboard`, `/offboard`, `/status`, `/password`, `/sessions`, `/permissions`                                                                                                               |
+| Organisation  | `/departments`, `/departments/{id}`, `/groups`, `/groups/{id}`, `/groups/{id}/members` (+ `/remove`)                                                                                                                                                     |
+| Access        | `/permissions`, `/roles`, `/roles/{id}`, `/role-assignments`, `/role-assignments/{id}`                                                                                                                                                                   |
+| Audit         | `/audit-logs`, `/audit-logs/{seq}`, `/audit-logs/{seq}/verify`                                                                                                                                                                                           |
+| Platform      | `/modules`, `/modules/{id}`, `/modules/{id}/toggle`, `/modules/{id}/settings`, `/identity-providers` (+ `/test`, `/sync`), `/platform/navigation`, `/platform/search`, `/platform/dashboard`, `/platform/ai-tools`                                       |
+| Workflows     | `/workflow-triggers`, `/workflows` (+ `/{id}`, `/publish`, `/default`, `/archive`, `/restore`), `/workflow-instances` (+ `/{id}`, `/cancel`)                                                                                                             |
+| Approvals     | `/me/approvals`, `/approvals/{task}/approve`, `/reject`, `/delegate`, `/me/delegations` (out of office)                                                                                                                                                  |
+| Requests      | `/requestable-roles`, `/access-requests` (+ `/preview`, `/{id}`, `/cancel`), `/me/requests`, `/requests/{REQ-number}`, `/forms/catalog`, `/forms/by-key/{key}` (+ `/submissions`), `/form-submissions/{id}`                                              |
+| Forms         | `/forms` (+ `/{id}`, `/publish`, `/archive`, `/restore`, `/submissions`), `/custom-fields` (+ `/entities`, `/{id}`, `/order`, `/archive`, `/restore`)                                                                                                    |
+| Notifications | `/me/notifications` (+ `/read`, `/stream` — Server-Sent Events), `/me/badges`, `/me/notification-preferences`, `/notification-channels` (+ `/test`), `/notifications/email` (+ `/test`), `/notification-deliveries`                                      |
+| Applications  | `/applications` (+ `/permissions`, `/roles`, `/roles/{id}/request-settings`, `/assignments`), `/roles/{id}/request-settings`, `/api-clients` (+ `/secrets`, `/revoke`), `/oauth/token`, `/role-query/*`                                                  |
+| People        | `/people/lookup` — colleague search for pickers (any signed-in user, active people, minimal profile)                                                                                                                                                     |
+| AI            | `/ai/status` (any signed-in user), `/ai/config` (get/put), `/ai/test`, `/ai/usage`, `/ai/index` (+ `/reindex`) — `core.ai.manage`                                                                                                                        |
+| Portal        | `/portal/entries` (modules' "What do you need?" cards); `/me/requests` also lists module records (`kind: module`) and fulfilment progress                                                                                                                |
+| Records       | `/records/types`, `/records/search?q&types`, `/records/{type}/{id}` and `/links` (list, link, unlink): links between records of any modules, visible as the owning module decides; people only                                                           |
+| Files         | `/records/{type}/{id}/files` (list; `POST` multipart field `file`), `/files/{id}` (download; `?inline=1` for images; `DELETE`): attachments with size/type/malware checks                                                                                |
+| Databases     | `/databases` (list, `POST`), `/databases/{id}` (`GET`, `PATCH`, `DELETE`), `/databases/{id}/test`, `/databases/test` (unsaved settings), `/databases/{id}/catalog?refresh`: external database connections; passwords are write-only (`core.databases.*`) |
+| Modules       | `/cmdb/*`, `/knowledge/*`, `/itsm/*`, `/helpdesk-ai/*`, `/itam/*`, `/projects/*`, `/alm/*`, `/etl/*`, `/scheduler/*`, `/dbaccess/*` (see each module's tag in the OpenAPI reference, `/api/docs`)                                                        |
+| Probes        | `/healthz`, `/readyz` (and `/metrics` on the internal metrics port 9464)                                                                                                                                                                                 |
 
 ## Recording deployments from CI/CD (Application Lifecycle)
 
@@ -207,3 +208,27 @@ curl -X POST "$ISBP_URL/api/v1/alm/deployments" \
 
 Report `"status": "in_progress"` when the deployment starts, then `PATCH /api/v1/alm/deployments/{id}` with
 the final status.
+
+## Calling a Data API (Data APIs & ETL)
+
+Published Data APIs live at `/api/v1/etl/data/{slug}` (latest version) or `/api/v1/etl/data/{slug}/v{N}`
+(pinned). The caller needs `etl.endpoints.invoke`. An API client must also be on the endpoint's allow-list.
+
+```bash
+curl -H "Authorization: Bearer $ISBP_API_KEY" \
+  "$ISBP_URL/api/v1/etl/data/customers-by-region?region=north&limit=20"
+curl -H "Authorization: Bearer $ISBP_API_KEY" -H 'accept: text/csv' \
+  "$ISBP_URL/api/v1/etl/data/customers-by-region/v2?region=north"
+```
+
+- **Responses.** JSON is `{ "data": [...], "meta": { "rows", "truncated", "version", "durationMs", "cached" } }`.
+  The response headers are `X-Cache: HIT|MISS` and `RateLimit-Limit/Remaining/Reset`, and deprecated versions
+  add `Deprecation: true` plus a `Link` to the latest.
+- **Errors:**
+  - `400 VALIDATION_FAILED` (`details.issues` per parameter);
+  - `403 FORBIDDEN` (not allowed);
+  - `404 ENDPOINT_NOT_PUBLISHED`;
+  - `410 ENDPOINT_RETIRED`;
+  - `422 DATABASE_ERROR` (with a request id);
+  - `429 RATE_LIMITED` (with `Retry-After`).
+- **OpenAPI.** The document for the versions a client may call is at `/api/v1/etl/openapi.json`.

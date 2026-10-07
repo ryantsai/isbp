@@ -6,7 +6,14 @@ import { Skeleton } from '@isbp/ui/skeleton';
 import { LockIcon } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type ComponentType, lazy, type LazyExoticComponent, Suspense } from 'react';
+import {
+  type ComponentType,
+  lazy,
+  type LazyExoticComponent,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+} from 'react';
 import { webModules } from '@/generated/modules';
 
 /** One lazy component per module route, created once at import time (never during render). */
@@ -35,21 +42,44 @@ function PageSkeleton() {
   );
 }
 
-/** Resolves `/path` against the module's web routes and lazy-loads the matching page. */
+/** Sets `<html data-module-page="ready">` once the lazy page has mounted (see `ModuleHost`). */
+function PageReady() {
+  useEffect(() => {
+    document.documentElement.dataset.modulePage = 'ready';
+  }, []);
+  return null;
+}
+
+/**
+ * Resolves `/path` against the module's web routes and lazy-loads the matching page. `<html data-module-page>`
+ * is `loading` until the page has mounted, so end-to-end tests can wait for it.
+ */
 export function ModuleHost({ moduleId, path }: { moduleId: string; path: string }) {
   const t = useTranslations('shell');
   const { permissions } = usePlatform();
+  useLayoutEffect(() => {
+    document.documentElement.dataset.modulePage = 'loading';
+    return () => {
+      delete document.documentElement.dataset.modulePage;
+    };
+  }, [moduleId, path]);
   const match = resolve(moduleId, path);
   if (!match) notFound();
   const { route, params, Page } = match;
 
   if (route.permission && !permissions.hasAny(route.permission)) {
-    return <EmptyState icon={<LockIcon />} title={t('forbidden')} />;
+    return (
+      <>
+        <EmptyState icon={<LockIcon />} title={t('forbidden')} />
+        <PageReady key={`${moduleId}:${path}`} />
+      </>
+    );
   }
 
   return (
     <Suspense fallback={<PageSkeleton />}>
       <Page params={params} />
+      <PageReady key={`${moduleId}:${path}`} />
     </Suspense>
   );
 }

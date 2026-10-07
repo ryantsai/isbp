@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { settle } from './helpers';
 
 test('dashboard shows live figures and recent activity', async ({ page }) => {

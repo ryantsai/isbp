@@ -4,19 +4,25 @@ import type { WebModule } from '@isbp/sdk/web';
 import alm from '@isbp/module-alm/web';
 import announcements from '@isbp/module-announcements/web';
 import cmdb from '@isbp/module-cmdb/web';
+import dbaccess from '@isbp/module-dbaccess/web';
+import etl from '@isbp/module-etl/web';
 import helpdeskAi from '@isbp/module-helpdesk-ai/web';
 import itam from '@isbp/module-itam/web';
 import itsm from '@isbp/module-itsm/web';
 import knowledge from '@isbp/module-knowledge/web';
 import projects from '@isbp/module-projects/web';
+import scheduler from '@isbp/module-scheduler/web';
 
 export const webModules: Record<string, WebModule> = {
   'alm': alm,
   'announcements': announcements,
   'cmdb': cmdb,
+  'dbaccess': dbaccess,
+  'etl': etl,
   'helpdesk-ai': helpdeskAi,
   'itam': itam,
   'itsm': itsm,
   'knowledge': knowledge,
   'projects': projects,
+  'scheduler': scheduler,
 };

@@ -253,6 +253,16 @@ export const coreManifest = defineManifest({
       order: 60,
     },
     {
+      id: 'databases',
+      label: 'core.nav.databases',
+      href: '/admin/databases',
+      icon: 'database',
+      permission: 'core.databases.read',
+      section: 'admin',
+      group: 'core.nav.groupPlatform',
+      order: 65,
+    },
+    {
       id: 'identity',
       label: 'core.nav.identity',
       href: '/admin/identity-providers',
@@ -336,6 +346,8 @@ export const coreManifest = defineManifest({
       description: 'core.permissions.roleQueryRead',
       scopes: ['global', 'record'],
     },
+    { key: 'core.databases.read', description: 'core.permissions.databasesRead' },
+    { key: 'core.databases.manage', description: 'core.permissions.databasesManage' },
   ],
   roles: [
     {
@@ -382,6 +394,12 @@ export const coreManifest = defineManifest({
       name: 'Security auditor',
       description: 'Read-only access to every module and the audit trail',
       permissions: ['*.*.read'],
+    },
+    {
+      key: 'database-admin',
+      name: 'Database connection administrator',
+      description: 'Register external databases, their credentials and purposes',
+      permissions: ['core.databases.*'],
     },
     {
       key: 'module-admin',
@@ -486,6 +504,13 @@ export const coreManifest = defineManifest({
       { name: 'core.api-client.created', schema: z.object({ apiClientId: z.uuid() }) },
       { name: 'core.api-client.updated', schema: z.object({ apiClientId: z.uuid() }) },
       { name: 'core.api-client.revoked', schema: z.object({ apiClientId: z.uuid() }) },
+      { name: 'core.db-connection.created', schema: z.object({ connectionId: z.uuid() }) },
+      {
+        name: 'core.db-connection.updated',
+        description: 'Settings or credentials changed: modules drop cached state for it',
+        schema: z.object({ connectionId: z.uuid() }),
+      },
+      { name: 'core.db-connection.deleted', schema: z.object({ connectionId: z.uuid(), key: z.string() }) },
       {
         name: 'core.directory.synced',
         schema: z.object({

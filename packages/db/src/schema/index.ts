@@ -9,3 +9,4 @@ export * from './notifications';
 export * from './clients';
 export * from './ai';
 export * from './records';
+export * from './databases';

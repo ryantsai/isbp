@@ -26,7 +26,8 @@
     "groupAccess": "存取權",
     "groupAutomation": "自動化",
     "groupPlatform": "平台",
-    "ai": "AI"
+    "ai": "AI",
+    "databases": "資料庫連線"
   },
   "permissions": {
     "usersRead": "檢視人員及其個人資料",
@@ -56,7 +57,9 @@
     "applicationsManage": "管理應用程式、其角色與授權",
     "apiClientsManage": "建立 API 用戶端與金鑰",
     "roleQueryRead": "透過角色查詢 API 查詢角色與權限",
-    "aiManage": "設定 AI 閘道：模型、隱私與預算"
+    "aiManage": "設定 AI 閘道：模型、隱私與預算",
+    "databasesRead": "檢視資料庫連線",
+    "databasesManage": "管理資料庫連線及其認證"
   },
   "settings": {
     "productName": "產品名稱",
@@ -122,6 +125,10 @@
     "application-manager": {
       "name": "應用程式管理員",
       "description": "管理應用程式的角色與權限（指派時限定於單一應用程式）"
+    },
+    "database-admin": {
+      "name": "資料庫連線管理員",
+      "description": "登錄外部資料庫、認證與用途"
     }
   },
   "entities": {

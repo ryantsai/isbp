@@ -374,6 +374,46 @@ Records (contracts, tickets, CIs, tasks, releases …) carry attachments. Choose
 - **Backups.** Back up the volume or bucket together with the database. Rows in `core.files` point at
   `storage_key`s. Deleted files' bytes are purged hourly by the `core:purge-files` job.
 
+## 7d. External databases and script jobs (Phase 4)
+
+**Database connections.** Data APIs, ETL pipelines, SQL jobs and database account management reach external
+databases through connections that administrators register in **Administration → Database connections**.
+
+- **Engines and drivers.** SQL Server, PostgreSQL, MySQL and Oracle. All drivers are pure JavaScript (Oracle in
+  Thin mode), so nothing extra goes into the image: no Oracle Instant Client and no ODBC.
+- **Network.** The api and worker pods need TCP to each database (1433, 5432, 3306, 1521 by default). The
+  chart's NetworkPolicies restrict only inbound traffic. If your cluster restricts egress, allow these
+  destinations. Link-local and cloud-metadata addresses are always refused as database hosts.
+- **TLS.** Each connection has an encryption setting: off, encrypt without verifying, or encrypt and verify
+  against a CA bundle (stored sealed). Use "verify" in production. Oracle TCPS uses the system trust store.
+- **Logins.** Use dedicated, least-privilege logins:
+  - `data` connections that back Data APIs: read-only, plus EXECUTE on the procedures you publish. Mark the
+    connection read-only, so writes are refused and queries run in read-only transactions where the engine has
+    them. SQL Server relies on the login's permissions.
+  - ETL targets: write access to the target schema only.
+  - `admin` connections for Database access:
+    - SQL Server: `ALTER ANY LOGIN`, plus `ALTER ANY USER`/`ALTER ANY ROLE` in the managed databases.
+    - PostgreSQL: `CREATEROLE` with `ADMIN OPTION` on the requestable roles.
+    - Oracle: `CREATE USER`, `ALTER USER`, `GRANT ANY ROLE` or `ADMIN OPTION` on specific roles.
+- **Health.** The `core:check-databases` job tests every enabled connection every 30 minutes and records its
+  status (shown on the admin page). The metric is `isbp_db_statements_total{engine,purpose,kind,outcome}`.
+
+**Script jobs (Scheduled jobs).** Python, Node.js, PowerShell and shell scripts never run in the API or worker
+processes. Choose a runner with `SANDBOX_RUNNER`:
+
+| Runner       | Where                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kubernetes` | Helm `sandbox.runner=kubernetes`. The chart creates the namespace `sandbox.namespace` (Pod Security `restricted`, quota, limits), a ServiceAccount for the worker with a Role limited to Jobs, Secrets and pod logs there, and NetworkPolicies that deny all traffic for script pods unless a job allows egress (DNS + `sandbox.egress.allow` minus `sandbox.egress.except`). |
+| `docker`     | Compose `--profile sandbox` with `SANDBOX_RUNNER=docker`. The worker reaches the host's Docker daemon through a socket proxy that allows only container and image calls. Prefer rootless Docker on that host.                                                                                                                                                                 |
+| `local`      | Development only (default outside production). It runs Node.js scripts as child processes with only the job's environment, but without isolation. Refused when `NODE_ENV=production`.                                                                                                                                                                                         |
+| `none`       | Default in production. Script jobs can't be enabled.                                                                                                                                                                                                                                                                                                                          |
+
+- **Images.** Allowed images are listed in `SANDBOX_IMAGES` (Helm `sandbox.images`). In air-gapped clusters, mirror
+  them and list the mirrored names.
+- **Container settings.** Every script container runs as UID 65534 with a read-only root filesystem, a 64 MB
+  `/tmp`, all capabilities dropped, no privilege escalation, CPU/memory/PID limits and a deadline. Kubernetes
+  pods also get no service-account token.
+
 ## 8. Production checklist
 
 - [ ] **TLS everywhere at the edge** and `PUBLIC_URL=https://…` — session cookies are marked `Secure` only when
@@ -401,6 +441,10 @@ Records (contracts, tickets, CIs, tasks, releases …) carry attachments. Choose
       categories reviewed with your privacy officer, and a monthly budget set.
 - [ ] Attachments: S3 bucket (versioning, SSE) or a backed-up ReadWriteMany volume; ClamAV `clamd` reachable
       (`CLAMAV_HOST`); upload limit and blocked types reviewed; `api.tmpSizeLimit` sized for concurrent uploads.
+- [ ] Database connections use dedicated least-privilege logins (read-only for Data APIs; role administration
+      only for account management) with TLS verification; egress from api/worker pods to those servers allowed.
+- [ ] Script jobs: `sandbox.runner=kubernetes` (or none); sandbox namespace enforces Pod Security `restricted`;
+      only reviewed images in `sandbox.images`; egress for scripts limited to what they need.
 - [ ] Alerts on `/readyz` failures, 5xx rate and latency (`isbp_http_request_duration_seconds`), job failures
       (`isbp_jobs_total{status="failed"}`), and Postgres/Redis health.
 

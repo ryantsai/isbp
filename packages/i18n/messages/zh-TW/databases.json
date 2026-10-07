@@ -1,0 +1,138 @@
+{
+  "title": "資料庫連線",
+  "description": "資料 API、ETL 管線、SQL 作業及資料庫存取權管理所使用的外部資料庫。密碼會加密儲存，且不會再次顯示。",
+  "add": "新增連線",
+  "search": "搜尋連線",
+  "noMatch": "沒有符合「{q}」的連線。",
+  "empty": {
+    "title": "尚無資料庫連線",
+    "description": "登錄 SQL Server、PostgreSQL、MySQL 或 Oracle 資料庫，供模組使用。"
+  },
+  "forbidden": {
+    "title": "你無法檢視資料庫連線",
+    "description": "請向管理員申請「資料庫連線管理員」角色。"
+  },
+  "columns": {
+    "name": "連線",
+    "engine": "引擎",
+    "server": "伺服器",
+    "purposes": "用途",
+    "status": "狀態"
+  },
+  "engines": {
+    "mssql": "SQL Server",
+    "postgres": "PostgreSQL",
+    "mysql": "MySQL",
+    "oracle": "Oracle"
+  },
+  "purposes": {
+    "data": "資料",
+    "admin": "帳戶管理",
+    "dataHint": "資料 API、ETL 管線與 SQL 作業。",
+    "adminHint": "建立帳戶並授予角色（資料庫存取權）。資料 API 永遠無法使用。"
+  },
+  "status": {
+    "ok": "已連線",
+    "error": "失敗",
+    "unknown": "未測試",
+    "checked": "{when}檢查",
+    "disabled": "已停用"
+  },
+  "readOnly": "唯讀",
+  "actions": {
+    "test": "測試",
+    "edit": "編輯",
+    "catalog": "瀏覽目錄",
+    "delete": "刪除",
+    "more": "{name} 的其他動作"
+  },
+  "form": {
+    "createTitle": "新增資料庫連線",
+    "editTitle": "編輯 {name}",
+    "createDescription": "模組只能透過此處登錄的連線存取外部資料庫。",
+    "editDescription": "密碼留白即保留已儲存的密碼。",
+    "sectionServer": "伺服器",
+    "sectionSignIn": "登入",
+    "sectionUse": "用途",
+    "name": "名稱",
+    "namePlaceholder": "例如：財務資料倉儲",
+    "key": "代碼",
+    "keyHint": "模組以此代碼參照連線。可使用小寫英文字母、數字與連字號，建立後無法變更。",
+    "description": "描述",
+    "engine": "引擎",
+    "host": "主機",
+    "hostHint": "API 與背景工作程式可連線的主機名稱或 IP 位址。",
+    "port": "連接埠",
+    "database": "資料庫",
+    "serviceName": "服務名稱",
+    "instanceName": "執行個體名稱",
+    "instanceHint": "用於具名的 SQL Server 執行個體，連接埠會自動偵測。",
+    "tls": "加密",
+    "tlsOff": "關閉",
+    "tlsRequire": "加密，但不驗證憑證",
+    "tlsVerify": "加密並驗證憑證",
+    "ca": "CA 憑證（PEM）",
+    "caStored": "已儲存 CA 憑證。貼上新的憑證即可取代。",
+    "username": "使用者名稱",
+    "password": "密碼",
+    "passwordStored": "已儲存。留白即保留。",
+    "passwordClear": "移除已儲存的密碼",
+    "domain": "Windows 網域",
+    "domainHint": "用於以服務帳戶進行 SQL Server Windows 驗證（NTLM）。",
+    "purposes": "用途",
+    "purposesError": "請至少選擇一種用途。",
+    "readOnly": "唯讀",
+    "readOnlyHint": "拒絕寫入，並在引擎支援時以唯讀交易執行查詢。SQL Server 則依登入帳戶的權限控管。",
+    "enabled": "已啟用",
+    "advanced": "限制",
+    "poolMax": "每個處理程序的連線數",
+    "timeout": "陳述式逾時（秒）",
+    "maxRows": "每次結果的最大列數",
+    "leastPrivilege": "請使用只具備必要權限的專用登入帳戶：資料 API 用唯讀帳戶，帳戶管理只授予角色管理權限。",
+    "validation": {
+      "name": "請輸入名稱。",
+      "key": "請使用 2 至 64 個小寫英文字母、數字與連字號，並以字母開頭。",
+      "host": "請輸入主機名稱或 IP 位址。",
+      "username": "請輸入使用者名稱。",
+      "port": "請輸入 1 到 65535 之間的連接埠。",
+      "number": "請輸入 {min} 到 {max} 之間的數字。"
+    },
+    "submit": "新增連線",
+    "saved": "已儲存連線。",
+    "created": "已新增連線。",
+    "testDraft": "測試連線"
+  },
+  "test": {
+    "running": "連線中…",
+    "ok": "已於 {ms} 毫秒內連線",
+    "failed": "無法連線",
+    "code": "代碼 {code}",
+    "version": "伺服器：{version}"
+  },
+  "catalog": {
+    "title": "目錄：{name}",
+    "description": "此連線的登入帳戶可看到的資料表、檢視與常式。",
+    "search": "篩選資料表與常式",
+    "tables": "資料表與檢視",
+    "routines": "預存程序與函式",
+    "refresh": "重新整理",
+    "keyColumn": "索引鍵欄位",
+    "view": "檢視",
+    "table": "資料表",
+    "procedure": "預存程序",
+    "function": "函式",
+    "empty": "此登入帳戶看不到任何物件。",
+    "noMatch": "沒有符合「{q}」的項目。",
+    "truncated": "目錄過大，只顯示前 20,000 個項目。",
+    "columns": "{count, plural, other {# 個欄位}}",
+    "params": "{count, plural, =0 {沒有參數} other {# 個參數}}",
+    "returns": "傳回 {type}",
+    "failed": "無法讀取目錄"
+  },
+  "delete": {
+    "title": "要刪除 {name} 嗎？",
+    "description": "使用此連線的模組將無法再透過它運作：資料 API、管線與作業會失敗，直到改用其他連線為止。此動作無法復原。",
+    "confirm": "刪除連線",
+    "done": "已刪除連線。"
+  }
+}

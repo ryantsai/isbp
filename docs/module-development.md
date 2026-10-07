@@ -4,6 +4,10 @@ Every feature of IS Big Platform — including the platform's own identity/RBAC/
 `core` module) — is a **module** built on `@isbp/sdk`. Custom modules use exactly the same SDK; there
 are no special cases. This guide builds one end to end.
 
+> **AI coding agents** (and anyone who wants the rules as a checklist): start with [`docs/ai/`](ai/README.md) —
+> numbered rules, a system map, the API reference, recipes, the generated extension-point reference and the
+> definition of done. This guide is the narrative introduction.
+
 ## 1. Concepts
 
 | Term            | Meaning                                                                                                                                                                                                            |
@@ -162,6 +166,11 @@ Every route, job, event handler and AI tool receives a `ModuleContext`:
 | `ctx.workflows.start(trigger, { subject, facts, requesterId }, { tx })`                      | Start the approval workflow bound to one of your triggers (see below)               |
 | `ctx.notifications.notify({ type, recipients, params, href }, { tx })`                       | Notify people in their language, through their preferred channels                   |
 | `ctx.fields.validate(entityType, attributes, existing)`                                      | Validate custom-field values an admin defined for one of your entities              |
+| `ctx.databases.query/call/stream/writer/catalog(connectionId, …, { purpose })`               | External databases with bound parameters (Phase 4, below)                           |
+| `ctx.taskTypes.list/validate/run`                                                            | Task types Scheduled Jobs can run (Phase 4)                                         |
+| `ctx.http.request(url, opts)`                                                                | Outbound HTTP with the SSRF guard                                                   |
+| `ctx.cache.get/set/rateLimit(…)`                                                             | Redis cache and rate limiting, namespaced per module                                |
+| `ctx.sandbox.run(req)`                                                                       | Untrusted scripts in a container sandbox                                            |
 
 ```ts
 await ctx.transaction(async (tx) => {
@@ -398,6 +407,72 @@ async search(query, ctx, auth, limit) { /* by reference or title; empty query = 
 - **Secrets.** Licence keys, passwords and tokens are sealed with `ctx.secrets.seal(plain)` and read with
   `ctx.secrets.open(sealed)` (the platform master key, rotation-aware). Never return them in lists, and audit
   reveals.
+
+### External databases, task types, HTTP, cache and scripts (Phase 4)
+
+**External databases.** Modules never open their own database connections. Administrators register them in
+**Administration → Database connections**, with sealed credentials and the purposes they serve: `data` (ETL,
+Data APIs, SQL jobs) or `admin` (account administration). Every call names a purpose the connection allows.
+
+```ts
+const { rows, columns, truncated } = await ctx.databases.query(connectionId,
+  'SELECT code, name FROM erp.customers WHERE region = :region AND id IN (:ids)',
+  { purpose: 'data', params: { region: 'north', ids: [1, 2, 3] }, types: { region: 'string' }, maxRows: 100, readOnly: true },
+);
+const catalog = await ctx.databases.catalog(connectionId, { purpose: 'data' }); // tables, columns, keys, routines
+await ctx.databases.call(connectionId, catalog.procedures[0], { customer_code: 'C00007' }, { purpose: 'data' });
+for await (const batch of ctx.databases.stream(connectionId, sql, { purpose: 'data', batchSize: 500 })) { … }
+const w = await ctx.databases.writer(connectionId, { schema: 'dw', name: 'sales_daily' },
+  { purpose: 'data', columns: ['sales_date', 'sku', 'revenue'], mode: 'upsert', keys: ['sales_date', 'sku'] });
+await w.write(rows); await w.commit(); // or w.rollback()
+```
+
+- `:name` placeholders are bound by the driver, on all four engines. Lists expand to one placeholder per item.
+  Strings, comments, `::` casts and `:=` are never placeholders. There is no API that puts a value into SQL
+  text.
+- Table and column names must come from `catalog()`. For DDL on a target server (creating logins, granting
+  roles), have **that server** quote bound parameters: `QUOTENAME(@x)` + `sp_executesql`, `format('%I', $1)`,
+  or `DBMS_ASSERT.ENQUOTE_NAME(:x)`.
+- Failures are `HttpError` 422 `DATABASE_ERROR` with `details: { kind, dbCode, message }` (the server's own
+  words, never credentials). Other errors: 403 `CONNECTION_PURPOSE`, 409 `CONNECTION_DISABLED` and
+  409 `CONNECTION_READ_ONLY`.
+- In the browser, `@isbp/sql/params` (`parameterNames`, `writeKeywords`, …) detects parameters as people type.
+  Use `CodeEditor` from `@isbp/ui/code-editor` with the connection's `dialect` and its catalog as `schema` for
+  completion.
+
+**Task types: work Scheduled Jobs can run.** Declare them like record types. Scheduled Jobs handles schedules,
+retries, timeouts, run history, live logs and alerts.
+
+```ts
+// manifest
+taskTypes: [{ type: 'refresh', name: 'asset-tracker.tasks.refresh', icon: 'refresh-cw',
+  permission: 'asset-tracker.assets.manage', config: z.object({ siteId: z.uuid() }) }],
+
+// defineServerModule(manifest, { taskTypes: { refresh: {
+//   validate: async (config, ctx, auth) => { /* the editor may use this site */ },
+//   describe: async (config, ctx) => ({ label: `Refresh ${await siteName(config.siteId)}`, href: `/asset-tracker/sites/${config.siteId}` }),
+//   run: async (config, task, ctx) => {
+//     task.log('Refreshing …');                 // live log line
+//     if (task.signal.aborted) return;          // timeout or cancel
+//     return { summary: '42 assets refreshed', metrics: { assets: 42 } };
+//   },
+// } } })
+```
+
+To give people a nicer editor than the JSON fallback, contribute the web slot
+`scheduler.task-config.asset-tracker.refresh` (props `TaskConfigSlotProps` from `@isbp/contracts`). To link to a
+pre-filled new job, use `/scheduler/jobs/new?type=asset-tracker.refresh&name=…&config=<URI-encoded JSON>`.
+
+**Outbound HTTP, cache and scripts.**
+
+- `ctx.http.request(url, { method, headers, body, timeoutMs, maxBytes, allowHosts })` is the only way out.
+  Private, loopback and metadata addresses are refused when the socket connects (DNS rebinding can't get
+  around it). Redirects are not followed.
+- `ctx.cache` is Redis, namespaced to your module: `get/set/delete/increment` and
+  `rateLimit(key, limit, windowSeconds)`.
+- `ctx.sandbox.run({ image, language, script, env, timeoutMs, cpu, memoryMb, network, onLog })` runs untrusted
+  code in a container: a Kubernetes Job, or Docker in compose. Check `ctx.sandbox.status()` first. Without a
+  runner it refuses with 422 `SANDBOX_UNAVAILABLE`. The development-only `local` runner is not isolated.
 
 ## 5. Web side
 

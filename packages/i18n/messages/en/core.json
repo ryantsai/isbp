@@ -26,7 +26,8 @@
     "groupAccess": "Access",
     "groupAutomation": "Automation",
     "groupPlatform": "Platform",
-    "ai": "AI"
+    "ai": "AI",
+    "databases": "Database connections"
   },
   "permissions": {
     "usersRead": "View people and their profiles",
@@ -56,7 +57,9 @@
     "applicationsManage": "Manage applications, their roles and grants",
     "apiClientsManage": "Create API clients and their keys",
     "roleQueryRead": "Query roles and permissions through the Role Query API",
-    "aiManage": "Configure the AI gateway: models, privacy and budget"
+    "aiManage": "Configure the AI gateway: models, privacy and budget",
+    "databasesRead": "View database connections",
+    "databasesManage": "Manage database connections and their credentials"
   },
   "settings": {
     "productName": "Product name",
@@ -122,6 +125,10 @@
     "application-manager": {
       "name": "Application manager",
       "description": "Manage an application's roles and permissions (assign it scoped to one application)"
+    },
+    "database-admin": {
+      "name": "Database connection administrator",
+      "description": "Register external databases, their credentials and purposes"
     }
   },
   "entities": {

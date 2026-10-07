@@ -15,12 +15,14 @@ import { aiRoutes } from './routes/ai';
 import { notificationRoutes } from './routes/notifications';
 import { meRoutes, userRoutes } from './routes/people';
 import { platformRoutes } from './routes/platform';
+import { databaseRoutes } from './routes/databases';
 import { recordRoutes } from './routes/records';
 import { requestRoutes } from './routes/requests';
 import { workflowRoutes } from './routes/workflows';
 import { AccessService } from './services/access';
 import { AccessRequestService } from './services/access-requests';
 import { ApiClientService, ApplicationService, RoleQueryService } from './services/applications';
+import { DatabaseAdminService } from './services/databases';
 import { DirectoryService } from './services/directory';
 import { CustomFieldAdminService, FormService } from './services/forms';
 import { IdpService } from './services/idp';
@@ -142,6 +144,7 @@ export const coreModule = defineServerModule(coreManifest, {
     notificationRoutes(app, new NotificationAdminService(ctx));
     aiRoutes(app, new AiAdminService(ctx));
     recordRoutes(app);
+    databaseRoutes(app, new DatabaseAdminService(ctx));
     applicationRoutes(
       app,
       ctx,
@@ -201,6 +204,12 @@ export const coreModule = defineServerModule(coreManifest, {
       description: 'Deletes the stored bytes of attachments deleted more than an hour ago',
       schedule: { cron: '23 * * * *' },
       handler: async () => ({ purged: await getKernel().files.purge() }),
+    },
+    'check-databases': {
+      description: 'Tests every enabled database connection and records its status',
+      schedule: { cron: '*/30 * * * *' },
+      timeoutMs: 10 * 60_000,
+      handler: async (_job, ctx) => new DatabaseAdminService(ctx).checkAll(),
     },
     'purge-sessions': {
       description: 'Deletes sessions that ended more than 7 days ago',

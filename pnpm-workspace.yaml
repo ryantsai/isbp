@@ -20,6 +20,8 @@ allowBuilds:
   embedded-postgres: true
   esbuild: true
   msgpackr-extract: true
+  # Thin mode is pure JavaScript; the script only checks for Thick-mode binaries.
+  oracledb: false
   protobufjs: true
   redis-memory-server: true
   sharp: true

@@ -47,7 +47,11 @@ export const createRoleSchema = z.object({
 });
 export type CreateRoleInput = z.input<typeof createRoleSchema>;
 
-export const updateRoleSchema = createRoleSchema.omit({ key: true }).partial();
+// Defaults are dropped first: `.partial()` keeps `.default()`s, which would empty omitted fields.
+export const updateRoleSchema = createRoleSchema
+  .omit({ key: true })
+  .extend({ permissions: z.array(permissionPatternSchema).max(500) })
+  .partial();
 export type UpdateRoleInput = z.input<typeof updateRoleSchema>;
 
 export const principalTypeSchema = z.enum(['user', 'group']);

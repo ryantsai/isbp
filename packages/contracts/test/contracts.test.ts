@@ -48,3 +48,21 @@ describe('createRoleAssignmentSchema', () => {
     expect(createRoleAssignmentSchema.safeParse({ ...base, expiresAt: future }).success).toBe(true);
   });
 });
+
+describe('update (PATCH) schemas', () => {
+  it('never fill omitted fields with create defaults', async () => {
+    const all = await import('../src');
+    const filled = Object.entries(all)
+      .filter(([k]) => /^update\w*Schema$/.test(k))
+      .map(
+        ([k, s]) =>
+          [
+            k,
+            (s as { safeParse: (v: unknown) => { success: boolean; data?: object } }).safeParse({}),
+          ] as const,
+      )
+      .filter(([, r]) => r.success && Object.keys(r.data ?? {}).length > 0)
+      .map(([k]) => k);
+    expect(filled).toEqual([]);
+  });
+});

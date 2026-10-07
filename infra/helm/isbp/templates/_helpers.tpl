@@ -206,6 +206,13 @@ dataFrom:
 {{- $_ := set $cfg "CLAMAV_HOST" . -}}
 {{- $_ := set $cfg "CLAMAV_PORT" (toString $files.clamav.port) -}}
 {{- end -}}
+{{- $sb := .Values.sandbox -}}
+{{- if not (has $sb.runner (list "none" "kubernetes")) -}}
+{{- fail "sandbox.runner must be none or kubernetes" -}}
+{{- end -}}
+{{- $_ := set $cfg "SANDBOX_RUNNER" $sb.runner -}}
+{{- $_ := set $cfg "SANDBOX_IMAGES" (join "," $sb.images) -}}
+{{- $_ := set $cfg "SANDBOX_K8S_NAMESPACE" $sb.namespace -}}
 {{- toYaml $cfg -}}
 {{- end }}
 
@@ -242,8 +249,14 @@ Usage: include "isbp.podSpecCommon" (dict "root" $ "component" "api" "values" .V
 {{- define "isbp.podSpecCommon" -}}
 {{- $root := .root -}}
 {{- $c := .values -}}
+{{- if and (eq .component "worker") (eq $root.Values.sandbox.runner "kubernetes") }}
+# The worker starts script Jobs in the sandbox namespace (Role bound to this account only).
+serviceAccountName: {{ include "isbp.fullname" $root }}-sandbox-runner
+automountServiceAccountToken: true
+{{- else }}
 serviceAccountName: {{ include "isbp.serviceAccountName" $root }}
 automountServiceAccountToken: {{ $root.Values.serviceAccount.automountServiceAccountToken }}
+{{- end }}
 {{- with $root.Values.imagePullSecrets }}
 imagePullSecrets:
   {{- toYaml . | nindent 2 }}

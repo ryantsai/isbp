@@ -1,0 +1,614 @@
+{
+  "meta": {
+    "name": "資料 API 與 ETL",
+    "description": "以參數化 SQL 與預存程序建立 REST 端點，並在資料庫之間執行 ETL 管線"
+  },
+  "nav": {
+    "group": "資料 API 與 ETL",
+    "endpoints": "資料 API",
+    "pipelines": "管線",
+    "logs": "呼叫紀錄"
+  },
+  "permissions": {
+    "endpointsRead": "檢視資料 API、版本、文件與執行紀錄",
+    "endpointsManage": "建立、編輯、測試、發佈與停用資料 API",
+    "endpointsInvoke": "呼叫已發佈的資料 API（全域或單一端點）",
+    "pipelinesRead": "檢視 ETL 管線及其執行",
+    "pipelinesManage": "建立、編輯與刪除 ETL 管線",
+    "pipelinesRun": "立即或依排程執行 ETL 管線"
+  },
+  "settings": {
+    "logRetentionDays": "執行紀錄保留天數",
+    "logRetentionDaysHelp": "超過此天數的資料 API 呼叫會在每晚刪除。",
+    "defaultRateLimit": "預設速率限制（每位呼叫者每分鐘次數）",
+    "defaultRateLimitHelp": "未自行設定限制的端點使用此值。"
+  },
+  "entities": {
+    "endpoint": "資料 API",
+    "pipeline": "ETL 管線"
+  },
+  "taskTypes": {
+    "pipeline": {
+      "name": "ETL 管線",
+      "description": "執行資料 API 與 ETL 的管線，並回報讀取、寫入與拒絕的列數。"
+    }
+  },
+  "notifications": {
+    "pipeline_failed": {
+      "label": "我的 ETL 管線執行失敗",
+      "title": "管線 {pipeline} 執行失敗",
+      "body": "載入已復原。{error}"
+    }
+  },
+  "audit": {
+    "endpoint_created": "已建立資料 API",
+    "endpoint_updated": "已編輯資料 API",
+    "endpoint_deleted": "已刪除資料 API",
+    "endpoint_tested": "已測試資料 API",
+    "endpoint_published": "已發佈資料 API 版本",
+    "endpoint_deprecated": "已將資料 API 版本標示為淘汰",
+    "endpoint_retired": "已停用資料 API 版本",
+    "endpoint_restored": "已還原資料 API 版本",
+    "endpoint_draft_loaded": "已將資料 API 版本載入草稿",
+    "endpoint_access_denied": "已拒絕資料 API 呼叫（API 用戶端不在允許清單）",
+    "endpoint_connection_missing": "資料 API 的資料庫連線已不存在",
+    "pipeline_created": "已建立管線",
+    "pipeline_updated": "已編輯管線",
+    "pipeline_deleted": "已刪除管線",
+    "pipeline_run_requested": "已要求執行管線",
+    "pipeline_run_cancelled": "已取消管線執行",
+    "pipeline_run_succeeded": "管線執行成功",
+    "pipeline_run_failed": "管線執行失敗",
+    "pipeline_connection_missing": "管線的資料庫連線已不存在"
+  },
+  "endpointStatus": {
+    "draft": "草稿",
+    "published": "已發佈",
+    "deprecated": "已淘汰",
+    "retired": "已停用"
+  },
+  "versionStatus": {
+    "published": "已發佈",
+    "deprecated": "已淘汰",
+    "retired": "已停用"
+  },
+  "runStatus": {
+    "queued": "排入佇列",
+    "running": "執行中",
+    "succeeded": "成功",
+    "failed": "失敗",
+    "cancelled": "已取消"
+  },
+  "runTrigger": {
+    "manual": "立即執行",
+    "schedule": "排程作業"
+  },
+  "kind": {
+    "query": "SQL 查詢",
+    "procedure": "預存程序或函式"
+  },
+  "routine": {
+    "procedure": "預存程序",
+    "function": "函式"
+  },
+  "shape": {
+    "rows": "所有資料列（陣列）",
+    "single": "第一列（無資料時回傳 404）"
+  },
+  "writeMode": {
+    "insert": "新增",
+    "upsert": "更新或新增",
+    "replace": "取代"
+  },
+  "engine": {
+    "mssql": "SQL Server",
+    "postgres": "PostgreSQL",
+    "mysql": "MySQL",
+    "oracle": "Oracle"
+  },
+  "connection": {
+    "missing": "連線已不存在",
+    "unreachable": "無法連線",
+    "readOnly": "唯讀"
+  },
+  "duration": {
+    "ms": "{n} 毫秒",
+    "seconds": "{n} 秒",
+    "minutes": "{m} 分 {s} 秒"
+  },
+  "charts": {
+    "viewAs": "檢視方式",
+    "chart": "圖表",
+    "table": "表格"
+  },
+  "stats": {
+    "barLabel": "{at}：{calls} 次呼叫，{errors} 次錯誤",
+    "period": "期間",
+    "periods": {
+      "24h": "24 小時",
+      "7d": "7 天"
+    },
+    "summary": "流量摘要",
+    "tiles": {
+      "calls": "呼叫次數",
+      "errorRate": "錯誤率",
+      "p95": "p95 延遲",
+      "cacheHits": "快取命中"
+    },
+    "errorsHint": "{count, plural, other {# 次錯誤}}",
+    "avgHint": "平均 {avg}",
+    "chartTitle": "呼叫趨勢",
+    "chartDescription": {
+      "24h": "近 24 小時，每小時",
+      "7d": "近 7 天，每天"
+    },
+    "ok": "成功",
+    "errors": "錯誤",
+    "bucket": "時間"
+  },
+  "fields": {
+    "name": "名稱",
+    "slug": "URL 代稱",
+    "description": "描述",
+    "method": "方法",
+    "kind": "類型",
+    "connection": "連線",
+    "status": "狀態",
+    "updated": "更新時間",
+    "version": "版本",
+    "url": "URL",
+    "access": "存取",
+    "rateLimit": "每分鐘速率限制",
+    "cache": "快取",
+    "maxRows": "最多列數",
+    "sql": "SQL",
+    "procedure": "預存程序或函式",
+    "responseShape": "回應",
+    "timeoutSeconds": "逾時（秒）",
+    "cacheSeconds": "快取時間（秒）",
+    "allowsWrites": "允許寫入",
+    "allowUsers": "已登入的人員可呼叫",
+    "allowedClients": "允許的 API 用戶端",
+    "owner": "負責人",
+    "mode": "寫入模式",
+    "enabled": "已啟用",
+    "table": "資料表",
+    "keys": "鍵值欄位",
+    "batchSize": "批次大小"
+  },
+  "endpoints": {
+    "title": "資料 API",
+    "description": "以 SQL 或預存程序建立的公司資料庫 REST 端點，具版本控管與文件。",
+    "calls24h": "呼叫次數（24 小時）",
+    "errors": "{count, plural, other {# 次錯誤}}",
+    "empty": "尚無資料 API",
+    "emptyFiltered": "沒有符合的資料 API",
+    "emptyHint": "資料 API 可將 SQL 查詢或預存程序轉成具文件的 REST 端點。",
+    "liveCount": "{count, plural, other {# 個資料 API}}",
+    "new": "新增資料 API",
+    "openapi": "OpenAPI",
+    "search": "依名稱或代稱搜尋…"
+  },
+  "create": {
+    "title": "新增資料 API",
+    "hint": "命名並選擇資料連線，接著在草稿中撰寫 SQL（或選擇預存程序）。",
+    "nameRequired": "請輸入名稱",
+    "slugInvalid": "僅限小寫英文字母、數字與單一連字號，並以英文字母開頭",
+    "connectionRequired": "請選擇連線",
+    "created": "已建立 {name}",
+    "namePlaceholder": "各區域客戶",
+    "slugHint": "呼叫者使用 /api/v1/etl/data/{slug}。發佈版本後即無法變更。",
+    "pickConnection": "選擇連線…",
+    "connectionHint": "僅列出管理員允許作為資料用途的連線。請使用最低權限的登入帳戶。"
+  },
+  "endpoint": {
+    "unpublishedChanges": "有未發佈的變更",
+    "details": "詳細資料",
+    "peopleAllowed": "具權限的人員",
+    "peopleNotAllowed": "不允許人員",
+    "clientsAllowed": "{count, plural, =0 {無 API 用戶端} other {# 個 API 用戶端}}",
+    "perMinute": "每位呼叫者每分鐘 {n} 次",
+    "cacheFor": "{s} 秒",
+    "cacheOff": "關閉",
+    "viewCalls": "檢視呼叫紀錄",
+    "connectionMissing": "此資料 API 的資料庫連線已刪除。請在草稿中選擇其他連線，並發佈新版本。",
+    "delete": "刪除",
+    "deleteTitle": "要刪除 {name} 嗎？",
+    "deleteBody": "其版本與執行紀錄會一併刪除，之後的呼叫會收到 404。",
+    "deleted": "已刪除資料 API",
+    "latest": "最新 v{version}",
+    "notFound": "此資料 API 不存在（或已刪除）。",
+    "publish": "發佈",
+    "testToPublish": "測試後發佈",
+    "tabs": {
+      "overview": "概觀",
+      "definition": "定義",
+      "test": "測試",
+      "versions": "版本",
+      "docs": "文件",
+      "links": "連結與檔案"
+    }
+  },
+  "editor": {
+    "statement": "陳述式",
+    "statementHint": {
+      "query": "單一 SQL 陳述式。數值由驅動程式透過 :name 預留位置繫結，絕不會貼入 SQL。",
+      "procedure": "來自連線目錄的預存程序或函式，其輸入引數會成為參數。"
+    },
+    "sqlHint": "以 :name 表示參數。字串、註解與 :: 型別轉換不是參數。",
+    "detected": "SQL 中的參數：",
+    "noneDetected": "無",
+    "addMissing": "{count, plural, other {新增 # 個缺少的參數}}",
+    "removeUnused": "{count, plural, other {移除 # 個未使用的參數}}",
+    "writesFound": "此 SQL 會變更資料或結構描述（{keywords}）。請開啟「允許寫入」後再儲存。",
+    "writesAllowed": "此 SQL 會變更資料或結構描述（{keywords}），且已允許寫入。",
+    "procedureHint": "從連線登入帳戶可見的常式中選擇。",
+    "loadingCatalog": "正在載入目錄…",
+    "pickProcedure": "選擇預存程序或函式…",
+    "arguments": "輸入引數：",
+    "general": "一般",
+    "response": "回應與限制",
+    "maxRowsHint": "上限受連線的限制約束。",
+    "cacheHint": "設為 0 即關閉快取。結果依版本與參數快取。",
+    "allowsWritesHint": "含寫入或 DDL 關鍵字的 SQL 需要開啟。唯讀連線仍會拒絕寫入。",
+    "access": "存取",
+    "accessHint": "誰可以呼叫已發佈的版本。變更立即生效，不需要新版本。",
+    "allowUsersHint": "人員需具備呼叫資料 API 的權限（全域或此端點）。",
+    "noClients": "尚無 API 用戶端。請由管理員在「應用程式與 API 用戶端」中建立。",
+    "revoked": "已撤銷",
+    "rateLimitHint": "留白即使用預設值。目前：每位呼叫者每分鐘 {n} 次。",
+    "unsaved": "有未儲存的變更",
+    "allSaved": "所有變更已儲存",
+    "discard": "捨棄",
+    "save": "儲存草稿",
+    "saved": "已儲存草稿",
+    "fixFields": "請修正標示的欄位。",
+    "paramsList": "參數：{list}"
+  },
+  "params": {
+    "title": "參數",
+    "hint": "呼叫資料庫前先檢查型別與內容：無效的輸入會回傳 400 及各欄位的詳細資訊。",
+    "name": "名稱",
+    "type": "型別",
+    "default": "預設值",
+    "more": "更多",
+    "remove": "移除參數 {name}",
+    "required": "必填",
+    "list": "多個值",
+    "sensitive": "敏感（紀錄中遮罩）",
+    "description": "描述",
+    "example": "範例",
+    "target": "引數",
+    "min": "最小值",
+    "max": "最大值",
+    "minLength": "最短長度",
+    "maxLength": "最長長度",
+    "pattern": "格式（規則運算式）",
+    "enum": "允許的值",
+    "enumHint": "以逗號分隔；離開欄位時套用。",
+    "none": "沒有參數。",
+    "add": "新增參數",
+    "types": {
+      "string": "文字",
+      "integer": "整數",
+      "decimal": "十進位數",
+      "number": "數字",
+      "boolean": "是/否",
+      "date": "日期",
+      "datetime": "日期時間",
+      "uuid": "UUID"
+    }
+  },
+  "test": {
+    "title": "測試主控台",
+    "hint": "以這些值對實際資料庫執行。草稿測試成功後即可發佈。",
+    "runWhat": "執行",
+    "draft": "草稿",
+    "version": "版本 {version}",
+    "noParams": "此陳述式沒有參數。",
+    "run": "執行測試",
+    "manageOnly": "只有資料 API 開發人員可以執行測試。",
+    "empty": "執行測試即可查看資料列、欄位、耗時與繫結後的 SQL。",
+    "rows": "{count, plural, other {# 列}}",
+    "truncated": "資料列超過上限",
+    "shownRows": "顯示前 {n} 列",
+    "publish": "發佈此草稿",
+    "failed": "資料庫拒絕執行（{kind}）",
+    "boundSql": "繫結後的 SQL（數值另行傳送）",
+    "results": "結果",
+    "listHint": "以逗號分隔",
+    "required": "必填",
+    "defaultIs": "預設 {value}",
+    "notSet": "未設定"
+  },
+  "publish": {
+    "title": "發佈版本 {version}",
+    "hint": "測試過的草稿會凍結為不可變更的版本。呼叫一般 URL 的呼叫者從此使用新版本，指定版本的呼叫者維持原版本。",
+    "note": "變更說明",
+    "notePlaceholder": "變更內容與原因",
+    "confirm": "發佈 v{version}",
+    "published": "已發佈版本 {version}"
+  },
+  "versions": {
+    "title": "版本",
+    "hint": "已發佈的版本不會變更。已淘汰的版本仍會回應並附上 Deprecation 標頭；已停用的版本回傳 410。",
+    "none": "尚未發佈。請先測試草稿再發佈。",
+    "latest": "最新",
+    "publishedBy": "{name} 發佈",
+    "actions": {
+      "deprecate": "淘汰",
+      "retire": "停用",
+      "restore": "還原",
+      "load": "載入草稿"
+    },
+    "compare": "比較",
+    "from": "從",
+    "to": "到",
+    "draft": "草稿",
+    "statement": "陳述式",
+    "parameters": "參數",
+    "settings": "設定",
+    "noChanges": "沒有變更。",
+    "added": "新增：",
+    "removed": "移除：",
+    "confirm": {
+      "deprecate": {
+        "title": "要淘汰版本 {version} 嗎？",
+        "body": "此版本仍會回應，並附上 Deprecation 標頭與最新版本的連結，方便呼叫者移轉。"
+      },
+      "retire": {
+        "title": "要停用版本 {version} 嗎？",
+        "body": "之後呼叫此版本會收到 410 Gone。之後仍可還原。"
+      },
+      "restore": {
+        "title": "要還原版本 {version} 嗎？",
+        "body": "此版本會重新發佈並正常回應。"
+      },
+      "load": {
+        "title": "要將版本 {version} 載入草稿嗎？",
+        "body": "草稿會被此版本的定義取代，未儲存的編輯將遺失。"
+      }
+    },
+    "done": {
+      "deprecate": "已淘汰版本 {version}",
+      "retire": "已停用版本 {version}",
+      "restore": "已還原版本 {version}",
+      "load": "已將版本 {version} 載入草稿"
+    }
+  },
+  "docs": {
+    "unpublished": "尚無已發佈的版本",
+    "unpublishedHint": "發佈版本後才會顯示文件。",
+    "request": "要求",
+    "requestHint": "GET 以查詢字串傳遞參數（多個值可重複參數名稱或以逗號分隔）；POST 則傳送 JSON 物件。",
+    "parameters": "參數",
+    "requiredColumn": "必填",
+    "details": "詳細資訊",
+    "yes": "是",
+    "defaultValue": "否（預設 {value}）",
+    "exampleValue": "範例 {value}",
+    "oneOf": "可為 {values}",
+    "minLength": "至少 {n} 個字元",
+    "maxLength": "最多 {n} 個字元",
+    "pattern": "符合 {pattern}",
+    "noParams": "沒有參數。",
+    "curl": "要求範例",
+    "csvHint": "傳送 Accept: text/csv 可取得 CSV。回應附有 RateLimit 標頭；X-Cache 表示結果是否來自快取。",
+    "response": "回應",
+    "responseHint": {
+      "rows": "data 為資料列陣列；meta 包含列數、是否截斷、版本、耗時以及是否來自快取。",
+      "single": "data 為第一列；沒有符合的資料列時回傳 404。"
+    },
+    "exampleResponse": "回應範例",
+    "versionTitle": "版本",
+    "version": "文件版本",
+    "latest": "最新（v{version}）",
+    "pinned": "指定 v{version}",
+    "authHint": "API 用戶端使用 API 金鑰或 OAuth 用戶端認證權杖驗證，且必須在此端點的允許清單中。",
+    "openapi": "下載 OpenAPI",
+    "copy": "複製",
+    "copied": "已複製",
+    "copyFailed": "無法複製"
+  },
+  "logs": {
+    "title": "呼叫紀錄",
+    "description": "每一次資料 API 呼叫：誰呼叫了哪個版本、結果、耗時與列數。敏感參數會遮罩。",
+    "search": "代稱、呼叫者、錯誤或要求識別碼…",
+    "when": "時間",
+    "endpoint": "資料 API",
+    "caller": "呼叫者",
+    "status": "狀態",
+    "duration": "耗時",
+    "rows": "列數",
+    "cached": "快取",
+    "ok": "成功",
+    "error": "錯誤",
+    "allEndpoints": "所有資料 API",
+    "allStatuses": "所有結果",
+    "allCallers": "所有呼叫者",
+    "period": "期間",
+    "periods": {
+      "24h": "近 24 小時",
+      "7d": "近 7 天",
+      "30d": "近 30 天"
+    },
+    "empty": "尚無呼叫",
+    "emptyFiltered": "沒有符合的呼叫",
+    "emptyHint": "人員或 API 用戶端使用已發佈的資料 API 後，呼叫就會顯示在這裡。",
+    "liveCount": "{count, plural, other {# 次呼叫}}",
+    "call": "呼叫",
+    "cache": "快取",
+    "hit": "命中",
+    "miss": "未命中",
+    "requestId": "要求識別碼",
+    "params": "參數",
+    "maskedHint": "敏感參數以 ••• 儲存。",
+    "outcomeOk": "成功",
+    "outcomeError": "失敗"
+  },
+  "pipelines": {
+    "title": "管線",
+    "description": "在資料庫連線之間執行 ETL：來源查詢、目標資料表、欄位對應與固定的轉換。",
+    "search": "搜尋管線…",
+    "new": "新增管線",
+    "newTitle": "新增管線",
+    "newHint": "從一個連線讀取，寫入另一個連線的資料表，每次執行在單一交易中完成。",
+    "flow": "來源 → 目標",
+    "into": "寫入",
+    "lastRun": "上次執行",
+    "never": "從未執行",
+    "written": "已寫入 {n} 列",
+    "incremental": "增量",
+    "disabled": "已停用",
+    "empty": "尚無管線",
+    "emptyFiltered": "沒有符合的管線",
+    "emptyHint": "管線會將來源查詢的資料列複製到目標資料表，可手動或依排程執行。",
+    "liveCount": "{count, plural, other {# 條管線}}",
+    "views": {
+      "failed": "上次執行失敗",
+      "running": "執行中",
+      "disabled": "已停用"
+    }
+  },
+  "pipeline": {
+    "definition": "定義",
+    "incrementalSummary": "依 {column} 增量載入；下次執行讀取 {watermark} 之後的資料列。",
+    "key": "（鍵值）",
+    "last30": "近 30 天",
+    "tiles": {
+      "runs": "執行次數（30 天）",
+      "succeeded": "成功",
+      "failed": "失敗",
+      "rowsWritten": "已寫入列數"
+    },
+    "notFound": "此管線不存在（或已刪除）。",
+    "ownedBy": "負責人 {name}",
+    "queued": "已排入執行",
+    "runNow": "立即執行",
+    "runningNow": "正在執行：已讀取 {read} 列，已寫入 {written} 列。檢視進度",
+    "schedule": "排程",
+    "delete": "刪除",
+    "deleteTitle": "要刪除 {name} 嗎？",
+    "deleteBody": "管線及其執行紀錄會一併刪除。已載入的資料仍保留在目標中。",
+    "deleted": "已刪除管線",
+    "connectionMissing": "此管線的某個資料庫連線已刪除。請在定義中選擇其他連線。",
+    "tabs": {
+      "overview": "概觀",
+      "runs": "執行",
+      "definition": "定義",
+      "links": "連結與檔案"
+    }
+  },
+  "pipelineEditor": {
+    "source": "來源",
+    "sourceHint": "單一陳述式，以唯讀方式執行並分批串流讀取。",
+    "paramValues": "參數值",
+    "incremental": "增量",
+    "incrementalHint": "以上次成功執行中某個結果欄位的最大值作為 :watermark。",
+    "watermarkColumn": "水位欄位",
+    "watermarkInitial": "首次執行起點",
+    "currentWatermark": "目前水位：{value}",
+    "preview": "預覽來源",
+    "previewColumns": "欄位：{list}",
+    "sample": "範例資料列",
+    "mapping": "欄位對應",
+    "mappingHint": "來源欄位 → 目標欄位，可搭配固定轉換，不提供自訂程式碼。",
+    "noMappings": "請至少對應一個欄位。先預覽來源，再使用自動對應。",
+    "addMapping": "新增欄位",
+    "autoMap": "自動對應同名欄位",
+    "ownerHint": "以「立即執行」啟動的執行失敗時會通知此人。",
+    "target": "目標",
+    "targetHint": "目標連線目錄中的資料表。所有資料在單一交易中寫入。",
+    "pickTable": "選擇資料表…",
+    "pickTableFirst": "請先選擇資料表。",
+    "modeHint": {
+      "insert": "新增每一列。",
+      "upsert": "新增新的資料列，並更新相同鍵值的資料列。",
+      "replace": "刪除資料表的所有資料列後再新增（在同一交易中）。"
+    },
+    "uniqueKey": "唯一",
+    "readOnlyTarget": "此連線為唯讀，請選擇可寫入的連線。",
+    "create": "建立管線",
+    "created": "已建立 {name}",
+    "saved": "已儲存管線",
+    "save": "儲存管線"
+  },
+  "mapping": {
+    "source": "來源欄位",
+    "target": "目標欄位",
+    "transform": "轉換",
+    "pick": "選擇…",
+    "castTo": "轉換為",
+    "value": "值",
+    "remove": "移除對應 {n}",
+    "transforms": {
+      "none": "保持原樣",
+      "trim": "去除前後空白",
+      "upper": "轉大寫",
+      "lower": "轉小寫",
+      "cast": "轉換型別",
+      "default": "空白時使用預設值",
+      "constant": "常數"
+    },
+    "castTypes": {
+      "string": "文字",
+      "integer": "整數",
+      "decimal": "十進位數",
+      "boolean": "是/否",
+      "date": "日期",
+      "datetime": "日期時間"
+    }
+  },
+  "runs": {
+    "title": "執行",
+    "recent": "最近的執行",
+    "when": "開始時間",
+    "trigger": "觸發方式",
+    "manualBy": "{name} 立即執行",
+    "rows": "列數",
+    "rowCounts": "讀取 {read} · 寫入 {written}",
+    "rejected": "拒絕 {n}",
+    "duration": "耗時",
+    "error": "錯誤",
+    "empty": "尚無執行",
+    "emptyHint": "使用「立即執行」，或在排程作業中排程此管線。"
+  },
+  "run": {
+    "title": "{name} 的執行",
+    "notFound": "此執行不存在。",
+    "cancel": "取消執行",
+    "cancelTitle": "要取消這次執行嗎？",
+    "cancelBody": "將在下一個批次停止，已寫入的資料會全部復原。",
+    "cancelRequested": "正在取消…",
+    "stopping": "將在下一個批次停止…",
+    "progress": "進度",
+    "tiles": {
+      "rowsRead": "已讀取列數",
+      "rowsWritten": "已寫入列數",
+      "rowsRejected": "已拒絕列數",
+      "duration": "耗時"
+    },
+    "inProgress": "進行中",
+    "watermark": "水位：{from} → {to}",
+    "log": "紀錄",
+    "waiting": "正在等待背景工作程式…",
+    "noLog": "沒有紀錄。",
+    "levels": {
+      "info": "資訊",
+      "warn": "警告",
+      "error": "錯誤"
+    }
+  },
+  "links": {
+    "unavailable": "無法使用連結與檔案",
+    "unavailableHint": "平台的關聯紀錄與附件功能未啟用。"
+  },
+  "taskConfig": {
+    "pipeline": "管線",
+    "pick": "選擇管線…",
+    "loading": "正在載入管線…",
+    "hint": "以與「立即執行」相同的方式執行管線；讀取、寫入與拒絕的列數會顯示在作業執行中。",
+    "disabled": "已停用",
+    "open": "開啟 {name}"
+  }
+}

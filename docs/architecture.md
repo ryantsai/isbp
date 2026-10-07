@@ -417,7 +417,7 @@ labels for its audit actions. See [module-development.md](module-development.md)
 | **1** (done)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                |
 | **2** (done)              | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                     |
 | **3** (done)              | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                                                                                |
-| 4                         | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                              |
+| **4** (done)              | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                              |
 | 5                         | Integrations Hub (incl. two-way ManageEngine ServiceDesk Plus Cloud and Azure DevOps Server sync), MCP server, AI assistant everywhere                                                                                                    |
 
 ## 8. Phase 1 design: workflows, forms, notifications, access requests, Role Query API
@@ -1038,3 +1038,327 @@ reuse it.
 | 36  | ALM depends on ITSM and enforces the production change policy at write time                     | ITIL change control is only real if deployments can't bypass it; overrides are possible but audited and visible                                                                       | Advisory warnings only; a webhook from ITSM to ALM             |
 | 37  | Projects without hard dependencies                                                              | Teams can run projects without ITSM or ALM installed; links light up when those modules are on                                                                                        | `dependsOn: ['itsm']`                                          |
 | 38  | Data models mapped to Phase 5 sources up front (work item types and hierarchy, repositories)    | Two-way sync with Azure DevOps Server and ManageEngine ServiceDesk Plus Cloud won't need schema rework                                                                                | Retrofit in Phase 5                                            |
+
+## 11. Phase 4 design: ETL/API Builder, Scheduled Jobs, Database Account Management
+
+Phase 4 ships three modules. Four platform services come first, because all three need them and so does
+Phase 5's Integrations Hub: **database connections**, **task types**, **outbound HTTP** and a **module cache**.
+
+| Module      | Depends on | Owns                                                                                                                                                                                                                                 |
+| ----------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `etl`       | —          | Data APIs (REST endpoints from parameterized SQL or stored procedures: versions, auth, rate limits, caching, OpenAPI, test console, execution logs) and ETL pipelines between connections                                            |
+| `scheduler` | —          | Scheduled jobs (HTTP calls, SQL tasks, sandboxed scripts, and task types other modules contribute, such as ETL pipelines): cron/interval/after-job triggers, retries, timeouts, run history, live logs, alerts, monitoring dashboard |
+| `dbaccess`  | —          | Database accounts and roles on SQL Server, Oracle and PostgreSQL: self-service requests → approval → automated provisioning → audit, time-bound access, revocation, access reviews, drift                                            |
+
+The UI calls them "Data APIs & ETL", "Scheduled jobs" and "Database access". None depends on another:
+`scheduler` runs ETL pipelines through the task-type registry, and all three reach databases through the kernel.
+
+```mermaid
+flowchart LR
+  subgraph Modules
+    ETL["etl<br/>endpoints · pipelines"]
+    SCH["scheduler<br/>jobs · runs · logs"]
+    DBA["dbaccess<br/>requests · grants · reviews"]
+  end
+  subgraph K["Kernel"]
+    DBS["ctx.databases<br/>connections · pools · catalog"]
+    TT["ctx.taskTypes<br/>registry"]
+    HTTP["ctx.http<br/>SSRF-guarded fetch"]
+    C["ctx.cache<br/>Redis, per module"]
+  end
+  subgraph T["External databases"]
+    MS[(SQL Server)]
+    OR[(Oracle)]
+    PG[(PostgreSQL)]
+    MY[(MySQL)]
+  end
+  SCH -- "run etl.pipeline" --> TT --> ETL
+  ETL & SCH & DBA --> DBS --> MS & OR & PG & MY
+  SCH --> HTTP
+  ETL --> C
+```
+
+### 11.1 Database connections (kernel, `ctx.databases`, package `@isbp/sql`)
+
+- **Engines.** SQL Server (`mssql`/tedious) first; PostgreSQL (`pg`), MySQL (`mysql2`) and Oracle (`oracledb` thin
+  mode: no Instant Client). All four drivers are pure JavaScript, so the images stay slim.
+- **Administration → Database connections** (`core.databases.manage`). A connection has host, port, database
+  (Oracle: service name), username, password (sealed with `ctx.secrets`, never returned), TLS options, pool
+  size, statement timeout, max rows, a **read-only** flag and its **purposes**:
+  - `data`: ETL, Data APIs and SQL jobs;
+  - `admin`: account administration (`dbaccess`). Admin credentials are never usable for Data APIs.
+    "Test connection" reports latency and server version; every change and test is audited.
+- **Host guard.** Link-local and cloud metadata ranges are refused. Private networks are allowed, because
+  databases live there.
+- **`@isbp/sql`** is a driver-neutral package (unit-tested without a database):
+  - **Parameters.** SQL text uses `:name` placeholders. A tokenizer skips strings (`'…'`, `N'…'`, `E'…'`,
+    dollar quotes), quoted identifiers, comments, Postgres `::` casts and PL/SQL `:=`, then rewrites them to the
+    driver's binding (`$1`, `@name`, `?`, `:name`). List parameters expand to one bound placeholder per item
+    (`IN (:ids)`). **SQL text is never concatenated with values**; there is no API to do so.
+  - **Identifiers** (tables, columns, procedures) come only from the connection's catalog (introspection),
+    and are quoted by the dialect.
+  - **Catalog**: schemas, tables/views with columns and keys, procedures/functions with parameters.
+  - **Writers** for ETL loads: `insert`, `upsert` (Postgres `ON CONFLICT`, MySQL `ON DUPLICATE KEY`, SQL Server and
+    Oracle `MERGE`) and `replace` (delete + insert), batched to each engine's parameter limit, in one transaction.
+  - **Streams** read large results in batches (cursors), so pipelines don't hold whole tables in memory.
+- **`ctx.databases`**: `list`, `get`, `query(id, sql, { purpose, params, types, readOnly, maxRows, timeoutMs, signal })`,
+  `call(id, procedure, …)`, `stream(…)`, `writer(id, table, …)`, `catalog(id)`, `test(id)`.
+  - `purpose` must be one of the connection's purposes (403 `CONNECTION_PURPOSE`).
+  - `readOnly` runs in a read-only transaction where the engine has one (PostgreSQL, MySQL, Oracle). SQL Server
+    relies on the login's permissions, so the UI asks for a least-privilege login.
+  - Writes through a read-only connection are refused.
+  - Timeouts cancel the statement on the server. Results are capped at `maxRows` and say so (`truncated`).
+  - Values are normalised for JSON: dates become ISO strings, `bigint` and decimals become strings, binary becomes base64.
+  - Pools are per connection and process. They are rebuilt when the connection changes and closed when idle.
+
+### 11.2 Task types (kernel registry, `ctx.taskTypes`)
+
+A module declares **task types** that Scheduled Jobs can run, just as it declares record types:
+`manifest.taskTypes: [{ type, name, icon, permission, config: z.ZodType }]` plus a handler per type in
+`defineServerModule({ taskTypes: { [type]: { run, validate?, describe? } } })`.
+
+- `run(config, task, ctx)`. `task` has `runId`, `attempt`, `scheduledFor`, `lastSuccessAt`, an `AbortSignal`
+  (timeout or cancel) and `log(message, level)`. It returns `{ summary, metrics, href }`, for example rows
+  read and written, and a link to the pipeline run.
+- `validate(config, ctx, auth)` runs when a job is saved, as its editor. Saving a job of a type needs the type's
+  `permission` (for example `etl.pipelines.run`), plus whatever the handler checks.
+- Built-in types live in `scheduler` (`scheduler.http`, `scheduler.sql`, `scheduler.script`). `etl.pipeline` and
+  `dbaccess.sync` come from their modules. A custom module adds a job type the same way.
+- **Config editors** are slots, one per type. The job form hosts
+  `<Slot name={`scheduler.task-config.${type}`} props={{ type, value, onChange }} />` (props type
+  `TaskConfigSlotProps` in `@isbp/contracts`), for example `scheduler.task-config.etl.pipeline`. The module
+  that owns a type contributes its editor; types without one get a JSON editor validated against the schema.
+
+### 11.3 Outbound HTTP and cache (kernel)
+
+- **`ctx.http.request(url, { method, headers, body, timeoutMs, maxBytes, allowHosts })`** is the only way a
+  module calls out over HTTP.
+  - The SSRF guard checks **every resolved address at connect time** (an undici dispatcher with a checking
+    `lookup`), so DNS rebinding can't slip past it.
+  - Private, loopback and link-local targets are refused unless the host matches the caller's allow-list (an
+    admin setting) or the installation allows private targets (dev/test).
+  - Redirects are not followed. Bodies are capped, and timeouts abort the request.
+- **`ctx.cache`** is Redis, namespaced per module: `get`, `set(ttl)`, `delete`, `increment`, and
+  `rateLimit(key, limit, windowSeconds)`, which returns `{ allowed, remaining, resetSeconds }`.
+
+### 11.4 Data APIs and ETL (module `etl`, schema `etl`)
+
+- **Endpoints.** An endpoint has a name, a slug, a method (GET or POST), a connection (`data` purpose), and
+  either a SQL query with `:params` or a stored procedure from the catalog. It also has typed parameters,
+  access rules, a rate limit, a cache TTL, max rows and a timeout.
+  - **Parameters** have a type (`string | integer | decimal | boolean | date | datetime | uuid`, optionally a
+    list), required/default, min/max, length, pattern, enum, a description, an example, and a `sensitive` flag
+    that masks them in logs. A Zod schema is built from them per version. Invalid input is
+    `400 VALIDATION_FAILED` with per-field details.
+  - **Safety lint.** A "query" endpoint whose SQL contains write or DDL keywords (outside strings and comments)
+    needs an explicit "allows writes" switch, and a read-only connection refuses it anyway.
+- **Versions.** Editing changes a draft.
+  - **Publish** needs a successful test of the current draft, which captures the result columns for the docs.
+    It freezes an immutable version `vN` with a change note.
+  - Older versions can be deprecated (they answer with a `Deprecation` header) or retired (`410`).
+  - Callers use `/api/v1/etl/data/<slug>` (the latest published version) or pin one with `/api/v1/etl/data/<slug>/v<N>`.
+- **Access.**
+  - An API client needs the `etl.endpoints.invoke` permission **and** must be on the endpoint's client
+    allow-list.
+  - People need `etl.endpoints.invoke` at global scope or on that endpoint (record scope `etl.endpoint`).
+  - API clients authenticate with API keys or OAuth client-credentials tokens (Phase 1).
+- **Rate limits** are per endpoint and caller, in a fixed window. A caller over the limit gets
+  `429 RATE_LIMITED`, with `Retry-After` and `RateLimit-*` headers.
+- **Caching.** Results are cached in Redis per version and canonical parameters, for the endpoint's TTL. The
+  response says `X-Cache: HIT|MISS`, and entries over 1 MB are not cached. Publishing a new version starts a
+  fresh namespace.
+- **Responses.** JSON is `{ data, meta: { rows, truncated, version, durationMs, cached } }`; CSV is returned
+  with `Accept: text/csv`.
+- **OpenAPI.** `/api/v1/etl/openapi.json` is generated from the published versions: parameters from their
+  definitions, and responses from the captured columns. Each endpoint page shows docs and `curl` examples.
+- **Test console.** It runs the draft (or any version) with a parameter form. It shows rows, columns, time,
+  the bound SQL with placeholders, and errors from the database (codes and messages, never the credentials).
+- **Execution logs.** Each call records the caller, version, parameters (sensitive ones masked), status, error
+  code, duration, rows and cache hit. Logs are kept for 30 days (a setting) and filterable per endpoint, with
+  calls, error rate and p95 latency over time.
+- **Pipelines.**
+  - A pipeline runs from a source (connection + SQL with `:params`, optionally incremental through a
+    `:watermark` parameter fed from the last successful run) to a target (connection + catalog table, mode
+    `insert | upsert | replace`, key columns).
+  - **Column mapping** sets source → target per column, with a transform: `none | trim | upper | lower | cast | default | constant`.
+    There are no user-written functions or code.
+  - Rows stream in batches and are written in one transaction.
+  - A run records rows read, written and rejected, the duration, the new watermark and a log. "Run now"
+    queues a run.
+  - Scheduling is done in Scheduled Jobs (task type `etl.pipeline`; the pipeline page has a "Schedule" link).
+- **Records:** `etl.endpoint` and `etl.pipeline` are linkable, for example to the `alm.application` that
+  consumes the API.
+
+### 11.5 Scheduled jobs (module `scheduler`, schema `scheduler`)
+
+- **Job.** A job has a name, an owner, an owner group, a task type and config, and a **trigger**:
+  - `cron` (5 fields, evaluated in the job's time zone);
+  - `interval` (≥ 1 minute);
+  - `after` (when other jobs succeed: `all` or `any`; cycles are refused);
+  - `manual`.
+    It also has a timeout, retries (max attempts, `fixed | exponential` backoff, base delay), a concurrency
+    policy (`skip` or `queue` when the previous run is still going) and alert settings.
+- **Engine.**
+  - Schedules are stored in Postgres (`next_run_at`), not in Redis.
+  - A tick every 30 s claims due jobs (`FOR UPDATE SKIP LOCKED`). It creates the run row (unique on job +
+    `scheduled_for`, so replicas and retried ticks can't double-fire), enqueues it with a precise delay, and
+    advances `next_run_at`.
+  - Runs missed while the platform was down run once if they're within the misfire grace (an hour by
+    default); otherwise they are logged as missed.
+- **Runs.**
+  - Statuses: `queued → running → succeeded | failed | timed_out | cancelled | skipped`, with `retrying`
+    between attempts.
+  - Each attempt runs the task type's handler with an `AbortSignal` that fires on timeout or cancel.
+  - A running worker heartbeats every 10 s. The tick fails runs whose heartbeat is lost, and retries them per
+    policy.
+  - A successful run starts the jobs that run `after` it.
+- **Logs.**
+  - `task.log()` lines are buffered and written in batches, capped at 5,000 lines and 4 KB a line.
+  - The run page streams them live over Server-Sent Events (it polls the log table, so it works across
+    replicas). The stream ends when the run does.
+- **Built-in task types.**
+  - **HTTP**: method, URL, headers, body, and auth (none, basic, bearer or header; secrets sealed). It uses
+    `ctx.http`, so the SSRF guard and host allow-list apply. It checks the expected status codes and logs the
+    status and a truncated body.
+  - **SQL**: a `data` connection and one statement with `:params`. Values are static, or built in:
+    `:scheduled_for`, `:last_success_at`, `:run_id`. It logs affected rows, or row count plus a preview.
+  - **Script**: Python, Node.js, PowerShell or shell, in a container from an admin allow-list of images. It
+    has env vars (secret values sealed), CPU/memory limits and a network mode (`none` or `egress`). Runners:
+    - **Kubernetes** (production): a Job in a dedicated namespace. It runs non-root with a read-only root
+      filesystem, all capabilities dropped, seccomp `RuntimeDefault`, no service-account token,
+      `activeDeadlineSeconds`, a TTL after finishing, and a NetworkPolicy denying egress unless allowed. The
+      worker streams pod logs.
+    - **Docker** (compose): the same constraints through the Engine API (`--network none`, `--read-only`,
+      `--cap-drop ALL`, `no-new-privileges`, memory/CPU/PID limits).
+    - **Local** (development only, refused when `NODE_ENV=production`): it runs Node.js scripts in a temp
+      directory without isolation, and the UI labels it "not sandboxed".
+    - **None** (the default without configuration): script jobs can't be enabled.
+- **Alerts.**
+  - A failure notifies the owner and owner group (`scheduler.run.failed`). After a failure streak a recovery
+    notice follows, and failures can also go to the organisation's Teams/Slack channels.
+  - Optionally, a job auto-disables after N consecutive failures.
+- **Monitoring dashboard.** KPIs (runs and success rate over 24 h/7 d, failing jobs, running now, average
+  duration), runs per hour by status (chart with a table twin), upcoming runs over the next 24 h, failing jobs
+  and slowest jobs.
+- **Retention.** Runs and logs are kept for 90 days (a setting). The latest run of each job is always kept.
+
+### 11.6 Database access (module `dbaccess`, schema `dbaccess`)
+
+- **Servers** are `admin`-purpose connections. DBAs mark which **roles are requestable**: a database and role
+  (SQL Server database or server roles, PostgreSQL roles, Oracle roles), a display name and description, an
+  owner (person or group, who approves), risk (`low | medium | high`), and default and maximum duration (time-bound
+  by default; permanent only when the maximum allows it).
+- **Request flow.**
+  1. A person picks roles in the portal ("Request database access"), gives a justification and a duration,
+     and submits. The request shows under "My requests".
+  2. The required workflow `dbaccess.request` runs. Its default graph: the manager, then the role owner
+     (approver from a fact), then information security for high-risk roles.
+  3. On approval a **provisioning task** runs in the worker:
+     - It ensures the account exists, named from the server's pattern (default `{username}`). Authentication
+       is a generated password, Windows/AD (SQL Server `FROM WINDOWS`) or external.
+     - It grants the role and verifies the membership.
+     - Each step is audited. Failures retry with backoff and then alert the DBAs, who can retry by hand.
+  4. A generated password is delivered as a **one-time reveal**: sealed, shown once to the requester, expiring
+     after 7 days, audited, never emailed.
+- **DDL safety.**
+  - Account and role names are validated against a strict pattern and must exist in the synced catalog where
+    applicable.
+  - Statements are built by the **target server's own quoting** from bound parameters:
+    - SQL Server: `QUOTENAME` + `sp_executesql`;
+    - PostgreSQL: `format('%I', '%L')`;
+    - Oracle: `DBMS_ASSERT.ENQUOTE_NAME` in PL/SQL.
+  - The platform never concatenates a name or password into SQL text.
+- **Time-bound access.**
+  - Grants carry `expires_at`. A job every 5 minutes revokes expired grants.
+  - Grantees are reminded 3 days before expiry, with "Request extension", which starts a prefilled request.
+  - Owners and DBAs can revoke early, with a reason.
+  - `core.user.offboarded` revokes everything and disables the person's accounts.
+- **Access reviews.**
+  - A campaign has a scope (servers, risk), reviewers (role owner or the grantee's manager) and a due date. It
+    snapshots active grants.
+  - Reviewers keep or revoke each grant, with a comment and bulk actions. They get reminders.
+  - At the due date, undecided items follow the campaign's policy (`revoke` or `keep`).
+  - The report exports as CSV. Campaigns can recur (quarterly by default).
+- **Inventory and drift.**
+  - Syncing a server (a `dbaccess.sync` task type, nightly by default) reads accounts, roles and memberships.
+  - Memberships of requestable roles that no grant explains are **unmanaged access**. A DBA can adopt them
+    (create a grant with an owner and expiry) or revoke them.
+- **People.**
+  - "My database access" lists grants with their expiry, the credential reveal and "Request extension".
+  - The person page (`core.user.overview`) shows the person's database access to DBAs and the person's
+    manager.
+
+### 11.7 Demo data and test targets
+
+- **Demo database.** The seed creates a demo database `isbp_demo` on the platform's Postgres when it may
+  (development and CI). It holds:
+  - a small ERP (`erp`: customers, products, orders, invoices, a function and a procedure);
+  - a warehouse (`dw`);
+  - least-privilege login roles for each purpose (reader, ETL writer, account admin with `CREATEROLE` and
+    admin option on `demo_*` roles).
+- **Connections.** Data APIs, pipelines, SQL jobs and account provisioning all run for real against it. The
+  SQL Server, Oracle and MySQL connections in the demo point at unreachable hosts, with seeded inventory, so
+  the UI shows every engine and failure handling.
+- **Tests.**
+  - `@isbp/sql` dialects are unit-tested per engine.
+  - Integration tests use the local Postgres.
+  - CI adds SQL Server 2022, MySQL 8 and Oracle Free service containers and runs the same driver suite against
+    them. It is skipped locally when `ISBP_TEST_MSSQL_URL` / `ISBP_TEST_MYSQL_URL` / `ISBP_TEST_ORACLE_URL`
+    are unset.
+
+### 11.8 Implementation notes
+
+**Data APIs (`etl`).**
+
+- Endpoint pages are at `/etl/endpoints/<slug>`. The slug is fixed after the first publish.
+- Callers get `/api/v1/etl/openapi.json`, which lists the versions they may call. People with
+  `etl.endpoints.read` get `/api/v1/etl/endpoints/openapi.json`, which lists every published endpoint.
+- "Latest" is the newest published version, falling back to the newest deprecated one.
+- Execution-log rows are written after the response (`onResponse`).
+- API clients see a generic `DATABASE_ERROR` with the request id. The database's own message goes only to the
+  log.
+- A pipeline has at most one active run (409 `JOB_RUNNING`). A heartbeat lets crashed runs go stale.
+  Cancellation is a flag the runner checks every 2 s, and any failure rolls the whole load back.
+
+**Scheduled jobs (`scheduler`).**
+
+- Retries stay on the same run (status `retrying`, `attempt` increments). The `retry` trigger means "Run
+  again" on a finished run.
+- Skipped runs record why (`missed` or `overlap`). After downtime only the latest missed slot matters: it runs
+  once if it is within the grace period, otherwise one skipped run is logged with the number of missed slots.
+- Secrets in a job's config are stored as `{ sealed }` and returned as `{ secret: true, set }`. A client that
+  sends `{ sealed }` gets a 400. The engine opens secrets just before `ctx.taskTypes.run` and masks their values in
+  the run log.
+- "Run now" on a `skip` job whose previous run is still going returns 409 `JOB_RUNNING`. Deleting a job that
+  others run after returns 409 `IN_USE`. Editing a job needs its task type's permission.
+- Extra routes:
+  - `GET /scheduler/attention` (dashboard card);
+  - `GET /scheduler/runs/:id/logs/stream` (SSE);
+  - `POST /scheduler/runs/:id/retry`.
+
+**Database access (`dbaccess`).**
+
+- One request and one workflow per role (owners differ), so a multi-role request becomes several requests.
+- The owner step approves from the fact `role.approverIds`: the owner person, or the active members of the
+  owner group.
+- The generated password is sealed before the role is granted, so a later failure can't lose it.
+- Re-granting an account the platform created resets its password and issues a new one-time reveal.
+- Expiry is the end of the chosen day in the requester's time zone. It is at least one day after approval and
+  never past the role's maximum. On PostgreSQL the account's `VALID UNTIL` follows its latest grant.
+- The logins of the platform's own connections are service accounts. They never count as unmanaged access or
+  orphans.
+- **PostgreSQL 16+:** only the grantor (or a superuser) can revoke a membership. Revoking unmanaged access that
+  another role granted therefore fails with an error naming the grantor.
+- Provisioning retries (3 tries, backoff ×1, ×4, ×16) are tracked on the grant, then the server's DBA group is
+  alerted.
+
+### 11.9 Phase 4 decisions
+
+| #   | Decision                                                                                                    | Why                                                                                                                                                               | Alternatives considered                                      |
+| --- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| 39  | Database connections in the kernel with purposes (`data`/`admin`)                                           | Three modules (and Phase 5) share them; one place for sealed credentials, pools, host guard and audit; admin credentials can never back a Data API                | A connections module the others depend on; per-module copies |
+| 40  | `:name` parameters rewritten by a tokenizer; identifiers only from the catalog; server-side quoting for DDL | Values are always bound by the driver, names are never user text, and DDL needs no client-side escaping, so string-concatenated SQL is impossible by construction | Per-driver syntax in the UI; client-side escaping            |
+| 41  | Task-type registry for Scheduled Jobs                                                                       | Modules contribute runnable work (pipelines, inventory sync) without the scheduler knowing them; custom modules use the same SDK                                  | Hard-coded job kinds; cross-module API calls                 |
+| 42  | DB-driven schedule (`next_run_at`, tick + `SKIP LOCKED`) with BullMQ for execution                          | Survives Redis loss, no double-fire across replicas, upcoming runs are a query, misfires are explicit                                                             | BullMQ repeatable jobs as the source of truth                |
+| 43  | Scripts only in container sandboxes (Kubernetes Jobs or Docker), never in the API/worker process            | Untrusted code is isolated from secrets and the network by default; dev has an explicit, labelled unsandboxed runner                                              | `vm`/isolates in-process; a shell on the worker              |
+| 44  | Generated database passwords delivered as a one-time reveal                                                 | Credentials never travel by email or chat and are readable once                                                                                                   | Emailing passwords; DBA hand-over                            |

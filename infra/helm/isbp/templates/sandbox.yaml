@@ -1,0 +1,143 @@
+{{- if eq .Values.sandbox.runner "kubernetes" }}
+{{- $sb := .Values.sandbox }}
+{{- $name := printf "%s-sandbox-runner" (include "isbp.fullname" .) }}
+{{- if $sb.createNamespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $sb.namespace }}
+  labels:
+    {{- include "isbp.labels" . | nindent 4 }}
+    # Pods that don't meet the restricted profile are refused, whatever the Job spec says.
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: isbp-sandbox
+  namespace: {{ $sb.namespace }}
+  labels:
+    {{- include "isbp.labels" . | nindent 4 }}
+spec:
+  hard:
+    pods: {{ $sb.quota.pods | quote }}
+    limits.cpu: {{ $sb.quota.cpu | quote }}
+    limits.memory: {{ $sb.quota.memory | quote }}
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: isbp-sandbox
+  namespace: {{ $sb.namespace }}
+  labels:
+    {{- include "isbp.labels" . | nindent 4 }}
+spec:
+  limits:
+    - type: Container
+      max:
+        cpu: '2'
+        memory: 2Gi
+      default:
+        cpu: 500m
+        memory: 256Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+---
+{{- end }}
+# The worker's identity for the Kubernetes API (only the worker mounts its token).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "isbp.labels" . | nindent 4 }}
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}
+  namespace: {{ $sb.namespace }}
+  labels:
+    {{- include "isbp.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ['batch']
+    resources: ['jobs']
+    verbs: ['create', 'get', 'list', 'watch', 'delete']
+  - apiGroups: ['']
+    resources: ['secrets']
+    verbs: ['create', 'delete']
+  - apiGroups: ['']
+    resources: ['pods']
+    verbs: ['get', 'list', 'watch']
+  - apiGroups: ['']
+    resources: ['pods/log']
+    verbs: ['get']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}
+  namespace: {{ $sb.namespace }}
+  labels:
+    {{- include "isbp.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $name }}
+    namespace: {{ .Release.Namespace }}
+---
+# Script pods: no inbound traffic and no outbound traffic (not even DNS) by default.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isbp-sandbox-deny-all
+  namespace: {{ $sb.namespace }}
+  labels:
+    {{- include "isbp.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      isbp.io/sandbox: 'true'
+  policyTypes: ['Ingress', 'Egress']
+---
+# Scripts that allow egress: DNS plus `sandbox.egress.allow` minus `sandbox.egress.except`.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isbp-sandbox-egress
+  namespace: {{ $sb.namespace }}
+  labels:
+    {{- include "isbp.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      isbp.io/sandbox: 'true'
+      isbp.io/egress: allowed
+  policyTypes: ['Egress']
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        {{- range $sb.egress.allow }}
+        - ipBlock:
+            cidr: {{ . }}
+            {{- with $sb.egress.except }}
+            except:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+        {{- end }}
+{{- end }}

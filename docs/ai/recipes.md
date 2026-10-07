@@ -1,0 +1,322 @@
+# Recipes
+
+Working patterns for the tasks modules do most. Each recipe says what to declare, what to write, and how to check
+it. Names in the examples belong to a fictional `things` module. Find real ones in the modules named under
+"See".
+
+## 1. An entity with a list and a detail page
+
+1. **Schema:** add the table to `src/server/schema.ts` (`thingsSchema.table('items', { id: id(), …, createdAt:
+createdAt(), updatedAt: updatedAt() }, (t) => [index(...)])`). Run `db:generate`.
+2. **Contracts:** in `contracts.ts`, define:
+   - `itemSchema` (response, `dateTime` for timestamps);
+   - `itemQuerySchema = listQuerySchema.extend({ status: … .optional() })`;
+   - `createItemSchema`;
+   - `updateItemSchema`, built from a defaults-free field map (R26).
+3. **Service** (`items.ts`):
+   - `list(query, auth)` uses `pageSchema` paging, `likePattern` search and a sort whitelist.
+   - `get(id, auth)` throws 404 when the row is missing or invisible.
+   - `create` and `update` run in a transaction with audit and events (R13). `update` audits
+     `ctx.audit.diff(before, after)`.
+   - `remove` calls `ctx.records.forget` for a linkable type (R15).
+4. **Routes:** one per operation, each with `config.permission` and full `schema`.
+5. **Web:** the list page uses `PageHeader` + `DataTable` + `useListState` + `SearchInput`, with an `EmptyState`
+   for none and none-matching. The detail page has a heading, tabs and the record panels (recipe 3). Create and
+   edit happen in a `Sheet`/`Dialog` form with `useApiMutation({ invalidate: ['/things/items'], success })`.
+6. **i18n:** fields, statuses, empty states, toasts and audit labels go in all three catalogs.
+
+_See:_ `modules/alm/src/server/applications.ts`, `modules/alm/src/web/pages/inventory-page.tsx`.
+
+## 2. Department- or record-scoped access
+
+```ts
+// manifest: { key: 'things.items.read', description: '…', scopes: ['global', 'department'] }
+// route:    config: { permission: 'things.items.read', scoped: true }
+const reach = auth.reach('things.items.read');
+const where = reach.global
+  ? undefined
+  : (or(
+      reach.departmentIds.length ? inArray(items.departmentId, reach.departmentIds) : undefined,
+      reach.records.filter((r) => r.type === 'things.item').length
+        ? inArray(
+            items.id,
+            reach.records.filter((r) => r.type === 'things.item').map((r) => r.id),
+          )
+        : undefined,
+    ) ?? sql`false`);
+// single record:
+auth.require('things.items.manage', { departmentId: row.departmentId });
+```
+
+Put the rule in `access.ts` and use it from routes, resolvers and AI tools (R17).
+
+## 3. Make records linkable and attachable
+
+1. Manifest: `records: { types: [{ type: 'item', name: 'things.entities.item', icon: 'box', permission: 'things.items.read' }] }`.
+2. Server: `records: { item: { resolve(ids, ctx, auth), search(query, ctx, auth, limit) } }`. Return
+   `{ id, reference, title, subtitle, status: { key, tone }, href, editable }` only for rows `auth` may read
+   (R18).
+3. Detail page:
+   `<Slot name="core.record.links" props={{ record: { type: 'things.item', id } }} />` and the same with
+   `core.record.files`.
+4. On delete: `await ctx.records.forget({ type: 'things.item', id }, { tx })`.
+5. To create something in another module already linked, link to its form with `?link=things.item:<id>` (ITSM's
+   report and change forms support it).
+
+_See:_ `modules/alm/src/server/records.ts`, `modules/itam/src/web/record-panels.tsx`.
+
+## 4. Require approval
+
+```ts
+// manifest
+workflows: [{
+  key: 'things.publish', name: 'things.workflows.publish', subject: 'item',
+  facts: z.object({ item: z.object({ risk: z.enum(['low', 'high']), ownerId: z.uuid().nullable() }) }),
+  required: true,
+  defaultGraph: { steps: [
+    { id: 'owner', type: 'approval', name: { en: 'Owner', 'zh-TW': '擁有者', 'ja-JP': '所有者' },
+      approvers: [{ type: 'fact', fact: 'item.ownerId', fallback: { type: 'manager' } }], mode: 'any' },
+    { id: 'security', type: 'approval', name: { en: 'Security', 'zh-TW': '資訊安全', 'ja-JP': 'セキュリティ' },
+      when: { fact: 'item.risk', op: 'eq', value: 'high' },
+      approvers: [{ type: 'group', groupKey: 'security-team' }], mode: 'any',
+      sla: { dueHours: 48, remindHours: 24, onBreach: 'notify' } },
+  ] },
+}],
+
+// service, inside the transaction that marks the item "pending"
+const started = await ctx.workflows.start('things.publish', {
+  subject: { type: 'item', id: row.id, label: row.name, href: `/things/${row.id}` },
+  facts: { item: { risk: row.risk, ownerId: row.ownerId } },
+  requesterId: auth.user?.id ?? null,
+}, { tx });
+
+// server definition
+workflows: { 'things.publish': { onCompleted: (r, ctx) => services(ctx).items.onPublishDecided(r) } },
+```
+
+`onCompleted` receives `outcome: 'approved' | 'rejected' | 'cancelled'` through the outbox. It must be
+idempotent. Approvers act in the platform's Approvals inbox; you build no approval UI.
+
+_See:_ `modules/itam/src/manifest.ts` (`itam.disposal`), `modules/projects` (`projects.proposal`).
+
+## 5. Notify people
+
+```ts
+// manifest
+notifications: ([{ type: 'things.item.assigned', defaultChannels: ['inApp', 'email'] }],
+  // catalog: things.notifications.item_assigned.{label,title,body} (ICU; {name} etc.)
+  await ctx.notifications.notify(
+    {
+      type: 'things.item.assigned',
+      recipients: [row.ownerId],
+      params: { name: row.name, due: row.dueAt },
+      href: `/things/${row.id}`,
+    },
+    { tx },
+  ));
+```
+
+Dates in `params` render in each recipient's language and time zone. Recipients that are null, duplicated or
+inactive are dropped. People choose channels in their preferences.
+
+## 6. React to another module (or core)
+
+```ts
+// manifest: events.consumes: ['core.user.offboarded', 'itsm.change.approved']
+events: {
+  'core.user.offboarded': async (event, ctx) => {
+    const { userId } = event.payload as { userId: string };
+    await services(ctx).items.reassignFrom(userId); // idempotent: safe to run twice
+  },
+},
+```
+
+Payload shapes are in [reference.md](reference.md). Handlers run in the worker after commit, as
+`system:module:<id>`, on behalf of the original actor.
+
+## 7. Show something on another module's page (slot)
+
+```ts
+// web/index.tsx
+slots: [
+  { slot: 'core.dashboard.work', load: () => import('./slots/dashboard-card'), permission: 'things.items.read', order: 70 },
+  { slot: 'core.user.overview', load: () => import('./slots/person-things'), permission: 'things.items.read' },
+],
+```
+
+The component's props are the host's contract (`UserOverviewSlotProps` from `@isbp/contracts`). It fetches from
+**your own** API and renders `null` when it has nothing to show, so it never leaves an empty card.
+
+_See:_ `modules/alm/src/web/slots/dashboard-work.tsx`, `modules/itam/src/web/slots/*`.
+
+## 8. Requests portal: an entry and "My requests"
+
+- Manifest: `portal: { entries: [{ id: 'request-thing', label: 'things.portal.request', description: '…', icon: 'box', href: '/things/request', permission: 'things.self.request' }] }`.
+- Track the record so the requester sees it:
+  `ctx.portal.track({ kind: 'things.request', id, reference, title, state: 'open', statusKey: 'things.status.pending', tone: 'info', href, icon: 'box', people: [requesterId] }, { tx })`.
+  Update it on every status change and set `state: 'closed'` when done.
+
+_See:_ `modules/itsm/src/server/tickets.ts` (`portal.track`), `modules/dbaccess` (request wizard).
+
+## 9. Background work: module job vs task type
+
+**Fixed schedule your module owns** (purges, recomputations, reminders):
+
+```ts
+jobs: {
+  'recompute-scores': {
+    description: 'Recomputes item scores',
+    schedule: { cron: '15 2 * * *', tz: 'Asia/Taipei' }, // or { everyMs: 300_000 }
+    attempts: 3, timeoutMs: 10 * 60_000,
+    handler: async (job, ctx) => ({ updated: await services(ctx).items.recomputeScores((m) => job.log(m)) }),
+  },
+},
+// on demand: await ctx.jobs.enqueue('recompute-scores', { itemId }, { jobId: `recompute:${itemId}` });
+```
+
+**Work an administrator schedules** (with retries, run history, live logs and alerts in Scheduled jobs):
+
+```ts
+// manifest
+taskTypes: [{ type: 'refresh', name: 'things.taskTypes.refresh.name', description: 'things.taskTypes.refresh.description',
+  icon: 'refresh-cw', permission: 'things.items.manage', config: z.object({ itemId: z.uuid() }) }],
+// server
+taskTypes: { refresh: {
+  validate: async ({ itemId }, ctx, auth) => { await services(ctx).items.get(itemId, auth); },
+  describe: async ({ itemId }, ctx) => ({ label: `Refresh ${await nameOf(ctx, itemId)}`, href: `/things/${itemId}` }),
+  run: async ({ itemId }, task, ctx) => {
+    task.log('Refreshing…');
+    const n = await services(ctx).items.refresh(itemId, { signal: task.signal });
+    return { summary: `${n} rows refreshed`, metrics: { rows: n }, href: `/things/${itemId}` };
+  },
+} },
+// web/index.tsx — a real editor instead of the JSON fallback
+slots: [{ slot: 'scheduler.task-config.things.refresh', load: () => import('./slots/task-config'), permission: 'things.items.manage' }],
+```
+
+The config editor receives `TaskConfigSlotProps` (`{ type, value, onChange, errors?, disabled? }`). To offer
+"Schedule this", link to `/scheduler/jobs/new?type=things.refresh&name=…&config=${encodeURIComponent(JSON.stringify({ itemId }))}`
+(show it only when `usePlatform().enabledModules.includes('scheduler')`).
+
+_See:_ `modules/etl/src/server/task-type.ts`, `modules/etl/src/web/slots/task-config.tsx`.
+
+## 10. An AI tool
+
+```ts
+// manifest (input schema shared with the handler via contracts)
+ai: { tools: [{ name: 'things.find_items', description: 'Search things by name or reference (e.g. "THG-12"). Returns …. Use it when …',
+  input: aiFindItemsInput, permission: 'things.items.read' }] },
+// server
+ai: { 'things.find_items': async (input, ctx, auth) => services(ctx).items.list(aiFindItemsInput.parse(input), auth) },
+```
+
+Write descriptions for a model: what it returns, when to use it, example values. Mark writes and privileged
+actions `destructive: true` (R22). The handler gets the caller's `auth`. Reuse the service, never a separate
+query.
+
+## 11. Global search (command palette)
+
+`search: { entities: ['item'] }` in the manifest, and `search: async (q, ctx, auth, limit) => SearchHit[]` in the
+server definition. Return `[]` without permission, and hits `{ id, type, title, subtitle, href, icon }`.
+
+## 12. Custom fields on your entity
+
+Manifest: `customFields: { entities: [{ type: 'item', name: 'things.entities.item' }] }`. Add an `attributes jsonb`
+column. Validate on create and update with
+`attributes = await ctx.fields.validate('things.item', input.attributes ?? {}, before?.attributes)`. Render the form
+with `FormRenderer` from `@isbp/ui/form-renderer` using `ctx.fields.definitions('things.item')` (expose them
+through a route).
+
+_See:_ `modules/alm` (`custom-fields.tsx`).
+
+## 13. Settings
+
+Declare them in `manifest.settings` (labels are i18n keys) and read them with `await ctx.settings.get<boolean>('policy.strict')`.
+Admins edit them in Administration → Modules. Don't build a second settings store. A read-only summary page that
+links there is fine.
+
+## 14. Attachments
+
+Host `core.record.files` (recipe 3). Never accept uploads in your routes (`ctx.files.attach` is for server-side
+generated files, such as an export saved on a record).
+
+## 15. Query an external database
+
+```ts
+const conn = (await ctx.databases.list({ purpose: 'data', enabledOnly: true })).find(
+  (c) => c.key === settingKey,
+);
+const catalog = await ctx.databases.catalog(conn.id, { purpose: 'data' });
+const table = catalog.tables.find((t) => t.schema === input.schema && t.name === input.table); // identifiers from the catalog only
+if (!table) throw new HttpError(400, ErrorCodes.VALIDATION_FAILED, 'Unknown table');
+const result = await ctx.databases.query(
+  conn.id,
+  'SELECT code, name FROM erp.customers WHERE region = :region ORDER BY code',
+  { purpose: 'data', params: { region: input.region }, maxRows: 500, readOnly: true },
+);
+```
+
+Show `DATABASE_ERROR` details (`dbCode`, `message`) to administrators. Show API clients a generic message plus the
+request id. Never build SQL from values (R20).
+
+_See:_ `modules/etl` (Data APIs, pipelines), `modules/dbaccess` (server-side quoting for DDL).
+
+## 16. Call an external HTTP API with a stored credential
+
+```ts
+// store: sealed on save, never returned
+await tx.update(connectors).set({ apiKeySealed: ctx.secrets.seal(input.apiKey) });
+// use (worker / job)
+const res = await ctx.http.request(`${base}/api/v3/requests`, {
+  method: 'GET',
+  headers: { authorization: `Zoho-oauthtoken ${ctx.secrets.open(row.apiKeySealed)}` },
+  timeoutMs: 15_000,
+  maxBytes: 5 * 1024 * 1024,
+  allowHosts: (await ctx.settings.get<string>('allowedHosts'))?.split('\n') ?? [],
+});
+if (res.status >= 400)
+  throw new HttpError(502, ErrorCodes.UPSTREAM_FAILED, `HTTP ${res.status}`, { reason: 'status' });
+```
+
+Put the calls in jobs or event handlers, not in request handlers that hold a transaction (R14). Rate-limit with
+`ctx.cache.rateLimit`.
+
+## 17. Make content findable by meaning (semantic search)
+
+Upsert into the shared index **from your own event handler** (after commit), with an ACL:
+
+```ts
+events: { 'things.item.updated': async (e, ctx) => services(ctx).items.reindex(e.payload.thingId) },
+// reindex:
+await ctx.ai.index.upsert({ type: 'things.item', id, title, text: markdown, locale, href,
+  acl: { permission: 'things.items.read' }, metadata: { status } });
+// or ctx.ai.index.remove('things.item', id) when it should no longer be found
+```
+
+_See:_ `modules/knowledge/src/server/articles.ts`.
+
+## 18. Demo data
+
+`seed(ctx)` must be idempotent (return early when your data exists), produce realistic volume and history (weeks
+of activity, a mix of states including failures), and use the demo groups and users (see
+`apps/api/src/seed.ts`). Seeds may call your own services, as the admin or the module's agent. Cross-module demo
+data goes into the platform seed (R36).
+
+## 19. A new error code
+
+1. Add it to `ErrorCodes` in `packages/sdk/src/http.ts`, with a doc comment that says what `details` carries.
+2. Add the message to `packages/i18n/messages/{en,zh-TW,ja-JP}/errors.json`.
+3. Throw `new HttpError(status, ErrorCodes.X, 'English message for logs', details)`.
+4. Run `pnpm docs:reference`.
+
+## 20. Extending the platform itself
+
+When modules need a capability the kernel lacks, add a **service** instead of a workaround:
+
+1. Add the type to `packages/sdk/src/server.ts` (`ModuleContext` member + doc comment) and, if it needs it, a
+   manifest field with Zod validation in `manifest.ts`.
+2. Implement it in `apps/api/src/kernel/<service>.ts` and wire it in `kernel.ts` (`contexts.set(…)`).
+3. Test it with unit tests and an integration test (`apps/api/test/integration/*.test.ts`).
+4. Document it in [api-reference.md](api-reference.md), [system-map.md](system-map.md) and, if it carries a rule,
+   [rules.md](rules.md).
+5. Record the decision in `docs/architecture.md` (the current phase's decisions table).

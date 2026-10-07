@@ -20,6 +20,16 @@ export const moduleMessages: Record<string, Record<Locale, Loader>> = {
     'zh-TW': () => import('@isbp/module-cmdb/messages/zh-TW.json'),
     'ja-JP': () => import('@isbp/module-cmdb/messages/ja-JP.json'),
   },
+  'dbaccess': {
+    en: () => import('@isbp/module-dbaccess/messages/en.json'),
+    'zh-TW': () => import('@isbp/module-dbaccess/messages/zh-TW.json'),
+    'ja-JP': () => import('@isbp/module-dbaccess/messages/ja-JP.json'),
+  },
+  'etl': {
+    en: () => import('@isbp/module-etl/messages/en.json'),
+    'zh-TW': () => import('@isbp/module-etl/messages/zh-TW.json'),
+    'ja-JP': () => import('@isbp/module-etl/messages/ja-JP.json'),
+  },
   'helpdesk-ai': {
     en: () => import('@isbp/module-helpdesk-ai/messages/en.json'),
     'zh-TW': () => import('@isbp/module-helpdesk-ai/messages/zh-TW.json'),
@@ -44,5 +54,10 @@ export const moduleMessages: Record<string, Record<Locale, Loader>> = {
     en: () => import('@isbp/module-projects/messages/en.json'),
     'zh-TW': () => import('@isbp/module-projects/messages/zh-TW.json'),
     'ja-JP': () => import('@isbp/module-projects/messages/ja-JP.json'),
+  },
+  'scheduler': {
+    en: () => import('@isbp/module-scheduler/messages/en.json'),
+    'zh-TW': () => import('@isbp/module-scheduler/messages/zh-TW.json'),
+    'ja-JP': () => import('@isbp/module-scheduler/messages/ja-JP.json'),
   },
 };

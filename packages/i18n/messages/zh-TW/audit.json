@@ -146,6 +146,10 @@
     "core_record_unlinked": "已移除紀錄連結",
     "core_file_uploaded": "已上傳附件",
     "core_file_deleted": "已刪除附件",
-    "core_file_rejected": "已拒絕上傳（惡意程式）"
+    "core_file_rejected": "已拒絕上傳（惡意程式）",
+    "core_db-connection_created": "已新增資料庫連線",
+    "core_db-connection_updated": "已變更資料庫連線",
+    "core_db-connection_deleted": "已刪除資料庫連線",
+    "core_db-connection_tested": "已測試資料庫連線"
   }
 }

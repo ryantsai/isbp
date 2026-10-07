@@ -4,8 +4,12 @@ A unified resource-management platform for IT operations — identity, access, s
 assets, automation and AI — built as a **modular monolith**: a small kernel plus modules that all use
 the same SDK. The UI ships in **English, 繁體中文（台灣）and 日本語**.
 
-> **Status: Phase 3 complete.**
+> **Status: Phase 4 complete (awaiting review).**
 >
+> - **Phase 4:** Data APIs & ETL (REST endpoints from parameterized SQL, pipelines between databases),
+>   Scheduled jobs (HTTP, SQL, sandboxed scripts and module tasks, with retries and live logs), and Database
+>   access (self-service database roles with approval, provisioning, expiry and reviews) on SQL Server,
+>   Oracle, PostgreSQL and MySQL connections; plus a developer guide for AI coding agents (`docs/ai/`).
 > - **Phase 3:** Asset Management (hardware, licences, contracts, vendors), Project Management (Kanban, Gantt,
 >   workload) and Application Lifecycle (releases and deployments governed by change management), plus links
 >   between records of any modules and attachments.
@@ -96,6 +100,20 @@ API reference (OpenAPI 3.1, interactive): http://localhost:4000/api/docs · raw 
 | **Helpdesk AI**         | <ul><li>Triage on every new ticket (with optional auto-apply), similar tickets, reply drafts with citations, summaries, and KB drafts from resolved tickets.</li><li>A virtual agent ("Ask IT") that answers from the knowledge base and opens a ticket only after you confirm.</li><li>Metrics for triage acceptance and deflection.</li></ul>                                                                                                                                                                          |
 | **AI gateway**          | <ul><li>Anthropic (Claude) or any OpenAI-compatible model, including self-hosted ones; works fully offline with the builtin embedder.</li><li>Masks personal data before a prompt leaves the platform; tracks usage and cost; enforces a monthly budget.</li><li>One permission-aware semantic index (pgvector).</li><li>A governed tool registry: same RBAC, confirmation and audit as the UI.</li></ul>                                                                                                                |
 
+## What's in Phase 4
+
+| Area                             | Highlights                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Database connections** (core)  | <ul><li>Administration → Database connections: SQL Server, PostgreSQL, MySQL and Oracle, with encrypted credentials, TLS, and purposes (data or account administration).</li><li>Test before saving and browse the catalog. Every statement uses bound parameters (no SQL is ever built from values).</li></ul>                                                                                |
+| **Data APIs & ETL** (`etl`)      | <ul><li>Publish REST endpoints from SQL with `:parameters` or from stored procedures: typed validation, versions, API-client allow-lists, rate limits, caching, CSV, OpenAPI and a test console.</li><li>Execution logs with latency and error rates.</li><li>Pipelines that stream rows between databases (insert, upsert or replace, column transforms, incremental watermarks).</li></ul>   |
+| **Scheduled jobs** (`scheduler`) | <ul><li>HTTP calls, SQL tasks, Python/Node.js/PowerShell/shell scripts in container sandboxes, and tasks from other modules (ETL pipelines, inventory syncs).</li><li>Cron (time zones), intervals and "after another job".</li><li>Retries with backoff, timeouts, run history, live logs, failure alerts and a monitoring dashboard.</li></ul>                                               |
+| **Database access** (`dbaccess`) | <ul><li>People request database roles in the portal. Approval goes to the manager, then the role owner, then security for high risk.</li><li>Accounts are provisioned automatically, and passwords are delivered as a one-time reveal.</li><li>Time-bound access with automatic revocation; access reviews; drift detection (unmanaged access) on SQL Server, Oracle and PostgreSQL.</li></ul> |
+| **AI developer guide**           | <ul><li>`docs/ai/`: numbered rules, system map, module anatomy, API reference, recipes, testing, UI guidelines and definition of done.</li><li>A generated extension-point reference, checked in CI.</li><li>`AGENTS.md` and Claude Code skills (`/new-module`, `/review-module`).</li></ul>                                                                                                   |
+
+The demo seed creates a demo database (`isbp_demo`, a small ERP and data warehouse) on the platform's Postgres,
+so Data APIs, pipelines, SQL jobs and account provisioning run for real. The SQL Server, Oracle and MySQL demo
+connections point at hosts that don't exist, so the failure states are visible too.
+
 ## What's in Phase 3
 
 | Area                       | Highlights                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -120,7 +138,9 @@ packages/contracts Zod DTOs shared by API and web
 packages/ui       Component library (shadcn/ui on Radix + Motion), DataTable, data hooks
 packages/i18n     Locales and core message catalogs (en, zh-TW, ja-JP)
 packages/create-module  `pnpm create-module` scaffolder + registry sync
-modules/*         Feature modules: announcements (the sample), cmdb, knowledge, itsm, helpdesk-ai, itam, projects, alm
+modules/*         Feature modules: announcements (the sample), cmdb, knowledge, itsm, helpdesk-ai, itam, projects, alm,
+                  etl, scheduler, dbaccess
+packages/sql      Driver-neutral access to external databases (bound parameters, dialects, catalog, writers)
 infra/            Dockerfiles, docker-compose, Helm chart
 e2e/              Playwright end-to-end + accessibility tests
 docs/             Architecture, module guide, API guide, deployment

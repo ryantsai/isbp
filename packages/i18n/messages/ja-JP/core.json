@@ -26,7 +26,8 @@
     "groupAccess": "アクセス",
     "groupAutomation": "自動化",
     "groupPlatform": "プラットフォーム",
-    "ai": "AI"
+    "ai": "AI",
+    "databases": "データベース接続"
   },
   "permissions": {
     "usersRead": "ユーザーとプロファイルの表示",
@@ -56,7 +57,9 @@
     "applicationsManage": "アプリケーション、そのロールと付与の管理",
     "apiClientsManage": "API クライアントとキーの作成",
     "roleQueryRead": "ロール クエリ API でロールとアクセス許可を照会",
-    "aiManage": "AI ゲートウェイを構成する: モデル、プライバシー、予算"
+    "aiManage": "AI ゲートウェイを構成する: モデル、プライバシー、予算",
+    "databasesRead": "データベース接続の表示",
+    "databasesManage": "データベース接続と資格情報の管理"
   },
   "settings": {
     "productName": "製品名",
@@ -122,6 +125,10 @@
     "application-manager": {
       "name": "アプリケーション管理者",
       "description": "アプリケーションのロールとアクセス許可を管理（1 つのアプリケーションに限定して割り当て）"
+    },
+    "database-admin": {
+      "name": "データベース接続管理者",
+      "description": "外部データベース、その資格情報、用途を登録"
     }
   },
   "entities": {

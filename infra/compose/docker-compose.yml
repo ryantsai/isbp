@@ -67,6 +67,11 @@ x-api-env: &api-env
   ISBP_ALLOW_PRIVATE_WEBHOOKS: ${ISBP_ALLOW_PRIVATE_WEBHOOKS:-false}
   # Empty = tracing disabled. With --profile observability use http://jaeger:4318.
   OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  # Script jobs: `none` (default) or `docker` with --profile sandbox (containers on this host's Docker,
+  # reached through a socket proxy that only allows container and image calls).
+  SANDBOX_RUNNER: ${SANDBOX_RUNNER:-none}
+  SANDBOX_DOCKER_HOST: ${SANDBOX_DOCKER_HOST:-tcp://docker-proxy:2375}
+  SANDBOX_IMAGES: ${SANDBOX_IMAGES:-python:3.13-alpine,node:24-alpine,mcr.microsoft.com/powershell:lts-alpine-3.20,alpine:3.22}
 
 services:
   postgres:
@@ -231,6 +236,30 @@ services:
       - promdata:/prometheus
     ports:
       - '127.0.0.1:${PROMETHEUS_PORT:-9090}:9090'
+    logging: *logging
+
+  # --profile sandbox: lets the worker start script containers (SANDBOX_RUNNER=docker) without mounting the
+  # Docker socket into it. The proxy exposes only container/image endpoints and stays on the internal network.
+  # Script containers still run on this host's Docker daemon: prefer rootless Docker for this host.
+  docker-proxy:
+    profiles: [sandbox]
+    image: tecnativa/docker-socket-proxy:v0.4
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      IMAGES: 1
+      POST: 1
+      ALLOW_START: 1
+      ALLOW_STOP: 1
+      ALLOW_RESTARTS: 0
+      EXEC: 0
+      VOLUMES: 0
+      NETWORKS: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    read_only: true
+    tmpfs:
+      - /run
     logging: *logging
 
 volumes:

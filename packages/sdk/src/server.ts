@@ -1,6 +1,18 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Readable } from 'node:stream';
 import type { Locale } from '@isbp/i18n';
+import type {
+  Catalog,
+  CatalogProcedure,
+  DbEngine,
+  ExecOptions,
+  SqlResult,
+  SqlValue,
+  StreamBatch,
+  StreamOptions,
+  TableWriter,
+  WriteMode,
+} from '@isbp/sql';
 import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
 import type { FastifyBaseLogger, FastifyInstance, RawServerDefault } from 'fastify';
@@ -12,6 +24,25 @@ import type { ModuleManifest } from './manifest';
 import type { PermissionReach, PermissionSet, ResourceScope } from './permissions';
 
 export * from './index';
+export type {
+  Catalog,
+  CatalogColumn,
+  CatalogParameter,
+  CatalogProcedure,
+  CatalogTable,
+  DbEngine,
+  ExecOptions,
+  SqlColumn,
+  SqlParamType,
+  SqlResult,
+  SqlRow,
+  SqlScalar,
+  SqlValue,
+  StreamBatch,
+  StreamOptions,
+  TableWriter,
+  WriteMode,
+} from '@isbp/sql';
 
 /* ───────────────────────────── database ───────────────────────────── */
 
@@ -544,6 +575,210 @@ export interface SecretsService {
   open(sealed: string): string;
 }
 
+/* ───────────────────────────── external databases (Phase 4) ───────────────────────────── */
+
+/** What a module may use a connection for: `data` (ETL, Data APIs, SQL jobs) or `admin` (account administration). */
+export type DbPurpose = 'data' | 'admin';
+
+export interface DbConnectionInfo {
+  id: string;
+  key: string;
+  name: string;
+  engine: DbEngine;
+  host: string;
+  port: number | null;
+  database: string | null;
+  username: string;
+  purposes: DbPurpose[];
+  readOnly: boolean;
+  enabled: boolean;
+  status: 'unknown' | 'ok' | 'error';
+  serverVersion: string | null;
+  /** Statement timeout and row cap of the connection (module options are clamped to them). */
+  timeoutMs: number;
+  maxRows: number;
+}
+
+/**
+ * `ctx.databases`: the external databases administrators registered (Administration → Database
+ * connections). Statements use `:name` placeholders bound by the driver; identifiers must come from
+ * `catalog()`. Every call names a `purpose` the connection allows (403 `CONNECTION_PURPOSE`); unknown
+ * connections are 404, disabled ones 409 `CONNECTION_DISABLED`. Database failures are `HttpError` 422
+ * `DATABASE_ERROR` with `details: DatabaseErrorInfo` (the server's code and message, never credentials).
+ */
+export interface DatabasesService {
+  list(opts?: { purpose?: DbPurpose; enabledOnly?: boolean }): Promise<DbConnectionInfo[]>;
+  get(id: string): Promise<DbConnectionInfo | null>;
+  query(id: string, sql: string, opts: ExecOptions & { purpose: DbPurpose }): Promise<SqlResult>;
+  call(
+    id: string,
+    procedure: CatalogProcedure,
+    args: Record<string, SqlValue | undefined>,
+    opts: Omit<ExecOptions, 'params' | 'types'> & { purpose: DbPurpose },
+  ): Promise<SqlResult>;
+  stream(id: string, sql: string, opts: StreamOptions & { purpose: DbPurpose }): AsyncIterable<StreamBatch>;
+  /** A transactional load into a catalog table (refused on read-only connections). */
+  writer(
+    id: string,
+    table: { schema?: string | null; name: string },
+    opts: {
+      purpose: DbPurpose;
+      columns: string[];
+      mode: WriteMode;
+      keys?: string[];
+      timeoutMs?: number;
+      signal?: AbortSignal;
+    },
+  ): Promise<TableWriter>;
+  /** Tables, views and routines the connection's login can see (cached for 5 minutes). */
+  catalog(id: string, opts: { purpose: DbPurpose; refresh?: boolean }): Promise<Catalog>;
+}
+
+/** A database failure: `kind` (`auth`, `timeout`, `syntax`, `permission`, …) plus the server's code and message. */
+export interface DatabaseErrorInfo {
+  kind: string;
+  dbCode: string | null;
+  message: string;
+}
+
+/* ───────────────────────────── task types (Phase 4) ───────────────────────────── */
+
+/** One execution of a task: what Scheduled Jobs passes to a task type's handler. */
+export interface TaskContext {
+  runId: string;
+  jobId: string;
+  /** 1-based attempt number (retries increase it). */
+  attempt: number;
+  scheduledFor: Date;
+  /** End of the job's last successful run, e.g. for incremental loads. */
+  lastSuccessAt: Date | null;
+  /** The job's timeout; `signal` fires when it is reached (pass it on, e.g. as a statement timeout). */
+  timeoutMs?: number;
+  /** Fires on timeout or when someone cancels the run: stop promptly. */
+  signal: AbortSignal;
+  /** Appends a line to the run's live log. */
+  log(message: string, level?: 'info' | 'warn' | 'error'): void;
+}
+
+export interface TaskOutcome {
+  /** One line for run lists ("31 rows written"). */
+  summary?: string;
+  metrics?: Record<string, number>;
+  /** Web path with more detail (e.g. the pipeline run). */
+  href?: string | null;
+}
+
+export interface TaskTypeHandler<C = unknown> {
+  /** Checks what `config` refers to as the job's editor (exists, they may use it). Throw `HttpError` to refuse. */
+  validate?(config: C, ctx: ModuleContext, auth: AuthContext): Promise<void>;
+  /** A label for job lists ("Pipeline: Orders → warehouse") and a link to the configured object. */
+  describe?(config: C, ctx: ModuleContext): Promise<{ label: string; href?: string | null }>;
+  run(config: C, task: TaskContext, ctx: ModuleContext): Promise<TaskOutcome | void>;
+}
+
+export interface TaskTypeInfo {
+  /** `<module>.<type>`. */
+  type: string;
+  moduleId: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  permission: string;
+  /** JSON Schema of the config, for generic editors. */
+  configSchema: unknown;
+}
+
+/** `ctx.taskTypes`: the work enabled modules let Scheduled Jobs run. */
+export interface TaskTypesService {
+  /** Types of enabled modules whose `permission` the caller holds (all types without `auth`). */
+  list(auth?: AuthContext): TaskTypeInfo[];
+  /** Parses `config` with the type's schema and runs its `validate` as `auth` (400/403/404 on failure). */
+  validate(type: string, config: unknown, auth: AuthContext): Promise<unknown>;
+  describe(type: string, config: unknown): Promise<{ label: string; href: string | null }>;
+  /** Runs the handler in its own module's context (409 `MODULE_DISABLED` when that module is off). */
+  run(type: string, config: unknown, task: TaskContext): Promise<TaskOutcome>;
+}
+
+/* ───────────────────────────── outbound HTTP, cache, sandbox (Phase 4) ───────────────────────────── */
+
+export interface OutboundRequest {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string | Buffer | null;
+  /** Default 30 s. */
+  timeoutMs?: number;
+  /** Response bytes kept (default 1 MiB); the rest is discarded and `truncated` is set. */
+  maxBytes?: number;
+  /** Host names (exact or `*.suffix`) that may resolve to private addresses (an admin setting). */
+  allowHosts?: readonly string[];
+  signal?: AbortSignal;
+}
+
+export interface OutboundResponse {
+  status: number;
+  headers: Record<string, string>;
+  body: Buffer;
+  truncated: boolean;
+  durationMs: number;
+}
+
+/**
+ * `ctx.http`: the only way modules call out over HTTP. Every resolved address is checked when the socket
+ * connects (no DNS-rebinding bypass); private, loopback and link-local targets are refused unless allowed.
+ * Redirects are not followed. Throws `HttpError` 422 `TARGET_BLOCKED`, or 502 `UPSTREAM_FAILED` with
+ * `details.reason` `timeout | network | cancelled`. Any HTTP status is a response, not an error.
+ */
+export interface HttpClient {
+  request(url: string, opts?: OutboundRequest): Promise<OutboundResponse>;
+}
+
+/** `ctx.cache`: Redis, namespaced per module. */
+export interface CacheService {
+  get<T = unknown>(key: string): Promise<T | null>;
+  set(key: string, value: unknown, ttlSeconds: number): Promise<void>;
+  delete(key: string): Promise<void>;
+  increment(key: string, ttlSeconds: number): Promise<number>;
+  /** Fixed-window limiter: `limit` hits per `windowSeconds` per key. */
+  rateLimit(
+    key: string,
+    limit: number,
+    windowSeconds: number,
+  ): Promise<{ allowed: boolean; remaining: number; resetSeconds: number }>;
+}
+
+export type SandboxRunner = 'none' | 'local' | 'docker' | 'kubernetes';
+
+export interface SandboxRequest {
+  /** One of the allowed images (`ctx.sandbox.status().images`). */
+  image: string;
+  language: 'python' | 'node' | 'powershell' | 'shell';
+  script: string;
+  env?: Record<string, string>;
+  timeoutMs: number;
+  cpu?: number;
+  memoryMb?: number;
+  /** `none` (default) or `egress` (outbound network allowed). */
+  network?: 'none' | 'egress';
+  /** Labels for the container/pod (job id, run id). */
+  labels?: Record<string, string>;
+  signal?: AbortSignal;
+  onLog?: (line: string, stream: 'stdout' | 'stderr') => void;
+}
+
+export interface SandboxResult {
+  exitCode: number | null;
+  timedOut: boolean;
+  cancelled: boolean;
+  durationMs: number;
+}
+
+/** `ctx.sandbox`: runs untrusted scripts in an isolated container (never in the API/worker process). */
+export interface SandboxService {
+  status(): { runner: SandboxRunner; isolated: boolean; images: string[] };
+  /** Throws when no runner is configured or the image is not allowed. */
+  run(req: SandboxRequest): Promise<SandboxResult>;
+}
+
 export interface ModuleContext {
   readonly module: ModuleManifest;
   readonly db: Db;
@@ -562,6 +797,11 @@ export interface ModuleContext {
   readonly records: RecordsService;
   readonly files: FilesService;
   readonly secrets: SecretsService;
+  readonly databases: DatabasesService;
+  readonly taskTypes: TaskTypesService;
+  readonly http: HttpClient;
+  readonly cache: CacheService;
+  readonly sandbox: SandboxService;
   /** Runs `fn` in a DB transaction; pass `tx` to audit/events to keep them atomic. */
   transaction<T>(fn: (tx: Db) => Promise<T>): Promise<T>;
   /** Principal of the current request, job or event (from async context). */
@@ -597,6 +837,7 @@ export interface JobDefinition<T = any> {
   /** Recurring schedule (cron is evaluated in `tz`, default UTC). */
   schedule?: { cron?: string; everyMs?: number; tz?: string };
   concurrency?: number;
+  /** Tries per run, scheduled or enqueued (default: 3 scheduled, 5 enqueued); exponential backoff from `backoffMs`. */
   attempts?: number;
   backoffMs?: number;
   timeoutMs?: number;
@@ -637,6 +878,9 @@ export interface ServerModuleOptions {
   search?: SearchProvider;
   /** Resolvers for `manifest.records.types`, keyed by type (without the module prefix). */
   records?: Record<string, RecordResolver>;
+  /** Handlers for `manifest.taskTypes`, keyed by type (without the module prefix). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  taskTypes?: Record<string, TaskTypeHandler<any>>;
   /** Demo data for `pnpm db:seed`. Must be idempotent. */
   seed?: (ctx: ModuleContext) => Promise<void>;
   onEnable?: (ctx: ModuleContext) => Promise<void>;
@@ -681,6 +925,15 @@ export function defineServerModule(manifest: ModuleManifest, options: ServerModu
   for (const type of Object.keys(options.records ?? {})) {
     if (!recordTypes.has(type))
       throw new Error(`[${manifest.id}] records resolver "${type}" is not declared in manifest.records`);
+  }
+  const taskTypes = new Set(manifest.taskTypes?.map((t) => t.type) ?? []);
+  for (const type of taskTypes) {
+    if (!options.taskTypes?.[type])
+      throw new Error(`[${manifest.id}] task type "${type}" has no handler in taskTypes`);
+  }
+  for (const type of Object.keys(options.taskTypes ?? {})) {
+    if (!taskTypes.has(type))
+      throw new Error(`[${manifest.id}] task type handler "${type}" is not declared in manifest.taskTypes`);
   }
   for (const name of Object.keys(options.jobs ?? {})) {
     if (!/^[a-z][a-z0-9-]*$/.test(name))

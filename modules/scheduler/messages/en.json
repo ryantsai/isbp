@@ -1,0 +1,595 @@
+{
+  "meta": {
+    "name": "Scheduled jobs",
+    "description": "HTTP calls, SQL tasks, sandboxed scripts and module tasks on a schedule, with retries, run history, live logs and alerts"
+  },
+  "nav": {
+    "group": "Scheduled jobs",
+    "overview": "Overview",
+    "jobs": "Jobs",
+    "runs": "Runs"
+  },
+  "entities": {
+    "job": "Scheduled job"
+  },
+  "permissions": {
+    "jobsRead": "See scheduled jobs, run history, logs and the monitoring dashboard",
+    "jobsCreate": "Create jobs; edit, run, cancel and delete jobs they own or their group owns",
+    "jobsManage": "Edit, enable, disable and delete any job",
+    "jobsRun": "Run and cancel any job",
+    "sqlRun": "Create and edit SQL jobs (statements on data connections)",
+    "scriptsManage": "Create and edit script jobs (code that runs in the script sandbox)"
+  },
+  "settings": {
+    "allowedHosts": "Private hosts HTTP jobs may call",
+    "allowedHostsHelp": "One host name or *.suffix per line. Private, loopback and internal addresses are refused unless the host is listed here.",
+    "retentionDays": "Keep run history (days)",
+    "retentionDaysHelp": "Runs and their logs older than this are deleted every night. The latest run of each job is always kept.",
+    "misfireGraceMinutes": "Misfire grace (minutes)",
+    "misfireGraceMinutesHelp": "A scheduled run missed while the scheduler was down still runs once if it is no later than this; older ones are logged as missed."
+  },
+  "taskTypes": {
+    "http": {
+      "name": "HTTP request",
+      "description": "Call a URL and check the response status"
+    },
+    "sql": {
+      "name": "SQL statement",
+      "description": "Run one statement on a database connection"
+    },
+    "script": {
+      "name": "Script",
+      "description": "Run Python, Node.js, PowerShell or shell in a sandbox"
+    }
+  },
+  "audit": {
+    "job_created": "Created scheduled job",
+    "job_updated": "Updated scheduled job",
+    "job_deleted": "Deleted scheduled job",
+    "job_enabled": "Enabled scheduled job",
+    "job_disabled": "Disabled scheduled job",
+    "job_auto_disabled": "Disabled scheduled job after repeated failures",
+    "job_owner_released": "Cleared job owner (person offboarded)",
+    "run_requested": "Ran a job now",
+    "run_cancelled": "Cancelled a job run"
+  },
+  "notifications": {
+    "run_failed": {
+      "label": "Runs of my jobs that fail",
+      "title": "{job} {status, select, timed_out {timed out} other {failed}}",
+      "body": "After {attempts, plural, one {# attempt} other {# attempts}}: {error} ({streak, plural, one {first failure} other {# failures in a row}})"
+    },
+    "run_recovered": {
+      "label": "My jobs running again after failures",
+      "title": "{job} is running again",
+      "body": "The last run succeeded after {streak, plural, one {# failure} other {# failures in a row}}."
+    },
+    "job_auto_disabled": {
+      "label": "My jobs switched off after repeated failures",
+      "title": "{job} was disabled",
+      "body": "It failed {failures} times in a row, so it no longer runs on its schedule. Fix the cause, then enable it again."
+    }
+  },
+  "runStatus": {
+    "queued": "Queued",
+    "running": "Running",
+    "retrying": "Retrying",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "timed_out": "Timed out",
+    "cancelled": "Cancelled",
+    "skipped": "Skipped",
+    "skippedBecause": "Skipped ({reason, select, missed {missed} other {still running}})"
+  },
+  "runTrigger": {
+    "schedule": "Schedule",
+    "manual": "Run now",
+    "dependency": "After a job",
+    "retry": "Run again"
+  },
+  "triggerKind": {
+    "cron": "Cron",
+    "interval": "Interval",
+    "after": "After other jobs",
+    "manual": "Manual"
+  },
+  "triggerKindHint": {
+    "cron": "At set times, in a time zone",
+    "interval": "Every few minutes or hours",
+    "after": "When other jobs succeed",
+    "manual": "Only when someone runs it"
+  },
+  "concurrency": {
+    "skip": "Skip when still running",
+    "queue": "Wait for the previous run"
+  },
+  "series": {
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "timed_out": "Timed out",
+    "cancelled": "Cancelled",
+    "skipped": "Skipped",
+    "active": "In progress"
+  },
+  "metrics": {
+    "status": "HTTP status",
+    "durationMs": "Duration",
+    "bytes": "Bytes received",
+    "rows": "Rows",
+    "affected": "Rows affected",
+    "exitCode": "Exit code"
+  },
+  "duration": {
+    "ms": "{ms} ms",
+    "s": "{s} s",
+    "min": "{m} min {s} s",
+    "h": "{h} h {m} min",
+    "seconds": "{s} s",
+    "minutes": "{m} min",
+    "hours": "{h} h"
+  },
+  "cron": {
+    "everyMinute": "Every minute",
+    "everyMinutes": "Every {n} minutes",
+    "hourly": "Every hour at :{minute}",
+    "everyHours": "Every {n} hours at :{minute}",
+    "daily": "Daily at {time}",
+    "weekdays": "Weekdays at {time}",
+    "weekly": "{days} at {time}",
+    "monthly": "Monthly on day {day} at {time}",
+    "custom": "Cron {cron}"
+  },
+  "trigger": {
+    "withZone": "{text} ({zone})",
+    "everyMinutes": "Every {n, plural, one {minute} other {# minutes}}",
+    "everyHours": "Every {n, plural, one {hour} other {# hours}}",
+    "after": "After {jobs} {mode, select, any {(any one)} other {(all)}}",
+    "manual": "Manual only"
+  },
+  "fields": {
+    "name": "Name",
+    "description": "Description",
+    "owner": "Owner",
+    "ownerGroup": "Owner group",
+    "task": "Task",
+    "taskType": "Task type",
+    "trigger": "Trigger",
+    "schedule": "Schedule",
+    "lastRun": "Last run",
+    "state": "State",
+    "timeout": "Timeout (seconds)",
+    "retries": "Retries",
+    "concurrency": "Overlapping runs",
+    "alerts": "Alerts"
+  },
+  "overview": {
+    "title": "Scheduled jobs",
+    "description": "How the jobs are doing: runs over the last day, what is failing, what is slow and what comes next.",
+    "unavailable": "The dashboard is unavailable right now.",
+    "kpis": "Key figures",
+    "kpi": {
+      "runs24h": "Runs (24 h)",
+      "jobsHint": "{enabled} of {total} jobs enabled",
+      "successRate24h": "Success rate (24 h)",
+      "successRate7d": "Success rate (7 days)",
+      "successHint": "Of finished runs (cancelled and skipped excluded)",
+      "failingJobs": "Failing jobs",
+      "failingHint": "Last run failed",
+      "runningNow": "Running now",
+      "avgDuration": "Average duration (24 h)",
+      "avgDurationHint": "Of finished runs"
+    },
+    "hourly": "Runs per hour",
+    "hourlyHint": "The last 24 hours, by status",
+    "hour": "Hour",
+    "total": "Total",
+    "upcoming": "Upcoming runs",
+    "upcomingHint": "Scheduled in the next 24 hours",
+    "noUpcoming": "Nothing scheduled in the next 24 hours.",
+    "failing": "Failing jobs",
+    "failingHint": "Jobs whose last run failed",
+    "noFailing": "No job is failing.",
+    "streak": "{count, plural, one {# failure} other {# in a row}}",
+    "slowest": "Slowest jobs",
+    "slowestHint": "95th percentile duration of successful runs, last 7 days",
+    "noRuns": "No successful runs in the last 7 days.",
+    "p95": "{duration} · {runs, plural, one {# run} other {# runs}}",
+    "viewAll": "View all"
+  },
+  "charts": {
+    "viewAs": "Show as",
+    "chart": "Chart",
+    "table": "Table"
+  },
+  "jobs": {
+    "title": "Jobs",
+    "description": "Everything that runs on a schedule, after other jobs or on demand.",
+    "new": "New job",
+    "search": "Search by name or JOB-number…",
+    "allTypes": "All task types",
+    "allTriggers": "All triggers",
+    "views": {
+      "all": "All",
+      "failing": "Failing",
+      "running": "Running",
+      "disabled": "Disabled",
+      "mine": "Mine"
+    },
+    "empty": {
+      "all": "No jobs yet",
+      "failing": "No job is failing",
+      "running": "Nothing is running",
+      "disabled": "No disabled jobs",
+      "mine": "You own no jobs"
+    },
+    "emptyFiltered": "Try other filters.",
+    "emptyHint": "Jobs call URLs, run SQL statements and scripts, or start tasks of other modules.",
+    "liveCount": "{count, plural, one {# job} other {# jobs}}",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "autoDisabled": "Disabled after failures",
+    "next": "Next",
+    "neverRun": "Not run yet",
+    "streak": "{count, plural, one {# failure} other {# failures in a row}}"
+  },
+  "job": {
+    "notFound": "This job does not exist.",
+    "runNow": "Run now",
+    "runQueued": "Run queued",
+    "enable": "Enable",
+    "disable": "Disable",
+    "enabledToast": "Job enabled",
+    "disabledToast": "Job disabled",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleted": "Job deleted",
+    "deleteTitle": "Delete {name}?",
+    "deleteHint": "The job and its run history are deleted. This cannot be undone.",
+    "runningNow": "Running now",
+    "typeUnavailable": "The module that provides {type} is disabled: runs of this job fail until it is enabled again.",
+    "tabs": {
+      "overview": "Overview",
+      "runs": "Runs"
+    },
+    "schedule": "Schedule",
+    "nextRun": "Next run",
+    "notScheduledDisabled": "Not scheduled: the job is disabled",
+    "notScheduled": {
+      "cron": "Not scheduled",
+      "interval": "Not scheduled",
+      "after": "Runs when the jobs before it succeed",
+      "manual": "Runs only when someone starts it"
+    },
+    "lastSuccess": "Last success",
+    "last7days": "Last 7 days",
+    "last7daysValue": "{succeeded} succeeded · {failed} failed",
+    "task": "Task",
+    "what": "What it does",
+    "openTask": "Open",
+    "dependencies": "Dependencies",
+    "upstream": "Runs after {mode, select, any {any of} other {all of}}",
+    "upstreamList": "Jobs this one runs after",
+    "noUpstream": "No jobs before this one.",
+    "downstream": "Starts",
+    "downstreamList": "Jobs that run after this one",
+    "noDownstream": "No job runs after this one.",
+    "ownership": "Ownership",
+    "created": "Created",
+    "execution": "Execution",
+    "retriesValue": "Up to {attempts} attempts, {backoff, select, fixed {every} other {backing off from}} {delay}",
+    "noRetries": "No retries",
+    "alertsOn": "Owner and owner group are notified of failures",
+    "alertsOff": "No failure notifications",
+    "alertsChannels": "Failures are also posted to the organisation's channels",
+    "autoDisableValue": "Disabled after {count} failures in a row",
+    "runsOf": "Runs of {job}"
+  },
+  "runs": {
+    "title": "Runs",
+    "description": "Every run of every job, newest first.",
+    "views": {
+      "all": "All",
+      "failed": "Failed",
+      "active": "In progress"
+    },
+    "job": "Job",
+    "status": "Status",
+    "scheduledFor": "Scheduled for",
+    "trigger": "Trigger",
+    "duration": "Duration",
+    "attempts": "Attempts",
+    "attemptOf": "Attempt {attempt} of {max}",
+    "summary": "Result",
+    "open": "Open the run of {job}",
+    "search": "Search by job name…",
+    "allStatuses": "All statuses",
+    "allTriggers": "All triggers",
+    "period": "Period",
+    "anyTime": "Any time",
+    "periods": {
+      "h24": "Last 24 hours",
+      "h168": "Last 7 days",
+      "h720": "Last 30 days"
+    },
+    "empty": "No runs",
+    "emptyFiltered": "Try other filters.",
+    "emptyHint": "Runs appear here when jobs run on their schedule or someone runs them."
+  },
+  "run": {
+    "notFound": "This run does not exist.",
+    "title": "{job} · {when}",
+    "cancel": "Cancel run",
+    "cancelTitle": "Cancel this run?",
+    "cancelHint": "A running task is asked to stop; no retry follows.",
+    "cancelRequested": "Cancellation requested",
+    "cancelling": "Stopping…",
+    "runAgain": "Run again",
+    "retried": "Run queued",
+    "error": "Why it failed",
+    "details": "Details",
+    "after": "After {job}",
+    "openResult": "Open the result",
+    "metrics": "Metrics",
+    "timeline": "Timeline",
+    "queued": "Queued",
+    "started": "Started",
+    "attempt": "Attempt {n}",
+    "nextAttempt": "Attempt {n} due",
+    "finished": "Finished"
+  },
+  "log": {
+    "title": "Log",
+    "live": "Live · {count, plural, one {# line} other {# lines}}",
+    "lines": "{count, plural, one {# line} other {# lines}}",
+    "follow": "Follow",
+    "copy": "Copy",
+    "copied": "Log copied",
+    "copyFailed": "Could not copy the log",
+    "download": "Download",
+    "waiting": "Waiting for the first lines…",
+    "empty": "This run wrote no log.",
+    "level": {
+      "info": "Info",
+      "warn": "Warning",
+      "error": "Error"
+    }
+  },
+  "secret": {
+    "stored": "Stored (hidden)",
+    "replace": "Replace",
+    "secret": "Secret"
+  },
+  "http": {
+    "request": "Request",
+    "method": "Method",
+    "urlHint": "Private and internal hosts must be on the administrator's allow-list.",
+    "expectedStatus": "Expected status",
+    "expectedStatusHint": "Codes and ranges, for example 200-299, 200,204 or 2xx",
+    "timeout": "Request timeout (seconds)",
+    "timeoutHint": "Up to 300 seconds",
+    "headers": "Headers",
+    "headerName": "Header name",
+    "headerValue": "Header value",
+    "addHeader": "Add header",
+    "removeHeader": "Remove header",
+    "noHeaders": "No extra headers.",
+    "auth": "Authentication",
+    "authType": {
+      "none": "None",
+      "basic": "Basic (user name and password)",
+      "bearer": "Bearer token",
+      "header": "API key header"
+    },
+    "username": "User name",
+    "password": "Password",
+    "token": "Token",
+    "body": "Body",
+    "bodyType": "Body type",
+    "bodyTypes": {
+      "none": "No body",
+      "json": "JSON",
+      "text": "Text"
+    }
+  },
+  "sql": {
+    "connection": "Database connection",
+    "connectionHint": "Connections for data, set up by administrators",
+    "pickConnection": "Choose a connection",
+    "loading": "Loading…",
+    "readOnly": "read-only",
+    "engines": {
+      "mssql": "SQL Server",
+      "postgres": "PostgreSQL",
+      "mysql": "MySQL",
+      "oracle": "Oracle"
+    },
+    "noConnections": "No data connection is available. Ask an administrator to add one under Administration → Database connections.",
+    "mode": "Mode",
+    "modes": {
+      "query": "Query: log the row count and a preview",
+      "execute": "Execute: log the rows affected"
+    },
+    "modeHint": {
+      "query": "Runs in a read-only transaction where the database supports it.",
+      "execute": "For statements that change data, such as clean-ups and procedures."
+    },
+    "readOnlyExecute": "This connection is read-only: statements that change data will be refused.",
+    "statement": "Statement",
+    "statementHint": "One statement. Use :name for values; they are bound by the driver, never pasted into the SQL.",
+    "catalogUnavailable": "Table suggestions are unavailable: {error}",
+    "writesInQuery": "This statement changes data ({keywords}): use Execute mode.",
+    "parameters": "Parameters",
+    "noParameters": "No :parameters in the statement.",
+    "paramSource": "Value of :{name}",
+    "paramType": "Type of :{name}",
+    "paramValue": "Fixed value of :{name}",
+    "sources": {
+      "static": "Fixed value",
+      "scheduled_for": "Scheduled time of the run",
+      "last_success_at": "End of the last successful run",
+      "run_id": "Run id"
+    },
+    "sourceHint": {
+      "scheduled_for": "The time the run was due (for date windows).",
+      "last_success_at": "Empty on the first run (for incremental work).",
+      "run_id": "Unique per run (for audit columns)."
+    },
+    "types": {
+      "string": "Text",
+      "integer": "Whole number",
+      "decimal": "Decimal",
+      "boolean": "True / false",
+      "date": "Date",
+      "datetime": "Date and time",
+      "uuid": "UUID"
+    },
+    "placeholders": {
+      "string": "Text",
+      "integer": "42",
+      "decimal": "12.50",
+      "boolean": "true",
+      "date": "2026-01-31",
+      "datetime": "2026-01-31T08:00:00Z",
+      "uuid": "00000000-0000-0000-0000-000000000000"
+    }
+  },
+  "script": {
+    "runnerNone": "No script runner is configured, so script jobs can't be enabled or run. An administrator sets SANDBOX_RUNNER to kubernetes or docker.",
+    "runnerLocal": "Development runner: scripts run on the worker without isolation (not sandboxed). Never use it in production.",
+    "runnerIsolated": "Scripts run in an isolated container ({runner}): no credentials, read-only file system, network only when allowed.",
+    "language": "Language",
+    "languages": {
+      "python": "Python",
+      "node": "Node.js",
+      "powershell": "PowerShell",
+      "shell": "Shell"
+    },
+    "image": "Container image",
+    "pickImage": "Choose an image",
+    "script": "Script",
+    "scriptHint": "Standard output is logged as information and standard error as warnings. A non-zero exit code fails the run.",
+    "env": "Environment variables",
+    "envName": "Variable name",
+    "envValue": "Variable value",
+    "addEnv": "Add variable",
+    "removeEnv": "Remove variable",
+    "noEnv": "No environment variables.",
+    "timeout": "Script timeout (s)",
+    "cpu": "CPU (cores)",
+    "memory": "Memory (MB)",
+    "network": "Network",
+    "networks": {
+      "none": "No network",
+      "egress": "Outbound allowed"
+    },
+    "networkHint": {
+      "none": "The script cannot reach anything.",
+      "egress": "The script may call out to the network."
+    }
+  },
+  "json": {
+    "hint": "This task type has no editor of its own: enter its configuration as JSON.",
+    "label": "Configuration (JSON)",
+    "invalidJson": "This is not a JSON object yet.",
+    "problems": {
+      "required": "{path} is required",
+      "type": "{path} should be {expected}",
+      "enum": "{path} should be one of: {expected}"
+    },
+    "fields": "Fields",
+    "any": "any",
+    "required": "required"
+  },
+  "form": {
+    "newTitle": "New job",
+    "newHint": "Choose what runs, when it runs and who hears about failures.",
+    "editTitle": "Edit {name}",
+    "editHint": "Changes apply from the next run.",
+    "noAccess": "You may not edit this job.",
+    "noTypes": "You may not create jobs of any task type.",
+    "typeNotAvailable": "The task type {type} is not available to you; choose another one.",
+    "basics": "Basics",
+    "pickOwner": "Choose a person",
+    "noGroup": "No group",
+    "descriptionHint": "What the job is for. Markdown is supported.",
+    "task": "Task",
+    "taskHint": "What runs. Secrets are stored encrypted and never shown again.",
+    "typePermanent": "the task type can't be changed",
+    "trigger": "Trigger",
+    "triggerHint": "When it runs.",
+    "cron": "Cron expression",
+    "cronHint": "Five fields: minute, hour, day of month, month, day of week.",
+    "timezone": "Time zone",
+    "searchZone": "Search time zones…",
+    "noZone": "No time zone found",
+    "presets": "Presets",
+    "nextRuns": "Next runs",
+    "intervalMinutes": "Minutes between runs",
+    "intervalHint": "Counted from the previous scheduled time, not from when a run ended.",
+    "intervalInvalid": "Enter at least 1 minute",
+    "upstream": "Run after",
+    "upstreamHint": "It runs when these jobs succeed.",
+    "pickUpstream": "Choose jobs",
+    "upstreamCount": "{count, plural, one {# job chosen} other {# jobs chosen}}",
+    "upstreamChosen": "Chosen jobs",
+    "removeUpstream": "Remove {name}",
+    "searchJobs": "Search jobs…",
+    "noJobs": "No jobs found",
+    "loading": "Loading…",
+    "upstreamRequired": "Choose at least one job",
+    "mode": "Condition",
+    "modes": {
+      "all": "All of them succeeded",
+      "any": "Any one succeeded"
+    },
+    "modeHint": {
+      "all": "Runs once every chosen job has succeeded since its last run.",
+      "any": "Runs after each success of any chosen job."
+    },
+    "manualHint": "The job runs only when someone presses Run now, or an AI agent with permission runs it.",
+    "cycle": "These jobs would wait for each other forever: {path}",
+    "execution": "Execution",
+    "timeoutHint": "The run is stopped and marked timed out after this.",
+    "maxAttempts": "Attempts",
+    "maxAttemptsHint": "1 means no retries (up to 10)",
+    "backoff": "Backoff",
+    "backoffs": {
+      "fixed": "Fixed",
+      "exponential": "Exponential"
+    },
+    "backoffHint": {
+      "fixed": "Waits the same time before each retry.",
+      "exponential": "Doubles the wait each time, up to an hour."
+    },
+    "retryDelay": "Retry delay (seconds)",
+    "retryDelayHint": "The first wait before retrying",
+    "concurrencyHint": {
+      "skip": "If the previous run is still going, the new one is skipped.",
+      "queue": "If the previous run is still going, the new one waits for it."
+    },
+    "alerts": "Alerts",
+    "alertsHint": "Who hears about failures.",
+    "onFailure": "Notify the owner and owner group when a run fails",
+    "onFailureHint": "After the last attempt, in the app and by email; a recovery notice follows.",
+    "channels": "Also post failures to the organisation's channels",
+    "channelsHint": "Teams, Slack or webhooks set up by administrators.",
+    "autoDisable": "Disable after consecutive failures",
+    "autoDisableHint": "0 keeps the job enabled however often it fails.",
+    "state": "State",
+    "enabled": "Enabled",
+    "enabledHint": "Disabled jobs keep their history but don't run on their schedule.",
+    "nameRequired": "Enter a name",
+    "checkFields": "Check the highlighted fields",
+    "create": "Create job",
+    "created": "Job created",
+    "saved": "Changes saved"
+  },
+  "attention": {
+    "title": "Failing jobs",
+    "description": "Scheduled jobs whose last run failed",
+    "open": "Open",
+    "allClear": "All jobs ran fine.",
+    "count": "{count, plural, one {# job is failing} other {# jobs are failing}}",
+    "streak": "{count, plural, one {# failure} other {# in a row}}"
+  }
+}

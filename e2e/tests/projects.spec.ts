@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { type APIRequestContext, expect, type Page, test } from '@playwright/test';
+import { type APIRequestContext, expect, type Page, test } from './fixtures';
 import { settle } from './helpers';
 
 async function expectAccessible(page: Page, label?: string) {

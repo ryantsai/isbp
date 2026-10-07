@@ -26,6 +26,7 @@ import { EVERYONE_GROUP_KEY, PLATFORM_APP_KEY } from './kernel/rbac';
 import { seedPhase1 } from './seed-phase1';
 import { seedPhase2 } from './seed-phase2';
 import { seedPhase3, seedPhase3Links } from './seed-phase3';
+import { seedPhase4, seedPhase4Links } from './seed-phase4';
 
 const { config, kernel } = await bootstrap('isbp-seed');
 const db = kernel.db;
@@ -768,6 +769,7 @@ async function seedCore() {
 try {
   await kernel.migrate();
   let apiKey: { apiClient: string; apiKey: string } | null = null;
+  let biKey: { clientId: string; apiKey: string } | null = null;
   await runWithContext({ principal: { type: 'system', id: null, name: 'seed' } }, async () => {
     const created = await seedCore();
     if (created) apiKey = await seedPhase1(kernel);
@@ -776,6 +778,7 @@ try {
     if (modules) {
       await seedPhase2(kernel);
       await seedPhase3(kernel);
+      biKey = await seedPhase4(kernel);
     }
     for (const m of kernel.registry.modules) {
       if (m.seed && modules) {
@@ -784,7 +787,10 @@ try {
       }
     }
     // Links between records of different modules, once every module has its demo data.
-    if (modules) await seedPhase3Links(kernel);
+    if (modules) {
+      await seedPhase3Links(kernel);
+      await seedPhase4Links(kernel);
+    }
   });
   await kernel.rbac.bump();
   await db.execute(sql`analyze`);
@@ -792,6 +798,12 @@ try {
     log.info(
       `Sign in at ${config.PUBLIC_URL}/login → admin / ${ADMIN_PASSWORD}   (demo: helpdesk, hr.partner, auditor / ${DEMO_PASSWORD})`,
     );
+    const bi = biKey as { clientId: string; apiKey: string } | null;
+    if (bi)
+      log.info(
+        `Data API demo client ${bi.clientId} — API key (shown once): ${bi.apiKey}\n` +
+          `  curl -H "Authorization: Bearer ${bi.apiKey}" "${config.PUBLIC_URL}/api/v1/etl/data/customers-by-region?region=north"`,
+      );
     const key = apiKey as { apiClient: string; apiKey: string } | null;
     if (key)
       log.info(

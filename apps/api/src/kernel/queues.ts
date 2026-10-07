@@ -31,12 +31,21 @@ export class QueueFactory {
     return q;
   }
 
-  forModule(moduleId: string): JobQueue {
+  /** `definitionOf` supplies the job's declared retry policy (`attempts`, `backoffMs`). */
+  forModule(
+    moduleId: string,
+    definitionOf: (name: string) => { attempts?: number; backoffMs?: number } | undefined = () => undefined,
+  ): JobQueue {
     return {
       enqueue: async (name, data, opts = {}) => {
+        const def = definitionOf(name);
         const job = await this.get(moduleQueueName(moduleId)).add(name, data, {
           delay: opts.delayMs,
           jobId: opts.jobId,
+          ...(def?.attempts !== undefined ? { attempts: def.attempts } : {}),
+          ...(def?.backoffMs !== undefined
+            ? { backoff: { type: 'exponential' as const, delay: def.backoffMs } }
+            : {}),
         });
         return job.id ?? '';
       },

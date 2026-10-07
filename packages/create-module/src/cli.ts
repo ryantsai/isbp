@@ -5,6 +5,8 @@
  *   pnpm create-module <id> [--description "…"] [--icon lucide-name] [--no-install]
  *   pnpm modules:sync            regenerate installed-module registries
  *   pnpm modules:check           fail if registries are out of date (CI)
+ *   pnpm docs:reference          regenerate docs/ai/reference.md from the manifests
+ *   pnpm docs:check              fail if docs/ai/reference.md is out of date (CI)
  */
 import { execSync } from 'node:child_process';
 import {
@@ -21,6 +23,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { namesFor, render, validateModuleId } from './naming';
+import { renderReference } from './reference';
 import { discoverModules, syncAppDependencies, syncRegistries } from './registry';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -92,8 +95,25 @@ Next steps
 `);
 }
 
+async function docs(check: boolean) {
+  const file = join(root, 'docs/ai/reference.md');
+  const prettier = await import('prettier');
+  const options = (await prettier.resolveConfig(file)) ?? {};
+  const next = await prettier.format(await renderReference(root), { ...options, parser: 'markdown' });
+  const current = existsSync(file) ? readFileSync(file, 'utf8') : '';
+  if (current === next) return console.warn('✓ docs/ai/reference.md is up to date');
+  if (check) {
+    console.error('✗ docs/ai/reference.md is out of date. Run `pnpm docs:reference`.');
+    process.exit(1);
+  }
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, next);
+  console.warn('✓ Updated docs/ai/reference.md');
+}
+
 try {
-  if (command === 'create') create(arg);
+  if (command === 'docs') await docs(values.check);
+  else if (command === 'create') create(arg);
   else if (command === 'sync') {
     const stale = syncRegistries(root, values.check);
     if (values.check && stale.length) {
@@ -111,7 +131,7 @@ try {
     );
   } else {
     console.error(
-      'Usage:\n  create-module create <module-id> [--description "…"] [--icon lucide-name] [--no-install]\n  create-module sync [--check]',
+      'Usage:\n  create-module create <module-id> [--description "…"] [--icon lucide-name] [--no-install]\n  create-module sync [--check]\n  create-module docs [--check]',
     );
     process.exit(1);
   }

@@ -18,9 +18,20 @@ function useZodLocale() {
   }, [locale]);
 }
 
+/**
+ * Marks `<html data-hydrated="1">` once the tree has hydrated (effects run children-first), so end-to-end
+ * tests interact with a live page instead of server-rendered markup.
+ */
+function useHydratedMark() {
+  useEffect(() => {
+    document.documentElement.dataset.hydrated = '1';
+  }, []);
+}
+
 /** App-wide client providers. `reducedMotion="user"` makes every animation honour the OS setting. */
 export function RootProviders({ children }: { children: ReactNode }) {
   useZodLocale();
+  useHydratedMark();
   const [client] = useState(
     () =>
       new QueryClient({

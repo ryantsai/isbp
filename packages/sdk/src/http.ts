@@ -117,6 +117,36 @@ export const ErrorCodes = {
   FILE_TOO_LARGE: 'FILE_TOO_LARGE',
   /** A production deployment needs an approved change in its window (`details.reason`). */
   CHANGE_REQUIRED: 'CHANGE_REQUIRED',
+  /** The connection does not allow this use (`details.purpose`), e.g. admin credentials for a Data API. */
+  CONNECTION_PURPOSE: 'CONNECTION_PURPOSE',
+  /** The database connection is disabled. */
+  CONNECTION_DISABLED: 'CONNECTION_DISABLED',
+  /** The connection is read-only and the operation writes. */
+  CONNECTION_READ_ONLY: 'CONNECTION_READ_ONLY',
+  /** The database refused or failed the statement (`details.kind`, `details.dbCode`, `details.message`). */
+  DATABASE_ERROR: 'DATABASE_ERROR',
+  /** The host is not allowed (link-local/metadata addresses, or a private address not on the allow-list). */
+  TARGET_BLOCKED: 'TARGET_BLOCKED',
+  /** An outbound call failed before a response (`details.reason`: `timeout`, `network`, `cancelled`). */
+  UPSTREAM_FAILED: 'UPSTREAM_FAILED',
+  /** No script sandbox is configured, or the image is not on the allow-list (`details.reason`). */
+  SANDBOX_UNAVAILABLE: 'SANDBOX_UNAVAILABLE',
+  /** The Data API has no published version yet. */
+  ENDPOINT_NOT_PUBLISHED: 'ENDPOINT_NOT_PUBLISHED',
+  /** That version of the Data API is retired (HTTP 410). */
+  ENDPOINT_RETIRED: 'ENDPOINT_RETIRED',
+  /** The SQL changes data (`details.keywords`) but the endpoint does not allow writes. */
+  WRITES_NOT_ALLOWED: 'WRITES_NOT_ALLOWED',
+  /** Publishing needs a successful test of the current draft. */
+  TEST_REQUIRED: 'TEST_REQUIRED',
+  /** The job dependencies would form a cycle (`details.path`). */
+  JOB_CYCLE: 'JOB_CYCLE',
+  /** The job (or run) is running; wait or cancel it first. */
+  JOB_RUNNING: 'JOB_RUNNING',
+  /** The one-time credential was already revealed or has expired. */
+  REVEAL_EXPIRED: 'REVEAL_EXPIRED',
+  /** The access review campaign is closed. */
+  REVIEW_CLOSED: 'REVIEW_CLOSED',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes] | (string & {});
 

@@ -2,13 +2,16 @@
 
 Modular monolith: Fastify API + worker (`apps/api`), Next.js 16 web (`apps/web`), module SDK
 (`packages/sdk`), feature modules (`modules/*`). Design: `docs/architecture.md`. Module how-to:
-`docs/module-development.md`. Delivery is phased; finish a phase, then stop for review.
+`docs/module-development.md`. **Building or reviewing a module: follow `docs/ai/` (rules, system map, anatomy,
+API reference, recipes, generated extension-point reference, testing, UI, definition of done); skills
+`/new-module` and `/review-module`.** Delivery is phased; finish a phase, then stop for review.
 
 ## Commands
 
 - Local infra without Docker: `pnpm dev:services` (embedded Postgres + Redis, data in `.dev-data/`)
 - Run: `pnpm dev` (API + worker on :4000, web on :3000) · seed: `pnpm db:seed` · reset: `pnpm db:reset`
-- Quality gate: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm modules:check && pnpm test`
+- Quality gate: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm modules:check && pnpm docs:check && pnpm test`
+- After changing a manifest, slot or error code: `pnpm docs:reference` (regenerates `docs/ai/reference.md`)
 - Integration tests (real Postgres/Redis, `isbp_test` DB): `pnpm test:integration`
 - E2E (stack must be running): `E2E_BASE_URL=http://localhost:3000 pnpm e2e`
 - New module: `pnpm create-module <id>` · after adding/removing modules: `pnpm modules:sync`
@@ -72,6 +75,16 @@ Modular monolith: Fastify API + worker (`apps/api`), Next.js 16 web (`apps/web`)
 - Attachments go through the core panel and `ctx.files` (policy, sniffing, AV, audit). Never accept uploads in a
   module route. Store secrets (licence keys, credentials) with `ctx.secrets.seal/open`.
 
+- External databases (Phase 4) only through `ctx.databases` (connections registered in Administration → Database
+  connections). SQL uses `:name` placeholders bound by the driver (`@isbp/sql` tokenizer); identifiers come from
+  `catalog()`; DDL on a target server is built by that server's quoting from bound parameters (`QUOTENAME`,
+  `format('%I')`, `DBMS_ASSERT`). Never build SQL text from values. Name a `purpose` (`data`/`admin`) on every call.
+- Work Scheduled Jobs can run is a task type: `manifest.taskTypes` + `defineServerModule({ taskTypes })`, run through
+  `ctx.taskTypes`; its config editor is the web slot `scheduler.task-config.<module>.<type>`.
+- Outbound HTTP only via `ctx.http` (connect-time SSRF guard, allow-lists); per-module Redis via `ctx.cache`;
+  untrusted scripts only via `ctx.sandbox` (container runners; `local` is dev-only). Web code may import
+  `@isbp/sql/params` (pure) but never the `@isbp/sql` root (drivers). SQL/script editors use `@isbp/ui/code-editor`.
+
 ## Gotchas
 
 - pnpm 12: install scripts must be listed under `allowBuilds` in `pnpm-workspace.yaml`.
@@ -96,3 +109,8 @@ Modular monolith: Fastify API + worker (`apps/api`), Next.js 16 web (`apps/web`)
   truncates beyond it. Uploads stream through `/tmp` in the API, so the Helm `api.tmpSizeLimit` must fit
   concurrent uploads.
 - `core.record_links` ends are ordered by byte order (`collate "C"`); always go through `ctx.records`.
+- Zod 4 `.partial()` keeps `.default()`s: an update schema derived from a create schema with defaults fills omitted
+  fields and overwrites data on PATCH. Redefine defaulted fields without defaults first (contracts test enforces it).
+- Node's `BlockList` matches IPv4 addresses against IPv6 rules such as `::ffff:0:0/96`: keep one list per family.
+- `oracledb` runs in Thin mode (pure JS); its install script is disabled in `allowBuilds`. SQL Server, Oracle and
+  MySQL driver tests run only in CI (`ISBP_TEST_*_URL`); locally there is no container runtime.

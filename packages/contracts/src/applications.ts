@@ -132,7 +132,16 @@ export const createApiClientSchema = z.object({
 });
 export type CreateApiClientInput = z.input<typeof createApiClientSchema>;
 
-export const updateApiClientSchema = createApiClientSchema.omit({ secretExpiresInDays: true }).partial();
+// Defaults are dropped first: `.partial()` keeps `.default()`s, which would wipe omitted fields.
+export const updateApiClientSchema = createApiClientSchema
+  .omit({ secretExpiresInDays: true })
+  .extend({
+    applicationIds: z.array(id).max(100),
+    allApplications: z.boolean(),
+    permissions: z.array(permissionPatternSchema).max(100),
+    allowedCidrs: z.array(cidrSchema).max(50),
+  })
+  .partial();
 export type UpdateApiClientInput = z.input<typeof updateApiClientSchema>;
 
 export const rotateSecretSchema = z.object({ expiresInDays: z.number().int().min(1).max(730).nullish() });

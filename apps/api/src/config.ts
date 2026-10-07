@@ -59,6 +59,25 @@ const schema = z
     /** ClamAV `clamd` for malware scanning of uploads (fail closed when set but unreachable). */
     CLAMAV_HOST: z.string().optional(),
     CLAMAV_PORT: z.coerce.number().int().default(3310),
+
+    /**
+     * Where script jobs run: `kubernetes` (Jobs in SANDBOX_K8S_NAMESPACE), `docker` (Engine API at
+     * SANDBOX_DOCKER_HOST), `local` (development only, not isolated) or `none`. Default: `local` outside
+     * production, `none` in production.
+     */
+    SANDBOX_RUNNER: z.preprocess(
+      (v) => (v === '' ? undefined : v),
+      z.enum(['none', 'local', 'docker', 'kubernetes']).optional(),
+    ),
+    /** Allowed container images, comma-separated. */
+    SANDBOX_IMAGES: z
+      .string()
+      .default('python:3.13-alpine,node:24-alpine,mcr.microsoft.com/powershell:lts-alpine-3.20,alpine:3.22'),
+    SANDBOX_DOCKER_HOST: z.string().default('unix:///var/run/docker.sock'),
+    SANDBOX_K8S_NAMESPACE: z.string().default('isbp-sandbox'),
+    SANDBOX_K8S_API: z.string().default('https://kubernetes.default.svc'),
+    SANDBOX_K8S_TOKEN_FILE: z.string().default('/var/run/secrets/kubernetes.io/serviceaccount/token'),
+    SANDBOX_K8S_CA_FILE: z.string().default('/var/run/secrets/kubernetes.io/serviceaccount/ca.crt'),
   })
   .transform((env) => {
     const isProd = env.NODE_ENV === 'production';
@@ -68,6 +87,9 @@ const schema = z
     const masterKey = env.ISBP_MASTER_KEY ?? DEV_MASTER_KEY;
     if (env.FILES_STORAGE === 's3' && !env.S3_BUCKET)
       throw new Error('S3_BUCKET is required when FILES_STORAGE=s3.');
+    const sandboxRunner = env.SANDBOX_RUNNER ?? (isProd ? 'none' : 'local');
+    if (isProd && sandboxRunner === 'local')
+      throw new Error('SANDBOX_RUNNER=local runs scripts without isolation and is refused in production.');
     // Development keeps files next to the embedded database (`.dev-data/` at the repo root).
     const filesDir =
       env.FILES_DIR ??
@@ -78,6 +100,10 @@ const schema = z
       isTest: env.NODE_ENV === 'test',
       masterKey,
       filesDir,
+      sandboxRunner,
+      sandboxImages: env.SANDBOX_IMAGES.split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
       usingDevMasterKey: masterKey === DEV_MASTER_KEY,
       autoMigrate: env.AUTO_MIGRATE ?? !isProd,
       logPretty: env.LOG_PRETTY ?? (!isProd && process.stdout.isTTY),
