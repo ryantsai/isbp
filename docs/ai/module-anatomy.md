@@ -308,6 +308,9 @@ Static segments must come before dynamic ones (`/settings` before `/:id`). A pag
 | `workflows`              | `{ [triggerKey]: { onCompleted(result, ctx) } }`         | `manifest.workflows`                             |
 | `records`                | `{ [type]: { resolve, search } }`                        | `manifest.records.types` (every type needs one)  |
 | `taskTypes`              | `{ [type]: { run, validate?, describe? } }`              | `manifest.taskTypes` (every type needs one)      |
+| `sync`                   | `{ [entity]: SyncAdapter }`                              | `manifest.syncEntities` (every entity needs one) |
+| `connectors`             | `{ [type]: ConnectorHandler }`                           | `manifest.connectors` (every type needs one)     |
+| `onSyncChange`           | `(change, ctx) => Promise<void>`                         | gets sync entities' change events (the hub)      |
 | `search`                 | `(query, ctx, auth, limit) => Promise<SearchHit[]>`      | global search / command palette                  |
 | `seed`                   | `(ctx) => Promise<void>` (idempotent)                    | `pnpm db:seed`                                   |
 | `onEnable` / `onDisable` | `(ctx) => Promise<void>`                                 | admin toggles the module                         |

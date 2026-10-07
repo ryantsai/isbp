@@ -429,7 +429,7 @@ function RepositoryForm({
     e.preventDefault();
     setError(null);
     if (!name.trim() || !branch.trim()) return setError(t('settingsTab.nameRequired'));
-    if (!/^https:\/\/\S+$/.test(url.trim())) return setError(t('form.httpsOnly'));
+    if (!/^https?:\/\/\S+$/i.test(url.trim())) return setError(t('form.httpOrHttps'));
     try {
       await save.mutateAsync({ name: name.trim(), url: url.trim(), provider, defaultBranch: branch.trim() });
     } catch (err) {

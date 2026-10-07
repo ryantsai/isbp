@@ -62,5 +62,14 @@
   "JOB_RUNNING": "The job is running. Wait for it to finish or cancel it first.",
   "REVEAL_EXPIRED": "This credential was already shown or has expired.",
   "REVIEW_CLOSED": "This access review is closed.",
-  "generic": "Something went wrong."
+  "generic": "Something went wrong.",
+  "NOT_SUPPORTED": "The connected system doesn't support this.",
+  "REMOTE_AUTH_FAILED": "The connected system refused the connection's credentials. Check them in the connection settings.",
+  "REMOTE_RATE_LIMITED": "The connected system is limiting requests. The sync will try again shortly.",
+  "REMOTE_CONFLICT": "The record changed in the connected system at the same time. It will be compared again.",
+  "REMOTE_REJECTED": "The connected system refused the change.",
+  "WEBHOOK_INVALID": "The webhook secret is missing or wrong.",
+  "SYNC_RUNNING": "A sync for this profile is already running.",
+  "CONFLICT_RESOLVED": "Someone has already resolved this conflict.",
+  "INSECURE_HTTP": "This connection uses plain HTTP, which isn't encrypted. Use HTTPS, or turn on “Allow insecure HTTP” for the connection."
 }

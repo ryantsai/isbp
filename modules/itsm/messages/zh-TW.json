@@ -28,7 +28,9 @@
     "changesRead": "檢視變更與變更行事曆",
     "changesManage": "提出、規劃與排程變更",
     "reportsRead": "檢視服務台報表",
-    "configManage": "設定類別、SLA 原則、工作行事曆與服務目錄"
+    "configManage": "設定類別、SLA 原則、工作行事曆與服務目錄",
+    "ticketsSync": "透過整合寫入事件、服務請求與問題",
+    "changesSync": "透過整合寫入變更（CAB 授權之後的狀態只能經由簽核）"
   },
   "workflows": {
     "change": {
@@ -106,7 +108,8 @@
     "email": "電子郵件",
     "phone": "電話",
     "form": "申請表單",
-    "ai": "AI"
+    "ai": "AI",
+    "integration": "系統整合"
   },
   "resolution": {
     "solved": "已解決",
@@ -552,7 +555,9 @@
       "rootCause": "根本原因",
       "workaround": "暫時解法",
       "knownError": "已知錯誤",
-      "kbArticleId": "知識文章"
+      "kbArticleId": "知識文章",
+      "resolutionCode": "解決代碼",
+      "resolutionNotes": "解決說明"
     },
     "reopened": "仍有問題",
     "rated": "評分 {rating}/5",
@@ -562,7 +567,8 @@
     "reopenedStatus": "{name} 表示問題仍未解決，已重新開啟工單",
     "autoClosed": "申請人未回覆，系統已自動結案",
     "assignmentChanged": "{name} 變更了指派",
-    "offboarded": "原處理人員已離職。"
+    "offboarded": "原處理人員已離職。",
+    "via": "（經由 {system} {reference}）"
   },
   "composer": {
     "label": "加入對話",
@@ -988,5 +994,38 @@
     "queues": "佇列",
     "mostUrgent": "指派給我，最緊急的優先",
     "nothingAssigned": "目前沒有指派給你的工單。"
+  },
+  "sync": {
+    "entities": {
+      "ticket": "工單",
+      "change": "變更"
+    },
+    "fields": {
+      "type": "類型",
+      "title": "標題",
+      "description": "說明",
+      "status": "狀態",
+      "impact": "影響範圍",
+      "urgency": "緊急程度",
+      "priority": "優先順序",
+      "category": "類別",
+      "assignmentGroup": "指派群組",
+      "assignee": "處理人員",
+      "requester": "申請人",
+      "resolutionCode": "解決代碼",
+      "resolutionNotes": "解決說明",
+      "major": "重大事件",
+      "ref": "編號",
+      "changeType": "變更類型",
+      "risk": "風險",
+      "reason": "變更原因",
+      "plannedStart": "預計開始",
+      "plannedEnd": "預計結束",
+      "implementationPlan": "實施計畫",
+      "backoutPlan": "復原計畫",
+      "testPlan": "測試計畫"
+    },
+    "resolvedIn": "已於 {system} {reference} 解決",
+    "cancelledIn": "已於 {system} {reference} 取消"
   }
 }

@@ -17,6 +17,7 @@ import type {
   createAppSchema,
   createEnvironmentSchema,
   createRepositorySchema,
+  gitStatusSchema,
   updateAppSchema,
   updateEnvironmentSchema,
   updateRepositorySchema,
@@ -37,6 +38,10 @@ import {
   toRepository,
 } from './refs';
 import { applications, deployments, environments, releases, repositories } from './schema';
+import { viaOf } from './sync-support';
+
+/** Branches and active pull requests: only a sync with the Git server writes them (not the REST API). */
+type GitStatus = z.output<typeof gitStatusSchema>;
 
 export const APP_ENTITY = 'alm.application';
 type CreateInput = z.output<typeof createAppSchema>;
@@ -639,9 +644,19 @@ export class ApplicationService {
     return row;
   }
 
-  async createRepository(ref: string, input: z.output<typeof createRepositorySchema>, auth: AuthContext) {
+  /** `alm.repository.created` / `updated`, with the repository's id (sync adapters follow these). */
+  private repoRef(app: AppRow, repo: { id: string; name: string }) {
+    return { ...appRef(app), repositoryId: repo.id, repository: repo.name };
+  }
+
+  async createRepository(
+    ref: string,
+    input: z.output<typeof createRepositorySchema> & GitStatus,
+    auth: AuthContext,
+  ) {
     const app = await this.resolve(ref);
     await this.access.requireEdit(auth, app);
+    const synced = viaOf(this.ctx) ? new Date() : null;
     try {
       return await this.ctx.transaction(async (tx) => {
         const [row] = await tx
@@ -656,11 +671,15 @@ export class ApplicationService {
             lastCommitAt: input.lastCommitAt ?? null,
             lastCommitMessage: input.lastCommitMessage ?? null,
             lastCommitAuthor: input.lastCommitAuthor ?? null,
+            branches: input.branches ?? null,
+            pullRequests: input.pullRequests ?? null,
+            syncedAt: synced,
           })
           .returning();
         await this.touched(tx, app, 'repositories', 'alm.repository.created', row!.name, {
           metadata: { repositoryId: row!.id, url: row!.url },
         });
+        await this.ctx.events.publish('alm.repository.created', this.repoRef(app, row!), { tx });
         return toRepository(row!);
       });
     } catch (err) {
@@ -671,7 +690,7 @@ export class ApplicationService {
   async updateRepository(
     ref: string,
     id: string,
-    input: z.output<typeof updateRepositorySchema>,
+    input: z.output<typeof updateRepositorySchema> & GitStatus,
     auth: AuthContext,
   ) {
     const app = await this.resolve(ref);
@@ -679,18 +698,36 @@ export class ApplicationService {
     const before = await this.repository(app, id);
     const patch = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined));
     const changes = this.ctx.audit.diff(before as unknown as Record<string, unknown>, patch);
-    if (!Object.keys(changes).length) return toRepository(before);
+    // Lists of branches and pull requests are summarised in the audit row, not copied.
+    for (const k of ['branches', 'pullRequests'] as const)
+      if (changes[k]) changes[k] = [before[k]?.length ?? null, input[k]?.length ?? null];
+    // A sync that finds nothing new still says when it last looked (without counting as an edit).
+    const synced = viaOf(this.ctx) ? { syncedAt: new Date() } : {};
+    if (!Object.keys(changes).length) {
+      if (!synced.syncedAt) return toRepository(before);
+      const [row] = await this.ctx.db
+        .update(repositories)
+        .set({ ...synced, updatedAt: sql`${repositories.updatedAt}` })
+        .where(eq(repositories.id, before.id))
+        .returning();
+      return toRepository(row!);
+    }
     try {
       return await this.ctx.transaction(async (tx) => {
         const [row] = await tx
           .update(repositories)
-          .set(patch)
+          .set({ ...patch, ...synced })
           .where(eq(repositories.id, before.id))
           .returning();
         await this.touched(tx, app, 'repositories', 'alm.repository.updated', row!.name, {
           changes,
           metadata: { repositoryId: row!.id },
         });
+        await this.ctx.events.publish(
+          'alm.repository.updated',
+          { ...this.repoRef(app, row!), changes: Object.keys(changes) },
+          { tx },
+        );
         return toRepository(row!);
       });
     } catch (err) {

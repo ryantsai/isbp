@@ -15,6 +15,7 @@ import {
 
 const appRef = z.object({ applicationId: z.uuid(), code: z.string(), name: z.string() });
 const releaseRef = appRef.extend({ releaseId: z.uuid(), version: z.string() });
+const repositoryRef = appRef.extend({ repositoryId: z.uuid(), repository: z.string() });
 const deploymentRef = appRef.extend({
   deploymentId: z.uuid(),
   environmentId: z.uuid(),
@@ -66,6 +67,8 @@ export const manifest = defineManifest({
     { key: 'alm.releases.manage', description: 'alm.permissions.releasesManage' },
     { key: 'alm.deployments.create', description: 'alm.permissions.deploymentsCreate' },
     { key: 'alm.deployments.override', description: 'alm.permissions.deploymentsOverride' },
+    // Phase 5: written by the Integrations Hub's agent (it holds `*.*.sync`), never by a role template.
+    { key: 'alm.repositories.sync', description: 'alm.permissions.repositoriesSync' },
   ],
   roles: [
     {
@@ -117,6 +120,16 @@ export const manifest = defineManifest({
         name: 'alm.application.stage_changed',
         description: 'An application moved through its lifecycle (e.g. into production, or retired)',
         schema: appRef.extend({ from: appStageSchema, to: appStageSchema }),
+      },
+      {
+        name: 'alm.repository.created',
+        description: 'A repository was added to an application (by a person or a sync with the Git server)',
+        schema: repositoryRef,
+      },
+      {
+        name: 'alm.repository.updated',
+        description: 'A repository changed, e.g. its Git status (names of the changed fields)',
+        schema: repositoryRef.extend({ changes: z.array(z.string()) }),
       },
       {
         name: 'alm.release.created',
@@ -207,6 +220,20 @@ export const manifest = defineManifest({
     { type: 'alm.release.ready', defaultChannels: ['inApp'] },
   ],
   customFields: { entities: [{ type: 'application', name: 'alm.entities.application' }] },
+  /**
+   * Repositories kept in step with the Git server by the Integrations Hub (adapter in `server/sync.ts`):
+   * inside an application, matched on URL, with branches and active pull requests ("Git status").
+   */
+  syncEntities: [
+    {
+      entity: 'repository',
+      name: 'alm.sync.entities.repository',
+      icon: 'git-branch',
+      permission: 'alm.repositories.sync',
+      events: ['alm.repository.created', 'alm.repository.updated'],
+      container: 'alm.application',
+    },
+  ],
   records: {
     types: [
       {

@@ -24,6 +24,9 @@ your report. The rule numbers point to [rules.md](rules.md).
 - [ ] External databases, HTTP and scripts go only through `ctx.databases` / `ctx.http` / `ctx.sandbox`, with bound
       parameters and catalog identifiers (R20, R21).
 - [ ] Deleting a linkable record calls `ctx.records.forget` (R15).
+- [ ] Sync adapters write through the module's own logic in the hub's `tx`, with a `.sync` permission, and refuse
+      what the UI refuses, approvals included (R40, R41). Connectors use only `conn.http`, typed remote errors
+      and a mock-backed test (R42–R44).
 - [ ] Resolvers and search providers return only what the caller may read (R18).
 - [ ] Migrations are generated (`db:generate`), and no applied migration was edited (R10).
 - [ ] `seed(ctx)` is idempotent and makes the UI look alive. Roles are granted to demo groups in the platform seed

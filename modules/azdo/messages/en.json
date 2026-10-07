@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "name": "Azure DevOps Server (on-premises)",
+    "description": "Connects the Integrations Hub to a self-hosted Azure DevOps Server collection: team projects, work items and Git repositories."
+  },
+  "connector": {
+    "name": "Azure DevOps Server (on-premises)",
+    "description": "Team projects, work items (two-way, with parents and comments) and Git repository status from a self-hosted Azure DevOps Server, or its 2022, 2020 or 2019 release."
+  },
+  "objects": {
+    "project": "Team projects",
+    "work_item": "Work items",
+    "repository": "Git repositories"
+  },
+  "config": {
+    "server": "Server",
+    "collectionUrl": "Collection URL",
+    "collectionUrlHint": "The project collection as it appears in your browser, with or without /tfs and a port. Use https:// where the server offers it.",
+    "apiVersion": "REST API version",
+    "apiVersionHint": "Choose your server’s version. A server refuses versions newer than its own.",
+    "versions": {
+      "7_2": "7.2 · Azure DevOps Server (2025 and later)",
+      "7_1": "7.1 · Azure DevOps Server 2022.1 or 2022.2",
+      "7_0": "7.0 · Azure DevOps Server 2022",
+      "6_0": "6.0 · Azure DevOps Server 2020",
+      "5_1": "5.1 · Azure DevOps Server 2019 Update 1",
+      "5_0": "5.0 · Azure DevOps Server 2019"
+    },
+    "signIn": "Sign-in",
+    "pat": "Personal access token",
+    "patHint": "Sent with every call as Basic authentication. Create it for a service account rather than a person.",
+    "patStored": "Stored. Leave empty to keep it.",
+    "patStoredPlaceholder": "Stored token",
+    "errors": {
+      "required": "Enter the collection URL.",
+      "invalid": "Enter an absolute URL, such as https://ado.contoso.local/tfs/DefaultCollection.",
+      "credentials": "Leave the user name and password out of the URL.",
+      "version": "Choose a REST API version.",
+      "pat": "Enter a personal access token."
+    },
+    "help": {
+      "reqTitle": "Before you connect",
+      "reqVersion": "Azure DevOps Server, 2022, 2020 or 2019, installed in your network. Choose the REST API version that matches it.",
+      "reqPat": "The server must accept personal access tokens, with IIS Basic authentication turned off. Windows sign-in (NTLM or Kerberos) is not supported.",
+      "reqHttps": "Use HTTPS: Azure DevOps Server documents personal access tokens as working only on a server configured with HTTPS. If your server still answers on plain HTTP, turn on “Allow insecure HTTP” for this connection, which sends the token unencrypted.",
+      "reqTls": "If the server certificate comes from an internal certificate authority, the platform must trust that authority: an administrator adds it with NODE_EXTRA_CA_CERTS.",
+      "reqNetwork": "The platform must reach the server’s address and port, and for service hooks the server must reach the platform.",
+      "patTitle": "How to create the personal access token",
+      "patStep1": "Sign in to Azure DevOps Server as the account the sync should act as, for example a service account named svc-isbp.",
+      "patStep2": "Open User settings → Personal access tokens → New Token, and pick this collection.",
+      "patStep3": "Under Scopes, choose Custom defined and select:",
+      "scopeWorkItems": "Work Items: Read & write",
+      "scopeCode": "Code: Read",
+      "scopeProject": "Project and Team: Read",
+      "patStep4": "Paste the token above. Tokens expire: create a new one before the expiry date and paste it here.",
+      "hooksTitle": "How to send changes as they happen (service hooks)",
+      "hooksIntro": "Without service hooks, changes arrive with the next scheduled sync. With them, Azure DevOps tells the hub which records changed, and the hub reads them through the API.",
+      "hooksStep1": "In each team project, open Project settings → Service hooks → Create subscription → Web Hooks.",
+      "hooksStep2": "Create one subscription for each of these events:",
+      "hooksStep3": "Set URL to the webhook URL shown on this connection’s overview.",
+      "hooksStep4": "Under HTTP headers, add the webhook secret shown there:",
+      "hooksStep5": "Set Resource details to send to Minimal, then select Test and Finish.",
+      "hooksNote": "The hub checks the secret on every call and only uses the notification to know what to read. When you rotate the secret, update the subscriptions.",
+      "hooksNetwork": "Service hooks are sent by Azure DevOps Server from inside your network, so the webhook URL must be reachable from the server.",
+      "secretPlaceholder": "webhook-secret",
+      "events": {
+        "workitem_created": "Work item created",
+        "workitem_updated": "Work item updated",
+        "workitem_deleted": "Work item deleted",
+        "workitem_restored": "Work item restored",
+        "workitem_commented": "Work item commented on",
+        "git_push": "Code pushed",
+        "git_pullrequest_created": "Pull request created",
+        "git_pullrequest_updated": "Pull request updated",
+        "git_pullrequest_merged": "Pull request merge attempted"
+      }
+    }
+  }
+}

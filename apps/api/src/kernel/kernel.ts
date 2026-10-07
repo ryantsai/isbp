@@ -28,6 +28,7 @@ import { RecordRegistry } from './records';
 import { Sandbox } from './sandbox';
 import { SessionService } from './sessions';
 import { SettingsService } from './settings';
+import { ConnectorRegistry, SyncRegistry } from './integrations';
 import { TaskTypeRegistry } from './task-types';
 import { installDefaultWorkflows } from './workflow/defaults';
 import { WorkflowEngine } from './workflow/engine';
@@ -126,6 +127,9 @@ export async function createKernel(
   const httpClient = outbound.client();
   const sandbox = Sandbox.fromConfig(config);
   const sandboxService = sandbox.service();
+  const sync = new SyncRegistry(registry);
+  const syncService = sync.service();
+  const connectorsService = new ConnectorRegistry(registry, httpClient, redis).service();
 
   const contexts = new Map<string, ModuleContext>();
   for (const m of registry.modules) {
@@ -154,6 +158,8 @@ export async function createKernel(
       http: httpClient,
       cache: createCacheService(redis, id),
       sandbox: sandboxService,
+      sync: syncService,
+      connectors: connectorsService,
       transaction: (fn) => db.transaction((tx) => fn(tx as unknown as Db)),
       principal: currentPrincipal,
       isEnabled: () => registry.isEnabled(id),
@@ -234,6 +240,7 @@ export async function createKernel(
     files,
     databases,
     sandbox,
+    sync,
     migrate,
     ready,
     search,

@@ -414,6 +414,56 @@ processes. Choose a runner with `SANDBOX_RUNNER`:
   `/tmp`, all capabilities dropped, no privilege escalation, CPU/memory/PID limits and a deadline. Kubernetes
   pods also get no service-account token.
 
+## 7e. Integrations Hub (Phase 5)
+
+Administrators connect outside systems in **Administration → Integrations**. Phase 5 ships connectors for the
+on-premises editions of **ManageEngine ServiceDesk Plus** and **Azure DevOps Server**.
+
+- **Network.** The worker (sync runs) and the api (connection tests, previews) call both servers directly on your
+  network: the ServiceDesk Plus server URL (often port 8443) and the Azure DevOps Server collection URL. Connector
+  hosts may be private addresses; link-local and cloud-metadata addresses are always refused. If your cluster
+  restricts egress, allow these destinations.
+- **Private CAs.** Azure DevOps Server usually has a certificate from an internal CA. Mount the CA bundle and point
+  Node at it in both the api and the worker:
+
+  ```yaml
+  api: &trustInternalCa
+    extraEnv:
+      - { name: NODE_EXTRA_CA_CERTS, value: /etc/isbp/ca/internal-ca.pem }
+    extraVolumes:
+      - { name: internal-ca, configMap: { name: internal-ca } }
+    extraVolumeMounts:
+      - { name: internal-ca, mountPath: /etc/isbp/ca, readOnly: true }
+  worker: *trustInternalCa
+  ```
+
+  Use `https://` URLs. A server that only speaks plain HTTP (ServiceDesk Plus listens on 8080 by default) needs the
+  connection's **Allow insecure HTTP** switch: the API key or token and all synced data then cross the network
+  unencrypted. Turning it on is confirmed, audited as a security event, and flagged "Not encrypted" on the
+  connection. Prefer enabling HTTPS on the server (both products support it).
+
+- **Webhooks (optional).** Sync runs on a schedule (every 15 minutes by default, per profile). For near real-time
+  sync, the servers call `POST <PUBLIC_URL>/api/v1/integrations/hooks/<connection id>` with the connection's
+  webhook secret in the `X-ISBP-Webhook-Secret` header: a ServiceDesk Plus custom trigger, and an Azure DevOps
+  Server service hook (Web Hooks). Both call from your network, so nothing needs to be published to the internet.
+  A webhook only triggers a re-read; its body is never used as data. Without webhooks, polling alone keeps both
+  sides in sync.
+- **Credentials.**
+  - ServiceDesk Plus: the API key of a dedicated technician whose role covers the synced objects (requests,
+    problems, changes, assets, solutions).
+  - Azure DevOps Server: a personal access token of a dedicated service account with Work Items (read & write),
+    Code (read) and Project and Team (read). PATs must be enabled on the server; Windows authentication isn't
+    supported.
+  - Both are sealed with `ISBP_MASTER_KEY` and never returned by the API.
+- **Who can write what.** The hub writes as its agent identity (Integrations Hub), which only holds the `*.sync`
+  permissions. Configuring a profile that writes an entity also needs that entity's `.sync` permission. Sync writes
+  follow each module's rules: approvals (changes, disposals, project proposals) can't be skipped from outside.
+- **Health.** Connections are tested every 15 minutes. Failing credentials mark the connection failing and notify
+  integration administrators. Runs, conflicts and per-record errors are on the connection's page.
+- **Development and CI** use stand-in servers (`tooling/integration-mocks`, port 4100, started by
+  `pnpm dev:services`). The demo seed connects to them only when `INTEGRATION_MOCKS_URL` is set (it is by default
+  in development). Production seeds create no connections.
+
 ## 8. Production checklist
 
 - [ ] **TLS everywhere at the edge** and `PUBLIC_URL=https://…` — session cookies are marked `Secure` only when
@@ -445,6 +495,9 @@ processes. Choose a runner with `SANDBOX_RUNNER`:
       only for account management) with TLS verification; egress from api/worker pods to those servers allowed.
 - [ ] Script jobs: `sandbox.runner=kubernetes` (or none); sandbox namespace enforces Pod Security `restricted`;
       only reviewed images in `sandbox.images`; egress for scripts limited to what they need.
+- [ ] Integrations: dedicated technician / service accounts with the rights listed in §7e; traffic to both
+      servers allowed; internal CAs trusted with `NODE_EXTRA_CA_CERTS`; no connection left on "Allow insecure HTTP"
+      without a documented reason; `INTEGRATION_MOCKS_URL` not set.
 - [ ] Alerts on `/readyz` failures, 5xx rate and latency (`isbp_http_request_duration_seconds`), job failures
       (`isbp_jobs_total{status="failed"}`), and Postgres/Redis health.
 

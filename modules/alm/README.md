@@ -30,6 +30,12 @@ curl -X POST "$URL/api/v1/alm/deployments" -H "Authorization: Bearer $KEY" -H 'c
   -d '{"application":"erp","environment":"production","version":"12.1.0","changeReference":"CHG-00042"}'
 ```
 
+**Git status (Phase 5).** `src/server/sync.ts` adapts `alm.repository` (inside an application, matched on URL,
+permission `alm.repositories.sync`) for the Integrations Hub, which pulls default branch, last commit, branches
+and active pull requests from the Git server (`branches`, `pull_requests`, `synced_at`; the shapes are
+`gitStatusSchema` in `src/contracts.ts`). Repository links may be http (on-premises Git servers without TLS) or https; an empty repository without a default branch keeps the one on record. Repository changes publish `alm.repository.created` / `updated` (with
+`repositoryId`) besides `alm.application.updated`. The application page shows it as Git status.
+
 ```bash
 pnpm --filter @isbp/module-alm db:generate   # after changing src/server/schema.ts
 pnpm --filter @isbp/module-alm test

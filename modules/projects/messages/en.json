@@ -12,7 +12,9 @@
     "use": "See internal projects and work on tasks of the projects you belong to",
     "create": "Create projects (you become their manager)",
     "portfolioRead": "See every project, including private ones",
-    "admin": "Manage any project"
+    "admin": "Manage any project",
+    "projectsSync": "Write projects through integrations (a project still starts through its proposal approval)",
+    "tasksSync": "Write tasks and their comments through integrations"
   },
   "settings": {
     "hoursPerWeek": "Working hours per week",
@@ -666,5 +668,31 @@
     "nothing": "No open tasks are assigned to you.",
     "nothingDue": "Nothing is due this week.",
     "more": "{count, plural, other {# more due this week}}"
+  },
+  "sync": {
+    "entities": {
+      "project": "Projects",
+      "task": "Tasks"
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "startDate": "Start date",
+      "targetDate": "Target date",
+      "status": "Status",
+      "ref": "Reference",
+      "type": "Type",
+      "title": "Title",
+      "priority": "Priority",
+      "assignee": "Assignee",
+      "parent": "Parent",
+      "milestone": "Milestone",
+      "dueDate": "Due date",
+      "estimateHours": "Estimate (hours)",
+      "remainingHours": "Remaining (hours)",
+      "labels": "Labels"
+    },
+    "via": "via {system} {reference}",
+    "addedVia": "Added via {system} {reference}"
   }
 }

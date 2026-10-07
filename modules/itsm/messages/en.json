@@ -28,7 +28,9 @@
     "changesRead": "See changes and the change calendar",
     "changesManage": "Raise, plan and schedule changes",
     "reportsRead": "See service desk reports",
-    "configManage": "Configure categories, SLA policies, calendars and the service catalog"
+    "configManage": "Configure categories, SLA policies, calendars and the service catalog",
+    "ticketsSync": "Write incidents, service requests and problems through integrations",
+    "changesSync": "Write changes through integrations (past CAB authorization only through the approval)"
   },
   "workflows": {
     "change": {
@@ -106,7 +108,8 @@
     "email": "Email",
     "phone": "Phone",
     "form": "Request form",
-    "ai": "AI"
+    "ai": "AI",
+    "integration": "Integration"
   },
   "resolution": {
     "solved": "Solved",
@@ -552,7 +555,9 @@
       "rootCause": "root cause",
       "workaround": "workaround",
       "knownError": "known error",
-      "kbArticleId": "knowledge article"
+      "kbArticleId": "knowledge article",
+      "resolutionCode": "resolution code",
+      "resolutionNotes": "resolution notes"
     },
     "reopened": "Still broken",
     "rated": "Rated {rating}/5",
@@ -562,7 +567,8 @@
     "reopenedStatus": "{name} said it is still broken and reopened the ticket",
     "autoClosed": "Closed automatically: the requester didn’t respond",
     "assignmentChanged": "{name} changed the assignment",
-    "offboarded": "The previous assignee left the organisation."
+    "offboarded": "The previous assignee left the organisation.",
+    "via": "via {system} {reference}"
   },
   "composer": {
     "label": "Add to the conversation",
@@ -988,5 +994,38 @@
     "queues": "Queues",
     "mostUrgent": "Assigned to me, most urgent first",
     "nothingAssigned": "Nothing is assigned to you."
+  },
+  "sync": {
+    "entities": {
+      "ticket": "Tickets",
+      "change": "Changes"
+    },
+    "fields": {
+      "type": "Type",
+      "title": "Title",
+      "description": "Description",
+      "status": "Status",
+      "impact": "Impact",
+      "urgency": "Urgency",
+      "priority": "Priority",
+      "category": "Category",
+      "assignmentGroup": "Assignment group",
+      "assignee": "Assignee",
+      "requester": "Requester",
+      "resolutionCode": "Resolution code",
+      "resolutionNotes": "Resolution notes",
+      "major": "Major incident",
+      "ref": "Reference",
+      "changeType": "Change type",
+      "risk": "Risk",
+      "reason": "Reason for change",
+      "plannedStart": "Planned start",
+      "plannedEnd": "Planned end",
+      "implementationPlan": "Implementation plan",
+      "backoutPlan": "Backout plan",
+      "testPlan": "Test plan"
+    },
+    "resolvedIn": "Resolved in {system} {reference}",
+    "cancelledIn": "Cancelled in {system} {reference}"
   }
 }

@@ -31,6 +31,12 @@ export interface Viewer {
   readInternal: boolean;
   write: boolean;
   publish: boolean;
+  /**
+   * A sync keeping the article in step with another system (Integrations Hub): it acts as the author of
+   * the articles it writes (edits drafts, submits and withdraws them). Publishing, retiring, restoring and
+   * editing what is live still need `publish`.
+   */
+  syncAuthor?: boolean;
 }
 
 export const PERMISSIONS = {
@@ -53,7 +59,8 @@ interface ArticleFacts {
   reviewInstanceId: string | null;
 }
 
-const isOwner = (a: ArticleFacts, v: Viewer) => Boolean(v.userId && a.ownerId === v.userId);
+const isOwner = (a: ArticleFacts, v: Viewer) =>
+  Boolean(v.syncAuthor) || Boolean(v.userId && a.ownerId === v.userId);
 const audienceOk = (a: ArticleFacts, v: Viewer) =>
   a.audience === 'everyone' ? v.read || v.readInternal : v.readInternal;
 

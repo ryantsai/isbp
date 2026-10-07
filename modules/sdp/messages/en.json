@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "name": "ServiceDesk Plus",
+    "description": "Connects a self-hosted ManageEngine ServiceDesk Plus server to the Integrations Hub: requests, problems, changes, assets and solutions."
+  },
+  "connector": {
+    "name": "ServiceDesk Plus (on-premises)",
+    "description": "Requests, problems, changes, assets and solutions through the REST API v3 of a self-hosted ServiceDesk Plus server, with a technician API key."
+  },
+  "objects": {
+    "request": "Requests",
+    "problem": "Problems",
+    "change": "Changes",
+    "asset": "Assets",
+    "solution": "Solutions"
+  },
+  "config": {
+    "server": "Server",
+    "baseUrl": "Server URL",
+    "baseUrlHint": "The address technicians open, such as https://sdp.contoso.local:8443. HTTPS (port 8443 or 443) is recommended: a plain-HTTP server (often port 8080) needs “Allow insecure HTTP” on this connection, which sends the API key unencrypted.",
+    "portalId": "Portal ID",
+    "portalIdHint": "Only for servers with several service desk instances (ESM): the ID of the instance to sync, sent as the PORTALID header. Leave empty for a single instance.",
+    "optional": "(optional)",
+    "authentication": "Authentication",
+    "apiKey": "Technician API key",
+    "apiKeyHint": "Generated in ServiceDesk Plus by the technician ISBP acts as.",
+    "stored": "Stored. Leave empty to keep it.",
+    "advanced": "Advanced",
+    "assetEndpoints": "Asset product type APIs",
+    "assetEndpointsHint": "One per line: product type = API name (Setup → Customization → Asset Management → Product Type). New assets are added through their product type’s API. Defaults: {defaults}. Write “Type =” to remove a default.",
+    "assetEndpointsInvalid": "Line {line} is not “Product type = api_name”.",
+    "help": {
+      "title": "Set up access",
+      "builds": "For ServiceDesk Plus build {target}; build {minimum} or later is required (its asset API).",
+      "https": "Prefer HTTPS. For a plain-HTTP server, turn on “Allow insecure HTTP” for this connection: the API key then travels unencrypted, so keep that traffic inside a trusted network.",
+      "technician": "Create a dedicated technician (for example svc-isbp) whose roles may view and edit only the modules you sync: requests, problems, changes, assets, solutions. Every change ISBP makes appears in ServiceDesk Plus under this technician.",
+      "apiKey": "Sign in as that technician, open the profile menu, choose Generate API Key (Generate Authtoken in some builds), set an expiry date and paste the key here. Renew it before it expires.",
+      "certificates": "If the server uses a certificate from an internal certificate authority, ask the ISBP operator to trust that authority (NODE_EXTRA_CA_CERTS).",
+      "throttling": "ServiceDesk Plus may throttle API URLs (“…requests within N minutes was violated”). ISBP waits and retries; on build 14500 or later an administrator can raise or disable the limit.",
+      "webhookTitle": "Optional: sync within seconds",
+      "webhook": "In Admin → Developer Space → Webhooks, add a webhook that POSTs to the webhook URL of this connection, with the custom header X-ISBP-Webhook-Secret set to its secret and a JSON payload.",
+      "webhookBody": "Use this payload, one webhook per module (request, problem or change). In place of ID, type $ and pick the record’s ID field:",
+      "trigger": "In Admin → Automation → Custom Triggers, for requests, problems and changes, add a trigger for created or edited records whose action runs that webhook. Assets and solutions have no custom triggers: they sync on the schedule.",
+      "webhookNote": "A webhook only tells ISBP which record changed: ISBP reads it again through the API. Scheduled syncs keep running, so a missed webhook is caught up."
+    }
+  }
+}

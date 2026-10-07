@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "name": "Azure DevOps Server（地端）",
+    "description": "將整合中心連接到自行架設的 Azure DevOps Server 集合：小組專案、工作項目與 Git 存放庫。"
+  },
+  "connector": {
+    "name": "Azure DevOps Server（地端）",
+    "description": "同步自行架設的 Azure DevOps Server（或其 2022、2020、2019 版）的小組專案、工作項目（雙向，含父項目與註解）與 Git 存放庫狀態。"
+  },
+  "objects": {
+    "project": "小組專案",
+    "work_item": "工作項目",
+    "repository": "Git 存放庫"
+  },
+  "config": {
+    "server": "伺服器",
+    "collectionUrl": "集合 URL",
+    "collectionUrlHint": "瀏覽器中顯示的專案集合網址（可含或不含 /tfs 與連接埠）。伺服器支援時請使用 https://。",
+    "apiVersion": "REST API 版本",
+    "apiVersionHint": "請選擇伺服器的版本。伺服器會拒絕比自身更新的版本。",
+    "versions": {
+      "7_2": "7.2 · Azure DevOps Server（2025 及更新版本）",
+      "7_1": "7.1 · Azure DevOps Server 2022.1 或 2022.2",
+      "7_0": "7.0 · Azure DevOps Server 2022",
+      "6_0": "6.0 · Azure DevOps Server 2020",
+      "5_1": "5.1 · Azure DevOps Server 2019 Update 1",
+      "5_0": "5.0 · Azure DevOps Server 2019"
+    },
+    "signIn": "登入",
+    "pat": "個人存取權杖",
+    "patHint": "每次呼叫都會以基本驗證送出。請以服務帳戶建立，而非個人帳戶。",
+    "patStored": "已儲存。保留空白即沿用。",
+    "patStoredPlaceholder": "已儲存的權杖",
+    "errors": {
+      "required": "請輸入集合 URL。",
+      "invalid": "請輸入完整網址，例如 https://ado.contoso.local/tfs/DefaultCollection。",
+      "credentials": "網址中請勿包含使用者名稱與密碼。",
+      "version": "請選擇 REST API 版本。",
+      "pat": "請輸入個人存取權杖。"
+    },
+    "help": {
+      "reqTitle": "連線前的準備",
+      "reqVersion": "安裝於貴公司網路內的 Azure DevOps Server、2022、2020 或 2019 版。請選擇與其相符的 REST API 版本。",
+      "reqPat": "伺服器必須接受個人存取權杖，且 IIS 基本驗證保持關閉。不支援 Windows 登入（NTLM 或 Kerberos）。",
+      "reqHttps": "請使用 HTTPS：Azure DevOps Server 的文件說明個人存取權杖僅適用於已設定 HTTPS 的伺服器。若伺服器仍僅提供 HTTP，請在此連線開啟「允許不安全的 HTTP」，權杖將以未加密方式傳送。",
+      "reqTls": "若伺服器憑證由內部憑證授權單位簽發，平台必須信任該授權單位：請由管理員透過 NODE_EXTRA_CA_CERTS 加入。",
+      "reqNetwork": "平台必須能連到伺服器的位址與連接埠；若使用服務攔截，伺服器也必須能連到平台。",
+      "patTitle": "如何建立個人存取權杖",
+      "patStep1": "以同步要使用的帳戶登入 Azure DevOps Server，例如名為 svc-isbp 的服務帳戶。",
+      "patStep2": "開啟「使用者設定」→「個人存取權杖」→「新增權杖」，並選擇此集合。",
+      "patStep3": "在「範圍」選擇「自訂」，並勾選：",
+      "scopeWorkItems": "工作項目：讀取與寫入",
+      "scopeCode": "程式碼：讀取",
+      "scopeProject": "專案與小組：讀取",
+      "patStep4": "將權杖貼到上方欄位。權杖會過期：請在到期前建立新權杖並貼到這裡。",
+      "hooksTitle": "如何即時傳送變更（服務攔截）",
+      "hooksIntro": "未設定服務攔截時，變更會在下一次排程同步時取得。設定後，Azure DevOps 會通知整合中心哪些紀錄已變更，整合中心再透過 API 讀取。",
+      "hooksStep1": "在每個小組專案中，開啟「專案設定」→「服務攔截」→「建立訂閱」→「Web Hooks」。",
+      "hooksStep2": "為下列每個事件各建立一個訂閱：",
+      "hooksStep3": "將 URL 設為此連線概觀中顯示的 Webhook URL。",
+      "hooksStep4": "在「HTTP 標頭」中加入概觀中顯示的 Webhook 密鑰：",
+      "hooksStep5": "將「要傳送的資源詳細資料」設為「最少」，然後選擇「測試」與「完成」。",
+      "hooksNote": "整合中心每次呼叫都會檢查密鑰，且只用通知判斷要讀取哪些紀錄。輪替密鑰後，請更新各訂閱。",
+      "hooksNetwork": "服務攔截由 Azure DevOps Server 從貴公司網路內送出，因此伺服器必須能連到 Webhook URL。",
+      "secretPlaceholder": "webhook-密鑰",
+      "events": {
+        "workitem_created": "已建立工作項目",
+        "workitem_updated": "已更新工作項目",
+        "workitem_deleted": "已刪除工作項目",
+        "workitem_restored": "已還原工作項目",
+        "workitem_commented": "工作項目有新註解",
+        "git_push": "已推送程式碼",
+        "git_pullrequest_created": "已建立提取要求",
+        "git_pullrequest_updated": "已更新提取要求",
+        "git_pullrequest_merged": "已嘗試合併提取要求"
+      }
+    }
+  }
+}

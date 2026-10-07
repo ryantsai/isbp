@@ -13,7 +13,8 @@
     "readInternal": "閱讀內部（僅限客服人員）文章",
     "write": "撰寫草稿、編輯自己的草稿並送出審查",
     "publish": "發佈、停用與還原文章，以及編輯任何文章",
-    "manageCategories": "建立、編輯與刪除知識庫分類"
+    "manageCategories": "建立、編輯與刪除知識庫分類",
+    "sync": "透過整合寫入文章（發佈仍需要發佈權限）"
   },
   "settings": {
     "reviewIntervalDays": "文章發佈後幾天需要重新審閱（0 = 不設定預設審閱日期）",
@@ -154,7 +155,8 @@
     "bannerRetired": "此文章已停用，不會出現在搜尋結果中。還原後即可編輯並重新發佈。",
     "bannerReviewDue": "此文章已於 {date} 到期需要審閱。請確認內容仍然正確，再設定新的審閱日期。",
     "deleteTitle": "要刪除此文章嗎？",
-    "deleteDescription": "{reference} 及其版本歷程記錄將被永久刪除。若要保留歷程記錄，請改為停用。"
+    "deleteDescription": "{reference} 及其版本歷程記錄將被永久刪除。若要保留歷程記錄，請改為停用。",
+    "syncedFrom": "同步自 {reference}"
   },
   "feedback": {
     "question": "這篇文章有幫助嗎？",
@@ -298,5 +300,26 @@
   },
   "entities": {
     "article": "知識文章"
+  },
+  "sync": {
+    "entities": {
+      "article": "知識文章"
+    },
+    "fields": {
+      "title": "標題",
+      "summary": "摘要",
+      "body": "內文",
+      "category": "分類",
+      "tags": "標籤",
+      "locale": "語言",
+      "audience": "對象",
+      "status": "狀態",
+      "ref": "編號"
+    },
+    "locales": {
+      "en": "英文",
+      "zh-TW": "繁體中文",
+      "ja-JP": "日文"
+    }
   }
 }

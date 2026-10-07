@@ -1,0 +1,1 @@
+CREATE INDEX "tickets_updated_idx" ON "itsm"."tickets" USING btree ("updated_at","id");

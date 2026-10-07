@@ -17,7 +17,8 @@
     "appsManage": "Create and edit any application, environment and repository",
     "releasesManage": "Create and edit releases of any application",
     "deploymentsCreate": "Record deployments (people and CI/CD API clients)",
-    "deploymentsOverride": "Override the change policy for a production deployment (audited)"
+    "deploymentsOverride": "Override the change policy for a production deployment (audited)",
+    "repositoriesSync": "Write repositories and their Git status through integrations"
   },
   "settings": {
     "requireChange": "Production deployments need an authorized change",
@@ -220,7 +221,8 @@
     "httpsOnly": "Use an https:// link",
     "retireBeforeGoLive": "The retirement date is before the go-live date",
     "created": "{name} added",
-    "saved": "Application saved"
+    "saved": "Application saved",
+    "httpOrHttps": "Use an http:// or https:// link"
   },
   "ciPicker": {
     "placeholder": "Search the CMDB…",
@@ -432,7 +434,7 @@
     "repositoriesHint": "Source repositories. Azure DevOps sync fills in the latest commits later.",
     "addRepository": "Add repository",
     "editRepository": "Edit {name}",
-    "repositoryDialogHint": "Use the https clone or browse URL.",
+    "repositoryDialogHint": "Use the clone or browse URL (https, or http for a server without TLS).",
     "noRepositories": "No repositories yet.",
     "deleteRepoTitle": "Remove {name}?",
     "deleteRepoBody": "Only the link is removed; the repository itself is not touched.",
@@ -482,5 +484,33 @@
     "description": "Coming up for {count, plural, one {the application} other {the # applications}} you own or deliver",
     "open": "Calendar",
     "none": "No releases planned in the next three weeks."
+  },
+  "sync": {
+    "entities": {
+      "repository": "Repositories"
+    },
+    "fields": {
+      "name": "Name",
+      "url": "URL",
+      "provider": "Provider",
+      "defaultBranch": "Default branch",
+      "lastCommitSha": "Last commit",
+      "lastCommitAt": "Last commit time",
+      "lastCommitMessage": "Last commit message",
+      "lastCommitAuthor": "Last commit author",
+      "branches": "Branches",
+      "pullRequests": "Active pull requests"
+    }
+  },
+  "git": {
+    "lastCommit": "Last commit",
+    "branches": "{count, plural, one {# branch} other {# branches}}",
+    "showBranches": "Show branches",
+    "hideBranches": "Hide branches",
+    "defaultBranch": "Default",
+    "pullRequests": "{count, plural, =0 {No active pull requests} one {# active pull request} other {# active pull requests}}",
+    "draft": "Draft",
+    "mergeInto": "{source} into {target}",
+    "synced": "Synced"
   }
 }

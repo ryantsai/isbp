@@ -175,6 +175,14 @@ export const assetEvents = itamSchema.table(
     actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
     actorName: varchar('actor_name', { length: 200 }),
     note: text('note'),
+    /** Made by a sync with another system: where it came from ("via ServiceDesk Plus #1234"). */
+    via: jsonb('via').$type<{
+      connectionId: string;
+      connection: string;
+      connector: string;
+      ref: string;
+      url: string | null;
+    }>(),
     createdAt: createdAt(),
   },
   (t) => [index('asset_events_asset_idx').on(t.assetId, t.createdAt)],

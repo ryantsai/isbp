@@ -1,0 +1,29 @@
+{
+  "name": "@isbp/integration-mocks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Stand-ins for on-premises ManageEngine ServiceDesk Plus and Azure DevOps Server, for development, tests and the demo",
+  "exports": {
+    ".": "./src/index.ts",
+    "./credentials": "./src/credentials.ts"
+  },
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "fastify": "catalog:"
+  },
+  "devDependencies": {
+    "@isbp/eslint-config": "workspace:*",
+    "@isbp/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

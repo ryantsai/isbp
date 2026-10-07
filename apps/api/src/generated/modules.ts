@@ -4,14 +4,17 @@ import type { ServerModule } from '@isbp/sdk/server';
 import { coreModule } from '../core';
 import alm from '@isbp/module-alm/server';
 import announcements from '@isbp/module-announcements/server';
+import azdo from '@isbp/module-azdo/server';
 import cmdb from '@isbp/module-cmdb/server';
 import dbaccess from '@isbp/module-dbaccess/server';
 import etl from '@isbp/module-etl/server';
 import helpdeskAi from '@isbp/module-helpdesk-ai/server';
+import integrations from '@isbp/module-integrations/server';
 import itam from '@isbp/module-itam/server';
 import itsm from '@isbp/module-itsm/server';
 import knowledge from '@isbp/module-knowledge/server';
 import projects from '@isbp/module-projects/server';
 import scheduler from '@isbp/module-scheduler/server';
+import sdp from '@isbp/module-sdp/server';
 
-export const installedModules: ServerModule[] = [coreModule, alm, announcements, cmdb, dbaccess, etl, helpdeskAi, itam, itsm, knowledge, projects, scheduler];
+export const installedModules: ServerModule[] = [coreModule, alm, announcements, azdo, cmdb, dbaccess, etl, helpdeskAi, integrations, itam, itsm, knowledge, projects, scheduler, sdp];

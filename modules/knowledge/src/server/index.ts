@@ -16,6 +16,7 @@ import { ArticleService, INDEX_TYPE, viewerOf, visibleWhere } from './articles';
 import { routes } from './routes';
 import { articles } from './schema';
 import { seedKnowledge } from './seed';
+import { sync } from './sync';
 
 type ArticleEvent = { articleId: string };
 
@@ -165,6 +166,8 @@ export default defineServerModule(manifest, {
       },
     },
   },
+
+  sync,
 
   seed: seedKnowledge,
 });

@@ -8,13 +8,17 @@
     "applications": "アプリケーション",
     "releases": "リリース カレンダー"
   },
-  "entities": { "application": "アプリケーション", "release": "リリース" },
+  "entities": {
+    "application": "アプリケーション",
+    "release": "リリース"
+  },
   "permissions": {
     "appsRead": "アプリケーション、環境、リリース、デプロイを表示する",
     "appsManage": "すべてのアプリケーション、環境、リポジトリを作成および編集する",
     "releasesManage": "すべてのアプリケーションのリリースを作成および編集する",
     "deploymentsCreate": "デプロイを記録する (ユーザーおよび CI/CD の API クライアント)",
-    "deploymentsOverride": "本番デプロイの変更ポリシーをオーバーライドする (監査ログに記録)"
+    "deploymentsOverride": "本番デプロイの変更ポリシーをオーバーライドする (監査ログに記録)",
+    "repositoriesSync": "統合を通じてリポジトリとその Git の状態を書き込む"
   },
   "settings": {
     "requireChange": "本番デプロイには承認済みの変更が必要",
@@ -64,14 +68,24 @@
     "sunsetting": "段階的廃止",
     "retired": "廃止済み"
   },
-  "criticality": { "critical": "重大", "high": "高", "medium": "中", "low": "低" },
+  "criticality": {
+    "critical": "重大",
+    "high": "高",
+    "medium": "中",
+    "low": "低"
+  },
   "disposition": {
     "tolerate": "維持 (Tolerate)",
     "invest": "投資 (Invest)",
     "migrate": "移行 (Migrate)",
     "eliminate": "廃止 (Eliminate)"
   },
-  "hosting": { "on_prem": "オンプレミス", "cloud": "クラウド", "saas": "SaaS", "hybrid": "ハイブリッド" },
+  "hosting": {
+    "on_prem": "オンプレミス",
+    "cloud": "クラウド",
+    "saas": "SaaS",
+    "hybrid": "ハイブリッド"
+  },
   "classification": {
     "public": "公開",
     "internal": "社内",
@@ -105,7 +119,10 @@
     "failed": "失敗",
     "rolled_back": "ロールバック済み"
   },
-  "source": { "manual": "ユーザーが記録", "api": "API で記録" },
+  "source": {
+    "manual": "ユーザーが記録",
+    "api": "API で記録"
+  },
   "duration": {
     "seconds": "{s} 秒",
     "minutes": "{m} 分",
@@ -182,7 +199,11 @@
     "createTitle": "新しいアプリケーション",
     "editTitle": "{name} を編集",
     "hint": "オーナーとデリバリー チームのメンバーは、後から自分のアプリケーションを編集できます。",
-    "sections": { "identity": "アプリケーション", "ownership": "オーナーシップ", "details": "詳細" },
+    "sections": {
+      "identity": "アプリケーション",
+      "ownership": "オーナーシップ",
+      "details": "詳細"
+    },
     "namePlaceholder": "例: 財務 ERP",
     "nameRequired": "アプリケーションの名前を入力してください",
     "codeHint": "英小文字、数字、ハイフン。ページのアドレスであり、パイプラインが送信するコードです。",
@@ -200,7 +221,8 @@
     "httpsOnly": "https:// のリンクを使用してください",
     "retireBeforeGoLive": "廃止日が稼働開始日より前です",
     "created": "{name} を追加しました",
-    "saved": "アプリケーションを保存しました"
+    "saved": "アプリケーションを保存しました",
+    "httpOrHttps": "http:// または https:// のリンクを使用してください"
   },
   "ciPicker": {
     "placeholder": "CMDB を検索…",
@@ -216,7 +238,12 @@
     "recordDeployment": "デプロイを記録",
     "inProduction": "本番: {version}",
     "unassigned": "未割り当て",
-    "tabs": { "overview": "概要", "releases": "リリース", "deployments": "デプロイ", "settings": "設定" },
+    "tabs": {
+      "overview": "概要",
+      "releases": "リリース",
+      "deployments": "デプロイ",
+      "settings": "設定"
+    },
     "ownership": "オーナーシップ",
     "details": "詳細",
     "ci": "CMDB",
@@ -407,7 +434,7 @@
     "repositoriesHint": "ソース リポジトリ。今後の Azure DevOps 同期で最新のコミットが自動入力されます。",
     "addRepository": "リポジトリを追加",
     "editRepository": "{name} を編集",
-    "repositoryDialogHint": "https の clone URL または参照 URL を使用してください。",
+    "repositoryDialogHint": "clone URL または参照 URL を使用してください (https。TLS を使用しないサーバーは http)。",
     "noRepositories": "リポジトリはまだありません。",
     "deleteRepoTitle": "{name} を削除しますか?",
     "deleteRepoBody": "リンクのみが削除され、リポジトリ自体には影響しません。",
@@ -457,5 +484,33 @@
     "description": "オーナーまたはデリバリー担当の {count, plural, other {# 件のアプリケーション}}の今後のリリース",
     "open": "カレンダー",
     "none": "今後 3 週間に予定されているリリースはありません。"
+  },
+  "sync": {
+    "entities": {
+      "repository": "リポジトリ"
+    },
+    "fields": {
+      "name": "名前",
+      "url": "URL",
+      "provider": "プロバイダー",
+      "defaultBranch": "既定のブランチ",
+      "lastCommitSha": "最新のコミット",
+      "lastCommitAt": "最新のコミット日時",
+      "lastCommitMessage": "最新のコミット メッセージ",
+      "lastCommitAuthor": "最新のコミットの作成者",
+      "branches": "ブランチ",
+      "pullRequests": "アクティブなプル リクエスト"
+    }
+  },
+  "git": {
+    "lastCommit": "最新のコミット",
+    "branches": "{count, plural, other {# 個のブランチ}}",
+    "showBranches": "ブランチを表示",
+    "hideBranches": "ブランチを非表示",
+    "defaultBranch": "既定",
+    "pullRequests": "{count, plural, =0 {アクティブなプル リクエストはありません} other {アクティブなプル リクエスト # 件}}",
+    "draft": "下書き",
+    "mergeInto": "{source} から {target} へ",
+    "synced": "最終同期:"
   }
 }

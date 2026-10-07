@@ -159,7 +159,17 @@ export function priorityFor(impact: number, urgency: number): number {
   return matrix[Math.min(Math.max(impact, 1), 3) - 1]![Math.min(Math.max(urgency, 1), 3) - 1]!;
 }
 
-export const channelSchema = z.enum(['portal', 'agent', 'chat', 'email', 'phone', 'form', 'ai']);
+/** `integration`: created by a sync with another system (ServiceDesk Plus, Azure DevOps). */
+export const channelSchema = z.enum([
+  'portal',
+  'agent',
+  'chat',
+  'email',
+  'phone',
+  'form',
+  'ai',
+  'integration',
+]);
 export const resolutionCodeSchema = z.enum([
   'solved',
   'workaround',

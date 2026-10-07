@@ -25,6 +25,7 @@ import { useState } from 'react';
 import { BOARD_COLUMNS, type ProjectDetail, type TaskStatus } from '../../contracts';
 import { HealthBadge, ProgressBar, ProjectStatusBadge, TaskStatusIcon } from '../components/badges';
 import { CustomFieldsCard } from '../components/custom-fields';
+import { Via } from '../components/via';
 import { dateValue, projectApi } from '../lib';
 import { ApprovalCard } from './approval-card';
 import { HealthDialog } from './dialogs';
@@ -166,7 +167,13 @@ function HealthCard({ project }: { project: ProjectDetail }) {
                       <ProjectStatusBadge status={u.to as ProjectDetail['status']} />
                     )}
                     <span className="text-xs text-muted-foreground">
-                      {u.author?.displayName ?? t('system')} · <RelativeTime date={u.createdAt} />
+                      {u.author?.displayName ?? u.authorName ?? t('system')} ·{' '}
+                      {u.via && (
+                        <>
+                          <Via via={u.via} /> ·{' '}
+                        </>
+                      )}
+                      <RelativeTime date={u.createdAt} />
                     </span>
                   </span>
                   {u.note && <span className="text-muted-foreground wrap-anywhere">{u.note}</span>}
@@ -258,6 +265,7 @@ function MilestonesCard({ project, onManage }: { project: ProjectDetail; onManag
 function MembersCard({ project, onManage }: { project: ProjectDetail; onManage: () => void }) {
   const t = useTranslations('projects.overview');
   const tr = useTranslations('projects.roles');
+  const ts = useTranslations('projects.sync');
   return (
     <Card className="min-w-0 gap-4">
       <CardHeader>
@@ -286,6 +294,11 @@ function MembersCard({ project, onManage }: { project: ProjectDetail; onManage: 
                   {tr(m.role)}
                   {m.isOwner && ` · ${t('owner')}`}
                 </span>
+                {m.via && (
+                  <span className="truncate text-xs text-muted-foreground">
+                    {ts('addedVia', { system: m.via.connection, reference: m.via.ref })}
+                  </span>
+                )}
               </span>
               {m.role !== 'viewer' && (
                 <span className="shrink-0 text-xs text-muted-foreground tabular-nums">

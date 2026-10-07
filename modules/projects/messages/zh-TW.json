@@ -12,7 +12,9 @@
     "use": "檢視內部專案，並處理所屬專案的工作項目",
     "create": "建立專案（建立者成為專案經理）",
     "portfolioRead": "檢視所有專案（包含私人專案）",
-    "admin": "管理所有專案"
+    "admin": "管理所有專案",
+    "projectsSync": "透過整合寫入專案（專案仍須經由提案簽核才能啟動）",
+    "tasksSync": "透過整合寫入工作項目及其留言"
   },
   "settings": {
     "hoursPerWeek": "每週工時",
@@ -666,5 +668,31 @@
     "nothing": "沒有指派給您的未完成工作項目。",
     "nothingDue": "本週沒有到期的工作。",
     "more": "{count, plural, other {本週還有 # 個到期}}"
+  },
+  "sync": {
+    "entities": {
+      "project": "專案",
+      "task": "工作項目"
+    },
+    "fields": {
+      "name": "名稱",
+      "description": "說明",
+      "startDate": "開始日",
+      "targetDate": "目標完成日",
+      "status": "狀態",
+      "ref": "編號",
+      "type": "類型",
+      "title": "標題",
+      "priority": "優先順序",
+      "assignee": "負責人",
+      "parent": "上層項目",
+      "milestone": "里程碑",
+      "dueDate": "到期日",
+      "estimateHours": "預估工時（小時）",
+      "remainingHours": "剩餘工時（小時）",
+      "labels": "標籤"
+    },
+    "via": "經由 {system} {reference}",
+    "addedVia": "經由 {system} {reference} 加入"
   }
 }

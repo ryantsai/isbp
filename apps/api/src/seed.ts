@@ -27,6 +27,7 @@ import { seedPhase1 } from './seed-phase1';
 import { seedPhase2 } from './seed-phase2';
 import { seedPhase3, seedPhase3Links } from './seed-phase3';
 import { seedPhase4, seedPhase4Links } from './seed-phase4';
+import { seedPhase5, seedPhase5Links } from './seed-phase5';
 
 const { config, kernel } = await bootstrap('isbp-seed');
 const db = kernel.db;
@@ -779,6 +780,7 @@ try {
       await seedPhase2(kernel);
       await seedPhase3(kernel);
       biKey = await seedPhase4(kernel);
+      await seedPhase5(kernel);
     }
     for (const m of kernel.registry.modules) {
       if (m.seed && modules) {
@@ -790,6 +792,7 @@ try {
     if (modules) {
       await seedPhase3Links(kernel);
       await seedPhase4Links(kernel);
+      await seedPhase5Links(kernel);
     }
   });
   await kernel.rbac.bump();

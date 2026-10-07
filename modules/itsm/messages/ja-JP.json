@@ -28,7 +28,9 @@
     "changesRead": "変更と変更カレンダーを表示する",
     "changesManage": "変更を起票、計画、スケジュールする",
     "reportsRead": "サービス デスクのレポートを表示する",
-    "configManage": "カテゴリ、SLA ポリシー、営業カレンダー、サービス カタログを構成する"
+    "configManage": "カテゴリ、SLA ポリシー、営業カレンダー、サービス カタログを構成する",
+    "ticketsSync": "統合を通じてインシデント、サービス要求、問題を書き込む",
+    "changesSync": "統合を通じて変更を書き込む (CAB 承認以降の状態は承認を経た場合のみ)"
   },
   "workflows": {
     "change": {
@@ -106,7 +108,8 @@
     "email": "メール",
     "phone": "電話",
     "form": "申請フォーム",
-    "ai": "AI"
+    "ai": "AI",
+    "integration": "システム連携"
   },
   "resolution": {
     "solved": "解決",
@@ -552,7 +555,9 @@
       "rootCause": "根本原因",
       "workaround": "回避策",
       "knownError": "既知のエラー",
-      "kbArticleId": "ナレッジ記事"
+      "kbArticleId": "ナレッジ記事",
+      "resolutionCode": "解決コード",
+      "resolutionNotes": "解決メモ"
     },
     "reopened": "未解決",
     "rated": "評価 {rating}/5",
@@ -562,7 +567,8 @@
     "reopenedStatus": "{name} がまだ解決していないとしてチケットを再オープンしました",
     "autoClosed": "依頼者からの応答がないため自動的にクローズしました",
     "assignmentChanged": "{name} が割り当てを変更しました",
-    "offboarded": "前の担当者は退職しました。"
+    "offboarded": "前の担当者は退職しました。",
+    "via": "({system} {reference} 経由)"
   },
   "composer": {
     "label": "会話に追加",
@@ -988,5 +994,38 @@
     "queues": "キュー",
     "mostUrgent": "自分に割り当て (緊急度順)",
     "nothingAssigned": "自分に割り当てられたチケットはありません。"
+  },
+  "sync": {
+    "entities": {
+      "ticket": "チケット",
+      "change": "変更"
+    },
+    "fields": {
+      "type": "種類",
+      "title": "タイトル",
+      "description": "説明",
+      "status": "状態",
+      "impact": "影響度",
+      "urgency": "緊急度",
+      "priority": "優先度",
+      "category": "カテゴリ",
+      "assignmentGroup": "割り当てグループ",
+      "assignee": "担当者",
+      "requester": "依頼者",
+      "resolutionCode": "解決コード",
+      "resolutionNotes": "解決メモ",
+      "major": "重大インシデント",
+      "ref": "参照番号",
+      "changeType": "変更の種類",
+      "risk": "リスク",
+      "reason": "変更の理由",
+      "plannedStart": "開始予定",
+      "plannedEnd": "終了予定",
+      "implementationPlan": "実施計画",
+      "backoutPlan": "切り戻し計画",
+      "testPlan": "テスト計画"
+    },
+    "resolvedIn": "{system} {reference} で解決済み",
+    "cancelledIn": "{system} {reference} でキャンセル済み"
   }
 }

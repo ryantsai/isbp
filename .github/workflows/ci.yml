@@ -213,10 +213,20 @@ jobs:
       # The stack calls itself on localhost (scheduled HTTP jobs, the seeded health check); production
       # blocks private targets by default.
       ISBP_ALLOW_PRIVATE_WEBHOOKS: 'true'
+      # Stand-ins for ServiceDesk Plus and Azure DevOps Server (on-premises): the seed connects the demo
+      # integrations to them.
+      INTEGRATION_MOCKS_URL: http://localhost:4100
     steps:
       - uses: actions/checkout@v5
 
       - uses: ./.github/actions/setup
+
+      - name: Start the integration mocks
+        run: |
+          logs="$RUNNER_TEMP/logs" && mkdir -p "$logs"
+          (DEV_MOCKS_PORT=4100 MOCKS_DATA_FILE="$RUNNER_TEMP/integration-mocks.json" \
+            nohup pnpm --filter @isbp/integration-mocks start > "$logs/mocks.log" 2>&1 &)
+          timeout 60 bash -c 'until curl -fsS http://127.0.0.1:4100/_mock/health >/dev/null; do sleep 1; done'
 
       - name: Build API and web
         run: pnpm turbo run build --filter=@isbp/api --filter=@isbp/web

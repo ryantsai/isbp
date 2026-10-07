@@ -1,3 +1,4 @@
+import type { SyncEntityDef } from '@isbp/sdk';
 import { describe, expect, it } from 'vitest';
 import { manifest, PROPOSAL_THRESHOLD_HOURS } from '../src/manifest';
 import { PERMISSIONS } from '../src/model';
@@ -34,6 +35,18 @@ describe('projects manifest', () => {
       PROPOSAL_THRESHOLD_HOURS,
     );
     expect(condition).toContain('"roleKey":"projects-pmo"');
+  });
+
+  it('lets the Integrations Hub sync projects and their tasks, with permissions no role template holds', () => {
+    const entities: SyncEntityDef[] = manifest.syncEntities;
+    expect(entities.map((e) => [e.entity, e.permission, e.container ?? null])).toEqual([
+      ['project', 'projects.projects.sync', null],
+      ['task', 'projects.tasks.sync', 'projects.project'],
+    ]);
+    expect(entities[1]!.commentEvents).toEqual(['projects.task.commented']);
+    for (const role of manifest.roles)
+      for (const p of ['projects.projects.sync', 'projects.tasks.sync'])
+        expect(role.permissions).not.toContain(p);
   });
 
   it('declares linkable records and custom-field entities', () => {

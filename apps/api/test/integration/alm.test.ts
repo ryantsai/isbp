@@ -284,7 +284,7 @@ describe('applications and the ownership rule', () => {
 });
 
 describe('environments and repositories', () => {
-  it('manages environments (unique names, reorder) and repositories (https, unique URL)', async () => {
+  it('manages environments (unique names, reorder) and repositories (http(s), unique URL)', async () => {
     const add = (body: Record<string, unknown>) =>
       h.call(s.owner!, 'POST', `${API}/applications/payroll/environments`, body);
     const prod = await add({
@@ -359,14 +359,25 @@ describe('environments and repositories', () => {
         })
       ).status,
     ).toBe(409);
+    // Plain http is allowed for on-premises Git servers without TLS; other schemes never.
+    for (const url of ['javascript:alert(1)', 'file:///srv/git/payroll', 'ftp://git.example.com/payroll'])
+      expect(
+        (
+          await h.call(s.owner!, 'POST', `${API}/applications/payroll/repositories`, {
+            name: 'insecure',
+            url,
+          })
+        ).status,
+        url,
+      ).toBe(400);
+    const plain = await h.call(s.owner!, 'POST', `${API}/applications/payroll/repositories`, {
+      name: 'payroll-legacy',
+      url: 'http://git.example.com/payroll',
+    });
+    expect(plain.status).toBe(201);
     expect(
-      (
-        await h.call(s.owner!, 'POST', `${API}/applications/payroll/repositories`, {
-          name: 'insecure',
-          url: 'http://git.example.com/payroll',
-        })
-      ).status,
-    ).toBe(400);
+      (await h.call(s.owner!, 'DELETE', `${API}/applications/payroll/repositories/${plain.body.id}`)).status,
+    ).toBe(204);
     const other = await h.call(s.owner!, 'POST', `${API}/applications/payroll/repositories`, {
       name: 'payroll-reports',
       url: 'https://github.com/example/payroll-reports',

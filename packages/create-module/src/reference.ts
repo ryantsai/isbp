@@ -183,6 +183,33 @@ export async function renderReference(root: string): Promise<string> {
       ]),
     ),
     '',
+    '## Sync entities and connectors',
+    '',
+    'What the Integrations Hub can sync (adapters, `manifest.syncEntities`) and connect to (connectors,',
+    '`manifest.connectors`). Details per module below.',
+    '',
+    table(
+      ['Kind', 'Key', 'Module', 'Name'],
+      [
+        ...modules.flatMap((m) =>
+          (m.manifest.syncEntities ?? []).map((e) => [
+            'sync entity',
+            code(`${m.id}.${e.entity}`),
+            code(m.id),
+            en(e.name),
+          ]),
+        ),
+        ...modules.flatMap((m) =>
+          (m.manifest.connectors ?? []).map((c) => [
+            'connector',
+            code(`${m.id}.${c.type}`),
+            code(m.id),
+            en(c.name),
+          ]),
+        ),
+      ],
+    ),
+    '',
   );
 
   // Slots
@@ -298,6 +325,41 @@ export async function renderReference(root: string): Promise<string> {
           en(t.name),
           code(t.permission),
           fields(t.config),
+        ]),
+      ),
+    );
+    section(
+      'Sync entities (Integrations Hub)',
+      table(
+        ['Entity', 'Name', 'Permission', 'Container', 'Change events', 'Comment events'],
+        (s.syncEntities ?? []).map((e) => [
+          code(`${m.id}.${e.entity}`),
+          en(e.name),
+          code(e.permission),
+          code(e.container),
+          e.events.map(code).join(', '),
+          (e.commentEvents ?? []).map(code).join(', ') || '—',
+        ]),
+      ),
+    );
+    section(
+      'Connectors (Integrations Hub)',
+      table(
+        ['Connector', 'Name', 'Settings', 'Secrets', 'Objects'],
+        (s.connectors ?? []).map((c) => [
+          code(`${m.id}.${c.type}`),
+          en(c.name),
+          fields(c.config),
+          fields(c.secrets),
+          c.objects
+            .map((o) => {
+              const caps = Object.entries(o.capabilities)
+                .filter(([, v]) => v)
+                .map(([k]) => k);
+              const to = o.entities?.length ? ` → ${o.entities.join(', ')}` : '';
+              return `\`${o.type}\`${to}${caps.length ? ` (${caps.join(', ')})` : ''}${o.scoped ? ', scoped' : ''}`;
+            })
+            .join('; '),
         ]),
       ),
     );

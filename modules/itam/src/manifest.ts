@@ -167,6 +167,8 @@ export const manifest = defineManifest({
     { key: 'itam.contracts.manage', description: 'itam.permissions.contractsManage' },
     { key: 'itam.self.read', description: 'itam.permissions.selfRead' },
     { key: 'itam.config.manage', description: 'itam.permissions.configManage' },
+    // Phase 5: written by the Integrations Hub's agent (it holds `*.*.sync`), never by a role template.
+    { key: 'itam.assets.sync', description: 'itam.permissions.assetsSync' },
   ],
   roles: [
     {
@@ -367,6 +369,26 @@ export const manifest = defineManifest({
       { type: 'contract', name: 'itam.entities.contract' },
     ],
   },
+  /**
+   * Hardware kept in step with other asset systems by the Integrations Hub (adapter in `server/sync.ts`),
+   * matched on serial number. The lifecycle applies; `disposed` only through the disposal approval.
+   */
+  syncEntities: [
+    {
+      entity: 'asset',
+      name: 'itam.sync.entities.asset',
+      icon: 'laptop',
+      permission: 'itam.assets.sync',
+      events: [
+        'itam.asset.created',
+        'itam.asset.updated',
+        'itam.asset.status_changed',
+        'itam.asset.assigned',
+        'itam.asset.returned',
+        'itam.asset.disposed',
+      ],
+    },
+  ],
   records: {
     types: [
       { type: 'asset', name: 'itam.entities.asset', icon: 'laptop', permission: 'itam.hardware.read' },

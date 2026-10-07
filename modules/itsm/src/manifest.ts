@@ -199,6 +199,9 @@ export const manifest = defineManifest({
     { key: 'itsm.changes.manage', description: 'itsm.permissions.changesManage' },
     { key: 'itsm.reports.read', description: 'itsm.permissions.reportsRead' },
     { key: 'itsm.config.manage', description: 'itsm.permissions.configManage' },
+    // Phase 5: written by the Integrations Hub's agent (it holds `*.*.sync`), never by a role template.
+    { key: 'itsm.tickets.sync', description: 'itsm.permissions.ticketsSync' },
+    { key: 'itsm.changes.sync', description: 'itsm.permissions.changesSync' },
   ],
   roles: [
     {
@@ -418,6 +421,40 @@ export const manifest = defineManifest({
     { type: 'itsm.major-incident.declared' },
   ],
   customFields: { entities: [{ type: 'ticket', name: 'itsm.entities.ticket' }] },
+  /**
+   * Kept in step with other systems by the Integrations Hub (adapters in `server/sync.ts`): incidents,
+   * service requests and problems as `ticket`, changes as `change`. Status follows the state machines;
+   * a change only passes `authorization` through its CAB approval in ISBP.
+   */
+  syncEntities: [
+    {
+      entity: 'ticket',
+      name: 'itsm.sync.entities.ticket',
+      icon: 'life-buoy',
+      permission: 'itsm.tickets.sync',
+      events: [
+        'itsm.ticket.created',
+        'itsm.ticket.updated',
+        'itsm.ticket.assigned',
+        'itsm.ticket.status_changed',
+        'itsm.ticket.triaged',
+      ],
+      commentEvents: ['itsm.ticket.commented'],
+    },
+    {
+      entity: 'change',
+      name: 'itsm.sync.entities.change',
+      icon: 'calendar-clock',
+      permission: 'itsm.changes.sync',
+      events: [
+        'itsm.ticket.created',
+        'itsm.ticket.updated',
+        'itsm.ticket.assigned',
+        'itsm.ticket.status_changed',
+      ],
+      commentEvents: ['itsm.ticket.commented'],
+    },
+  ],
   records: {
     types: [
       { type: 'ticket', name: 'itsm.entities.ticket', icon: 'life-buoy', permission: 'itsm.tickets.read' },

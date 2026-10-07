@@ -41,6 +41,8 @@ export class ModuleRegistry {
   private state = new Map<string, ModuleState>();
   private contexts = new Map<string, ModuleContext>();
   private subscriber?: Redis;
+  /** Events some sync entity lists (`events`/`commentEvents`): routed to `onSyncChange` consumers too. */
+  private readonly syncEvents: Set<string>;
 
   constructor(
     installed: readonly ServerModule[],
@@ -53,6 +55,11 @@ export class ModuleRegistry {
     }
     this.modules = topoSort(installed);
     this.byId = new Map(this.modules.map((m) => [m.manifest.id, m]));
+    this.syncEvents = new Set(
+      this.modules.flatMap((m) =>
+        (m.manifest.syncEntities ?? []).flatMap((e) => [...e.events, ...(e.commentEvents ?? [])]),
+      ),
+    );
   }
 
   get(id: string): ServerModule | undefined {
@@ -86,14 +93,18 @@ export class ModuleRegistry {
 
   /**
    * Modules (enabled or not) with a handler for the event; the worker re-checks enabled state.
-   * Workflow completions also go to the module that owns the trigger (its `workflows` handler).
+   * Workflow completions also go to the module that owns the trigger (its `workflows` handler), and sync
+   * entities' change events to every `onSyncChange` consumer.
    */
   subscribersOf(eventName: string, payload?: unknown): ServerModule[] {
     const trigger =
       eventName === WORKFLOW_COMPLETED_EVENT
         ? (payload as { triggerKey?: string } | undefined)?.triggerKey
         : undefined;
-    return this.modules.filter((m) => m.events?.[eventName] || (trigger && m.workflows?.[trigger]));
+    const sync = this.syncEvents.has(eventName);
+    return this.modules.filter(
+      (m) => m.events?.[eventName] || (trigger && m.workflows?.[trigger]) || (sync && m.onSyncChange),
+    );
   }
 
   dependentsOf(id: string): string[] {

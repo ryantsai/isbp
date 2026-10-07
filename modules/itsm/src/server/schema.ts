@@ -37,7 +37,7 @@ export const serviceRequestNumberSeq = itsmSchema.sequence('service_request_numb
 export const problemNumberSeq = itsmSchema.sequence('problem_number_seq');
 export const changeNumberSeq = itsmSchema.sequence('change_number_seq');
 
-export type Channel = 'portal' | 'agent' | 'chat' | 'email' | 'phone' | 'form' | 'ai';
+export type Channel = 'portal' | 'agent' | 'chat' | 'email' | 'phone' | 'form' | 'ai' | 'integration';
 export type ChangeType = 'standard' | 'normal' | 'emergency';
 export type Risk = 'low' | 'medium' | 'high';
 export type SlaMetric = 'response' | 'resolution';
@@ -146,6 +146,8 @@ export const tickets = itsmSchema.table(
       .on(t.requestedForId)
       .where(sql`${t.requestedForId} is not null`),
     index('tickets_created_idx').on(t.createdAt.desc()),
+    // Update order (sync adapters page through tickets and changes by `updated_at`, then id).
+    index('tickets_updated_idx').on(t.updatedAt, t.id),
     index('tickets_resolved_idx')
       .on(t.resolvedAt)
       .where(sql`${t.resolvedAt} is not null`),

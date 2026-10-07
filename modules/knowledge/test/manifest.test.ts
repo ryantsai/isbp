@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import en from '../messages/en.json';
 import ja from '../messages/ja-JP.json';
@@ -81,6 +83,29 @@ describe('knowledge manifest', () => {
         'knowledge.article.deleted',
       ]),
     );
+  });
+
+  it('lets the Integrations Hub sync articles with its own permission, named in every locale', () => {
+    expect(manifest.syncEntities).toEqual([
+      expect.objectContaining({ entity: 'article', permission: 'knowledge.articles.sync' }),
+    ]);
+    expect(manifest.permissions?.map((p) => p.key)).toContain('knowledge.articles.sync');
+    const emitted = new Set(manifest.events?.emits?.map((e) => e.name));
+    for (const name of manifest.syncEntities![0]!.events) expect(emitted.has(name), name).toBe(true);
+    const source = readFileSync(join(__dirname, '../src/server/sync.ts'), 'utf8');
+    const fields = [...source.matchAll(/label\('([A-Za-z]+)'\)/g)].map((m) => `sync.fields.${m[1]}`);
+    expect(fields.length).toBeGreaterThan(7);
+    const keys = [
+      ...fields,
+      manifest.syncEntities![0]!.name.slice('knowledge.'.length),
+      ...(manifest.permissions ?? []).map((p) => p.description.slice('knowledge.'.length)),
+      'sync.locales.en',
+      'sync.locales.zh-TW',
+      'sync.locales.ja-JP',
+      'article.syncedFrom',
+    ];
+    for (const catalog of [flat(en), flat(zh), flat(ja)])
+      for (const key of keys) expect(catalog[key], key).toBeTruthy();
   });
 
   it('ships the same message keys and ICU arguments in every locale', () => {

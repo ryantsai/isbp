@@ -112,6 +112,7 @@ The audit log (`core.audit_logs`) is append-only and hash-chained. Postgres trig
 | `records`, `files`, `secrets` | 3     | Cross-module links, attachments, sealed secrets                           |
 | `databases`, `taskTypes`      | 4     | External databases; work Scheduled Jobs can run                           |
 | `http`, `cache`, `sandbox`    | 4     | Outbound HTTP (SSRF-guarded); Redis cache/rate limits; script containers  |
+| `sync`, `connectors`          | 5     | Sync adapters of data modules; connectors to outside systems (the hub)    |
 
 Signatures and semantics are in [api-reference.md](api-reference.md).
 

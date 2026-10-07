@@ -11,6 +11,7 @@
   "exports": {
     "./manifest": "./src/manifest.ts",
     "./contracts": "./src/contracts.ts",
+    "./schema": "./src/server/schema.ts",
     "./server": "./src/server/index.ts",
     "./web": "./src/web/index.tsx",
     "./messages/*": "./messages/*"

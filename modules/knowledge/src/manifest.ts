@@ -60,6 +60,8 @@ export const manifest = defineManifest({
     { key: 'knowledge.articles.write', description: 'knowledge.permissions.write' },
     { key: 'knowledge.articles.publish', description: 'knowledge.permissions.publish' },
     { key: 'knowledge.categories.manage', description: 'knowledge.permissions.manageCategories' },
+    // Phase 5: written by the Integrations Hub's agent (it holds `*.*.sync`), never by a role template.
+    { key: 'knowledge.articles.sync', description: 'knowledge.permissions.sync' },
   ],
   roles: [
     {
@@ -202,6 +204,26 @@ export const manifest = defineManifest({
     { type: 'knowledge.article.review_due', defaultChannels: ['inApp', 'email'] },
     { type: 'knowledge.article.approved', defaultChannels: ['inApp', 'email'] },
     { type: 'knowledge.article.rejected', defaultChannels: ['inApp', 'email'] },
+  ],
+  /**
+   * Articles kept in step with another knowledge base by the Integrations Hub (adapter in
+   * `server/sync.ts`), matched on title. The sync writes and submits drafts; publishing needs the agent's
+   * own publish permission and makes a version, and a review workflow still decides.
+   */
+  syncEntities: [
+    {
+      entity: 'article',
+      name: 'knowledge.sync.entities.article',
+      icon: 'book-open',
+      permission: 'knowledge.articles.sync',
+      events: [
+        'knowledge.article.created',
+        'knowledge.article.updated',
+        'knowledge.article.submitted',
+        'knowledge.article.published',
+        'knowledge.article.retired',
+      ],
+    },
   ],
   records: {
     types: [

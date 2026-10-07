@@ -26,6 +26,7 @@ import type {
   ReleaseStatus,
   RepoProvider,
 } from '../model';
+import type { RepoBranch, RepoPullRequest } from '../contracts';
 
 /**
  * All tables of this module live in the `alm` Postgres schema. Exported as `@isbp/module-alm/schema` for
@@ -109,6 +110,11 @@ export const repositories = almSchema.table(
     lastCommitAt: timestamp('last_commit_at', { withTimezone: true }),
     lastCommitMessage: text('last_commit_message'),
     lastCommitAuthor: varchar('last_commit_author', { length: 200 }),
+    /** Git status from a sync with the Git server: branches and active pull requests. */
+    branches: jsonb('branches').$type<RepoBranch[]>(),
+    pullRequests: jsonb('pull_requests').$type<RepoPullRequest[]>(),
+    /** When a sync last wrote the repository ("Synced 5 minutes ago"). */
+    syncedAt: timestamp('synced_at', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

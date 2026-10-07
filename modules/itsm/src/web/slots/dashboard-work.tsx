@@ -99,14 +99,15 @@ export default function DashboardWorkCard() {
             );
           })}
         </ul>
-        <div className="grid gap-1">
+        {/* min-w-0: long (nowrap) titles truncate instead of widening the card at 375 px. */}
+        <div className="grid min-w-0 gap-1">
           <h3 className="text-xs font-medium text-muted-foreground">{t('mostUrgent')}</h3>
           {mine.isLoading ? (
             <Skeleton className="h-20 w-full" />
           ) : !urgent.length ? (
             <p className="py-3 text-sm text-muted-foreground">{t('nothingAssigned')}</p>
           ) : (
-            <ul className="divide-y">
+            <ul className="min-w-0 divide-y">
               {urgent.map((r) => (
                 <li key={r.id}>
                   <Link

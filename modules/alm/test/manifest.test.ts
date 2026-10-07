@@ -12,6 +12,7 @@ import {
   DEPLOYMENT_STATUSES,
   DISPOSITIONS,
   ENVIRONMENT_KINDS,
+  gitStatusSchema,
   HOSTINGS,
   READINESS_CHECKS,
   RELEASE_STATUSES,
@@ -57,6 +58,7 @@ describe('alm manifest', () => {
       'alm.releases.manage',
       'alm.deployments.create',
       'alm.deployments.override',
+      'alm.repositories.sync',
     ]);
     const roles = Object.fromEntries((manifest.roles ?? []).map((r) => [r.key, r.permissions]));
     expect(roles).toEqual({
@@ -75,6 +77,8 @@ describe('alm manifest', () => {
         'alm.application.created',
         'alm.application.updated',
         'alm.application.stage_changed',
+        'alm.repository.created',
+        'alm.repository.updated',
         'alm.release.created',
         'alm.release.updated',
         'alm.release.status_changed',
@@ -121,6 +125,20 @@ describe('alm manifest', () => {
     ).not.toHaveProperty('override');
   });
 
+  it('lets the Integrations Hub sync repositories inside applications (Git status)', () => {
+    expect(manifest.syncEntities).toEqual([
+      {
+        entity: 'repository',
+        name: 'alm.sync.entities.repository',
+        icon: 'git-branch',
+        permission: 'alm.repositories.sync',
+        events: ['alm.repository.created', 'alm.repository.updated'],
+        container: 'alm.application',
+      },
+    ]);
+    for (const role of manifest.roles ?? []) expect(role.permissions).not.toContain('alm.repositories.sync');
+  });
+
   it('links applications and releases as records, and lets admins extend applications', () => {
     expect(manifest.records?.types.map((t) => [t.type, t.permission])).toEqual([
       ['application', 'alm.apps.read'],
@@ -137,6 +155,44 @@ describe('alm manifest', () => {
 });
 
 describe('contracts', () => {
+  it('reads the Git status a sync reports: full ref names, ids as text, unknown keys dropped', () => {
+    expect(
+      gitStatusSchema.parse({
+        branches: [{ name: 'refs/heads/main', commitSha: 'abc1234', extra: 1 }],
+        pullRequests: [
+          {
+            id: 42,
+            title: 'Add MFA prompt',
+            author: 'Mei Lin',
+            sourceBranch: 'refs/heads/feature/mfa',
+            targetBranch: 'main',
+            url: 'https://ado.contoso.local/tfs/DefaultCollection/_git/erp/pullrequest/42',
+          },
+        ],
+      }),
+    ).toEqual({
+      branches: [{ name: 'main', commitSha: 'abc1234' }],
+      pullRequests: [
+        {
+          id: '42',
+          title: 'Add MFA prompt',
+          author: 'Mei Lin',
+          sourceBranch: 'feature/mfa',
+          targetBranch: 'main',
+          url: 'https://ado.contoso.local/tfs/DefaultCollection/_git/erp/pullrequest/42',
+        },
+      ],
+    });
+    expect(gitStatusSchema.safeParse({ branches: [{ name: '' }] }).success).toBe(false);
+    expect(
+      gitStatusSchema.safeParse({
+        pullRequests: [
+          { id: 1, title: 'x', sourceBranch: 'a', targetBranch: 'b', url: 'javascript:alert(1)' },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
   it('fills defaults on create but never on update', () => {
     expect(createAppSchema.parse({ code: 'hr-portal', name: ' HR Portal ' })).toEqual({
       code: 'hr-portal',
@@ -243,6 +299,19 @@ describe('catalogs', () => {
         ...(manifest.settings ?? []).flatMap((s) => [s.label, s.description!]),
         ...(manifest.customFields?.entities ?? []).map((e) => e.name),
         ...(manifest.records?.types ?? []).map((r) => r.name),
+        ...(manifest.syncEntities ?? []).map((e) => e.name),
+        ...[
+          'name',
+          'url',
+          'provider',
+          'defaultBranch',
+          'lastCommitSha',
+          'lastCommitAt',
+          'lastCommitMessage',
+          'lastCommitAuthor',
+          'branches',
+          'pullRequests',
+        ].map((f) => `sync.fields.${f}`),
       ];
       for (const key of keys) expect(get(catalog, key.replace(/^alm\./, '')), key).toBeTruthy();
       for (const action of [

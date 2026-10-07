@@ -7,6 +7,7 @@ import { records, search } from './records';
 import { routes } from './routes';
 import { seed } from './seed';
 import { services } from './services';
+import { sync } from './sync';
 
 /**
  * Application lifecycle management: the application inventory, environments, releases and deployment
@@ -40,5 +41,6 @@ export default defineServerModule(manifest, {
   ai: aiTools,
   search,
   records,
+  sync,
   seed,
 });

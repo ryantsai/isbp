@@ -12,3 +12,4 @@ export * from './applications';
 export * from './ai';
 export * from './records';
 export * from './databases';
+export * from './integrations';

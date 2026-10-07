@@ -89,6 +89,7 @@ import {
   ticketSlas,
 } from './schema';
 import { SlaService } from './sla';
+import { viaOf } from './sync-support';
 
 export type CreateTicketData = z.output<typeof createTicketSchema>;
 export type UpdateTicketData = z.output<typeof updateTicketSchema>;
@@ -438,14 +439,17 @@ export class TicketService {
     opts: { channel?: Channel } = {},
   ): Promise<TicketRow> {
     const me = auth.user?.id ?? null;
+    const type = input.type;
     const requesterId = input.requesterId ?? me;
     const requester = await this.assertUser(requesterId, 'requesterId');
-    if (!requester) throw validation('requesterId', 'Who is this ticket for?');
-    const agent = isAgent(auth, requester.departmentId);
+    // A change raised by a service, and anything an integration brings in from someone ISBP doesn't know, may
+    // have no requester (no person signed in).
+    if (!requester && !((type === 'change' || opts.channel === 'integration') && !me))
+      throw validation('requesterId', 'Who is this ticket for?');
+    const agent = isAgent(auth, requester?.departmentId ?? null);
     if (requesterId !== me && !agent)
       throw httpErrors.forbidden('Only agents can raise tickets for someone else');
 
-    const type = input.type;
     if (type === 'change' && !(agent || auth.can('itsm.changes.manage')))
       throw httpErrors.forbidden('Raising changes needs the change permission');
     if (type === 'problem' && !(agent || auth.can('itsm.problems.manage')))
@@ -494,7 +498,7 @@ export class TicketService {
           categoryId: category?.id ?? null,
           requesterId,
           requestedForId,
-          departmentId: requester.departmentId,
+          departmentId: requester?.departmentId ?? null,
           assignmentGroupId: groupId,
           assigneeId,
           channel,
@@ -629,6 +633,8 @@ export class TicketService {
       at?: Date;
     },
   ) {
+    // Changes a sync makes say where they came from ("via ServiceDesk Plus #1234").
+    const via = viaOf(this.ctx);
     const [row] = await tx
       .insert(ticketActivities)
       .values({
@@ -639,7 +645,7 @@ export class TicketService {
         authorName: actor.authorName,
         authorAi: actor.authorAi,
         body: a.body ?? null,
-        data: a.data ?? {},
+        data: via ? { ...a.data, via } : (a.data ?? {}),
         ...(a.at ? { createdAt: a.at } : {}),
       })
       .returning();
@@ -1071,28 +1077,46 @@ export class TicketService {
 
   /* ───────────────────────────── conversation ───────────────────────────── */
 
-  async comment(refOrId: string, input: z.output<typeof commentSchema>, auth: AuthContext) {
+  /**
+   * Adds a public reply or an internal work note. `opts.author` is a person from another system (a sync
+   * copying their comment): they are named on the entry, and count as the requester when their email is
+   * the requester's. `opts.at` keeps the time they wrote it.
+   */
+  async comment(
+    refOrId: string,
+    input: z.output<typeof commentSchema>,
+    auth: AuthContext,
+    opts: { author?: { name: string; email?: string | null }; at?: Date } = {},
+  ) {
     const t = await this.visibleRow(refOrId, auth);
     const viewer = viewerOf(t, auth);
     if (input.public ? !viewer.canComment : !viewer.canWorkNote)
       throw httpErrors.forbidden(
         input.public ? 'You cannot comment on this ticket' : 'Work notes are for agents',
       );
-    const actor = actorOf(auth);
-    const me = auth.user?.id ?? null;
+    const remote = opts.author;
+    const actor: Actor = remote
+      ? { authorId: null, authorName: remote.name, authorAi: false }
+      : actorOf(auth);
+    const me = remote ? null : (auth.user?.id ?? null);
     const now = new Date();
-    const fromRequester = Boolean(me && (me === t.requesterId || me === t.requestedForId)) && !viewer.canEdit;
+    const at = opts.at && opts.at < now ? opts.at : now;
+    const remoteRequester = remote?.email ? await this.isRequesterEmail(t, remote.email) : false;
+    const fromRequester = remote
+      ? remoteRequester
+      : Boolean(me && (me === t.requesterId || me === t.requestedForId)) && !viewer.canEdit;
     const author = me ? (await peopleByIds(this.ctx.db, [me])).get(me)?.displayName : actor.authorName;
     const activity = await this.ctx.transaction(async (tx) => {
       const a = await this.activity(tx, t.id, actor, {
         kind: input.public ? 'comment' : 'work_note',
         public: input.public,
         body: input.body,
-        at: now,
+        data: remote ? { author: { name: remote.name, email: remote.email ?? null } } : undefined,
+        at,
       });
       const set: Partial<typeof tickets.$inferInsert> = { updatedAt: now };
       // First response: a public reply from someone other than the requester.
-      const responder = input.public && (me ? me !== t.requesterId : true);
+      const responder = input.public && (remote ? !remoteRequester : me ? me !== t.requesterId : true);
       if (responder && !t.firstResponseAt) {
         set.firstResponseAt = now;
         await this.sla.meetResponse(tx, t.id, now);
@@ -1115,6 +1139,67 @@ export class TicketService {
       return a;
     });
     return (await this.reader.activityDtos([activity]))[0]!;
+  }
+
+  /** Whether `email` belongs to the ticket's requester (or the person it was requested for). */
+  private async isRequesterEmail(t: TicketRow, email: string): Promise<boolean> {
+    const ids = [t.requesterId, t.requestedForId].filter((x): x is string => Boolean(x));
+    if (!ids.length) return false;
+    const [hit] = await this.ctx.db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(inArray(users.id, ids), sql`lower(${users.email}) = lower(${email})`))
+      .limit(1);
+    return Boolean(hit);
+  }
+
+  /**
+   * Sets the resolution code and notes without a status change — an integration keeping them in step
+   * with another system. Resolving still needs both (`transition`); reopening clears them.
+   */
+  async setResolution(
+    refOrId: string,
+    input: { resolutionCode?: ResolutionCode | null; resolutionNotes?: string | null },
+    auth: AuthContext,
+  ): Promise<TicketRow> {
+    const before = await this.workableRow(refOrId, auth);
+    const set: Partial<typeof tickets.$inferInsert> = {};
+    const changesLog: Record<string, [unknown, unknown]> = {};
+    if (input.resolutionCode !== undefined && input.resolutionCode !== before.resolutionCode) {
+      set.resolutionCode = input.resolutionCode;
+      changesLog.resolutionCode = [before.resolutionCode, input.resolutionCode];
+    }
+    const notes = input.resolutionNotes?.trim() || null;
+    if (input.resolutionNotes !== undefined && notes !== before.resolutionNotes) {
+      set.resolutionNotes = notes;
+      changesLog.resolutionNotes = ['…', '…'];
+    }
+    if (!Object.keys(changesLog).length) return before;
+    return this.ctx.transaction(async (tx) => {
+      const [after] = await tx.update(tickets).set(set).where(eq(tickets.id, before.id)).returning();
+      const t = after!;
+      await this.activity(tx, t.id, actorOf(auth), {
+        kind: 'field',
+        public: false,
+        data: { changes: changesLog },
+      });
+      await this.ctx.audit.record(
+        {
+          action: 'itsm.ticket.updated',
+          entityType: 'itsm.ticket',
+          entityId: t.id,
+          entityLabel: `${refOf(t)} ${t.title}`,
+          changes: changesLog,
+        },
+        { tx },
+      );
+      await this.ctx.events.publish(
+        'itsm.ticket.updated',
+        { ...this.ref(t), changes: Object.keys(changesLog) },
+        { tx },
+      );
+      return t;
+    });
   }
 
   async activities(

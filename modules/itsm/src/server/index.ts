@@ -6,6 +6,7 @@ import { records } from './records';
 import { routes } from './routes';
 import { seed } from './seed';
 import { services } from './services';
+import { sync } from './sync';
 
 /**
  * IT service management: incidents, service requests, problems and changes with CAB approval, SLA
@@ -75,6 +76,8 @@ export default defineServerModule(manifest, {
   search: (query, ctx, auth, limit) => services(ctx).tickets.search(query, auth, limit),
 
   records,
+
+  sync,
 
   seed,
 });

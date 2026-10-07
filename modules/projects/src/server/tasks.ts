@@ -72,6 +72,7 @@ import {
   type TaskRow,
   tasks,
 } from './schema';
+import { viaOf, writerOf } from './sync-support';
 import {
   actorOf,
   forbidden,
@@ -660,8 +661,16 @@ export class TaskService {
 
   /* ───────────── shared write helpers ───────────── */
 
-  private async record(tx: Db, taskId: string, actorId: string | null, entries: ActivityEntry[]) {
+  private async record(
+    tx: Db,
+    taskId: string,
+    actorId: string | null,
+    entries: ActivityEntry[],
+    actorName: string | null = null,
+  ) {
     if (!entries.length) return;
+    // A sync names its agent and the record it copied ("via Azure DevOps Bug 812").
+    const via = viaOf(this.ctx);
     await tx.insert(taskActivity).values(
       entries.map((e) => ({
         taskId,
@@ -670,6 +679,8 @@ export class TaskService {
         fromValue: e.from ?? null,
         toValue: e.to ?? null,
         actorId,
+        actorName: actorName ?? (actorId ? null : writerOf(this.ctx)),
+        via,
       })),
     );
   }
@@ -1156,6 +1167,8 @@ export class TaskService {
       id: c.id,
       body: c.body,
       author: personRef(c.authorId ? people.get(c.authorId) : null),
+      authorName: c.authorName,
+      via: c.via ? { connection: c.via.connection, ref: c.via.ref, url: c.via.url } : null,
       createdAt: c.createdAt,
       editedAt: c.editedAt,
       canEdit: mine && access.canComment,
@@ -1178,18 +1191,37 @@ export class TaskService {
     return rows.map((c) => this.toComment(c, people, auth, access));
   }
 
-  async addComment(ref: string, body: string, auth: AuthContext) {
+  /**
+   * Adds a comment. `opts.author` is a person of another system (a sync copying their comment): they are
+   * named on it, and `opts.at` keeps the time they wrote it.
+   */
+  async addComment(
+    ref: string,
+    body: string,
+    auth: AuthContext,
+    opts: { author?: { name: string; email?: string | null }; at?: Date } = {},
+  ) {
     const { task, project, access } = await this.load(ref, auth);
     if (!access.canComment) throw forbidden('Only project members can comment');
-    const actor = actorOf(auth);
+    const remote = opts.author;
+    const actor = remote ? null : actorOf(auth);
+    const now = new Date();
     const comment = await this.ctx.transaction(async (tx) => {
       const [row] = await tx
         .insert(taskComments)
-        .values({ taskId: task.id, authorId: actor, body })
+        .values({
+          taskId: task.id,
+          authorId: actor,
+          authorName: remote?.name ?? null,
+          authorEmail: remote?.email ?? null,
+          via: viaOf(this.ctx),
+          body,
+          ...(opts.at && opts.at < now ? { createdAt: opts.at } : {}),
+        })
         .returning();
       const c = row!;
-      await tx.update(tasks).set({ updatedAt: new Date() }).where(eq(tasks.id, task.id));
-      await this.record(tx, task.id, actor, [{ kind: 'comment', to: c.id }]);
+      await tx.update(tasks).set({ updatedAt: now }).where(eq(tasks.id, task.id));
+      await this.record(tx, task.id, actor, [{ kind: 'comment', to: c.id }], remote?.name ?? null);
       await this.ctx.audit.record(
         {
           action: 'projects.task.commented',
@@ -1218,7 +1250,7 @@ export class TaskService {
             params: {
               reference,
               title: task.title,
-              author: author?.name ?? auth.principal.name,
+              author: remote?.name ?? author?.name ?? auth.principal.name,
               excerpt: body.length > 200 ? `${body.slice(0, 197)}…` : body,
             },
             href: taskHref(reference),
@@ -1337,6 +1369,8 @@ export class TaskService {
       fromLabel: label(r, r.fromValue),
       toLabel: label(r, r.toValue),
       actor: personRef(r.actorId ? people.get(r.actorId) : null),
+      actorName: r.actorName,
+      via: r.via ? { connection: r.via.connection, ref: r.via.ref, url: r.via.url } : null,
       createdAt: r.createdAt,
     }));
   }

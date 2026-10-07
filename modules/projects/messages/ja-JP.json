@@ -12,7 +12,9 @@
     "use": "社内プロジェクトを表示し、所属するプロジェクトのタスクを作業する",
     "create": "プロジェクトを作成する (作成者がマネージャーになります)",
     "portfolioRead": "非公開を含むすべてのプロジェクトを表示する",
-    "admin": "すべてのプロジェクトを管理する"
+    "admin": "すべてのプロジェクトを管理する",
+    "projectsSync": "統合を通じてプロジェクトを書き込む (プロジェクトの開始には引き続き提案の承認が必要)",
+    "tasksSync": "統合を通じてタスクとそのコメントを書き込む"
   },
   "settings": {
     "hoursPerWeek": "週あたりの作業時間",
@@ -666,5 +668,31 @@
     "nothing": "自分に割り当てられた未完了のタスクはありません。",
     "nothingDue": "今週が期限のタスクはありません。",
     "more": "{count, plural, other {今週期限のタスクがほかに # 件}}"
+  },
+  "sync": {
+    "entities": {
+      "project": "プロジェクト",
+      "task": "タスク"
+    },
+    "fields": {
+      "name": "名前",
+      "description": "説明",
+      "startDate": "開始日",
+      "targetDate": "目標日",
+      "status": "状態",
+      "ref": "参照番号",
+      "type": "種類",
+      "title": "タイトル",
+      "priority": "優先度",
+      "assignee": "担当者",
+      "parent": "親",
+      "milestone": "マイルストーン",
+      "dueDate": "期限",
+      "estimateHours": "見積もり (時間)",
+      "remainingHours": "残り作業 (時間)",
+      "labels": "ラベル"
+    },
+    "via": "{system} {reference} 経由",
+    "addedVia": "{system} {reference} 経由で追加"
   }
 }

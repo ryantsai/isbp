@@ -25,6 +25,7 @@ import {
   ArchiveIcon,
   ArchiveRestoreIcon,
   ArrowLeftIcon,
+  ArrowLeftRightIcon,
   CalendarClockIcon,
   ClockIcon,
   FileQuestionIcon,
@@ -308,7 +309,12 @@ export default function ArticlePage({ params }: WebPageProps) {
             <Translations article={article} />
           </FadeIn>
 
-          {source && (
+          {source?.type === 'integration' ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <ArrowLeftRightIcon className="size-4 text-primary" aria-hidden />
+              <span>{t('article.syncedFrom', { reference: source.reference ?? source.id })}</span>
+            </p>
+          ) : source ? (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <SparklesIcon className="size-4 text-primary" aria-hidden />
               {sourceLink ? (
@@ -322,7 +328,7 @@ export default function ArticlePage({ params }: WebPageProps) {
                 <span>{t('article.generatedFrom', { reference: source.reference ?? source.id })}</span>
               )}
             </p>
-          )}
+          ) : null}
 
           <StateBanner article={article} />
 

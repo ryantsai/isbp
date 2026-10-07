@@ -3,11 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Docker-free Postgres + Redis for local development",
+  "description": "Docker-free Postgres + Redis (and the integration mocks) for local development",
   "scripts": {
     "start": "tsx src/index.ts"
   },
   "dependencies": {
+    "@isbp/integration-mocks": "workspace:*",
     "embedded-postgres": "18.4.0-beta.17",
     "redis-memory-server": "^0.17.1"
   },

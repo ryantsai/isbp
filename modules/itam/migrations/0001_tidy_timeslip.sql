@@ -1,0 +1,1 @@
+ALTER TABLE "itam"."asset_events" ADD COLUMN "via" jsonb;

@@ -3,14 +3,22 @@
     "name": "應用程式",
     "description": "應用程式清冊、環境、發行版本與部署紀錄，並與變更管理連動"
   },
-  "nav": { "group": "應用程式", "applications": "應用程式", "releases": "發行行事曆" },
-  "entities": { "application": "應用程式", "release": "發行版本" },
+  "nav": {
+    "group": "應用程式",
+    "applications": "應用程式",
+    "releases": "發行行事曆"
+  },
+  "entities": {
+    "application": "應用程式",
+    "release": "發行版本"
+  },
   "permissions": {
     "appsRead": "檢視應用程式、環境、發行版本與部署紀錄",
     "appsManage": "建立與編輯任何應用程式、環境與程式碼儲存庫",
     "releasesManage": "建立與編輯任何應用程式的發行版本",
     "deploymentsCreate": "記錄部署（人員與 CI/CD API 用戶端）",
-    "deploymentsOverride": "略過正式環境部署的變更政策（列入稽核日誌）"
+    "deploymentsOverride": "略過正式環境部署的變更政策（列入稽核日誌）",
+    "repositoriesSync": "透過整合寫入程式碼儲存庫及其 Git 狀態"
   },
   "settings": {
     "requireChange": "正式環境部署須有已核准的變更",
@@ -60,14 +68,24 @@
     "sunsetting": "逐步淘汰",
     "retired": "已退役"
   },
-  "criticality": { "critical": "關鍵", "high": "高", "medium": "中", "low": "低" },
+  "criticality": {
+    "critical": "關鍵",
+    "high": "高",
+    "medium": "中",
+    "low": "低"
+  },
   "disposition": {
     "tolerate": "維持（Tolerate）",
     "invest": "投資（Invest）",
     "migrate": "遷移（Migrate）",
     "eliminate": "淘汰（Eliminate）"
   },
-  "hosting": { "on_prem": "地端", "cloud": "雲端", "saas": "SaaS", "hybrid": "混合" },
+  "hosting": {
+    "on_prem": "地端",
+    "cloud": "雲端",
+    "saas": "SaaS",
+    "hybrid": "混合"
+  },
   "classification": {
     "public": "公開",
     "internal": "內部",
@@ -101,7 +119,10 @@
     "failed": "失敗",
     "rolled_back": "已回復"
   },
-  "source": { "manual": "由人員記錄", "api": "透過 API 記錄" },
+  "source": {
+    "manual": "由人員記錄",
+    "api": "透過 API 記錄"
+  },
   "duration": {
     "seconds": "{s} 秒",
     "minutes": "{m} 分鐘",
@@ -178,7 +199,11 @@
     "createTitle": "新增應用程式",
     "editTitle": "編輯 {name}",
     "hint": "負責人與交付團隊成員之後可以自行編輯所屬的應用程式。",
-    "sections": { "identity": "應用程式", "ownership": "負責單位", "details": "詳細資料" },
+    "sections": {
+      "identity": "應用程式",
+      "ownership": "負責單位",
+      "details": "詳細資料"
+    },
     "namePlaceholder": "例如 財務 ERP",
     "nameRequired": "請輸入應用程式名稱",
     "codeHint": "小寫英文、數字與連字號；用於頁面網址，也是 CI/CD 管線送出的代碼。",
@@ -196,7 +221,8 @@
     "httpsOnly": "請使用 https:// 連結",
     "retireBeforeGoLive": "退役日期早於上線日期",
     "created": "已新增 {name}",
-    "saved": "已儲存應用程式"
+    "saved": "已儲存應用程式",
+    "httpOrHttps": "請使用 http:// 或 https:// 連結"
   },
   "ciPicker": {
     "placeholder": "搜尋 CMDB…",
@@ -212,7 +238,12 @@
     "recordDeployment": "記錄部署",
     "inProduction": "正式環境執行 {version}",
     "unassigned": "未指派",
-    "tabs": { "overview": "總覽", "releases": "發行版本", "deployments": "部署紀錄", "settings": "設定" },
+    "tabs": {
+      "overview": "總覽",
+      "releases": "發行版本",
+      "deployments": "部署紀錄",
+      "settings": "設定"
+    },
     "ownership": "負責單位",
     "details": "詳細資料",
     "ci": "CMDB",
@@ -403,7 +434,7 @@
     "repositoriesHint": "原始碼儲存庫。之後的 Azure DevOps 同步會自動帶入最新的 commit。",
     "addRepository": "新增程式碼儲存庫",
     "editRepository": "編輯 {name}",
-    "repositoryDialogHint": "請使用 https 的 clone 或瀏覽網址。",
+    "repositoryDialogHint": "請使用 clone 或瀏覽網址（https；未啟用 TLS 的伺服器可用 http）。",
     "noRepositories": "尚無程式碼儲存庫。",
     "deleteRepoTitle": "要移除 {name} 嗎？",
     "deleteRepoBody": "只會移除連結，不會影響儲存庫本身。",
@@ -453,5 +484,33 @@
     "description": "你負責或交付的 {count, plural, other {# 個應用程式}}即將發行的版本",
     "open": "行事曆",
     "none": "未來三週沒有預定的發行。"
+  },
+  "sync": {
+    "entities": {
+      "repository": "程式碼儲存庫"
+    },
+    "fields": {
+      "name": "名稱",
+      "url": "URL",
+      "provider": "服務提供者",
+      "defaultBranch": "預設分支",
+      "lastCommitSha": "最新認可",
+      "lastCommitAt": "最新認可時間",
+      "lastCommitMessage": "最新認可訊息",
+      "lastCommitAuthor": "最新認可作者",
+      "branches": "分支",
+      "pullRequests": "進行中的提取要求"
+    }
+  },
+  "git": {
+    "lastCommit": "最新認可",
+    "branches": "{count, plural, other {# 個分支}}",
+    "showBranches": "顯示分支",
+    "hideBranches": "隱藏分支",
+    "defaultBranch": "預設",
+    "pullRequests": "{count, plural, =0 {沒有進行中的提取要求} other {# 個進行中的提取要求}}",
+    "draft": "草稿",
+    "mergeInto": "{source} 合併至 {target}",
+    "synced": "同步於"
   }
 }

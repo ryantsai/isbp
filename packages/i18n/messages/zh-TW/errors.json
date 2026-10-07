@@ -62,5 +62,14 @@
   "JOB_RUNNING": "作業正在執行。請等待完成或先取消。",
   "REVEAL_EXPIRED": "此認證已顯示過或已過期。",
   "REVIEW_CLOSED": "此存取權檢閱已關閉。",
-  "generic": "發生錯誤。"
+  "generic": "發生錯誤。",
+  "NOT_SUPPORTED": "連接的系統不支援此操作。",
+  "REMOTE_AUTH_FAILED": "連接的系統拒絕了此連線的認證資訊，請在連線設定中檢查。",
+  "REMOTE_RATE_LIMITED": "連接的系統正在限制要求數量，同步稍後會自動重試。",
+  "REMOTE_CONFLICT": "此記錄同時在連接的系統中被變更，將重新比對。",
+  "REMOTE_REJECTED": "連接的系統拒絕了此變更。",
+  "WEBHOOK_INVALID": "Webhook 密鑰遺失或不正確。",
+  "SYNC_RUNNING": "此設定檔的同步正在執行中。",
+  "CONFLICT_RESOLVED": "已有人解決了此衝突。",
+  "INSECURE_HTTP": "此連線使用未加密的 HTTP。請改用 HTTPS，或為此連線開啟「允許不安全的 HTTP」。"
 }

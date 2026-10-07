@@ -70,6 +70,7 @@ import {
   taskDependencies,
   tasks,
 } from './schema';
+import { viaOf, writerOf } from './sync-support';
 import {
   actorOf,
   forbidden,
@@ -384,6 +385,9 @@ export class ProjectService {
       allocationPct: r.member.allocationPct,
       active: r.status === 'active',
       isOwner: r.member.userId === project.ownerId,
+      via: r.member.via
+        ? { connection: r.member.via.connection, ref: r.member.via.ref, url: r.member.via.url }
+        : null,
     }));
   }
 
@@ -469,6 +473,8 @@ export class ProjectService {
         to: u.toValue,
         note: u.note,
         author: personRef(u.authorId ? people.get(u.authorId) : null),
+        authorName: u.authorName,
+        via: u.via ? { connection: u.via.connection, ref: u.via.ref, url: u.via.url } : null,
         createdAt: u.createdAt,
       })),
       labels,
@@ -524,8 +530,10 @@ export class ProjectService {
       throw forbidden('Creating projects needs projects.projects.create');
     const actor = actorOf(auth);
     const ownerId = input.ownerId ?? actor;
-    if (!ownerId) throw invalid('ownerId', 'Choose the project manager');
-    await this.assertPerson(ownerId, 'ownerId');
+    // A project a sync brings in from another system (e.g. an Azure DevOps team project) may have no
+    // manager yet; everyone else names one.
+    if (!ownerId && !viaOf(this.ctx)) throw invalid('ownerId', 'Choose the project manager');
+    if (ownerId) await this.assertPerson(ownerId, 'ownerId');
     if (input.departmentId) await this.assertDepartment(input.departmentId);
     this.assertDates(input.startDate, input.targetDate);
     const [taken] = await this.ctx.db
@@ -556,9 +564,10 @@ export class ProjectService {
           .returning();
         const project = row!;
         const managers = [...new Set([ownerId, actor].filter((x): x is string => Boolean(x)))];
-        await tx
-          .insert(members)
-          .values(managers.map((userId) => ({ projectId: project.id, userId, role: 'manager' as const })));
+        if (managers.length)
+          await tx
+            .insert(members)
+            .values(managers.map((userId) => ({ projectId: project.id, userId, role: 'manager' as const })));
         await this.ctx.audit.record(
           {
             action: 'projects.project.created',
@@ -574,7 +583,7 @@ export class ProjectService {
           { projectId: project.id, key: project.key, name: project.name, ownerId },
           { tx },
         );
-        if (ownerId !== actor)
+        if (ownerId && ownerId !== actor)
           await this.ctx.notifications.notify(
             {
               type: 'projects.member.added',
@@ -936,6 +945,8 @@ export class ProjectService {
         toValue: input.status,
         note: comment,
         authorId: actor,
+        authorName: actor ? null : writerOf(this.ctx),
+        via: viaOf(this.ctx),
       });
       await this.ctx.audit.record(
         {
@@ -1087,6 +1098,7 @@ export class ProjectService {
           userId: input.userId,
           role: input.role,
           allocationPct: input.allocationPct,
+          via: viaOf(this.ctx),
         });
         await this.ctx.audit.record(
           {

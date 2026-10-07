@@ -8,111 +8,144 @@ extension point is in [api-reference.md](api-reference.md) and [recipes.md](reci
 
 ## Modules
 
-| Module          | Name            | Depends on          | Description                                                                                                                                |
-| --------------- | --------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `core`          | Core platform   | —                   | Identity, access control, audit and the module system that every other module builds on.                                                   |
-| `alm`           | Applications    | `cmdb`, `itsm`      | Application inventory, environments, releases and deployments, linked to change management                                                 |
-| `announcements` | Announcements   | —                   | Service notices, maintenance windows and incident updates for everyone.                                                                    |
-| `cmdb`          | CMDB            | —                   | Configuration items, how they relate and what an outage would impact                                                                       |
-| `dbaccess`      | Database access | —                   | Request database roles on SQL Server, Oracle and PostgreSQL: approval, automated provisioning, time-bound access, access reviews and drift |
-| `etl`           | Data APIs & ETL | —                   | REST endpoints from parameterized SQL and stored procedures, and ETL pipelines between databases                                           |
-| `helpdesk-ai`   | Helpdesk AI     | `itsm`, `knowledge` | AI triage, similar tickets, grounded reply drafts, summaries and the self-service virtual agent.                                           |
-| `itam`          | Assets          | `cmdb`              | Hardware, software licences, contracts and vendors                                                                                         |
-| `itsm`          | Service desk    | `cmdb`              | Incidents, service requests, problems and changes with SLAs                                                                                |
-| `knowledge`     | Knowledge base  | —                   | Answers and how-to guides for everyone, troubleshooting guides for the service desk.                                                       |
-| `projects`      | Projects        | —                   | Projects, tasks, milestones, boards, timelines and workload                                                                                |
-| `scheduler`     | Scheduled jobs  | —                   | HTTP calls, SQL tasks, sandboxed scripts and module tasks on a schedule, with retries, run history, live logs and alerts                   |
+| Module          | Name                              | Depends on          | Description                                                                                                                                |
+| --------------- | --------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `core`          | Core platform                     | —                   | Identity, access control, audit and the module system that every other module builds on.                                                   |
+| `alm`           | Applications                      | `cmdb`, `itsm`      | Application inventory, environments, releases and deployments, linked to change management                                                 |
+| `announcements` | Announcements                     | —                   | Service notices, maintenance windows and incident updates for everyone.                                                                    |
+| `azdo`          | Azure DevOps Server (on-premises) | —                   | Connects the Integrations Hub to a self-hosted Azure DevOps Server collection: team projects, work items and Git repositories.             |
+| `cmdb`          | CMDB                              | —                   | Configuration items, how they relate and what an outage would impact                                                                       |
+| `dbaccess`      | Database access                   | —                   | Request database roles on SQL Server, Oracle and PostgreSQL: approval, automated provisioning, time-bound access, access reviews and drift |
+| `etl`           | Data APIs & ETL                   | —                   | REST endpoints from parameterized SQL and stored procedures, and ETL pipelines between databases                                           |
+| `helpdesk-ai`   | Helpdesk AI                       | `itsm`, `knowledge` | AI triage, similar tickets, grounded reply drafts, summaries and the self-service virtual agent.                                           |
+| `integrations`  | Integrations                      | —                   | Connections to outside systems, sync profiles with field mappings, two-way sync, runs, linked records and conflicts                        |
+| `itam`          | Assets                            | `cmdb`              | Hardware, software licences, contracts and vendors                                                                                         |
+| `itsm`          | Service desk                      | `cmdb`              | Incidents, service requests, problems and changes with SLAs                                                                                |
+| `knowledge`     | Knowledge base                    | —                   | Answers and how-to guides for everyone, troubleshooting guides for the service desk.                                                       |
+| `projects`      | Projects                          | —                   | Projects, tasks, milestones, boards, timelines and workload                                                                                |
+| `scheduler`     | Scheduled jobs                    | —                   | HTTP calls, SQL tasks, sandboxed scripts and module tasks on a schedule, with retries, run history, live logs and alerts                   |
+| `sdp`           | ServiceDesk Plus                  | —                   | Connects a self-hosted ManageEngine ServiceDesk Plus server to the Integrations Hub: requests, problems, changes, assets and solutions.    |
+
+## Sync entities and connectors
+
+What the Integrations Hub can sync (adapters, `manifest.syncEntities`) and connect to (connectors,
+`manifest.connectors`). Details per module below.
+
+| Kind        | Key                 | Module      | Name                              |
+| ----------- | ------------------- | ----------- | --------------------------------- |
+| sync entity | `alm.repository`    | `alm`       | Repositories                      |
+| sync entity | `itam.asset`        | `itam`      | Hardware assets                   |
+| sync entity | `itsm.ticket`       | `itsm`      | Tickets                           |
+| sync entity | `itsm.change`       | `itsm`      | Changes                           |
+| sync entity | `knowledge.article` | `knowledge` | Knowledge articles                |
+| sync entity | `projects.project`  | `projects`  | Projects                          |
+| sync entity | `projects.task`     | `projects`  | Tasks                             |
+| connector   | `azdo.server`       | `azdo`      | Azure DevOps Server (on-premises) |
+| connector   | `sdp.server`        | `sdp`       | ServiceDesk Plus (on-premises)    |
 
 ## Web slots
 
 Hosts render `<Slot name=… props=… />`; modules contribute with `defineWebModule({ slots })`. Template names
 (`${…}`) are families: contribute the concrete name, e.g. `scheduler.task-config.etl.pipeline`.
 
-| Slot                                  | Hosted in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Contributed by                                                                                                                                                                  |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cmdb.ci.related`                     | `modules/cmdb/src/web/pages/detail-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | alm (alm.apps.read), itam (itam.hardware.read), itsm (itsm.tickets.read)                                                                                                        |
-| `core.dashboard.work`                 | `apps/web/src/components/dashboard/dashboard-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                            | alm (alm.apps.read), dbaccess (dbaccess.self.request), itam (itam.hardware.manage), itsm (itsm.tickets.work), projects (projects.projects.use), scheduler (scheduler.jobs.read) |
-| `core.record.files`                   | `apps/web/src/components/records/record-files.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/itsm/src/web/ticket/requester-view.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx`      | —                                                                                                                                                                               |
-| `core.record.links`                   | `apps/web/src/components/records/linked-records.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/projects/src/web/project/overview-tab.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx` | —                                                                                                                                                                               |
-| `core.requests.assist`                | `apps/web/src/components/requests/requests-home.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                              | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                              |
-| `core.user.overview`                  | `apps/web/src/components/users/user-detail-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                              | dbaccess (dbaccess.self.request), itam (itam.hardware.read)                                                                                                                     |
-| `itsm.ticket.aside`                   | `modules/itsm/src/web/ticket/agent-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | alm (alm.apps.read), helpdesk-ai (helpdesk-ai.assist.use)                                                                                                                       |
-| `knowledge.home.assist`               | `modules/knowledge/src/web/pages/home-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                              |
-| `scheduler.task-config.dbaccess.sync` | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | dbaccess (dbaccess.servers.manage)                                                                                                                                              |
-| `scheduler.task-config.etl.pipeline`  | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | etl (etl.pipelines.run)                                                                                                                                                         |
+| Slot                                        | Hosted in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Contributed by                                                                                                                                                                  |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cmdb.ci.related`                           | `modules/cmdb/src/web/pages/detail-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | alm (alm.apps.read), itam (itam.hardware.read), itsm (itsm.tickets.read)                                                                                                        |
+| `core.dashboard.work`                       | `apps/web/src/components/dashboard/dashboard-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                            | alm (alm.apps.read), dbaccess (dbaccess.self.request), itam (itam.hardware.manage), itsm (itsm.tickets.work), projects (projects.projects.use), scheduler (scheduler.jobs.read) |
+| `core.record.files`                         | `apps/web/src/components/records/record-files.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/itsm/src/web/ticket/requester-view.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx`      | —                                                                                                                                                                               |
+| `core.record.links`                         | `apps/web/src/components/records/linked-records.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/projects/src/web/project/overview-tab.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx` | integrations                                                                                                                                                                    |
+| `core.requests.assist`                      | `apps/web/src/components/requests/requests-home.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                              | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                              |
+| `core.user.overview`                        | `apps/web/src/components/users/user-detail-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                              | dbaccess (dbaccess.self.request), itam (itam.hardware.read)                                                                                                                     |
+| `integrations.connector-config.${type}`     | `modules/integrations/src/web/connection/connection-sheet.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                    | —                                                                                                                                                                               |
+| `integrations.connector-config.azdo.server` | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | azdo                                                                                                                                                                            |
+| `integrations.connector-config.sdp.server`  | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | sdp                                                                                                                                                                             |
+| `itsm.ticket.aside`                         | `modules/itsm/src/web/ticket/agent-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | alm (alm.apps.read), helpdesk-ai (helpdesk-ai.assist.use)                                                                                                                       |
+| `knowledge.home.assist`                     | `modules/knowledge/src/web/pages/home-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                              |
+| `scheduler.task-config.dbaccess.sync`       | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | dbaccess (dbaccess.servers.manage)                                                                                                                                              |
+| `scheduler.task-config.etl.pipeline`        | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | etl (etl.pipelines.run)                                                                                                                                                         |
+| `scheduler.task-config.integrations.sync`   | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | integrations (integrations.connections.manage)                                                                                                                                  |
 
 ## Error codes
 
 Throw `new HttpError(status, ErrorCodes.X, message, details)`. The UI translates by code (`errors.json`).
 
-| Code                          | Message (en)                                                                       |
-| ----------------------------- | ---------------------------------------------------------------------------------- |
-| `ACCOUNT_INACTIVE`            | This account is not active. Contact your administrator.                            |
-| `ACCOUNT_LOCKED`              | Too many failed attempts. Try again in a few minutes.                              |
-| `AI_BUDGET_EXCEEDED`          | This month's AI budget has been used up.                                           |
-| `AI_NOT_CONFIGURED`           | No AI model is set up yet. An administrator can add one under Administration → AI. |
-| `AI_PROVIDER_ERROR`           | The AI service didn't respond. Try again in a moment.                              |
-| `ALREADY_GRANTED`             | This person already has this access.                                               |
-| `BAD_REQUEST`                 | The request was not valid.                                                         |
-| `CHANGE_REQUIRED`             | A production deployment needs an approved change.                                  |
-| `COMMENT_REQUIRED`            | Add a comment to explain your decision.                                            |
-| `CONFIRMATION_REQUIRED`       | Confirm this action before it runs.                                                |
-| `CONFLICT`                    | That conflicts with existing data.                                                 |
-| `CONNECTION_DISABLED`         | That database connection is disabled.                                              |
-| `CONNECTION_PURPOSE`          | That database connection can't be used for this.                                   |
-| `CONNECTION_READ_ONLY`        | That database connection is read-only.                                             |
-| `CSRF_INVALID`                | Your session token is out of date. Reload the page and try again.                  |
-| `DATABASE_ERROR`              | The database returned an error.                                                    |
-| `DELEGATION_NOT_ALLOWED`      | This approval can't be delegated.                                                  |
-| `DELIVERY_FAILED`             | The message couldn't be delivered.                                                 |
-| `DUPLICATE_REQUEST`           | There's already an open request for this access.                                   |
-| `DURATION_TOO_LONG`           | That's longer than this access can be granted for.                                 |
-| `EMAIL_NOT_CONFIGURED`        | Email isn't set up yet.                                                            |
-| `ENDPOINT_NOT_PUBLISHED`      | This Data API has no published version yet.                                        |
-| `ENDPOINT_RETIRED`            | This version of the Data API is retired.                                           |
-| `FILE_REJECTED`               | That file can't be uploaded.                                                       |
-| `FILE_TOO_LARGE`              | That file is too large.                                                            |
-| `FORBIDDEN`                   | You don't have permission to do that.                                              |
-| `FORM_NOT_AVAILABLE`          | This form isn't available right now.                                               |
-| `HAS_CHILDREN`                | Move or delete the sub-departments first.                                          |
-| `INTERNAL`                    | Something went wrong on our side.                                                  |
-| `INVALID_CLIENT`              | The client ID or secret is incorrect, or the client was revoked.                   |
-| `INVALID_CREDENTIALS`         | Incorrect username or password.                                                    |
-| `INVALID_DELEGATE`            | That person can't take this approval. Choose someone else.                         |
-| `INVALID_PARENT`              | A department can't be moved under itself.                                          |
-| `INVALID_STATE`               | That isn't possible in the current state.                                          |
-| `INVALID_TRANSITION`          | That status change isn't possible from the current status.                         |
-| `IN_USE`                      | This is still in use. Remove it from where it's used first.                        |
-| `JOB_CYCLE`                   | Those dependencies would make the job wait for itself.                             |
-| `JOB_RUNNING`                 | The job is running. Wait for it to finish or cancel it first.                      |
-| `MODULE_DEPENDENCY`           | Other modules depend on this one — change them first.                              |
-| `MODULE_DISABLED`             | This module is currently disabled.                                                 |
-| `NOT_FOUND`                   | That item no longer exists.                                                        |
-| `NOT_REQUESTABLE`             | This access can't be requested.                                                    |
-| `PASSWORD_MANAGED_EXTERNALLY` | This password is managed by the identity provider.                                 |
-| `PRINCIPAL_OFFBOARDED`        | This person has been offboarded.                                                   |
-| `PRIVILEGE_ESCALATION`        | You can only grant permissions you hold yourself.                                  |
-| `RATE_LIMITED`                | You're going a bit fast. Please wait a moment.                                     |
-| `RELATIONSHIP_INVALID`        | That relationship isn't allowed.                                                   |
-| `RESOLUTION_REQUIRED`         | Describe the resolution first.                                                     |
-| `REVEAL_EXPIRED`              | This credential was already shown or has expired.                                  |
-| `REVIEW_CLOSED`               | This access review is closed.                                                      |
-| `SANDBOX_UNAVAILABLE`         | Scripts can't run here: no sandbox is configured, or the image isn't allowed.      |
-| `SCHEDULE_CONFLICT`           | That time window isn't available.                                                  |
-| `SELF_LOCKOUT`                | That would lock you out of your own account or access.                             |
-| `SYSTEM_GROUP`                | System groups can't be changed this way.                                           |
-| `SYSTEM_MODULE`               | System modules can't be disabled.                                                  |
-| `SYSTEM_ROLE_READONLY`        | System roles are managed by their module and can't be changed.                     |
-| `TARGET_BLOCKED`              | That address isn't allowed.                                                        |
-| `TASK_NOT_PENDING`            | This approval has already been handled.                                            |
-| `TEST_REQUIRED`               | Run a successful test of the current draft before publishing.                      |
-| `UNAUTHENTICATED`             | Your session has expired. Please sign in again.                                    |
-| `UPSTREAM_FAILED`             | The remote service couldn't be reached.                                            |
-| `VALIDATION_FAILED`           | Some fields need your attention.                                                   |
-| `WEBHOOK_TARGET_INVALID`      | The webhook URL must use HTTPS and can't point at a private network.               |
-| `WORKFLOW_INVALID`            | The workflow has problems that need fixing before it can be published.             |
-| `WORKFLOW_NOT_CONFIGURED`     | No approval workflow is set up for this yet. Ask an administrator to publish one.  |
-| `WRITES_NOT_ALLOWED`          | This SQL changes data. Turn on "Allows writes" to save it.                         |
+| Code                          | Message (en)                                                                                                            |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `ACCOUNT_INACTIVE`            | This account is not active. Contact your administrator.                                                                 |
+| `ACCOUNT_LOCKED`              | Too many failed attempts. Try again in a few minutes.                                                                   |
+| `AI_BUDGET_EXCEEDED`          | This month's AI budget has been used up.                                                                                |
+| `AI_NOT_CONFIGURED`           | No AI model is set up yet. An administrator can add one under Administration → AI.                                      |
+| `AI_PROVIDER_ERROR`           | The AI service didn't respond. Try again in a moment.                                                                   |
+| `ALREADY_GRANTED`             | This person already has this access.                                                                                    |
+| `BAD_REQUEST`                 | The request was not valid.                                                                                              |
+| `CHANGE_REQUIRED`             | A production deployment needs an approved change.                                                                       |
+| `COMMENT_REQUIRED`            | Add a comment to explain your decision.                                                                                 |
+| `CONFIRMATION_REQUIRED`       | Confirm this action before it runs.                                                                                     |
+| `CONFLICT`                    | That conflicts with existing data.                                                                                      |
+| `CONFLICT_RESOLVED`           | Someone has already resolved this conflict.                                                                             |
+| `CONNECTION_DISABLED`         | That database connection is disabled.                                                                                   |
+| `CONNECTION_PURPOSE`          | That database connection can't be used for this.                                                                        |
+| `CONNECTION_READ_ONLY`        | That database connection is read-only.                                                                                  |
+| `CSRF_INVALID`                | Your session token is out of date. Reload the page and try again.                                                       |
+| `DATABASE_ERROR`              | The database returned an error.                                                                                         |
+| `DELEGATION_NOT_ALLOWED`      | This approval can't be delegated.                                                                                       |
+| `DELIVERY_FAILED`             | The message couldn't be delivered.                                                                                      |
+| `DUPLICATE_REQUEST`           | There's already an open request for this access.                                                                        |
+| `DURATION_TOO_LONG`           | That's longer than this access can be granted for.                                                                      |
+| `EMAIL_NOT_CONFIGURED`        | Email isn't set up yet.                                                                                                 |
+| `ENDPOINT_NOT_PUBLISHED`      | This Data API has no published version yet.                                                                             |
+| `ENDPOINT_RETIRED`            | This version of the Data API is retired.                                                                                |
+| `FILE_REJECTED`               | That file can't be uploaded.                                                                                            |
+| `FILE_TOO_LARGE`              | That file is too large.                                                                                                 |
+| `FORBIDDEN`                   | You don't have permission to do that.                                                                                   |
+| `FORM_NOT_AVAILABLE`          | This form isn't available right now.                                                                                    |
+| `HAS_CHILDREN`                | Move or delete the sub-departments first.                                                                               |
+| `INSECURE_HTTP`               | This connection uses plain HTTP, which isn't encrypted. Use HTTPS, or turn on “Allow insecure HTTP” for the connection. |
+| `INTERNAL`                    | Something went wrong on our side.                                                                                       |
+| `INVALID_CLIENT`              | The client ID or secret is incorrect, or the client was revoked.                                                        |
+| `INVALID_CREDENTIALS`         | Incorrect username or password.                                                                                         |
+| `INVALID_DELEGATE`            | That person can't take this approval. Choose someone else.                                                              |
+| `INVALID_PARENT`              | A department can't be moved under itself.                                                                               |
+| `INVALID_STATE`               | That isn't possible in the current state.                                                                               |
+| `INVALID_TRANSITION`          | That status change isn't possible from the current status.                                                              |
+| `IN_USE`                      | This is still in use. Remove it from where it's used first.                                                             |
+| `JOB_CYCLE`                   | Those dependencies would make the job wait for itself.                                                                  |
+| `JOB_RUNNING`                 | The job is running. Wait for it to finish or cancel it first.                                                           |
+| `MODULE_DEPENDENCY`           | Other modules depend on this one — change them first.                                                                   |
+| `MODULE_DISABLED`             | This module is currently disabled.                                                                                      |
+| `NOT_FOUND`                   | That item no longer exists.                                                                                             |
+| `NOT_REQUESTABLE`             | This access can't be requested.                                                                                         |
+| `NOT_SUPPORTED`               | The connected system doesn't support this.                                                                              |
+| `PASSWORD_MANAGED_EXTERNALLY` | This password is managed by the identity provider.                                                                      |
+| `PRINCIPAL_OFFBOARDED`        | This person has been offboarded.                                                                                        |
+| `PRIVILEGE_ESCALATION`        | You can only grant permissions you hold yourself.                                                                       |
+| `RATE_LIMITED`                | You're going a bit fast. Please wait a moment.                                                                          |
+| `RELATIONSHIP_INVALID`        | That relationship isn't allowed.                                                                                        |
+| `REMOTE_AUTH_FAILED`          | The connected system refused the connection's credentials. Check them in the connection settings.                       |
+| `REMOTE_CONFLICT`             | The record changed in the connected system at the same time. It will be compared again.                                 |
+| `REMOTE_RATE_LIMITED`         | The connected system is limiting requests. The sync will try again shortly.                                             |
+| `REMOTE_REJECTED`             | The connected system refused the change.                                                                                |
+| `RESOLUTION_REQUIRED`         | Describe the resolution first.                                                                                          |
+| `REVEAL_EXPIRED`              | This credential was already shown or has expired.                                                                       |
+| `REVIEW_CLOSED`               | This access review is closed.                                                                                           |
+| `SANDBOX_UNAVAILABLE`         | Scripts can't run here: no sandbox is configured, or the image isn't allowed.                                           |
+| `SCHEDULE_CONFLICT`           | That time window isn't available.                                                                                       |
+| `SELF_LOCKOUT`                | That would lock you out of your own account or access.                                                                  |
+| `SYNC_RUNNING`                | A sync for this profile is already running.                                                                             |
+| `SYSTEM_GROUP`                | System groups can't be changed this way.                                                                                |
+| `SYSTEM_MODULE`               | System modules can't be disabled.                                                                                       |
+| `SYSTEM_ROLE_READONLY`        | System roles are managed by their module and can't be changed.                                                          |
+| `TARGET_BLOCKED`              | That address isn't allowed.                                                                                             |
+| `TASK_NOT_PENDING`            | This approval has already been handled.                                                                                 |
+| `TEST_REQUIRED`               | Run a successful test of the current draft before publishing.                                                           |
+| `UNAUTHENTICATED`             | Your session has expired. Please sign in again.                                                                         |
+| `UPSTREAM_FAILED`             | The remote service couldn't be reached.                                                                                 |
+| `VALIDATION_FAILED`           | Some fields need your attention.                                                                                        |
+| `WEBHOOK_INVALID`             | The webhook secret is missing or wrong.                                                                                 |
+| `WEBHOOK_TARGET_INVALID`      | The webhook URL must use HTTPS and can't point at a private network.                                                    |
+| `WORKFLOW_INVALID`            | The workflow has problems that need fixing before it can be published.                                                  |
+| `WORKFLOW_NOT_CONFIGURED`     | No approval workflow is set up for this yet. Ask an administrator to publish one.                                       |
+| `WRITES_NOT_ALLOWED`          | This SQL changes data. Turn on "Allows writes" to save it.                                                              |
 
 ## `core` — Core platform
 
@@ -341,6 +374,7 @@ Application inventory, environments, releases and deployments, linked to change 
 | `alm.releases.manage`      | global | Create and edit releases of any application                      |
 | `alm.deployments.create`   | global | Record deployments (people and CI/CD API clients)                |
 | `alm.deployments.override` | global | Override the change policy for a production deployment (audited) |
+| `alm.repositories.sync`    | global | Write repositories and their Git status through integrations     |
 
 ### Roles
 
@@ -359,6 +393,8 @@ Application inventory, environments, releases and deployments, linked to change 
 | `alm.application.created`          | applicationId: string, code: string, name: string, stage: string                                                                                                                        | An application was added to the inventory                                                                 |
 | `alm.application.updated`          | applicationId: string, code: string, name: string, changes: array                                                                                                                       | Fields of an application changed (names of the changed fields; `environments` / `repositories` for those) |
 | `alm.application.stage_changed`    | applicationId: string, code: string, name: string, from: string, to: string                                                                                                             | An application moved through its lifecycle (e.g. into production, or retired)                             |
+| `alm.repository.created`           | applicationId: string, code: string, name: string, repositoryId: string, repository: string                                                                                             | A repository was added to an application (by a person or a sync with the Git server)                      |
+| `alm.repository.updated`           | applicationId: string, code: string, name: string, repositoryId: string, repository: string, changes: array                                                                             | A repository changed, e.g. its Git status (names of the changed fields)                                   |
 | `alm.release.created`              | applicationId: string, code: string, name: string, releaseId: string, version: string, status: string                                                                                   | —                                                                                                         |
 | `alm.release.updated`              | applicationId: string, code: string, name: string, releaseId: string, version: string, changes: array                                                                                   | —                                                                                                         |
 | `alm.release.status_changed`       | applicationId: string, code: string, name: string, releaseId: string, version: string, from: string, to: string                                                                         | —                                                                                                         |
@@ -377,6 +413,12 @@ Application inventory, environments, releases and deployments, linked to change 
 | ----------------- | ----------- | --------------- |
 | `alm.application` | Application | `alm.apps.read` |
 | `alm.release`     | Release     | `alm.apps.read` |
+
+### Sync entities (Integrations Hub)
+
+| Entity           | Name         | Permission              | Container         | Change events                                      | Comment events |
+| ---------------- | ------------ | ----------------------- | ----------------- | -------------------------------------------------- | -------------- |
+| `alm.repository` | Repositories | `alm.repositories.sync` | `alm.application` | `alm.repository.created`, `alm.repository.updated` | —              |
 
 ### Notifications
 
@@ -508,6 +550,22 @@ Service notices, maintenance windows and incident updates for everyone.
 | Job                          | Schedule    | Description                                             |
 | ---------------------------- | ----------- | ------------------------------------------------------- |
 | `announcements:expire-posts` | every 300 s | Archives published announcements whose window has ended |
+
+## `azdo` — Azure DevOps Server (on-premises)
+
+Connects the Integrations Hub to a self-hosted Azure DevOps Server collection: team projects, work items and Git repositories.
+
+### Connectors (Integrations Hub)
+
+| Connector     | Name                              | Settings                                  | Secrets     | Objects                                                                                                                                                             |
+| ------------- | --------------------------------- | ----------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `azdo.server` | Azure DevOps Server (on-premises) | collectionUrl: string, apiVersion: string | pat: string | `project` → projects.project; `work-item` → projects.task (create, update, comments, webhooks, hierarchy), scoped; `repository` → alm.repository (webhooks), scoped |
+
+### Slots contributed
+
+| Slot                                        | Permission |
+| ------------------------------------------- | ---------- |
+| `integrations.connector-config.azdo.server` | —          |
 
 ## `cmdb` — CMDB
 
@@ -889,23 +947,109 @@ Helpdesk AI: `itsm.tickets.read` `itsm.tickets.triage` `knowledge.articles.read`
 | `core.requests.assist`  | `helpdesk-ai.chat.use`   |
 | `knowledge.home.assist` | `helpdesk-ai.chat.use`   |
 
+## `integrations` — Integrations
+
+Connections to outside systems, sync profiles with field mappings, two-way sync, runs, linked records and conflicts
+
+### Permissions
+
+| Key                               | Scopes | Description                                                        |
+| --------------------------------- | ------ | ------------------------------------------------------------------ |
+| `integrations.connections.read`   | global | See connections, sync profiles, runs, linked records and conflicts |
+| `integrations.connections.manage` | global | Add, edit and test connections, set up sync profiles and run syncs |
+| `integrations.conflicts.resolve`  | global | Resolve sync conflicts                                             |
+
+### Roles
+
+| Key                   | Name                       | Permissions                     | Everyone |
+| --------------------- | -------------------------- | ------------------------------- | -------- |
+| `integrations-viewer` | Integrations viewer        | `integrations.connections.read` | —        |
+| `integrations-admin`  | Integrations administrator | `integrations.*` `*.*.sync`     | —        |
+
+### Events emitted
+
+| Event                             | Payload                                                                                                                                        | Description                                                                  |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `integrations.connection.created` | connectionId: string, name: string, type: string                                                                                               | —                                                                            |
+| `integrations.connection.updated` | connectionId: string, name: string, type: string, changes: array                                                                               | Settings, credentials, the webhook secret or the enabled flag changed        |
+| `integrations.connection.deleted` | connectionId: string, name: string, type: string                                                                                               | —                                                                            |
+| `integrations.profile.created`    | profileId: string, connectionId: string, name: string, entity: string, objectType: string, direction: string                                   | —                                                                            |
+| `integrations.profile.updated`    | profileId: string, connectionId: string, name: string, entity: string, objectType: string, direction: string, changes: array                   | —                                                                            |
+| `integrations.profile.deleted`    | profileId: string, connectionId: string, name: string, entity: string, objectType: string, direction: string                                   | —                                                                            |
+| `integrations.run.finished`       | runId: string, profileId: string, connectionId: string, kind: string, trigger: string, status: string, counts: object                          | A sync run ended (succeeded, partial or failed)                              |
+| `integrations.conflict.created`   | conflictId: string, linkId: string, profileId: string, connectionId: string, entity: string, localId: string, remoteRef: string, fields: array | Both sides changed the same fields differently and the profile asks a person |
+| `integrations.conflict.resolved`  | conflictId: string, linkId: string, profileId: string, connectionId: string, entity: string, localId: string, outcome: string, choices: object | Someone picked a side per field (resolved) or kept both values (dismissed)   |
+
+### Task types (Scheduled jobs)
+
+| Type                | Name             | Permission                        | Config            |
+| ------------------- | ---------------- | --------------------------------- | ----------------- |
+| `integrations.sync` | Integration sync | `integrations.connections.manage` | profileId: string |
+
+### Notifications
+
+| Type                              | Default channels | Mandatory |
+| --------------------------------- | ---------------- | --------- |
+| `integrations.connection.failing` | inApp, email     | —         |
+| `integrations.conflict.created`   | inApp            | —         |
+
+### AI agent identity
+
+Integrations Hub: `*.*.sync`
+
+### Navigation
+
+| Label          | Path                      | Section | Group        | Order | Permission                      |
+| -------------- | ------------------------- | ------- | ------------ | ----- | ------------------------------- |
+| Integrations   | `/integrations`           | admin   | Integrations | 70    | `integrations.connections.read` |
+| Sync conflicts | `/integrations/conflicts` | admin   | Integrations | 71    | `integrations.connections.read` |
+
+### Web routes
+
+| Path                                                | Permission                        |
+| --------------------------------------------------- | --------------------------------- |
+| `/integrations`                                     | `integrations.connections.read`   |
+| `/integrations/conflicts`                           | `integrations.connections.read`   |
+| `/integrations/runs/:id`                            | `integrations.connections.read`   |
+| `/integrations/connections/:id/profiles/new`        | `integrations.connections.manage` |
+| `/integrations/connections/:id/profiles/:profileId` | `integrations.connections.read`   |
+| `/integrations/connections/:id`                     | `integrations.connections.read`   |
+
+### Slots contributed
+
+| Slot                                      | Permission                        |
+| ----------------------------------------- | --------------------------------- |
+| `core.record.links`                       | —                                 |
+| `scheduler.task-config.integrations.sync` | `integrations.connections.manage` |
+
+### Background jobs
+
+| Job                              | Schedule    | Description                                                                                                       |
+| -------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| `integrations:check-connections` | every 900 s | Every 15 minutes: tests each enabled connection and purges runs older than 30 days                                |
+| `integrations:pull`              | on demand   | Executes a sync run (pull, export or resync; a rate-limited run continues here)                                   |
+| `integrations:push`              | on demand   | Pushes the queued local changes of one profile (batched into one run)                                             |
+| `integrations:tick`              | every 60 s  | Every minute: starts due scheduled pulls, fails runs whose worker stopped, re-queues lost runs and stalled pushes |
+| `integrations:webhook-items`     | on demand   | Re-reads the records a webhook named (the body is never trusted for data)                                         |
+
 ## `itam` — Assets
 
 Hardware, software licences, contracts and vendors
 
 ### Permissions
 
-| Key                     | Scopes             | Description                                                         |
-| ----------------------- | ------------------ | ------------------------------------------------------------------- |
-| `itam.hardware.read`    | global, department | See hardware assets (everywhere, or of a department and its people) |
-| `itam.hardware.manage`  | global             | Register, assign, return and retire hardware; request disposal      |
-| `itam.software.read`    | global             | See software licences, seats and installs                           |
-| `itam.software.manage`  | global             | Manage software licences and their seats                            |
-| `itam.licenses.reveal`  | global             | Reveal licence keys (audited)                                       |
-| `itam.contracts.read`   | global             | See contracts                                                       |
-| `itam.contracts.manage` | global             | Manage contracts, renewals and what they cover                      |
-| `itam.self.read`        | global             | See the devices and software assigned to you                        |
-| `itam.config.manage`    | global             | Manage the model catalogue and vendors                              |
+| Key                     | Scopes             | Description                                                                     |
+| ----------------------- | ------------------ | ------------------------------------------------------------------------------- |
+| `itam.hardware.read`    | global, department | See hardware assets (everywhere, or of a department and its people)             |
+| `itam.hardware.manage`  | global             | Register, assign, return and retire hardware; request disposal                  |
+| `itam.software.read`    | global             | See software licences, seats and installs                                       |
+| `itam.software.manage`  | global             | Manage software licences and their seats                                        |
+| `itam.licenses.reveal`  | global             | Reveal licence keys (audited)                                                   |
+| `itam.contracts.read`   | global             | See contracts                                                                   |
+| `itam.contracts.manage` | global             | Manage contracts, renewals and what they cover                                  |
+| `itam.self.read`        | global             | See the devices and software assigned to you                                    |
+| `itam.config.manage`    | global             | Manage the model catalogue and vendors                                          |
+| `itam.assets.sync`      | global             | Write hardware assets through integrations (disposal only through the approval) |
 
 ### Roles
 
@@ -946,6 +1090,12 @@ Hardware, software licences, contracts and vendors
 | `itam.asset`    | Hardware asset   | `itam.hardware.read`  |
 | `itam.license`  | Software licence | `itam.software.read`  |
 | `itam.contract` | Contract         | `itam.contracts.read` |
+
+### Sync entities (Integrations Hub)
+
+| Entity       | Name            | Permission         | Container | Change events                                                                                                                                | Comment events |
+| ------------ | --------------- | ------------------ | --------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `itam.asset` | Hardware assets | `itam.assets.sync` | —         | `itam.asset.created`, `itam.asset.updated`, `itam.asset.status_changed`, `itam.asset.assigned`, `itam.asset.returned`, `itam.asset.disposed` | —              |
 
 ### Workflow triggers
 
@@ -1038,17 +1188,19 @@ Incidents, service requests, problems and changes with SLAs
 
 ### Permissions
 
-| Key                    | Scopes             | Description                                                           |
-| ---------------------- | ------------------ | --------------------------------------------------------------------- |
-| `itsm.tickets.create`  | global             | Report issues and follow your own tickets                             |
-| `itsm.tickets.read`    | global, department | See all tickets                                                       |
-| `itsm.tickets.work`    | global, department | Work tickets: assign, update, add work notes and resolve              |
-| `itsm.tickets.triage`  | global             | Set a ticket's category, priority and assignment                      |
-| `itsm.problems.manage` | global             | Investigate problems and record known errors                          |
-| `itsm.changes.read`    | global             | See changes and the change calendar                                   |
-| `itsm.changes.manage`  | global             | Raise, plan and schedule changes                                      |
-| `itsm.reports.read`    | global             | See service desk reports                                              |
-| `itsm.config.manage`   | global             | Configure categories, SLA policies, calendars and the service catalog |
+| Key                    | Scopes             | Description                                                                           |
+| ---------------------- | ------------------ | ------------------------------------------------------------------------------------- |
+| `itsm.tickets.create`  | global             | Report issues and follow your own tickets                                             |
+| `itsm.tickets.read`    | global, department | See all tickets                                                                       |
+| `itsm.tickets.work`    | global, department | Work tickets: assign, update, add work notes and resolve                              |
+| `itsm.tickets.triage`  | global             | Set a ticket's category, priority and assignment                                      |
+| `itsm.problems.manage` | global             | Investigate problems and record known errors                                          |
+| `itsm.changes.read`    | global             | See changes and the change calendar                                                   |
+| `itsm.changes.manage`  | global             | Raise, plan and schedule changes                                                      |
+| `itsm.reports.read`    | global             | See service desk reports                                                              |
+| `itsm.config.manage`   | global             | Configure categories, SLA policies, calendars and the service catalog                 |
+| `itsm.tickets.sync`    | global             | Write incidents, service requests and problems through integrations                   |
+| `itsm.changes.sync`    | global             | Write changes through integrations (past CAB authorization only through the approval) |
 
 ### Roles
 
@@ -1091,6 +1243,13 @@ Incidents, service requests, problems and changes with SLAs
 | ------------- | ------ | ------------------- |
 | `itsm.ticket` | Ticket | `itsm.tickets.read` |
 | `itsm.change` | Change | `itsm.changes.read` |
+
+### Sync entities (Integrations Hub)
+
+| Entity        | Name    | Permission          | Container | Change events                                                                                                             | Comment events          |
+| ------------- | ------- | ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `itsm.ticket` | Tickets | `itsm.tickets.sync` | —         | `itsm.ticket.created`, `itsm.ticket.updated`, `itsm.ticket.assigned`, `itsm.ticket.status_changed`, `itsm.ticket.triaged` | `itsm.ticket.commented` |
+| `itsm.change` | Changes | `itsm.changes.sync` | —         | `itsm.ticket.created`, `itsm.ticket.updated`, `itsm.ticket.assigned`, `itsm.ticket.status_changed`                        | `itsm.ticket.commented` |
 
 ### Workflow triggers
 
@@ -1187,13 +1346,14 @@ Answers and how-to guides for everyone, troubleshooting guides for the service d
 
 ### Permissions
 
-| Key                                | Scopes | Description                                                   |
-| ---------------------------------- | ------ | ------------------------------------------------------------- |
-| `knowledge.articles.read`          | global | Read published self-service articles                          |
-| `knowledge.articles.read-internal` | global | Read internal (agents-only) articles                          |
-| `knowledge.articles.write`         | global | Write drafts, edit your own drafts and submit them for review |
-| `knowledge.articles.publish`       | global | Publish, retire and restore articles, and edit any article    |
-| `knowledge.categories.manage`      | global | Create, edit and delete knowledge categories                  |
+| Key                                | Scopes | Description                                                                         |
+| ---------------------------------- | ------ | ----------------------------------------------------------------------------------- |
+| `knowledge.articles.read`          | global | Read published self-service articles                                                |
+| `knowledge.articles.read-internal` | global | Read internal (agents-only) articles                                                |
+| `knowledge.articles.write`         | global | Write drafts, edit your own drafts and submit them for review                       |
+| `knowledge.articles.publish`       | global | Publish, retire and restore articles, and edit any article                          |
+| `knowledge.categories.manage`      | global | Create, edit and delete knowledge categories                                        |
+| `knowledge.articles.sync`          | global | Write articles through integrations (publishing still needs the publish permission) |
 
 ### Roles
 
@@ -1223,6 +1383,12 @@ Answers and how-to guides for everyone, troubleshooting guides for the service d
 | Type                | Name              | Permission                |
 | ------------------- | ----------------- | ------------------------- |
 | `knowledge.article` | Knowledge article | `knowledge.articles.read` |
+
+### Sync entities (Integrations Hub)
+
+| Entity              | Name               | Permission                | Container | Change events                                                                                                                                       | Comment events |
+| ------------------- | ------------------ | ------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `knowledge.article` | Knowledge articles | `knowledge.articles.sync` | —         | `knowledge.article.created`, `knowledge.article.updated`, `knowledge.article.submitted`, `knowledge.article.published`, `knowledge.article.retired` | —              |
 
 ### Workflow triggers
 
@@ -1290,12 +1456,14 @@ Projects, tasks, milestones, boards, timelines and workload
 
 ### Permissions
 
-| Key                        | Scopes | Description                                                           |
-| -------------------------- | ------ | --------------------------------------------------------------------- |
-| `projects.projects.use`    | global | See internal projects and work on tasks of the projects you belong to |
-| `projects.projects.create` | global | Create projects (you become their manager)                            |
-| `projects.portfolio.read`  | global | See every project, including private ones                             |
-| `projects.projects.admin`  | global | Manage any project                                                    |
+| Key                        | Scopes | Description                                                                                |
+| -------------------------- | ------ | ------------------------------------------------------------------------------------------ |
+| `projects.projects.use`    | global | See internal projects and work on tasks of the projects you belong to                      |
+| `projects.projects.create` | global | Create projects (you become their manager)                                                 |
+| `projects.portfolio.read`  | global | See every project, including private ones                                                  |
+| `projects.projects.admin`  | global | Manage any project                                                                         |
+| `projects.projects.sync`   | global | Write projects through integrations (a project still starts through its proposal approval) |
+| `projects.tasks.sync`      | global | Write tasks and their comments through integrations                                        |
 
 ### Roles
 
@@ -1335,6 +1503,13 @@ Projects, tasks, milestones, boards, timelines and workload
 | ------------------ | ------- | ----------------------- |
 | `projects.project` | Project | `projects.projects.use` |
 | `projects.task`    | Task    | `projects.projects.use` |
+
+### Sync entities (Integrations Hub)
+
+| Entity             | Name     | Permission               | Container          | Change events                                                                                              | Comment events            |
+| ------------------ | -------- | ------------------------ | ------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `projects.project` | Projects | `projects.projects.sync` | —                  | `projects.project.created`, `projects.project.updated`, `projects.project.status_changed`                  | —                         |
+| `projects.task`    | Tasks    | `projects.tasks.sync`    | `projects.project` | `projects.task.created`, `projects.task.updated`, `projects.task.status_changed`, `projects.task.assigned` | `projects.task.commented` |
 
 ### Workflow triggers
 
@@ -1513,3 +1688,19 @@ HTTP calls, SQL tasks, sandboxed scripts and module tasks on a schedule, with re
 | `scheduler:execute-run` | on demand                | Runs one attempt of a job run (retries, timeouts and cancellation are handled by the engine)                      |
 | `scheduler:purge`       | `20 3 * * * Asia/Taipei` | Daily: deletes runs and logs older than the retention period (keeps each job’s latest run)                        |
 | `scheduler:tick`        | every 30 s               | Every 30 s: starts due scheduled runs, logs missed slots, fails runs whose worker stopped and re-queues lost runs |
+
+## `sdp` — ServiceDesk Plus
+
+Connects a self-hosted ManageEngine ServiceDesk Plus server to the Integrations Hub: requests, problems, changes, assets and solutions.
+
+### Connectors (Integrations Hub)
+
+| Connector    | Name                           | Settings                                                    | Secrets        | Objects                                                                                                                                                                                                                                                     |
+| ------------ | ------------------------------ | ----------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sdp.server` | ServiceDesk Plus (on-premises) | baseUrl: string, portalId?: string, assetEndpoints?: object | apiKey: string | `request` → itsm.ticket (create, update, comments, webhooks); `problem` → itsm.ticket (create, update, webhooks); `change` → itsm.change (create, update, webhooks); `asset` → itam.asset (create, update); `solution` → knowledge.article (create, update) |
+
+### Slots contributed
+
+| Slot                                       | Permission |
+| ------------------------------------------ | ---------- |
+| `integrations.connector-config.sdp.server` | —          |

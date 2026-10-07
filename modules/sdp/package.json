@@ -1,0 +1,75 @@
+{
+  "name": "@isbp/module-sdp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ManageEngine ServiceDesk Plus (on-premises) connector for the Integrations Hub",
+  "type": "module",
+  "isbp": {
+    "module": true,
+    "id": "sdp"
+  },
+  "exports": {
+    "./manifest": "./src/manifest.ts",
+    "./contracts": "./src/contracts.ts",
+    "./server": "./src/server/index.ts",
+    "./web": "./src/web/index.tsx",
+    "./messages/*": "./messages/*"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@isbp/contracts": "workspace:*",
+    "@isbp/sdk": "workspace:*",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@isbp/ui": "workspace:*",
+    "fastify": "*",
+    "lucide-react": "*",
+    "next": "*",
+    "next-intl": "*",
+    "react": "*"
+  },
+  "peerDependenciesMeta": {
+    "@isbp/ui": {
+      "optional": true
+    },
+    "lucide-react": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    },
+    "next-intl": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@isbp/eslint-config": "workspace:*",
+    "@isbp/i18n": "workspace:*",
+    "@isbp/integration-mocks": "workspace:*",
+    "@isbp/module-itam": "workspace:*",
+    "@isbp/module-itsm": "workspace:*",
+    "@isbp/module-knowledge": "workspace:*",
+    "@isbp/tsconfig": "workspace:*",
+    "@isbp/ui": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "eslint": "catalog:",
+    "fastify": "catalog:",
+    "fastify-type-provider-zod": "catalog:",
+    "lucide-react": "catalog:",
+    "next": "catalog:",
+    "next-intl": "catalog:",
+    "react": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

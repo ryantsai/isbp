@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "name": "Azure DevOps Server (オンプレミス)",
+    "description": "統合ハブをセルフホストの Azure DevOps Server コレクションに接続します: チーム プロジェクト、作業項目、Git リポジトリ。"
+  },
+  "connector": {
+    "name": "Azure DevOps Server (オンプレミス)",
+    "description": "セルフホストの Azure DevOps Server (または 2022、2020、2019) のチーム プロジェクト、作業項目 (双方向、親とコメントを含む)、Git リポジトリの状態を同期します。"
+  },
+  "objects": {
+    "project": "チーム プロジェクト",
+    "work_item": "作業項目",
+    "repository": "Git リポジトリ"
+  },
+  "config": {
+    "server": "サーバー",
+    "collectionUrl": "コレクション URL",
+    "collectionUrlHint": "ブラウザーに表示されるプロジェクト コレクションの URL です (/tfs やポートの有無は問いません)。サーバーが対応していれば https:// を使用してください。",
+    "apiVersion": "REST API バージョン",
+    "apiVersionHint": "サーバーのバージョンを選択してください。サーバーより新しいバージョンは拒否されます。",
+    "versions": {
+      "7_2": "7.2 · Azure DevOps Server (2025 以降)",
+      "7_1": "7.1 · Azure DevOps Server 2022.1 または 2022.2",
+      "7_0": "7.0 · Azure DevOps Server 2022",
+      "6_0": "6.0 · Azure DevOps Server 2020",
+      "5_1": "5.1 · Azure DevOps Server 2019 Update 1",
+      "5_0": "5.0 · Azure DevOps Server 2019"
+    },
+    "signIn": "サインイン",
+    "pat": "個人用アクセス トークン",
+    "patHint": "すべての呼び出しで基本認証として送信されます。個人ではなくサービス アカウントで作成してください。",
+    "patStored": "保存済みです。変更しない場合は空欄のままにします。",
+    "patStoredPlaceholder": "保存済みのトークン",
+    "errors": {
+      "required": "コレクション URL を入力してください。",
+      "invalid": "https://ado.contoso.local/tfs/DefaultCollection のような完全な URL を入力してください。",
+      "credentials": "URL にユーザー名とパスワードを含めないでください。",
+      "version": "REST API バージョンを選択してください。",
+      "pat": "個人用アクセス トークンを入力してください。"
+    },
+    "help": {
+      "reqTitle": "接続の前に",
+      "reqVersion": "社内ネットワークにインストールされた Azure DevOps Server、2022、2020、または 2019。対応する REST API バージョンを選択してください。",
+      "reqPat": "サーバーが個人用アクセス トークンを受け付け、IIS の基本認証がオフになっている必要があります。Windows サインイン (NTLM または Kerberos) はサポートされていません。",
+      "reqHttps": "HTTPS を使用してください: Azure DevOps Server のドキュメントでは、個人用アクセス トークンは HTTPS が構成されたサーバーでのみ使用できるとされています。HTTP のみのサーバーでは、この接続で [安全でない HTTP を許可] を有効にする必要があり、トークンは暗号化されずに送信されます。",
+      "reqTls": "サーバー証明書が社内の証明機関によって発行されている場合、プラットフォームがその証明機関を信頼する必要があります: 管理者が NODE_EXTRA_CA_CERTS で追加します。",
+      "reqNetwork": "プラットフォームからサーバーのアドレスとポートに接続でき、サービス フックを使う場合はサーバーからプラットフォームに接続できる必要があります。",
+      "patTitle": "個人用アクセス トークンの作成方法",
+      "patStep1": "同期で使用するアカウント (svc-isbp などのサービス アカウント) で Azure DevOps Server にサインインします。",
+      "patStep2": "[ユーザー設定] → [個人用アクセス トークン] → [新しいトークン] を開き、このコレクションを選択します。",
+      "patStep3": "[スコープ] で [カスタム定義] を選択し、次を選択します:",
+      "scopeWorkItems": "作業項目: 読み取りと書き込み",
+      "scopeCode": "コード: 読み取り",
+      "scopeProject": "プロジェクトとチーム: 読み取り",
+      "patStep4": "トークンを上の欄に貼り付けます。トークンには有効期限があります。期限前に新しいトークンを作成し、ここに貼り付けてください。",
+      "hooksTitle": "変更をすぐに送信する方法 (サービス フック)",
+      "hooksIntro": "サービス フックがない場合、変更は次回のスケジュール同期で取り込まれます。設定すると、Azure DevOps が変更されたレコードを統合ハブに通知し、統合ハブが API で読み取ります。",
+      "hooksStep1": "各チーム プロジェクトで [プロジェクトの設定] → [サービス フック] → [サブスクリプションの作成] → [Web Hooks] を開きます。",
+      "hooksStep2": "次のイベントごとにサブスクリプションを 1 つ作成します:",
+      "hooksStep3": "URL には、この接続の概要に表示される Webhook URL を設定します。",
+      "hooksStep4": "[HTTP ヘッダー] に、概要に表示される Webhook シークレットを追加します:",
+      "hooksStep5": "[送信するリソースの詳細] を [最小] にし、[テスト] と [完了] を選択します。",
+      "hooksNote": "統合ハブは呼び出しのたびにシークレットを確認し、通知は読み取る対象を知るためだけに使います。シークレットを更新したら、サブスクリプションも更新してください。",
+      "hooksNetwork": "サービス フックは社内ネットワーク内の Azure DevOps Server から送信されるため、サーバーから Webhook URL に接続できる必要があります。",
+      "secretPlaceholder": "webhook-シークレット",
+      "events": {
+        "workitem_created": "作業項目の作成",
+        "workitem_updated": "作業項目の更新",
+        "workitem_deleted": "作業項目の削除",
+        "workitem_restored": "作業項目の復元",
+        "workitem_commented": "作業項目へのコメント",
+        "git_push": "コードのプッシュ",
+        "git_pullrequest_created": "プル リクエストの作成",
+        "git_pullrequest_updated": "プル リクエストの更新",
+        "git_pullrequest_merged": "プル リクエストのマージ試行"
+      }
+    }
+  }
+}

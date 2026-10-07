@@ -265,6 +265,8 @@ export const assetEventSchema = z.object({
     .object({ id: id.nullable(), displayName: z.string(), avatarUrl: z.string().nullable() })
     .nullable(),
   note: z.string().nullable(),
+  /** Made by a sync with another system ("via ServiceDesk Plus #1234"). */
+  via: z.object({ connection: z.string(), ref: z.string(), url: z.string().nullable() }).nullable(),
   createdAt: dateTime,
 });
 export type AssetEvent = z.input<typeof assetEventSchema>;

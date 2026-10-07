@@ -5,8 +5,15 @@ import { Select as SelectPrimitive } from 'radix-ui';
 import type * as React from 'react';
 import { cn } from '../lib/utils';
 
-export const Select = (props: React.ComponentProps<typeof SelectPrimitive.Root>) => (
-  <SelectPrimitive.Root data-slot="select" {...props} />
+export const Select = ({ onValueChange, ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) => (
+  <SelectPrimitive.Root
+    data-slot="select"
+    {...props}
+    // Inside a form, Radix's hidden native <select> reports '' when the chosen option isn't rendered yet
+    // (options that load after the value), which would wipe the value. No item can have the value '', so a
+    // person never chooses it: ignore it.
+    onValueChange={onValueChange && ((v: string) => v !== '' && onValueChange(v))}
+  />
 );
 export const SelectGroup = SelectPrimitive.Group;
 export const SelectValue = (props: React.ComponentProps<typeof SelectPrimitive.Value>) => (

@@ -54,6 +54,7 @@ import {
 } from '../lifecycle';
 import { keywordTerms, rankDocuments } from '../rank';
 import { articles, articleVersions, categories, feedback } from './schema';
+import { viaOf } from './sync-support';
 
 export type ArticleRow = typeof articles.$inferSelect;
 type CategoryRow = typeof categories.$inferSelect;
@@ -194,6 +195,12 @@ const bodyLength = (s: string) => `${s.length} characters`;
 export class ArticleService {
   constructor(private readonly ctx: ModuleContext) {}
 
+  /** The caller's rights; a sync write (Integrations Hub) acts as the author of what it writes. */
+  private viewer(auth: AuthContext): Viewer {
+    const v = viewerOf(auth);
+    return viaOf(this.ctx) ? { ...v, syncAuthor: true } : v;
+  }
+
   /* ───────────── lookup ───────────── */
 
   private async byRef(ref: string, db: Db = this.ctx.db): Promise<ArticleRow | null> {
@@ -209,7 +216,7 @@ export class ArticleService {
   /** The article if the caller may see it; 404 otherwise (existence is not leaked). */
   async visible(ref: string, auth: AuthContext): Promise<ArticleRow> {
     const row = await this.byRef(ref);
-    if (!row || !canView(row, viewerOf(auth))) throw httpErrors.notFound('Article not found');
+    if (!row || !canView(row, this.viewer(auth))) throw httpErrors.notFound('Article not found');
     return row;
   }
 
@@ -425,7 +432,8 @@ export class ArticleService {
         issues: [{ path: 'translationOf', message: 'Pick another article' }],
       });
     const [target] = await this.ctx.db.select().from(articles).where(eq(articles.id, translationOf));
-    if (!target || !canView(target, viewerOf(auth))) throw httpErrors.notFound('Original article not found');
+    if (!target || !canView(target, this.viewer(auth)))
+      throw httpErrors.notFound('Original article not found');
     return target.translationGroupId;
   }
 
@@ -520,7 +528,7 @@ export class ArticleService {
   }
 
   async update(ref: string, input: z.output<typeof updateArticleSchema>, auth: AuthContext) {
-    const v = viewerOf(auth);
+    const v = this.viewer(auth);
     const before = await this.visible(ref, auth);
     if (!canEdit(before, v)) {
       if (before.status === 'in_review' && before.reviewInstanceId)
@@ -600,7 +608,7 @@ export class ArticleService {
     const row = await this.visible(ref, auth);
     const target = ACTION_TARGET[action];
     if (!canTransition(row.status, target)) throw invalidTransition(row.status, target);
-    if (!availableActions(row, viewerOf(auth)).includes(action)) {
+    if (!availableActions(row, this.viewer(auth)).includes(action)) {
       if (action === 'publish' && row.reviewInstanceId)
         throw new HttpError(409, ErrorCodes.INVALID_STATE, 'An approval workflow decides on this article');
       throw httpErrors.forbidden();
@@ -619,7 +627,7 @@ export class ArticleService {
       throw new HttpError(400, ErrorCodes.VALIDATION_FAILED, 'Write the article before submitting it', {
         issues: [{ path: 'body', message: 'Write the article before submitting it' }],
       });
-    const v = viewerOf(auth);
+    const v = this.viewer(auth);
     const category = await this.category(before.categoryId);
     return this.ctx.transaction(async (tx) => {
       const review = await this.ctx.workflows.start(

@@ -206,6 +206,9 @@ export function toRepository(r: RepoRow): RepositoryOut {
           author: r.lastCommitAuthor,
         }
       : null,
+    branches: r.branches ?? null,
+    pullRequests: r.pullRequests ?? null,
+    syncedAt: r.syncedAt,
     updatedAt: r.updatedAt,
   };
 }

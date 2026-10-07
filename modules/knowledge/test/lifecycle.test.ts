@@ -100,6 +100,30 @@ describe('who may do what', () => {
     expect(availableActions(article('retired'), editor)).toEqual(['restore']);
     expect(availableActions(article('published'), reader)).toEqual([]);
   });
+
+  it('lets a sync act as the author of the articles it writes, but never publish without the permission', () => {
+    const sync: Viewer = {
+      userId: null,
+      read: true,
+      readInternal: true,
+      write: true,
+      publish: false,
+      syncAuthor: true,
+    };
+    const someoneElses = article('draft', { ownerId: 'x' });
+    expect(canView(someoneElses, sync)).toBe(true);
+    expect(canEdit(someoneElses, sync)).toBe(true);
+    expect(availableActions(article('draft', { ownerId: null }), sync)).toEqual(['submit']);
+    expect(availableActions(article('in_review'), sync)).toEqual(['withdraw']);
+    expect(canEdit(article('published'), sync)).toBe(false);
+    expect(availableActions(article('published'), sync)).toEqual([]);
+    expect(availableActions(article('retired'), sync)).toEqual([]);
+    const publishing = { ...sync, publish: true };
+    expect(availableActions(article('in_review', { reviewInstanceId: 'wf' }), publishing)).toEqual([
+      'withdraw',
+    ]);
+    expect(availableActions(article('in_review'), publishing)).toEqual(['withdraw', 'publish']);
+  });
 });
 
 describe('search ranking', () => {

@@ -52,6 +52,9 @@ change.
 - An external database → `ctx.databases` with a connection an admin registered. An external HTTP API →
   `ctx.http`. Untrusted code → `ctx.sandbox`.
 - An AI assistant or agent should be able to do it → declare an **AI tool** (same permission as the route).
+- Your records should sync with an outside system (ServiceDesk Plus, Azure DevOps, …) → a **sync adapter**
+  (`manifest.syncEntities` + `sync`). A new outside system → a **connector** module (`manifest.connectors` +
+  `connectors`) with a stand-in in `tooling/integration-mocks`. The Integrations Hub connects the two.
 - A change to the platform itself (kernel, SDK, core pages) → `apps/api/src/kernel`, `apps/api/src/core`,
   `packages/*`. This needs more care: see "Platform changes" in [rules.md](rules.md).
 

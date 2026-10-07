@@ -1,9 +1,10 @@
 # IS Big Platform — Architecture
 
-> Status: Phase 3 (Asset Management, Project Management, Application Lifecycle, plus record links and
-> attachments) on top of Phase 2 (ITSM, CMDB, Knowledge Base, Helpdesk AI and the AI gateway), Phase 1
-> (workflows, forms, notifications, access requests, Role Query API) and the Phase 0 foundation. This document
-> is the design baseline that later phases extend.
+> Status: Phase 5 (Integrations Hub) done, on top of Phase 4 (Data APIs and ETL, Scheduled Jobs, Database
+> access), Phase 3 (Asset Management, Project Management, Application Lifecycle, record links and attachments),
+> Phase 2 (ITSM, CMDB, Knowledge Base, Helpdesk AI and the AI gateway), Phase 1 (workflows, forms, notifications,
+> access requests, Role Query API) and the Phase 0 foundation. Phase 6 (AI Agent) is next. This document is the
+> design baseline that later phases extend.
 
 ## 1. Shape of the system
 
@@ -16,7 +17,7 @@ flowchart LR
   subgraph Clients
     B["Browser<br/>(Next.js app shell)"]
     X["External apps<br/>(Role Query API, REST)"]
-    A["AI agents<br/>(MCP — Phase 5)"]
+    A["AI agents<br/>(MCP — Phase 6)"]
   end
 
   subgraph Edge["Ingress / Next.js proxy"]
@@ -31,7 +32,7 @@ flowchart LR
       M1["announcements<br/>(sample, via create-module)"]
       M2["cmdb · knowledge · itsm · helpdesk-ai<br/>(Phase 2), assets … (Phase 3+)"]
     end
-    GW["AI gateway (Phase 2)<br/>MCP (Phase 5)"]
+    GW["AI gateway (Phase 2)<br/>MCP (Phase 6)"]
     K --- Mods
     GW -. "same permissions" .- K
   end
@@ -378,25 +379,25 @@ labels for its audit actions. See [module-development.md](module-development.md)
 
 ## 5. Key technical decisions
 
-| #            | Decision                                                                                                                                                                  | Why                                                                                                                                                                                                                                               | Alternatives considered                                                                                                                                        |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1            | **pnpm workspaces + Turborepo**                                                                                                                                           | Convention-based, fast cached pipelines, `turbo prune` for lean Docker builds                                                                                                                                                                     | Nx (more powerful, more config)                                                                                                                                |
-| 2            | **Fastify 5** for the API                                                                                                                                                 | Encapsulated plugins map 1:1 to runtime-pluggable modules, so built-in and custom modules use the same SDK with no special cases. Zod type provider gives one schema for validation, TS types and OpenAPI 3.1. Low overhead, native pino logging. | NestJS: DI modules are a compile-time graph (awkward to enable/disable at runtime), decorator-heavy, and it duplicates validation (class-validator) beside Zod |
-| **3** (done) | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                |
-| 4            | **Zod 4 everywhere** (`@isbp/contracts`)                                                                                                                                  | One contract shared by API validation, OpenAPI, React Hook Form and manifest validation                                                                                                                                                           | Separate DTO/JSON-schema layers                                                                                                                                |
-| 5            | Integrations Hub (incl. two-way ManageEngine ServiceDesk Plus Cloud and Azure DevOps Server sync), MCP server, AI assistant everywhere                                    |
-| 6            | **SSO**: openid-client (OIDC, Entra ID preset), node-saml (SAML 2.0), ldapts (LDAP/AD bind + directory sync); argon2id for local                                          | Standards-based, provider configs stored in DB with AES-256-GCM-encrypted secrets                                                                                                                                                                 | Auth SaaS (not suitable for on-prem IT)                                                                                                                        |
-| 7            | **RBAC**: permission keys `module.resource.action` with wildcards; role assignments to users or groups, scoped global / department-subtree / record, with optional expiry | Covers least-privilege, time-bound access and Phase 1 Role Query API (`applications` already modelled)                                                                                                                                            | Pure ABAC engine (overkill for day one; scopes leave room for it)                                                                                              |
-| 8            | **Permission snapshots cached in Redis**, invalidated by a global `rbacVersion` counter                                                                                   | O(1) checks per request, correct invalidation across replicas                                                                                                                                                                                     | Per-request DB joins                                                                                                                                           |
-| 9            | **Transactional outbox → BullMQ** for domain events                                                                                                                       | Events commit atomically with data; BullMQ gives per-subscriber retries, backoff, concurrency and visibility                                                                                                                                      | In-memory emitter (lossy), Kafka (heavy for a monolith)                                                                                                        |
-| 10           | **Append-only audit log** enforced by DB trigger + per-row SHA-256                                                                                                        | Tamper-evident and immutable even against application bugs; partition by month later                                                                                                                                                              | App-level only                                                                                                                                                 |
-| 11           | **Installed vs enabled modules**: installed = compiled in via generated registries; enabled = runtime flag in DB with Redis pub/sub fan-out                               | Next.js and bundlers need modules at build time; admins still toggle at runtime without redeploys                                                                                                                                                 | Fully dynamic runtime loading (fragile, insecure)                                                                                                              |
-| 12           | **Next.js 16 App Router**, `proxy.ts` forwards `/api/*` at runtime (env-configurable), module pages served by one catch-all host route                                    | Same-origin cookies, no CORS, one image for every environment                                                                                                                                                                                     | Build-time rewrites (URL baked into image)                                                                                                                     |
-| 13           | **next-intl**, locale from user profile → cookie → `Accept-Language`; `en`, `zh-TW`, `ja-JP`; each module ships its own catalogs                                          | No locale URL prefix needed for an internal app; CI test keeps catalogs key-identical                                                                                                                                                             | i18next                                                                                                                                                        |
-| 14           | **shadcn/ui + Tailwind 4 + Motion** (`motion/react`, the Framer Motion successor)                                                                                         | Owned, accessible Radix components; `MotionConfig reducedMotion="user"` honours `prefers-reduced-motion` globally                                                                                                                                 | Component library lock-in                                                                                                                                      |
-| 15           | **OpenTelemetry + pino + prom-client**; metrics on a separate internal port                                                                                               | Standard signals; metrics never exposed via ingress                                                                                                                                                                                               | Vendor agents                                                                                                                                                  |
-| 16           | **UUIDv7 keys**                                                                                                                                                           | Time-ordered (B-tree friendly), safe to expose, generated app-side                                                                                                                                                                                | bigserial (enumerable), UUIDv4 (index churn)                                                                                                                   |
-| 17           | **Embedded dev services** (`pnpm dev:services`: embedded Postgres + Redis) besides docker-compose                                                                         | Contributors without Docker can run the whole stack                                                                                                                                                                                               | Docker-only                                                                                                                                                    |
+| #   | Decision                                                                                                                                                                  | Why                                                                                                                                                                                                                                                           | Alternatives considered                                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **pnpm workspaces + Turborepo**                                                                                                                                           | Convention-based, fast cached pipelines, `turbo prune` for lean Docker builds                                                                                                                                                                                 | Nx (more powerful, more config)                                                                                                                                |
+| 2   | **Fastify 5** for the API                                                                                                                                                 | Encapsulated plugins map 1:1 to runtime-pluggable modules, so built-in and custom modules use the same SDK with no special cases. Zod type provider gives one schema for validation, TS types and OpenAPI 3.1. Low overhead, native pino logging.             | NestJS: DI modules are a compile-time graph (awkward to enable/disable at runtime), decorator-heavy, and it duplicates validation (class-validator) beside Zod |
+| 3   | **Drizzle ORM + custom migration runner**                                                                                                                                 | Schema in TS split per module, Postgres schema per module, native JSONB/pgvector types, SQL-transparent for perf tuning. Our runner embeds migrations in the bundle, takes a Postgres advisory lock (safe with many replicas), and tracks per-module history. | Prisma: single schema/client, no per-module ownership, pgvector via `Unsupported`                                                                              |
+| 4   | **Zod 4 everywhere** (`@isbp/contracts`)                                                                                                                                  | One contract shared by API validation, OpenAPI, React Hook Form and manifest validation                                                                                                                                                                       | Separate DTO/JSON-schema layers                                                                                                                                |
+| 5   | **Server-side sessions** (opaque token, HttpOnly cookie, SHA-256 at rest) + double-submit CSRF token                                                                      | Instant revocation on offboarding / suspension, no token leakage in JS                                                                                                                                                                                        | JWT (hard to revoke)                                                                                                                                           |
+| 6   | **SSO**: openid-client (OIDC, Entra ID preset), node-saml (SAML 2.0), ldapts (LDAP/AD bind + directory sync); argon2id for local                                          | Standards-based, provider configs stored in DB with AES-256-GCM-encrypted secrets                                                                                                                                                                             | Auth SaaS (not suitable for on-prem IT)                                                                                                                        |
+| 7   | **RBAC**: permission keys `module.resource.action` with wildcards; role assignments to users or groups, scoped global / department-subtree / record, with optional expiry | Covers least-privilege, time-bound access and Phase 1 Role Query API (`applications` already modelled)                                                                                                                                                        | Pure ABAC engine (overkill for day one; scopes leave room for it)                                                                                              |
+| 8   | **Permission snapshots cached in Redis**, invalidated by a global `rbacVersion` counter                                                                                   | O(1) checks per request, correct invalidation across replicas                                                                                                                                                                                                 | Per-request DB joins                                                                                                                                           |
+| 9   | **Transactional outbox → BullMQ** for domain events                                                                                                                       | Events commit atomically with data; BullMQ gives per-subscriber retries, backoff, concurrency and visibility                                                                                                                                                  | In-memory emitter (lossy), Kafka (heavy for a monolith)                                                                                                        |
+| 10  | **Append-only audit log** enforced by DB trigger + per-row SHA-256                                                                                                        | Tamper-evident and immutable even against application bugs; partition by month later                                                                                                                                                                          | App-level only                                                                                                                                                 |
+| 11  | **Installed vs enabled modules**: installed = compiled in via generated registries; enabled = runtime flag in DB with Redis pub/sub fan-out                               | Next.js and bundlers need modules at build time; admins still toggle at runtime without redeploys                                                                                                                                                             | Fully dynamic runtime loading (fragile, insecure)                                                                                                              |
+| 12  | **Next.js 16 App Router**, `proxy.ts` forwards `/api/*` at runtime (env-configurable), module pages served by one catch-all host route                                    | Same-origin cookies, no CORS, one image for every environment                                                                                                                                                                                                 | Build-time rewrites (URL baked into image)                                                                                                                     |
+| 13  | **next-intl**, locale from user profile → cookie → `Accept-Language`; `en`, `zh-TW`, `ja-JP`; each module ships its own catalogs                                          | No locale URL prefix needed for an internal app; CI test keeps catalogs key-identical                                                                                                                                                                         | i18next                                                                                                                                                        |
+| 14  | **shadcn/ui + Tailwind 4 + Motion** (`motion/react`, the Framer Motion successor)                                                                                         | Owned, accessible Radix components; `MotionConfig reducedMotion="user"` honours `prefers-reduced-motion` globally                                                                                                                                             | Component library lock-in                                                                                                                                      |
+| 15  | **OpenTelemetry + pino + prom-client**; metrics on a separate internal port                                                                                               | Standard signals; metrics never exposed via ingress                                                                                                                                                                                                           | Vendor agents                                                                                                                                                  |
+| 16  | **UUIDv7 keys**                                                                                                                                                           | Time-ordered (B-tree friendly), safe to expose, generated app-side                                                                                                                                                                                            | bigserial (enumerable), UUIDv4 (index churn)                                                                                                                   |
+| 17  | **Embedded dev services** (`pnpm dev:services`: embedded Postgres + Redis) besides docker-compose                                                                         | Contributors without Docker can run the whole stack                                                                                                                                                                                                           | Docker-only                                                                                                                                                    |
 
 ## 6. Security model (Phase 0)
 
@@ -411,14 +412,15 @@ labels for its audit actions. See [module-development.md](module-development.md)
 
 ## 7. Delivery phases
 
-| Phase                     | Scope                                                                                                                                                                                                                                     |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0 – Foundation** (done) | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI |
-| **1** (done)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                |
-| **2** (done)              | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                     |
-| **3** (done)              | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                                                                                |
-| **4** (done)              | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                              |
-| 5                         | Integrations Hub (incl. two-way ManageEngine ServiceDesk Plus Cloud and Azure DevOps Server sync), MCP server, AI assistant everywhere                                                                                                    |
+| Phase                     | Scope                                                                                                                                                                                                                                                                      |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0 – Foundation** (done) | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI                                  |
+| **1** (done)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                                                 |
+| **2** (done)              | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                                                      |
+| **3** (done)              | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                                                                                                                 |
+| **4** (done)              | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                                                               |
+| **5** (done)              | Integrations Hub: two-way sync with on-premises ManageEngine ServiceDesk Plus and Azure DevOps Server (§12)                                                                                                                                                                |
+| 6 – AI Agent              | AI agents that customise the platform from a conversation (approval workflows, forms, custom fields, notifications, roles, scheduled jobs, Data APIs, sync mappings) as drafts a person reviews and applies; the assistant on every page; an MCP server for outside agents |
 
 ## 8. Phase 1 design: workflows, forms, notifications, access requests, Role Query API
 
@@ -1037,7 +1039,7 @@ reuse it.
 | 35  | Cross-module creation by navigation with `?link=` instead of calling another module's API       | The record is created in its owning module's own form, by the person, with its own validation and audit; nothing is attributed to an AI agent                                         | Tool registry calls from the UI (attributed to an agent)       |
 | 36  | ALM depends on ITSM and enforces the production change policy at write time                     | ITIL change control is only real if deployments can't bypass it; overrides are possible but audited and visible                                                                       | Advisory warnings only; a webhook from ITSM to ALM             |
 | 37  | Projects without hard dependencies                                                              | Teams can run projects without ITSM or ALM installed; links light up when those modules are on                                                                                        | `dependsOn: ['itsm']`                                          |
-| 38  | Data models mapped to Phase 5 sources up front (work item types and hierarchy, repositories)    | Two-way sync with Azure DevOps Server and ManageEngine ServiceDesk Plus Cloud won't need schema rework                                                                                | Retrofit in Phase 5                                            |
+| 38  | Data models mapped to Phase 5 sources up front (work item types and hierarchy, repositories)    | Two-way sync with Azure DevOps Server and ManageEngine ServiceDesk Plus (on-premises) won't need schema rework                                                                        | Retrofit in Phase 5                                            |
 
 ## 11. Phase 4 design: ETL/API Builder, Scheduled Jobs, Database Account Management
 
@@ -1362,3 +1364,298 @@ A module declares **task types** that Scheduled Jobs can run, just as it declare
 | 42  | DB-driven schedule (`next_run_at`, tick + `SKIP LOCKED`) with BullMQ for execution                          | Survives Redis loss, no double-fire across replicas, upcoming runs are a query, misfires are explicit                                                             | BullMQ repeatable jobs as the source of truth                |
 | 43  | Scripts only in container sandboxes (Kubernetes Jobs or Docker), never in the API/worker process            | Untrusted code is isolated from secrets and the network by default; dev has an explicit, labelled unsandboxed runner                                              | `vm`/isolates in-process; a shell on the worker              |
 | 44  | Generated database passwords delivered as a one-time reveal                                                 | Credentials never travel by email or chat and are readable once                                                                                                   | Emailing passwords; DBA hand-over                            |
+
+## 12. Phase 5 design: Integrations Hub (ServiceDesk Plus, Azure DevOps Server)
+
+Phase 5 connects ISBP to the systems it has to live beside: **ManageEngine ServiceDesk Plus** on premises (requests,
+problems, changes, assets, solutions) and **Azure DevOps Server** on premises (team projects, work items, Git
+repositories). Sync is **two-way** where the remote API allows it. The work splits along ownership:
+
+| Piece                                        | Owner                                       | What it does                                                                                                  |
+| -------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Sync adapters** (`ctx.sync`)               | the module that owns the data               | Describe an entity's fields, read records, write them with the module's own rules (state machines, approvals) |
+| **Connectors** (`ctx.connectors`)            | a module per outside system (`sdp`, `azdo`) | Read and write remote objects: auth, paging, change feeds, optimistic concurrency, comments, webhooks         |
+| **Integrations Hub** (module `integrations`) | the hub                                     | Connections, sync profiles, field mappings, links, the sync engine, runs, conflicts, the admin UI             |
+
+Neither side knows the other. A connector never imports ITSM, an adapter never knows ServiceDesk Plus exists, and the
+hub maps fields between them with mappings admins can edit. A custom module adds a sync entity or a connector with
+the same SDK.
+
+```mermaid
+flowchart LR
+  subgraph Remote["Outside systems"]
+    SDP["ServiceDesk Plus<br/>(on-premises, API key)"]
+    ADO["Azure DevOps Server<br/>(on-premises, PAT)"]
+  end
+  subgraph Conn["Connector modules"]
+    CS["sdp.server"]
+    CA["azdo.server"]
+  end
+  subgraph Hub["integrations"]
+    E["Sync engine<br/>pull · push · 3-way merge"]
+    L[("links · snapshots<br/>runs · conflicts")]
+  end
+  subgraph Data["Data modules (sync adapters)"]
+    T["itsm.ticket / itsm.change"]
+    A["itam.asset"]
+    K["knowledge.article"]
+    P["projects.project / projects.task"]
+    R["alm.repository"]
+  end
+  SDP <--> CS
+  ADO <--> CA
+  CS <-- "ctx.connectors" --> E
+  CA <-- "ctx.connectors" --> E
+  E <-- "ctx.sync" --> T & A & K & P & R
+  E --- L
+  SDP -. webhook .-> Hub
+  ADO -. "service hook" .-> Hub
+```
+
+### 12.1 Extension points (kernel)
+
+- **Sync entities.** A module declares `manifest.syncEntities: [{ entity, name, permission, events,
+commentEvents?, container? }]` and implements `defineServerModule({ sync: { [entity]: SyncAdapter } })`:
+  - `fields(ctx, { containerId })` returns the field catalogue: key, label, type (`string`, `text`, `markdown`,
+    `html`, `number`, `boolean`, `date`, `datetime`, `choice`, `tags`, `user`, `parent`, `json`), choices,
+    `required`, `readOnly`, `createOnly`.
+  - `read`, `readMany`, `list` (update order, paged), optional `findBy(field, value)` with `matchKeys` (natural
+    keys used to link records both sides already have).
+  - `write({ id?, containerId?, values }, { auth, tx, source })` writes in the hub's transaction, audits and
+    publishes the module's usual events. `source` names the connection and remote record, for history and audit.
+  - `idFromEvent(event)`, and `comments.list/add` when comments sync.
+  - The kernel checks the entity's `permission` (a dedicated `<module>.<resource>.sync` permission) and
+    validates values against the catalogue before the adapter runs: unknown, read-only, invalid-choice and (on
+    update) create-only fields are refused (422), never silently dropped.
+  - **A sync write is held to the module's rules, never to fewer.** A status that needs an approval (a change
+    moving to `scheduled`, an asset to `disposed`, a project to `active`) is refused with 409
+    `INVALID_TRANSITION`. Remote systems can't open a path round ISBP's approvals or ALM's change policy.
+- **Connectors.** A module declares `manifest.connectors: [{ type, name, config, secrets, objects }]` (Zod schemas
+  for settings and secrets; remote object types with their capabilities: create, update, comments, webhooks,
+  hierarchy, scoped) and implements `defineServerModule({ connectors: { [type]: ConnectorHandler } })`:
+  `hosts`, `test`, `scopes`, `fields`, `changes` (a change feed with an opaque cursor), `get`, `create`,
+  `update` (with `expectedVersion`), `comments`, `webhook`, `defaultMapping`.
+  - Every call gets a `ConnectorContext`: settings, opened secrets, a Redis cache scoped to the connection (OAuth
+    tokens), and `http`: `ctx.http` limited to the hosts `hosts(config)` returns. Those hosts may resolve to
+    private addresses (on-premises servers live there); link-local and metadata addresses never.
+  - Remote failures are typed: 502 `REMOTE_AUTH_FAILED`, 429 `REMOTE_RATE_LIMITED`, 409 `REMOTE_CONFLICT`,
+    422 `REMOTE_REJECTED`, 502 `UPSTREAM_FAILED`.
+- **Change routing.** Every event a sync entity lists in `events` or `commentEvents` is also delivered to modules
+  with `defineServerModule({ onSyncChange })`, with the entity and record id resolved by the adapter. The hub
+  pushes local changes from there, without listing other modules' events in its manifest.
+
+### 12.2 Hub data model (schema `integrations`)
+
+| Table           | Holds                                                                                                                                                                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `connections`   | Name, connector type, settings (JSON), secrets (sealed JSON; the API only says which keys are stored), webhook secret (SHA-256 only; shown once), enabled, health (`unknown`/`ok`/`failing` with message and the account the test reported), last check |
+| `profiles`      | One remote object type ↔ one sync entity: remote scope, local container, direction (`pull`/`push`/`both`), create locally / create remotely, push filter, match rule, field mappings, conflict policy, comments on/off, interval, cursor, enabled       |
+| `links`         | Local record ↔ remote record per profile: remote id, reference and URL, remote version, **snapshot** (the last agreed value of every mapped field, in both local and remote form), state (`ok`/`conflict`/`error`/`orphaned`), last error, last synced  |
+| `comment_links` | Local comment ↔ remote comment per link (idempotent comment sync, no echoes)                                                                                                                                                                            |
+| `runs`          | Each sync run: trigger (`schedule`/`manual`/`webhook`/`event`), status, counts (read, created, updated, pushed, conflicts, skipped, errors), a capped log with item references                                                                          |
+| `conflicts`     | Fields both sides changed: base, local and remote values, status (`open`/`resolved`/`dismissed`), the choice per field, who resolved it                                                                                                                 |
+
+External ids live only in the hub. Data modules keep no remote ids, so a record can be linked to several systems
+and unlinking never touches module tables.
+
+### 12.3 Sync engine
+
+- **Pull.** A minute tick enqueues profiles that are due; a run takes the profile's lock (one run at a time,
+  409 `SYNC_RUNNING`), reads `changes()` page by page from the stored cursor, and handles each remote record:
+  - unchanged version → skip;
+  - no link → `findBy` on the match rule (link, then merge from an empty snapshot: empty sides are filled,
+    differing values follow the conflict policy), else create locally when the profile allows it;
+  - linked → **three-way merge per field** against the snapshot: fields only the remote changed are written
+    locally, fields only ISBP changed are pushed (direction `both`), fields both changed with different values
+    follow the conflict policy (`remote` wins, `local` wins, `newest` wins, or `manual`: a conflict row, both
+    sides keep their value, everything else still merges).
+  - The adapter write, the link and its new snapshot commit in **one transaction**, and the cursor advances only
+    past fully handled records, so a crash replays at most one page.
+  - In a one-way profile the source side always wins. A field the remote record doesn't report at all (some
+    systems return certain fields only from another endpoint) is unknown, not empty: neither side is filled
+    from it.
+- **Push.** `onSyncChange` enqueues a push for the record. The push reads the local record, diffs it against the
+  snapshot, and updates the remote record with `expectedVersion`. `REMOTE_CONFLICT` re-reads the remote record and
+  runs the same merge. An unlinked record matching the push filter is created remotely when the profile allows it.
+- **No echoes.** Writes made by a sync update the snapshot in the same transaction, so the event they cause (and
+  the webhook the remote sends back) finds nothing new. `ctx.sync.write` returns the record as the module stored
+  it (read in the same transaction), and the snapshot keeps that: a module's normalization (a default resolution
+  note, "resolved" becoming "fulfilled" on a service request) isn't mistaken for a change made in ISBP.
+  Local changes queue in `pending_pushes` and are pushed in batches; a batch that only found echoes leaves no
+  run behind. Comparing against the snapshot also makes replays and
+  duplicate webhooks harmless.
+- **Webhooks.** `POST /api/v1/integrations/hooks/:connectionId` is public, needs the connection's secret
+  (`X-ISBP-Webhook-Secret` header or Basic password, compared in constant time; 401 `WEBHOOK_INVALID`), is rate
+  limited, and only says _which_ records changed: the hub re-reads them through the connector. The body is never
+  trusted for data. Polling stays on as the safety net.
+- **Hierarchy and references.** `parent` fields map through the link table (the parent is synced first, or the
+  child is retried after it). Users match by email (`core.users`); an unmatched person leaves the field empty
+  and logs a warning. Choices map through value maps; identical values pass through.
+- **Deletes are never propagated.** A record deleted on one side marks the link `orphaned` and shows in the hub.
+  Deleting data in another system is a decision for a person.
+- **Comments** sync as append-only, both ways, each one once (`comment_links`), with the author's name; internal
+  notes stay internal on both sides.
+- **Failures.** Item errors are recorded on the link and the run (`partial`) and retried on the next run.
+  `REMOTE_RATE_LIMITED` pauses the run until `retryAfterSeconds`. `REMOTE_AUTH_FAILED` fails the run, marks the
+  connection `failing` and notifies integration admins.
+
+### 12.4 Field mappings and conversions
+
+A mapping row is `{ local, remote, direction, values? }`; connectors suggest defaults per object and entity
+(`defaultMapping`) and the profile form validates them against both catalogues. Value-map rows have their own
+direction (`both`, `pull`, `push`), so many-to-one maps work: ServiceDesk Plus "Resolved" pulls as `resolved`,
+and ISBP's `fulfilled` pushes as "Resolved". Each remote value has at most one row that pulls and each ISBP
+value at most one that pushes. An integration test validates every connector's default mapping against the live
+catalogues of the stand-ins and the adapters, for every remote scope. The hub converts between types:
+HTML → Markdown or plain text on pull and Markdown → HTML on push (remote HTML is converted, never rendered),
+`user` ↔ email, `choice` ↔ `choice` through the value map, `tags` ↔ `;`-separated strings, `date` ↔ `datetime`.
+The snapshot keeps both forms, so a lossy conversion (HTML → Markdown) can't cause endless updates.
+
+### 12.5 Security
+
+- Connection secrets are sealed with `ctx.secrets` and never returned; editing keeps a stored secret unless a new
+  value is typed.
+- **HTTPS by default, plain HTTP only by an explicit choice.** `conn.http` refuses `http://` (422 `INSECURE_HTTP`)
+  unless the connection's **Allow insecure HTTP** switch is on (loopback hosts excepted, for the stand-ins). The
+  check is in the kernel, so no connector can skip it. Turning the switch on needs a confirmation, is audited as a
+  security event, and the connection shows a "Not encrypted" warning while it is on. It exists for on-premises
+  servers that still listen on plain HTTP (ServiceDesk Plus defaults to port 8080).
+- The hub writes as its agent identity, **Integrations Hub**, which holds `*.*.sync` and nothing else. Creating or
+  changing a profile that writes an entity needs that entity's `.sync` permission too (no privilege escalation
+  through the hub).
+- Who sees what: link lists and the record panel resolve local titles through `ctx.records` with the caller's
+  permissions; the panel on a record page is visible to whoever can read the record.
+- Every admin action is audited (`integrations.*`); every sync write is audited by the owning module with the
+  connection and remote reference in its metadata.
+
+### 12.6 ServiceDesk Plus on premises (module `sdp`, connector `sdp.server`)
+
+Targets the current release (build 16000, September 2026); the minimum is build 15100, which introduced the
+asset API it uses.
+
+- **Auth.** A technician API key (`authtoken` header) of a dedicated technician whose role covers the synced
+  objects, stored as a secret. Settings hold the server URL (`https://sdp.contoso.local:8443`; the API is
+  `/api/v3/`) and, for multi-instance (ESM) installations, the instance's `PORTALID`.
+- **Network.** The server is on the internal network: the kernel allows private addresses for a connection's own
+  host, internal CAs are trusted with `NODE_EXTRA_CA_CERTS`, and webhooks call ISBP from inside the network.
+- **API.** REST v3 (`Accept: application/vnd.manageengine.sdp.v3+json`, `input_data` with `list_info` and
+  `search_criteria`; `search_fields` is deprecated since build 16000, and HTML fields can't be sorted).
+  - Requests feed on `last_updated_time` (`greater than` the cursor). Objects without a documented update time
+    (changes, and any module that refuses that sort) fall back to a paged scan by id with a content-hash version;
+    the hub skips unchanged versions, so a scan costs reads, not writes.
+  - Assets use the asset API of build 15100+: `/api/v3/asset_assets` to read and update every type, and the
+    product-type endpoint (`asset_computers`, `asset_servers`, …, configurable per local category) to create. The
+    older `/api/v3/assets` and `/workstations` endpoints are no longer supported.
+  - Throttling: the server limits calls per URL and locks it for a while ("URL configured to access N requests
+    within M minutes was violated"). That maps to `REMOTE_RATE_LIMITED`, and the run resumes after the lock.
+    Administrators can lift the limit on build 14500+.
+- **Webhooks.** Admin › Developer Space › Webhooks (with the `X-ISBP-Webhook-Secret` header), executed by custom
+  triggers (Admin › Automation › Custom Triggers) on requests, problems and changes. Assets and solutions sync by
+  polling only.
+- **Objects.** `request` → `itsm.ticket` (incidents and service requests by request type; notes ↔ comments),
+  `problem` → `itsm.ticket` (type problem), `change` → `itsm.change`, `asset` → `itam.asset` (match on serial
+  number), `solution` → `knowledge.article` (HTML ↔ Markdown).
+
+### 12.7 Azure DevOps Server (module `azdo`, connector `azdo.server`)
+
+- **Auth.** Personal access token (Basic) against the on-premises collection URL
+  (`https://ado.contoso.local/tfs/DefaultCollection`), API version 7.1/7.0 (Server 2022), 6.0 (Server 2020) or 5.0
+  (Server 2019, where the comments API differs). Windows (NTLM/Kerberos) authentication is not supported. Azure
+  DevOps Services (the cloud edition) is out of scope.
+- **Objects.**
+  - `project` (team projects) → `projects.project`, pull only, matched by name.
+  - `work-item` (scoped to a team project) → `projects.task`: WIQL on `System.ChangedDate` for the feed, batched
+    reads with relations, JSON Patch writes with a `test` on `/rev`, `System.Parent` ↔ `parent`, work item types and
+    states mapped to task types and statuses, comments.
+  - `repository` (scoped) → `alm.repository`, pull only: default branch, last commit, branches and active pull
+    requests ("Git status" on the application page). Matched by URL.
+- **Service hooks** (`workitem.*`, `git.push`, `git.pullrequest.*`) call the hub's webhook with the secret in a
+  custom header.
+
+### 12.8 Sync adapters in the data modules
+
+| Entity              | Fields (keys)                                                                                                                                                                                                                             | Notes                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `itsm.ticket`       | `type` (create-only: incident, service_request, problem), `title`, `description`, `status`, `impact`, `urgency`, `priority`, `category`, `assignmentGroup`, `assignee`, `requester`, `resolutionCode`, `resolutionNotes`, `major`, `ref`* | Comments (public and internal). Status moves the module's state machine allows.                 |
+| `itsm.change`       | `title`, `description`, `status`, `changeType`, `risk`, `reason`, `plannedStart`, `plannedEnd`, `implementationPlan`, `backoutPlan`, `testPlan`, `assignmentGroup`, `assignee`, `ref`*                                                    | Statuses past CAB authorization are refused: approval happens in ISBP                           |
+| `itam.asset`        | `name`, `category`, `serialNumber`, `status`, `assignedTo`, `location`, `vendor`, `purchaseDate`, `purchaseCost`, `currency`, `invoiceNumber`, `warrantyEnd`, `notes`, `ref`*                                                             | Matched on `serialNumber`. `disposed` only through the disposal approval                        |
+| `knowledge.article` | `title`, `summary`, `body` (markdown), `category`, `tags`, `locale`, `audience`, `status`, `ref`*                                                                                                                                         | Matched on `title`. Publishing needs the agent's publish permission and makes a version         |
+| `projects.project`  | `name`, `description`, `startDate`, `targetDate`, `status`_, `ref`_                                                                                                                                                                       | Matched on `name`. A created project starts as `proposed` (the proposal approval still applies) |
+| `projects.task`     | `type`, `title`, `description`, `status`, `priority`, `assignee`, `parent`, `milestone`, `startDate`, `dueDate`, `estimateHours`, `remainingHours`, `labels`, `ref`*                                                                      | Container `projects.project`. Comments                                                          |
+| `alm.repository`    | `name`, `url`, `provider`, `defaultBranch`, `lastCommitSha`, `lastCommitAt`, `lastCommitMessage`, `lastCommitAuthor`, `branches` (json), `pullRequests` (json)                                                                            | Container `alm.application`. Matched on `url`. Shown as Git status on the application page      |
+
+\* read-only.
+
+Adapters write in a savepoint of the hub's transaction (a refused record leaves nothing behind), walk the module's
+state machine one allowed step at a time, and record history as "via {connection} {remote ref}". Where the remote
+system is authoritative for its own records, sync writes fill what it can't provide: a resolved ticket without a
+resolution code gets `solved`, and a task assigned to someone outside the project adds them as a member (both
+recorded). Approvals are never filled in. ALM's `branches` and `pullRequests` follow `gitStatusSchema` in
+`modules/alm/src/contracts.ts`.
+
+### 12.9 Hub UI (Administration → Integrations)
+
+- **Overview:** one card per connection (system, health with icon and text, last sync, linked records, open
+  conflicts, errors) and "Add connection" (pick a connector; its settings form comes from the connector's slot
+  `integrations.connector-config.<module>.<type>`, with a generated form as fallback).
+- **Connection page** (tabs): overview (test, webhook URL and secret rotation, health), sync profiles, runs (live
+  log), linked records (filter by state, open either side), conflicts.
+- **Profile editor:** what ↔ what, direction explained in words, schedule, conflict policy, match rule, push filter,
+  and the **mapping table** (local field ↔ remote field, direction per row, value maps with both catalogues'
+  choices). "Preview" is a dry run on the next remote changes showing what would be created, updated, pushed or
+  flagged per field. "Run now" follows the run live.
+- **Conflicts:** side by side per field (base, ISBP, remote), pick a side per field or keep both as they are.
+- **Record pages:** the hub contributes to `core.record.links` a "Synced with" card (system, remote reference and
+  link, last sync, state, "Sync now" for integration admins).
+
+### 12.10 Mocks, demo data and tests
+
+- `tooling/integration-mocks` stands in for on-premises ServiceDesk Plus and Azure DevOps Server:
+  same paths and shapes, seeded Contoso data, a change feed, optimistic concurrency, webhooks, and `/_mock/*`
+  controls for tests ("someone edits #1234 in ServiceDesk Plus"). `pnpm dev:services` runs it on port 4100 and
+  persists its state in `.dev-data/`; integration tests start it in-process; CI starts it for e2e.
+- The seed creates the two demo connections against the mocks with their profiles and runs a first sync, so the
+  demo opens with linked tickets, assets, articles, work items and repositories, one open conflict and a run
+  history. Production deployments seed no connections.
+
+### 12.11 Phase 5 decisions
+
+| #   | Decision                                                                                        | Why                                                                                                                                                             | Alternatives considered                                                      |
+| --- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 48  | Sync adapters owned by data modules, connectors by connector modules, mapping in the hub        | Adding a system or a syncable entity is one module; module rules and approvals apply to sync writes; nothing knows both sides                                   | A hub that writes module tables; one connector per pair of systems           |
+| 49  | Remote ids only in the hub's link table                                                         | Module schemas stay clean, a record can link to several systems, unlinking touches nothing else                                                                 | `external_id` columns per module                                             |
+| 50  | Per-field three-way merge against a snapshot kept in both forms                                 | Two-way sync without lost updates; independent edits merge; echoes, replays and duplicate webhooks are no-ops; lossy conversions don't loop                     | Last-writer-wins per record; timestamps only                                 |
+| 51  | Webhooks only trigger a re-read                                                                 | A forged or replayed webhook can't inject data; polling still converges if hooks are lost                                                                       | Trusting webhook payloads                                                    |
+| 52  | Deletes are never propagated                                                                    | Deleting in another system is a human decision; orphaned links are visible                                                                                      | Mirrored deletes                                                             |
+| 53  | A dedicated `.sync` permission per entity, held by the hub's agent and required to configure it | Least privilege that admins can see; the hub can't be used to write what its configurer couldn't                                                                | A broad service account; checking the UI permissions of the agent            |
+| 54  | Stand-in servers for both systems, in the repo                                                  | Development, CI and the demo don't need a ServiceDesk Plus or Azure DevOps Server installation; tests cover conflicts and webhooks deterministically            | Recorded fixtures only; a shared test tenant                                 |
+| 55  | HTTPS enforced in the kernel, with a per-connection, audited "Allow insecure HTTP" switch       | On-premises servers sometimes only speak HTTP; the exception is a visible, deliberate, audited choice per connection instead of a schema loophole per connector | HTTPS only (blocks real installations); leaving the scheme to each connector |
+| 56  | Directions on value-map rows                                                                    | Real systems map several values to one in one direction ("Resolved" for incidents and service requests); ambiguity is still refused per direction               | One value map per direction; free-form scripts                               |
+| 57  | The snapshot keeps what the module stored, read back in the sync's transaction                  | Module normalizations don't bounce back to the other system as fake changes                                                                                     | Snapshotting what was sent; module-specific echo filters                     |
+
+## 13. Phase 6 outline: AI Agent (customise the platform from a conversation)
+
+> An outline, so earlier phases keep it in mind. The detailed design is written when Phase 6 starts.
+
+People describe what they want ("approvals for laptop requests over 60 000 TWD go to the department head, then
+IT asset management"), and an agent builds it with the same configuration surfaces an administrator uses. Nothing
+the agent makes is live until a person with the right permissions reviews and applies it.
+
+- **Customisation tools.** Every configurable surface gets AI tools in the registry (§9.1), owned by the module
+  that owns the surface: approval workflows and their graphs, forms and custom fields, notification rules, roles and
+  permissions (within what the requester holds), portal entries, scheduled jobs, Data APIs and pipelines, sync
+  profiles and mappings, dashboards and saved views. Tools validate with the same Zod schemas and services as the
+  admin pages, so an agent can't produce what the UI would refuse.
+- **Drafts, preview and apply.** The agent's output is a **change set**: a draft per object, shown as a readable
+  diff and a live preview (the workflow builder's simulator, a form preview, a dry run of a sync profile). Applying
+  is one audited transaction by a person; every change set can be rolled back. Destructive steps keep the
+  registry's confirmation rule.
+- **Who the agent acts as.** In a conversation it acts as the signed-in person, with their permissions; it can
+  propose more than they may apply, and routes the rest to someone who can (an approval of the change set).
+- **Where it lives.** An assistant panel on every page that knows the page's context (the record, the list filter,
+  the form being edited), and an **MCP server** that exposes the same tools and resources to outside agents
+  (Claude Code, Claude Desktop, IDEs) with API-client authentication and the same permission checks.
+- **Grounding.** The agent reads the platform's own extension-point reference (manifests, field catalogues,
+  existing workflows) through tools, not from training data, and the semantic index for organisation knowledge.
+- **Builtin mode.** Without a chat model, the panel offers guided templates instead of free text (consistent with
+  §9.1's "every feature has a builtin mode").

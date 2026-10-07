@@ -4,8 +4,11 @@ A unified resource-management platform for IT operations — identity, access, s
 assets, automation and AI — built as a **modular monolith**: a small kernel plus modules that all use
 the same SDK. The UI ships in **English, 繁體中文（台灣）and 日本語**.
 
-> **Status: Phase 4 complete (awaiting review).**
+> **Status: Phase 5 complete (awaiting review).** Next: Phase 6, AI Agent.
 >
+> - **Phase 5:** the Integrations Hub: two-way sync with on-premises ManageEngine ServiceDesk Plus (requests,
+>   problems, changes, assets, solutions) and Azure DevOps Server (team projects, work items, Git status),
+>   with field mappings, per-field conflict handling, webhooks, and approvals that can't be skipped from outside.
 > - **Phase 4:** Data APIs & ETL (REST endpoints from parameterized SQL, pipelines between databases),
 >   Scheduled jobs (HTTP, SQL, sandboxed scripts and module tasks, with retries and live logs), and Database
 >   access (self-service database roles with approval, provisioning, expiry and reviews) on SQL Server,
@@ -100,6 +103,19 @@ API reference (OpenAPI 3.1, interactive): http://localhost:4000/api/docs · raw 
 | **Helpdesk AI**         | <ul><li>Triage on every new ticket (with optional auto-apply), similar tickets, reply drafts with citations, summaries, and KB drafts from resolved tickets.</li><li>A virtual agent ("Ask IT") that answers from the knowledge base and opens a ticket only after you confirm.</li><li>Metrics for triage acceptance and deflection.</li></ul>                                                                                                                                                                          |
 | **AI gateway**          | <ul><li>Anthropic (Claude) or any OpenAI-compatible model, including self-hosted ones; works fully offline with the builtin embedder.</li><li>Masks personal data before a prompt leaves the platform; tracks usage and cost; enforces a monthly budget.</li><li>One permission-aware semantic index (pgvector).</li><li>A governed tool registry: same RBAC, confirmation and audit as the UI.</li></ul>                                                                                                                |
 
+## What's in Phase 5
+
+| Area                                          | Highlights                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Integrations Hub** (`integrations`)         | <ul><li>Administration → Integrations: connections (sealed credentials, health, webhook secret), sync profiles with a field-mapping editor, value maps and a dry-run preview.</li><li>Two-way sync with a per-field three-way merge: independent edits merge, real conflicts go to a queue (or a rule decides), echoes are ignored.</li><li>Runs with live logs, linked records, a "Synced with" card on every record page.</li></ul> |
+| **ServiceDesk Plus** (`sdp`, on-premises)     | <ul><li>Requests and problems ↔ tickets (notes ↔ comments), changes, assets (build 15100+ asset API, matched by serial number), solutions ↔ knowledge articles.</li><li>Technician API key; webhooks from custom triggers.</li></ul>                                                                                                                                                                                                  |
+| **Azure DevOps Server** (`azdo`, on-premises) | <ul><li>Team projects, work items ↔ tasks (hierarchy, states, assignees, comments; Agile, Scrum and Basic), repositories → Git status on ALM applications (branches, last commit, pull requests).</li><li>Server 2019 to 2025 (API 5.0–7.2), personal access token, service hooks.</li></ul>                                                                                                                                          |
+| **Safeguards**                                | <ul><li>Sync writes follow each module's rules: CAB approval, asset disposal and project proposals can't be skipped from outside.</li><li>HTTPS by default; plain HTTP only with an explicit, audited per-connection switch.</li><li>A dedicated `.sync` permission per entity; webhooks only trigger re-reads.</li></ul>                                                                                                             |
+
+The demo connects to stand-in servers for both systems (`tooling/integration-mocks`, started by
+`pnpm dev:services`), so the demo opens with linked tickets, assets, articles, tasks and repositories, one conflict to
+resolve, and one asset whose disposal in ServiceDesk Plus waits for ISBP's approval.
+
 ## What's in Phase 4
 
 | Area                             | Highlights                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -123,7 +139,7 @@ connections point at hosts that don't exist, so the failure states are visible t
 | **Applications** (`alm`)   | <ul><li>Application inventory: owners, team, stage, criticality, hosting, CMDB CI and repositories.</li><li>Environments with the version they run; releases with a readiness checklist and Markdown release notes.</li><li>Deployments recorded in the UI or by CI/CD pipelines (`POST /api/v1/alm/deployments`).</li><li>Production needs an approved change (overrides are audited), and DORA delivery metrics per application.</li></ul>                                                                                         |
 | **Linked records & files** | <ul><li>Link any record to any other (a task ↔ an incident, a release ↔ a change); each module decides who may see its records.</li><li>Attachments on tickets, CIs, assets, contracts, tasks and releases: local volume or S3, type and content checks, optional ClamAV scanning.</li></ul>                                                                                                                                                                                                                                         |
 
-Integrations with **ManageEngine ServiceDesk Plus Cloud** and **Azure DevOps Server** (two-way) are planned for
+Integrations with **ManageEngine ServiceDesk Plus** (on-premises) and **Azure DevOps Server** (two-way) are planned for
 Phase 5; the Phase 3 data models already map onto them (work item types and hierarchy, repositories, asset
 identifiers).
 

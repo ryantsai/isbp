@@ -3,7 +3,7 @@
 import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
-import { Markdown } from '@isbp/ui/markdown';
+import { Markdown, safeUrl } from '@isbp/ui/markdown';
 import { usePeople } from '@isbp/ui/person-picker';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
@@ -74,6 +74,34 @@ function changedFields(data: Data): string[] {
 
 /* ───────────────────────────── rendering ───────────────────────────── */
 
+/**
+ * "via ServiceDesk Plus #1234": an entry an integration wrote (`data.via`), linking to the record in the
+ * other system. `inline` puts it after a sentence.
+ */
+function Via({ data, inline }: { data: Data; inline?: boolean }) {
+  const tl = useTranslations('itsm.timeline');
+  const via = isObj(data.via) ? data.via : null;
+  if (!via) return null;
+  const text = tl('via', {
+    system: typeof via.connection === 'string' ? via.connection : '',
+    reference: typeof via.ref === 'string' ? via.ref : '',
+  });
+  const url = typeof via.url === 'string' ? safeUrl(via.url) : '';
+  const body = url ? (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="text-muted-foreground underline underline-offset-4 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
+    >
+      {text}
+    </a>
+  ) : (
+    <span className="text-muted-foreground">{text}</span>
+  );
+  return inline ? <> {body}</> : body;
+}
+
 function SystemLine({
   icon: Icon,
   tone,
@@ -104,6 +132,7 @@ function SystemLine({
       <div className="min-w-0 flex-1 pt-0.5">
         <p className="text-muted-foreground">
           {children}
+          <Via data={(activity.data ?? {}) as Data} inline />
           <span aria-hidden> · </span>
           <RelativeTime date={activity.createdAt} className="text-xs" />
         </p>
@@ -133,6 +162,7 @@ function Bubble({ activity, end, label }: { activity: Activity; end: boolean; la
         <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs', end && 'justify-end')}>
           <span className="font-medium">{name}</span>
           {label}
+          <Via data={(activity.data ?? {}) as Data} />
           <RelativeTime date={activity.createdAt} className="text-muted-foreground" />
         </div>
         <div
@@ -170,6 +200,7 @@ function WorkNote({ activity }: { activity: Activity }) {
             <LockIcon aria-hidden />
             {t('internal')}
           </Badge>
+          <Via data={(activity.data ?? {}) as Data} />
           <RelativeTime date={activity.createdAt} className="text-muted-foreground" />
         </div>
         <Markdown>{activity.body ?? ''}</Markdown>

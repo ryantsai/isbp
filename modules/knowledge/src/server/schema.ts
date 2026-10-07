@@ -90,6 +90,8 @@ export const articles = knowledgeSchema.table(
     index('articles_owner_idx').on(t.ownerId),
     index('articles_translation_group_idx').on(t.translationGroupId),
     index('articles_status_updated_idx').on(t.status, t.updatedAt),
+    // Update order across statuses (the sync adapter pages by `updated_at`, then id).
+    index('articles_updated_idx').on(t.updatedAt, t.id),
     index('articles_status_views_idx').on(t.status, t.views),
     index('articles_review_idx')
       .on(t.reviewAt)

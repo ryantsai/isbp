@@ -167,3 +167,27 @@ regenerate [reference.md](reference.md).
 
 **R39. Dependencies with install scripts MUST be listed under `allowBuilds` in `pnpm-workspace.yaml`** (pnpm
 12). Prefer pure-JavaScript packages. Shared versions go in the `catalog:`.
+
+## Integrations (Phase 5)
+
+**R40. Records that should sync with an outside system MUST be exposed through a sync adapter**
+(`manifest.syncEntities` + `defineServerModule({ sync })`) with a dedicated `<module>.<resource>.sync` permission.
+Modules MUST NOT store remote ids or call connectors: the Integrations Hub's links hold the ids. _Why:_ one place
+for mappings, conflicts and audit; a record can link to several systems.
+
+**R41. An adapter's `write` MUST hold the module's rules, never fewer.** Write through the module's own service
+logic in the hub's `tx`, publish the usual events with `{ tx }`, audit with `source` in the metadata, and refuse
+what the UI would refuse, including statuses that need an approval (409 `INVALID_TRANSITION`,
+`details.reason: 'approval_required'`). _Check:_ an integration test per refused transition.
+
+**R42. A connector MUST reach its system only through `conn.http`** (the connection's own hosts), keep tokens in
+`conn.cache`, never log or return secrets, and map remote failures to `REMOTE_AUTH_FAILED`, `REMOTE_RATE_LIMITED`, `REMOTE_CONFLICT` and `REMOTE_REJECTED`.
+
+Config schemas accept `http://` and `https://`: the kernel refuses plain HTTP (422 `INSECURE_HTTP`) unless the
+connection's audited **Allow insecure HTTP** switch is on. Connectors MUST NOT work around it.
+
+**R43. Webhook bodies MUST NOT be trusted for data.** A connector's `webhook()` only says which records changed;
+the hub re-reads them with `get`.
+
+**R44. A connector SHOULD ship a stand-in in `tooling/integration-mocks`** and test against it in-process. Tests
+and the demo never reach real tenants.

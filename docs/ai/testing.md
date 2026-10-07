@@ -84,6 +84,16 @@ toSessionUser(user), null, await h.kernel.rbac.permissionsFor(user.id))`.
   `E2E_BASE_URL=http://localhost:3000 pnpm e2e -- --workers=1 tests/<id>.spec.ts`. Use one worker locally: the dev
   server compiles pages on first visit. CI runs the full suite against a production build.
 
+## Outside systems (Integrations Hub)
+
+- `tooling/integration-mocks` (`@isbp/integration-mocks`) stands in for on-premises ServiceDesk Plus and Azure DevOps
+  Server. Start it in-process: `const mocks = await createMockServer(); await mocks.listen({ port: 0 })`,
+  point the connection's URL overrides at it, and use `MOCK_CREDENTIALS`. `/_mock/*` routes reset state, inspect
+  records, edit them "as someone in the other system" (which fires the registered webhooks) and toggle rate limits.
+- `pnpm dev:services` runs the mocks on port 4100 for the dev stack and the demo connections.
+- Hub tests that shouldn't depend on a real connector or adapter use an inline fake module in `extraModules`
+  (see `apps/api/test/integration/integrations.test.ts`).
+
 ## External engines and sandboxes
 
 - `@isbp/sql` driver tests (`pnpm --filter @isbp/sql test:drivers`) run against every engine whose URL is set:

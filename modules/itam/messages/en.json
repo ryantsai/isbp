@@ -30,7 +30,8 @@
     "contractsRead": "See contracts",
     "contractsManage": "Manage contracts, renewals and what they cover",
     "selfRead": "See the devices and software assigned to you",
-    "configManage": "Manage the model catalogue and vendors"
+    "configManage": "Manage the model catalogue and vendors",
+    "assetsSync": "Write hardware assets through integrations (disposal only through the approval)"
   },
   "settings": {
     "currency": "Default currency",
@@ -445,7 +446,8 @@
     "disposalCancelled": "Disposal request cancelled",
     "note": "Note",
     "system": "System",
-    "more": "Show more"
+    "more": "Show more",
+    "via": "via {system} {reference}"
   },
   "links": {
     "unavailable": "Links and files are not available",
@@ -765,5 +767,26 @@
     "nonCompliantLicenses": "Non-compliant licences",
     "contractsRenewing30": "Contracts renewing in 30 days",
     "warrantiesExpiring30": "Warranties ending in 30 days"
+  },
+  "sync": {
+    "entities": {
+      "asset": "Hardware assets"
+    },
+    "fields": {
+      "name": "Name",
+      "category": "Category",
+      "serialNumber": "Serial number",
+      "status": "Status",
+      "assignedTo": "Assigned to",
+      "location": "Location",
+      "vendor": "Vendor",
+      "purchaseDate": "Purchase date",
+      "purchaseCost": "Purchase cost",
+      "currency": "Currency",
+      "invoiceNumber": "Invoice number",
+      "warrantyEnd": "Warranty end",
+      "notes": "Notes",
+      "ref": "Asset tag"
+    }
   }
 }

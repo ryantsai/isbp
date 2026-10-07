@@ -40,6 +40,15 @@ export const projectsSchema = pgSchema('projects');
 /** Board ranks compare in byte order whatever the database collation is. */
 const rankText = customType<{ data: string }>({ dataType: () => 'text COLLATE "C"' });
 
+/** Where a change a sync made came from ("via Azure DevOps Bug 812"). */
+export interface SyncVia {
+  connectionId: string;
+  connection: string;
+  connector: string;
+  ref: string;
+  url: string | null;
+}
+
 /** Calendar dates (`YYYY-MM-DD`): no time zone can shift them. */
 const day = (name: string) => date(name, { mode: 'string' });
 const hours = (name: string) => numeric(name, { precision: 8, scale: 2, mode: 'number' });
@@ -107,6 +116,8 @@ export const members = projectsSchema.table(
     role: varchar('role', { length: 10 }).$type<MemberRole>().notNull().default('member'),
     /** Share of the person's week planned for this project (0–100). */
     allocationPct: smallint('allocation_pct').notNull().default(100),
+    /** Added by a sync assigning them a task ("Added via Azure DevOps Bug 812"). */
+    via: jsonb('via').$type<SyncVia>(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -180,6 +191,8 @@ export const tasks = projectsSchema.table(
     index('tasks_parent_idx').on(t.parentId),
     index('tasks_milestone_idx').on(t.milestoneId),
     index('tasks_updated_idx').on(t.updatedAt),
+    // A project's tasks in update order (the sync adapter pages by `updated_at`, then id).
+    index('tasks_project_updated_idx').on(t.projectId, t.updatedAt, t.id),
     index('tasks_title_trgm').using('gin', t.title.op('gin_trgm_ops')),
     index('tasks_labels_gin').using('gin', t.labels),
     index('tasks_attributes_gin').using('gin', t.attributes.op('jsonb_path_ops')),
@@ -222,6 +235,10 @@ export const taskComments = projectsSchema.table(
       .notNull()
       .references(() => tasks.id, { onDelete: 'cascade' }),
     authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+    /** A comment synced from another system: its author there (no ISBP account behind it). */
+    authorName: varchar('author_name', { length: 200 }),
+    authorEmail: varchar('author_email', { length: 320 }),
+    via: jsonb('via').$type<SyncVia>(),
     body: text('body').notNull(),
     createdAt: createdAt(),
     editedAt: timestamp('edited_at', { withTimezone: true }),
@@ -244,6 +261,9 @@ export const taskActivity = projectsSchema.table(
     fromValue: text('from_value'),
     toValue: text('to_value'),
     actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    /** Agents, services and people from other systems (no ISBP account) by name. */
+    actorName: varchar('actor_name', { length: 200 }),
+    via: jsonb('via').$type<SyncVia>(),
     createdAt: createdAt(),
   },
   (t) => [index('task_activity_task_idx').on(t.taskId, t.createdAt)],
@@ -262,6 +282,9 @@ export const projectUpdates = projectsSchema.table(
     toValue: varchar('to_value', { length: 20 }).notNull(),
     note: text('note'),
     authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+    /** Agents and services (no ISBP account) by name. */
+    authorName: varchar('author_name', { length: 200 }),
+    via: jsonb('via').$type<SyncVia>(),
     createdAt: createdAt(),
   },
   (t) => [index('project_updates_project_idx').on(t.projectId, t.createdAt)],

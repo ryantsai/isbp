@@ -13,7 +13,8 @@
     "readInternal": "Read internal (agents-only) articles",
     "write": "Write drafts, edit your own drafts and submit them for review",
     "publish": "Publish, retire and restore articles, and edit any article",
-    "manageCategories": "Create, edit and delete knowledge categories"
+    "manageCategories": "Create, edit and delete knowledge categories",
+    "sync": "Write articles through integrations (publishing still needs the publish permission)"
   },
   "settings": {
     "reviewIntervalDays": "Review an article this many days after it is published (0 = no default review date)",
@@ -154,7 +155,8 @@
     "bannerRetired": "This article is retired: it no longer appears in search. Restore it to edit and publish it again.",
     "bannerReviewDue": "This article was due for review on {date}. Check it is still accurate, then set a new review date.",
     "deleteTitle": "Delete this article?",
-    "deleteDescription": "{reference} and its version history will be deleted for good. Retiring keeps the history instead."
+    "deleteDescription": "{reference} and its version history will be deleted for good. Retiring keeps the history instead.",
+    "syncedFrom": "Synced from {reference}"
   },
   "feedback": {
     "question": "Was this article helpful?",
@@ -298,5 +300,26 @@
   },
   "entities": {
     "article": "Knowledge article"
+  },
+  "sync": {
+    "entities": {
+      "article": "Knowledge articles"
+    },
+    "fields": {
+      "title": "Title",
+      "summary": "Summary",
+      "body": "Body",
+      "category": "Category",
+      "tags": "Tags",
+      "locale": "Language",
+      "audience": "Audience",
+      "status": "Status",
+      "ref": "Reference"
+    },
+    "locales": {
+      "en": "English",
+      "zh-TW": "Traditional Chinese",
+      "ja-JP": "Japanese"
+    }
   }
 }

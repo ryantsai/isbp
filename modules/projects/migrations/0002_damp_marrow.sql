@@ -1,0 +1,1 @@
+ALTER TABLE "projects"."members" ADD COLUMN "via" jsonb;

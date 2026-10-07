@@ -30,7 +30,8 @@
     "contractsRead": "契約を表示する",
     "contractsManage": "契約、更新、対象範囲を管理する",
     "selfRead": "自分に割り当てられたデバイスとソフトウェアを表示する",
-    "configManage": "モデル カタログとベンダーを管理する"
+    "configManage": "モデル カタログとベンダーを管理する",
+    "assetsSync": "統合を通じてハードウェア資産を書き込む (廃棄は承認を経た場合のみ)"
   },
   "settings": {
     "currency": "既定の通貨",
@@ -445,7 +446,8 @@
     "disposalCancelled": "廃棄の申請が取り消されました",
     "note": "メモ",
     "system": "システム",
-    "more": "さらに表示"
+    "more": "さらに表示",
+    "via": "{system} {reference} 経由"
   },
   "links": {
     "unavailable": "リンクとファイルは使用できません",
@@ -765,5 +767,26 @@
     "nonCompliantLicenses": "コンプライアンス違反のライセンス",
     "contractsRenewing30": "30 日以内に更新の契約",
     "warrantiesExpiring30": "30 日以内に保証終了"
+  },
+  "sync": {
+    "entities": {
+      "asset": "ハードウェア資産"
+    },
+    "fields": {
+      "name": "名前",
+      "category": "カテゴリ",
+      "serialNumber": "シリアル番号",
+      "status": "状態",
+      "assignedTo": "割り当て先",
+      "location": "場所",
+      "vendor": "ベンダー",
+      "purchaseDate": "購入日",
+      "purchaseCost": "購入金額",
+      "currency": "通貨",
+      "invoiceNumber": "請求書番号",
+      "warrantyEnd": "保証終了日",
+      "notes": "メモ",
+      "ref": "資産タグ"
+    }
   }
 }

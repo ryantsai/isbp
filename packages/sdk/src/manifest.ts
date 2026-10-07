@@ -210,6 +210,72 @@ export interface TaskTypeDef {
   config: z.ZodType;
 }
 
+/**
+ * An entity the Integrations Hub can keep in sync with an outside system (`<module>.<entity>`, e.g.
+ * `itsm.ticket`; use the record type's name when the entity is one). The module provides `sync[entity]` in
+ * `defineServerModule`: a field catalogue, read and write. Sync writes are held to the module's own rules
+ * (state machines, required approvals), never to fewer.
+ */
+export interface SyncEntityDef {
+  /** Entity name inside the module; the full key is `<module>.<entity>`. */
+  entity: string;
+  /** i18n key of the plural noun ("Tickets"). */
+  name: string;
+  /** lucide icon name. */
+  icon?: string;
+  /**
+   * Needed to write through the adapter, and to set up a sync profile that writes this entity. Declare a
+   * dedicated `<module>.<resource>.sync` permission for it (the hub's agent holds `*.*.sync`).
+   */
+  permission: string;
+  /** This module's events that mean a record changed (`idFromEvent` reads the id from their payload). */
+  events: string[];
+  /** This module's events that mean a comment was added, when comments sync. */
+  commentEvents?: string[];
+  /** Records live inside another sync entity (tasks in a project): its full key. */
+  container?: string;
+}
+
+/** A kind of object an outside system has (a ServiceDesk Plus request, an Azure DevOps work item). */
+export interface ConnectorObjectDef {
+  /** Name inside the connector, e.g. `request`. */
+  type: string;
+  /** i18n key. */
+  name: string;
+  /** Sync entities it usually maps to (`itsm.ticket`): suggested in the profile form, with default mappings. */
+  entities?: string[];
+  /** Whether the remote API lets a sync create and update these, sync comments, and send webhooks. */
+  capabilities: {
+    create?: boolean;
+    update?: boolean;
+    comments?: boolean;
+    webhooks?: boolean;
+    hierarchy?: boolean;
+  };
+  /** Lives in a remote scope chosen per profile (an Azure DevOps team project). */
+  scoped?: boolean;
+}
+
+/**
+ * A kind of outside system the Integrations Hub can connect to (`<module>.<type>`, e.g. `sdp.server`). The
+ * module provides `connectors[type]` in `defineServerModule`. Connections (instances with credentials) are
+ * created by admins in the hub.
+ */
+export interface ConnectorDef {
+  /** Name inside the module; the full type is `<module>.<type>`. */
+  type: string;
+  /** i18n keys. */
+  name: string;
+  description?: string;
+  /** lucide icon name. */
+  icon?: string;
+  /** Non-secret settings (server URL, API version). */
+  config: z.ZodType;
+  /** Secret settings: sealed at rest, never returned by the API (client secret, refresh token, PAT). */
+  secrets: z.ZodType;
+  objects: ConnectorObjectDef[];
+}
+
 export interface ModuleManifest {
   id: string;
   version: string;
@@ -234,6 +300,10 @@ export interface ModuleManifest {
   records?: { types: RecordTypeDef[] };
   /** Work Scheduled Jobs can run on a schedule (handlers in `defineServerModule({ taskTypes })`). */
   taskTypes?: TaskTypeDef[];
+  /** Entities the Integrations Hub may sync (adapters in `defineServerModule({ sync })`). */
+  syncEntities?: SyncEntityDef[];
+  /** Outside systems this module connects to (handlers in `defineServerModule({ connectors })`). */
+  connectors?: ConnectorDef[];
 }
 
 const zNav: z.ZodType<NavEntry> = z.lazy(() =>
@@ -404,6 +474,51 @@ export const manifestSchema = z
         }),
       )
       .optional(),
+    syncEntities: z
+      .array(
+        z.object({
+          entity: z.string().regex(/^[a-z][a-z0-9-]*$/),
+          name: z.string().min(1),
+          icon: z.string().optional(),
+          permission: z.string().refine(isPermissionKey, 'invalid permission key'),
+          events: z.array(z.string().min(1)).min(1),
+          commentEvents: z.array(z.string().min(1)).optional(),
+          container: z
+            .string()
+            .regex(/^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$/)
+            .optional(),
+        }),
+      )
+      .optional(),
+    connectors: z
+      .array(
+        z.object({
+          type: z.string().regex(/^[a-z][a-z0-9-]*$/),
+          name: z.string().min(1),
+          description: z.string().optional(),
+          icon: z.string().optional(),
+          config: zZodType,
+          secrets: zZodType,
+          objects: z
+            .array(
+              z.object({
+                type: z.string().regex(/^[a-z][a-z0-9-]*$/),
+                name: z.string().min(1),
+                entities: z.array(z.string().regex(/^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$/)).optional(),
+                capabilities: z.object({
+                  create: z.boolean().optional(),
+                  update: z.boolean().optional(),
+                  comments: z.boolean().optional(),
+                  webhooks: z.boolean().optional(),
+                  hierarchy: z.boolean().optional(),
+                }),
+                scoped: z.boolean().optional(),
+              }),
+            )
+            .min(1),
+        }),
+      )
+      .optional(),
   })
   .superRefine((m, ctx) => {
     const own = (key: string) => key.startsWith(`${m.id}.`);
@@ -466,6 +581,41 @@ export const manifestSchema = z
         ctx.addIssue({ code: 'custom', path: ['taskTypes', i, 'type'], message: 'duplicate task type' });
       taskTypes.add(t.type);
     });
+    const emitted = new Set(m.events?.emits?.map((e) => e.name) ?? []);
+    const entities = new Set<string>();
+    m.syncEntities?.forEach((e, i) => {
+      if (entities.has(e.entity))
+        ctx.addIssue({
+          code: 'custom',
+          path: ['syncEntities', i, 'entity'],
+          message: 'duplicate sync entity',
+        });
+      entities.add(e.entity);
+      [...e.events, ...(e.commentEvents ?? [])].forEach((name) => {
+        if (!emitted.has(name))
+          ctx.addIssue({
+            code: 'custom',
+            path: ['syncEntities', i, 'events'],
+            message: `"${name}" is not in events.emits`,
+          });
+      });
+    });
+    const connectors = new Set<string>();
+    m.connectors?.forEach((c, i) => {
+      if (connectors.has(c.type))
+        ctx.addIssue({ code: 'custom', path: ['connectors', i, 'type'], message: 'duplicate connector' });
+      connectors.add(c.type);
+      const objects = new Set<string>();
+      c.objects.forEach((o, j) => {
+        if (objects.has(o.type))
+          ctx.addIssue({
+            code: 'custom',
+            path: ['connectors', i, 'objects', j, 'type'],
+            message: 'duplicate object type',
+          });
+        objects.add(o.type);
+      });
+    });
   });
 
 /** Identity helper that gives manifests full type checking and validates them eagerly. */
@@ -481,12 +631,13 @@ export function defineManifest<const M extends ModuleManifest>(manifest: M): M {
 /** JSON-safe view of a manifest (Zod schemas converted to JSON Schema) for APIs, admin UI and MCP. */
 export interface SerializedManifest extends Omit<
   ModuleManifest,
-  'events' | 'ai' | 'workflows' | 'taskTypes'
+  'events' | 'ai' | 'workflows' | 'taskTypes' | 'connectors'
 > {
   events?: { emits?: { name: string; description?: string; schema?: unknown }[]; consumes?: string[] };
   ai?: { tools?: (Omit<AiToolDef, 'input'> & { input: unknown })[]; agent?: AiAgentDef };
   workflows?: (Omit<WorkflowTriggerDef, 'facts'> & { facts?: unknown })[];
   taskTypes?: (Omit<TaskTypeDef, 'config'> & { config: unknown })[];
+  connectors?: (Omit<ConnectorDef, 'config' | 'secrets'> & { config: unknown; secrets: unknown })[];
 }
 
 export function toJsonSchema(schema: z.ZodType | undefined): unknown {
@@ -515,5 +666,10 @@ export function serializeManifest(m: ModuleManifest): SerializedManifest {
     },
     workflows: m.workflows?.map((w) => ({ ...w, facts: toJsonSchema(w.facts) })),
     taskTypes: m.taskTypes?.map((t) => ({ ...t, config: toJsonSchema(t.config) })),
+    connectors: m.connectors?.map((c) => ({
+      ...c,
+      config: toJsonSchema(c.config),
+      secrets: toJsonSchema(c.secrets),
+    })),
   };
 }

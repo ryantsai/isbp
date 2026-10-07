@@ -93,6 +93,16 @@ describe('itsm message catalogs', () => {
         expect(lookup(catalog, `audit.${action.split('.').slice(1).join('_')}`), action).toBeDefined();
   });
 
+  it('name every sync entity and sync field', () => {
+    const source = readFileSync(join(__dirname, '../src/server/sync.ts'), 'utf8');
+    const fields = [...source.matchAll(/label\('([A-Za-z]+)'\)/g)].map((m) => `sync.fields.${m[1]}`);
+    expect(fields.length).toBeGreaterThan(20);
+    const entities = (manifest.syncEntities ?? []).map((e) => e.name.slice('itsm.'.length));
+    expect(entities).toHaveLength(2);
+    for (const key of [...entities, ...fields, 'channel.integration', 'timeline.via', 'sync.resolvedIn'])
+      for (const catalog of Object.values(catalogs)) expect(lookup(catalog, key), key).toBeDefined();
+  });
+
   it('name every status, type and resolution the contract knows', () => {
     for (const catalog of Object.values(catalogs)) {
       for (const s of ['new', 'in_progress', 'authorization', 'known_error', 'rejected'])

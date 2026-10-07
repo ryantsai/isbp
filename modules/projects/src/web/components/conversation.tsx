@@ -20,6 +20,7 @@ import { type ReactNode, useId, useMemo, useState } from 'react';
 import type { Activity, Comment, TaskDetail } from '../../contracts';
 import { dateValue, INVALIDATE, taskApi } from '../lib';
 import { ConfirmDialog, MarkdownEditor } from './inputs';
+import { Via } from './via';
 
 type Entry =
   { kind: 'comment'; at: string; comment: Comment } | { kind: 'activity'; at: string; activity: Activity };
@@ -42,7 +43,7 @@ function useActivityText() {
   const tt = useTranslations('projects.taskType');
   const format = useFormatter();
   return (a: Activity) => {
-    const actor = a.actor?.displayName ?? t('system');
+    const actor = a.actor?.displayName ?? a.actorName ?? t('system');
     const value = (v: string | null, label: string | null) => {
       if (label) return label;
       if (v === null || v === '') return t('empty');
@@ -107,7 +108,7 @@ function CommentItem({ comment, taskRef }: { comment: Comment; taskRef: string }
     success: t('deleted'),
     onSuccess: () => setConfirm(false),
   });
-  const name = comment.author?.displayName ?? t('formerUser');
+  const name = comment.author?.displayName ?? comment.authorName ?? t('formerUser');
   return (
     <article className="flex gap-3" aria-label={t('by', { name })}>
       <UserAvatar name={name} src={comment.author?.avatarUrl} className="mt-0.5 size-7 text-[10px]" />
@@ -115,6 +116,11 @@ function CommentItem({ comment, taskRef }: { comment: Comment; taskRef: string }
         <header className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b px-3 py-1.5 text-sm">
           <span className="font-medium">{name}</span>
           <RelativeTime date={comment.createdAt} className="text-xs text-muted-foreground" />
+          {comment.via && (
+            <span className="text-xs text-muted-foreground">
+              <Via via={comment.via} />
+            </span>
+          )}
           {comment.editedAt && <span className="text-xs text-muted-foreground">{t('edited')}</span>}
           <span className="ml-auto flex gap-1">
             {comment.canEdit && !editing && (
@@ -241,7 +247,15 @@ export function Conversation({ task }: { task: TaskDetail }) {
                     <span className="grid size-6 shrink-0 place-items-center rounded-full bg-muted text-foreground">
                       {ICONS[e.activity.kind]}
                     </span>
-                    <span className="min-w-0 flex-1 wrap-anywhere">{text(e.activity)}</span>
+                    <span className="min-w-0 flex-1 wrap-anywhere">
+                      {text(e.activity)}
+                      {e.activity.via && (
+                        <>
+                          {' '}
+                          <Via via={e.activity.via} />
+                        </>
+                      )}
+                    </span>
                     <RelativeTime date={e.activity.createdAt} className="shrink-0 text-xs" />
                   </div>
                 )}

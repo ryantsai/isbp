@@ -56,6 +56,10 @@ export const personSchema = z.object({
 });
 export type PersonRef = z.input<typeof personSchema>;
 
+/** A change a sync with another system made: where it came from ("via Azure DevOps Bug 812"). */
+export const viaSchema = z.object({ connection: z.string(), ref: z.string(), url: z.string().nullable() });
+export type Via = z.input<typeof viaSchema>;
+
 const taskCountsSchema = z.object(
   Object.fromEntries(TASK_STATUSES.map((s) => [s, z.number().int()])) as Record<
     (typeof TASK_STATUSES)[number],
@@ -110,6 +114,8 @@ export const memberSchema = z.object({
   /** Offboarded or suspended people stay listed but can't be assigned. */
   active: z.boolean(),
   isOwner: z.boolean(),
+  /** Added by a sync that assigned them a task (the other system said they work on it). */
+  via: viaSchema.nullable(),
 });
 export type Member = z.input<typeof memberSchema>;
 
@@ -133,6 +139,9 @@ export const projectUpdateSchema = z.object({
   to: z.string(),
   note: z.string().nullable(),
   author: personSchema.nullable(),
+  /** An agent or service (no ISBP account) by name. */
+  authorName: z.string().nullable(),
+  via: viaSchema.nullable(),
   createdAt: dateTime,
 });
 export type ProjectUpdate = z.input<typeof projectUpdateSchema>;
@@ -414,6 +423,9 @@ export const commentSchema = z.object({
   id: z.uuid(),
   body: z.string(),
   author: personSchema.nullable(),
+  /** The author in another system, for comments a sync copied (no ISBP account). */
+  authorName: z.string().nullable(),
+  via: viaSchema.nullable(),
   createdAt: dateTime,
   editedAt: dateTime.nullable(),
   canEdit: z.boolean(),
@@ -432,6 +444,9 @@ export const activitySchema = z.object({
   fromLabel: z.string().nullable(),
   toLabel: z.string().nullable(),
   actor: personSchema.nullable(),
+  /** Agents, services and people of other systems (no ISBP account) by name. */
+  actorName: z.string().nullable(),
+  via: viaSchema.nullable(),
   createdAt: dateTime,
 });
 export type Activity = z.input<typeof activitySchema>;

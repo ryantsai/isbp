@@ -6,6 +6,7 @@ import { projectRecords, search, taskRecords } from './records';
 import { routes } from './routes';
 import { seedProjects } from './seed';
 import { services } from './services';
+import { sync } from './sync';
 
 /**
  * Project management: projects, tasks, milestones, the Kanban board, the Gantt timeline with
@@ -48,6 +49,8 @@ export default defineServerModule(manifest, {
   search,
 
   records: { project: projectRecords, task: taskRecords },
+
+  sync,
 
   seed: seedProjects,
 });

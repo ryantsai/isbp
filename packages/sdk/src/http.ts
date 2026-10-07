@@ -147,6 +147,24 @@ export const ErrorCodes = {
   REVEAL_EXPIRED: 'REVEAL_EXPIRED',
   /** The access review campaign is closed. */
   REVIEW_CLOSED: 'REVIEW_CLOSED',
+  /** The outside system (or this connector) can't do that for this object type. */
+  NOT_SUPPORTED: 'NOT_SUPPORTED',
+  /** The outside system refused the connection's credentials. */
+  REMOTE_AUTH_FAILED: 'REMOTE_AUTH_FAILED',
+  /** The outside system is rate limiting us (`details.retryAfterSeconds`). */
+  REMOTE_RATE_LIMITED: 'REMOTE_RATE_LIMITED',
+  /** The remote record changed since it was read (optimistic concurrency). */
+  REMOTE_CONFLICT: 'REMOTE_CONFLICT',
+  /** The outside system refused the change (`details.message` is its explanation). */
+  REMOTE_REJECTED: 'REMOTE_REJECTED',
+  /** The webhook's secret is missing or wrong. */
+  WEBHOOK_INVALID: 'WEBHOOK_INVALID',
+  /** A sync run for this profile is in progress. */
+  SYNC_RUNNING: 'SYNC_RUNNING',
+  /** Someone already resolved this conflict. */
+  CONFLICT_RESOLVED: 'CONFLICT_RESOLVED',
+  /** The connection's URL is plain HTTP and the connection doesn't allow insecure HTTP (`details.host`). */
+  INSECURE_HTTP: 'INSECURE_HTTP',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes] | (string & {});
 

@@ -13,7 +13,8 @@
     "readInternal": "社内向け（エージェント専用）記事の閲覧",
     "write": "下書きの作成、自分の下書きの編集とレビューへの提出",
     "publish": "記事の公開、廃止、復元、およびすべての記事の編集",
-    "manageCategories": "ナレッジ カテゴリの作成、編集、削除"
+    "manageCategories": "ナレッジ カテゴリの作成、編集、削除",
+    "sync": "統合を通じて記事を書き込む (公開には公開のアクセス許可が必要)"
   },
   "settings": {
     "reviewIntervalDays": "公開後にレビューするまでの日数（0 = 既定のレビュー日なし）",
@@ -154,7 +155,8 @@
     "bannerRetired": "この記事は廃止されており、検索に表示されません。復元すると編集して再公開できます。",
     "bannerReviewDue": "この記事のレビュー期限は {date} でした。内容が正しいことを確認してから、新しいレビュー日を設定してください。",
     "deleteTitle": "この記事を削除しますか?",
-    "deleteDescription": "{reference} とそのバージョン履歴は完全に削除されます。履歴を残すには廃止してください。"
+    "deleteDescription": "{reference} とそのバージョン履歴は完全に削除されます。履歴を残すには廃止してください。",
+    "syncedFrom": "{reference} から同期"
   },
   "feedback": {
     "question": "この記事は役に立ちましたか?",
@@ -298,5 +300,26 @@
   },
   "entities": {
     "article": "ナレッジ記事"
+  },
+  "sync": {
+    "entities": {
+      "article": "ナレッジ記事"
+    },
+    "fields": {
+      "title": "タイトル",
+      "summary": "概要",
+      "body": "本文",
+      "category": "カテゴリ",
+      "tags": "タグ",
+      "locale": "言語",
+      "audience": "対象",
+      "status": "状態",
+      "ref": "参照番号"
+    },
+    "locales": {
+      "en": "英語",
+      "zh-TW": "繁体字中国語",
+      "ja-JP": "日本語"
+    }
   }
 }

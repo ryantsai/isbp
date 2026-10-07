@@ -40,9 +40,15 @@ export async function startWorker(kernel: Kernel) {
             ? (event.payload as WorkflowCompletion).triggerKey
             : undefined;
         const onCompleted = trigger ? mod?.workflows?.[trigger]?.onCompleted : undefined;
+        const onSyncChange = mod?.onSyncChange;
         const handler: EventHandler | undefined =
           mod?.events?.[event.name] ??
-          (onCompleted ? (evt, ctx) => onCompleted(evt.payload as WorkflowCompletion, ctx) : undefined);
+          (onCompleted ? (evt, ctx) => onCompleted(evt.payload as WorkflowCompletion, ctx) : undefined) ??
+          (onSyncChange && kernel.sync.isSyncEvent(event.name)
+            ? async (evt, ctx) => {
+                for (const change of kernel.sync.changesFor(evt)) await onSyncChange(change, ctx);
+              }
+            : undefined);
         if (!mod || !handler || !registry.isEnabled(subscriber)) return { skipped: true };
         const principal: Principal = {
           type: 'system',

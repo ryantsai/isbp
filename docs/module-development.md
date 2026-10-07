@@ -527,6 +527,20 @@ advanced options behind a disclosure, permission-gated actions (`useCan`), and m
   cross-module event delivery.
 - User journeys go in `e2e/tests` (Playwright + axe accessibility scans).
 
+### Sync with outside systems (Phase 5)
+
+**Syncable records.** If your records should stay in step with an outside system (a ticketing tool, a work
+tracker, an asset register), expose them through a **sync adapter**: declare `manifest.syncEntities` with a
+dedicated `<module>.<resource>.sync` permission and implement `defineServerModule({ sync })` (field catalogue,
+read, list, write, optional `findBy` and comments). Writes run in the Integrations Hub's transaction through your
+own service logic and must refuse what your UI refuses, approvals included. The hub stores remote ids, so your
+tables don't change. See `docs/ai/recipes.md` §21.
+
+**A new outside system.** Write a **connector** module: `manifest.connectors` plus a `ConnectorHandler` that calls
+the system only through `conn.http`, maps failures to the `REMOTE_*` codes and suggests default mappings. Add a
+stand-in under `tooling/integration-mocks` and test against it. See `docs/ai/recipes.md` §22, and the `sdp` and
+`azdo` modules.
+
 ## 7. Checklist before shipping a module
 
 - [ ] Every route declares a permission (or is deliberately `public`) and scoped routes call `req.auth.require`.
@@ -538,4 +552,5 @@ advanced options behind a disclosure, permission-gated actions (`useCan`), and m
 - [ ] Notification types are declared and have `label`/`title`/`body` text in all three catalogs.
 - [ ] Catalogs exist for en, zh-TW and ja-JP, including `audit` labels.
 - [ ] Record pages declare a record type with a resolver and host the `core.record.links` / `core.record.files` panels; deletes call `ctx.records.forget`.
+- [ ] Syncable entities have a `.sync` permission and an adapter that refuses what the UI refuses; connectors use only `conn.http` and ship a stand-in.
 - [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm modules:check` pass.

@@ -89,12 +89,21 @@ describe('itam message catalogs', () => {
       ...(manifest.portal?.entries ?? []).flatMap((e) => [e.label, e.description]),
       ...(manifest.customFields?.entities ?? []).map((e) => e.name),
       ...(manifest.records?.types ?? []).map((t) => t.name),
+      ...(manifest.syncEntities ?? []).map((e) => e.name),
     ];
     for (const key of keys.filter((k): k is string => Boolean(k))) {
       expect(key.startsWith('itam.'), key).toBe(true);
       for (const catalog of Object.values(catalogs))
         expect(lookup(catalog, key.slice('itam.'.length)), key).toBeDefined();
     }
+  });
+
+  it('label every sync field', () => {
+    const source = readFileSync(join(__dirname, '../src/server/sync.ts'), 'utf8');
+    const fields = [...source.matchAll(/label\('([A-Za-z]+)'\)/g)].map((m) => `sync.fields.${m[1]}`);
+    expect(fields.length).toBeGreaterThan(12);
+    for (const key of [...fields, 'history.via'])
+      for (const catalog of Object.values(catalogs)) expect(lookup(catalog, key), key).toBeDefined();
   });
 
   it('label every audit action the server records', () => {

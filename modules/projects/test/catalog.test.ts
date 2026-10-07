@@ -86,12 +86,21 @@ describe('projects message catalogs', () => {
       ...(manifest.workflows ?? []).flatMap((w) => [w.name, w.description]),
       ...(manifest.customFields?.entities ?? []).map((e) => e.name),
       ...(manifest.records?.types ?? []).map((r) => r.name),
+      ...(manifest.syncEntities ?? []).map((e) => e.name),
     ].filter((k): k is string => Boolean(k));
     for (const key of keys) {
       expect(key.startsWith('projects.'), key).toBe(true);
       for (const catalog of Object.values(catalogs))
         expect(lookup(catalog, key.slice('projects.'.length)), key).toBeDefined();
     }
+  });
+
+  it('label every sync field', () => {
+    const source = readFileSync(join(__dirname, '../src/server/sync.ts'), 'utf8');
+    const fields = [...source.matchAll(/label\('([A-Za-z]+)'\)/g)].map((m) => `sync.fields.${m[1]}`);
+    expect(fields.length).toBeGreaterThan(18);
+    for (const key of [...fields, 'sync.via'])
+      for (const catalog of Object.values(catalogs)) expect(lookup(catalog, key), key).toBeDefined();
   });
 
   it('label every audit action the server records', () => {

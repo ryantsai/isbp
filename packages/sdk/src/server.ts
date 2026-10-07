@@ -20,10 +20,18 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import type { z } from 'zod';
 import type { LocalizedText } from './conditions';
 import type { FieldDef, FormSchema } from './fields';
+import type {
+  ConnectorHandler,
+  ConnectorsService,
+  SyncAdapter,
+  SyncChange,
+  SyncService,
+} from './integrations';
 import type { ModuleManifest } from './manifest';
 import type { PermissionReach, PermissionSet, ResourceScope } from './permissions';
 
 export * from './index';
+export * from './integrations';
 export type {
   Catalog,
   CatalogColumn,
@@ -802,6 +810,10 @@ export interface ModuleContext {
   readonly http: HttpClient;
   readonly cache: CacheService;
   readonly sandbox: SandboxService;
+  /** Sync adapters of enabled modules (Phase 5; used by the Integrations Hub). */
+  readonly sync: SyncService;
+  /** Connector types of enabled modules (Phase 5; used by the Integrations Hub). */
+  readonly connectors: ConnectorsService;
   /** Runs `fn` in a DB transaction; pass `tx` to audit/events to keep them atomic. */
   transaction<T>(fn: (tx: Db) => Promise<T>): Promise<T>;
   /** Principal of the current request, job or event (from async context). */
@@ -881,6 +893,16 @@ export interface ServerModuleOptions {
   /** Handlers for `manifest.taskTypes`, keyed by type (without the module prefix). */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   taskTypes?: Record<string, TaskTypeHandler<any>>;
+  /** Adapters for `manifest.syncEntities`, keyed by entity (without the module prefix). */
+  sync?: Record<string, SyncAdapter>;
+  /** Handlers for `manifest.connectors`, keyed by type (without the module prefix). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  connectors?: Record<string, ConnectorHandler<any, any>>;
+  /**
+   * Called (in the worker) for every event an enabled module's sync entity lists in `events` or
+   * `commentEvents`, with the record id resolved. The Integrations Hub pushes local changes from here.
+   */
+  onSyncChange?: (change: SyncChange, ctx: ModuleContext) => Promise<void>;
   /** Demo data for `pnpm db:seed`. Must be idempotent. */
   seed?: (ctx: ModuleContext) => Promise<void>;
   onEnable?: (ctx: ModuleContext) => Promise<void>;
@@ -934,6 +956,28 @@ export function defineServerModule(manifest: ModuleManifest, options: ServerModu
   for (const type of Object.keys(options.taskTypes ?? {})) {
     if (!taskTypes.has(type))
       throw new Error(`[${manifest.id}] task type handler "${type}" is not declared in manifest.taskTypes`);
+  }
+  const syncEntities = new Map(manifest.syncEntities?.map((e) => [e.entity, e]) ?? []);
+  for (const [entity, def] of syncEntities) {
+    const adapter = options.sync?.[entity];
+    if (!adapter) throw new Error(`[${manifest.id}] sync entity "${entity}" has no adapter in sync`);
+    if (def.commentEvents?.length && !adapter.comments)
+      throw new Error(
+        `[${manifest.id}] sync entity "${entity}" lists commentEvents but its adapter has no comments`,
+      );
+  }
+  for (const entity of Object.keys(options.sync ?? {})) {
+    if (!syncEntities.has(entity))
+      throw new Error(`[${manifest.id}] sync adapter "${entity}" is not declared in manifest.syncEntities`);
+  }
+  const connectorTypes = new Set(manifest.connectors?.map((c) => c.type) ?? []);
+  for (const type of connectorTypes) {
+    if (!options.connectors?.[type])
+      throw new Error(`[${manifest.id}] connector "${type}" has no handler in connectors`);
+  }
+  for (const type of Object.keys(options.connectors ?? {})) {
+    if (!connectorTypes.has(type))
+      throw new Error(`[${manifest.id}] connector handler "${type}" is not declared in manifest.connectors`);
   }
   for (const name of Object.keys(options.jobs ?? {})) {
     if (!/^[a-z][a-z0-9-]*$/.test(name))

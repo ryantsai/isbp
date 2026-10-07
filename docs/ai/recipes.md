@@ -269,7 +269,7 @@ await tx.update(connectors).set({ apiKeySealed: ctx.secrets.seal(input.apiKey) }
 // use (worker / job)
 const res = await ctx.http.request(`${base}/api/v3/requests`, {
   method: 'GET',
-  headers: { authorization: `Zoho-oauthtoken ${ctx.secrets.open(row.apiKeySealed)}` },
+  headers: { authtoken: ctx.secrets.open(row.apiKeySealed) },
   timeoutMs: 15_000,
   maxBytes: 5 * 1024 * 1024,
   allowHosts: (await ctx.settings.get<string>('allowedHosts'))?.split('\n') ?? [],
@@ -320,3 +320,58 @@ When modules need a capability the kernel lacks, add a **service** instead of a 
 4. Document it in [api-reference.md](api-reference.md), [system-map.md](system-map.md) and, if it carries a rule,
    [rules.md](rules.md).
 5. Record the decision in `docs/architecture.md` (the current phase's decisions table).
+
+## 21. Make your records syncable with outside systems
+
+```ts
+// manifest.ts
+permissions: [{ key: 'things.items.sync', description: 'things.permissions.items_sync' }],
+events: { emits: [{ name: 'things.item.created' }, { name: 'things.item.updated' }] },
+syncEntities: [{ entity: 'item', name: 'things.entities.items', icon: 'box',
+  permission: 'things.items.sync', events: ['things.item.created', 'things.item.updated'] }],
+
+// server/sync.ts
+export const itemSync: SyncAdapter = {
+  fields: async () => [
+    { key: 'title', label: 'things.sync.title', type: 'string', required: true, maxLength: 200 },
+    { key: 'status', label: 'things.sync.status', type: 'choice',
+      choices: STATUSES.map((s) => ({ value: s, label: `things.status.${s}` })) },
+    { key: 'owner', label: 'things.sync.owner', type: 'user' },
+    { key: 'ref', label: 'things.sync.ref', type: 'string', readOnly: true },
+  ],
+  read: (id, ctx) => services(ctx).items.syncRecord(id),
+  readMany: (ids, ctx) => services(ctx).items.syncRecords(ids),
+  list: (opts, ctx) => services(ctx).items.syncPage(opts), // updated_at asc, cursor-paged
+  findBy: (field, value, _opts, ctx) => services(ctx).items.findByTitle(String(value)),
+  matchKeys: ['title'],
+  // Same rules as the UI, in the hub's transaction; events with { tx }; audit metadata { source }.
+  write: (input, { auth, tx, source }, ctx) => services(ctx).items.applySync(input, auth, tx, source),
+  idFromEvent: (e) => (e.payload as { id?: string }).id ?? null,
+};
+// server/index.ts
+defineServerModule(manifest, { …, sync: { item: itemSync } });
+```
+
+The kernel validates values against your catalogue before `write` runs. Test through `ctx.sync` with an agent
+holding `*.*.sync`: create, update, refusals (403, 409, 422), events and `findBy`.
+
+_See:_ `modules/itsm` (tickets with comments), `modules/projects` (tasks in a project container),
+`modules/alm` (repositories, pull only).
+
+## 22. Connect a new outside system (a connector)
+
+1. `pnpm create-module <system>`; no tables or navigation. Declare `manifest.connectors: [{ type, name, config,
+secrets, objects }]` with Zod schemas (URLs may be `http://` or `https://`; the kernel enforces HTTPS unless the
+   connection allows insecure HTTP) and each remote object's
+   capabilities and usual target entities.
+2. Implement `ConnectorHandler`: `hosts`, `test`, `fields`, `changes` (oldest first, a cursor that never skips equal
+   timestamps), `get`, and where the API allows `create`, `update` (`expectedVersion` → `REMOTE_CONFLICT`),
+   `comments`, `webhook`, `scopes`, `defaultMapping` (against the target adapters' field keys in
+   [reference.md](reference.md)). Call the API only with `conn.http`; cache tokens in `conn.cache`.
+3. Contribute the settings form: web slot `integrations.connector-config.<module>.<type>` with
+   `ConnectorConfigSlotProps` (secrets as password inputs, "Stored. Leave empty to keep it.").
+4. Add a stand-in under `tooling/integration-mocks/src/<system>` (same paths and shapes, seeded data, `/_mock/*`
+   controls) and test the connector against it in-process.
+
+_See:_ `modules/sdp` (technician API key, form-encoded `input_data`), `modules/azdo` (PAT, WIQL, JSON Patch with
+`test /rev`, hierarchy).

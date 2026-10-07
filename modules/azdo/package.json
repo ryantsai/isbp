@@ -1,0 +1,95 @@
+{
+  "name": "@isbp/module-azdo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Azure DevOps Server connector: team projects, work items and Git repositories for the Integrations Hub",
+  "type": "module",
+  "isbp": {
+    "module": true,
+    "id": "azdo"
+  },
+  "exports": {
+    "./manifest": "./src/manifest.ts",
+    "./contracts": "./src/contracts.ts",
+    "./model": "./src/model.ts",
+    "./server": "./src/server/index.ts",
+    "./web": "./src/web/index.tsx",
+    "./messages/*": "./messages/*"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@isbp/contracts": "workspace:*",
+    "@isbp/sdk": "workspace:*",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "@hookform/resolvers": "*",
+    "@isbp/ui": "workspace:*",
+    "@tanstack/react-table": "*",
+    "fastify": "*",
+    "lucide-react": "*",
+    "motion": "*",
+    "next": "*",
+    "next-intl": "*",
+    "react": "*",
+    "react-hook-form": "*"
+  },
+  "peerDependenciesMeta": {
+    "@hookform/resolvers": {
+      "optional": true
+    },
+    "@isbp/ui": {
+      "optional": true
+    },
+    "@tanstack/react-table": {
+      "optional": true
+    },
+    "lucide-react": {
+      "optional": true
+    },
+    "motion": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    },
+    "next-intl": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-hook-form": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@hookform/resolvers": "catalog:",
+    "@isbp/eslint-config": "workspace:*",
+    "@isbp/i18n": "workspace:*",
+    "@isbp/integration-mocks": "workspace:*",
+    "@isbp/module-alm": "workspace:*",
+    "@isbp/module-projects": "workspace:*",
+    "@isbp/tsconfig": "workspace:*",
+    "@isbp/ui": "workspace:*",
+    "@tanstack/react-table": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "eslint": "catalog:",
+    "fastify": "catalog:",
+    "fastify-type-provider-zod": "catalog:",
+    "lucide-react": "catalog:",
+    "motion": "catalog:",
+    "next": "catalog:",
+    "next-intl": "catalog:",
+    "react": "catalog:",
+    "react-hook-form": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

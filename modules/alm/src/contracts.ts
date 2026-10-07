@@ -84,6 +84,15 @@ export const httpsUrl = z
   .max(500)
   .refine((u) => u.startsWith('https://'), 'Only https:// links are allowed');
 
+/**
+ * Repository links: https, or plain http for on-premises Git servers that run without TLS (Azure DevOps
+ * Server behind the Integrations Hub's "Allow insecure HTTP"). Other schemes (javascript:, file:) never.
+ */
+export const repoUrl = z
+  .url({ protocol: /^https?$/ })
+  .max(500)
+  .refine((u) => /^https?:\/\//i.test(u), 'Only http:// and https:// links are allowed');
+
 export const codeSchema = z
   .string()
   .trim()
@@ -189,6 +198,80 @@ export const environmentSchema = z.object({
 });
 export type Environment = z.input<typeof environmentSchema>;
 
+/** A branch of a repository, as a sync with the Git server reported it ("Git status"). */
+export const repoBranchSchema = z.object({
+  name: z.string(),
+  /** Commit at the tip of the branch. */
+  commitSha: z.string().nullish(),
+  /** When that commit was made (ISO 8601). */
+  committedAt: z.string().nullish(),
+  /** Commits ahead of / behind the default branch. */
+  ahead: z.number().int().nullish(),
+  behind: z.number().int().nullish(),
+});
+export type RepoBranch = z.output<typeof repoBranchSchema>;
+
+/** An active pull request of a repository, as a sync reported it. */
+export const repoPullRequestSchema = z.object({
+  /** The Git server's id or number. */
+  id: z.string(),
+  title: z.string(),
+  author: z.string().nullish(),
+  sourceBranch: z.string(),
+  targetBranch: z.string(),
+  /** The pull request's page on the Git server (links out). */
+  url: z.string().nullish(),
+  /** ISO 8601. */
+  createdAt: z.string().nullish(),
+  draft: z.boolean().nullish(),
+});
+export type RepoPullRequest = z.output<typeof repoPullRequestSchema>;
+
+/** `refs/heads/main` → `main` (Azure DevOps and Git report full ref names). */
+const branchName = z
+  .string()
+  .trim()
+  .max(250)
+  .transform((v) => v.replace(/^refs\/heads\//, ''))
+  .pipe(z.string().min(1));
+
+/**
+ * What a sync may write as a repository's Git status: branches and active pull requests, checked and
+ * normalised (unknown keys dropped). The REST API never writes them.
+ */
+export const gitStatusSchema = z.object({
+  branches: z
+    .array(
+      z.object({
+        name: branchName,
+        commitSha: z.string().trim().max(64).nullish(),
+        committedAt: z.iso.datetime({ offset: true }).nullish(),
+        ahead: z.number().int().min(0).nullish(),
+        behind: z.number().int().min(0).nullish(),
+      }),
+    )
+    .max(1_000)
+    .nullish(),
+  pullRequests: z
+    .array(
+      z.object({
+        id: z.union([z.string().trim().min(1).max(64), z.number().int()]).transform(String),
+        title: z.string().trim().min(1).max(400),
+        author: z.string().trim().max(200).nullish(),
+        sourceBranch: branchName,
+        targetBranch: branchName,
+        url: z
+          .url({ protocol: /^https?$/ })
+          .max(1000)
+          .nullish(),
+        createdAt: z.iso.datetime({ offset: true }).nullish(),
+        draft: z.boolean().nullish(),
+      }),
+    )
+    .max(500)
+    .nullish(),
+});
+
 export const repositorySchema = z.object({
   id,
   name: z.string(),
@@ -203,6 +286,11 @@ export const repositorySchema = z.object({
       author: z.string().nullable(),
     })
     .nullable(),
+  /** Git status, kept by a sync with the Git server (null until one ran). */
+  branches: z.array(repoBranchSchema).nullable(),
+  pullRequests: z.array(repoPullRequestSchema).nullable(),
+  /** When a sync last wrote this repository. */
+  syncedAt: dateTime.nullable(),
   updatedAt: dateTime,
 });
 export type Repository = z.input<typeof repositorySchema>;
@@ -366,7 +454,7 @@ const commitFields = {
 
 export const createRepositorySchema = z.object({
   name: text(200).min(1),
-  url: httpsUrl,
+  url: repoUrl,
   provider: repoProviderSchema.default('azure_devops'),
   defaultBranch: text(200).min(1).default('main'),
   ...commitFields,
@@ -376,7 +464,7 @@ export type CreateRepositoryInput = z.input<typeof createRepositorySchema>;
 export const updateRepositorySchema = z
   .object({
     name: text(200).min(1),
-    url: httpsUrl,
+    url: repoUrl,
     provider: repoProviderSchema,
     defaultBranch: text(200).min(1),
     ...commitFields,

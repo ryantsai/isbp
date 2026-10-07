@@ -6,6 +6,7 @@ import { recordResolvers, searchItam } from './records';
 import { routes } from './routes';
 import { seedItam } from './seed';
 import { services } from './services';
+import { sync } from './sync';
 
 /**
  * IT asset management: hardware through its lifecycle (with the disposal approval), software licences
@@ -68,5 +69,6 @@ export default defineServerModule(manifest, {
   ai: aiTools,
   records: recordResolvers,
   search: searchItam,
+  sync,
   seed: seedItam,
 });

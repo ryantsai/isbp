@@ -30,7 +30,8 @@
     "contractsRead": "檢視合約",
     "contractsManage": "管理合約、續約與合約涵蓋項目",
     "selfRead": "檢視配發給自己的設備與軟體",
-    "configManage": "管理型號目錄與廠商"
+    "configManage": "管理型號目錄與廠商",
+    "assetsSync": "透過整合寫入硬體資產（報廢只能經由簽核）"
   },
   "settings": {
     "currency": "預設幣別",
@@ -445,7 +446,8 @@
     "disposalCancelled": "報廢申請已取消",
     "note": "備註",
     "system": "系統",
-    "more": "顯示更多"
+    "more": "顯示更多",
+    "via": "經由 {system} {reference}"
   },
   "links": {
     "unavailable": "無法使用連結與檔案",
@@ -765,5 +767,26 @@
     "nonCompliantLicenses": "不合規的授權",
     "contractsRenewing30": "30 天內需續約的合約",
     "warrantiesExpiring30": "30 天內保固到期"
+  },
+  "sync": {
+    "entities": {
+      "asset": "硬體資產"
+    },
+    "fields": {
+      "name": "名稱",
+      "category": "類別",
+      "serialNumber": "序號",
+      "status": "狀態",
+      "assignedTo": "使用人",
+      "location": "位置",
+      "vendor": "廠商",
+      "purchaseDate": "購買日期",
+      "purchaseCost": "購買金額",
+      "currency": "幣別",
+      "invoiceNumber": "發票號碼",
+      "warrantyEnd": "保固到期日",
+      "notes": "備註",
+      "ref": "資產編號"
+    }
   }
 }

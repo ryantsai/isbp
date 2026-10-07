@@ -9,6 +9,7 @@ import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
+import { safeUrl } from '@isbp/ui/markdown';
 import { FadeIn } from '@isbp/ui/motion';
 import { useApiQuery } from '@isbp/ui/query';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
@@ -544,6 +545,25 @@ const EVENT_ICON: Record<AssetEvent['kind'], LucideIcon> = {
   disposed: RecycleIcon,
 };
 
+/** "via ServiceDesk Plus #1234": a step a sync with another system made, linking to its record there. */
+function Via({ via }: { via: NonNullable<AssetEvent['via']> }) {
+  const t = useTranslations('itam.history');
+  const text = t('via', { system: via.connection, reference: via.ref });
+  const url = via.url ? safeUrl(via.url) : '';
+  return url ? (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="underline underline-offset-4 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
+    >
+      {text}
+    </a>
+  ) : (
+    <span>{text}</span>
+  );
+}
+
 function HistoryTab({ asset }: { asset: AssetDetail }) {
   const t = useTranslations('itam');
   const [pageSize, setPageSize] = useState(30);
@@ -608,6 +628,12 @@ function HistoryTab({ asset }: { asset: AssetDetail }) {
                 )}
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {e.actor ? `${e.actor.displayName} · ` : `${t('history.system')} · `}
+                  {e.via && (
+                    <>
+                      <Via via={e.via} />
+                      {' · '}
+                    </>
+                  )}
                   <RelativeTime date={e.createdAt} />
                 </p>
               </li>

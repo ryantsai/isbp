@@ -14,26 +14,28 @@ Names declared by existing modules are in [reference.md](reference.md).
 
 Validated eagerly. A bad manifest throws when the module is imported.
 
-| Field                         | Type                                                                                                                             | Rules / notes                                                                                       |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `id`                          | `string`                                                                                                                         | kebab-case, 3–40 chars, not reserved                                                                |
-| `version`                     | semver                                                                                                                           |                                                                                                     |
-| `name`, `description`, `icon` | i18n keys / lucide name                                                                                                          | `<id>.meta.name`, `<id>.meta.description`                                                           |
-| `system`                      | `boolean`                                                                                                                        | cannot be disabled (core only)                                                                      |
-| `dependsOn`                   | `string[]`                                                                                                                       | modules whose tables you read; enabling requires them                                               |
-| `navigation`                  | `{ id, label, href, icon?, permission?, section?: 'main'\|'admin', group?, badge?, order?, children? }[]`                        | `label`/`group` are i18n keys; `href` absolute (`/<id>/…`); hidden without `permission` (any scope) |
-| `permissions`                 | `{ key, description, scopes?: ('global'\|'department'\|'record')[] }[]`                                                          | `key` = `<id>.<resource>.<action>`; `description` i18n key; scopes default `['global']`             |
-| `roles`                       | `{ key, name, description?, permissions: string[], grantByDefault? }[]`                                                          | patterns allowed (`<id>.*`, `<id>.items.*`); `grantByDefault` grants the "Everyone" group once      |
-| `events`                      | `{ emits?: { name, description?, schema? }[], consumes?: string[] }`                                                             | `name` = `<id>.<entity>.<verb_past>`; `schema` Zod; `consumes` lists names handled in `events`      |
-| `settings`                    | `{ key, label, description?, type: 'string'\|'text'\|'number'\|'boolean'\|'select'\|'secret', default?, options?, advanced? }[]` | edited in Administration → Modules; read with `ctx.settings.get(key)`; `secret` values sealed       |
-| `ai`                          | `{ tools?: { name, description, input: ZodType, permission, destructive? }[], agent?: { name, permissions } }`                   | `name` = `<id>.<verb_noun>`; description ≥ 10 chars, written for a model; handler in `ai`           |
-| `search`                      | `{ entities: string[] }`                                                                                                         | with a `search` provider in the server definition                                                   |
-| `portal`                      | `{ entries: { id, label, description?, icon?, href, permission?, order? }[] }`                                                   | cards in Requests → "What do you need?"                                                             |
-| `workflows`                   | `{ key, name, description?, subject, facts?: ZodType, required?, defaultGraph? }[]`                                              | `key` = `<id>.<name>`; `required` + `defaultGraph` = always approved; handler in `workflows`        |
-| `notifications`               | `{ type, defaultChannels?: ('inApp'\|'email')[], mandatory? }[]`                                                                 | text in catalog `<id>.notifications.<type minus id, . and - → _>.{label,title,body}`                |
-| `customFields`                | `{ entities: { type, name }[] }`                                                                                                 | admins add fields to `<id>.<type>`; validate with `ctx.fields.validate`                             |
-| `records`                     | `{ types: { type, name, icon?, permission }[] }`                                                                                 | full type `<id>.<type>`; resolver in `records`                                                      |
-| `taskTypes`                   | `{ type, name, description?, icon?, permission, config: ZodType }[]`                                                             | full type `<id>.<type>`; handler in `taskTypes`; Scheduled Jobs runs them                           |
+| Field                         | Type                                                                                                                                    | Rules / notes                                                                                       |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `id`                          | `string`                                                                                                                                | kebab-case, 3–40 chars, not reserved                                                                |
+| `version`                     | semver                                                                                                                                  |                                                                                                     |
+| `name`, `description`, `icon` | i18n keys / lucide name                                                                                                                 | `<id>.meta.name`, `<id>.meta.description`                                                           |
+| `system`                      | `boolean`                                                                                                                               | cannot be disabled (core only)                                                                      |
+| `dependsOn`                   | `string[]`                                                                                                                              | modules whose tables you read; enabling requires them                                               |
+| `navigation`                  | `{ id, label, href, icon?, permission?, section?: 'main'\|'admin', group?, badge?, order?, children? }[]`                               | `label`/`group` are i18n keys; `href` absolute (`/<id>/…`); hidden without `permission` (any scope) |
+| `permissions`                 | `{ key, description, scopes?: ('global'\|'department'\|'record')[] }[]`                                                                 | `key` = `<id>.<resource>.<action>`; `description` i18n key; scopes default `['global']`             |
+| `roles`                       | `{ key, name, description?, permissions: string[], grantByDefault? }[]`                                                                 | patterns allowed (`<id>.*`, `<id>.items.*`); `grantByDefault` grants the "Everyone" group once      |
+| `events`                      | `{ emits?: { name, description?, schema? }[], consumes?: string[] }`                                                                    | `name` = `<id>.<entity>.<verb_past>`; `schema` Zod; `consumes` lists names handled in `events`      |
+| `settings`                    | `{ key, label, description?, type: 'string'\|'text'\|'number'\|'boolean'\|'select'\|'secret', default?, options?, advanced? }[]`        | edited in Administration → Modules; read with `ctx.settings.get(key)`; `secret` values sealed       |
+| `ai`                          | `{ tools?: { name, description, input: ZodType, permission, destructive? }[], agent?: { name, permissions } }`                          | `name` = `<id>.<verb_noun>`; description ≥ 10 chars, written for a model; handler in `ai`           |
+| `search`                      | `{ entities: string[] }`                                                                                                                | with a `search` provider in the server definition                                                   |
+| `portal`                      | `{ entries: { id, label, description?, icon?, href, permission?, order? }[] }`                                                          | cards in Requests → "What do you need?"                                                             |
+| `workflows`                   | `{ key, name, description?, subject, facts?: ZodType, required?, defaultGraph? }[]`                                                     | `key` = `<id>.<name>`; `required` + `defaultGraph` = always approved; handler in `workflows`        |
+| `notifications`               | `{ type, defaultChannels?: ('inApp'\|'email')[], mandatory? }[]`                                                                        | text in catalog `<id>.notifications.<type minus id, . and - → _>.{label,title,body}`                |
+| `customFields`                | `{ entities: { type, name }[] }`                                                                                                        | admins add fields to `<id>.<type>`; validate with `ctx.fields.validate`                             |
+| `records`                     | `{ types: { type, name, icon?, permission }[] }`                                                                                        | full type `<id>.<type>`; resolver in `records`                                                      |
+| `taskTypes`                   | `{ type, name, description?, icon?, permission, config: ZodType }[]`                                                                    | full type `<id>.<type>`; handler in `taskTypes`; Scheduled Jobs runs them                           |
+| `syncEntities`                | `{ entity, name, icon?, permission, events, commentEvents?, container? }[]`                                                             | full key `<id>.<entity>`; adapter in `sync`; `events` must be in `events.emits`; Phase 5            |
+| `connectors`                  | `{ type, name, description?, icon?, config: ZodType, secrets: ZodType, objects: { type, name, entities?, capabilities, scoped? }[] }[]` | full type `<id>.<type>`; handler in `connectors`; the Integrations Hub opens connections            |
 
 ## 2. `ModuleContext` (server)
 
@@ -115,6 +117,43 @@ Every route, handler, job, AI tool, resolver and seed receives `ctx`. Members:
 
 Task handlers receive `task: { runId, jobId, attempt, scheduledFor, lastSuccessAt, timeoutMs?, signal, log(message, level?) }`
 and return `{ summary?, metrics?, href? }`.
+
+### Phase 5: sync adapters and connectors (Integrations Hub)
+
+Types are in `packages/sdk/src/integrations.ts`; the design is `docs/architecture.md` §12. Data modules provide
+**adapters**, connector modules provide **connectors**, and the `integrations` module maps between them. A module
+normally implements one side and never calls these services itself; the hub does.
+
+| Member                                                                        | Semantics                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ctx.sync.entities(auth?)`                                                    | `{ entity, moduleId, name, icon, permission, container, comments, recordType, matchKeys }[]` of enabled modules (filtered by permission)                                                                                                                           |
+| `ctx.sync.fields(entity, { containerId? })`                                   | the adapter's field catalogue: `{ key, label, type, choices?, required?, readOnly?, createOnly?, maxLength? }[]`                                                                                                                                                   |
+| `ctx.sync.read/readMany/list/findBy(entity, …)`                               | `SyncRecord { id, ref, title, href, updatedAt, containerId, values }`; `list` is update-ordered and cursor-paged; `findBy` matches on the adapter's `matchKeys` (null when none or ambiguous)                                                                      |
+| `ctx.sync.write(entity, { id?, containerId?, values }, { auth, tx, source })` | 403 without the entity's `permission`; 422 `VALIDATION_FAILED` for unknown, read-only, create-only (on update), invalid-choice or missing required fields — then the adapter writes in `tx`. Returns `{ id, record }`: the record as stored, read in the same `tx` |
+| `ctx.sync.comments.list/add(entity, id, …)`                                   | comment sync for entities with `commentEvents`                                                                                                                                                                                                                     |
+| `ctx.connectors.list()` / `validate(type, config, secrets)`                   | `{ type, moduleId, name, configSchema, secretsSchema, secretKeys, objects[{ type, name, entities, capabilities, scoped }] }[]`; validation 400 with `issues`                                                                                                       |
+| `ctx.connectors.open(type, { id, config, secrets })`                          | an `OpenConnector`: `test`, `scopes`, `fields`, `changes`, `get`, `create`, `update`, `comments`, `webhook`, `defaultMapping`; 409 `NOT_SUPPORTED` for capabilities the object type lacks                                                                          |
+| `defineServerModule({ onSyncChange(change, ctx) })`                           | receives every event a sync entity lists (`{ entity, id, kind: 'record'\|'comment', event }`), in the worker                                                                                                                                                       |
+
+**Writing an adapter** (`defineServerModule({ sync: { [entity]: SyncAdapter } })`): `fields`, `read`, `readMany`,
+`list`, `write`, `idFromEvent`, optional `findBy` + `matchKeys` and `comments`. `write` runs **in the hub's `tx`**,
+through your own write logic, publishing your usual events with `{ tx }` and auditing with `source` in the metadata.
+Refuse what your UI would refuse, including statuses that need an approval (409 `INVALID_TRANSITION`,
+`details.reason: 'approval_required'`). Value shapes: `user` = local user id, `parent` = local record id, `date` =
+`YYYY-MM-DD`, `datetime` = ISO, `tags` = `string[]`, empty = `null`.
+
+**Writing a connector** (`defineServerModule({ connectors: { [type]: ConnectorHandler } })`): every call gets
+`conn: { connectionId, config, secrets, http, cache, signal }`. `conn.http` only reaches `hosts(config)` (private
+addresses allowed for them; link-local/metadata never) and refuses plain `http://` with 422 `INSECURE_HTTP` unless
+the connection allows insecure HTTP (`open(type, { …, allowInsecureHttp })`; loopback is always allowed). Keep OAuth tokens in `conn.cache`. `changes()` returns
+records oldest first with an opaque cursor that never skips equal timestamps. `RemoteRecord.version` drives
+optimistic concurrency (`update(…, { expectedVersion })` → 409 `REMOTE_CONFLICT`). Map failures to 502
+`REMOTE_AUTH_FAILED`, 429 `REMOTE_RATE_LIMITED` (`details.retryAfterSeconds`), 422 `REMOTE_REJECTED`
+(`details.message`). `webhook()` only says which records changed. Users are `{ email, name, id? }`. Leave a field
+out of `RemoteRecord.values` when the API didn't return it (it is then unknown, not empty). `defaultMapping` value
+maps may give each row a `direction` (`both`, `pull`, `push`) for many-to-one maps; at most one row per remote
+value may pull and one per ISBP value may push (`integrations-defaults.test.ts` checks every connector). Contribute the
+settings form as the web slot `integrations.connector-config.<module>.<type>` (`ConnectorConfigSlotProps`).
 
 ## 3. Authorization: `AuthContext` and route config
 

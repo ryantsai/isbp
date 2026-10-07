@@ -14,6 +14,7 @@ describe('itam manifest', () => {
   it('declares the permissions and roles the platform seed grants', () => {
     expect((manifest.permissions ?? []).map((p) => p.key).sort()).toEqual(
       [
+        'itam.assets.sync',
         'itam.config.manage',
         'itam.contracts.manage',
         'itam.contracts.read',
@@ -74,6 +75,15 @@ describe('itam manifest', () => {
         asset: { category: 'laptop', dataBearing: true, bookValue: 1, ageMonths: 2 },
       }).success,
     ).toBe(true);
+  });
+
+  it('lets the Integrations Hub sync hardware with its own permission, granted by no role template', () => {
+    expect(manifest.syncEntities).toEqual([
+      expect.objectContaining({ entity: 'asset', permission: 'itam.assets.sync', icon: 'laptop' }),
+    ]);
+    const emitted = new Set(manifest.events?.emits?.map((e) => e.name));
+    for (const name of manifest.syncEntities![0]!.events) expect(emitted.has(name), name).toBe(true);
+    for (const role of manifest.roles ?? []) expect(role.permissions).not.toContain('itam.assets.sync');
   });
 
   it('declares record types, custom fields, the portal entry and five AI tools', () => {

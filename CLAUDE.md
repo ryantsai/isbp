@@ -85,6 +85,15 @@ API reference, recipes, generated extension-point reference, testing, UI, defini
   untrusted scripts only via `ctx.sandbox` (container runners; `local` is dev-only). Web code may import
   `@isbp/sql/params` (pure) but never the `@isbp/sql` root (drivers). SQL/script editors use `@isbp/ui/code-editor`.
 
+- Integrations (Phase 5): records sync with outside systems through a **sync adapter** in the owning module
+  (`manifest.syncEntities` + `defineServerModule({ sync })`, a `<module>.<resource>.sync` permission; writes in the
+  hub's `tx`, held to the module's rules and approvals). Outside systems are **connector** modules
+  (`manifest.connectors` + `connectors`; only `conn.http`, which refuses plain HTTP unless the connection's audited
+  "Allow insecure HTTP" switch is on; typed `REMOTE_*` errors; settings form in the slot
+  `integrations.connector-config.<module>.<type>`). The `integrations` module owns connections, profiles, mappings,
+  links (remote ids live only there), runs and conflicts. Webhooks only trigger re-reads. Stand-ins for ServiceDesk
+  Plus and Azure DevOps Server (both on-premises) are in `tooling/integration-mocks` (port 4100 via `pnpm dev:services`).
+
 ## Gotchas
 
 - pnpm 12: install scripts must be listed under `allowBuilds` in `pnpm-workspace.yaml`.

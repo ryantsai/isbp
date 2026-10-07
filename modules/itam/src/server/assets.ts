@@ -80,6 +80,7 @@ import {
   models,
   vendors,
 } from './schema';
+import { viaOf } from './sync-support';
 import {
   type Actor,
   actingUserId,
@@ -425,6 +426,7 @@ export class AssetService {
               ? { id: null, displayName: e.actorName, avatarUrl: null }
               : null,
           note: e.note,
+          via: e.via ? { connection: e.via.connection, ref: e.via.ref, url: e.via.url } : null,
           createdAt: e.createdAt,
         };
       }),
@@ -521,6 +523,7 @@ export class AssetService {
       actorId: actor.actorId,
       actorName: actor.actorName,
       note: data.note ?? null,
+      via: viaOf(this.ctx),
       ...(data.at ? { createdAt: data.at } : {}),
     });
   }

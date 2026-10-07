@@ -125,6 +125,9 @@ export const manifest = defineManifest({
     { key: PERMISSIONS.create, description: 'projects.permissions.create' },
     { key: PERMISSIONS.portfolio, description: 'projects.permissions.portfolioRead' },
     { key: PERMISSIONS.admin, description: 'projects.permissions.admin' },
+    // Phase 5: written by the Integrations Hub's agent (it holds `*.*.sync`), never by a role template.
+    { key: 'projects.projects.sync', description: 'projects.permissions.projectsSync' },
+    { key: 'projects.tasks.sync', description: 'projects.permissions.tasksSync' },
   ],
   roles: [
     {
@@ -276,6 +279,34 @@ export const manifest = defineManifest({
       { type: 'project', name: 'projects.entities.project' },
     ],
   },
+  /**
+   * Kept in step with other systems by the Integrations Hub (adapters in `server/sync.ts`): projects
+   * (matched on name; created `proposed`, the proposal approval still decides) and their tasks, with
+   * comments.
+   */
+  syncEntities: [
+    {
+      entity: 'project',
+      name: 'projects.sync.entities.project',
+      icon: 'folder-kanban',
+      permission: 'projects.projects.sync',
+      events: ['projects.project.created', 'projects.project.updated', 'projects.project.status_changed'],
+    },
+    {
+      entity: 'task',
+      name: 'projects.sync.entities.task',
+      icon: 'list-todo',
+      permission: 'projects.tasks.sync',
+      events: [
+        'projects.task.created',
+        'projects.task.updated',
+        'projects.task.status_changed',
+        'projects.task.assigned',
+      ],
+      commentEvents: ['projects.task.commented'],
+      container: 'projects.project',
+    },
+  ],
   records: {
     types: [
       {

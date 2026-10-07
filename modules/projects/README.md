@@ -32,8 +32,15 @@ Rules worth knowing:
   between the neighbours on the server.
 - Workload spreads each open task's remaining (else estimated) hours evenly over its working days from
   its start (or today) to its due date; capacity is allocation × `hoursPerWeek`.
-- Every service method takes an `AuthContext` and re-checks membership, so routes, AI tools and a future
-  Azure DevOps sync adapter share the same rules.
+- Every service method takes an `AuthContext` and re-checks membership, so routes, AI tools and the sync
+  adapters share the same rules.
+- **Sync (Phase 5).** `src/server/sync.ts` adapts `projects.project` (matched on name; permission
+  `projects.projects.sync`) and `projects.task` (inside a project, with comments; `projects.tasks.sync`) for the
+  Integrations Hub. A synced project is created `proposed` with a key from its name and no manager yet;
+  `proposed → active` stays the proposal approval's (409 `INVALID_TRANSITION`, `reason: 'approval_required'`).
+  Tasks (matched on title within the project) keep the module's rules: an active assignee who isn't on the project joins it as a `member` at 0 % (audited with the source; viewers stay viewers), `in_progress` waits for dependencies, parents and
+  milestones belong to the project, archived projects are read-only (409). Activity, comments and status
+  history name the agent or the remote author and the source (`via` columns).
 
 ```bash
 pnpm --filter @isbp/module-projects db:generate   # after changing src/server/schema.ts
