@@ -15,6 +15,7 @@ import { aiRoutes } from './routes/ai';
 import { notificationRoutes } from './routes/notifications';
 import { meRoutes, userRoutes } from './routes/people';
 import { platformRoutes } from './routes/platform';
+import { recordRoutes } from './routes/records';
 import { requestRoutes } from './routes/requests';
 import { workflowRoutes } from './routes/workflows';
 import { AccessService } from './services/access';
@@ -140,6 +141,7 @@ export const coreModule = defineServerModule(coreManifest, {
     formRoutes(app, forms, new CustomFieldAdminService(ctx));
     notificationRoutes(app, new NotificationAdminService(ctx));
     aiRoutes(app, new AiAdminService(ctx));
+    recordRoutes(app);
     applicationRoutes(
       app,
       ctx,
@@ -194,6 +196,11 @@ export const coreModule = defineServerModule(coreManifest, {
       description: 'Re-embeds semantic-index documents left on an older embedding model',
       schedule: { everyMs: 10 * 60_000 },
       handler: async () => ({ reembedded: await getKernel().ai.reindexStale(100) }),
+    },
+    'purge-files': {
+      description: 'Deletes the stored bytes of attachments deleted more than an hour ago',
+      schedule: { cron: '23 * * * *' },
+      handler: async () => ({ purged: await getKernel().files.purge() }),
     },
     'purge-sessions': {
       description: 'Deletes sessions that ended more than 7 days ago',

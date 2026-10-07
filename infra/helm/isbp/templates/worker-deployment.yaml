@@ -87,6 +87,7 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            {{- include "isbp.filesVolumeMount" . | nindent 12 }}
             {{- with $c.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -94,6 +95,7 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 64Mi
+        {{- include "isbp.filesVolume" . | nindent 8 }}
         {{- with $c.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

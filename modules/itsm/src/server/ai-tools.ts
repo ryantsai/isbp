@@ -185,6 +185,7 @@ export const aiTools: Record<string, AiToolHandler> = {
         urgency: input.urgency,
         categoryId: input.categoryId,
         ciIds: input.ciIds ?? [],
+        links: [],
       },
       auth,
       { channel: input.channel },

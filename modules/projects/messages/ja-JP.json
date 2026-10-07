@@ -1,0 +1,670 @@
+{
+  "meta": {
+    "name": "プロジェクト",
+    "description": "プロジェクト、タスク、マイルストーン、ボード、タイムライン、作業負荷"
+  },
+  "nav": {
+    "group": "プロジェクト",
+    "portfolio": "プロジェクト",
+    "myTasks": "マイ タスク"
+  },
+  "permissions": {
+    "use": "社内プロジェクトを表示し、所属するプロジェクトのタスクを作業する",
+    "create": "プロジェクトを作成する (作成者がマネージャーになります)",
+    "portfolioRead": "非公開を含むすべてのプロジェクトを表示する",
+    "admin": "すべてのプロジェクトを管理する"
+  },
+  "settings": {
+    "hoursPerWeek": "週あたりの作業時間",
+    "hoursPerWeekHelp": "作業負荷ビューでのフルタイム 1 人の稼働時間 (割り当て率 × 時間)。",
+    "proposalThresholdHours": "提案の承認しきい値 (時間)",
+    "proposalThresholdHoursHelp": "プロジェクト開始時に表示: これを超える提案は責任者の上長の承認が必要です。既定の承認ワークフローも同じ値を使うため、両方を変更してください (管理 → ワークフロー)。",
+    "details": "詳細",
+    "members": {
+      "title": "メンバー",
+      "description": "マネージャーはプロジェクトとすべてのタスクを編集し、メンバーはタスクを作業し、閲覧者は閲覧とコメントができます。割り当て率は、そのユーザーの週のうちこのプロジェクトに予定する割合です。",
+      "person": "ユーザー",
+      "role": "ロール",
+      "allocation": "割り当て率 %",
+      "add": "追加",
+      "added": "メンバーを追加しました",
+      "updated": "メンバーを更新しました",
+      "removed": "メンバーを削除しました",
+      "owner": "プロジェクト マネージャー (責任者)",
+      "roleOf": "{name} のロール",
+      "allocationOf": "{name} の割り当て率 (%)",
+      "remove": "{name} を削除",
+      "removeTitle": "{name} をプロジェクトから削除しますか?",
+      "removeBody": "未完了のタスクは未割り当てになります。",
+      "removeConfirm": "削除"
+    },
+    "milestones": {
+      "title": "マイルストーン",
+      "description": "表示順です。タイムラインはマイルストーンごとにタスクをまとめます。",
+      "name": "マイルストーン名",
+      "due": "期限",
+      "add": "マイルストーンを追加",
+      "created": "マイルストーンを追加しました",
+      "deleted": "マイルストーンを削除しました",
+      "noDate": "日付なし",
+      "status": {
+        "open": "未完了",
+        "done": "完了"
+      },
+      "progress": "{total} 件中 {done} 件のタスクが完了",
+      "complete": "完了にする",
+      "reopen": "再開",
+      "edit": "{name} を編集",
+      "delete": "{name} を削除",
+      "moveUp": "{name} を上へ移動",
+      "moveDown": "{name} を下へ移動",
+      "deleteTitle": "マイルストーン {name} を削除しますか?",
+      "deleteBody": "そのタスクはマイルストーンなしで残ります。"
+    },
+    "danger": {
+      "title": "アーカイブまたは削除",
+      "archive": "プロジェクトをアーカイブ",
+      "archiveHint": "ポートフォリオから非表示にし、読み取り専用にします。後で復元できます。",
+      "unarchive": "プロジェクトを復元",
+      "unarchiveHint": "ポートフォリオに戻し、再び編集できるようにします。",
+      "archiveTitle": "{name} をアーカイブしますか?",
+      "archiveBody": "アーカイブ中はだれも変更できません。",
+      "archived": "プロジェクトをアーカイブしました",
+      "unarchived": "プロジェクトを復元しました",
+      "delete": "プロジェクトを削除",
+      "deleteHint": "プロジェクトとそのマイルストーン、メンバーを削除します。",
+      "deleteBlocked": "削除できるのはタスクのないプロジェクトだけです (管理者は任意に削除可能)。代わりにアーカイブしてください。",
+      "deleteTitle": "{name} を削除しますか?",
+      "deleteBody": "{count, plural, =0 {元に戻すことはできません。} other {# 件のタスクも削除されます。元に戻すことはできません。}}",
+      "deleted": "プロジェクト {key} を削除しました"
+    }
+  },
+  "workflows": {
+    "proposal": {
+      "name": "プロジェクト提案",
+      "description": "提案されたプロジェクトを開始する前の承認"
+    }
+  },
+  "entities": {
+    "project": "プロジェクト",
+    "task": "タスク"
+  },
+  "projectStatus": {
+    "proposed": "提案中",
+    "active": "進行中",
+    "on_hold": "保留中",
+    "completed": "完了",
+    "cancelled": "キャンセル済み"
+  },
+  "taskStatus": {
+    "backlog": "バックログ",
+    "todo": "未着手",
+    "in_progress": "進行中",
+    "in_review": "レビュー中",
+    "done": "完了",
+    "cancelled": "キャンセル済み"
+  },
+  "notifications": {
+    "task_assigned": {
+      "label": "自分に割り当てられたタスク",
+      "title": "{reference} が割り当てられました: {title}",
+      "body": "プロジェクト: {project}。"
+    },
+    "task_commented": {
+      "label": "自分のタスクへのコメント",
+      "title": "{author} が {reference} にコメントしました: {title}",
+      "body": "{excerpt}"
+    },
+    "task_due_soon": {
+      "label": "明日が期限のタスク",
+      "title": "明日が期限: {reference} {title}",
+      "body": "プロジェクト: {project}、期限 {due}。"
+    },
+    "project_health_changed": {
+      "label": "参加プロジェクトの健全性",
+      "title": "{key} は{health, select, at_risk {リスクあり} off_track {計画から逸脱} other {順調}}です: {name}",
+      "body": "{note}"
+    },
+    "member_added": {
+      "label": "プロジェクトへの追加",
+      "title": "{key} {name} に追加されました",
+      "body": "あなたのロール: {role, select, manager {マネージャー} member {メンバー} other {閲覧者}}。"
+    },
+    "proposal_decided": {
+      "label": "自分のプロジェクト提案の結果",
+      "title": "{key} は{outcome, select, approved {承認されました} other {承認されませんでした}}: {name}",
+      "body": "{outcome, select, approved {プロジェクトは進行中になりました。} other {プロジェクトは提案中のままです。{comment}}}"
+    }
+  },
+  "audit": {
+    "project_created": "プロジェクトを提案",
+    "project_updated": "プロジェクトを更新",
+    "project_archived": "プロジェクトをアーカイブ",
+    "project_unarchived": "アーカイブしたプロジェクトを復元",
+    "project_submitted": "プロジェクト提案を承認に提出",
+    "project_status_changed": "プロジェクトの状態を変更",
+    "project_proposal_rejected": "プロジェクト提案が承認されなかった",
+    "project_proposal_cancelled": "プロジェクト提案を取り下げ",
+    "project_health_changed": "プロジェクトの健全性を更新",
+    "project_deleted": "プロジェクトを削除",
+    "member_added": "プロジェクト メンバーを追加",
+    "member_updated": "プロジェクト メンバーを変更",
+    "member_removed": "プロジェクト メンバーを削除",
+    "milestone_created": "マイルストーンを追加",
+    "milestone_updated": "マイルストーンを更新",
+    "milestone_completed": "マイルストーンを完了",
+    "milestone_deleted": "マイルストーンを削除",
+    "milestone_reordered": "マイルストーンを並べ替え",
+    "task_created": "タスクを作成",
+    "task_updated": "タスクを更新",
+    "task_status_changed": "タスクの状態を変更",
+    "task_moved": "ボード上でタスクを並べ替え",
+    "task_deleted": "タスクを削除",
+    "task_dependency_added": "タスクの依存関係を追加",
+    "task_dependency_removed": "タスクの依存関係を削除",
+    "task_commented": "タスクにコメント",
+    "comment_updated": "タスクのコメントを編集",
+    "comment_deleted": "タスクのコメントを削除"
+  },
+  "health": {
+    "on_track": "順調",
+    "at_risk": "リスクあり",
+    "off_track": "計画から逸脱"
+  },
+  "priority": {
+    "urgent": "緊急",
+    "high": "高",
+    "medium": "中",
+    "low": "低"
+  },
+  "projectPriority": {
+    "high": "優先度: 高",
+    "medium": "優先度: 中",
+    "low": "優先度: 低"
+  },
+  "taskType": {
+    "epic": "エピック",
+    "feature": "機能",
+    "story": "ユーザー ストーリー",
+    "task": "タスク",
+    "bug": "バグ"
+  },
+  "visibility": {
+    "internal": "社内",
+    "private": "非公開",
+    "internalHint": "プロジェクトを使用するすべてのユーザーが表示できます。",
+    "privateHint": "メンバー (と PMO) だけが表示できます。"
+  },
+  "roles": {
+    "manager": "マネージャー",
+    "member": "メンバー",
+    "viewer": "閲覧者"
+  },
+  "due": {
+    "overdue": "期限超過"
+  },
+  "markdown": {
+    "write": "編集",
+    "preview": "プレビュー",
+    "hint": "Markdown を使用できます: **太字**、リスト、リンク、表。",
+    "nothing": "プレビューする内容はまだありません。"
+  },
+  "fields": {
+    "reference": "参照番号",
+    "title": "タイトル",
+    "name": "名前",
+    "key": "キー",
+    "status": "状態",
+    "priority": "優先度",
+    "type": "種類",
+    "assignee": "担当者",
+    "unassigned": "未割り当て",
+    "reporter": "報告者",
+    "owner": "プロジェクト マネージャー",
+    "department": "部署",
+    "milestone": "マイルストーン",
+    "noMilestone": "マイルストーンなし",
+    "startDate": "開始日",
+    "dueDate": "期限",
+    "targetDate": "目標日",
+    "estimateHours": "見積もり (時間)",
+    "remainingHours": "残り作業 (時間)",
+    "budgetHours": "予定工数 (時間)",
+    "labels": "ラベル",
+    "labelsPlaceholder": "ラベルを入力して Enter キー",
+    "removeLabel": "ラベル {label} を削除",
+    "description": "説明",
+    "visibility": "公開範囲",
+    "updated": "更新日時",
+    "activity": {
+      "title": "タイトル",
+      "type": "種類",
+      "priority": "優先度",
+      "milestoneId": "マイルストーン",
+      "parentId": "親",
+      "reporterId": "報告者",
+      "startDate": "開始日",
+      "dueDate": "期限",
+      "estimateHours": "見積もり",
+      "remainingHours": "残り作業",
+      "labels": "ラベル",
+      "description": "説明",
+      "attributes": "追加情報"
+    }
+  },
+  "filters": {
+    "label": "フィルター",
+    "search": "タスクを検索…",
+    "assignee": "担当者",
+    "anyone": "全員",
+    "me": "自分",
+    "unassigned": "未割り当て",
+    "milestone": "マイルストーン",
+    "allMilestones": "すべてのマイルストーン",
+    "allLabels": "すべてのラベル",
+    "type": "種類",
+    "allTypes": "すべての種類",
+    "allStatuses": "すべての状態",
+    "allPriorities": "すべての優先度",
+    "open": "未完了",
+    "closed": "完了またはキャンセル",
+    "showCancelled": "キャンセル済みを表示",
+    "showClosed": "終了した作業を表示"
+  },
+  "picker": {
+    "search": "参照番号またはタイトルで検索…",
+    "loading": "検索中…",
+    "none": "一致するタスクはありません。"
+  },
+  "customFields": {
+    "editTitle": "追加情報を編集"
+  },
+  "activity": {
+    "system": "システム",
+    "someone": "だれか",
+    "empty": "なし",
+    "deletedTask": "削除されたタスク",
+    "hours": "{hours} 時間",
+    "created": "{actor} がタスクを作成しました",
+    "status": "{actor} が状態を「{from}」から「{to}」に変更しました",
+    "assigned": "{actor} が {to} に割り当てました",
+    "unassigned": "{actor} が担当者 {from} を外しました",
+    "dependencyAdded": "{actor} が {task} への依存関係を追加しました",
+    "dependencyRemoved": "{actor} が {task} への依存関係を削除しました",
+    "fieldChanged": "{actor} が{field}を「{from}」から「{to}」に変更しました",
+    "fieldUpdated": "{actor} が{field}を更新しました"
+  },
+  "comments": {
+    "title": "コメントとアクティビティ",
+    "add": "コメントを追加",
+    "placeholder": "コメントを入力…",
+    "submit": "コメントする",
+    "posted": "コメントを投稿しました",
+    "readOnly": "コメントできるのはプロジェクト メンバーだけです。",
+    "by": "{name} のコメント",
+    "formerUser": "以前のユーザー",
+    "edited": "(編集済み)",
+    "edit": "コメントを編集",
+    "delete": "コメントを削除",
+    "deleteTitle": "このコメントを削除しますか?",
+    "deleteBody": "コメントはすべてのユーザーから削除されます。元に戻すことはできません。",
+    "deleted": "コメントを削除しました"
+  },
+  "task": {
+    "loading": "タスクを読み込んでいます…",
+    "notFound": "タスクが見つかりません",
+    "notFoundHint": "{reference} は存在しないか、そのプロジェクトを表示する権限がありません。",
+    "loadFailed": "タスクを読み込めませんでした",
+    "toMyTasks": "マイ タスクへ",
+    "backToProject": "{key} に戻る",
+    "titleLabel": "タスクのタイトル",
+    "editTitle": "タイトルを編集",
+    "changeStatus": "状態: {status}。状態を変更",
+    "moveTo": "移動先",
+    "blockedBy": "{refs} によりブロック中",
+    "blockedExplain": "まだ開始できません: 先に {refs} を完了する必要があります。",
+    "properties": "詳細",
+    "description": "説明",
+    "noDescription": "説明はまだありません。",
+    "relations": "依存関係と階層",
+    "blockedByTitle": "ブロック元",
+    "blockingTitle": "ブロック先",
+    "addDependency": "依存関係を追加",
+    "dependencyAdded": "依存関係を追加しました",
+    "removeDependency": "{reference} への依存関係を削除",
+    "noDependencies": "依存関係はありません。",
+    "parent": "親",
+    "setParent": "親を設定",
+    "changeParent": "親を変更",
+    "clearParent": "親を削除",
+    "noParent": "親はありません。",
+    "children": "{count, plural, other {子 # 件}}",
+    "more": "その他の操作",
+    "openPage": "ページとして開く",
+    "copyLink": "リンクをコピー",
+    "delete": "タスクを削除",
+    "deleteTitle": "{reference} を削除しますか?",
+    "deleteBody": "コメント、アクティビティ、リンク、添付ファイルも削除されます。子タスクは親なしで残ります。元に戻すことはできません。",
+    "deleted": "{reference} を削除しました",
+    "aside": "タスクの詳細",
+    "project": "プロジェクト",
+    "openOnBoard": "ボードで開く"
+  },
+  "board": {
+    "region": "ボードの列",
+    "count": "{count, plural, other {# 件のタスク}}",
+    "emptyColumn": "タスクはありません",
+    "truncated": "{total} 件中 {shown} 件を表示しています。すべてを見るにはリストを使用してください。",
+    "addTask": "タスクを追加",
+    "quickAddLabel": "新しいタスクのタイトル",
+    "quickAddPlaceholder": "何をしますか?",
+    "add": "追加",
+    "done": "完了",
+    "created": "タスクを追加しました",
+    "dragHandle": "{reference} を移動",
+    "moveMenu": "{reference} を移動…",
+    "moveTo": "移動先",
+    "open": "開く",
+    "labels": "ラベル",
+    "blocked": "ブロック中",
+    "comments": "{count, plural, other {コメント # 件}}",
+    "links": "{count, plural, other {リンク # 件}}",
+    "assignedTo": "担当者: {name}",
+    "unassigned": "未割り当て",
+    "announce": {
+      "instructions": "タスクを持ち上げるには Space キーまたは Enter キーを押します。方向キーで列内や列間を移動し、もう一度 Space キーまたは Enter キーで配置します。Esc キーでキャンセルします。",
+      "start": "{task} を持ち上げました。{where}。",
+      "over": "{task} は現在{where}です。",
+      "outside": "{task} はどの列にもありません。",
+      "dropped": "{task} を配置しました。{where}。",
+      "cancelled": "{task} の移動をキャンセルしました。",
+      "position": "「{column}」の {total} 件中 {position} 番目",
+      "column": "「{column}」列"
+    }
+  },
+  "list": {
+    "label": "{project} のタスク",
+    "empty": "タスクはまだありません。",
+    "emptyFiltered": "フィルターに一致するタスクはありません。"
+  },
+  "timeline": {
+    "viewLabel": "表示",
+    "chart": "チャート",
+    "viewAsTable": "表で表示",
+    "zoomLabel": "ズーム",
+    "zoom": {
+      "week": "週",
+      "month": "月",
+      "quarter": "四半期"
+    },
+    "chartLabel": "タイムライン チャート (横にスクロール)",
+    "rowsLabel": "マイルストーン別のタスク",
+    "task": "タスク",
+    "noMilestone": "マイルストーンなし",
+    "milestoneLabel": "マイルストーン {name}、期限 {date}",
+    "barLabel": "{reference} {title}、{start}～{end}、{status}",
+    "startsBeforeDependency": "{refs} の終了前に開始します。",
+    "empty": "計画する作業はまだありません",
+    "emptyHint": "タスクに開始日または期限を設定すると、ここに表示されます。",
+    "unscheduled": "{count, plural, other {未スケジュールのタスク # 件}}",
+    "unscheduledHint": "開始日も期限もまだありません。開いて計画してください。",
+    "tableLabel": "日付と依存関係を含むタスク",
+    "milestonesLabel": "マイルストーン",
+    "dependsOn": "依存先",
+    "progress": "進捗",
+    "milestoneProgress": "{total} 件中 {done} 件完了",
+    "milestoneStatus": {
+      "open": "未完了",
+      "done": "完了"
+    },
+    "overdue": "期限超過",
+    "help": {
+      "button": "キーボード",
+      "title": "タイムラインの操作",
+      "tab": "タスク バー間を移動します。",
+      "enter": "タスクを開きます。",
+      "shift": "タスクを 1 日前後に移動します。",
+      "resize": "期限を 1 日動かします。",
+      "pointer": "マウスの場合: バーをドラッグして移動し、端をドラッグして開始日または期限を変更します。",
+      "summary": "Enter キーでタスクを開きます。Alt キーと左右の方向キーで 1 日ずつ移動し、Shift キーを加えると期限だけを変更します。"
+    }
+  },
+  "workload": {
+    "previous": "前の週",
+    "next": "次の週",
+    "thisWeek": "今週",
+    "range": "{from}～{to}",
+    "capacityHint": "稼働可能時間: 割り当て率 × 週 {hours} 時間",
+    "overSummary": "{count, plural, other {この期間に # 人が割り当て超過です}}。",
+    "empty": "計画対象のメンバーがいません",
+    "emptyHint": "割り当て率を設定したメンバーを追加し、タスクに時間と期限を設定してください。",
+    "tableLabel": "ユーザーと週ごとの作業負荷 (横にスクロール)",
+    "caption": "ユーザーと週ごとの予定時間と稼働可能時間",
+    "person": "ユーザー",
+    "weekOf": "{date} の週",
+    "allocation": "割り当て {pct}%",
+    "unassigned": "未割り当て",
+    "hoursOf": "{planned} / {capacity} 時間",
+    "hours": "{hours} 時間",
+    "overBy": "{hours} 時間超過",
+    "cellLabel": "{person}、{week} の週: 稼働可能 {capacity} 時間中 {planned} 時間を予定。タスクを表示",
+    "unassignedCellLabel": "未割り当ての作業、{week} の週: {planned} 時間。タスクを表示",
+    "tasksTitle": "{person} · {week} の週"
+  },
+  "approval": {
+    "title": "提案の承認",
+    "needsManager": "予定工数が {threshold} 時間を超えるため、責任者の上長が開始を承認します。",
+    "automatic": "{threshold} 時間以下の提案は、提出するとすぐに開始されます。",
+    "notStarted": "未提出",
+    "startHint": "「プロジェクトを開始」で提案を提出します。",
+    "status": {
+      "pending": "承認待ち",
+      "approved": "承認済み",
+      "rejected": "却下",
+      "cancelled": "取り下げ"
+    },
+    "rejected": "提案は承認されませんでした。修正してもう一度開始してください。",
+    "rejectedWith": "却下: 「{comment}」",
+    "waitingFor": "承認者:",
+    "detailsHidden": "承認経路は申請者、責任者、承認者だけが表示できます。",
+    "decide": "承認の受信トレイで判断する",
+    "facts": {
+      "budgetHours": "予定工数 (時間)",
+      "priority": "優先度",
+      "memberCount": "メンバー数"
+    }
+  },
+  "healthDialog": {
+    "title": "健全性を更新",
+    "description": "プロジェクトの状況を説明します。メモはプロジェクト ページとポートフォリオに表示されます。",
+    "health": "健全性",
+    "hint": {
+      "on_track": "計画どおり",
+      "at_risk": "対策しないと遅れる可能性",
+      "off_track": "目標を達成できない見込み"
+    },
+    "note": "メモ",
+    "notePlaceholder": "何が変わり、次に何をしますか?",
+    "notifies": "メンバーに通知されます。",
+    "saved": "健全性を更新しました"
+  },
+  "statusDialog": {
+    "action": {
+      "active": "再開",
+      "on_hold": "保留にする",
+      "completed": "完了にする",
+      "cancelled": "プロジェクトをキャンセル"
+    },
+    "title": {
+      "active": "プロジェクトを再開しますか?",
+      "on_hold": "プロジェクトを保留にしますか?",
+      "completed": "プロジェクトを完了にしますか?",
+      "cancelled": "プロジェクトをキャンセルしますか?"
+    },
+    "description": {
+      "active": "中断したところから作業を続けます。",
+      "on_hold": "何も削除されません。いつでも再開できます。",
+      "completed": "完了したプロジェクトは記録としてポートフォリオに残ります。",
+      "cancelled": "承認待ちの提案は取り下げられます。元に戻すことはできません。"
+    },
+    "confirm": {
+      "active": "再開",
+      "on_hold": "保留にする",
+      "completed": "完了にする",
+      "cancelled": "プロジェクトをキャンセル"
+    },
+    "openTasks": "{count, plural, other {まだ # 件のタスクが未完了です。}}",
+    "force": "それでも完了にする",
+    "comment": "コメント (省略可)",
+    "commentRequired": "未完了のタスクがあるのに完了する理由",
+    "saved": "プロジェクトの状態を変更しました"
+  },
+  "newTask": {
+    "title": "新しいタスク",
+    "titlePlaceholder": "例: 9 階のアクセス スイッチを交換",
+    "datesInvalid": "期限が開始日より前です。",
+    "created": "{reference} を作成しました"
+  },
+  "form": {
+    "createTitle": "新しいプロジェクト",
+    "createHint": "新しいプロジェクトは提案として作成されます。計画が整ったら開始してください。",
+    "namePlaceholder": "例: ネットワーク刷新 2026",
+    "nameRequired": "名前を入力してください。",
+    "keyHint": "英数字 2～10 文字。タスクの参照番号の先頭になります (NET-12)。",
+    "keyLocked": "タスクがあるプロジェクトのキーは変更できません。",
+    "keyInvalid": "英字で始まる英数字 2～10 文字を使用してください。",
+    "keyTaken": "このキーは別のプロジェクトで使用されています。",
+    "ownerHint": "プロジェクト マネージャー。プロジェクトのマネージャーでもあります。",
+    "ownerRequired": "プロジェクト マネージャーを選択してください。",
+    "noDepartment": "部署なし",
+    "datesInvalid": "目標日が開始日より前です。",
+    "budgetHint": "提案の承認に使用されます。",
+    "budgetInvalid": "時間を整数で入力してください。",
+    "submit": "プロジェクトを作成",
+    "created": "プロジェクト {key} を作成しました"
+  },
+  "portfolio": {
+    "title": "プロジェクト",
+    "description": "IT プロジェクトの状態、健全性、進捗、次の予定。",
+    "new": "新しいプロジェクト",
+    "filtersLabel": "表示",
+    "filters": {
+      "all": "すべて",
+      "mine": "自分",
+      "active": "進行中",
+      "proposed": "提案中",
+      "completed": "完了"
+    },
+    "search": "プロジェクトを検索…",
+    "archived": "アーカイブ済み",
+    "layout": "レイアウト",
+    "cards": "カード",
+    "table": "表",
+    "workload": "チームの作業負荷",
+    "columns": {
+      "key": "キー",
+      "name": "プロジェクト",
+      "status": "状態",
+      "health": "健全性",
+      "progress": "進捗",
+      "target": "目標日",
+      "owner": "プロジェクト マネージャー"
+    },
+    "tasksDone": "{total} 件中 {done} 件のタスクが完了",
+    "progressLabel": "{name} の進捗: {total} 件中 {done} 件完了",
+    "overdueTasks": "{count, plural, other {期限超過のタスク # 件}}",
+    "noTarget": "目標日なし",
+    "targetIn": "期限: {when}",
+    "targetPassed": "目標日を過ぎています ({when})",
+    "nextMilestone": "次: {name} · {date}",
+    "ownedBy": "プロジェクト マネージャー: {name}",
+    "empty": "プロジェクトはまだありません",
+    "emptyHint": "プロジェクトを提案して、タスク、マイルストーン、タイムラインで作業を計画します。",
+    "emptyFiltered": "一致するプロジェクトはありません",
+    "showing": "{total} 件中 {from}～{to} 件",
+    "pagination": "ページ",
+    "previous": "前のページ",
+    "next": "次のページ",
+    "liveCount": "{count, plural, other {# 件のプロジェクト}}"
+  },
+  "project": {
+    "back": "プロジェクト",
+    "views": "プロジェクトのビュー",
+    "tabs": {
+      "overview": "概要",
+      "board": "ボード",
+      "list": "リスト",
+      "timeline": "タイムライン",
+      "workload": "作業負荷",
+      "settings": "設定"
+    },
+    "owner": "プロジェクト マネージャー",
+    "target": "目標日 {date}",
+    "archived": "アーカイブ済み (読み取り専用)",
+    "start": "プロジェクトを開始",
+    "startTitle": "{key} を開始しますか?",
+    "startNeedsApproval": "予定工数 ({hours} 時間) が {threshold} 時間を超えるため、先に責任者の上長の承認が必要です。結果は通知されます。",
+    "startAutomatic": "予定工数が {threshold} 時間以下のプロジェクトはすぐに開始されます。",
+    "started": "プロジェクトを開始しました",
+    "submitted": "提案を承認に提出しました",
+    "newTask": "新しいタスク",
+    "updateHealth": "健全性を更新",
+    "changeStatus": "状態",
+    "notFound": "プロジェクトが見つかりません",
+    "notFoundHint": "{key} は存在しないか、表示する権限がありません。",
+    "loadFailed": "プロジェクトを読み込めませんでした"
+  },
+  "overview": {
+    "kpi": {
+      "open": "未完了のタスク",
+      "overdue": "期限超過",
+      "doneThisWeek": "今週完了",
+      "blocked": "ブロック中"
+    },
+    "description": "概要",
+    "noDescription": "説明はまだありません。",
+    "byStatus": "状態別のタスク",
+    "doneOf": "{total} 件中 {done} 件完了",
+    "health": "健全性",
+    "updated": "更新:",
+    "updateHealth": "更新",
+    "noHealthNote": "メモはまだありません。",
+    "history": "履歴",
+    "system": "承認ワークフロー",
+    "healthChange": "健全性が「{from}」から「{to}」に変わりました",
+    "statusChange": "状態が「{from}」から「{to}」に変わりました",
+    "milestones": "マイルストーン",
+    "noMilestones": "マイルストーンはまだありません。",
+    "milestoneDone": "完了",
+    "milestoneProgress": "{name}: {total} 件中 {done} 件のタスクが完了",
+    "manage": "管理",
+    "members": "{count, plural, other {メンバー # 人}}",
+    "owner": "プロジェクト マネージャー",
+    "allocation": "{pct}%"
+  },
+  "myTasks": {
+    "title": "マイ タスク",
+    "description": "プロジェクト全体で自分に割り当てられた未完了のタスク。",
+    "filterProject": "プロジェクト",
+    "allProjects": "すべてのプロジェクト",
+    "changeStatus": "{reference} の状態",
+    "groups": {
+      "overdue": "期限超過",
+      "today": "今日",
+      "thisWeek": "今週",
+      "later": "それ以降",
+      "noDate": "日付なし"
+    },
+    "empty": "すべて完了しています",
+    "emptyHint": "自分に割り当てられた未完了のタスクはありません。"
+  },
+  "dashboard": {
+    "title": "マイ タスク",
+    "description": "自分に割り当てられたプロジェクトのタスク",
+    "summary": "{overdue, plural, =0 {期限超過なし} other {期限超過 # 件}} · {week, plural, =0 {今週期限のタスクはほかにありません} other {今週期限 # 件}}",
+    "open": "マイ タスク",
+    "nothing": "自分に割り当てられた未完了のタスクはありません。",
+    "nothingDue": "今週が期限のタスクはありません。",
+    "more": "{count, plural, other {今週期限のタスクがほかに # 件}}"
+  }
+}

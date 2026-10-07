@@ -313,6 +313,7 @@ export class CiService {
           .where(or(eq(ciRelationships.sourceId, ci.id), eq(ciRelationships.targetId, ci.id)))
           .returning({ id: ciRelationships.id });
         await tx.delete(cis).where(eq(cis.id, ci.id));
+        await this.ctx.records.forget({ type: 'cmdb.ci', id: ci.id }, { tx });
         await this.ctx.audit.record(
           {
             action: 'cmdb.ci.deleted',

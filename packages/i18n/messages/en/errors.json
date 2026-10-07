@@ -44,5 +44,8 @@
   "RESOLUTION_REQUIRED": "Describe the resolution first.",
   "RELATIONSHIP_INVALID": "That relationship isn't allowed.",
   "SCHEDULE_CONFLICT": "That time window isn't available.",
+  "FILE_REJECTED": "That file can't be uploaded.",
+  "FILE_TOO_LARGE": "That file is too large.",
+  "CHANGE_REQUIRED": "A production deployment needs an approved change.",
   "generic": "Something went wrong."
 }

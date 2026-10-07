@@ -55,9 +55,16 @@ export function useListState(defaults: Partial<ListState> = {}) {
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp]);
+  // `router.replace` lands asynchronously: a second update right after the first (switch a tab, then type
+  // a search) must build on the URL we just asked for, not the one still rendered, or it undoes the first.
+  const pending = React.useRef<{ qs: string; at: number } | null>(null);
+  React.useEffect(() => {
+    if (pending.current?.qs === sp.toString()) pending.current = null;
+  }, [sp]);
   const set = React.useCallback(
     (patch: Partial<ListState>) => {
-      const next = new URLSearchParams(sp.toString());
+      const inFlight = pending.current && Date.now() - pending.current.at < 2_000 ? pending.current.qs : null;
+      const next = new URLSearchParams(inFlight ?? sp.toString());
       const resetPage = Object.keys(patch).some((k) => k !== 'page');
       for (const [k, v] of Object.entries({
         ...patch,
@@ -67,6 +74,7 @@ export function useListState(defaults: Partial<ListState> = {}) {
         else next.set(k, String(v));
       }
       const qs = next.toString();
+      pending.current = { qs, at: Date.now() };
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
     [sp, router, pathname],

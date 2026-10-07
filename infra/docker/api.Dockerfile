@@ -85,7 +85,11 @@ RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack 
            /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
            /opt/yarn-* /usr/local/bin/yarn /usr/local/bin/yarnpkg \
  && groupadd --system --gid 10001 isbp \
- && useradd --system --uid 10001 --gid isbp --home-dir /nonexistent --no-create-home --shell /usr/sbin/nologin isbp
+ && useradd --system --uid 10001 --gid isbp --home-dir /nonexistent --no-create-home --shell /usr/sbin/nologin isbp \
+ # Attachments (FILES_STORAGE=local): a volume is mounted here; a fresh named volume inherits this ownership.
+ && mkdir -p /var/lib/isbp/files \
+ && chown 10001:10001 /var/lib/isbp/files \
+ && chmod 750 /var/lib/isbp/files
 
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \

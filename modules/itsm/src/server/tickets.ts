@@ -478,9 +478,12 @@ export class TicketService {
     await this.assertCis(input.ciIds);
     const urgency = input.urgency ?? 2;
     const channel: Channel = opts.channel ?? (full ? (input.channel ?? 'agent') : 'portal');
+    // Linked records must be visible to the caller (e.g. "Report a problem" from their own device).
+    for (const link of input.links)
+      if (!(await this.ctx.records.get(link, auth))) throw httpErrors.notFound('Linked record not found');
 
-    return this.ctx.transaction((tx) =>
-      this.insertTicket(
+    return this.ctx.transaction(async (tx) => {
+      const ticket = await this.insertTicket(
         tx,
         {
           type,
@@ -516,8 +519,11 @@ export class TicketService {
           problem: type === 'problem' ? { rootCause: '', workaround: '', knownError: false } : undefined,
         },
         actorOf(auth),
-      ),
-    );
+      );
+      const self = { type: type === 'change' ? 'itsm.change' : 'itsm.ticket', id: ticket.id };
+      for (const link of input.links) await this.ctx.records.link(self, link, { tx });
+      return ticket;
+    });
   }
 
   /** Inserts a validated ticket with its details, SLAs, timeline, portal entry, audit, events and notifications. */

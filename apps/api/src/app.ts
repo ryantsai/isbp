@@ -1,4 +1,5 @@
 import cookie from '@fastify/cookie';
+import multipart from '@fastify/multipart';
 import formbody from '@fastify/formbody';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -51,6 +52,10 @@ export async function buildApp(kernel: Kernel) {
   });
   await app.register(cookie);
   await app.register(formbody);
+  // Uploads only (`/records/:type/:id/files`); the file store enforces the configurable size limit.
+  await app.register(multipart, {
+    limits: { fileSize: 50 * 1024 * 1024 + 1, files: 1, fields: 10, parts: 12, headerPairs: 200 },
+  });
 
   registerAuth(app, kernel);
 

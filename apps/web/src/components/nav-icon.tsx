@@ -28,6 +28,20 @@ import {
   Users,
   UsersRound,
   Workflow,
+  Building,
+  ChartGantt,
+  FileText,
+  FolderKanban,
+  GitBranch,
+  Kanban,
+  Laptop,
+  Layers,
+  ListTodo,
+  MonitorSmartphone,
+  Package,
+  ReceiptText,
+  Rocket,
+  Server,
 } from 'lucide-react';
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
 
@@ -58,6 +72,20 @@ const STATIC: Record<string, LucideIcon> = {
   'calendar-clock': CalendarClock,
   'chart-column': ChartColumn,
   'sliders-horizontal': SlidersHorizontal,
+  building: Building,
+  'chart-gantt': ChartGantt,
+  'file-text': FileText,
+  'folder-kanban': FolderKanban,
+  'git-branch': GitBranch,
+  kanban: Kanban,
+  laptop: Laptop,
+  layers: Layers,
+  'list-todo': ListTodo,
+  'monitor-smartphone': MonitorSmartphone,
+  package: Package,
+  'receipt-text': ReceiptText,
+  rocket: Rocket,
+  server: Server,
 };
 
 /** Icons named in module manifests (kebab-case lucide names). Common ones are bundled; others lazy-load. */

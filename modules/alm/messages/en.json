@@ -1,0 +1,486 @@
+{
+  "meta": {
+    "name": "Applications",
+    "description": "Application inventory, environments, releases and deployments, linked to change management"
+  },
+  "nav": {
+    "group": "Applications",
+    "applications": "Applications",
+    "releases": "Release calendar"
+  },
+  "entities": {
+    "application": "Application",
+    "release": "Release"
+  },
+  "permissions": {
+    "appsRead": "Browse applications, environments, releases and deployments",
+    "appsManage": "Create and edit any application, environment and repository",
+    "releasesManage": "Create and edit releases of any application",
+    "deploymentsCreate": "Record deployments (people and CI/CD API clients)",
+    "deploymentsOverride": "Override the change policy for a production deployment (audited)"
+  },
+  "settings": {
+    "requireChange": "Production deployments need an authorized change",
+    "requireChangeHelp": "A deployment to a production environment must name, or belong to a release linked to, a change that the CAB approved (scheduled or implementing).",
+    "enforceWindow": "Enforce the change window",
+    "enforceWindowHelp": "Refuse production deployments outside the planned window of their change. When off, they are recorded with a warning."
+  },
+  "audit": {
+    "application_created": "Added application",
+    "application_updated": "Updated application",
+    "application_owner_released": "Cleared application owner (person offboarded)",
+    "environment_created": "Added environment",
+    "environment_updated": "Updated environment",
+    "environment_deleted": "Deleted environment",
+    "environment_reordered": "Reordered environments",
+    "repository_created": "Added repository",
+    "repository_updated": "Updated repository",
+    "repository_deleted": "Removed repository",
+    "release_created": "Planned release",
+    "release_updated": "Updated release",
+    "release_status_changed": "Changed release status",
+    "deployment_recorded": "Recorded deployment",
+    "deployment_updated": "Finished deployment",
+    "deployment_policy_overridden": "Overrode the change policy for a deployment"
+  },
+  "notifications": {
+    "deployment_failed": {
+      "label": "Deployments of my applications that fail",
+      "title": "{application} {version} {status, select, rolled_back {was rolled back} other {has failed}} on {environment}",
+      "body": "Recorded by {actor}. Open the deployment history to see what happened."
+    },
+    "deployment_overridden": {
+      "label": "Change policy overrides (change managers)",
+      "title": "Change policy overridden: {application} {version} to {environment}",
+      "body": "{actor} deployed without an authorized change ({reason, select, no_change {no change named} change_not_approved {change {change} not approved} other {outside the window of {change}}}). Reason given: {overrideReason}"
+    },
+    "release_ready": {
+      "label": "My releases ready for production",
+      "title": "{application} {version} is ready for production",
+      "body": "Every readiness check passes: an authorized change, a successful test, release notes and no failed production deployment."
+    }
+  },
+  "stage": {
+    "planned": "Planned",
+    "development": "In development",
+    "production": "In production",
+    "sunsetting": "Sunsetting",
+    "retired": "Retired"
+  },
+  "criticality": {
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
+  "disposition": {
+    "tolerate": "Tolerate",
+    "invest": "Invest",
+    "migrate": "Migrate",
+    "eliminate": "Eliminate"
+  },
+  "hosting": {
+    "on_prem": "On-premises",
+    "cloud": "Cloud",
+    "saas": "SaaS",
+    "hybrid": "Hybrid"
+  },
+  "classification": {
+    "public": "Public",
+    "internal": "Internal",
+    "confidential": "Confidential",
+    "restricted": "Restricted"
+  },
+  "provider": {
+    "azure_devops": "Azure DevOps",
+    "github": "GitHub",
+    "gitlab": "GitLab",
+    "bitbucket": "Bitbucket",
+    "other": "Other"
+  },
+  "envKind": {
+    "development": "Development",
+    "test": "Test",
+    "staging": "Staging",
+    "production": "Production",
+    "dr": "Disaster recovery"
+  },
+  "releaseStatus": {
+    "planned": "Planned",
+    "in_progress": "In progress",
+    "ready": "Ready",
+    "released": "Released",
+    "cancelled": "Cancelled"
+  },
+  "deploymentStatus": {
+    "in_progress": "In progress",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "rolled_back": "Rolled back"
+  },
+  "source": {
+    "manual": "recorded by a person",
+    "api": "recorded through the API"
+  },
+  "duration": {
+    "seconds": "{s} s",
+    "minutes": "{m} min",
+    "hours": "{h} h {m} min",
+    "days": "{d} d {h} h",
+    "hoursShort": "{h} h",
+    "daysShort": "{d} d"
+  },
+  "fields": {
+    "code": "Code",
+    "name": "Name",
+    "stage": "Stage",
+    "criticality": "Criticality",
+    "disposition": "Disposition (TIME)",
+    "hosting": "Hosting",
+    "businessOwner": "Business owner",
+    "technicalOwner": "Technical owner",
+    "team": "Delivery team",
+    "supportGroup": "Support group",
+    "department": "Department",
+    "vendor": "Vendor",
+    "ci": "Configuration item",
+    "techStack": "Technology",
+    "documentationUrl": "Documentation",
+    "dataClassification": "Data classification",
+    "goLiveDate": "Go-live date",
+    "retireDate": "Retirement date",
+    "description": "Description",
+    "productionVersion": "In production",
+    "lastDeployment": "Last deployment",
+    "environment": "Environment",
+    "kind": "Kind",
+    "url": "URL",
+    "provider": "Provider",
+    "defaultBranch": "Default branch",
+    "version": "Version",
+    "releaseName": "Name",
+    "status": "Status",
+    "plannedDate": "Planned date",
+    "notes": "Release notes",
+    "change": "Change",
+    "readiness": "Readiness",
+    "actor": "By",
+    "started": "Started",
+    "duration": "Duration"
+  },
+  "inventory": {
+    "title": "Applications",
+    "description": "Every application the company runs: who owns it, where it is in its lifecycle, what runs where and how delivery is going.",
+    "new": "New application",
+    "search": "Search by code or name…",
+    "summary": "Portfolio summary",
+    "deploymentsWeek": "Deployments · last 7 days",
+    "failedOrRolledBack": "failed or rolled back",
+    "upcoming": "Releases in the next 14 days",
+    "views": {
+      "all": "All",
+      "production": "In production",
+      "development": "In development",
+      "sunset": "Sunsetting & retired",
+      "mine": "Owned by me"
+    },
+    "allCriticalities": "Any criticality",
+    "allHosting": "Any hosting",
+    "stageFilter": "Stage: {stages}",
+    "neverDeployed": "Never deployed",
+    "empty": "No applications",
+    "emptyMine": "You don’t own any applications",
+    "emptyFiltered": "Nothing matches these filters.",
+    "emptyHint": "Applications you own, or whose team you are in, show up here.",
+    "liveCount": "{count, plural, one {# application} other {# applications}}"
+  },
+  "form": {
+    "createTitle": "New application",
+    "editTitle": "Edit {name}",
+    "hint": "Owners and members of the delivery team can edit their application later.",
+    "sections": {
+      "identity": "Application",
+      "ownership": "Ownership",
+      "details": "Details"
+    },
+    "namePlaceholder": "e.g. Finance ERP",
+    "nameRequired": "Give the application a name",
+    "codeHint": "Lowercase letters, digits and dashes; the address of its page and what pipelines send.",
+    "codePermanent": "The code can’t change: CI/CD pipelines use it.",
+    "codeInvalid": "2–32 lowercase letters, digits and single dashes, starting with a letter",
+    "codeReserved": "This code is reserved",
+    "personPlaceholder": "Choose a person",
+    "none": "None",
+    "notDecided": "Not decided",
+    "markdownHint": "Markdown: **bold**, lists, links.",
+    "ciHint": "The application’s configuration item in the CMDB.",
+    "vendorPlaceholder": "For SaaS or packaged software",
+    "techStackPlaceholder": "Java 21, PostgreSQL, Kubernetes",
+    "techStackHint": "Separate with commas.",
+    "httpsOnly": "Use an https:// link",
+    "retireBeforeGoLive": "The retirement date is before the go-live date",
+    "created": "{name} added",
+    "saved": "Application saved"
+  },
+  "ciPicker": {
+    "placeholder": "Search the CMDB…",
+    "search": "Name or CI number",
+    "loading": "Searching…",
+    "noResults": "No configuration items found",
+    "clear": "Remove configuration item"
+  },
+  "app": {
+    "notFound": "This application doesn’t exist or you can’t see it",
+    "edit": "Edit",
+    "newRelease": "New release",
+    "recordDeployment": "Record deployment",
+    "inProduction": "{version} in production",
+    "unassigned": "Not assigned",
+    "tabs": {
+      "overview": "Overview",
+      "releases": "Releases",
+      "deployments": "Deployments",
+      "settings": "Settings"
+    },
+    "ownership": "Ownership",
+    "details": "Details",
+    "ci": "CMDB",
+    "noCi": "Not linked to a configuration item.",
+    "repositories": "Repositories",
+    "noRepositories": "No repositories yet.",
+    "noDescription": "No description yet.",
+    "openDocs": "Open the documentation"
+  },
+  "pipeline": {
+    "title": "Environments",
+    "label": "Environment pipeline",
+    "none": "No environments yet. Add them under Settings.",
+    "current": "Runs",
+    "nothingDeployed": "Nothing deployed",
+    "opensInNewTab": "(opens in a new tab)"
+  },
+  "dora": {
+    "title": "Delivery metrics",
+    "description": "Production, last {days} days (DORA)",
+    "viewAs": "Show as",
+    "chart": "Chart",
+    "table": "Table",
+    "tiles": {
+      "frequency": "Deployment frequency",
+      "failureRate": "Change failure rate",
+      "leadTime": "Lead time for changes",
+      "restore": "Time to restore"
+    },
+    "perWeek": "{n} / week",
+    "frequencyHint": "{count, plural, one {# successful deployment} other {# successful deployments}}",
+    "failureRateHint": "{failures} of {finished} deployments",
+    "succeeded": "Successful",
+    "failed": "Failed or rolled back",
+    "weekOf": "Week of",
+    "weeklyCaption": "Production deployments per week",
+    "samplesLead": "{count, plural, =0 {No releases yet} one {Median of # release} other {Median of # releases}}",
+    "samplesRestore": "{count, plural, =0 {No failures to recover from} one {Median of # recovery} other {Median of # recoveries}}"
+  },
+  "deployments": {
+    "label": "Deployments",
+    "allEnvironments": "All environments",
+    "allStatuses": "Any status",
+    "failures": "Failed or rolled back",
+    "overridden": "Policy overridden",
+    "outsideWindow": "Outside change window",
+    "running": "Running",
+    "empty": "No deployments",
+    "emptyFiltered": "Nothing matches these filters.",
+    "emptyHint": "Deployments recorded here or by CI/CD pipelines show up in this history."
+  },
+  "releases": {
+    "label": "Releases",
+    "allStatuses": "Any status",
+    "open": "Open",
+    "releasedAgo": "Released",
+    "empty": "No releases",
+    "emptyFiltered": "Nothing matches this filter.",
+    "emptyHint": "Plan the next version to track its readiness and deployments."
+  },
+  "changes": {
+    "none": "No change",
+    "inWindow": "now in window",
+    "outsideWindow": "outside the window now",
+    "noWindow": "No planned window"
+  },
+  "readiness": {
+    "title": "Readiness for production",
+    "allPass": "All checks pass: ready for production.",
+    "progressLong": "{passed} of {total} checks pass",
+    "progress": "{passed}/{total} ready",
+    "ready": "Ready",
+    "summaryTitle": "{passed} of {total} readiness checks pass",
+    "passed": "Passed",
+    "notPassed": "Not yet",
+    "checks": {
+      "change": "An authorized change is linked",
+      "tested": "Succeeded in test or staging",
+      "notes": "Release notes are written",
+      "production": "No failed production deployment"
+    },
+    "details": {
+      "noChange": "Link a change approved by the CAB (scheduled or implementing).",
+      "testedIn": "Succeeded in {environments}.",
+      "notTested": "Deploy this version to a test or staging environment first.",
+      "notesWritten": "Release notes are in place.",
+      "noNotes": "Write release notes for the people using the application.",
+      "noFailures": "No production deployment of this version failed.",
+      "failures": "{count, plural, one {# production deployment} other {# production deployments}} of this version failed."
+    },
+    "raiseChange": "Raise a change",
+    "allChanges": "Linked changes",
+    "policyNow": "Deploying to production now"
+  },
+  "policy": {
+    "notProduction": "{environment} is not production: no change is needed.",
+    "switchedOff": "The change requirement is switched off for production deployments.",
+    "authorized": "Authorized: the change is approved and now is within its window.",
+    "warnOutsideWindow": "The change is approved, but now is outside its planned window. The deployment will be recorded with a warning.",
+    "reason": {
+      "no_change": "No authorized change: name one or link it to the release.",
+      "change_not_approved": "The change is not approved yet: it must be scheduled or implementing.",
+      "outside_window": "Now is outside the planned window of the change."
+    },
+    "rule": "Production deployments need a change approved by the CAB (scheduled or implementing), named here or linked to the release.",
+    "ruleWithWindow": "Production deployments need a change approved by the CAB (scheduled or implementing), and must happen within its planned window.",
+    "namedNotFound": "There is no change with this reference.",
+    "raiseChange": "Raise a change"
+  },
+  "deploy": {
+    "title": "Record deployment",
+    "description": "Record a deployment of {name}. Production deployments are checked against the change policy.",
+    "chooseEnvironment": "Choose an environment",
+    "outcome": "Outcome",
+    "changeReference": "Change (optional)",
+    "changeHint": "For production: the CAB-approved change, unless one is linked to the release.",
+    "policyCheck": "Change policy",
+    "linkedChanges": "Changes linked to this release",
+    "overrideWithReason": "Override with reason",
+    "cannotOverride": "Only people allowed to override the change policy can record this deployment.",
+    "overrideReason": "Why must this deploy without an authorized change?",
+    "overridePlaceholder": "e.g. Emergency fix for the payroll run tonight; the ECAB was not reachable.",
+    "overrideAudited": "Overrides are audited as security events and the change managers are notified.",
+    "notes": "Notes",
+    "moreDetails": "Commit and pipeline",
+    "commitSha": "Commit",
+    "pipelineUrl": "Pipeline run",
+    "incomplete": "Choose an environment and enter a valid version.",
+    "reasonTooShort": "Give a reason of at least 10 characters.",
+    "record": "Record deployment",
+    "recordWithOverride": "Record with override",
+    "recorded": "Recorded {version} on {environment}"
+  },
+  "release": {
+    "notFound": "This release doesn’t exist or you can’t see it",
+    "plannedFor": "Planned",
+    "releasedOn": "Released",
+    "edit": "Edit",
+    "editNotes": "Edit",
+    "changeStatus": "Status",
+    "moveTo": "Move to",
+    "moved": "Release is now {status}",
+    "lifecycle": "Release lifecycle",
+    "stepDone": "done",
+    "cancelledBanner": "This release was cancelled.",
+    "pipeline": "Where this version is",
+    "pipelineHint": "The latest deployment of {version} in each environment.",
+    "pipelineLabel": "Environments this version reached",
+    "runningNow": "Running now",
+    "notYet": "Not deployed",
+    "noNotes": "No release notes yet.",
+    "deployments": "Deployments ({count})",
+    "raiseChangeTitle": "Deploy {app} {version} to production"
+  },
+  "releaseForm": {
+    "createTitle": "New release of {name}",
+    "editTitle": "Edit release {version}",
+    "hint": "Link the change that will deploy it from the release page.",
+    "versionHint": "Unique within the application, e.g. 12.1.0 or 2026.10.",
+    "versionLocked": "The version can’t change once it has been deployed.",
+    "versionInvalid": "Letters, digits, dots, dashes and plus signs; no spaces",
+    "namePlaceholder": "e.g. ERP v12 upgrade",
+    "notesPlaceholder": "## Highlights",
+    "created": "Release {version} planned",
+    "saved": "Release saved"
+  },
+  "settingsTab": {
+    "environments": "Environments",
+    "environmentsHint": "In pipeline order: deployments flow from top to bottom.",
+    "addEnvironment": "Add environment",
+    "editEnvironment": "Edit {name}",
+    "environmentDialogHint": "Production environments are protected by the change policy.",
+    "noEnvironments": "No environments yet.",
+    "deploymentCount": "{count, plural, one {# deployment} other {# deployments}}",
+    "moveUp": "Move {name} up",
+    "moveDown": "Move {name} down",
+    "editNamed": "Edit {name}",
+    "deleteNamed": "Delete {name}",
+    "envInUse": "Environments with deployments can’t be deleted",
+    "deleteEnvTitle": "Delete {name}?",
+    "deleteEnvBody": "The environment has no deployments; deleting it can’t be undone.",
+    "envAdded": "Environment added",
+    "envSaved": "Environment saved",
+    "envDeleted": "Environment deleted",
+    "envReordered": "Order saved",
+    "envDuplicate": "This application already has an environment with this name.",
+    "repositories": "Repositories",
+    "repositoriesHint": "Source repositories. Azure DevOps sync fills in the latest commits later.",
+    "addRepository": "Add repository",
+    "editRepository": "Edit {name}",
+    "repositoryDialogHint": "Use the https clone or browse URL.",
+    "noRepositories": "No repositories yet.",
+    "deleteRepoTitle": "Remove {name}?",
+    "deleteRepoBody": "Only the link is removed; the repository itself is not touched.",
+    "repoAdded": "Repository added",
+    "repoSaved": "Repository saved",
+    "repoDeleted": "Repository removed",
+    "repoDuplicate": "This repository is already listed.",
+    "nameRequired": "Fill in the name.",
+    "lifecycle": "Lifecycle",
+    "lifecycleHint": "Stage, the TIME disposition and the dates that frame the application’s life.",
+    "lifecycleSaved": "Lifecycle saved"
+  },
+  "calendar": {
+    "title": "Release calendar",
+    "description": "Releases of every application planned in the coming weeks, with their change status and readiness.",
+    "previous": "Earlier",
+    "next": "Later",
+    "today": "Today",
+    "application": "Application",
+    "allApplications": "All applications",
+    "mine": "Only my applications",
+    "agenda": "By week",
+    "month": "Month",
+    "weekOf": "Week of {range}",
+    "count": "{count, plural, =0 {no releases} one {# release} other {# releases}}",
+    "nothingPlanned": "Nothing planned this week."
+  },
+  "ciRelated": {
+    "title": "Application",
+    "unavailable": "Applications are unavailable right now.",
+    "asApplication": "This is the application’s configuration item.",
+    "asEnvironment": "Hosts its {environments} environment.",
+    "owners": "Business owner {business} · technical owner {technical}",
+    "production": "In production:"
+  },
+  "changeAside": {
+    "title": "Releases & deployments",
+    "unavailable": "Releases are unavailable right now.",
+    "releases": "Releases linked to this change",
+    "noReleases": "No release is linked to this change.",
+    "deployments": "Deployments authorized by this change",
+    "noDeployments": "No deployment used this change yet.",
+    "overridden": "policy overridden"
+  },
+  "dashboardCard": {
+    "title": "Your releases",
+    "description": "Coming up for {count, plural, one {the application} other {the # applications}} you own or deliver",
+    "open": "Calendar",
+    "none": "No releases planned in the next three weeks."
+  }
+}

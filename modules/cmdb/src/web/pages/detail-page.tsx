@@ -1,5 +1,7 @@
 'use client';
 
+import type { RecordPanelSlotProps } from '@isbp/contracts';
+
 import { localize } from '@isbp/sdk';
 import { Slot, useSlot, type WebPageProps } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
@@ -334,6 +336,14 @@ export default function CiDetailPage({ params }: WebPageProps) {
           <div className="min-w-0 space-y-6">
             <ImpactSummary ci={ci} onOpen={() => setTab('impact')} />
             <RelatedWork ci={ci} />
+            <Slot<RecordPanelSlotProps>
+              name="core.record.links"
+              props={{ record: { type: 'cmdb.ci', id: ci.id } }}
+            />
+            <Slot<RecordPanelSlotProps>
+              name="core.record.files"
+              props={{ record: { type: 'cmdb.ci', id: ci.id } }}
+            />
           </div>
         </TabsContent>
 

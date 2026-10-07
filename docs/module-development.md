@@ -358,6 +358,47 @@ const res = await ctx.ai.chat(
   `core.form-submission.completed`, read the answers with `ctx.forms.submission(id)`, and report progress
   with `ctx.forms.setFulfilment(id, { reference, href, state, statusKey })`.
 
+### Records: links, attachments and secrets (Phase 3)
+
+Declare the record types other modules may link to and attach files to, and write one resolver per type. The
+resolver applies **your** visibility rules: the platform never decides access to your records.
+
+```ts
+// manifest
+records: {
+  types: [{ type: 'asset', name: 'asset-tracker.entities.asset', icon: 'laptop', permission: 'asset-tracker.assets.read' }],
+},
+
+// defineServerModule(manifest, { records: { asset: { resolve, search } } })
+async resolve(ids, ctx, auth) {
+  const rows = await ctx.db.select().from(assets).where(and(inArray(assets.id, ids), visibleTo(auth)));
+  return rows.map((a) => ({
+    id: a.id,
+    reference: formatTag(a.number), // AST-00042
+    title: a.name,
+    status: { key: `asset-tracker.status.${a.status}`, tone: 'success' },
+    href: `/asset-tracker/${a.id}`,
+    editable: auth.can('asset-tracker.assets.manage'), // may change links and attachments
+  }));
+},
+async search(query, ctx, auth, limit) { /* by reference or title; empty query = recent */ },
+```
+
+- **Show links and files.** Host the core panels on your record page:
+  `<Slot name="core.record.links" props={{ record: { type: 'asset-tracker.asset', id } }} />` and
+  `<Slot name="core.record.files" props={{ record: { type: 'asset-tracker.asset', id } }} />`. Users can then
+  link tickets, changes, tasks or releases, and upload documents. Size limits, type checks, malware scanning
+  and audit are handled for you.
+- **Link from code.** Use `ctx.records.link(a, b, { tx })` and `unlink`. `ctx.records.linked(ref, { types })`
+  gives raw refs for your own logic, and `ctx.records.links(ref, { auth })` gives them resolved for a viewer.
+- **Delete.** When you delete a record, call `ctx.records.forget(ref, { tx })` in the same transaction.
+- **Create with a link.** To create a record in another module already linked to yours, link to its form with
+  `?link=<type>:<id>`, e.g. `/itsm/report?link=asset-tracker.asset:<id>`. The person fills in that module's own
+  form, with its own validation and audit.
+- **Secrets.** Licence keys, passwords and tokens are sealed with `ctx.secrets.seal(plain)` and read with
+  `ctx.secrets.open(sealed)` (the platform master key, rotation-aware). Never return them in lists, and audit
+  reveals.
+
 ## 5. Web side
 
 ```tsx
@@ -421,4 +462,5 @@ advanced options behind a disclosure, permission-gated actions (`useCan`), and m
 - [ ] Workflow triggers have an `onCompleted` handler that is idempotent, and you cancel instances whose subject disappears.
 - [ ] Notification types are declared and have `label`/`title`/`body` text in all three catalogs.
 - [ ] Catalogs exist for en, zh-TW and ja-JP, including `audit` labels.
+- [ ] Record pages declare a record type with a resolver and host the `core.record.links` / `core.record.files` panels; deletes call `ctx.records.forget`.
 - [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm modules:check` pass.

@@ -70,6 +70,9 @@ catalog:
   react-hook-form: ^7.89.0
   '@hookform/resolvers': ^5.9.1
   sonner: ^2.0.8
+  '@dnd-kit/core': ^6.3.1
+  '@dnd-kit/sortable': ^10.0.0
+  '@dnd-kit/utilities': ^3.2.2
 
 minimumReleaseAgeExclude:
   - '@scalar/client-side-rendering@0.4.9'

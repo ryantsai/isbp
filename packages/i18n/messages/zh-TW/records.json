@@ -1,0 +1,51 @@
+{
+  "links": {
+    "title": "相關紀錄",
+    "add": "連結紀錄",
+    "empty": "尚未連結任何紀錄。可連結相關的工單、變更、任務、資產或版本。",
+    "remove": "移除與 {name} 的連結",
+    "removed": "已移除連結",
+    "linked": "已連結",
+    "hiddenForbidden": "{count, plural, other {另有 # 筆您沒有權限檢視的相關紀錄}}",
+    "hiddenUnavailable": "{count, plural, other {另有 # 筆相關紀錄屬於已停用的模組}}"
+  },
+  "picker": {
+    "title": "連結紀錄",
+    "description": "以編號或標題搜尋工單、變更、任務、資產、版本或其他紀錄。",
+    "type": "紀錄類型",
+    "allTypes": "所有類型",
+    "searchPlaceholder": "編號或標題…",
+    "results": "搜尋結果",
+    "noResults": "找不到符合的紀錄。",
+    "link": "連結",
+    "linkAria": "連結 {name}",
+    "alreadyLinked": "已連結",
+    "thisRecord": "此紀錄"
+  },
+  "files": {
+    "title": "附件",
+    "upload": "上傳",
+    "dropHint": "將檔案拖曳到這裡，或按「上傳」。",
+    "limits": "每個檔案上限 {size}。",
+    "empty": "沒有附件。",
+    "uploading": "正在上傳 {name}",
+    "uploaded": "已上傳 {name}",
+    "failed": "{name}：{reason}",
+    "blocked": "{name}：無法上傳 .{ext} 類型的檔案。",
+    "tooLarge": "{name} 超過 {size}。",
+    "preview": "預覽 {name}",
+    "download": "下載 {name}",
+    "delete": "刪除 {name}",
+    "deleteTitle": "要刪除此附件嗎？",
+    "deleteBody": "{name} 將從此紀錄移除，且無法復原。",
+    "deleteConfirm": "刪除",
+    "cancel": "取消",
+    "deleted": "已刪除附件",
+    "reasons": {
+      "blocked_type": "無法上傳此類型的檔案。",
+      "empty": "檔案是空的。",
+      "malware": "檔案中偵測到惡意程式。",
+      "scan_unavailable": "惡意程式掃描服務目前無法使用，請稍後再試。"
+    }
+  }
+}

@@ -228,6 +228,13 @@ export const manifest = defineManifest({
       permissions: ['itsm.tickets.*', 'itsm.problems.manage', 'itsm.changes.read', 'itsm.reports.read'],
     },
     {
+      key: 'itsm-change-viewer',
+      name: 'Change viewer',
+      description:
+        'See changes and the change calendar, e.g. for release managers who link releases to their changes',
+      permissions: ['itsm.changes.read'],
+    },
+    {
       key: 'itsm-change-manager',
       name: 'Change manager',
       description: 'Raise, assess and schedule changes; approves normal changes',
@@ -411,4 +418,15 @@ export const manifest = defineManifest({
     { type: 'itsm.major-incident.declared' },
   ],
   customFields: { entities: [{ type: 'ticket', name: 'itsm.entities.ticket' }] },
+  records: {
+    types: [
+      { type: 'ticket', name: 'itsm.entities.ticket', icon: 'life-buoy', permission: 'itsm.tickets.read' },
+      {
+        type: 'change',
+        name: 'itsm.entities.change',
+        icon: 'calendar-clock',
+        permission: 'itsm.changes.read',
+      },
+    ],
+  },
 });

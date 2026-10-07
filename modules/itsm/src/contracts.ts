@@ -41,7 +41,7 @@
  *   Reports (itsm.reports.read)
  *     GET    /reports/overview              reportQuerySchema → overviewReportSchema
  */
-import { dateTime } from '@isbp/contracts';
+import { dateTime, recordRefSchema } from '@isbp/contracts';
 import { conditionSchema, listQuerySchema, localizedTextSchema } from '@isbp/sdk';
 import { z } from 'zod';
 
@@ -393,6 +393,8 @@ export const createTicketSchema = z.object({
   channel: channelSchema.optional(),
   major: z.boolean().optional(),
   attributes: z.record(z.string().max(64), z.unknown()).optional(),
+  /** Records of any module to link the new ticket to (e.g. the asset it is about, the release a change deploys). */
+  links: z.array(recordRefSchema).max(5).default([]),
   change: z
     .object({
       changeType: changeTypeSchema.default('normal'),

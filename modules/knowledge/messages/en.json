@@ -295,5 +295,8 @@
       "keyTaken": "This key is already used",
       "parent": "A category can't sit under itself or its own subcategory"
     }
+  },
+  "entities": {
+    "article": "Knowledge article"
   }
 }

@@ -1,8 +1,9 @@
 # IS Big Platform — Architecture
 
-> Status: Phase 2 (ITSM, CMDB, Knowledge Base, Helpdesk AI and the AI gateway) on top of Phase 1 (workflows,
-> forms, notifications, access requests, Role Query API) and the Phase 0 foundation. This document is the
-> design baseline that later phases extend.
+> Status: Phase 3 (Asset Management, Project Management, Application Lifecycle, plus record links and
+> attachments) on top of Phase 2 (ITSM, CMDB, Knowledge Base, Helpdesk AI and the AI gateway), Phase 1
+> (workflows, forms, notifications, access requests, Role Query API) and the Phase 0 foundation. This document
+> is the design baseline that later phases extend.
 
 ## 1. Shape of the system
 
@@ -377,25 +378,25 @@ labels for its audit actions. See [module-development.md](module-development.md)
 
 ## 5. Key technical decisions
 
-| #   | Decision                                                                                                                                                                  | Why                                                                                                                                                                                                                                                           | Alternatives considered                                                                                                                                        |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **pnpm workspaces + Turborepo**                                                                                                                                           | Convention-based, fast cached pipelines, `turbo prune` for lean Docker builds                                                                                                                                                                                 | Nx (more powerful, more config)                                                                                                                                |
-| 2   | **Fastify 5** for the API                                                                                                                                                 | Encapsulated plugins map 1:1 to runtime-pluggable modules, so built-in and custom modules use the same SDK with no special cases. Zod type provider gives one schema for validation, TS types and OpenAPI 3.1. Low overhead, native pino logging.             | NestJS: DI modules are a compile-time graph (awkward to enable/disable at runtime), decorator-heavy, and it duplicates validation (class-validator) beside Zod |
-| 3   | **Drizzle ORM + custom migration runner**                                                                                                                                 | Schema in TS split per module, Postgres schema per module, native JSONB/pgvector types, SQL-transparent for perf tuning. Our runner embeds migrations in the bundle, takes a Postgres advisory lock (safe with many replicas), and tracks per-module history. | Prisma: single schema/client, no per-module ownership, pgvector via `Unsupported`                                                                              |
-| 4   | **Zod 4 everywhere** (`@isbp/contracts`)                                                                                                                                  | One contract shared by API validation, OpenAPI, React Hook Form and manifest validation                                                                                                                                                                       | Separate DTO/JSON-schema layers                                                                                                                                |
-| 5   | **Server-side sessions** (opaque token, HttpOnly cookie, SHA-256 at rest) + double-submit CSRF token                                                                      | Instant revocation on offboarding / suspension, no token leakage in JS                                                                                                                                                                                        | JWT (hard to revoke)                                                                                                                                           |
-| 6   | **SSO**: openid-client (OIDC, Entra ID preset), node-saml (SAML 2.0), ldapts (LDAP/AD bind + directory sync); argon2id for local                                          | Standards-based, provider configs stored in DB with AES-256-GCM-encrypted secrets                                                                                                                                                                             | Auth SaaS (not suitable for on-prem IT)                                                                                                                        |
-| 7   | **RBAC**: permission keys `module.resource.action` with wildcards; role assignments to users or groups, scoped global / department-subtree / record, with optional expiry | Covers least-privilege, time-bound access and Phase 1 Role Query API (`applications` already modelled)                                                                                                                                                        | Pure ABAC engine (overkill for day one; scopes leave room for it)                                                                                              |
-| 8   | **Permission snapshots cached in Redis**, invalidated by a global `rbacVersion` counter                                                                                   | O(1) checks per request, correct invalidation across replicas                                                                                                                                                                                                 | Per-request DB joins                                                                                                                                           |
-| 9   | **Transactional outbox → BullMQ** for domain events                                                                                                                       | Events commit atomically with data; BullMQ gives per-subscriber retries, backoff, concurrency and visibility                                                                                                                                                  | In-memory emitter (lossy), Kafka (heavy for a monolith)                                                                                                        |
-| 10  | **Append-only audit log** enforced by DB trigger + per-row SHA-256                                                                                                        | Tamper-evident and immutable even against application bugs; partition by month later                                                                                                                                                                          | App-level only                                                                                                                                                 |
-| 11  | **Installed vs enabled modules**: installed = compiled in via generated registries; enabled = runtime flag in DB with Redis pub/sub fan-out                               | Next.js and bundlers need modules at build time; admins still toggle at runtime without redeploys                                                                                                                                                             | Fully dynamic runtime loading (fragile, insecure)                                                                                                              |
-| 12  | **Next.js 16 App Router**, `proxy.ts` forwards `/api/*` at runtime (env-configurable), module pages served by one catch-all host route                                    | Same-origin cookies, no CORS, one image for every environment                                                                                                                                                                                                 | Build-time rewrites (URL baked into image)                                                                                                                     |
-| 13  | **next-intl**, locale from user profile → cookie → `Accept-Language`; `en`, `zh-TW`, `ja-JP`; each module ships its own catalogs                                          | No locale URL prefix needed for an internal app; CI test keeps catalogs key-identical                                                                                                                                                                         | i18next                                                                                                                                                        |
-| 14  | **shadcn/ui + Tailwind 4 + Motion** (`motion/react`, the Framer Motion successor)                                                                                         | Owned, accessible Radix components; `MotionConfig reducedMotion="user"` honours `prefers-reduced-motion` globally                                                                                                                                             | Component library lock-in                                                                                                                                      |
-| 15  | **OpenTelemetry + pino + prom-client**; metrics on a separate internal port                                                                                               | Standard signals; metrics never exposed via ingress                                                                                                                                                                                                           | Vendor agents                                                                                                                                                  |
-| 16  | **UUIDv7 keys**                                                                                                                                                           | Time-ordered (B-tree friendly), safe to expose, generated app-side                                                                                                                                                                                            | bigserial (enumerable), UUIDv4 (index churn)                                                                                                                   |
-| 17  | **Embedded dev services** (`pnpm dev:services`: embedded Postgres + Redis) besides docker-compose                                                                         | Contributors without Docker can run the whole stack                                                                                                                                                                                                           | Docker-only                                                                                                                                                    |
+| #            | Decision                                                                                                                                                                  | Why                                                                                                                                                                                                                                               | Alternatives considered                                                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1            | **pnpm workspaces + Turborepo**                                                                                                                                           | Convention-based, fast cached pipelines, `turbo prune` for lean Docker builds                                                                                                                                                                     | Nx (more powerful, more config)                                                                                                                                |
+| 2            | **Fastify 5** for the API                                                                                                                                                 | Encapsulated plugins map 1:1 to runtime-pluggable modules, so built-in and custom modules use the same SDK with no special cases. Zod type provider gives one schema for validation, TS types and OpenAPI 3.1. Low overhead, native pino logging. | NestJS: DI modules are a compile-time graph (awkward to enable/disable at runtime), decorator-heavy, and it duplicates validation (class-validator) beside Zod |
+| **3** (done) | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                |
+| 4            | **Zod 4 everywhere** (`@isbp/contracts`)                                                                                                                                  | One contract shared by API validation, OpenAPI, React Hook Form and manifest validation                                                                                                                                                           | Separate DTO/JSON-schema layers                                                                                                                                |
+| 5            | Integrations Hub (incl. two-way ManageEngine ServiceDesk Plus Cloud and Azure DevOps Server sync), MCP server, AI assistant everywhere                                    |
+| 6            | **SSO**: openid-client (OIDC, Entra ID preset), node-saml (SAML 2.0), ldapts (LDAP/AD bind + directory sync); argon2id for local                                          | Standards-based, provider configs stored in DB with AES-256-GCM-encrypted secrets                                                                                                                                                                 | Auth SaaS (not suitable for on-prem IT)                                                                                                                        |
+| 7            | **RBAC**: permission keys `module.resource.action` with wildcards; role assignments to users or groups, scoped global / department-subtree / record, with optional expiry | Covers least-privilege, time-bound access and Phase 1 Role Query API (`applications` already modelled)                                                                                                                                            | Pure ABAC engine (overkill for day one; scopes leave room for it)                                                                                              |
+| 8            | **Permission snapshots cached in Redis**, invalidated by a global `rbacVersion` counter                                                                                   | O(1) checks per request, correct invalidation across replicas                                                                                                                                                                                     | Per-request DB joins                                                                                                                                           |
+| 9            | **Transactional outbox → BullMQ** for domain events                                                                                                                       | Events commit atomically with data; BullMQ gives per-subscriber retries, backoff, concurrency and visibility                                                                                                                                      | In-memory emitter (lossy), Kafka (heavy for a monolith)                                                                                                        |
+| 10           | **Append-only audit log** enforced by DB trigger + per-row SHA-256                                                                                                        | Tamper-evident and immutable even against application bugs; partition by month later                                                                                                                                                              | App-level only                                                                                                                                                 |
+| 11           | **Installed vs enabled modules**: installed = compiled in via generated registries; enabled = runtime flag in DB with Redis pub/sub fan-out                               | Next.js and bundlers need modules at build time; admins still toggle at runtime without redeploys                                                                                                                                                 | Fully dynamic runtime loading (fragile, insecure)                                                                                                              |
+| 12           | **Next.js 16 App Router**, `proxy.ts` forwards `/api/*` at runtime (env-configurable), module pages served by one catch-all host route                                    | Same-origin cookies, no CORS, one image for every environment                                                                                                                                                                                     | Build-time rewrites (URL baked into image)                                                                                                                     |
+| 13           | **next-intl**, locale from user profile → cookie → `Accept-Language`; `en`, `zh-TW`, `ja-JP`; each module ships its own catalogs                                          | No locale URL prefix needed for an internal app; CI test keeps catalogs key-identical                                                                                                                                                             | i18next                                                                                                                                                        |
+| 14           | **shadcn/ui + Tailwind 4 + Motion** (`motion/react`, the Framer Motion successor)                                                                                         | Owned, accessible Radix components; `MotionConfig reducedMotion="user"` honours `prefers-reduced-motion` globally                                                                                                                                 | Component library lock-in                                                                                                                                      |
+| 15           | **OpenTelemetry + pino + prom-client**; metrics on a separate internal port                                                                                               | Standard signals; metrics never exposed via ingress                                                                                                                                                                                               | Vendor agents                                                                                                                                                  |
+| 16           | **UUIDv7 keys**                                                                                                                                                           | Time-ordered (B-tree friendly), safe to expose, generated app-side                                                                                                                                                                                | bigserial (enumerable), UUIDv4 (index churn)                                                                                                                   |
+| 17           | **Embedded dev services** (`pnpm dev:services`: embedded Postgres + Redis) besides docker-compose                                                                         | Contributors without Docker can run the whole stack                                                                                                                                                                                               | Docker-only                                                                                                                                                    |
 
 ## 6. Security model (Phase 0)
 
@@ -415,9 +416,9 @@ labels for its audit actions. See [module-development.md](module-development.md)
 | **0 – Foundation** (done) | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI |
 | **1** (done)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                |
 | **2** (done)              | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                     |
-| 3                         | Asset Management, Project Management, Application Lifecycle                                                                                                                                                                               |
+| **3** (done)              | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                                                                                |
 | 4                         | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                              |
-| 5                         | Integrations Hub, MCP server, AI assistant everywhere                                                                                                                                                                                     |
+| 5                         | Integrations Hub (incl. two-way ManageEngine ServiceDesk Plus Cloud and Azure DevOps Server sync), MCP server, AI assistant everywhere                                                                                                    |
 
 ## 8. Phase 1 design: workflows, forms, notifications, access requests, Role Query API
 
@@ -862,3 +863,178 @@ agent deflection and AI cost.
 | 30  | Single `tickets` table with a type discriminator plus 1:1 detail tables for change/problem | Shared queue, SLA, timeline and search across ITIL processes, with type-specific fields kept typed and indexed                                              | One table per process (duplicated plumbing); JSON blobs  |
 | 31  | Catalog = Phase 1 forms + ITSM fulfilment                                                  | Admins build questions and approvals in one builder. Requesters follow one reference. Fulfilment is ordinary ticket work.                                   | A second catalog/form engine inside ITSM                 |
 | 32  | Web slots for cross-module UI                                                              | Helpdesk AI decorates ITSM pages while both stay independently installable                                                                                  | Hard imports between modules                             |
+
+## 10. Phase 3 design: Asset Management, Project Management, Application Lifecycle
+
+Phase 3 ships three modules. Two platform services come first, because all three need them and so do the
+Phase 2 modules: **record links** (relate any record to any other across modules) and **attachments**.
+
+| Module     | Depends on     | Owns                                                                                                                                                                         |
+| ---------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `itam`     | `cmdb`         | Hardware assets through their lifecycle, software licences (entitlement vs usage, compliance), contracts (renewals, costs), vendors. The UI calls it "Assets".               |
+| `projects` | —              | Projects, members and allocation, milestones, tasks with dependencies, Kanban board, Gantt timeline, workload. Links to tickets, changes, CIs and releases via record links. |
+| `alm`      | `cmdb`, `itsm` | Application inventory, environments, repositories, releases, deployment records (UI and CI/CD API), DORA metrics, and the production change policy.                          |
+
+The module id is `itam` because `/assets` is reserved for static files. Projects has no hard dependency: its
+links to ITSM, CMDB and ALM records go through the record registry, so it installs on its own.
+
+### 10.1 Record registry and links (kernel, `ctx.records`)
+
+```mermaid
+flowchart LR
+  subgraph Modules
+    T["projects.task"]
+    R["alm.release"]
+    C["itsm.change"]
+    A["itam.asset"]
+  end
+  subgraph K["Kernel record registry"]
+    RES["Resolvers per type<br/>resolve(ids, auth) · search(q, auth)"]
+    L[("core.record_links<br/>symmetric, canonical order")]
+    F[("core.files<br/>+ blob storage")]
+  end
+  T -- link --> L
+  R -- link --> L
+  L -. resolve for viewer .-> RES
+  RES --> C & A
+  F --- RES
+```
+
+- **Declare.** A module lists its linkable types in `manifest.records.types`
+  (`{ type, name, icon, permission }`) and provides a resolver per type in
+  `defineServerModule({ records })`. Phase 3 declares `itsm.ticket`, `itsm.change`, `cmdb.ci`,
+  `knowledge.article`, `itam.asset`, `itam.license`, `itam.contract`, `projects.project`, `projects.task`,
+  `alm.application` and `alm.release`.
+- **Resolve.** A resolver returns a `RecordSummary` for each id the caller may read: reference, title,
+  subtitle, status (an i18n key + tone), href, and `editable` (whether the caller may change the record's links
+  and attachments). It applies the module's own visibility rules. The registry never decides access itself.
+- **Link.** `core.record_links` stores each link once with its two ends in canonical (byte) order, enforced
+  by a check constraint, so a link is symmetric and unique. Ends are not foreign keys: modules own their
+  tables. `ctx.records.forget(ref, { tx })` removes a deleted record's links and attachments. Linking and
+  unlinking are audited and publish `core.record.linked` / `core.record.unlinked`, so modules can react;
+  ALM can move a release forward when a change gets linked.
+- **Show.** A link to a record the viewer can't see is returned as hidden: `forbidden` (no access) or
+  `unavailable` (module disabled). The UI shows a count ("2 linked records you don't have access to") and no
+  titles.
+- **API** (people only; API clients use module APIs):
+  - `GET /records/types`, `GET /records/search?q&types`, `GET /records/:type/:id`;
+  - `GET|POST /records/:type/:id/links`, `DELETE /records/:type/:id/links/:linkId`.
+  - Linking needs `editable` on the source and visibility of the target. Unknown or invisible records are 404,
+    so ids can't be probed.
+- **UI.** Two core panels any record page hosts through slots:
+  `<Slot name="core.record.links" props={{ record }} />` (grouped list, link picker with type filter and
+  search, unlink) and `<Slot name="core.record.files" props={{ record }} />`.
+- **Creating with links.** ITSM's create API accepts `links: RecordRef[]`, and its report page and new-change
+  dialog read `?link=<type>:<id>`. "Report a problem" on a device (Assets) and "Raise a change" on a release
+  (ALM) therefore land in ITSM's own forms, already linked, without ITSM knowing either module.
+
+### 10.2 Attachments (kernel, `ctx.files`)
+
+- **Storage.** Bytes live in a `BlobStorage` driver: `local` (a directory: `.dev-data/files` in development, a
+  ReadWriteMany volume at `/var/lib/isbp/files` in containers) or `s3` (any S3-compatible bucket, optional
+  SSE; credentials or the default AWS chain). Plain request bodies keep MinIO/Ceph compatible.
+- **Storage keys.** They are generated (`yyyy/mm/<uuid>`), never derived from the file name. Rows in
+  `core.files` keep the name, sniffed content type, size, SHA-256 and uploader.
+- **Upload pipeline.** It streams through a temp file, so memory use doesn't grow with file size:
+  1. Sanitize the name: no paths, control characters, or trailing dots/spaces.
+  2. Check the extension blocklist (an admin setting): executables, scripts, HTML/SVG.
+  3. Enforce the size limit (admin setting, default 25 MB, max 50 MB) and hash while streaming.
+  4. Sniff the content (`file-type`): disguised executables and HTML/SVG are refused whatever the name.
+  5. Scan with ClamAV `clamd` (INSTREAM) when configured. **Fail closed**: an unreachable scanner refuses the
+     upload, and malware is audited as a security event.
+  6. Store, insert the row, audit and publish an event.
+- **Download** (`GET /files/:id`).
+  - It re-resolves the record for the caller each time.
+  - Responses always carry `Content-Disposition: attachment` with RFC 6266/5987 names,
+    `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'; sandbox` and an ETag.
+  - Only sniffed raster images (`png/jpeg/gif/webp`) may be shown inline (`?inline=1`) for previews.
+- **Delete.** Deleting soft-deletes the row (the audit trail keeps the name) and removes the bytes. Files of
+  deleted records are purged by the hourly `purge-files` job.
+- **Proxy limit.** The web proxy buffers request bodies, so `experimental.proxyClientMaxBodySize` is raised
+  to 52 MB. The API enforces the real limit.
+
+### 10.3 Secrets for modules (`ctx.secrets`)
+
+`seal(plain)` / `open(sealed)` use the platform master key (AES-256-GCM, rotation via
+`ISBP_MASTER_KEY_PREVIOUS`). Assets stores licence keys this way, and reveals them only to
+`itam.licenses.reveal` holders, with audit. Phase 4 (database connections) and Phase 5 (connector credentials)
+reuse it.
+
+### 10.4 Asset Management (module `itam`, schema `itam`)
+
+- **Hardware lifecycle** `ordered → in_stock ⇄ deployed ⇄ in_repair → retired → disposed` (plus `lost`)
+  is a shared transition map. Assigning a person deploys the asset, and every step lands in
+  `asset_events` (the asset's timeline). An asset links to its **CMDB CI** (`ci_id`), and the CI page shows
+  the asset through the `cmdb.ci.related` slot.
+- **Disposal** is a required approval (`itam.disposal`): the asset manager, plus information security for
+  data-bearing devices.
+- **Book value** is straight-line depreciation over the model's lifespan, computed and never stored.
+- **Licences.** Entitlement (`quantity`) is compared with usage (assignments to people or devices). Software
+  installs reported by discovery tools (`POST /discovery/software`) reveal unlicensed installs. A stored
+  `compliance_state` (`compliant | over_deployed | under_used | expiring | expired`) is recomputed in the same
+  transaction as any change and nightly, and notifies on a transition to non-compliance.
+- **Contracts.**
+  - They cover assets and licences. The renewal reminder goes out at `end − notice_days` and again 7 days
+    before the end (idempotent via `last_reminder_for`).
+  - Status moves to expiring and expired automatically. "Renew" starts a new term, and contract PDFs are
+    attachments.
+- **People.**
+  - "My devices" is a portal entry for everyone (`itam.self.read`), with "Report a problem" linking the new
+    incident to the device.
+  - The person page (`core.user.overview` slot) shows assigned assets and software.
+  - Offboarding reclaims licence seats and asks asset managers to collect the hardware.
+
+### 10.5 Project Management (module `projects`, schema `projects`)
+
+- **Access.** Membership roles (`manager | member | viewer`) decide what someone may change. Projects are
+  `internal` (readable by everyone with `projects.projects.use`) or `private`. `projects.portfolio.read` sees
+  everything (PMO).
+- **Proposal.** A project starts `proposed`. The required workflow `projects.proposal` approves
+  it: the default graph auto-approves small projects and routes those over the budget-hours threshold to the
+  owner's manager.
+- **Tasks.**
+  - References are per project (`NET-12`), allocated atomically. A task has a type (task, bug, story,
+    feature, epic), a parent, and finish-to-start dependencies.
+  - A dependency cycle is refused, and so is starting a blocked task. Fractional ranks order the board.
+- **Views.**
+  - The **board** uses `@dnd-kit` with a keyboard sensor and screen-reader announcements, plus a "Move to…"
+    menu.
+  - The **timeline** is a Gantt chart with dependency arrows, milestones and keyboard date shifting, plus a
+    table view.
+  - **Workload** spreads remaining or estimated hours over working days and compares them with
+    `allocation × hours per week`.
+- **Phase 5 mapping (Azure DevOps Server, two-way).**
+  - Team project ↔ project, work item ↔ task, work item type ↔ `type`, `System.Parent` ↔ `parent_id`.
+  - States ↔ `status`, Remaining Work ↔ `remaining_hours`, iteration ↔ milestone.
+
+### 10.6 Application Lifecycle (module `alm`, schema `alm`)
+
+- **Inventory.** An application has owners, a delivery team (group), support group, stage, criticality,
+  TIME disposition, hosting, data classification and a CMDB application CI. Its environments carry the
+  current version, and its repositories are Azure DevOps Git repos (Phase 5 sync fills in branches and
+  commits).
+- **Deployments** are recorded from the UI or by CI/CD through `POST /alm/deployments` (an API client with
+  the `alm-pipeline` role).
+- **Change policy.**
+  - A production deployment needs an **authorized change**: one named in the request, or one linked to the
+    release, in status `scheduled` or `implementing`. With `enforceWindow`, it must also fall inside the
+    planned window.
+  - Otherwise the API refuses with `409 CHANGE_REQUIRED` (`no_change | change_not_approved | outside_window`).
+  - Holders of `alm.deployments.override` can record it anyway, with a reason. That is audited as a security
+    event, and change managers are notified.
+  - ALM reads `itsm.tickets` and `itsm.changes` and never writes them.
+- **Release readiness** checks four things: an authorized change is linked, the release succeeded in test or
+  staging, release notes exist, and no failed production deployment.
+- **DORA metrics** per application, computed in SQL from deployments: deployment frequency, change failure
+  rate, lead time, time to restore.
+
+### 10.7 Phase 3 decisions
+
+| #   | Decision                                                                                        | Why                                                                                                                                                                                   | Alternatives considered                                        |
+| --- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 33  | A platform record registry with resolver-checked, symmetric links                               | Modules relate records without depending on each other; every page gets the same "Linked records" panel; visibility stays with the owning module; Phase 5 assistant and sync reuse it | `dependsOn` + per-module link tables; a generic polymorphic FK |
+| 34  | Attachments in the kernel with pluggable storage (local volume or S3) and a fail-closed scanner | Contracts and tickets need documents; one hardened upload path (sniffing, blocklist, AV, safe download headers) instead of one per module                                             | Per-module uploads; storing blobs in Postgres                  |
+| 35  | Cross-module creation by navigation with `?link=` instead of calling another module's API       | The record is created in its owning module's own form, by the person, with its own validation and audit; nothing is attributed to an AI agent                                         | Tool registry calls from the UI (attributed to an agent)       |
+| 36  | ALM depends on ITSM and enforces the production change policy at write time                     | ITIL change control is only real if deployments can't bypass it; overrides are possible but audited and visible                                                                       | Advisory warnings only; a webhook from ITSM to ALM             |
+| 37  | Projects without hard dependencies                                                              | Teams can run projects without ITSM or ALM installed; links light up when those modules are on                                                                                        | `dependsOn: ['itsm']`                                          |
+| 38  | Data models mapped to Phase 5 sources up front (work item types and hierarchy, repositories)    | Two-way sync with Azure DevOps Server and ManageEngine ServiceDesk Plus Cloud won't need schema rework                                                                                | Retrofit in Phase 5                                            |

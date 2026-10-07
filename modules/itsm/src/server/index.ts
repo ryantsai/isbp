@@ -2,6 +2,7 @@ import { defineServerModule } from '@isbp/sdk/server';
 import migrations from '../../migrations';
 import { manifest } from '../manifest';
 import { aiTools } from './ai-tools';
+import { records } from './records';
 import { routes } from './routes';
 import { seed } from './seed';
 import { services } from './services';
@@ -72,6 +73,8 @@ export default defineServerModule(manifest, {
   ai: aiTools,
 
   search: (query, ctx, auth, limit) => services(ctx).tickets.search(query, auth, limit),
+
+  records,
 
   seed,
 });

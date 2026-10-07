@@ -5,6 +5,11 @@ import type { Locale, Messages } from '@isbp/i18n';
 type Loader = () => Promise<{ default: Messages }>;
 
 export const moduleMessages: Record<string, Record<Locale, Loader>> = {
+  'alm': {
+    en: () => import('@isbp/module-alm/messages/en.json'),
+    'zh-TW': () => import('@isbp/module-alm/messages/zh-TW.json'),
+    'ja-JP': () => import('@isbp/module-alm/messages/ja-JP.json'),
+  },
   'announcements': {
     en: () => import('@isbp/module-announcements/messages/en.json'),
     'zh-TW': () => import('@isbp/module-announcements/messages/zh-TW.json'),
@@ -20,6 +25,11 @@ export const moduleMessages: Record<string, Record<Locale, Loader>> = {
     'zh-TW': () => import('@isbp/module-helpdesk-ai/messages/zh-TW.json'),
     'ja-JP': () => import('@isbp/module-helpdesk-ai/messages/ja-JP.json'),
   },
+  'itam': {
+    en: () => import('@isbp/module-itam/messages/en.json'),
+    'zh-TW': () => import('@isbp/module-itam/messages/zh-TW.json'),
+    'ja-JP': () => import('@isbp/module-itam/messages/ja-JP.json'),
+  },
   'itsm': {
     en: () => import('@isbp/module-itsm/messages/en.json'),
     'zh-TW': () => import('@isbp/module-itsm/messages/zh-TW.json'),
@@ -29,5 +39,10 @@ export const moduleMessages: Record<string, Record<Locale, Loader>> = {
     en: () => import('@isbp/module-knowledge/messages/en.json'),
     'zh-TW': () => import('@isbp/module-knowledge/messages/zh-TW.json'),
     'ja-JP': () => import('@isbp/module-knowledge/messages/ja-JP.json'),
+  },
+  'projects': {
+    en: () => import('@isbp/module-projects/messages/en.json'),
+    'zh-TW': () => import('@isbp/module-projects/messages/zh-TW.json'),
+    'ja-JP': () => import('@isbp/module-projects/messages/ja-JP.json'),
   },
 };

@@ -1,6 +1,8 @@
 import { defineManifest, type WorkflowGraph } from '@isbp/sdk';
 import { z } from 'zod';
+import { DEFAULT_BLOCKED_EXTENSIONS } from '../kernel/files/policy';
 
+const recordRef = z.object({ type: z.string(), id: z.string() });
 const userRef = z.object({ userId: z.uuid(), email: z.string() });
 const requestRef = z.object({
   requestId: z.uuid(),
@@ -433,6 +435,20 @@ export const coreManifest = defineManifest({
         name: 'core.role-assignment.expired',
         schema: z.object({ assignmentId: z.uuid(), roleId: z.uuid() }),
       },
+      {
+        name: 'core.record.linked',
+        description: 'Two records were linked (`a`/`b` in canonical order)',
+        schema: z.object({ linkId: z.uuid(), a: recordRef, b: recordRef }),
+      },
+      { name: 'core.record.unlinked', schema: z.object({ linkId: z.uuid(), a: recordRef, b: recordRef }) },
+      {
+        name: 'core.file.attached',
+        schema: z.object({ fileId: z.uuid(), record: recordRef, name: z.string(), size: z.number() }),
+      },
+      {
+        name: 'core.file.deleted',
+        schema: z.object({ fileId: z.uuid(), record: recordRef, name: z.string() }),
+      },
       { name: 'core.module.enabled', schema: z.object({ moduleId: z.string() }) },
       { name: 'core.module.disabled', schema: z.object({ moduleId: z.string() }) },
       {
@@ -667,6 +683,22 @@ export const coreManifest = defineManifest({
       label: 'core.settings.notificationRetention',
       type: 'number',
       default: 90,
+      advanced: true,
+    },
+    {
+      key: 'files.maxSizeMb',
+      label: 'core.settings.filesMaxSize',
+      description: 'core.settings.filesMaxSizeHelp',
+      type: 'number',
+      default: 25,
+      advanced: true,
+    },
+    {
+      key: 'files.blockedExtensions',
+      label: 'core.settings.filesBlocked',
+      description: 'core.settings.filesBlockedHelp',
+      type: 'string',
+      default: DEFAULT_BLOCKED_EXTENSIONS.join(', '),
       advanced: true,
     },
   ],

@@ -82,7 +82,7 @@ describe('itsm demo seed', () => {
     expect(n.incident).toBeGreaterThanOrEqual(100);
     expect(n.service_request).toBeGreaterThanOrEqual(30);
     expect(n.problem).toBe(6);
-    expect(n.change).toBe(8);
+    expect(n.change).toBe(11);
     const total = await countWhere();
     const open = await countWhere(sql`${tickets.status} in ('new', 'in_progress', 'on_hold')`);
     expect(open / total).toBeGreaterThan(0.2);

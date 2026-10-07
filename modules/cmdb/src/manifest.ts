@@ -118,4 +118,7 @@ export const manifest = defineManifest({
   },
   search: { entities: ['ci'] },
   customFields: { entities: [{ type: 'ci', name: 'cmdb.entities.ci' }] },
+  records: {
+    types: [{ type: 'ci', name: 'cmdb.entities.ci', icon: 'network', permission: 'cmdb.cis.read' }],
+  },
 });

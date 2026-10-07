@@ -1,0 +1,670 @@
+{
+  "meta": {
+    "name": "專案",
+    "description": "專案、工作項目、里程碑、看板、時程與工作負載"
+  },
+  "nav": {
+    "group": "專案",
+    "portfolio": "專案",
+    "myTasks": "我的工作"
+  },
+  "permissions": {
+    "use": "檢視內部專案，並處理所屬專案的工作項目",
+    "create": "建立專案（建立者成為專案經理）",
+    "portfolioRead": "檢視所有專案（包含私人專案）",
+    "admin": "管理所有專案"
+  },
+  "settings": {
+    "hoursPerWeek": "每週工時",
+    "hoursPerWeekHelp": "工作負載中全職人員的產能（投入比例 × 工時）。",
+    "proposalThresholdHours": "提案核准門檻（小時）",
+    "proposalThresholdHoursHelp": "啟動專案時顯示：超過門檻的提案需由負責人的主管核准。預設核准流程使用相同數值，修改時請一併調整（管理 → 工作流程）。",
+    "details": "基本資料",
+    "members": {
+      "title": "成員",
+      "description": "專案經理可編輯專案與所有工作項目；成員處理工作項目；檢視者可閱讀與留言。投入比例是此人每週規劃於本專案的時間比例。",
+      "person": "人員",
+      "role": "角色",
+      "allocation": "投入比例 %",
+      "add": "新增",
+      "added": "已新增成員",
+      "updated": "已更新成員",
+      "removed": "已移除成員",
+      "owner": "專案經理（負責人）",
+      "roleOf": "{name} 的角色",
+      "allocationOf": "{name} 的投入比例（%）",
+      "remove": "移除 {name}",
+      "removeTitle": "要將 {name} 從專案移除嗎？",
+      "removeBody": "其未完成的工作項目將改為未指派。",
+      "removeConfirm": "移除"
+    },
+    "milestones": {
+      "title": "里程碑",
+      "description": "依序排列；時程圖依里程碑分組顯示工作項目。",
+      "name": "里程碑名稱",
+      "due": "到期日",
+      "add": "新增里程碑",
+      "created": "已新增里程碑",
+      "deleted": "已刪除里程碑",
+      "noDate": "未設定日期",
+      "status": {
+        "open": "進行中",
+        "done": "已完成"
+      },
+      "progress": "已完成 {done}／{total} 個工作項目",
+      "complete": "完成",
+      "reopen": "重新開啟",
+      "edit": "編輯 {name}",
+      "delete": "刪除 {name}",
+      "moveUp": "將 {name} 上移",
+      "moveDown": "將 {name} 下移",
+      "deleteTitle": "要刪除里程碑 {name} 嗎？",
+      "deleteBody": "其工作項目將不再屬於任何里程碑。"
+    },
+    "danger": {
+      "title": "封存或刪除",
+      "archive": "封存專案",
+      "archiveHint": "從專案總覽中隱藏並設為唯讀，之後可再還原。",
+      "unarchive": "還原專案",
+      "unarchiveHint": "重新顯示於專案總覽並恢復可編輯。",
+      "archiveTitle": "要封存 {name} 嗎？",
+      "archiveBody": "封存期間任何人都無法變更此專案。",
+      "archived": "已封存專案",
+      "unarchived": "已還原專案",
+      "delete": "刪除專案",
+      "deleteHint": "刪除專案及其里程碑與成員。",
+      "deleteBlocked": "僅能刪除沒有工作項目的專案（管理員可刪除任何專案），請改為封存。",
+      "deleteTitle": "要刪除 {name} 嗎？",
+      "deleteBody": "{count, plural, =0 {此動作無法復原。} other {其 # 個工作項目也會一併刪除，此動作無法復原。}}",
+      "deleted": "已刪除專案 {key}"
+    }
+  },
+  "workflows": {
+    "proposal": {
+      "name": "專案提案",
+      "description": "提案專案啟動前的核准流程"
+    }
+  },
+  "entities": {
+    "project": "專案",
+    "task": "工作項目"
+  },
+  "projectStatus": {
+    "proposed": "提案中",
+    "active": "進行中",
+    "on_hold": "暫停",
+    "completed": "已完成",
+    "cancelled": "已取消"
+  },
+  "taskStatus": {
+    "backlog": "待辦清單",
+    "todo": "待處理",
+    "in_progress": "進行中",
+    "in_review": "審查中",
+    "done": "已完成",
+    "cancelled": "已取消"
+  },
+  "notifications": {
+    "task_assigned": {
+      "label": "指派給我的工作項目",
+      "title": "{reference} 已指派給您：{title}",
+      "body": "專案：{project}。"
+    },
+    "task_commented": {
+      "label": "我的工作項目有新留言",
+      "title": "{author} 在 {reference} 留言：{title}",
+      "body": "{excerpt}"
+    },
+    "task_due_soon": {
+      "label": "明天到期的工作項目",
+      "title": "明天到期：{reference} {title}",
+      "body": "專案：{project}，到期日 {due}。"
+    },
+    "project_health_changed": {
+      "label": "我參與的專案健康狀態",
+      "title": "{key} {health, select, at_risk {有風險} off_track {偏離軌道} other {進度正常}}：{name}",
+      "body": "{note}"
+    },
+    "member_added": {
+      "label": "被加入專案",
+      "title": "您已被加入 {key} {name}",
+      "body": "您的角色：{role, select, manager {專案經理} member {成員} other {檢視者}}。"
+    },
+    "proposal_decided": {
+      "label": "我的專案提案審核結果",
+      "title": "{key} {outcome, select, approved {已核准} other {未獲核准}}：{name}",
+      "body": "{outcome, select, approved {專案已開始進行。} other {專案維持提案狀態。{comment}}}"
+    }
+  },
+  "audit": {
+    "project_created": "提出專案",
+    "project_updated": "更新專案",
+    "project_archived": "封存專案",
+    "project_unarchived": "還原封存的專案",
+    "project_submitted": "送出專案提案以供核准",
+    "project_status_changed": "變更專案狀態",
+    "project_proposal_rejected": "專案提案未獲核准",
+    "project_proposal_cancelled": "撤回專案提案",
+    "project_health_changed": "更新專案健康狀態",
+    "project_deleted": "刪除專案",
+    "member_added": "新增專案成員",
+    "member_updated": "變更專案成員",
+    "member_removed": "移除專案成員",
+    "milestone_created": "新增里程碑",
+    "milestone_updated": "更新里程碑",
+    "milestone_completed": "完成里程碑",
+    "milestone_deleted": "刪除里程碑",
+    "milestone_reordered": "調整里程碑順序",
+    "task_created": "建立工作項目",
+    "task_updated": "更新工作項目",
+    "task_status_changed": "變更工作項目狀態",
+    "task_moved": "在看板上調整工作項目順序",
+    "task_deleted": "刪除工作項目",
+    "task_dependency_added": "新增工作項目相依性",
+    "task_dependency_removed": "移除工作項目相依性",
+    "task_commented": "在工作項目留言",
+    "comment_updated": "編輯工作項目留言",
+    "comment_deleted": "刪除工作項目留言"
+  },
+  "health": {
+    "on_track": "進度正常",
+    "at_risk": "有風險",
+    "off_track": "偏離軌道"
+  },
+  "priority": {
+    "urgent": "緊急",
+    "high": "高",
+    "medium": "中",
+    "low": "低"
+  },
+  "projectPriority": {
+    "high": "高優先順序",
+    "medium": "中優先順序",
+    "low": "低優先順序"
+  },
+  "taskType": {
+    "epic": "史詩 (Epic)",
+    "feature": "功能",
+    "story": "使用者故事",
+    "task": "工作項目",
+    "bug": "錯誤"
+  },
+  "visibility": {
+    "internal": "內部",
+    "private": "私人",
+    "internalHint": "所有使用專案模組的人都能檢視。",
+    "privateHint": "僅專案成員（與 PMO）能檢視。"
+  },
+  "roles": {
+    "manager": "專案經理",
+    "member": "成員",
+    "viewer": "檢視者"
+  },
+  "due": {
+    "overdue": "已逾期"
+  },
+  "markdown": {
+    "write": "撰寫",
+    "preview": "預覽",
+    "hint": "支援 Markdown：**粗體**、清單、連結與表格。",
+    "nothing": "目前沒有可預覽的內容。"
+  },
+  "fields": {
+    "reference": "編號",
+    "title": "標題",
+    "name": "名稱",
+    "key": "代碼",
+    "status": "狀態",
+    "priority": "優先順序",
+    "type": "類型",
+    "assignee": "負責人",
+    "unassigned": "未指派",
+    "reporter": "回報者",
+    "owner": "專案經理",
+    "department": "部門",
+    "milestone": "里程碑",
+    "noMilestone": "無里程碑",
+    "startDate": "開始日",
+    "dueDate": "到期日",
+    "targetDate": "目標完成日",
+    "estimateHours": "預估工時（小時）",
+    "remainingHours": "剩餘工時（小時）",
+    "budgetHours": "預估投入（小時）",
+    "labels": "標籤",
+    "labelsPlaceholder": "輸入標籤後按 Enter",
+    "removeLabel": "移除標籤 {label}",
+    "description": "說明",
+    "visibility": "可見性",
+    "updated": "更新時間",
+    "activity": {
+      "title": "標題",
+      "type": "類型",
+      "priority": "優先順序",
+      "milestoneId": "里程碑",
+      "parentId": "上層項目",
+      "reporterId": "回報者",
+      "startDate": "開始日",
+      "dueDate": "到期日",
+      "estimateHours": "預估工時",
+      "remainingHours": "剩餘工時",
+      "labels": "標籤",
+      "description": "說明",
+      "attributes": "其他資訊"
+    }
+  },
+  "filters": {
+    "label": "篩選條件",
+    "search": "搜尋工作項目…",
+    "assignee": "負責人",
+    "anyone": "所有人",
+    "me": "我",
+    "unassigned": "未指派",
+    "milestone": "里程碑",
+    "allMilestones": "所有里程碑",
+    "allLabels": "所有標籤",
+    "type": "類型",
+    "allTypes": "所有類型",
+    "allStatuses": "所有狀態",
+    "allPriorities": "所有優先順序",
+    "open": "未完成",
+    "closed": "已完成或已取消",
+    "showCancelled": "顯示已取消",
+    "showClosed": "顯示已結束的工作"
+  },
+  "picker": {
+    "search": "依編號或標題搜尋…",
+    "loading": "搜尋中…",
+    "none": "沒有符合的工作項目。"
+  },
+  "customFields": {
+    "editTitle": "編輯其他資訊"
+  },
+  "activity": {
+    "system": "系統",
+    "someone": "某人",
+    "empty": "無",
+    "deletedTask": "已刪除的工作項目",
+    "hours": "{hours} 小時",
+    "created": "{actor} 建立了此工作項目",
+    "status": "{actor} 將狀態從「{from}」改為「{to}」",
+    "assigned": "{actor} 將其指派給 {to}",
+    "unassigned": "{actor} 取消了 {from} 的指派",
+    "dependencyAdded": "{actor} 將其設為相依於 {task}",
+    "dependencyRemoved": "{actor} 移除了對 {task} 的相依性",
+    "fieldChanged": "{actor} 將{field}從「{from}」改為「{to}」",
+    "fieldUpdated": "{actor} 更新了{field}"
+  },
+  "comments": {
+    "title": "留言與活動",
+    "add": "新增留言",
+    "placeholder": "撰寫留言…",
+    "submit": "留言",
+    "posted": "已發佈留言",
+    "readOnly": "僅專案成員可以留言。",
+    "by": "{name} 的留言",
+    "formerUser": "已離職人員",
+    "edited": "（已編輯）",
+    "edit": "編輯留言",
+    "delete": "刪除留言",
+    "deleteTitle": "要刪除這則留言嗎？",
+    "deleteBody": "所有人都將看不到這則留言，且無法復原。",
+    "deleted": "已刪除留言"
+  },
+  "task": {
+    "loading": "正在載入工作項目…",
+    "notFound": "找不到工作項目",
+    "notFoundHint": "{reference} 不存在，或您無法檢視其所屬專案。",
+    "loadFailed": "無法載入工作項目",
+    "toMyTasks": "前往我的工作",
+    "backToProject": "返回 {key}",
+    "titleLabel": "工作項目標題",
+    "editTitle": "編輯標題",
+    "changeStatus": "狀態：{status}。變更狀態",
+    "moveTo": "移至",
+    "blockedBy": "受 {refs} 阻擋",
+    "blockedExplain": "尚無法開始：須先完成 {refs}。",
+    "properties": "詳細資料",
+    "description": "說明",
+    "noDescription": "尚無說明。",
+    "relations": "相依性與階層",
+    "blockedByTitle": "受阻於",
+    "blockingTitle": "阻擋中",
+    "addDependency": "新增相依性",
+    "dependencyAdded": "已新增相依性",
+    "removeDependency": "移除對 {reference} 的相依性",
+    "noDependencies": "沒有相依性。",
+    "parent": "上層項目",
+    "setParent": "設定上層項目",
+    "changeParent": "變更上層項目",
+    "clearParent": "移除上層項目",
+    "noParent": "沒有上層項目。",
+    "children": "{count, plural, other {# 個子項目}}",
+    "more": "更多動作",
+    "openPage": "以完整頁面開啟",
+    "copyLink": "複製連結",
+    "delete": "刪除工作項目",
+    "deleteTitle": "要刪除 {reference} 嗎？",
+    "deleteBody": "留言、活動、連結與附件也會一併刪除，子項目將不再有上層項目。此動作無法復原。",
+    "deleted": "已刪除 {reference}",
+    "aside": "工作項目詳細資料",
+    "project": "專案",
+    "openOnBoard": "在看板中開啟"
+  },
+  "board": {
+    "region": "看板欄位",
+    "count": "{count, plural, other {# 個工作項目}}",
+    "emptyColumn": "沒有工作項目",
+    "truncated": "顯示 {total} 個中的 {shown} 個，完整內容請使用清單。",
+    "addTask": "新增工作項目",
+    "quickAddLabel": "新工作項目標題",
+    "quickAddPlaceholder": "要做什麼？",
+    "add": "新增",
+    "done": "完成",
+    "created": "已新增工作項目",
+    "dragHandle": "移動 {reference}",
+    "moveMenu": "將 {reference} 移至…",
+    "moveTo": "移至",
+    "open": "開啟",
+    "labels": "標籤",
+    "blocked": "受阻",
+    "comments": "{count, plural, other {# 則留言}}",
+    "links": "{count, plural, other {# 筆連結記錄}}",
+    "assignedTo": "指派給 {name}",
+    "unassigned": "未指派",
+    "announce": {
+      "instructions": "按空白鍵或 Enter 拿起工作項目，使用方向鍵在欄位內或欄位間移動，再按一次空白鍵或 Enter 放下，按 Esc 取消。",
+      "start": "已拿起 {task}，位於{where}。",
+      "over": "{task} 目前位於{where}。",
+      "outside": "{task} 不在任何欄位上。",
+      "dropped": "已放下 {task}，位於{where}。",
+      "cancelled": "已取消移動 {task}。",
+      "position": "「{column}」欄第 {position} 個（共 {total} 個）",
+      "column": "「{column}」欄"
+    }
+  },
+  "list": {
+    "label": "{project} 的工作項目",
+    "empty": "尚無工作項目。",
+    "emptyFiltered": "沒有符合篩選條件的工作項目。"
+  },
+  "timeline": {
+    "viewLabel": "檢視方式",
+    "chart": "圖表",
+    "viewAsTable": "以表格檢視",
+    "zoomLabel": "縮放",
+    "zoom": {
+      "week": "週",
+      "month": "月",
+      "quarter": "季"
+    },
+    "chartLabel": "時程圖（可左右捲動）",
+    "rowsLabel": "依里程碑分組的工作項目",
+    "task": "工作項目",
+    "noMilestone": "無里程碑",
+    "milestoneLabel": "里程碑 {name}，到期日 {date}",
+    "barLabel": "{reference} {title}，{start} 至 {end}，{status}",
+    "startsBeforeDependency": "在 {refs} 結束前就開始。",
+    "empty": "尚無可排程的工作",
+    "emptyHint": "為工作項目設定開始日或到期日即可在此顯示。",
+    "unscheduled": "{count, plural, other {# 個未排程的工作項目}}",
+    "unscheduledHint": "尚未設定開始日或到期日，開啟後即可排程。",
+    "tableLabel": "含日期與相依性的工作項目",
+    "milestonesLabel": "里程碑",
+    "dependsOn": "相依於",
+    "progress": "進度",
+    "milestoneProgress": "已完成 {done}／{total}",
+    "milestoneStatus": {
+      "open": "進行中",
+      "done": "已完成"
+    },
+    "overdue": "已逾期",
+    "help": {
+      "button": "鍵盤操作",
+      "title": "時程圖操作方式",
+      "tab": "在工作項目長條間移動。",
+      "enter": "開啟工作項目。",
+      "shift": "將工作項目提早或延後一天。",
+      "resize": "將到期日調整一天。",
+      "pointer": "使用滑鼠：拖曳長條即可移動，拖曳兩端可變更開始日或到期日。",
+      "summary": "按 Enter 開啟工作項目。Alt 加左右方向鍵可前後移動一天；再加上 Shift 只調整到期日。"
+    }
+  },
+  "workload": {
+    "previous": "前幾週",
+    "next": "後幾週",
+    "thisWeek": "本週",
+    "range": "{from} – {to}",
+    "capacityHint": "產能：投入比例 × 每週 {hours} 小時",
+    "overSummary": "{count, plural, other {這幾週有 # 位人員超出負荷}}。",
+    "empty": "沒有可規劃的人員",
+    "emptyHint": "新增設定投入比例的成員，並為工作項目設定工時與到期日。",
+    "tableLabel": "依人員與週別的工作負載（可左右捲動）",
+    "caption": "每位人員每週的預計工時與產能",
+    "person": "人員",
+    "weekOf": "{date} 當週",
+    "allocation": "投入 {pct}%",
+    "unassigned": "未指派",
+    "hoursOf": "{planned} / {capacity} 小時",
+    "hours": "{hours} 小時",
+    "overBy": "超出 {hours} 小時",
+    "cellLabel": "{person}，{week} 當週：已規劃 {planned} 小時，產能 {capacity} 小時。顯示工作項目",
+    "unassignedCellLabel": "未指派的工作，{week} 當週：{planned} 小時。顯示工作項目",
+    "tasksTitle": "{person} · {week} 當週"
+  },
+  "approval": {
+    "title": "提案核准",
+    "needsManager": "預估投入超過 {threshold} 小時，需由負責人的主管核准啟動。",
+    "automatic": "預估投入未超過 {threshold} 小時的提案，送出後即自動啟動。",
+    "notStarted": "尚未送出",
+    "startHint": "請按「啟動專案」送出提案。",
+    "status": {
+      "pending": "等待核准",
+      "approved": "已核准",
+      "rejected": "未獲核准",
+      "cancelled": "已撤回"
+    },
+    "rejected": "提案未獲核准，請調整後重新啟動。",
+    "rejectedWith": "未獲核准：「{comment}」",
+    "waitingFor": "等待",
+    "detailsHidden": "核准流程僅提出者、負責人與核准者可檢視。",
+    "decide": "前往待核准事項決定",
+    "facts": {
+      "budgetHours": "預估投入（小時）",
+      "priority": "優先順序",
+      "memberCount": "成員數"
+    }
+  },
+  "healthDialog": {
+    "title": "更新健康狀態",
+    "description": "說明專案目前的狀況，備註會顯示在專案頁面與專案總覽中。",
+    "health": "健康狀態",
+    "hint": {
+      "on_track": "依計畫進行",
+      "at_risk": "若不處理可能延誤",
+      "off_track": "將無法達成目標"
+    },
+    "note": "備註",
+    "notePlaceholder": "發生了什麼變化？接下來會怎麼做？",
+    "notifies": "將通知專案成員。",
+    "saved": "已更新健康狀態"
+  },
+  "statusDialog": {
+    "action": {
+      "active": "恢復進行",
+      "on_hold": "暫停",
+      "completed": "完成專案",
+      "cancelled": "取消專案"
+    },
+    "title": {
+      "active": "要恢復專案嗎？",
+      "on_hold": "要暫停專案嗎？",
+      "completed": "要完成專案嗎？",
+      "cancelled": "要取消專案嗎？"
+    },
+    "description": {
+      "active": "工作將從暫停處繼續。",
+      "on_hold": "不會刪除任何資料，可隨時恢復。",
+      "completed": "已完成的專案會保留在專案總覽中作為記錄。",
+      "cancelled": "等待中的提案核准將被撤回，此動作無法復原。"
+    },
+    "confirm": {
+      "active": "恢復進行",
+      "on_hold": "暫停",
+      "completed": "完成",
+      "cancelled": "取消專案"
+    },
+    "openTasks": "{count, plural, other {仍有 # 個工作項目未完成。}}",
+    "force": "仍要完成",
+    "comment": "備註（選填）",
+    "commentRequired": "為什麼在仍有未完成工作項目時完成？",
+    "saved": "已變更專案狀態"
+  },
+  "newTask": {
+    "title": "新增工作項目",
+    "titlePlaceholder": "例如：更換 9 樓存取交換器",
+    "datesInvalid": "到期日早於開始日。",
+    "created": "已建立 {reference}"
+  },
+  "form": {
+    "createTitle": "新增專案",
+    "createHint": "新專案以提案狀態建立，計畫就緒後再啟動。",
+    "namePlaceholder": "例如：2026 網路汰換",
+    "nameRequired": "請輸入名稱。",
+    "keyHint": "2–10 個英文字母或數字，工作項目編號以此開頭（例如 NET-12）。",
+    "keyLocked": "專案已有工作項目後即無法變更代碼。",
+    "keyInvalid": "請使用 2–10 個英文字母或數字，並以字母開頭。",
+    "keyTaken": "此代碼已被其他專案使用。",
+    "ownerHint": "專案經理，同時擁有專案管理權限。",
+    "ownerRequired": "請選擇專案經理。",
+    "noDepartment": "無部門",
+    "datesInvalid": "目標完成日早於開始日。",
+    "budgetHint": "用於提案核准。",
+    "budgetInvalid": "請輸入整數小時。",
+    "submit": "建立專案",
+    "created": "已建立專案 {key}"
+  },
+  "portfolio": {
+    "title": "專案",
+    "description": "IT 專案的狀態、健康度、進度與下一步。",
+    "new": "新增專案",
+    "filtersLabel": "顯示",
+    "filters": {
+      "all": "全部",
+      "mine": "我的",
+      "active": "進行中",
+      "proposed": "提案中",
+      "completed": "已完成"
+    },
+    "search": "搜尋專案…",
+    "archived": "已封存",
+    "layout": "版面",
+    "cards": "卡片",
+    "table": "表格",
+    "workload": "團隊工作負載",
+    "columns": {
+      "key": "代碼",
+      "name": "專案",
+      "status": "狀態",
+      "health": "健康狀態",
+      "progress": "進度",
+      "target": "目標完成日",
+      "owner": "專案經理"
+    },
+    "tasksDone": "已完成 {done}／{total} 個工作項目",
+    "progressLabel": "{name} 的進度：已完成 {done}／{total} 個工作項目",
+    "overdueTasks": "{count, plural, other {# 個逾期工作項目}}",
+    "noTarget": "未設定目標完成日",
+    "targetIn": "{when}到期",
+    "targetPassed": "已超過目標日（{when}）",
+    "nextMilestone": "下一步：{name} · {date}",
+    "ownedBy": "專案經理：{name}",
+    "empty": "尚無專案",
+    "emptyHint": "提出專案，以工作項目、里程碑與時程規劃工作。",
+    "emptyFiltered": "沒有符合的專案",
+    "showing": "第 {from}–{to} 筆，共 {total} 筆",
+    "pagination": "分頁",
+    "previous": "上一頁",
+    "next": "下一頁",
+    "liveCount": "{count, plural, other {# 個專案}}"
+  },
+  "project": {
+    "back": "專案",
+    "views": "專案檢視",
+    "tabs": {
+      "overview": "概觀",
+      "board": "看板",
+      "list": "清單",
+      "timeline": "時程",
+      "workload": "工作負載",
+      "settings": "設定"
+    },
+    "owner": "專案經理",
+    "target": "目標 {date}",
+    "archived": "已封存（唯讀）",
+    "start": "啟動專案",
+    "startTitle": "要啟動 {key} 嗎？",
+    "startNeedsApproval": "預估投入（{hours} 小時）超過 {threshold} 小時，須先由負責人的主管核准，結果將通知您。",
+    "startAutomatic": "預估投入未超過 {threshold} 小時的專案會立即啟動。",
+    "started": "專案已開始進行",
+    "submitted": "已送出提案以供核准",
+    "newTask": "新增工作項目",
+    "updateHealth": "更新健康狀態",
+    "changeStatus": "狀態",
+    "notFound": "找不到專案",
+    "notFoundHint": "{key} 不存在或您無法檢視。",
+    "loadFailed": "無法載入專案"
+  },
+  "overview": {
+    "kpi": {
+      "open": "未完成工作項目",
+      "overdue": "已逾期",
+      "doneThisWeek": "本週完成",
+      "blocked": "受阻"
+    },
+    "description": "關於",
+    "noDescription": "尚無說明。",
+    "byStatus": "依狀態統計工作項目",
+    "doneOf": "已完成 {done}／{total}",
+    "health": "健康狀態",
+    "updated": "更新於",
+    "updateHealth": "更新",
+    "noHealthNote": "尚無備註。",
+    "history": "歷程",
+    "system": "核准流程",
+    "healthChange": "健康狀態從「{from}」改為「{to}」",
+    "statusChange": "狀態從「{from}」改為「{to}」",
+    "milestones": "里程碑",
+    "noMilestones": "尚無里程碑。",
+    "milestoneDone": "已完成",
+    "milestoneProgress": "{name}：已完成 {done}／{total} 個工作項目",
+    "manage": "管理",
+    "members": "{count, plural, other {# 位成員}}",
+    "owner": "專案經理",
+    "allocation": "{pct}%"
+  },
+  "myTasks": {
+    "title": "我的工作",
+    "description": "各專案中指派給您且尚未完成的工作項目。",
+    "filterProject": "專案",
+    "allProjects": "所有專案",
+    "changeStatus": "{reference} 的狀態",
+    "groups": {
+      "overdue": "已逾期",
+      "today": "今天",
+      "thisWeek": "本週",
+      "later": "之後",
+      "noDate": "未設定日期"
+    },
+    "empty": "目前沒有待辦工作",
+    "emptyHint": "沒有指派給您的未完成工作項目。"
+  },
+  "dashboard": {
+    "title": "我的工作",
+    "description": "指派給您的專案工作項目",
+    "summary": "{overdue, plural, =0 {無逾期} other {# 個已逾期}} · {week, plural, =0 {本週沒有其他到期工作} other {本週到期 # 個}}",
+    "open": "我的工作",
+    "nothing": "沒有指派給您的未完成工作項目。",
+    "nothingDue": "本週沒有到期的工作。",
+    "more": "{count, plural, other {本週還有 # 個到期}}"
+  }
+}

@@ -1,4 +1,5 @@
-import { defineServerModule } from '@isbp/sdk/server';
+import { defineServerModule, likePattern, type RecordSummary, type StatusTone } from '@isbp/sdk/server';
+import { and, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 import migrations from '../../migrations';
 import {
   aiCreateDraftInput,
@@ -8,10 +9,12 @@ import {
   type AiSearchArticlesOutput,
   articleHref,
   articleReference,
+  parseArticleRef,
 } from '../contracts';
 import { manifest } from '../manifest';
-import { ArticleService, INDEX_TYPE } from './articles';
+import { ArticleService, INDEX_TYPE, viewerOf, visibleWhere } from './articles';
 import { routes } from './routes';
+import { articles } from './schema';
 import { seedKnowledge } from './seed';
 
 type ArticleEvent = { articleId: string };
@@ -125,5 +128,62 @@ export default defineServerModule(manifest, {
     return new ArticleService(ctx).quickFind(query, auth, limit);
   },
 
+  /** Articles as linkable records (e.g. a problem ↔ its known-error article), visible as on the site. */
+  records: {
+    article: {
+      async resolve(ids, ctx, auth) {
+        const valid = ids.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+        if (!valid.length) return [];
+        const v = viewerOf(auth);
+        const rows = await ctx.db
+          .select()
+          .from(articles)
+          .where(and(inArray(articles.id, valid), visibleWhere(v)));
+        return rows.map((a) => articleRecord(a, v.write));
+      },
+      async search(query, ctx, auth, limit) {
+        const v = viewerOf(auth);
+        const q = query.trim();
+        const ref = q ? parseArticleRef(q) : null;
+        const rows = await ctx.db
+          .select()
+          .from(articles)
+          .where(
+            and(
+              visibleWhere(v),
+              !q
+                ? eq(articles.status, 'published')
+                : or(
+                    ilike(articles.title, likePattern(q)),
+                    ref && 'number' in ref ? eq(articles.number, ref.number) : undefined,
+                  ),
+            ),
+          )
+          .orderBy(desc(articles.updatedAt))
+          .limit(limit);
+        return rows.map((a) => articleRecord(a, v.write));
+      },
+    },
+  },
+
   seed: seedKnowledge,
 });
+
+const STATUS_TONE: Record<(typeof articles.$inferSelect)['status'], StatusTone> = {
+  draft: 'neutral',
+  in_review: 'info',
+  published: 'success',
+  retired: 'neutral',
+};
+
+function articleRecord(a: typeof articles.$inferSelect, editable: boolean): RecordSummary {
+  return {
+    id: a.id,
+    reference: articleReference(a.number),
+    title: a.title,
+    subtitle: a.summary.slice(0, 160) || null,
+    status: { key: `knowledge.status.${a.status}`, tone: STATUS_TONE[a.status] },
+    href: articleHref(a.number),
+    editable,
+  };
+}

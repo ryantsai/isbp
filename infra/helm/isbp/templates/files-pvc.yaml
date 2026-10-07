@@ -1,0 +1,23 @@
+{{- if and (eq .Values.files.storage "local") (not .Values.files.persistence.existingClaim) }}
+# Attachments (files.storage=local). Kept on uninstall: the files are business records.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "isbp.fullname" . }}-files
+  labels:
+    {{- include "isbp.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+    {{- with .Values.files.persistence.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  accessModes:
+    {{- toYaml .Values.files.persistence.accessModes | nindent 4 }}
+  {{- with .Values.files.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.files.persistence.size }}
+{{- end }}

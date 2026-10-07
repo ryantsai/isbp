@@ -356,6 +356,24 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
 - **No model is required.** Without a chat model, Helpdesk AI runs in builtin mode: retrieval-based triage,
   templated replies, extractive summaries and article search in the virtual agent.
 
+## 7c. Attachments (Phase 3)
+
+Records (contracts, tickets, CIs, tasks, releases …) carry attachments. Choose where the bytes live:
+
+| Store | Configuration                                                                                                                                                                                                                                                              |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local | `FILES_STORAGE=local` (default). Development: `.dev-data/files`. Compose: the `files` volume. Helm: a PVC at `/var/lib/isbp/files` in api and worker pods; it must be **ReadWriteMany** (NFS, CephFS, Azure Files, EFS).                                                   |
+| S3    | `FILES_STORAGE=s3`, `S3_BUCKET`, `S3_REGION`, optional `S3_ENDPOINT` + `S3_FORCE_PATH_STYLE=true` for MinIO/Ceph, `S3_SSE`. Credentials via `S3_ACCESS_KEY_ID`/`S3_SECRET_ACCESS_KEY` in the Secret, or the pod's identity (IRSA / workload identity). Recommended for HA. |
+
+- **Malware scanning.** Set `CLAMAV_HOST` (and `CLAMAV_PORT`, default 3310) to a `clamd` service. Every upload
+  is then scanned before it is stored, and uploads are **refused while the scanner is unreachable**.
+- **Limits.** Administration → Settings → "Largest attachment" (default 25 MB, at most 50 MB) and "Blocked file
+  types".
+- **Upload path.** Uploads pass through the web server's proxy (it accepts up to 52 MB) and stream through
+  `/tmp` in the API. Size the Helm `api.tmpSizeLimit` (default 512Mi) for concurrent uploads.
+- **Backups.** Back up the volume or bucket together with the database. Rows in `core.files` point at
+  `storage_key`s. Deleted files' bytes are purged hourly by the `core:purge-files` job.
+
 ## 8. Production checklist
 
 - [ ] **TLS everywhere at the edge** and `PUBLIC_URL=https://…` — session cookies are marked `Secure` only when
@@ -381,6 +399,8 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
 - [ ] API clients scoped to the applications they need, keys with an expiry, IP allow-lists where possible.
 - [ ] pgvector installed before the first migration. If AI is enabled: provider egress allowed, masking
       categories reviewed with your privacy officer, and a monthly budget set.
+- [ ] Attachments: S3 bucket (versioning, SSE) or a backed-up ReadWriteMany volume; ClamAV `clamd` reachable
+      (`CLAMAV_HOST`); upload limit and blocked types reviewed; `api.tmpSizeLimit` sized for concurrent uploads.
 - [ ] Alerts on `/readyz` failures, 5xx rate and latency (`isbp_http_request_duration_seconds`), job failures
       (`isbp_jobs_total{status="failed"}`), and Postgres/Redis health.
 

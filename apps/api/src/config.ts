@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 
 const bool = z
@@ -41,6 +42,23 @@ const schema = z
     ISBP_ALLOW_PRIVATE_WEBHOOKS: bool.optional(),
     /** OAuth client-credentials access token lifetime. */
     OAUTH_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).max(86_400).default(3600),
+
+    /** Attachments: a directory (`local`, a mounted volume in containers) or an S3-compatible bucket. */
+    FILES_STORAGE: z.enum(['local', 's3']).default('local'),
+    FILES_DIR: z.string().optional(),
+    S3_BUCKET: z.string().optional(),
+    S3_REGION: z.string().default('us-east-1'),
+    /** For MinIO/Ceph and other S3-compatible stores. */
+    S3_ENDPOINT: z.preprocess((v) => (v === '' ? undefined : v), z.url().optional()),
+    S3_FORCE_PATH_STYLE: bool.optional(),
+    /** Optional: without them the AWS default chain is used (IAM role, IRSA, env, profile). */
+    S3_ACCESS_KEY_ID: z.string().optional(),
+    S3_SECRET_ACCESS_KEY: z.string().optional(),
+    S3_PREFIX: z.string().default('files/'),
+    S3_SSE: z.preprocess((v) => (v === '' ? undefined : v), z.enum(['AES256', 'aws:kms']).optional()),
+    /** ClamAV `clamd` for malware scanning of uploads (fail closed when set but unreachable). */
+    CLAMAV_HOST: z.string().optional(),
+    CLAMAV_PORT: z.coerce.number().int().default(3310),
   })
   .transform((env) => {
     const isProd = env.NODE_ENV === 'production';
@@ -48,11 +66,18 @@ const schema = z
       throw new Error('ISBP_MASTER_KEY is required in production (base64-encoded 32 random bytes).');
     }
     const masterKey = env.ISBP_MASTER_KEY ?? DEV_MASTER_KEY;
+    if (env.FILES_STORAGE === 's3' && !env.S3_BUCKET)
+      throw new Error('S3_BUCKET is required when FILES_STORAGE=s3.');
+    // Development keeps files next to the embedded database (`.dev-data/` at the repo root).
+    const filesDir =
+      env.FILES_DIR ??
+      (isProd ? '/var/lib/isbp/files' : fileURLToPath(new URL('../../../.dev-data/files', import.meta.url)));
     return {
       ...env,
       isProd,
       isTest: env.NODE_ENV === 'test',
       masterKey,
+      filesDir,
       usingDevMasterKey: masterKey === DEV_MASTER_KEY,
       autoMigrate: env.AUTO_MIGRATE ?? !isProd,
       logPretty: env.LOG_PRETTY ?? (!isProd && process.stdout.isTTY),

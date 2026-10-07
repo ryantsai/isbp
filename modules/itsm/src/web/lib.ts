@@ -89,3 +89,8 @@ export function useHours() {
   const duration = useDuration();
   return useCallback((hours: number) => duration(hours * 3_600_000), [duration]);
 }
+
+/** The ticket as a platform record (`itsm.change` for changes, `itsm.ticket` otherwise). */
+export function recordRef(ticket: { id: string; type: string }) {
+  return { type: ticket.type === 'change' ? 'itsm.change' : 'itsm.ticket', id: ticket.id };
+}

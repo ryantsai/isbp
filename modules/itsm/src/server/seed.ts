@@ -835,6 +835,60 @@ export async function seed(ctx: ModuleContext) {
     backout: 'Switch the DFS targets back.',
     test: 'Owners of each share open and save files.',
   });
+  // Release deployments (Application Lifecycle links its releases to these by title).
+  await change({
+    title: 'Deploy HR Portal 3.4.0 to production',
+    description:
+      'Release 3.4.0 of the HR Portal: corrected leave-balance calculation and document upload fixes.',
+    changeType: 'normal',
+    risk: 'low',
+    start: at(todayDay + 2, 19),
+    end: at(todayDay + 2, 21),
+    cis: ['hr-app-01', 'HR Portal'],
+    owner: changeOwner,
+    group: 'it-admins',
+    status: 'scheduled',
+    createdDaysAgo: 5,
+    reason: 'Fixes the leave-balance defect reported by HR and unblocks document uploads.',
+    plan: '1. Deploy build 3.4.0 from the release pipeline.\n2. Run the database migrations.\n3. Smoke test.',
+    backout: 'Redeploy 3.3.2 and restore the pre-deployment database snapshot.',
+    test: 'HR partners check leave balances for five sample employees.',
+  });
+  const erp12 = officeTime(52);
+  await change({
+    title: 'Deploy Finance ERP 12.0.0 to production',
+    description: 'Major upgrade of the Finance ERP application tier to 12.0.0.',
+    changeType: 'normal',
+    risk: 'high',
+    start: erp12,
+    end: new Date(erp12.getTime() + 5 * HOUR),
+    cis: ['erp-app-01', 'erp-db-01', 'Finance ERP'],
+    owner: changeOwner,
+    group: 'dba-team',
+    status: 'closed',
+    createdDaysAgo: 60,
+    reason: 'Vendor support for 11.x ends this year.',
+    plan: '1. Freeze postings.\n2. Upgrade the application servers.\n3. Run the schema upgrade.\n4. Reconcile trial balances.',
+    backout: 'Restore the database backup and redeploy 11.4.',
+    test: 'Finance key users post and reverse test journals in every company code.',
+  });
+  await change({
+    title: 'Deploy Finance ERP 12.1.0 to production',
+    description: 'Cut over to Finance ERP 12.1.0 (the ERP v12 upgrade project). Plan still being drafted.',
+    changeType: 'normal',
+    risk: 'high',
+    start: at(todayDay + 21, 20),
+    end: at(todayDay + 22, 2),
+    cis: ['erp-app-01', 'erp-db-01', 'Finance ERP'],
+    owner: changeOwner,
+    group: 'dba-team',
+    status: 'draft',
+    createdDaysAgo: 3,
+    reason: 'Completes the ERP v12 upgrade; 12.1.0 adds the e-invoicing changes required from next quarter.',
+    plan: 'Draft: cutover runbook under review with Finance.',
+    backout: 'Restore the pre-cutover database backup and redeploy 12.0.0.',
+    test: 'UAT sign-off from Finance and a parallel month-end close.',
+  });
 
   /* ───────────── existing catalog requests (Phase 1 seed) ───────────── */
 

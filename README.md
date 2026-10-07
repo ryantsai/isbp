@@ -4,8 +4,11 @@ A unified resource-management platform for IT operations — identity, access, s
 assets, automation and AI — built as a **modular monolith**: a small kernel plus modules that all use
 the same SDK. The UI ships in **English, 繁體中文（台灣）and 日本語**.
 
-> **Status: Phase 2 complete.**
+> **Status: Phase 3 complete.**
 >
+> - **Phase 3:** Asset Management (hardware, licences, contracts, vendors), Project Management (Kanban, Gantt,
+>   workload) and Application Lifecycle (releases and deployments governed by change management), plus links
+>   between records of any modules and attachments.
 > - **Phase 2:** ITSM (incidents, requests, problems, changes with CAB approval, SLAs on business calendars),
 >   a CMDB with impact analysis, a knowledge base, and Helpdesk AI, all running on a governed AI gateway.
 > - **Phase 1:** approval workflows, forms and custom fields, notifications, the access-request portal and
@@ -93,6 +96,19 @@ API reference (OpenAPI 3.1, interactive): http://localhost:4000/api/docs · raw 
 | **Helpdesk AI**         | <ul><li>Triage on every new ticket (with optional auto-apply), similar tickets, reply drafts with citations, summaries, and KB drafts from resolved tickets.</li><li>A virtual agent ("Ask IT") that answers from the knowledge base and opens a ticket only after you confirm.</li><li>Metrics for triage acceptance and deflection.</li></ul>                                                                                                                                                                          |
 | **AI gateway**          | <ul><li>Anthropic (Claude) or any OpenAI-compatible model, including self-hosted ones; works fully offline with the builtin embedder.</li><li>Masks personal data before a prompt leaves the platform; tracks usage and cost; enforces a monthly budget.</li><li>One permission-aware semantic index (pgvector).</li><li>A governed tool registry: same RBAC, confirmation and audit as the UI.</li></ul>                                                                                                                |
 
+## What's in Phase 3
+
+| Area                       | Highlights                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Assets** (`itam`)        | <ul><li>Hardware through its lifecycle (ordered → in stock → deployed → retired → disposed), with straight-line book value.</li><li>Disposal approval: asset manager, plus security for data-bearing devices.</li><li>Software licences: entitlement vs usage and discovered installs, with compliance alerts.</li><li>Contracts with renewal reminders and the signed PDF attached; vendors and spend.</li><li>"My devices" for every employee, with "Report a problem" that opens a ticket already linked to the device.</li></ul> |
+| **Projects**               | <ul><li>Projects with members, allocation, milestones and health updates; large proposals go through approval.</li><li>A Kanban board with keyboard drag-and-drop and a "Move to…" menu.</li><li>A Gantt timeline with dependencies and milestones (plus a table view).</li><li>Workload per person per week against capacity.</li><li>Tasks link to tickets, changes, CIs and releases.</li></ul>                                                                                                                                   |
+| **Applications** (`alm`)   | <ul><li>Application inventory: owners, team, stage, criticality, hosting, CMDB CI and repositories.</li><li>Environments with the version they run; releases with a readiness checklist and Markdown release notes.</li><li>Deployments recorded in the UI or by CI/CD pipelines (`POST /api/v1/alm/deployments`).</li><li>Production needs an approved change (overrides are audited), and DORA delivery metrics per application.</li></ul>                                                                                         |
+| **Linked records & files** | <ul><li>Link any record to any other (a task ↔ an incident, a release ↔ a change); each module decides who may see its records.</li><li>Attachments on tickets, CIs, assets, contracts, tasks and releases: local volume or S3, type and content checks, optional ClamAV scanning.</li></ul>                                                                                                                                                                                                                                         |
+
+Integrations with **ManageEngine ServiceDesk Plus Cloud** and **Azure DevOps Server** (two-way) are planned for
+Phase 5; the Phase 3 data models already map onto them (work item types and hierarchy, repositories, asset
+identifiers).
+
 ## Repository layout
 
 ```text
@@ -104,7 +120,7 @@ packages/contracts Zod DTOs shared by API and web
 packages/ui       Component library (shadcn/ui on Radix + Motion), DataTable, data hooks
 packages/i18n     Locales and core message catalogs (en, zh-TW, ja-JP)
 packages/create-module  `pnpm create-module` scaffolder + registry sync
-modules/*         Feature modules: announcements (the sample), cmdb, knowledge, itsm, helpdesk-ai
+modules/*         Feature modules: announcements (the sample), cmdb, knowledge, itsm, helpdesk-ai, itam, projects, alm
 infra/            Dockerfiles, docker-compose, Helm chart
 e2e/              Playwright end-to-end + accessibility tests
 docs/             Architecture, module guide, API guide, deployment

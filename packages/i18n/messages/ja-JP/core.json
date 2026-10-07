@@ -88,7 +88,11 @@
     "aiMasking": "個人データをプラットフォーム外に送る前にマスクする",
     "aiMaskingCategories": "マスクするデータの種類",
     "aiMaskingCustom": "マスクするカスタム パターン",
-    "aiMonthlyBudget": "月間 AI 予算 (USD、0 = 上限なし)"
+    "aiMonthlyBudget": "月間 AI 予算 (USD、0 = 上限なし)",
+    "filesMaxSize": "添付ファイルの最大サイズ (MB、最大 50)",
+    "filesMaxSizeHelp": "このサイズを超えるアップロードは拒否されます。",
+    "filesBlocked": "ブロックするファイルの種類",
+    "filesBlockedHelp": "アップロードできない拡張子をコンマ区切りで指定します。実行ファイルと Web ページは内容でも判定してブロックします。"
   },
   "systemRoles": {
     "platform-admin": {

@@ -1,8 +1,8 @@
 'use client';
 
-import type { AuditLog, EffectivePermissions, UserDetail } from '@isbp/contracts';
+import type { AuditLog, EffectivePermissions, UserDetail, UserOverviewSlotProps } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
-import { useCan, usePlatform } from '@isbp/sdk/web';
+import { Slot, useCan, usePlatform } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
@@ -277,6 +277,13 @@ export function UserDetailView({ id }: { id: string }) {
                 )}
               </CardContent>
             </Card>
+          </div>
+          {/* Modules' cards about this person (e.g. assigned assets and software). */}
+          <div className="grid min-w-0 gap-6 lg:col-span-2 lg:grid-cols-2 [&:empty]:hidden">
+            <Slot<UserOverviewSlotProps>
+              name="core.user.overview"
+              props={{ user: { id: user.id, displayName: user.displayName } }}
+            />
           </div>
         </TabsContent>
 

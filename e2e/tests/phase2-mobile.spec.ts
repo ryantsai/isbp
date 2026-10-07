@@ -1,31 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
-import { settle } from './helpers';
-
-/** Elements that stick out past the viewport without a scrolling/clipping ancestor (for the failure message). */
-async function overflowing(page: Page) {
-  return page.evaluate(() => {
-    const width = window.innerWidth;
-    const offenders: string[] = [];
-    for (const el of document.querySelectorAll<HTMLElement>('body *')) {
-      const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.right <= width + 1) continue;
-      let p = el.parentElement;
-      let clipped = false;
-      while (p) {
-        if (['auto', 'scroll', 'hidden', 'clip'].includes(getComputedStyle(p).overflowX)) {
-          clipped = true;
-          break;
-        }
-        p = p.parentElement;
-      }
-      if (!clipped)
-        offenders.push(
-          `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 60)} → ${Math.round(r.right)}px`,
-        );
-    }
-    return { overflow: document.documentElement.scrollWidth - width, offenders: offenders.slice(0, 5) };
-  });
-}
+import { overflowing, settle } from './helpers';
 
 async function expectFits(page: Page, path: string) {
   await page.goto(path);

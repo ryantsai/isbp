@@ -16,7 +16,8 @@
     "reportDescription": "うまく動かないものがありますか？サービス デスクに伝えて、対応状況を確認できます。"
   },
   "entities": {
-    "ticket": "チケット"
+    "ticket": "チケット",
+    "change": "変更"
   },
   "permissions": {
     "ticketsCreate": "問題を報告し、自分のチケットを確認する",
@@ -276,7 +277,9 @@
       "loading": "検索しています…",
       "noResults": "サービスが見つかりません",
       "clear": "サービスをクリア"
-    }
+    },
+    "linkedTo": "リンク先",
+    "unlink": "このレコードをリンクしない"
   },
   "columns": {
     "reference": "番号",

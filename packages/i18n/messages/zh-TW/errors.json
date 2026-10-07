@@ -44,5 +44,8 @@
   "RESOLUTION_REQUIRED": "請先說明解決方式。",
   "RELATIONSHIP_INVALID": "不允許建立此關聯。",
   "SCHEDULE_CONFLICT": "此時段無法使用。",
+  "FILE_REJECTED": "無法上傳此檔案。",
+  "FILE_TOO_LARGE": "檔案太大。",
+  "CHANGE_REQUIRED": "部署至正式環境前需要已核准的變更。",
   "generic": "發生錯誤。"
 }

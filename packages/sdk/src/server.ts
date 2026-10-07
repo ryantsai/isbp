@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { Readable } from 'node:stream';
 import type { Locale } from '@isbp/i18n';
 import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
@@ -429,6 +430,120 @@ export interface FormsService {
   setFulfilment(submissionId: string, fulfilment: Fulfilment | null, opts?: { tx?: Db }): Promise<void>;
 }
 
+/* ───────────────────────────── records: links & attachments ───────────────────────────── */
+
+/** Points at one record: `{ type: 'itsm.ticket', id }`. String form `itsm.ticket:<id>` (see `formatRecordRef`). */
+export interface RecordRef {
+  /** `<module>.<type>` as declared in the owning module's `manifest.records.types`. */
+  type: string;
+  id: string;
+}
+
+/** What a module's resolver tells the platform about one record, for one caller. */
+export interface RecordSummary {
+  id: string;
+  /** Human reference such as `INC-00042` or `AST-00007`. */
+  reference?: string | null;
+  title: string;
+  subtitle?: string | null;
+  /** i18n key of the status label in the module catalog (e.g. `itsm.status.in_progress`) and its tone. */
+  status?: { key: string; tone: StatusTone } | null;
+  /** Absolute web path of the record's page. */
+  href: string;
+  /** The caller may add and remove this record's links and attachments. */
+  editable: boolean;
+}
+
+export interface ResolvedRecord extends RecordSummary {
+  type: string;
+  moduleId: string;
+  icon: string | null;
+  reference: string | null;
+  subtitle: string | null;
+  status: { key: string; tone: StatusTone } | null;
+}
+
+/**
+ * Declared per record type in `defineServerModule({ records })`. Both methods must return only what
+ * `auth` may read (the same rules as the module's own pages); omitted ids are treated as hidden.
+ */
+export interface RecordResolver {
+  resolve(ids: readonly string[], ctx: ModuleContext, auth: AuthContext): Promise<RecordSummary[]>;
+  /** For pickers: records whose reference or title matches `query`, most relevant first. */
+  search(query: string, ctx: ModuleContext, auth: AuthContext, limit: number): Promise<RecordSummary[]>;
+}
+
+export interface RecordLinkInfo {
+  id: string;
+  ref: RecordRef;
+  /** `null` when the caller may not see the other record or its module is disabled (see `hidden`). */
+  record: ResolvedRecord | null;
+  hidden: 'forbidden' | 'unavailable' | null;
+  createdAt: Date;
+  createdBy: { id: string; name: string } | null;
+}
+
+/**
+ * `ctx.records`: the platform's record registry. Links are symmetric and stored once in `core.record_links`;
+ * they are how modules relate their records without depending on each other (a project task ↔ an
+ * incident, a release ↔ a change). `link`/`unlink`/`forget` do no permission checks: check first.
+ */
+export interface RecordsService {
+  /** Records `auth` may read, keyed by `type:id`. Unknown types and disabled modules are skipped. */
+  resolve(refs: readonly RecordRef[], auth: AuthContext): Promise<Map<string, ResolvedRecord>>;
+  get(ref: RecordRef, auth: AuthContext): Promise<ResolvedRecord | null>;
+  search(
+    query: string,
+    opts: { auth: AuthContext; types?: readonly string[]; limit?: number },
+  ): Promise<ResolvedRecord[]>;
+  /** Idempotent. Audited as `core.record.linked`, publishes `core.record.linked`. */
+  link(a: RecordRef, b: RecordRef, opts?: { tx?: Db }): Promise<{ id: string; created: boolean }>;
+  unlink(a: RecordRef, b: RecordRef, opts?: { tx?: Db }): Promise<boolean>;
+  /** The record's links, the other side resolved for `auth`. */
+  links(ref: RecordRef, opts: { auth: AuthContext; types?: readonly string[] }): Promise<RecordLinkInfo[]>;
+  /** Linked refs without permission filtering, for module logic ("changes linked to this release"). */
+  linked(ref: RecordRef, opts?: { types?: readonly string[]; tx?: Db }): Promise<RecordRef[]>;
+  /** Number of links per record (keyed by `type:id`), e.g. for a link badge on list rows or cards. */
+  counts(refs: readonly RecordRef[]): Promise<Map<string, number>>;
+  /** Drops the links and attachments of a record that was deleted. */
+  forget(ref: RecordRef, opts?: { tx?: Db }): Promise<void>;
+}
+
+export interface FileInfo {
+  id: string;
+  record: RecordRef;
+  name: string;
+  contentType: string;
+  size: number;
+  sha256: string;
+  uploadedBy: { id: string; name: string } | null;
+  createdAt: Date;
+  /** Download URL (`/api/v1/files/<id>`); the caller must be able to read the record. */
+  href: string;
+}
+
+/** `ctx.files`: attachments on records, in the configured storage (local disk or S3-compatible). */
+export interface FilesService {
+  list(ref: RecordRef): Promise<FileInfo[]>;
+  /**
+   * Stores a file on a record. Enforces the size limit and blocked types, sniffs the real content type and
+   * runs the malware scanner when one is configured (422 `FILE_REJECTED`). Audited.
+   */
+  attach(
+    ref: RecordRef,
+    file: { name: string; contentType?: string; data: Buffer | Readable },
+  ): Promise<FileInfo>;
+  get(id: string): Promise<FileInfo | null>;
+  open(id: string): Promise<Readable>;
+  remove(id: string): Promise<boolean>;
+}
+
+/** `ctx.secrets`: seal values at rest with the platform master key (AES-256-GCM, key rotation aware). */
+export interface SecretsService {
+  seal(plain: string): string;
+  open(sealed: string): string;
+}
+
 export interface ModuleContext {
   readonly module: ModuleManifest;
   readonly db: Db;
@@ -444,6 +559,9 @@ export interface ModuleContext {
   readonly ai: AiService;
   readonly portal: PortalService;
   readonly forms: FormsService;
+  readonly records: RecordsService;
+  readonly files: FilesService;
+  readonly secrets: SecretsService;
   /** Runs `fn` in a DB transaction; pass `tx` to audit/events to keep them atomic. */
   transaction<T>(fn: (tx: Db) => Promise<T>): Promise<T>;
   /** Principal of the current request, job or event (from async context). */
@@ -517,6 +635,8 @@ export interface ServerModuleOptions {
   /** Completion handlers for this module's `manifest.workflows` triggers. */
   workflows?: Record<string, WorkflowTriggerHandler>;
   search?: SearchProvider;
+  /** Resolvers for `manifest.records.types`, keyed by type (without the module prefix). */
+  records?: Record<string, RecordResolver>;
   /** Demo data for `pnpm db:seed`. Must be idempotent. */
   seed?: (ctx: ModuleContext) => Promise<void>;
   onEnable?: (ctx: ModuleContext) => Promise<void>;
@@ -552,6 +672,15 @@ export function defineServerModule(manifest: ModuleManifest, options: ServerModu
   for (const key of Object.keys(options.workflows ?? {})) {
     if (!triggers.has(key))
       throw new Error(`[${manifest.id}] workflow handler "${key}" is not declared in manifest.workflows`);
+  }
+  const recordTypes = new Set(manifest.records?.types.map((r) => r.type) ?? []);
+  for (const type of recordTypes) {
+    if (!options.records?.[type])
+      throw new Error(`[${manifest.id}] record type "${type}" has no resolver in records`);
+  }
+  for (const type of Object.keys(options.records ?? {})) {
+    if (!recordTypes.has(type))
+      throw new Error(`[${manifest.id}] records resolver "${type}" is not declared in manifest.records`);
   }
   for (const name of Object.keys(options.jobs ?? {})) {
     if (!/^[a-z][a-z0-9-]*$/.test(name))

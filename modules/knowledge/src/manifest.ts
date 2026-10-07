@@ -203,4 +203,14 @@ export const manifest = defineManifest({
     { type: 'knowledge.article.approved', defaultChannels: ['inApp', 'email'] },
     { type: 'knowledge.article.rejected', defaultChannels: ['inApp', 'email'] },
   ],
+  records: {
+    types: [
+      {
+        type: 'article',
+        name: 'knowledge.entities.article',
+        icon: 'book-open',
+        permission: 'knowledge.articles.read',
+      },
+    ],
+  },
 });

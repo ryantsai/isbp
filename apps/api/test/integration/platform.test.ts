@@ -259,6 +259,24 @@ describe('module system', () => {
     expect((await h.call(admin, 'GET', '/api/v1/announcements/posts')).status).toBe(200);
   });
 
+  it('navigation keeps each group together even when modules interleave their orders', async () => {
+    const nav = await h.call(admin, 'GET', '/api/v1/platform/navigation');
+    const items = nav.body.items as { section: string; group?: string | null }[];
+    // The sidebar renders each section from the items in order; a group must not reappear after a gap.
+    for (const section of ['main', 'admin']) {
+      const seen = new Set<string>();
+      let previous: string | null = null;
+      for (const i of items.filter((x) => x.section === section)) {
+        const key = i.group ?? null;
+        if (key && key !== previous) {
+          expect(seen.has(key), `group ${key} appears twice in ${section}`).toBe(false);
+          seen.add(key);
+        }
+        previous = key;
+      }
+    }
+  });
+
   it('module roles marked grantByDefault apply to everyone', async () => {
     const outsider = await h.login('outsider');
     expect((await h.call(outsider, 'GET', '/api/v1/announcements/posts')).status).toBe(200);

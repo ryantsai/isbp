@@ -14,6 +14,11 @@ const config: NextConfig = {
   transpilePackages: Object.keys(pkg.dependencies).filter((d) => d.startsWith('@isbp/')),
   outputFileTracingRoot: new URL('../..', import.meta.url).pathname,
   typedRoutes: false,
+  experimental: {
+    // proxy.ts buffers request bodies it forwards to the API (default 10 MB, then *truncated*). Attachments
+    // may be up to 50 MB (the API enforces the configured limit), plus multipart overhead.
+    proxyClientMaxBodySize: '52mb',
+  },
   async headers() {
     return [
       {

@@ -1,0 +1,51 @@
+{
+  "links": {
+    "title": "関連レコード",
+    "add": "レコードをリンク",
+    "empty": "まだリンクはありません。関連するチケット、変更、タスク、資産、リリースをリンクできます。",
+    "remove": "{name} へのリンクを削除",
+    "removed": "リンクを削除しました",
+    "linked": "リンクしました",
+    "hiddenForbidden": "{count, plural, other {アクセス権のない関連レコードが # 件あります}}",
+    "hiddenUnavailable": "{count, plural, other {無効なモジュールの関連レコードが # 件あります}}"
+  },
+  "picker": {
+    "title": "レコードをリンク",
+    "description": "チケット、変更、タスク、資産、リリースなどを番号またはタイトルで検索します。",
+    "type": "レコードの種類",
+    "allTypes": "すべての種類",
+    "searchPlaceholder": "番号またはタイトル…",
+    "results": "検索結果",
+    "noResults": "一致するレコードはありません。",
+    "link": "リンク",
+    "linkAria": "{name} をリンク",
+    "alreadyLinked": "リンク済み",
+    "thisRecord": "このレコード"
+  },
+  "files": {
+    "title": "添付ファイル",
+    "upload": "アップロード",
+    "dropHint": "ここにファイルをドラッグするか、[アップロード] を使用します。",
+    "limits": "1 ファイルあたり最大 {size}。",
+    "empty": "添付ファイルはありません。",
+    "uploading": "{name} をアップロード中",
+    "uploaded": "{name} をアップロードしました",
+    "failed": "{name}: {reason}",
+    "blocked": "{name}: .{ext} 形式のファイルはアップロードできません。",
+    "tooLarge": "{name} は {size} を超えています。",
+    "preview": "{name} をプレビュー",
+    "download": "{name} をダウンロード",
+    "delete": "{name} を削除",
+    "deleteTitle": "この添付ファイルを削除しますか?",
+    "deleteBody": "{name} はこのレコードから削除されます。元に戻すことはできません。",
+    "deleteConfirm": "削除",
+    "cancel": "キャンセル",
+    "deleted": "添付ファイルを削除しました",
+    "reasons": {
+      "blocked_type": "この種類のファイルはアップロードできません。",
+      "empty": "ファイルが空です。",
+      "malware": "ファイルからマルウェアが検出されました。",
+      "scan_unavailable": "マルウェア スキャンを利用できません。しばらくしてからもう一度お試しください。"
+    }
+  }
+}

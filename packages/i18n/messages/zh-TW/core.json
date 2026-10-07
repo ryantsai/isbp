@@ -88,7 +88,11 @@
     "aiMasking": "個人資料離開平台前先行遮罩",
     "aiMaskingCategories": "要遮罩的資料類型",
     "aiMaskingCustom": "自訂遮罩規則",
-    "aiMonthlyBudget": "每月 AI 預算（美元，0 表示不限）"
+    "aiMonthlyBudget": "每月 AI 預算（美元，0 表示不限）",
+    "filesMaxSize": "附件大小上限（MB，最多 50）",
+    "filesMaxSizeHelp": "超過此大小的上傳會被拒絕。",
+    "filesBlocked": "封鎖的檔案類型",
+    "filesBlockedHelp": "不允許上傳的副檔名，以逗號分隔。執行檔與網頁也會依內容判斷並封鎖。"
   },
   "systemRoles": {
     "platform-admin": {

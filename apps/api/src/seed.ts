@@ -25,6 +25,7 @@ import { hashPassword } from './kernel/passwords';
 import { EVERYONE_GROUP_KEY, PLATFORM_APP_KEY } from './kernel/rbac';
 import { seedPhase1 } from './seed-phase1';
 import { seedPhase2 } from './seed-phase2';
+import { seedPhase3, seedPhase3Links } from './seed-phase3';
 
 const { config, kernel } = await bootstrap('isbp-seed');
 const db = kernel.db;
@@ -771,13 +772,19 @@ try {
     const created = await seedCore();
     if (created) apiKey = await seedPhase1(kernel);
     // Module roles exist after migrate; grant them before module seeds, which rely on them.
-    if (created || process.argv.includes('--modules')) await seedPhase2(kernel);
+    const modules = created || process.argv.includes('--modules');
+    if (modules) {
+      await seedPhase2(kernel);
+      await seedPhase3(kernel);
+    }
     for (const m of kernel.registry.modules) {
-      if (m.seed && (created || process.argv.includes('--modules'))) {
+      if (m.seed && modules) {
         await m.seed(kernel.registry.context(m.manifest.id));
         log.info({ module: m.manifest.id }, 'module seed complete');
       }
     }
+    // Links between records of different modules, once every module has its demo data.
+    if (modules) await seedPhase3Links(kernel);
   });
   await kernel.rbac.bump();
   await db.execute(sql`analyze`);

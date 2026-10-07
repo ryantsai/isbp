@@ -88,7 +88,11 @@
     "aiMasking": "Mask personal data before it leaves the platform",
     "aiMaskingCategories": "Masked data types",
     "aiMaskingCustom": "Custom patterns to mask",
-    "aiMonthlyBudget": "Monthly AI budget (USD, 0 = no limit)"
+    "aiMonthlyBudget": "Monthly AI budget (USD, 0 = no limit)",
+    "filesMaxSize": "Largest attachment (MB, up to 50)",
+    "filesMaxSizeHelp": "Uploads larger than this are refused.",
+    "filesBlocked": "Blocked file types",
+    "filesBlockedHelp": "File extensions that can't be uploaded, separated by commas. Executables and web pages are blocked by content too."
   },
   "systemRoles": {
     "platform-admin": {

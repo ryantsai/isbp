@@ -1,5 +1,6 @@
 'use client';
 
+import type { RecordPanelSlotProps } from '@isbp/contracts';
 import { Slot } from '@isbp/sdk/web';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Markdown } from '@isbp/ui/markdown';
@@ -12,6 +13,7 @@ import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 import type { TicketAsideSlotProps, TicketDetail } from '../../contracts';
 import { MajorBadge, PriorityBadge, TicketStatusBadge, TypeIcon } from '../components/badges';
 import { ActionBar } from './actions';
+import { recordRef } from '../lib';
 import { CisCard, DetailsCard, LinksCard, SlasCard } from './aside-cards';
 import { ChangeCard } from './change-card';
 import { Composer, type ComposerState, type ComposerTab } from './composer';
@@ -21,8 +23,9 @@ import { AnswersCard, MajorBanner, ResolutionCard, SlaTimers, SourceChip } from 
 import { ProblemCard } from './problem-card';
 import { Timeline, useActivities } from './timeline';
 
+/** Contributions that render nothing (e.g. ALM's panel on non-change tickets) leave no empty card behind. */
 const wrapSlot = (node: ReactNode) => (
-  <Card className="min-w-0 gap-0 py-4">
+  <Card className="min-w-0 gap-0 py-4 has-[[data-slot=card-content]:empty]:hidden">
     <CardContent className="px-4">{node}</CardContent>
   </Card>
 );
@@ -101,6 +104,7 @@ export function AgentView({ ticket, refetch }: { ticket: TicketDetail; refetch: 
               )}
             </CardContent>
           </Card>
+          <Slot<RecordPanelSlotProps> name="core.record.files" props={{ record: recordRef(ticket) }} />
           <AnswersCard ticket={ticket} />
           {ticket.type === 'problem' && <ProblemCard ticket={ticket} />}
           {ticket.type === 'change' && <ChangeCard ticket={ticket} />}
@@ -132,6 +136,7 @@ export function AgentView({ ticket, refetch }: { ticket: TicketDetail; refetch: 
           <DetailsCard ticket={ticket} />
           <CisCard ticket={ticket} />
           <LinksCard ticket={ticket} />
+          <Slot<RecordPanelSlotProps> name="core.record.links" props={{ record: recordRef(ticket) }} />
           <SlasCard ticket={ticket} />
           <CustomFieldsCard ticket={ticket} />
         </aside>

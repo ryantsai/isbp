@@ -141,6 +141,11 @@
     "core_directory_synced": "ディレクトリを同期",
     "core_ai_tool_invoked": "AI ツールを使用",
     "core_ai_config_updated": "AI 設定を変更",
-    "core_ai_index_rebuilt": "セマンティック インデックスの再構築を開始"
+    "core_ai_index_rebuilt": "セマンティック インデックスの再構築を開始",
+    "core_record_linked": "レコードをリンクしました",
+    "core_record_unlinked": "レコードのリンクを削除しました",
+    "core_file_uploaded": "添付ファイルをアップロードしました",
+    "core_file_deleted": "添付ファイルを削除しました",
+    "core_file_rejected": "アップロードを拒否しました (マルウェア)"
   }
 }

@@ -188,7 +188,41 @@ dataFrom:
 {{- end -}}
 {{- $_ := set $cfg "NODE_ENV" "production" -}}
 {{- $_ := set $cfg "PUBLIC_URL" (include "isbp.publicUrl" .) -}}
+{{- $files := .Values.files -}}
+{{- $_ := set $cfg "FILES_STORAGE" $files.storage -}}
+{{- if eq $files.storage "s3" -}}
+{{- $_ := set $cfg "S3_BUCKET" (required "files.s3.bucket is required when files.storage=s3" $files.s3.bucket) -}}
+{{- $_ := set $cfg "S3_REGION" $files.s3.region -}}
+{{- $_ := set $cfg "S3_PREFIX" $files.s3.prefix -}}
+{{- $_ := set $cfg "S3_FORCE_PATH_STYLE" (toString $files.s3.forcePathStyle) -}}
+{{- with $files.s3.endpoint }}{{ $_ := set $cfg "S3_ENDPOINT" . }}{{ end -}}
+{{- with $files.s3.sse }}{{ $_ := set $cfg "S3_SSE" . }}{{ end -}}
+{{- else if eq $files.storage "local" -}}
+{{- $_ := set $cfg "FILES_DIR" "/var/lib/isbp/files" -}}
+{{- else -}}
+{{- fail "files.storage must be local or s3" -}}
+{{- end -}}
+{{- with $files.clamav.host }}
+{{- $_ := set $cfg "CLAMAV_HOST" . -}}
+{{- $_ := set $cfg "CLAMAV_PORT" (toString $files.clamav.port) -}}
+{{- end -}}
 {{- toYaml $cfg -}}
+{{- end }}
+
+{{/* The attachments volume (files.storage=local) for api and worker pods. */}}
+{{- define "isbp.filesVolumeMount" -}}
+{{- if eq .Values.files.storage "local" }}
+- name: files
+  mountPath: /var/lib/isbp/files
+{{- end }}
+{{- end }}
+
+{{- define "isbp.filesVolume" -}}
+{{- if eq .Values.files.storage "local" }}
+- name: files
+  persistentVolumeClaim:
+    claimName: {{ .Values.files.persistence.existingClaim | default (printf "%s-files" (include "isbp.fullname" .)) }}
+{{- end }}
 {{- end }}
 
 {{/* Renders a {name: value} map as an EnvVar list. Usage: include "isbp.envMap" .Values.api.env */}}

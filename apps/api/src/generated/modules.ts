@@ -2,10 +2,13 @@
 // Lists every installed module's server entry. Core is always first.
 import type { ServerModule } from '@isbp/sdk/server';
 import { coreModule } from '../core';
+import alm from '@isbp/module-alm/server';
 import announcements from '@isbp/module-announcements/server';
 import cmdb from '@isbp/module-cmdb/server';
 import helpdeskAi from '@isbp/module-helpdesk-ai/server';
+import itam from '@isbp/module-itam/server';
 import itsm from '@isbp/module-itsm/server';
 import knowledge from '@isbp/module-knowledge/server';
+import projects from '@isbp/module-projects/server';
 
-export const installedModules: ServerModule[] = [coreModule, announcements, cmdb, helpdeskAi, itsm, knowledge];
+export const installedModules: ServerModule[] = [coreModule, alm, announcements, cmdb, helpdeskAi, itam, itsm, knowledge, projects];

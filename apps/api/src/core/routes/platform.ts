@@ -410,6 +410,13 @@ export function platformRoutes(app: ModuleRouter, ctx: ModuleContext, idps: IdpS
         .enabledModules()
         .flatMap((m) => (m.manifest.navigation ?? []).filter(visible).map(toItem(m.manifest.id)))
         .sort((a, b) => a.order - b.order);
+      // A group stays together at the position of its first entry, even when modules' orders interleave.
+      const rank = new Map<string, number>();
+      for (const i of items)
+        if (i.group && !rank.has(`${i.section}:${i.group}`)) rank.set(`${i.section}:${i.group}`, i.order);
+      const rankOf = (i: (typeof items)[number]) =>
+        i.group ? rank.get(`${i.section}:${i.group}`)! : i.order;
+      items.sort((a, b) => rankOf(a) - rankOf(b) || a.order - b.order);
       return { items };
     },
   );

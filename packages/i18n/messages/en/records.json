@@ -1,0 +1,51 @@
+{
+  "links": {
+    "title": "Linked records",
+    "add": "Link record",
+    "empty": "Nothing linked yet. Link related tickets, changes, tasks, assets or releases.",
+    "remove": "Remove link to {name}",
+    "removed": "Link removed",
+    "linked": "Linked",
+    "hiddenForbidden": "{count, plural, one {# linked record you don't have access to} other {# linked records you don't have access to}}",
+    "hiddenUnavailable": "{count, plural, one {# linked record from a module that is turned off} other {# linked records from modules that are turned off}}"
+  },
+  "picker": {
+    "title": "Link a record",
+    "description": "Find a ticket, change, task, asset, release or any other record by its reference or title.",
+    "type": "Record type",
+    "allTypes": "All types",
+    "searchPlaceholder": "Reference or title…",
+    "results": "Results",
+    "noResults": "No matching records.",
+    "link": "Link",
+    "linkAria": "Link {name}",
+    "alreadyLinked": "Linked",
+    "thisRecord": "This record"
+  },
+  "files": {
+    "title": "Attachments",
+    "upload": "Upload",
+    "dropHint": "Drag files here, or use Upload.",
+    "limits": "Up to {size} per file.",
+    "empty": "No attachments.",
+    "uploading": "Uploading {name}",
+    "uploaded": "{name} uploaded",
+    "failed": "{name}: {reason}",
+    "blocked": "{name}: files of type .{ext} can't be uploaded.",
+    "tooLarge": "{name} is larger than {size}.",
+    "preview": "Preview {name}",
+    "download": "Download {name}",
+    "delete": "Delete {name}",
+    "deleteTitle": "Delete this attachment?",
+    "deleteBody": "{name} will be removed from this record. This can't be undone.",
+    "deleteConfirm": "Delete",
+    "cancel": "Cancel",
+    "deleted": "Attachment deleted",
+    "reasons": {
+      "blocked_type": "this type of file can't be uploaded.",
+      "empty": "the file is empty.",
+      "malware": "malware was found in the file.",
+      "scan_unavailable": "the malware scanner isn't available. Try again later."
+    }
+  }
+}

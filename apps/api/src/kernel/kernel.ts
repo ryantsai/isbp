@@ -12,12 +12,16 @@ import { currentPrincipal } from './context';
 import { SecretBox } from './crypto';
 import { createEventPublisher } from './events';
 import { CustomFieldRegistry } from './fields';
+import { ClamdScanner } from './files/scanner';
+import { type BlobStorage, LocalStorage, S3Storage } from './files/storage';
+import { FileStore } from './files/store';
 import { ModuleRegistry } from './modules';
 import { NotificationHub } from './notifications/hub';
 import { NotificationCenter } from './notifications/service';
 import { createFormsService, createPortalService } from './portal';
 import { QueueFactory } from './queues';
 import { RbacService } from './rbac';
+import { RecordRegistry } from './records';
 import { SessionService } from './sessions';
 import { SettingsService } from './settings';
 import { installDefaultWorkflows } from './workflow/defaults';
@@ -78,6 +82,38 @@ export async function createKernel(
     coreManifest: () => registry.get('core')!.manifest,
   });
 
+  const storage: BlobStorage =
+    config.FILES_STORAGE === 's3'
+      ? new S3Storage({
+          bucket: config.S3_BUCKET!,
+          region: config.S3_REGION,
+          endpoint: config.S3_ENDPOINT,
+          forcePathStyle: config.S3_FORCE_PATH_STYLE,
+          accessKeyId: config.S3_ACCESS_KEY_ID,
+          secretAccessKey: config.S3_SECRET_ACCESS_KEY,
+          prefix: config.S3_PREFIX,
+          sse: config.S3_SSE,
+        })
+      : new LocalStorage(config.filesDir);
+  const files = new FileStore({
+    db,
+    storage,
+    scanner: config.CLAMAV_HOST ? new ClamdScanner(config.CLAMAV_HOST, config.CLAMAV_PORT) : null,
+    core,
+    logger: logger.child({ component: 'files' }),
+  });
+  const records = new RecordRegistry({
+    db,
+    registry,
+    logger: logger.child({ component: 'records' }),
+    core,
+    forgetFiles: (ref, tx) => files.forgetRecord(ref, tx),
+  });
+  const secrets = {
+    seal: (plain: string) => box.encrypt(plain),
+    open: (sealed: string) => box.decrypt(sealed),
+  };
+
   const contexts = new Map<string, ModuleContext>();
   for (const m of registry.modules) {
     const id = m.manifest.id;
@@ -97,6 +133,9 @@ export async function createKernel(
       ai: ai.forModule(m.manifest),
       portal: createPortalService(db, m.manifest),
       forms: createFormsService(db, m.manifest),
+      records: records.service(),
+      files: files.service(),
+      secrets,
       transaction: (fn) => db.transaction((tx) => fn(tx as unknown as Db)),
       principal: currentPrincipal,
       isEnabled: () => registry.isEnabled(id),
@@ -171,6 +210,8 @@ export async function createKernel(
     workflows,
     apiClients,
     ai,
+    records,
+    files,
     migrate,
     ready,
     search,

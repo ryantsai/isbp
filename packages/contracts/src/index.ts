@@ -10,3 +10,4 @@ export * from './forms';
 export * from './notifications';
 export * from './applications';
 export * from './ai';
+export * from './records';

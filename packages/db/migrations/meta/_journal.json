@@ -43,6 +43,13 @@
       "when": 1791299077608,
       "tag": "0005_ai_vectors",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791329612933,
+      "tag": "0006_phase3_records",
+      "breakpoints": true
     }
   ]
 }

@@ -27,15 +27,19 @@ import {
   emptyPlan,
   windowInvalid,
 } from './change-plan';
+import { LinkedRecordChip } from './linked-record-chip';
 import { CiPicker } from './pickers';
 
 /** Raise a change: what, why, when, which CIs and the plans — with a live conflict check. */
 export function NewChangeDialog({
   open,
   onOpenChange,
+  prefill,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  /** From another module, e.g. ALM's "Raise a change" for a release (`?new=1&title=…&link=…`). */
+  prefill?: { title: string; link: { type: string; id: string } | null } | null;
 }) {
   const t = useTranslations('itsm.newChange');
   const tc = useTranslations('common');
@@ -48,13 +52,18 @@ export function NewChangeDialog({
   const [cis, setCis] = useState<CmdbCiOption[]>([]);
   const [plan, setPlan] = useState<ChangePlanValues>(emptyPlan);
   const [touched, setTouched] = useState(false);
+  const [link, setLink] = useState<{ type: string; id: string } | null>(null);
+  const prefillTitle = prefill?.title ?? '';
+  const prefillLink = prefill?.link ?? null;
   useEffect(() => {
     if (!open) return;
-    setTitle('');
+    setTitle(prefillTitle);
+    setLink(prefillLink);
     setDescription('');
     setCis([]);
     setPlan(emptyPlan);
     setTouched(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the dialog opens
   }, [open]);
   const create = useApiMutation(
     (api, body: CreateTicketInput) => api.post<TicketDetail>('/itsm/tickets', body),
@@ -89,6 +98,7 @@ export function NewChangeDialog({
               title: title.trim(),
               description: description.trim(),
               ciIds: cis.map((c) => c.id),
+              links: link ? [link] : [],
               change: {
                 ...plan,
                 reason: plan.reason.trim(),
@@ -98,6 +108,7 @@ export function NewChangeDialog({
             });
           }}
         >
+          {link && <LinkedRecordChip record={link} onRemove={() => setLink(null)} />}
           <div className="grid gap-2">
             <Label htmlFor={`${id}-title`}>{t('titleLabel')}</Label>
             <Input

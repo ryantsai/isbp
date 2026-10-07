@@ -44,5 +44,8 @@
   "RESOLUTION_REQUIRED": "先に解決内容を入力してください。",
   "RELATIONSHIP_INVALID": "その関係は作成できません。",
   "SCHEDULE_CONFLICT": "その時間帯は使用できません。",
+  "FILE_REJECTED": "このファイルはアップロードできません。",
+  "FILE_TOO_LARGE": "ファイルが大きすぎます。",
+  "CHANGE_REQUIRED": "本番環境へのデプロイには承認済みの変更が必要です。",
   "generic": "問題が発生しました。"
 }

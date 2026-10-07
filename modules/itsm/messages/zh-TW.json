@@ -16,7 +16,8 @@
     "reportDescription": "有東西無法正常運作？告訴服務台並追蹤處理進度。"
   },
   "entities": {
-    "ticket": "工單"
+    "ticket": "工單",
+    "change": "變更"
   },
   "permissions": {
     "ticketsCreate": "回報問題並追蹤自己的工單",
@@ -276,7 +277,9 @@
       "loading": "搜尋中…",
       "noResults": "找不到服務",
       "clear": "清除服務"
-    }
+    },
+    "linkedTo": "連結至",
+    "unlink": "不要連結此紀錄"
   },
   "columns": {
     "reference": "編號",

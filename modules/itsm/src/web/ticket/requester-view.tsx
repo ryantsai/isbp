@@ -1,6 +1,7 @@
 'use client';
 
-import { usePlatform } from '@isbp/sdk/web';
+import type { RecordPanelSlotProps } from '@isbp/contracts';
+import { Slot, usePlatform } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Markdown } from '@isbp/ui/markdown';
@@ -12,7 +13,7 @@ import { useTranslations } from 'next-intl';
 import { useMemo, useRef, useState } from 'react';
 import type { TicketDetail, TicketStatus } from '../../contracts';
 import { TicketStatusBadge, TypeIcon } from '../components/badges';
-import { useCategoryLabel } from '../lib';
+import { recordRef, useCategoryLabel } from '../lib';
 import { Composer, type ComposerState, type ComposerTab } from './composer';
 import { ConfirmPanel } from './confirm-panel';
 import { ResolutionCard, SourceChip } from './parts';
@@ -226,6 +227,7 @@ export function RequesterView({ ticket }: { ticket: TicketDetail }) {
               </dl>
             </CardContent>
           </Card>
+          <Slot<RecordPanelSlotProps> name="core.record.files" props={{ record: recordRef(ticket) }} />
         </aside>
       </div>
     </div>

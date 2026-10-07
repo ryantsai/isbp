@@ -177,6 +177,21 @@ export interface CustomFieldEntityDef {
   name: string;
 }
 
+/**
+ * A kind of record other modules can link to and attach files to (`<module>.<type>`, e.g. `itsm.ticket`).
+ * The module provides a `records[type]` resolver in `defineServerModule` that decides what each caller sees.
+ */
+export interface RecordTypeDef {
+  /** Entity name inside the module; the full type is `<module>.<type>`. */
+  type: string;
+  /** i18n key of the singular noun ("Ticket"). */
+  name: string;
+  /** lucide icon name. */
+  icon?: string;
+  /** Holding it (at any scope) lists the type in record pickers; resolvers still check every record. */
+  permission: string;
+}
+
 export interface ModuleManifest {
   id: string;
   version: string;
@@ -197,6 +212,8 @@ export interface ModuleManifest {
   workflows?: WorkflowTriggerDef[];
   notifications?: NotificationTypeDef[];
   customFields?: { entities: CustomFieldEntityDef[] };
+  /** Record types that can be linked across modules and carry attachments. */
+  records?: { types: RecordTypeDef[] };
 }
 
 const zNav: z.ZodType<NavEntry> = z.lazy(() =>
@@ -343,6 +360,18 @@ export const manifestSchema = z
         entities: z.array(z.object({ type: z.string().regex(/^[a-z][a-z0-9-]*$/), name: z.string().min(1) })),
       })
       .optional(),
+    records: z
+      .object({
+        types: z.array(
+          z.object({
+            type: z.string().regex(/^[a-z][a-z0-9-]*$/),
+            name: z.string().min(1),
+            icon: z.string().optional(),
+            permission: z.string().refine(isPermissionKey, 'invalid permission key'),
+          }),
+        ),
+      })
+      .optional(),
   })
   .superRefine((m, ctx) => {
     const own = (key: string) => key.startsWith(`${m.id}.`);
@@ -388,6 +417,16 @@ export const manifestSchema = z
           path: ['notifications', i, 'type'],
           message: `must start with "${m.id}."`,
         });
+    });
+    const types = new Set<string>();
+    m.records?.types.forEach((r, i) => {
+      if (types.has(r.type))
+        ctx.addIssue({
+          code: 'custom',
+          path: ['records', 'types', i, 'type'],
+          message: 'duplicate record type',
+        });
+      types.add(r.type);
     });
   });
 

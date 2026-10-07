@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { departments, roleAssignments, roles, users, uuidv7 } from '@isbp/db/schema';
 import { sql } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
@@ -40,8 +42,12 @@ export interface Harness {
  * Fresh platform on a throwaway database: drops every ISBP schema, migrates, and creates a minimal
  * org (admin, a department-scoped HR partner, an outsider). Refuses to touch non-test databases.
  */
-export async function createHarness(): Promise<Harness> {
-  const config = loadConfig({ ...process.env, NODE_ENV: 'test' });
+export async function createHarness(opts: { extraModules?: ServerModule[] } = {}): Promise<Harness> {
+  const config = loadConfig({
+    ...process.env,
+    NODE_ENV: 'test',
+    FILES_DIR: process.env.FILES_DIR ?? join(tmpdir(), 'isbp-test-files'),
+  });
   const dbName = new URL(config.DATABASE_URL).pathname.slice(1);
   if (!dbName.endsWith('_test'))
     throw new Error(`Refusing to reset database "${dbName}" — integration tests need a *_test database`);
@@ -61,7 +67,10 @@ export async function createHarness(): Promise<Harness> {
         )),
       ]
     : (await import('../../src/generated/modules')).installedModules;
-  const kernel = await createKernel(config, pino({ level: 'silent' }), modules);
+  const kernel = await createKernel(config, pino({ level: 'silent' }), [
+    ...modules,
+    ...(opts.extraModules ?? []),
+  ]);
   bindKernel(kernel);
   for (const m of kernel.registry.modules) {
     await kernel.db.execute(

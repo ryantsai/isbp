@@ -141,6 +141,11 @@
     "core_directory_synced": "同步目錄",
     "core_ai_tool_invoked": "使用 AI 工具",
     "core_ai_config_updated": "變更 AI 設定",
-    "core_ai_index_rebuilt": "開始重建語意索引"
+    "core_ai_index_rebuilt": "開始重建語意索引",
+    "core_record_linked": "已連結紀錄",
+    "core_record_unlinked": "已移除紀錄連結",
+    "core_file_uploaded": "已上傳附件",
+    "core_file_deleted": "已刪除附件",
+    "core_file_rejected": "已拒絕上傳（惡意程式）"
   }
 }

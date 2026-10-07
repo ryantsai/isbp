@@ -186,5 +186,24 @@ English and may change.
 | People        | `/people/lookup` — colleague search for pickers (any signed-in user, active people, minimal profile)                                                                                                                |
 | AI            | `/ai/status` (any signed-in user), `/ai/config` (get/put), `/ai/test`, `/ai/usage`, `/ai/index` (+ `/reindex`) — `core.ai.manage`                                                                                   |
 | Portal        | `/portal/entries` (modules' "What do you need?" cards); `/me/requests` also lists module records (`kind: module`) and fulfilment progress                                                                           |
-| Modules       | `/cmdb/*`, `/knowledge/*`, `/itsm/*`, `/helpdesk-ai/*` — see each module's tag in the OpenAPI reference (`/api/docs`)                                                                                               |
+| Records       | `/records/types`, `/records/search?q&types`, `/records/{type}/{id}` and `/links` (list, link, unlink): links between records of any modules, visible as the owning module decides; people only                      |
+| Files         | `/records/{type}/{id}/files` (list; `POST` multipart field `file`), `/files/{id}` (download; `?inline=1` for images; `DELETE`): attachments with size/type/malware checks                                           |
+| Modules       | `/cmdb/*`, `/knowledge/*`, `/itsm/*`, `/helpdesk-ai/*`, `/itam/*`, `/projects/*`, `/alm/*` (see each module's tag in the OpenAPI reference, `/api/docs`)                                                            |
 | Probes        | `/healthz`, `/readyz` (and `/metrics` on the internal metrics port 9464)                                                                                                                                            |
+
+## Recording deployments from CI/CD (Application Lifecycle)
+
+A pipeline reports deployments with an API client that holds the **`alm-pipeline`** role (Administration → API
+clients). Production deployments must be covered by an approved ITSM change. Name it with `changeReference`, or
+link it to the release in the UI. Otherwise the API answers `409 CHANGE_REQUIRED` with `details.reason`
+(`no_change`, `change_not_approved` or `outside_window`).
+
+```bash
+curl -X POST "$ISBP_URL/api/v1/alm/deployments" \
+  -H "Authorization: Bearer $ISBP_API_KEY" -H 'content-type: application/json' \
+  -d '{ "application": "erp", "environment": "production", "version": "12.1.0", "status": "succeeded",
+        "changeReference": "CHG-00012", "commitSha": "9f1c2ab", "pipelineUrl": "https://devops.example.com/…" }'
+```
+
+Report `"status": "in_progress"` when the deployment starts, then `PATCH /api/v1/alm/deployments/{id}` with
+the final status.

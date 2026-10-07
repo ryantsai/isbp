@@ -65,29 +65,35 @@ export default function DashboardWorkCard() {
         </CardAction>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5" aria-label={t('queues')}>
+        <ul className="grid grid-cols-[repeat(auto-fill,minmax(5.75rem,1fr))] gap-2" aria-label={t('queues')}>
           {SUMMARY.map((q) => {
             const value = counts.data?.[q.count];
             const hot = q.alert && (value ?? 0) > 0;
             const Icon = q.icon;
             return (
               <li key={q.view} className="min-w-0">
+                {/* Label on top with the full tile width, so five queues fit side by side in a half-width card. */}
                 <Link
                   href={`/itsm?view=${q.view}`}
                   className={cn(
-                    'flex h-full flex-col gap-1 rounded-lg border px-3 py-2 outline-none transition-colors hover:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                    'flex h-full flex-col justify-between gap-1 rounded-lg border px-3 py-2 outline-none transition-colors hover:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/50',
                     hot && 'border-destructive/30 bg-destructive/5',
                   )}
                 >
-                  <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-                    <Icon className={cn('size-3.5 shrink-0', hot && 'text-destructive')} aria-hidden />
-                    <span className="truncate">{tq(q.view)}</span>
+                  <span className="line-clamp-2 text-xs leading-snug text-muted-foreground">
+                    {tq(q.view)}
                   </span>
-                  {value === undefined ? (
-                    <Skeleton className="h-6 w-8" />
-                  ) : (
-                    <span className={cn('text-lg font-semibold', hot && 'text-destructive')}>{value}</span>
-                  )}
+                  <span className="flex items-center gap-1.5">
+                    <Icon
+                      className={cn('size-3.5 shrink-0 text-muted-foreground', hot && 'text-destructive')}
+                      aria-hidden
+                    />
+                    {value === undefined ? (
+                      <Skeleton className="h-6 w-8" />
+                    ) : (
+                      <span className={cn('text-lg font-semibold', hot && 'text-destructive')}>{value}</span>
+                    )}
+                  </span>
                 </Link>
               </li>
             );

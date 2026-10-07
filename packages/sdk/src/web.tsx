@@ -230,7 +230,36 @@ export function createApiClient(csrfToken: string, base = '/api/v1') {
     }
     return data as T;
   }
+  /** Multipart upload (`FormData`) with progress (0–1); errors surface as `ApiError` like `request`. */
+  function upload<T>(path: string, form: FormData, onProgress?: (fraction: number) => void): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${base}${path}`);
+      xhr.withCredentials = true;
+      xhr.setRequestHeader('accept', 'application/json');
+      xhr.setRequestHeader('x-csrf-token', csrfToken);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress?.(e.loaded / e.total);
+      };
+      xhr.onerror = () => reject(new ApiError(0, 'NETWORK_ERROR', 'The upload failed'));
+      xhr.onload = () => {
+        let data: unknown;
+        try {
+          data = xhr.responseText ? JSON.parse(xhr.responseText) : undefined;
+        } catch {
+          data = undefined;
+        }
+        if (xhr.status >= 200 && xhr.status < 300) return resolve(data as T);
+        const err = (data as ErrorBody | undefined)?.error;
+        reject(
+          new ApiError(xhr.status, err?.code ?? 'HTTP_ERROR', err?.message ?? xhr.statusText, err?.details),
+        );
+      };
+      xhr.send(form);
+    });
+  }
   return {
+    upload,
     get: <T,>(path: string, query?: Query) => request<T>('GET', path, undefined, query),
     post: <T,>(path: string, body?: unknown) => request<T>('POST', path, body ?? {}),
     put: <T,>(path: string, body?: unknown) => request<T>('PUT', path, body ?? {}),

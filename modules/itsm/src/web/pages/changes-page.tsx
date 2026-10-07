@@ -1,5 +1,7 @@
 'use client';
 
+import { parseRecordRef } from '@isbp/sdk';
+
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
@@ -102,6 +104,11 @@ export default function ChangesPage() {
     .slice(0, 7);
   const month = /^\d{4}-\d{2}$/.test(String(state.month)) ? String(state.month) : thisMonth;
   const display = state.display === 'agenda' ? 'agenda' : 'month';
+  // `?new=1&title=…&link=<type>:<id>` opens the dialog prefilled (e.g. from a release in ALM).
+  const prefill =
+    canManage && state.new === '1'
+      ? { title: String(state.title ?? '').slice(0, 200), link: parseRecordRef(String(state.link ?? '')) }
+      : null;
 
   return (
     <>
@@ -139,7 +146,16 @@ export default function ChangesPage() {
         </TabsContent>
         <TabsContent value="list">{tab === 'list' && <ChangeList />}</TabsContent>
       </Tabs>
-      {canManage && <NewChangeDialog open={creating} onOpenChange={setCreating} />}
+      {canManage && (
+        <NewChangeDialog
+          open={creating || !!prefill}
+          prefill={prefill}
+          onOpenChange={(o) => {
+            setCreating(o);
+            if (!o && prefill) set({ new: undefined, title: undefined, link: undefined });
+          }}
+        />
+      )}
     </>
   );
 }

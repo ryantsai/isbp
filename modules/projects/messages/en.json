@@ -1,0 +1,670 @@
+{
+  "meta": {
+    "name": "Projects",
+    "description": "Projects, tasks, milestones, boards, timelines and workload"
+  },
+  "nav": {
+    "group": "Projects",
+    "portfolio": "Projects",
+    "myTasks": "My tasks"
+  },
+  "permissions": {
+    "use": "See internal projects and work on tasks of the projects you belong to",
+    "create": "Create projects (you become their manager)",
+    "portfolioRead": "See every project, including private ones",
+    "admin": "Manage any project"
+  },
+  "settings": {
+    "hoursPerWeek": "Working hours per week",
+    "hoursPerWeekHelp": "Capacity of a full-time person in the workload view (allocation × hours).",
+    "proposalThresholdHours": "Proposal approval threshold (hours)",
+    "proposalThresholdHoursHelp": "Shown when a project starts: larger proposals need the owner's manager. The default approval workflow uses the same number; change both together (Administration → Workflows).",
+    "details": "Details",
+    "members": {
+      "title": "Members",
+      "description": "Managers edit the project and any task; members work on tasks; viewers read and comment. Allocation is the share of the person’s week planned for this project.",
+      "person": "Person",
+      "role": "Role",
+      "allocation": "Allocation %",
+      "add": "Add",
+      "added": "Member added",
+      "updated": "Member updated",
+      "removed": "Member removed",
+      "owner": "Project manager (owner)",
+      "roleOf": "Role of {name}",
+      "allocationOf": "Allocation of {name} (%)",
+      "remove": "Remove {name}",
+      "removeTitle": "Remove {name} from the project?",
+      "removeBody": "Their open tasks become unassigned.",
+      "removeConfirm": "Remove"
+    },
+    "milestones": {
+      "title": "Milestones",
+      "description": "In order; the timeline groups tasks by them.",
+      "name": "Milestone name",
+      "due": "Due date",
+      "add": "Add milestone",
+      "created": "Milestone added",
+      "deleted": "Milestone deleted",
+      "noDate": "No date",
+      "status": {
+        "open": "open",
+        "done": "done"
+      },
+      "progress": "{done} of {total} tasks done",
+      "complete": "Complete",
+      "reopen": "Reopen",
+      "edit": "Edit {name}",
+      "delete": "Delete {name}",
+      "moveUp": "Move {name} up",
+      "moveDown": "Move {name} down",
+      "deleteTitle": "Delete the milestone {name}?",
+      "deleteBody": "Its tasks keep going without a milestone."
+    },
+    "danger": {
+      "title": "Archive or delete",
+      "archive": "Archive project",
+      "archiveHint": "Hides it from the portfolio and makes it read-only. You can restore it later.",
+      "unarchive": "Restore project",
+      "unarchiveHint": "Brings it back to the portfolio and makes it editable again.",
+      "archiveTitle": "Archive {name}?",
+      "archiveBody": "Nobody can change it while it is archived.",
+      "archived": "Project archived",
+      "unarchived": "Project restored",
+      "delete": "Delete project",
+      "deleteHint": "Deletes the project with its milestones and members.",
+      "deleteBlocked": "Only empty projects can be deleted (administrators can delete any). Archive it instead.",
+      "deleteTitle": "Delete {name}?",
+      "deleteBody": "{count, plural, =0 {This can’t be undone.} one {Its # task is deleted too. This can’t be undone.} other {Its # tasks are deleted too. This can’t be undone.}}",
+      "deleted": "Project {key} deleted"
+    }
+  },
+  "workflows": {
+    "proposal": {
+      "name": "Project proposal",
+      "description": "Approval before a proposed project starts"
+    }
+  },
+  "entities": {
+    "project": "Project",
+    "task": "Task"
+  },
+  "projectStatus": {
+    "proposed": "Proposed",
+    "active": "Active",
+    "on_hold": "On hold",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "taskStatus": {
+    "backlog": "Backlog",
+    "todo": "To do",
+    "in_progress": "In progress",
+    "in_review": "In review",
+    "done": "Done",
+    "cancelled": "Cancelled"
+  },
+  "notifications": {
+    "task_assigned": {
+      "label": "Tasks assigned to me",
+      "title": "{reference} is assigned to you: {title}",
+      "body": "Project {project}."
+    },
+    "task_commented": {
+      "label": "Comments on my tasks",
+      "title": "{author} commented on {reference}: {title}",
+      "body": "{excerpt}"
+    },
+    "task_due_soon": {
+      "label": "My tasks due tomorrow",
+      "title": "Due tomorrow: {reference} {title}",
+      "body": "Project {project}, due {due}."
+    },
+    "project_health_changed": {
+      "label": "Health of my projects",
+      "title": "{key} is {health, select, at_risk {at risk} off_track {off track} other {on track}}: {name}",
+      "body": "{note}"
+    },
+    "member_added": {
+      "label": "Added to a project",
+      "title": "You were added to {key} {name}",
+      "body": "Your role: {role, select, manager {manager} member {member} other {viewer}}."
+    },
+    "proposal_decided": {
+      "label": "Decisions on my project proposals",
+      "title": "{key} {outcome, select, approved {was approved} other {was not approved}}: {name}",
+      "body": "{outcome, select, approved {The project is now active.} other {The project stays proposed. {comment}}}"
+    }
+  },
+  "audit": {
+    "project_created": "Proposed a project",
+    "project_updated": "Updated a project",
+    "project_archived": "Archived a project",
+    "project_unarchived": "Restored an archived project",
+    "project_submitted": "Submitted a project proposal for approval",
+    "project_status_changed": "Changed a project's status",
+    "project_proposal_rejected": "Project proposal not approved",
+    "project_proposal_cancelled": "Project proposal withdrawn",
+    "project_health_changed": "Updated a project's health",
+    "project_deleted": "Deleted a project",
+    "member_added": "Added a project member",
+    "member_updated": "Changed a project member",
+    "member_removed": "Removed a project member",
+    "milestone_created": "Added a milestone",
+    "milestone_updated": "Updated a milestone",
+    "milestone_completed": "Completed a milestone",
+    "milestone_deleted": "Deleted a milestone",
+    "milestone_reordered": "Reordered milestones",
+    "task_created": "Created a task",
+    "task_updated": "Updated a task",
+    "task_status_changed": "Moved a task to another status",
+    "task_moved": "Reordered a task on the board",
+    "task_deleted": "Deleted a task",
+    "task_dependency_added": "Added a task dependency",
+    "task_dependency_removed": "Removed a task dependency",
+    "task_commented": "Commented on a task",
+    "comment_updated": "Edited a task comment",
+    "comment_deleted": "Deleted a task comment"
+  },
+  "health": {
+    "on_track": "On track",
+    "at_risk": "At risk",
+    "off_track": "Off track"
+  },
+  "priority": {
+    "urgent": "Urgent",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
+  "projectPriority": {
+    "high": "High priority",
+    "medium": "Medium priority",
+    "low": "Low priority"
+  },
+  "taskType": {
+    "epic": "Epic",
+    "feature": "Feature",
+    "story": "User story",
+    "task": "Task",
+    "bug": "Bug"
+  },
+  "visibility": {
+    "internal": "Internal",
+    "private": "Private",
+    "internalHint": "Everyone who uses Projects can see it.",
+    "privateHint": "Only its members (and the PMO) can see it."
+  },
+  "roles": {
+    "manager": "Manager",
+    "member": "Member",
+    "viewer": "Viewer"
+  },
+  "due": {
+    "overdue": "Overdue"
+  },
+  "markdown": {
+    "write": "Write",
+    "preview": "Preview",
+    "hint": "Markdown is supported: **bold**, lists, links and tables.",
+    "nothing": "Nothing to preview yet."
+  },
+  "fields": {
+    "reference": "Reference",
+    "title": "Title",
+    "name": "Name",
+    "key": "Key",
+    "status": "Status",
+    "priority": "Priority",
+    "type": "Type",
+    "assignee": "Assignee",
+    "unassigned": "Unassigned",
+    "reporter": "Reporter",
+    "owner": "Project manager",
+    "department": "Department",
+    "milestone": "Milestone",
+    "noMilestone": "No milestone",
+    "startDate": "Start date",
+    "dueDate": "Due date",
+    "targetDate": "Target date",
+    "estimateHours": "Estimate (hours)",
+    "remainingHours": "Remaining (hours)",
+    "budgetHours": "Planned effort (hours)",
+    "labels": "Labels",
+    "labelsPlaceholder": "Add a label and press Enter",
+    "removeLabel": "Remove label {label}",
+    "description": "Description",
+    "visibility": "Visibility",
+    "updated": "Updated",
+    "activity": {
+      "title": "title",
+      "type": "type",
+      "priority": "priority",
+      "milestoneId": "milestone",
+      "parentId": "parent",
+      "reporterId": "reporter",
+      "startDate": "start date",
+      "dueDate": "due date",
+      "estimateHours": "estimate",
+      "remainingHours": "remaining work",
+      "labels": "labels",
+      "description": "description",
+      "attributes": "additional information"
+    }
+  },
+  "filters": {
+    "label": "Filters",
+    "search": "Search tasks…",
+    "assignee": "Assignee",
+    "anyone": "Anyone",
+    "me": "Me",
+    "unassigned": "Unassigned",
+    "milestone": "Milestone",
+    "allMilestones": "All milestones",
+    "allLabels": "All labels",
+    "type": "Type",
+    "allTypes": "All types",
+    "allStatuses": "All statuses",
+    "allPriorities": "All priorities",
+    "open": "Open",
+    "closed": "Done or cancelled",
+    "showCancelled": "Show cancelled",
+    "showClosed": "Show finished work"
+  },
+  "picker": {
+    "search": "Search by reference or title…",
+    "loading": "Searching…",
+    "none": "No matching tasks."
+  },
+  "customFields": {
+    "editTitle": "Edit additional information"
+  },
+  "activity": {
+    "system": "The system",
+    "someone": "someone",
+    "empty": "none",
+    "deletedTask": "a deleted task",
+    "hours": "{hours} h",
+    "created": "{actor} created the task",
+    "status": "{actor} moved it from {from} to {to}",
+    "assigned": "{actor} assigned it to {to}",
+    "unassigned": "{actor} removed {from} as assignee",
+    "dependencyAdded": "{actor} made it depend on {task}",
+    "dependencyRemoved": "{actor} removed the dependency on {task}",
+    "fieldChanged": "{actor} changed the {field} from {from} to {to}",
+    "fieldUpdated": "{actor} updated the {field}"
+  },
+  "comments": {
+    "title": "Comments and activity",
+    "add": "Add a comment",
+    "placeholder": "Write a comment…",
+    "submit": "Comment",
+    "posted": "Comment posted",
+    "readOnly": "Only project members can comment.",
+    "by": "Comment by {name}",
+    "formerUser": "Former user",
+    "edited": "(edited)",
+    "edit": "Edit comment",
+    "delete": "Delete comment",
+    "deleteTitle": "Delete this comment?",
+    "deleteBody": "The comment is removed for everyone. This can’t be undone.",
+    "deleted": "Comment deleted"
+  },
+  "task": {
+    "loading": "Loading task…",
+    "notFound": "Task not found",
+    "notFoundHint": "{reference} doesn’t exist or you can’t see its project.",
+    "loadFailed": "The task could not be loaded",
+    "toMyTasks": "Go to My tasks",
+    "backToProject": "Back to {key}",
+    "titleLabel": "Task title",
+    "editTitle": "Edit title",
+    "changeStatus": "Status: {status}. Change status",
+    "moveTo": "Move to",
+    "blockedBy": "Blocked by {refs}",
+    "blockedExplain": "Can’t start yet: {refs} must be done first.",
+    "properties": "Details",
+    "description": "Description",
+    "noDescription": "No description yet.",
+    "relations": "Dependencies and hierarchy",
+    "blockedByTitle": "Blocked by",
+    "blockingTitle": "Blocking",
+    "addDependency": "Add dependency",
+    "dependencyAdded": "Dependency added",
+    "removeDependency": "Remove the dependency on {reference}",
+    "noDependencies": "No dependencies.",
+    "parent": "Parent",
+    "setParent": "Set parent",
+    "changeParent": "Change parent",
+    "clearParent": "Remove parent",
+    "noParent": "No parent.",
+    "children": "{count, plural, one {# child} other {# children}}",
+    "more": "More actions",
+    "openPage": "Open as page",
+    "copyLink": "Copy link",
+    "delete": "Delete task",
+    "deleteTitle": "Delete {reference}?",
+    "deleteBody": "Comments, activity, links and attachments are deleted too. Subtasks keep going without a parent. This can’t be undone.",
+    "deleted": "{reference} deleted",
+    "aside": "Task details",
+    "project": "Project",
+    "openOnBoard": "Open on the board"
+  },
+  "board": {
+    "region": "Board columns",
+    "count": "{count, plural, one {# task} other {# tasks}}",
+    "emptyColumn": "Nothing here",
+    "truncated": "Showing {shown} of {total}. Use the list for all of them.",
+    "addTask": "Add task",
+    "quickAddLabel": "New task title",
+    "quickAddPlaceholder": "What needs doing?",
+    "add": "Add",
+    "done": "Done",
+    "created": "Task added",
+    "dragHandle": "Move {reference}",
+    "moveMenu": "Move {reference} to…",
+    "moveTo": "Move to",
+    "open": "Open",
+    "labels": "Labels",
+    "blocked": "Blocked",
+    "comments": "{count, plural, one {# comment} other {# comments}}",
+    "links": "{count, plural, one {# linked record} other {# linked records}}",
+    "assignedTo": "Assigned to {name}",
+    "unassigned": "Unassigned",
+    "announce": {
+      "instructions": "To pick up a task, press Space or Enter. Use the arrow keys to move it within and between columns. Press Space or Enter again to drop it, or Escape to cancel.",
+      "start": "Picked up {task}, {where}.",
+      "over": "{task} is now {where}.",
+      "outside": "{task} is not over a column.",
+      "dropped": "Dropped {task}, {where}.",
+      "cancelled": "Moving {task} was cancelled.",
+      "position": "position {position} of {total} in {column}",
+      "column": "in the {column} column"
+    }
+  },
+  "list": {
+    "label": "Tasks of {project}",
+    "empty": "No tasks yet.",
+    "emptyFiltered": "No tasks match these filters."
+  },
+  "timeline": {
+    "viewLabel": "View",
+    "chart": "Chart",
+    "viewAsTable": "View as table",
+    "zoomLabel": "Zoom",
+    "zoom": {
+      "week": "Week",
+      "month": "Month",
+      "quarter": "Quarter"
+    },
+    "chartLabel": "Timeline chart (scrolls sideways)",
+    "rowsLabel": "Tasks by milestone",
+    "task": "Task",
+    "noMilestone": "No milestone",
+    "milestoneLabel": "Milestone {name}, due {date}",
+    "barLabel": "{reference} {title}, {start} to {end}, {status}",
+    "startsBeforeDependency": "Starts before {refs} ends.",
+    "empty": "Nothing to plan yet",
+    "emptyHint": "Give tasks a start or due date to see them here.",
+    "unscheduled": "{count, plural, one {# unscheduled task} other {# unscheduled tasks}}",
+    "unscheduledHint": "No start or due date yet. Open one to plan it.",
+    "tableLabel": "Tasks with dates and dependencies",
+    "milestonesLabel": "Milestones",
+    "dependsOn": "Depends on",
+    "progress": "Progress",
+    "milestoneProgress": "{done} of {total} done",
+    "milestoneStatus": {
+      "open": "Open",
+      "done": "Done"
+    },
+    "overdue": "overdue",
+    "help": {
+      "button": "Keyboard",
+      "title": "Using the timeline",
+      "tab": "moves between task bars.",
+      "enter": "opens the task.",
+      "shift": "moves the task one day earlier or later.",
+      "resize": "moves the due date one day.",
+      "pointer": "With a mouse: drag a bar to move it, drag its edges to change the start or due date.",
+      "summary": "Press Enter to open a task. Alt plus left or right arrow moves it by a day; add Shift to change only the due date."
+    }
+  },
+  "workload": {
+    "previous": "Previous weeks",
+    "next": "Next weeks",
+    "thisWeek": "This week",
+    "range": "{from} – {to}",
+    "capacityHint": "Capacity: allocation × {hours} h a week",
+    "overSummary": "{count, plural, one {# person is over-allocated} other {# people are over-allocated}} in these weeks.",
+    "empty": "Nobody to plan",
+    "emptyHint": "Add members with an allocation, and give tasks hours and due dates.",
+    "tableLabel": "Workload by person and week (scrolls sideways)",
+    "caption": "Planned hours against capacity per person and week",
+    "person": "Person",
+    "weekOf": "Week of {date}",
+    "allocation": "{pct}% allocated",
+    "unassigned": "Unassigned",
+    "hoursOf": "{planned} / {capacity} h",
+    "hours": "{hours} h",
+    "overBy": "Over by {hours} h",
+    "cellLabel": "{person}, week of {week}: {planned} of {capacity} hours planned. Show tasks",
+    "unassignedCellLabel": "Unassigned work, week of {week}: {planned} hours. Show tasks",
+    "tasksTitle": "{person} · week of {week}"
+  },
+  "approval": {
+    "title": "Proposal approval",
+    "needsManager": "Planned effort is over {threshold} h, so the owner’s manager approves the start.",
+    "automatic": "Proposals up to {threshold} h start as soon as they’re submitted.",
+    "notStarted": "Not submitted",
+    "startHint": "Use “Start project” to submit the proposal.",
+    "status": {
+      "pending": "Waiting for approval",
+      "approved": "Approved",
+      "rejected": "Not approved",
+      "cancelled": "Withdrawn"
+    },
+    "rejected": "The proposal was not approved. Adjust it and start again.",
+    "rejectedWith": "Not approved: “{comment}”",
+    "waitingFor": "Waiting for",
+    "detailsHidden": "The approval path is visible to the requester, the owner and the approvers.",
+    "decide": "Decide in your approvals inbox",
+    "facts": {
+      "budgetHours": "Planned effort (hours)",
+      "priority": "Priority",
+      "memberCount": "Members"
+    }
+  },
+  "healthDialog": {
+    "title": "Update health",
+    "description": "Say how the project is doing. The note shows on the project page and in the portfolio.",
+    "health": "Health",
+    "hint": {
+      "on_track": "Going to plan",
+      "at_risk": "Could slip without action",
+      "off_track": "Will miss its targets"
+    },
+    "note": "Note",
+    "notePlaceholder": "What changed, and what happens next?",
+    "notifies": "Members are notified.",
+    "saved": "Health updated"
+  },
+  "statusDialog": {
+    "action": {
+      "active": "Resume",
+      "on_hold": "Put on hold",
+      "completed": "Complete",
+      "cancelled": "Cancel project"
+    },
+    "title": {
+      "active": "Resume the project?",
+      "on_hold": "Put the project on hold?",
+      "completed": "Complete the project?",
+      "cancelled": "Cancel the project?"
+    },
+    "description": {
+      "active": "Work continues where it stopped.",
+      "on_hold": "Nothing is deleted; you can resume it at any time.",
+      "completed": "Completed projects stay in the portfolio as a record.",
+      "cancelled": "A pending proposal approval is withdrawn. This can’t be undone."
+    },
+    "confirm": {
+      "active": "Resume",
+      "on_hold": "Put on hold",
+      "completed": "Complete",
+      "cancelled": "Cancel project"
+    },
+    "openTasks": "{count, plural, one {# task is still open.} other {# tasks are still open.}}",
+    "force": "Complete anyway",
+    "comment": "Comment (optional)",
+    "commentRequired": "Why does it complete with open tasks?",
+    "saved": "Project status changed"
+  },
+  "newTask": {
+    "title": "New task",
+    "titlePlaceholder": "e.g. Replace access switch on 9F",
+    "datesInvalid": "The due date is before the start date.",
+    "created": "{reference} created"
+  },
+  "form": {
+    "createTitle": "New project",
+    "createHint": "New projects start as proposals. Start them when the plan is ready.",
+    "namePlaceholder": "e.g. Network refresh 2026",
+    "nameRequired": "Enter a name.",
+    "keyHint": "2–10 letters or digits; task references start with it (NET-12).",
+    "keyLocked": "The key can’t change once the project has tasks.",
+    "keyInvalid": "Use 2–10 letters or digits, starting with a letter.",
+    "keyTaken": "Another project already uses this key.",
+    "ownerHint": "The project manager; also a manager of the project.",
+    "ownerRequired": "Choose the project manager.",
+    "noDepartment": "No department",
+    "datesInvalid": "The target date is before the start date.",
+    "budgetHint": "Used for the proposal approval.",
+    "budgetInvalid": "Enter whole hours.",
+    "submit": "Create project",
+    "created": "Project {key} created"
+  },
+  "portfolio": {
+    "title": "Projects",
+    "description": "IT projects: status, health, progress and what’s next.",
+    "new": "New project",
+    "filtersLabel": "Show",
+    "filters": {
+      "all": "All",
+      "mine": "Mine",
+      "active": "Active",
+      "proposed": "Proposed",
+      "completed": "Completed"
+    },
+    "search": "Search projects…",
+    "archived": "Archived",
+    "layout": "Layout",
+    "cards": "Cards",
+    "table": "Table",
+    "workload": "Team workload",
+    "columns": {
+      "key": "Key",
+      "name": "Project",
+      "status": "Status",
+      "health": "Health",
+      "progress": "Progress",
+      "target": "Target",
+      "owner": "Project manager"
+    },
+    "tasksDone": "{done} of {total} tasks done",
+    "progressLabel": "Progress of {name}: {done} of {total} tasks done",
+    "overdueTasks": "{count, plural, one {# overdue task} other {# overdue tasks}}",
+    "noTarget": "No target date",
+    "targetIn": "Due {when}",
+    "targetPassed": "Target passed {when}",
+    "nextMilestone": "Next: {name} · {date}",
+    "ownedBy": "Project manager: {name}",
+    "empty": "No projects yet",
+    "emptyHint": "Propose a project to plan work with tasks, milestones and a timeline.",
+    "emptyFiltered": "No projects match",
+    "showing": "{from}–{to} of {total}",
+    "pagination": "Pages",
+    "previous": "Previous page",
+    "next": "Next page",
+    "liveCount": "{count, plural, one {# project} other {# projects}}"
+  },
+  "project": {
+    "back": "Projects",
+    "views": "Project views",
+    "tabs": {
+      "overview": "Overview",
+      "board": "Board",
+      "list": "List",
+      "timeline": "Timeline",
+      "workload": "Workload",
+      "settings": "Settings"
+    },
+    "owner": "Project manager",
+    "target": "Target {date}",
+    "archived": "Archived (read-only)",
+    "start": "Start project",
+    "startTitle": "Start {key}?",
+    "startNeedsApproval": "The planned effort ({hours} h) is over {threshold} h, so the owner’s manager has to approve it first. You’ll be notified of the decision.",
+    "startAutomatic": "Projects up to {threshold} h of planned effort start right away.",
+    "started": "The project is active",
+    "submitted": "Proposal submitted for approval",
+    "newTask": "New task",
+    "updateHealth": "Update health",
+    "changeStatus": "Status",
+    "notFound": "Project not found",
+    "notFoundHint": "{key} doesn’t exist or you can’t see it.",
+    "loadFailed": "The project could not be loaded"
+  },
+  "overview": {
+    "kpi": {
+      "open": "Open tasks",
+      "overdue": "Overdue",
+      "doneThisWeek": "Done this week",
+      "blocked": "Blocked"
+    },
+    "description": "About",
+    "noDescription": "No description yet.",
+    "byStatus": "Tasks by status",
+    "doneOf": "{done} of {total} done",
+    "health": "Health",
+    "updated": "Updated",
+    "updateHealth": "Update",
+    "noHealthNote": "No note yet.",
+    "history": "History",
+    "system": "Approval workflow",
+    "healthChange": "Health changed from {from} to {to}",
+    "statusChange": "Status changed from {from} to {to}",
+    "milestones": "Milestones",
+    "noMilestones": "No milestones yet.",
+    "milestoneDone": "Done",
+    "milestoneProgress": "{name}: {done} of {total} tasks done",
+    "manage": "Manage",
+    "members": "{count, plural, one {# member} other {# members}}",
+    "owner": "project manager",
+    "allocation": "{pct}%"
+  },
+  "myTasks": {
+    "title": "My tasks",
+    "description": "Open tasks assigned to you across projects.",
+    "filterProject": "Project",
+    "allProjects": "All projects",
+    "changeStatus": "Status of {reference}",
+    "groups": {
+      "overdue": "Overdue",
+      "today": "Today",
+      "thisWeek": "This week",
+      "later": "Later",
+      "noDate": "No date"
+    },
+    "empty": "You’re all caught up",
+    "emptyHint": "No open tasks are assigned to you."
+  },
+  "dashboard": {
+    "title": "My tasks",
+    "description": "Project tasks assigned to you",
+    "summary": "{overdue, plural, =0 {Nothing overdue} other {# overdue}} · {week, plural, =0 {nothing else due this week} other {# due this week}}",
+    "open": "My tasks",
+    "nothing": "No open tasks are assigned to you.",
+    "nothingDue": "Nothing is due this week.",
+    "more": "{count, plural, other {# more due this week}}"
+  }
+}

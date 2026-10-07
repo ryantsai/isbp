@@ -111,6 +111,12 @@ export const ErrorCodes = {
   RELATIONSHIP_INVALID: 'RELATIONSHIP_INVALID',
   /** The planned window overlaps a blackout or is in the past (`details`). */
   SCHEDULE_CONFLICT: 'SCHEDULE_CONFLICT',
+  /** The upload was refused: blocked file type, empty file or malware found (`details.reason`). */
+  FILE_REJECTED: 'FILE_REJECTED',
+  /** The upload is larger than the limit (`details.maxBytes`). */
+  FILE_TOO_LARGE: 'FILE_TOO_LARGE',
+  /** A production deployment needs an approved change in its window (`details.reason`). */
+  CHANGE_REQUIRED: 'CHANGE_REQUIRED',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes] | (string & {});
 

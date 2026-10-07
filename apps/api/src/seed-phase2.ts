@@ -45,7 +45,7 @@ const CI_FIELDS: FieldDef[] = [
   },
 ];
 
-type Grant = { role: string; groups?: string[]; users?: string[] };
+export type Grant = { role: string; groups?: string[]; users?: string[] };
 
 const GRANTS: Grant[] = [
   { role: 'cmdb-manager', groups: ['it-admins'] },
@@ -68,29 +68,31 @@ const GRANTS: Grant[] = [
   { role: 'helpdesk-ai-admin', groups: ['it-admins'] },
 ];
 
-export async function seedPhase2(kernel: Kernel) {
+/** Grants demo roles to groups and users (idempotent; roles of uninstalled modules are skipped). */
+export async function grantDemoRoles(kernel: Kernel, grants: Grant[], reason: string): Promise<number> {
   const db = kernel.db;
-  const keys = GRANTS.map((g) => g.role);
+  const keys = grants.map((g) => g.role);
   const roleRows = await db
     .select({ id: roles.id, key: roles.key })
     .from(roles)
     .where(inArray(roles.key, keys));
   const roleId = new Map(roleRows.map((r) => [r.key, r.id]));
-  const groupKeys = [...new Set(GRANTS.flatMap((g) => g.groups ?? []))];
-  const groupRows = await db
-    .select({ id: groups.id, key: groups.key })
-    .from(groups)
-    .where(inArray(groups.key, groupKeys));
+  const groupKeys = [...new Set(grants.flatMap((g) => g.groups ?? []))];
+  const groupRows = groupKeys.length
+    ? await db.select({ id: groups.id, key: groups.key }).from(groups).where(inArray(groups.key, groupKeys))
+    : [];
   const groupId = new Map(groupRows.map((g) => [g.key, g.id]));
-  const usernames = [...new Set(GRANTS.flatMap((g) => g.users ?? []))];
-  const userRows = await db
-    .select({ id: users.id, username: users.username })
-    .from(users)
-    .where(inArray(users.username, usernames));
+  const usernames = [...new Set(grants.flatMap((g) => g.users ?? []))];
+  const userRows = usernames.length
+    ? await db
+        .select({ id: users.id, username: users.username })
+        .from(users)
+        .where(inArray(users.username, usernames))
+    : [];
   const userId = new Map(userRows.map((u) => [u.username, u.id]));
 
   let granted = 0;
-  for (const g of GRANTS) {
+  for (const g of grants) {
     const role = roleId.get(g.role);
     if (!role) continue;
     const principals = [
@@ -113,13 +115,19 @@ export async function seedPhase2(kernel: Kernel) {
         roleId: role,
         groupId: p.groupId,
         userId: p.userId,
-        reason: 'Phase 2 demo access',
+        reason,
         source: 'system',
       });
       granted++;
     }
   }
   await kernel.rbac.bump();
+  return granted;
+}
+
+export async function seedPhase2(kernel: Kernel) {
+  const db = kernel.db;
+  const granted = await grantDemoRoles(kernel, GRANTS, 'Phase 2 demo access');
 
   // CMDB custom fields (only when the module is installed and none exist yet).
   const admin = await db.select().from(users).where(eq(users.username, 'admin'));

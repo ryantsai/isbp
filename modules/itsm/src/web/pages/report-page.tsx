@@ -1,5 +1,6 @@
 'use client';
 
+import { parseRecordRef } from '@isbp/sdk';
 import { useCan, usePlatform } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
@@ -19,10 +20,11 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useId, useState } from 'react';
 import type { CreateTicketInput, TicketDetail } from '../../contracts';
+import { LinkedRecordChip } from '../components/linked-record-chip';
 import { ServicePicker } from '../components/pickers';
 import { INVALIDATE, ticketHref } from '../lib';
 import type { ArticleHit, CmdbService } from '../types';
@@ -105,6 +107,11 @@ export default function ReportPage() {
   const [urgency, setUrgency] = useState<1 | 2 | 3>(2);
   const [service, setService] = useState<CmdbService | null>(null);
   const [errors, setErrors] = useState<{ title?: string }>({});
+  // `?link=itam.asset:<id>`: "Report a problem" from another module's page (e.g. My devices).
+  const params = useSearchParams();
+  const linkParam = params.get('link');
+  const [dropLink, setDropLink] = useState(false);
+  const link = !dropLink && linkParam ? parseRecordRef(linkParam) : null;
   const knowledge = useCan('knowledge.articles.read') && enabledModules.includes('knowledge');
   const services = useCan('cmdb.services.read') && enabledModules.includes('cmdb');
   const articles = useDeflection(`${title} ${description}`, knowledge);
@@ -133,6 +140,7 @@ export default function ReportPage() {
       description: description.trim(),
       urgency,
       ciIds: service ? [service.id] : [],
+      links: link ? [{ type: link.type, id: link.id }] : [],
     });
   };
 
@@ -154,6 +162,7 @@ export default function ReportPage() {
           onSubmit={onSubmit}
           className="grid min-w-0 gap-6 rounded-xl border bg-card p-5 shadow-xs sm:p-6"
         >
+          {link && <LinkedRecordChip record={link} onRemove={() => setDropLink(true)} />}
           <div className="grid gap-2">
             <Label htmlFor={`${id}-title`} className="text-base">
               {t('whatsWrong')}

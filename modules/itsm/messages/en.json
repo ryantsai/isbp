@@ -16,7 +16,8 @@
     "reportDescription": "Something isn't working? Tell the service desk and follow the fix."
   },
   "entities": {
-    "ticket": "Ticket"
+    "ticket": "Ticket",
+    "change": "Change"
   },
   "permissions": {
     "ticketsCreate": "Report issues and follow your own tickets",
@@ -276,7 +277,9 @@
       "loading": "Searching…",
       "noResults": "No services found",
       "clear": "Clear the service"
-    }
+    },
+    "linkedTo": "Linked to",
+    "unlink": "Don't link this record"
   },
   "columns": {
     "reference": "Number",

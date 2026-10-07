@@ -64,6 +64,14 @@ Modular monolith: Fastify API + worker (`apps/api`), Next.js 16 web (`apps/web`)
   records under "My requests". `ctx.forms.setFulfilment()` shows a module's progress on a Phase 1 form
   request.
 
+- Records (Phase 3): linkable types go in `manifest.records.types`, each with a resolver in
+  `defineServerModule({ records })`. The resolver returns only what the caller may read, plus `editable`.
+  Record pages host `<Slot name="core.record.links" props={{ record }} />` and `core.record.files`. Deleting a
+  record calls `ctx.records.forget(ref, { tx })`. To create a record in another module already linked, navigate to
+  its form with `?link=<type>:<id>` (ITSM supports it). Never call the other module's API from the UI.
+- Attachments go through the core panel and `ctx.files` (policy, sniffing, AV, audit). Never accept uploads in a
+  module route. Store secrets (licence keys, credentials) with `ctx.secrets.seal/open`.
+
 ## Gotchas
 
 - pnpm 12: install scripts must be listed under `allowBuilds` in `pnpm-workspace.yaml`.
@@ -83,3 +91,8 @@ Modular monolith: Fastify API + worker (`apps/api`), Next.js 16 web (`apps/web`)
   has no pgvector). The mode is chosen at migration time. The column is not in the Drizzle schema, so use raw SQL.
 - Integration tests reset every module schema in their database. Parallel runs need their own
   `DATABASE_URL` (`*_test`) and `REDIS_URL` db index.
+- `assets` (and other static paths) are reserved module ids: Asset Management is `itam`.
+- The web proxy buffers request bodies (`experimental.proxyClientMaxBodySize` in `next.config.ts`, 52 MB) and
+  truncates beyond it. Uploads stream through `/tmp` in the API, so the Helm `api.tmpSizeLimit` must fit
+  concurrent uploads.
+- `core.record_links` ends are ordered by byte order (`collate "C"`); always go through `ctx.records`.
