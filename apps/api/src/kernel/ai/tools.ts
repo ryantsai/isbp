@@ -60,6 +60,7 @@ export class ToolRegistry {
           moduleId: m.manifest.id,
           permission: t.permission,
           destructive: t.destructive ?? false,
+          readOnly: t.readOnly ?? false,
         })),
     );
   }
@@ -72,7 +73,7 @@ export class ToolRegistry {
     callerModuleId: string,
     name: string,
     input: unknown,
-    opts: { auth: AuthContext; confirmed?: boolean },
+    opts: { auth: AuthContext; confirmed?: boolean; via?: string },
   ): Promise<T> {
     const found = this.find(name);
     if (!found || !this.registry.isEnabled(found.module.manifest.id))
@@ -107,6 +108,7 @@ export class ToolRegistry {
           outcome,
           metadata: {
             caller: callerModuleId,
+            via: opts.via ?? null,
             destructive: def.destructive ?? false,
             confirmed: !!opts.confirmed,
             error,

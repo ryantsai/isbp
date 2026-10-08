@@ -52,7 +52,7 @@ await mocks.listen({ port: mocksPort, host: '127.0.0.1' });
 console.warn(`
   ✓ PostgreSQL  postgres://isbp:isbp@localhost:${pgPort}/isbp   (tests: /isbp_test)
   ✓ Redis       redis://${redisHost}:${await redis.getPort()}
-  ✓ Mocks       http://localhost:${mocksPort}   (ServiceDesk Plus /sdp, Azure DevOps Server /ado)
+  ✓ Mocks       http://localhost:${mocksPort}   (ServiceDesk Plus /sdp, Azure DevOps Server /ado, scripted chat model /llm/v1)
 
   Ctrl+C to stop. Data persists in .dev-data/ (delete it to start fresh).
 `);

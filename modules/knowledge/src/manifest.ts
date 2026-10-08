@@ -153,6 +153,7 @@ export const manifest = defineManifest({
           'Search published knowledge-base articles (hybrid semantic + keyword, any language). Returns the best matches with a relevant snippet; only articles the caller may read.',
         input: aiSearchArticlesInput,
         permission: 'knowledge.articles.read',
+        readOnly: true,
       },
       {
         name: 'knowledge.get_article',
@@ -160,6 +161,7 @@ export const manifest = defineManifest({
           'Get one knowledge-base article (Markdown body) by id or reference such as KB-00042. Only articles the caller may read.',
         input: aiGetArticleInput,
         permission: 'knowledge.articles.read',
+        readOnly: true,
       },
       {
         name: 'knowledge.create_draft',

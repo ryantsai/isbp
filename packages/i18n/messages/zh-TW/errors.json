@@ -71,5 +71,6 @@
   "WEBHOOK_INVALID": "Webhook 密鑰遺失或不正確。",
   "SYNC_RUNNING": "此設定檔的同步正在執行中。",
   "CONFLICT_RESOLVED": "已有人解決了此衝突。",
-  "INSECURE_HTTP": "此連線使用未加密的 HTTP。請改用 HTTPS，或為此連線開啟「允許不安全的 HTTP」。"
+  "INSECURE_HTTP": "此連線使用未加密的 HTTP。請改用 HTTPS，或為此連線開啟「允許不安全的 HTTP」。",
+  "CHANGE_SET_STALE": "變更集準備完成後，有人修改了此設定。請重新整理變更集並再次檢閱後重試。"
 }

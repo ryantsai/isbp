@@ -49,7 +49,9 @@
     "idpManage": "設定登入提供者及目錄同步",
     "workflowsRead": "檢視工作流程與進行中的簽核",
     "workflowsManage": "設計、發佈與管理工作流程",
+    "formsRead": "檢視申請表單",
     "formsManage": "建立並發佈表單",
+    "customFieldsRead": "檢視自訂欄位",
     "customFieldsManage": "為人員、群組與部門新增自訂欄位",
     "notificationsManage": "設定電子郵件、Teams、Slack 與 Webhook 通知",
     "accessRequestsRead": "檢視他人的權限申請",
@@ -59,7 +61,8 @@
     "roleQueryRead": "透過角色查詢 API 查詢角色與權限",
     "aiManage": "設定 AI 閘道：模型、隱私與預算",
     "databasesRead": "檢視資料庫連線",
-    "databasesManage": "管理資料庫連線及其認證"
+    "databasesManage": "管理資料庫連線及其認證",
+    "mcpUse": "允許 API 用戶端以外部 AI 代理程式的身分連線到平台的 MCP 伺服器"
   },
   "settings": {
     "productName": "產品名稱",
@@ -129,6 +132,10 @@
     "database-admin": {
       "name": "資料庫連線管理員",
       "description": "登錄外部資料庫、認證與用途"
+    },
+    "configuration-viewer": {
+      "name": "組態檢視者",
+      "description": "檢視工作流程、表單、自訂欄位、角色與模組設定，並提出變更建議"
     }
   },
   "entities": {
@@ -215,6 +222,62 @@
     "channel_test": {
       "title": "IS Big Platform 測試通知",
       "body": "若您看得到這則訊息，代表此管道運作正常。"
+    }
+  },
+  "customizations": {
+    "workflow": "簽核工作流程",
+    "form": "申請表單",
+    "customField": "自訂欄位",
+    "role": "角色",
+    "notificationChannel": "通知通道",
+    "moduleSettings": "模組設定",
+    "approvalChain": {
+      "label": "簽核鏈",
+      "description": "為需要簽核的事項設定一或兩個簽核步驟；第二個步驟可設定為僅在金額超過上限時才需要。",
+      "trigger": "需要簽核的事項",
+      "name": "工作流程名稱",
+      "firstApprover": "第一位簽核者",
+      "approverManager": "申請人的主管",
+      "approverDepartmentHead": "申請人所屬部門的主管",
+      "approverGroup": "群組成員",
+      "approverRole": "具有特定角色的人員",
+      "firstGroup": "群組",
+      "firstRole": "角色",
+      "secondStep": "新增由群組進行的第二次簽核",
+      "secondGroup": "第二次簽核的群組",
+      "onlyAbove": "僅在金額超過上限時",
+      "conditionFact": "要比較的金額",
+      "conditionFactHelp": "申請中的值，例如鍵值為 amount 的表單問題請填 data.amount。",
+      "conditionAmount": "上限",
+      "isDefault": "用於此類的所有申請",
+      "isDefaultHelp": "設為預設工作流程。表單會自行選擇工作流程，因此表單簽核請勿開啟此選項。",
+      "stepManager": "主管簽核",
+      "stepDepartmentHead": "部門主管簽核",
+      "stepGroup": "群組簽核",
+      "stepRole": "角色簽核",
+      "stepSecond": "第二次簽核"
+    },
+    "requestForm": {
+      "label": "申請表單",
+      "description": "申請入口中最多包含三個問題的表單。",
+      "name": "表單名稱",
+      "category": "類別",
+      "workflow": "簽核工作流程",
+      "question": "問題",
+      "type": "答案類型",
+      "options": "選項",
+      "optionsHelp": "每行一個選項。",
+      "required": "必填"
+    },
+    "field": {
+      "label": "自訂欄位",
+      "description": "人員、群組、部門或模組記錄上的欄位。",
+      "entityType": "新增至",
+      "fieldLabel": "標籤",
+      "type": "類型",
+      "required": "必填",
+      "options": "選項",
+      "optionsHelp": "每行一個選項。"
     }
   }
 }

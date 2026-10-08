@@ -367,6 +367,8 @@ export class NotificationAdminService {
         { tx },
       );
     });
+    // Cleared inside the transaction; a read racing the commit may have cached the old values.
+    kernel.settings.invalidate('core');
     return this.emailSettings();
   }
 

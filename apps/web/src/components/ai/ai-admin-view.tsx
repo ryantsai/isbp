@@ -5,21 +5,29 @@ import { useCan } from '@isbp/sdk/web';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { ChartNoAxesColumnIcon, CpuIcon, DatabaseIcon, LockIcon, ShieldCheckIcon } from 'lucide-react';
+import {
+  BotIcon,
+  ChartNoAxesColumnIcon,
+  CpuIcon,
+  DatabaseIcon,
+  LockIcon,
+  ShieldCheckIcon,
+} from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useApiQuery } from '@/lib/api';
 import { CONFIG_PATH, STATUS_PATH } from './ai-meta';
 import { IndexPanel } from './index-panel';
+import { McpPanel } from './mcp-panel';
 import { ModelsPanel } from './models-panel';
 import { PrivacyPanel } from './privacy-panel';
 import { StatusHero } from './status-hero';
 import { UsagePanel } from './usage-panel';
 
-const TABS = ['models', 'privacy', 'usage', 'index'] as const;
+const TABS = ['models', 'privacy', 'usage', 'index', 'mcp'] as const;
 type Tab = (typeof TABS)[number];
 
-/** Administration → AI: providers, privacy and budget, usage and the semantic index. */
+/** Administration → AI: providers, privacy and budget, usage, the semantic index and outside agents (MCP). */
 export function AiAdminView() {
   const t = useTranslations('ai');
   const ts = useTranslations('shell');
@@ -56,6 +64,9 @@ export function AiAdminView() {
           <TabsTrigger value="index">
             <DatabaseIcon aria-hidden /> {t('tabs.index')}
           </TabsTrigger>
+          <TabsTrigger value="mcp">
+            <BotIcon aria-hidden /> {t('tabs.mcp')}
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="models">
           <ModelsPanel />
@@ -68,6 +79,9 @@ export function AiAdminView() {
         </TabsContent>
         <TabsContent value="index">
           <IndexPanel />
+        </TabsContent>
+        <TabsContent value="mcp">
+          <McpPanel />
         </TabsContent>
       </Tabs>
     </>

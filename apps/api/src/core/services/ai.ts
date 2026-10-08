@@ -101,6 +101,8 @@ export class AiAdminService {
         { tx },
       );
     });
+    // The update cleared the cache inside the transaction; a read racing the commit may have cached the old values.
+    kernel.settings.invalidate('core');
     const after = readAiConfig(await kernel.settings.values(this.core));
     // A new embedding model makes every stored vector incomparable: re-embed in the background.
     if (after.embeddings.model !== before.embeddings.model) await this.reindex(auth, false);

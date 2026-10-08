@@ -98,6 +98,10 @@ The audit log (`core.audit_logs`) is append-only and hash-chained. Postgres trig
   `modules/<id>/messages/<locale>.json`, under the namespace `<id>`. All of them load for every page.
 - **Slots:** `<Slot name props />` renders the contributions of enabled modules the viewer may see
   (`useSlot(name)` lists them).
+- **The assistant** (module `assistant`) contributes a button and side panel to the shell header slot
+  `core.shell.header`. It knows the page through `usePageContext()`; record pages report their record through
+  `core.record.links`. Its change sets are applied by people; outside agents reach the same tools over MCP
+  (`POST /api/v1/mcp`, API clients holding `core.mcp.use`).
 
 ## Kernel services (what `ModuleContext` gives you)
 
@@ -113,6 +117,7 @@ The audit log (`core.audit_logs`) is append-only and hash-chained. Postgres trig
 | `databases`, `taskTypes`      | 4     | External databases; work Scheduled Jobs can run                           |
 | `http`, `cache`, `sandbox`    | 4     | Outbound HTTP (SSRF-guarded); Redis cache/rate limits; script containers  |
 | `sync`, `connectors`          | 5     | Sync adapters of data modules; connectors to outside systems (the hub)    |
+| `customizations`              | 6     | Configurable surfaces (kinds) the AI agent builds change sets for         |
 
 Signatures and semantics are in [api-reference.md](api-reference.md).
 

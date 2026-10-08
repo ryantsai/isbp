@@ -375,3 +375,60 @@ secrets, objects }]` with Zod schemas (URLs may be `http://` or `https://`; the 
 
 _See:_ `modules/sdp` (technician API key, form-encoded `input_data`), `modules/azdo` (PAT, WIQL, JSON Patch with
 `test /rev`, hierarchy).
+
+## 23. Let the AI agent customise your configuration (a customisation kind)
+
+1. Declare the kind next to your permissions:
+
+```ts
+customizations: [
+  {
+    kind: 'category',
+    label: 'things.kinds.category', // i18n key, three locales
+    description: 'Categories things are filed under, with a default owner group', // English, for models
+    icon: 'folder-tree',
+    readPermission: 'things.config.read', // to see it and propose changes
+    applyPermission: 'things.config.manage', // to apply them
+    operations: ['create', 'update', 'archive'], // create needs archive or delete
+  },
+],
+```
+
+2. Implement it with your own service, constructed with the `ctx` you receive (it is bound to the change set's
+   transaction while applying):
+
+```ts
+// server/customizations.ts
+const value = upsertCategorySchema.omit({ active: true }); // flags like `active` become `archived`
+export const customizations = {
+  category: {
+    schema: value,
+    guide: async (ctx) => ({
+      instructions: 'Keys are lowercase slugs. Names need en, zh-TW and ja-JP.',
+      reference: { groups: await groupsFor(ctx) }, // live ids and keys, never guesses
+      examples: [{ description: 'Printers', value: { key: 'printers', name: { en: 'Printers', … } } }],
+    }),
+    list: (opts, ctx) => new ConfigService(ctx).categorySummaries(opts),
+    get: async (id, ctx) => toObject(await new ConfigService(ctx).category(id)), // { id, label, archived, value }
+    check: async ({ op, id, value }, ctx) => (await keyTaken(ctx, value?.key, id)) ? [{ path: 'key', message: 'Taken', code: 'duplicate' }] : [],
+    apply: async ({ op, id, value }, ctx, auth) => {
+      const s = new ConfigService(ctx);
+      if (op === 'create') return { id: (await s.createCategory({ ...value!, active: true })).id };
+      if (op === 'update') await s.updateCategory(id!, value!);
+      else await s.updateCategory(id!, { active: op === 'restore' });
+      return { id: id! };
+    },
+  } satisfies CustomizationHandler<z.infer<typeof value>>,
+};
+// server/index.ts
+defineServerModule(manifest, { …, customizations });
+```
+
+3. Optional: a guided template for builtin mode (`templates: [{ id, label, description, fields, build }]`), and a
+   preview on the change set page: web slot `assistant.preview.<module>.<kind>` (`AssistantPreviewProps`).
+4. Test through `h.kernel.customizations`: every operation applied in a transaction, a dry run that leaves nothing
+   behind, `CHANGE_SET_STALE` on a moved `baseVersion`, `check` issues, refusal without the apply permission, and
+   that `get().value` applied as an update keeps the version.
+
+_See:_ `apps/api/src/core/customizations` (workflows, forms, custom fields, roles), `modules/scheduler` (jobs),
+`modules/itsm` (categories, SLA policies, catalog items), `modules/integrations` (sync profiles).

@@ -261,7 +261,7 @@ export function DashboardView({ initial }: { initial: Dashboard }) {
                       {data.recent.map((log) => (
                         <li key={log.seq} className="relative flex items-start gap-3">
                           <AuditIcon log={log} className="ring-4 ring-card" />
-                          <div className="min-w-0 flex-1 pt-1 text-sm">
+                          <div className="min-w-0 flex-1 pt-1 text-sm [overflow-wrap:anywhere]">
                             <span className="font-medium">{log.actorName ?? tc('system')}</span>{' '}
                             <span className="text-muted-foreground">{actionLabel(log.action)}</span>
                             {log.entityLabel && log.entityId !== log.actorId && (

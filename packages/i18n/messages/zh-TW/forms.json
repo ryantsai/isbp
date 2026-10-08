@@ -239,5 +239,8 @@
     "emptyTitle": "尚無申請",
     "emptyDescription": "人員從申請入口使用此表單送出的申請會顯示在這裡。",
     "emptyFiltered": "沒有此狀態的申請"
+  },
+  "changePreview": {
+    "invalid": "無法預覽此提議：其問題不是有效的表單。"
   }
 }

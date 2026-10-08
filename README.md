@@ -4,8 +4,14 @@ A unified resource-management platform for IT operations — identity, access, s
 assets, automation and AI — built as a **modular monolith**: a small kernel plus modules that all use
 the same SDK. The UI ships in **English, 繁體中文（台灣）and 日本語**.
 
-> **Status: Phase 5 complete (awaiting review).** Next: Phase 6, AI Agent.
+> **Status: Phase 6 complete (awaiting review).**
 >
+> - **Phase 6:** the AI Agent: a built-in agent on every page — no outside tools needed — that works through the
+>   platform's own MCP tools as you. It handles everyday work directly and customises the platform (approval
+>   workflows, forms, custom fields, roles, notification routing, settings, scheduled jobs, pipelines, Data API
+>   drafts, sync profiles, service desk categories, SLA policies and catalog items) as change sets it applies once you
+>   confirm, or sends for review; every change set can be rolled back. Guided templates without a chat model, and the
+>   same MCP server for outside agents such as Claude Code.
 > - **Phase 5:** the Integrations Hub: two-way sync with on-premises ManageEngine ServiceDesk Plus (requests,
 >   problems, changes, assets, solutions) and Azure DevOps Server (team projects, work items, Git status),
 >   with field mappings, per-field conflict handling, webhooks, and approvals that can't be skipped from outside.
@@ -102,6 +108,19 @@ API reference (OpenAPI 3.1, interactive): http://localhost:4000/api/docs · raw 
 | **Knowledge base**      | <ul><li>Markdown articles in en, zh-TW and ja-JP with translations, review and publish (optionally with approval), versions, feedback and review dates.</li><li>Instant search that works across languages.</li></ul>                                                                                                                                                                                                                                                                                                    |
 | **Helpdesk AI**         | <ul><li>Triage on every new ticket (with optional auto-apply), similar tickets, reply drafts with citations, summaries, and KB drafts from resolved tickets.</li><li>A virtual agent ("Ask IT") that answers from the knowledge base and opens a ticket only after you confirm.</li><li>Metrics for triage acceptance and deflection.</li></ul>                                                                                                                                                                          |
 | **AI gateway**          | <ul><li>Anthropic (Claude) or any OpenAI-compatible model, including self-hosted ones; works fully offline with the builtin embedder.</li><li>Masks personal data before a prompt leaves the platform; tracks usage and cost; enforces a monthly budget.</li><li>One permission-aware semantic index (pgvector).</li><li>A governed tool registry: same RBAC, confirmation and audit as the UI.</li></ul>                                                                                                                |
+
+## What's in Phase 6
+
+| Area                        | Highlights                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Assistant** (`assistant`) | <ul><li>A built-in agent in a panel on every page: it knows where you are (the page, the record on it) and works through the platform's own MCP tools, as you — no outside tool needed.</li><li>Everyday work directly (tickets, comments, tasks, drafts); configuration as change sets it applies when you confirm (one click, with your permissions), or sends for review when you can't apply it yourself.</li><li>Without a chat model, guided templates (approval chain, request form, custom field, SLA targets, HTTP check, …) instead of free text.</li></ul> |
+| **Change sets**             | <ul><li>Every proposal lands in a change set with a readable diff, a dry run of the whole set (in a transaction that is rolled back) and previews (the workflow diagram with the simulator, the form as people will see it).</li><li>Applied in one transaction by someone with the permissions, or through a review: approving applies it as the approver.</li><li>Rolled back in one transaction; refused when someone changed the configuration in between.</li></ul>                                                                                              |
+| **Customisation kinds**     | <ul><li>Thirteen surfaces in core, Scheduled jobs, ETL, the Integrations Hub and ITSM; each owned by its module, built on its admin schemas and services, so an agent can't produce what the admin UI would refuse.</li><li>Any module can make its own configuration customisable the same way (`docs/ai/recipes.md` §23).</li></ul>                                                                                                                                                                                                                                 |
+| **MCP server**              | <ul><li>`/api/v1/mcp` for Claude Code, Claude Desktop and other MCP clients: MCP 2026-07-28 and the initialize-based 2025 revisions.</li><li>API clients only (`core.mcp.use`), the same permission checks and audit as inside the platform; destructive tools are not offered; proposals become change sets a person applies.</li></ul>                                                                                                                                                                                                                              |
+
+The demo seed leaves three change sets: one applied (a laptop-request approval, form and service catalog item), one
+waiting in the administrator's approval inbox, and one draft. With no chat model configured, the panel shows the
+guided templates.
 
 ## What's in Phase 5
 

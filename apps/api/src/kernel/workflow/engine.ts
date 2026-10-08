@@ -127,6 +127,21 @@ export class WorkflowEngine {
         };
         return opts?.tx ? run(opts.tx) : this.db.transaction(run);
       },
+      isApprover: async (instanceId, userId) => {
+        const [row] = await this.db
+          .select({ id: approvalTasks.id })
+          .from(approvalTasks)
+          .innerJoin(workflowInstances, eq(workflowInstances.id, approvalTasks.instanceId))
+          .where(
+            and(
+              eq(approvalTasks.instanceId, instanceId),
+              eq(workflowInstances.moduleId, moduleId),
+              sql`(${approvalTasks.assigneeId} = ${userId} or ${approvalTasks.decidedById} = ${userId})`,
+            ),
+          )
+          .limit(1);
+        return Boolean(row);
+      },
     };
   }
 
@@ -507,6 +522,18 @@ export class WorkflowEngine {
       .set({ status: outcome, state, completedAt: new Date(), outcomeComment: comment })
       .where(eq(workflowInstances.id, inst.id));
     await this.event(tx, inst.id, { type: 'completed', data: { outcome } });
+    // The person whose decision completed it (none for cancellations and SLA auto-decisions).
+    const [last] =
+      outcome === 'cancelled'
+        ? []
+        : await tx
+            .select({ id: users.id, name: users.displayName })
+            .from(approvalTasks)
+            .leftJoin(users, eq(users.id, approvalTasks.decidedById))
+            .where(and(eq(approvalTasks.instanceId, inst.id), isNotNull(approvalTasks.decidedAt)))
+            .orderBy(sql`${approvalTasks.decidedAt} desc`)
+            .limit(1);
+    const decider = last?.id && last.name ? { id: last.id, name: last.name } : null;
     const core = this.deps.core();
     await core.audit.record(
       {
@@ -533,6 +560,7 @@ export class WorkflowEngine {
         outcome,
         requesterId: inst.requesterId,
         comment,
+        decidedBy: decider,
       },
       { tx },
     );

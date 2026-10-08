@@ -210,6 +210,25 @@ export async function renderReference(root: string): Promise<string> {
       ],
     ),
     '',
+    '## Customisation kinds',
+    '',
+    'Configuration surfaces the AI agent builds change sets for (`manifest.customizations`, handlers in',
+    '`defineServerModule({ customizations })`). Operations default to `update`.',
+    '',
+    table(
+      ['Kind', 'Module', 'Name', 'Read permission', 'Apply permission', 'Operations'],
+      modules.flatMap((m) =>
+        (m.manifest.customizations ?? []).map((k) => [
+          code(`${m.id}.${k.kind}`),
+          code(m.id),
+          en(k.label),
+          code(k.readPermission),
+          code(k.applyPermission),
+          (k.operations ?? ['update']).join(', '),
+        ]),
+      ),
+    ),
+    '',
   );
 
   // Slots
@@ -384,11 +403,11 @@ export async function renderReference(root: string): Promise<string> {
     section(
       'AI tools',
       table(
-        ['Tool', 'Permission', 'Destructive', 'Input'],
+        ['Tool', 'Permission', 'Kind', 'Input'],
         (s.ai?.tools ?? []).map((t) => [
           code(t.name),
           code(t.permission),
-          t.destructive ? 'yes' : '',
+          t.destructive ? 'destructive' : t.readOnly ? 'read-only' : '',
           fields(t.input),
         ]),
       ),

@@ -339,5 +339,14 @@
         "waiting": "未到達"
       }
     }
+  },
+  "changePreview": {
+    "invalid": "無法繪製此提議：其流程圖不是有效的工作流程。",
+    "show": "顯示",
+    "proposed": "提議",
+    "current": "目前",
+    "proposedDiagram": "提議的工作流程",
+    "currentDiagram": "目前的工作流程",
+    "simulate": "試用"
   }
 }

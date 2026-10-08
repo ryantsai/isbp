@@ -6,7 +6,8 @@
     "models": "Models",
     "privacy": "Privacy & budget",
     "usage": "Usage",
-    "index": "Index"
+    "index": "Index",
+    "mcp": "Outside agents (MCP)"
   },
   "status": {
     "generative": "Generative AI",
@@ -320,5 +321,31 @@
       "knowledge_article": "Knowledge articles",
       "itsm_ticket": "Resolved tickets"
     }
+  },
+  "mcp": {
+    "endpoint": "Endpoint",
+    "description": "Claude Code, Claude Desktop and IDE agents use ISBP’s tools and customisation kinds over the Model Context Protocol, with the same permission checks and audit log as the assistant.",
+    "endpointUrl": "MCP endpoint URL",
+    "copyEndpoint": "Copy the MCP endpoint URL",
+    "endpointHint": "Streamable HTTP with JSON responses and no sessions. Requests from other websites are refused.",
+    "versions": "Protocol revisions",
+    "stateless": "stateless",
+    "legacy": "with initialize",
+    "versionsBody": "Requests that name revision 2026-07-28 are served statelessly; clients that start with initialize get 2025-11-25, 2025-06-18 or 2025-03-26.",
+    "access": "Who may connect",
+    "accessBody": "Only API clients holding {permission}, with their API key or an OAuth client-credentials token. Every call runs with the client’s own permissions and is recorded in the audit log.",
+    "clientsTitle": "API clients that may use MCP",
+    "clientsEmpty": "No API client may use MCP yet. Give one the permission in Administration → API clients.",
+    "manageClients": "Manage API clients",
+    "offered": "What agents get",
+    "offeredTools": "Tools: every non-destructive tool the API client may use, named module__tool and marked read-only or not.",
+    "offeredResources": "Resources: the customisation kinds the client may read (isbp://customizations), each kind’s schema and guide, and its objects with their versions.",
+    "offeredChangeSets": "Changes become change sets: an agent proposes, and nothing is live until a person reviews and applies it in ISBP.",
+    "offeredNoDestructive": "Destructive tools need a person’s confirmation in ISBP, so they aren’t offered.",
+    "connect": "Connect Claude Code",
+    "connectBody": "Run this command in a terminal, then replace the placeholder with the API key of a client that may use MCP.",
+    "command": "Command",
+    "copyCommand": "Copy the command",
+    "placeholderHint": "The key is a placeholder: never paste a real key into shared notes or chats."
   }
 }

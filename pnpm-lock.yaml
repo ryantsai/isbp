@@ -355,6 +355,9 @@ importers:
       '@isbp/module-announcements':
         specifier: workspace:*
         version: link:../../modules/announcements
+      '@isbp/module-assistant':
+        specifier: workspace:*
+        version: link:../../modules/assistant
       '@isbp/module-azdo':
         specifier: workspace:*
         version: link:../../modules/azdo
@@ -539,6 +542,9 @@ importers:
       '@isbp/module-announcements':
         specifier: workspace:*
         version: link:../../modules/announcements
+      '@isbp/module-assistant':
+        specifier: workspace:*
+        version: link:../../modules/assistant
       '@isbp/module-azdo':
         specifier: workspace:*
         version: link:../../modules/azdo
@@ -765,6 +771,88 @@ importers:
         version: 5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.19.1)(vite@8.3.2(@types/node@24.19.1)(tsx@4.23.15))
 
   modules/announcements:
+    dependencies:
+      '@isbp/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@isbp/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@isbp/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.3(@opentelemetry/api@1.9.1)(@types/pg@8.23.1)(mysql2@3.24.5(@types/node@24.19.1))(pg@8.23.1)
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.5
+    devDependencies:
+      '@hookform/resolvers':
+        specifier: 'catalog:'
+        version: 5.9.1(ajv@8.20.0)(react-hook-form@7.89.0(@types/react@19.3.0)(react@19.3.0))(zod@4.6.5)
+      '@isbp/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@isbp/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@isbp/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/tsconfig
+      '@isbp/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@tanstack/react-table':
+        specifier: 'catalog:'
+        version: 8.21.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      drizzle-kit:
+        specifier: 'catalog:'
+        version: 0.31.11
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
+      fastify:
+        specifier: 'catalog:'
+        version: 5.12.5
+      fastify-type-provider-zod:
+        specifier: 'catalog:'
+        version: 7.0.0(@fastify/swagger@9.9.1(supports-color@7.2.0))(fastify@5.12.5)(openapi-types@12.1.3)(zod@4.6.5)
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.52.0(@types/react@19.3.0)(react@19.3.0)
+      motion:
+        specifier: 'catalog:'
+        version: 14.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      next:
+        specifier: 'catalog:'
+        version: 16.3.8(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      next-intl:
+        specifier: 'catalog:'
+        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.3.8(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      react-hook-form:
+        specifier: 'catalog:'
+        version: 7.89.0(@types/react@19.3.0)(react@19.3.0)
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.3(@opentelemetry/api@1.9.1)(@types/node@24.19.1)(vite@8.3.2(@types/node@24.19.1)(tsx@4.23.15))
+
+  modules/assistant:
     dependencies:
       '@isbp/contracts':
         specifier: workspace:*

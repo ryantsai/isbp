@@ -23,6 +23,12 @@ change's plan is frozen once submitted, and a change never gets past `authorizat
 approval (409 `INVALID_TRANSITION`, `reason: 'approval_required'`). Created tickets use the `integration`
 channel; timeline entries carry `data.via` ("via ServiceDesk Plus #1234").
 
+**Customisation kinds (Phase 6).** `src/server/customizations.ts`, applied with `ConfigService`
+(`itsm.config.manage` to read and apply): `itsm.category` and `itsm.sla-policy` (archive deactivates; template
+`sla-targets`) and `itsm.catalog-item` (id = the form key). Inside a transaction the configuration lookups
+(`lookups.ts`) read the tables directly and cache nothing, and the catalog checks forms through `ctx.db`, so a
+change set sees its own changes and a rolled-back dry run leaves nothing in the cache.
+
 Common tasks:
 
 ```bash

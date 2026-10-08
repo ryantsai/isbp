@@ -189,6 +189,7 @@ export const manifest = defineManifest({
           'Search the application inventory by code or name (e.g. "erp", "HR Portal"), optionally by lifecycle stage. Returns code, name, stage, criticality, owners, the production version and the last deployment. Use it to identify which application a person or ticket means.',
         input: aiFindApplicationsInput,
         permission: 'alm.apps.read',
+        readOnly: true,
       },
       {
         name: 'alm.get_application',
@@ -196,6 +197,7 @@ export const manifest = defineManifest({
           'Get one application by its code (e.g. "erp"): owners, delivery and support teams, stage, criticality, hosting, its CMDB configuration item, environments with the version each runs, and the latest releases. Use it to answer "what version is in production" or "who owns this".',
         input: aiGetApplicationInput,
         permission: 'alm.apps.read',
+        readOnly: true,
       },
       {
         name: 'alm.release_readiness',
@@ -203,6 +205,7 @@ export const manifest = defineManifest({
           'Check whether a release (application code + version, e.g. erp 12.1.0) is ready for production: an authorized (CAB-approved) change is linked, the version succeeded in test or staging, release notes are written, and no production deployment of it failed. Also says whether the change policy would allow a production deployment right now.',
         input: aiReleaseReadinessInput,
         permission: 'alm.apps.read',
+        readOnly: true,
       },
       {
         name: 'alm.record_deployment',

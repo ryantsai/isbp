@@ -13,6 +13,7 @@ extension point is in [api-reference.md](api-reference.md) and [recipes.md](reci
 | `core`          | Core platform                     | —                   | Identity, access control, audit and the module system that every other module builds on.                                                   |
 | `alm`           | Applications                      | `cmdb`, `itsm`      | Application inventory, environments, releases and deployments, linked to change management                                                 |
 | `announcements` | Announcements                     | —                   | Service notices, maintenance windows and incident updates for everyone.                                                                    |
+| `assistant`     | Assistant                         | —                   | An AI agent that customises the platform with change sets people review, apply and roll back                                               |
 | `azdo`          | Azure DevOps Server (on-premises) | —                   | Connects the Integrations Hub to a self-hosted Azure DevOps Server collection: team projects, work items and Git repositories.             |
 | `cmdb`          | CMDB                              | —                   | Configuration items, how they relate and what an outage would impact                                                                       |
 | `dbaccess`      | Database access                   | —                   | Request database roles on SQL Server, Oracle and PostgreSQL: approval, automated provisioning, time-bound access, access reviews and drift |
@@ -43,6 +44,27 @@ What the Integrations Hub can sync (adapters, `manifest.syncEntities`) and conne
 | connector   | `azdo.server`       | `azdo`      | Azure DevOps Server (on-premises) |
 | connector   | `sdp.server`        | `sdp`       | ServiceDesk Plus (on-premises)    |
 
+## Customisation kinds
+
+Configuration surfaces the AI agent builds change sets for (`manifest.customizations`, handlers in
+`defineServerModule({ customizations })`). Operations default to `update`.
+
+| Kind                        | Module         | Name                 | Read permission                 | Apply permission                  | Operations                      |
+| --------------------------- | -------------- | -------------------- | ------------------------------- | --------------------------------- | ------------------------------- |
+| `core.workflow`             | `core`         | Approval workflow    | `core.workflows.read`           | `core.workflows.manage`           | create, update, archive         |
+| `core.form`                 | `core`         | Request form         | `core.forms.read`               | `core.forms.manage`               | create, update, archive         |
+| `core.custom-field`         | `core`         | Custom field         | `core.custom-fields.read`       | `core.custom-fields.manage`       | create, update, archive         |
+| `core.role`                 | `core`         | Role                 | `core.roles.read`               | `core.roles.manage`               | create, update, delete          |
+| `core.notification-channel` | `core`         | Notification channel | `core.notifications.manage`     | `core.notifications.manage`       | update                          |
+| `core.module-settings`      | `core`         | Module settings      | `core.modules.read`             | `core.modules.manage`             | update                          |
+| `etl.pipeline`              | `etl`          | ETL pipeline         | `etl.pipelines.read`            | `etl.pipelines.manage`            | create, update, archive, delete |
+| `etl.endpoint`              | `etl`          | Data API             | `etl.endpoints.read`            | `etl.endpoints.manage`            | create, update, delete          |
+| `integrations.profile`      | `integrations` | Sync profile         | `integrations.connections.read` | `integrations.connections.manage` | create, update, archive, delete |
+| `itsm.category`             | `itsm`         | Ticket category      | `itsm.config.manage`            | `itsm.config.manage`              | create, update, archive         |
+| `itsm.sla-policy`           | `itsm`         | SLA policy           | `itsm.config.manage`            | `itsm.config.manage`              | create, update, archive         |
+| `itsm.catalog-item`         | `itsm`         | Service catalog item | `itsm.config.manage`            | `itsm.config.manage`              | create, update, delete          |
+| `scheduler.job`             | `scheduler`    | Scheduled job        | `scheduler.jobs.read`           | `scheduler.jobs.manage`           | create, update, archive, delete |
+
 ## Web slots
 
 Hosts render `<Slot name=… props=… />`; modules contribute with `defineWebModule({ slots })`. Template names
@@ -50,11 +72,13 @@ Hosts render `<Slot name=… props=… />`; modules contribute with `defineWebMo
 
 | Slot                                        | Hosted in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Contributed by                                                                                                                                                                  |
 | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assistant.preview.${moduleId}.${name}`     | `modules/assistant/src/web/change-set/item-card.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                              | —                                                                                                                                                                               |
 | `cmdb.ci.related`                           | `modules/cmdb/src/web/pages/detail-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | alm (alm.apps.read), itam (itam.hardware.read), itsm (itsm.tickets.read)                                                                                                        |
 | `core.dashboard.work`                       | `apps/web/src/components/dashboard/dashboard-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                            | alm (alm.apps.read), dbaccess (dbaccess.self.request), itam (itam.hardware.manage), itsm (itsm.tickets.work), projects (projects.projects.use), scheduler (scheduler.jobs.read) |
 | `core.record.files`                         | `apps/web/src/components/records/record-files.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/itsm/src/web/ticket/requester-view.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx`      | —                                                                                                                                                                               |
 | `core.record.links`                         | `apps/web/src/components/records/linked-records.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/projects/src/web/project/overview-tab.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx` | integrations                                                                                                                                                                    |
 | `core.requests.assist`                      | `apps/web/src/components/requests/requests-home.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                              | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                              |
+| `core.shell.header`                         | `apps/web/src/components/shell/app-shell.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | assistant (assistant.agent.use)                                                                                                                                                 |
 | `core.user.overview`                        | `apps/web/src/components/users/user-detail-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                              | dbaccess (dbaccess.self.request), itam (itam.hardware.read)                                                                                                                     |
 | `integrations.connector-config.${type}`     | `modules/integrations/src/web/connection/connection-sheet.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                    | —                                                                                                                                                                               |
 | `integrations.connector-config.azdo.server` | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | azdo                                                                                                                                                                            |
@@ -69,83 +93,84 @@ Hosts render `<Slot name=… props=… />`; modules contribute with `defineWebMo
 
 Throw `new HttpError(status, ErrorCodes.X, message, details)`. The UI translates by code (`errors.json`).
 
-| Code                          | Message (en)                                                                                                            |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `ACCOUNT_INACTIVE`            | This account is not active. Contact your administrator.                                                                 |
-| `ACCOUNT_LOCKED`              | Too many failed attempts. Try again in a few minutes.                                                                   |
-| `AI_BUDGET_EXCEEDED`          | This month's AI budget has been used up.                                                                                |
-| `AI_NOT_CONFIGURED`           | No AI model is set up yet. An administrator can add one under Administration → AI.                                      |
-| `AI_PROVIDER_ERROR`           | The AI service didn't respond. Try again in a moment.                                                                   |
-| `ALREADY_GRANTED`             | This person already has this access.                                                                                    |
-| `BAD_REQUEST`                 | The request was not valid.                                                                                              |
-| `CHANGE_REQUIRED`             | A production deployment needs an approved change.                                                                       |
-| `COMMENT_REQUIRED`            | Add a comment to explain your decision.                                                                                 |
-| `CONFIRMATION_REQUIRED`       | Confirm this action before it runs.                                                                                     |
-| `CONFLICT`                    | That conflicts with existing data.                                                                                      |
-| `CONFLICT_RESOLVED`           | Someone has already resolved this conflict.                                                                             |
-| `CONNECTION_DISABLED`         | That database connection is disabled.                                                                                   |
-| `CONNECTION_PURPOSE`          | That database connection can't be used for this.                                                                        |
-| `CONNECTION_READ_ONLY`        | That database connection is read-only.                                                                                  |
-| `CSRF_INVALID`                | Your session token is out of date. Reload the page and try again.                                                       |
-| `DATABASE_ERROR`              | The database returned an error.                                                                                         |
-| `DELEGATION_NOT_ALLOWED`      | This approval can't be delegated.                                                                                       |
-| `DELIVERY_FAILED`             | The message couldn't be delivered.                                                                                      |
-| `DUPLICATE_REQUEST`           | There's already an open request for this access.                                                                        |
-| `DURATION_TOO_LONG`           | That's longer than this access can be granted for.                                                                      |
-| `EMAIL_NOT_CONFIGURED`        | Email isn't set up yet.                                                                                                 |
-| `ENDPOINT_NOT_PUBLISHED`      | This Data API has no published version yet.                                                                             |
-| `ENDPOINT_RETIRED`            | This version of the Data API is retired.                                                                                |
-| `FILE_REJECTED`               | That file can't be uploaded.                                                                                            |
-| `FILE_TOO_LARGE`              | That file is too large.                                                                                                 |
-| `FORBIDDEN`                   | You don't have permission to do that.                                                                                   |
-| `FORM_NOT_AVAILABLE`          | This form isn't available right now.                                                                                    |
-| `HAS_CHILDREN`                | Move or delete the sub-departments first.                                                                               |
-| `INSECURE_HTTP`               | This connection uses plain HTTP, which isn't encrypted. Use HTTPS, or turn on “Allow insecure HTTP” for the connection. |
-| `INTERNAL`                    | Something went wrong on our side.                                                                                       |
-| `INVALID_CLIENT`              | The client ID or secret is incorrect, or the client was revoked.                                                        |
-| `INVALID_CREDENTIALS`         | Incorrect username or password.                                                                                         |
-| `INVALID_DELEGATE`            | That person can't take this approval. Choose someone else.                                                              |
-| `INVALID_PARENT`              | A department can't be moved under itself.                                                                               |
-| `INVALID_STATE`               | That isn't possible in the current state.                                                                               |
-| `INVALID_TRANSITION`          | That status change isn't possible from the current status.                                                              |
-| `IN_USE`                      | This is still in use. Remove it from where it's used first.                                                             |
-| `JOB_CYCLE`                   | Those dependencies would make the job wait for itself.                                                                  |
-| `JOB_RUNNING`                 | The job is running. Wait for it to finish or cancel it first.                                                           |
-| `MODULE_DEPENDENCY`           | Other modules depend on this one — change them first.                                                                   |
-| `MODULE_DISABLED`             | This module is currently disabled.                                                                                      |
-| `NOT_FOUND`                   | That item no longer exists.                                                                                             |
-| `NOT_REQUESTABLE`             | This access can't be requested.                                                                                         |
-| `NOT_SUPPORTED`               | The connected system doesn't support this.                                                                              |
-| `PASSWORD_MANAGED_EXTERNALLY` | This password is managed by the identity provider.                                                                      |
-| `PRINCIPAL_OFFBOARDED`        | This person has been offboarded.                                                                                        |
-| `PRIVILEGE_ESCALATION`        | You can only grant permissions you hold yourself.                                                                       |
-| `RATE_LIMITED`                | You're going a bit fast. Please wait a moment.                                                                          |
-| `RELATIONSHIP_INVALID`        | That relationship isn't allowed.                                                                                        |
-| `REMOTE_AUTH_FAILED`          | The connected system refused the connection's credentials. Check them in the connection settings.                       |
-| `REMOTE_CONFLICT`             | The record changed in the connected system at the same time. It will be compared again.                                 |
-| `REMOTE_RATE_LIMITED`         | The connected system is limiting requests. The sync will try again shortly.                                             |
-| `REMOTE_REJECTED`             | The connected system refused the change.                                                                                |
-| `RESOLUTION_REQUIRED`         | Describe the resolution first.                                                                                          |
-| `REVEAL_EXPIRED`              | This credential was already shown or has expired.                                                                       |
-| `REVIEW_CLOSED`               | This access review is closed.                                                                                           |
-| `SANDBOX_UNAVAILABLE`         | Scripts can't run here: no sandbox is configured, or the image isn't allowed.                                           |
-| `SCHEDULE_CONFLICT`           | That time window isn't available.                                                                                       |
-| `SELF_LOCKOUT`                | That would lock you out of your own account or access.                                                                  |
-| `SYNC_RUNNING`                | A sync for this profile is already running.                                                                             |
-| `SYSTEM_GROUP`                | System groups can't be changed this way.                                                                                |
-| `SYSTEM_MODULE`               | System modules can't be disabled.                                                                                       |
-| `SYSTEM_ROLE_READONLY`        | System roles are managed by their module and can't be changed.                                                          |
-| `TARGET_BLOCKED`              | That address isn't allowed.                                                                                             |
-| `TASK_NOT_PENDING`            | This approval has already been handled.                                                                                 |
-| `TEST_REQUIRED`               | Run a successful test of the current draft before publishing.                                                           |
-| `UNAUTHENTICATED`             | Your session has expired. Please sign in again.                                                                         |
-| `UPSTREAM_FAILED`             | The remote service couldn't be reached.                                                                                 |
-| `VALIDATION_FAILED`           | Some fields need your attention.                                                                                        |
-| `WEBHOOK_INVALID`             | The webhook secret is missing or wrong.                                                                                 |
-| `WEBHOOK_TARGET_INVALID`      | The webhook URL must use HTTPS and can't point at a private network.                                                    |
-| `WORKFLOW_INVALID`            | The workflow has problems that need fixing before it can be published.                                                  |
-| `WORKFLOW_NOT_CONFIGURED`     | No approval workflow is set up for this yet. Ask an administrator to publish one.                                       |
-| `WRITES_NOT_ALLOWED`          | This SQL changes data. Turn on "Allows writes" to save it.                                                              |
+| Code                          | Message (en)                                                                                                               |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `ACCOUNT_INACTIVE`            | This account is not active. Contact your administrator.                                                                    |
+| `ACCOUNT_LOCKED`              | Too many failed attempts. Try again in a few minutes.                                                                      |
+| `AI_BUDGET_EXCEEDED`          | This month's AI budget has been used up.                                                                                   |
+| `AI_NOT_CONFIGURED`           | No AI model is set up yet. An administrator can add one under Administration → AI.                                         |
+| `AI_PROVIDER_ERROR`           | The AI service didn't respond. Try again in a moment.                                                                      |
+| `ALREADY_GRANTED`             | This person already has this access.                                                                                       |
+| `BAD_REQUEST`                 | The request was not valid.                                                                                                 |
+| `CHANGE_REQUIRED`             | A production deployment needs an approved change.                                                                          |
+| `CHANGE_SET_STALE`            | Someone changed this configuration after the change set was prepared. Refresh the change set, review it again, then retry. |
+| `COMMENT_REQUIRED`            | Add a comment to explain your decision.                                                                                    |
+| `CONFIRMATION_REQUIRED`       | Confirm this action before it runs.                                                                                        |
+| `CONFLICT`                    | That conflicts with existing data.                                                                                         |
+| `CONFLICT_RESOLVED`           | Someone has already resolved this conflict.                                                                                |
+| `CONNECTION_DISABLED`         | That database connection is disabled.                                                                                      |
+| `CONNECTION_PURPOSE`          | That database connection can't be used for this.                                                                           |
+| `CONNECTION_READ_ONLY`        | That database connection is read-only.                                                                                     |
+| `CSRF_INVALID`                | Your session token is out of date. Reload the page and try again.                                                          |
+| `DATABASE_ERROR`              | The database returned an error.                                                                                            |
+| `DELEGATION_NOT_ALLOWED`      | This approval can't be delegated.                                                                                          |
+| `DELIVERY_FAILED`             | The message couldn't be delivered.                                                                                         |
+| `DUPLICATE_REQUEST`           | There's already an open request for this access.                                                                           |
+| `DURATION_TOO_LONG`           | That's longer than this access can be granted for.                                                                         |
+| `EMAIL_NOT_CONFIGURED`        | Email isn't set up yet.                                                                                                    |
+| `ENDPOINT_NOT_PUBLISHED`      | This Data API has no published version yet.                                                                                |
+| `ENDPOINT_RETIRED`            | This version of the Data API is retired.                                                                                   |
+| `FILE_REJECTED`               | That file can't be uploaded.                                                                                               |
+| `FILE_TOO_LARGE`              | That file is too large.                                                                                                    |
+| `FORBIDDEN`                   | You don't have permission to do that.                                                                                      |
+| `FORM_NOT_AVAILABLE`          | This form isn't available right now.                                                                                       |
+| `HAS_CHILDREN`                | Move or delete the sub-departments first.                                                                                  |
+| `INSECURE_HTTP`               | This connection uses plain HTTP, which isn't encrypted. Use HTTPS, or turn on “Allow insecure HTTP” for the connection.    |
+| `INTERNAL`                    | Something went wrong on our side.                                                                                          |
+| `INVALID_CLIENT`              | The client ID or secret is incorrect, or the client was revoked.                                                           |
+| `INVALID_CREDENTIALS`         | Incorrect username or password.                                                                                            |
+| `INVALID_DELEGATE`            | That person can't take this approval. Choose someone else.                                                                 |
+| `INVALID_PARENT`              | A department can't be moved under itself.                                                                                  |
+| `INVALID_STATE`               | That isn't possible in the current state.                                                                                  |
+| `INVALID_TRANSITION`          | That status change isn't possible from the current status.                                                                 |
+| `IN_USE`                      | This is still in use. Remove it from where it's used first.                                                                |
+| `JOB_CYCLE`                   | Those dependencies would make the job wait for itself.                                                                     |
+| `JOB_RUNNING`                 | The job is running. Wait for it to finish or cancel it first.                                                              |
+| `MODULE_DEPENDENCY`           | Other modules depend on this one — change them first.                                                                      |
+| `MODULE_DISABLED`             | This module is currently disabled.                                                                                         |
+| `NOT_FOUND`                   | That item no longer exists.                                                                                                |
+| `NOT_REQUESTABLE`             | This access can't be requested.                                                                                            |
+| `NOT_SUPPORTED`               | The connected system doesn't support this.                                                                                 |
+| `PASSWORD_MANAGED_EXTERNALLY` | This password is managed by the identity provider.                                                                         |
+| `PRINCIPAL_OFFBOARDED`        | This person has been offboarded.                                                                                           |
+| `PRIVILEGE_ESCALATION`        | You can only grant permissions you hold yourself.                                                                          |
+| `RATE_LIMITED`                | You're going a bit fast. Please wait a moment.                                                                             |
+| `RELATIONSHIP_INVALID`        | That relationship isn't allowed.                                                                                           |
+| `REMOTE_AUTH_FAILED`          | The connected system refused the connection's credentials. Check them in the connection settings.                          |
+| `REMOTE_CONFLICT`             | The record changed in the connected system at the same time. It will be compared again.                                    |
+| `REMOTE_RATE_LIMITED`         | The connected system is limiting requests. The sync will try again shortly.                                                |
+| `REMOTE_REJECTED`             | The connected system refused the change.                                                                                   |
+| `RESOLUTION_REQUIRED`         | Describe the resolution first.                                                                                             |
+| `REVEAL_EXPIRED`              | This credential was already shown or has expired.                                                                          |
+| `REVIEW_CLOSED`               | This access review is closed.                                                                                              |
+| `SANDBOX_UNAVAILABLE`         | Scripts can't run here: no sandbox is configured, or the image isn't allowed.                                              |
+| `SCHEDULE_CONFLICT`           | That time window isn't available.                                                                                          |
+| `SELF_LOCKOUT`                | That would lock you out of your own account or access.                                                                     |
+| `SYNC_RUNNING`                | A sync for this profile is already running.                                                                                |
+| `SYSTEM_GROUP`                | System groups can't be changed this way.                                                                                   |
+| `SYSTEM_MODULE`               | System modules can't be disabled.                                                                                          |
+| `SYSTEM_ROLE_READONLY`        | System roles are managed by their module and can't be changed.                                                             |
+| `TARGET_BLOCKED`              | That address isn't allowed.                                                                                                |
+| `TASK_NOT_PENDING`            | This approval has already been handled.                                                                                    |
+| `TEST_REQUIRED`               | Run a successful test of the current draft before publishing.                                                              |
+| `UNAUTHENTICATED`             | Your session has expired. Please sign in again.                                                                            |
+| `UPSTREAM_FAILED`             | The remote service couldn't be reached.                                                                                    |
+| `VALIDATION_FAILED`           | Some fields need your attention.                                                                                           |
+| `WEBHOOK_INVALID`             | The webhook secret is missing or wrong.                                                                                    |
+| `WEBHOOK_TARGET_INVALID`      | The webhook URL must use HTTPS and can't point at a private network.                                                       |
+| `WORKFLOW_INVALID`            | The workflow has problems that need fixing before it can be published.                                                     |
+| `WORKFLOW_NOT_CONFIGURED`     | No approval workflow is set up for this yet. Ask an administrator to publish one.                                          |
+| `WRITES_NOT_ALLOWED`          | This SQL changes data. Turn on "Allows writes" to save it.                                                                 |
 
 ## `core` — Core platform
 
@@ -153,51 +178,55 @@ Identity, access control, audit and the module system that every other module bu
 
 ### Permissions
 
-| Key                         | Scopes                     | Description                                             |
-| --------------------------- | -------------------------- | ------------------------------------------------------- |
-| `core.users.read`           | global, department, record | View people and their profiles                          |
-| `core.users.create`         | global, department         | Create people and pre-board new hires                   |
-| `core.users.update`         | global, department, record | Edit people's profiles                                  |
-| `core.users.lifecycle`      | global, department         | Onboard, suspend, reactivate and offboard people        |
-| `core.users.credentials`    | global, department         | Reset passwords of local accounts                       |
-| `core.groups.read`          | global                     | View groups and members                                 |
-| `core.groups.manage`        | global, record             | Create groups and manage membership                     |
-| `core.departments.read`     | global                     | View the organisation hierarchy                         |
-| `core.departments.manage`   | global, department         | Create, move and delete departments                     |
-| `core.roles.read`           | global                     | View roles, permissions and assignments                 |
-| `core.roles.manage`         | global                     | Create and edit custom roles                            |
-| `core.roles.assign`         | global, department         | Grant and revoke roles                                  |
-| `core.audit.read`           | global                     | Read the audit log                                      |
-| `core.modules.read`         | global                     | View installed modules                                  |
-| `core.modules.manage`       | global                     | Enable, disable and configure modules                   |
-| `core.idp.read`             | global                     | View sign-in providers                                  |
-| `core.idp.manage`           | global                     | Configure sign-in providers and directory sync          |
-| `core.workflows.read`       | global                     | View workflows and running approvals                    |
-| `core.workflows.manage`     | global                     | Design, publish and administer workflows                |
-| `core.forms.manage`         | global                     | Build and publish forms                                 |
-| `core.custom-fields.manage` | global                     | Add custom fields to people, groups and departments     |
-| `core.notifications.manage` | global                     | Configure email, Teams, Slack and webhook notifications |
-| `core.ai.manage`            | global                     | Configure the AI gateway: models, privacy and budget    |
-| `core.access-requests.read` | global, department         | See other people's access requests                      |
-| `core.applications.read`    | global, record             | View applications and who has access to them            |
-| `core.applications.manage`  | global, record             | Manage applications, their roles and grants             |
-| `core.api-clients.manage`   | global                     | Create API clients and their keys                       |
-| `core.role-query.read`      | global, record             | Query roles and permissions through the Role Query API  |
-| `core.databases.read`       | global                     | View database connections                               |
-| `core.databases.manage`     | global                     | Manage database connections and their credentials       |
+| Key                         | Scopes                     | Description                                                                   |
+| --------------------------- | -------------------------- | ----------------------------------------------------------------------------- |
+| `core.users.read`           | global, department, record | View people and their profiles                                                |
+| `core.users.create`         | global, department         | Create people and pre-board new hires                                         |
+| `core.users.update`         | global, department, record | Edit people's profiles                                                        |
+| `core.users.lifecycle`      | global, department         | Onboard, suspend, reactivate and offboard people                              |
+| `core.users.credentials`    | global, department         | Reset passwords of local accounts                                             |
+| `core.groups.read`          | global                     | View groups and members                                                       |
+| `core.groups.manage`        | global, record             | Create groups and manage membership                                           |
+| `core.departments.read`     | global                     | View the organisation hierarchy                                               |
+| `core.departments.manage`   | global, department         | Create, move and delete departments                                           |
+| `core.roles.read`           | global                     | View roles, permissions and assignments                                       |
+| `core.roles.manage`         | global                     | Create and edit custom roles                                                  |
+| `core.roles.assign`         | global, department         | Grant and revoke roles                                                        |
+| `core.audit.read`           | global                     | Read the audit log                                                            |
+| `core.modules.read`         | global                     | View installed modules                                                        |
+| `core.modules.manage`       | global                     | Enable, disable and configure modules                                         |
+| `core.idp.read`             | global                     | View sign-in providers                                                        |
+| `core.idp.manage`           | global                     | Configure sign-in providers and directory sync                                |
+| `core.workflows.read`       | global                     | View workflows and running approvals                                          |
+| `core.workflows.manage`     | global                     | Design, publish and administer workflows                                      |
+| `core.forms.read`           | global                     | View request forms                                                            |
+| `core.forms.manage`         | global                     | Build and publish forms                                                       |
+| `core.custom-fields.read`   | global                     | View custom fields                                                            |
+| `core.custom-fields.manage` | global                     | Add custom fields to people, groups and departments                           |
+| `core.notifications.manage` | global                     | Configure email, Teams, Slack and webhook notifications                       |
+| `core.ai.manage`            | global                     | Configure the AI gateway: models, privacy and budget                          |
+| `core.access-requests.read` | global, department         | See other people's access requests                                            |
+| `core.applications.read`    | global, record             | View applications and who has access to them                                  |
+| `core.applications.manage`  | global, record             | Manage applications, their roles and grants                                   |
+| `core.api-clients.manage`   | global                     | Create API clients and their keys                                             |
+| `core.role-query.read`      | global, record             | Query roles and permissions through the Role Query API                        |
+| `core.databases.read`       | global                     | View database connections                                                     |
+| `core.databases.manage`     | global                     | Manage database connections and their credentials                             |
+| `core.mcp.use`              | global                     | Let an API client connect to the platform's MCP server as an outside AI agent |
 
 ### Roles
 
-| Key                   | Name                              | Permissions                                                                                                                                                         | Everyone |
-| --------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `platform-admin`      | Platform administrator            | `*`                                                                                                                                                                 | —        |
-| `identity-admin`      | Identity administrator            | `core.users.*` `core.groups.*` `core.departments.*` `core.roles.read` `core.roles.assign` `core.audit.read` `core.access-requests.read` `core.custom-fields.manage` | —        |
-| `workflow-admin`      | Workflow administrator            | `core.workflows.*` `core.forms.*` `core.custom-fields.*` `core.notifications.*` `core.access-requests.read`                                                         | —        |
-| `application-manager` | Application manager               | `core.applications.*` `core.role-query.read`                                                                                                                        | —        |
-| `security-auditor`    | Security auditor                  | `*.*.read`                                                                                                                                                          | —        |
-| `database-admin`      | Database connection administrator | `core.databases.*`                                                                                                                                                  | —        |
-| `module-admin`        | Module administrator              | `core.modules.*`                                                                                                                                                    | —        |
-| `everyone`            | Everyone                          | `core.departments.read`                                                                                                                                             | yes      |
+| Key                    | Name                              | Permissions                                                                                                                                                                                   | Everyone |
+| ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `platform-admin`       | Platform administrator            | `*`                                                                                                                                                                                           | —        |
+| `identity-admin`       | Identity administrator            | `core.users.*` `core.groups.*` `core.departments.*` `core.roles.read` `core.roles.assign` `core.audit.read` `core.access-requests.read` `core.custom-fields.read` `core.custom-fields.manage` | —        |
+| `workflow-admin`       | Workflow administrator            | `core.workflows.*` `core.forms.*` `core.custom-fields.*` `core.notifications.*` `core.access-requests.read`                                                                                   | —        |
+| `application-manager`  | Application manager               | `core.applications.*` `core.role-query.read`                                                                                                                                                  | —        |
+| `security-auditor`     | Security auditor                  | `*.*.read`                                                                                                                                                                                    | —        |
+| `database-admin`       | Database connection administrator | `core.databases.*`                                                                                                                                                                            | —        |
+| `module-admin`         | Module administrator              | `core.modules.*`                                                                                                                                                                              | —        |
+| `configuration-viewer` | Configuration viewer              | `core.workflows.read` `core.forms.read` `core.custom-fields.read` `core.roles.read` `core.modules.read`                                                                                       | —        |
+| `everyone`             | Everyone                          | `core.departments.read`                                                                                                                                                                       | yes      |
 
 ### Events emitted
 
@@ -250,7 +279,7 @@ Identity, access control, audit and the module system that every other module bu
 
 ### Events consumed
 
-`core.notification.created`
+`core.notification.created`, `core.role.updated`, `core.role.deleted`
 
 ### Workflow triggers
 
@@ -279,11 +308,14 @@ Identity, access control, audit and the module system that every other module bu
 
 ### AI tools
 
-| Tool                  | Permission             | Destructive | Input                          |
-| --------------------- | ---------------------- | ----------- | ------------------------------ |
-| `core.find_users`     | `core.users.read`      | —           | query: string, limit: integer  |
-| `core.explain_access` | `core.roles.read`      | —           | userId: string                 |
-| `core.offboard_user`  | `core.users.lifecycle` | yes         | userId: string, reason: string |
+| Tool                    | Permission              | Kind        | Input                                                             |
+| ----------------------- | ----------------------- | ----------- | ----------------------------------------------------------------- |
+| `core.find_users`       | `core.users.read`       | read-only   | query: string, limit: integer                                     |
+| `core.explain_access`   | `core.roles.read`       | read-only   | userId: string                                                    |
+| `core.find_groups`      | `core.groups.read`      | read-only   | query?: string, limit: integer                                    |
+| `core.find_roles`       | `core.roles.read`       | read-only   | query?: string, limit: integer, includePermissionCatalog: boolean |
+| `core.find_departments` | `core.departments.read` | read-only   | query?: string, limit: integer                                    |
+| `core.offboard_user`    | `core.users.lifecycle`  | destructive | userId: string, reason: string                                    |
 
 ### Settings
 
@@ -430,12 +462,12 @@ Application inventory, environments, releases and deployments, linked to change 
 
 ### AI tools
 
-| Tool                    | Permission               | Destructive | Input                                                                                                               |
-| ----------------------- | ------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------- |
-| `alm.find_applications` | `alm.apps.read`          | —           | query?: string, stage?: string, limit: integer                                                                      |
-| `alm.get_application`   | `alm.apps.read`          | —           | code: string                                                                                                        |
-| `alm.release_readiness` | `alm.apps.read`          | —           | application: string, version: string                                                                                |
-| `alm.record_deployment` | `alm.deployments.create` | —           | application: string, environment: string, version: string, status: string, changeReference?: string, notes?: string |
+| Tool                    | Permission               | Kind      | Input                                                                                                               |
+| ----------------------- | ------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------- |
+| `alm.find_applications` | `alm.apps.read`          | read-only | query?: string, stage?: string, limit: integer                                                                      |
+| `alm.get_application`   | `alm.apps.read`          | read-only | code: string                                                                                                        |
+| `alm.release_readiness` | `alm.apps.read`          | read-only | application: string, version: string                                                                                |
+| `alm.record_deployment` | `alm.deployments.create` | —         | application: string, environment: string, version: string, status: string, changeReference?: string, notes?: string |
 
 ### Settings
 
@@ -520,10 +552,10 @@ Service notices, maintenance windows and incident updates for everyone.
 
 ### AI tools
 
-| Tool                         | Permission                   | Destructive | Input                                                                             |
+| Tool                         | Permission                   | Kind        | Input                                                                             |
 | ---------------------------- | ---------------------------- | ----------- | --------------------------------------------------------------------------------- |
-| `announcements.list_current` | `announcements.posts.read`   | —           | severity?: string, limit: integer                                                 |
-| `announcements.publish_post` | `announcements.posts.manage` | yes         | title: string, body: string, severity: string, startsAt?: string, endsAt?: string |
+| `announcements.list_current` | `announcements.posts.read`   | read-only   | severity?: string, limit: integer                                                 |
+| `announcements.publish_post` | `announcements.posts.manage` | destructive | title: string, body: string, severity: string, startsAt?: string, endsAt?: string |
 
 ### Settings
 
@@ -550,6 +582,92 @@ Service notices, maintenance windows and incident updates for everyone.
 | Job                          | Schedule    | Description                                             |
 | ---------------------------- | ----------- | ------------------------------------------------------- |
 | `announcements:expire-posts` | every 300 s | Archives published announcements whose window has ended |
+
+## `assistant` — Assistant
+
+An AI agent that customises the platform with change sets people review, apply and roll back
+
+### Permissions
+
+| Key                            | Scopes | Description                                                                 |
+| ------------------------------ | ------ | --------------------------------------------------------------------------- |
+| `assistant.agent.use`          | global | Use the assistant and prepare change sets for the configuration you can see |
+| `assistant.change-sets.read`   | global | See every change set                                                        |
+| `assistant.change-sets.manage` | global | Edit, discard or withdraw anyone’s change sets                              |
+
+### Roles
+
+| Key               | Name                    | Permissions           | Everyone |
+| ----------------- | ----------------------- | --------------------- | -------- |
+| `assistant-user`  | Assistant user          | `assistant.agent.use` | —        |
+| `assistant-admin` | Assistant administrator | `assistant.*`         | —        |
+
+### Events emitted
+
+| Event                              | Payload                                                             | Description                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `assistant.change-set.created`     | changeSetId: string, reference: string, title: string, kinds: array | —                                                                            |
+| `assistant.change-set.submitted`   | changeSetId: string, reference: string, title: string, kinds: array | A review was requested                                                       |
+| `assistant.change-set.applied`     | changeSetId: string, reference: string, title: string, kinds: array | Every change was applied in one transaction                                  |
+| `assistant.change-set.returned`    | changeSetId: string, reference: string, title: string, kinds: array | The review was rejected, or applying it after approval failed: back to draft |
+| `assistant.change-set.rolled_back` | changeSetId: string, reference: string, title: string, kinds: array | —                                                                            |
+| `assistant.change-set.discarded`   | changeSetId: string, reference: string, title: string, kinds: array | —                                                                            |
+
+### Workflow triggers
+
+| Trigger                | Subject    | Required | Facts                                                                                |
+| ---------------------- | ---------- | -------- | ------------------------------------------------------------------------------------ |
+| `assistant.change-set` | change-set | yes      | kinds: array, modules: array, itemCount: number, destructive: boolean, title: string |
+
+### Notifications
+
+| Type                               | Default channels | Mandatory |
+| ---------------------------------- | ---------------- | --------- |
+| `assistant.change-set.applied`     | inApp, email     | —         |
+| `assistant.change-set.returned`    | inApp, email     | —         |
+| `assistant.change-set.rolled-back` | inApp, email     | —         |
+
+### AI tools
+
+| Tool                            | Permission            | Kind        | Input                                                                                                                          |
+| ------------------------------- | --------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `assistant.list_kinds`          | `assistant.agent.use` | read-only   | —                                                                                                                              |
+| `assistant.describe_kind`       | `assistant.agent.use` | read-only   | kind: string                                                                                                                   |
+| `assistant.list_objects`        | `assistant.agent.use` | read-only   | kind: string, query?: string, limit: integer, includeArchived: boolean                                                         |
+| `assistant.get_object`          | `assistant.agent.use` | read-only   | kind: string, id: string                                                                                                       |
+| `assistant.propose_change`      | `assistant.agent.use` | —           | changeSetId?: string, ref?: string, kind: string, op: string, targetId?: string, label?: string, value?: object, note?: string |
+| `assistant.remove_change`       | `assistant.agent.use` | —           | changeSetId: string, item: string                                                                                              |
+| `assistant.get_change_set`      | `assistant.agent.use` | read-only   | changeSetId: string                                                                                                            |
+| `assistant.apply_change_set`    | `assistant.agent.use` | destructive | changeSetId: string                                                                                                            |
+| `assistant.rollback_change_set` | `assistant.agent.use` | destructive | changeSetId: string, reason?: string                                                                                           |
+| `assistant.request_review`      | `assistant.agent.use` | —           | changeSetId: string, note?: string                                                                                             |
+| `assistant.update_change_set`   | `assistant.agent.use` | —           | changeSetId: string, title?: string, summary?: string                                                                          |
+
+### Settings
+
+| Key             | Type   | Default | Label                 |
+| --------------- | ------ | ------- | --------------------- |
+| `maxToolRounds` | number | `12`    | Tool calls per answer |
+
+### Navigation
+
+| Label       | Path                     | Section | Group | Order | Permission            |
+| ----------- | ------------------------ | ------- | ----- | ----- | --------------------- |
+| Change sets | `/assistant/change-sets` | admin   | —     | 5     | `assistant.agent.use` |
+
+### Web routes
+
+| Path                         | Permission            |
+| ---------------------------- | --------------------- |
+| `/assistant`                 | `assistant.agent.use` |
+| `/assistant/change-sets`     | `assistant.agent.use` |
+| `/assistant/change-sets/:id` | `assistant.agent.use` |
+
+### Slots contributed
+
+| Slot                | Permission            |
+| ------------------- | --------------------- |
+| `core.shell.header` | `assistant.agent.use` |
 
 ## `azdo` — Azure DevOps Server (on-premises)
 
@@ -611,11 +729,11 @@ Configuration items, how they relate and what an outage would impact
 
 ### AI tools
 
-| Tool              | Permission      | Destructive | Input                                            |
-| ----------------- | --------------- | ----------- | ------------------------------------------------ |
-| `cmdb.find_cis`   | `cmdb.cis.read` | —           | query: string, classKey?: string, limit: integer |
-| `cmdb.get_ci`     | `cmdb.cis.read` | —           | id?: string, number?: string                     |
-| `cmdb.get_impact` | `cmdb.cis.read` | —           | ciId: string, depth: integer                     |
+| Tool              | Permission      | Kind      | Input                                            |
+| ----------------- | --------------- | --------- | ------------------------------------------------ |
+| `cmdb.find_cis`   | `cmdb.cis.read` | read-only | query: string, classKey?: string, limit: integer |
+| `cmdb.get_ci`     | `cmdb.cis.read` | read-only | id?: string, number?: string                     |
+| `cmdb.get_impact` | `cmdb.cis.read` | read-only | ciId: string, depth: integer                     |
 
 ### Navigation
 
@@ -709,10 +827,10 @@ Request database roles on SQL Server, Oracle and PostgreSQL: approval, automated
 
 ### AI tools
 
-| Tool                      | Permission              | Destructive | Input                                               |
+| Tool                      | Permission              | Kind        | Input                                               |
 | ------------------------- | ----------------------- | ----------- | --------------------------------------------------- |
-| `dbaccess.list_my_access` | `dbaccess.self.request` | —           | includeEnded: boolean                               |
-| `dbaccess.request_access` | `dbaccess.self.request` | yes         | role: string, server?: string, expiresOn?: string\\ | null, justification: string |
+| `dbaccess.list_my_access` | `dbaccess.self.request` | read-only   | includeEnded: boolean                               |
+| `dbaccess.request_access` | `dbaccess.self.request` | destructive | role: string, server?: string, expiresOn?: string\\ | null, justification: string |
 
 ### Settings
 
@@ -832,10 +950,10 @@ REST endpoints from parameterized SQL and stored procedures, and ETL pipelines b
 
 ### AI tools
 
-| Tool                 | Permission           | Destructive | Input                          |
+| Tool                 | Permission           | Kind        | Input                          |
 | -------------------- | -------------------- | ----------- | ------------------------------ |
-| `etl.list_endpoints` | `etl.endpoints.read` | —           | query?: string, limit: integer |
-| `etl.run_pipeline`   | `etl.pipelines.run`  | yes         | pipeline: string               |
+| `etl.list_endpoints` | `etl.endpoints.read` | read-only   | query?: string, limit: integer |
+| `etl.run_pipeline`   | `etl.pipelines.run`  | destructive | pipeline: string               |
 
 ### Settings
 
@@ -1115,13 +1233,13 @@ Hardware, software licences, contracts and vendors
 
 ### AI tools
 
-| Tool                      | Permission            | Destructive | Input                                                              |
-| ------------------------- | --------------------- | ----------- | ------------------------------------------------------------------ |
-| `itam.find_assets`        | `itam.hardware.read`  | —           | query?: string, assignee?: string, status?: string, limit: integer |
-| `itam.get_asset`          | `itam.hardware.read`  | —           | id?: string, reference?: string, serial?: string                   |
-| `itam.my_assets`          | `itam.self.read`      | —           | —                                                                  |
-| `itam.license_compliance` | `itam.software.read`  | —           | product?: string                                                   |
-| `itam.expiring_contracts` | `itam.contracts.read` | —           | days: integer                                                      |
+| Tool                      | Permission            | Kind      | Input                                                              |
+| ------------------------- | --------------------- | --------- | ------------------------------------------------------------------ |
+| `itam.find_assets`        | `itam.hardware.read`  | read-only | query?: string, assignee?: string, status?: string, limit: integer |
+| `itam.get_asset`          | `itam.hardware.read`  | read-only | id?: string, reference?: string, serial?: string                   |
+| `itam.my_assets`          | `itam.self.read`      | read-only | —                                                                  |
+| `itam.license_compliance` | `itam.software.read`  | read-only | product?: string                                                   |
+| `itam.expiring_contracts` | `itam.contracts.read` | read-only | days: integer                                                      |
 
 ### Settings
 
@@ -1274,16 +1392,16 @@ Incidents, service requests, problems and changes with SLAs
 
 ### AI tools
 
-| Tool                      | Permission            | Destructive | Input                                                                                                                                                                                    |
+| Tool                      | Permission            | Kind        | Input                                                                                                                                                                                    |
 | ------------------------- | --------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `itsm.find_tickets`       | `itsm.tickets.read`   | —           | query?: string, status: string, type?: string, limit: integer                                                                                                                            |
-| `itsm.get_ticket`         | `itsm.tickets.read`   | —           | id?: string, reference?: string                                                                                                                                                          |
-| `itsm.my_tickets`         | `itsm.tickets.create` | —           | status: string, limit: integer                                                                                                                                                           |
+| `itsm.find_tickets`       | `itsm.tickets.read`   | read-only   | query?: string, status: string, type?: string, limit: integer                                                                                                                            |
+| `itsm.get_ticket`         | `itsm.tickets.read`   | read-only   | id?: string, reference?: string                                                                                                                                                          |
+| `itsm.my_tickets`         | `itsm.tickets.create` | read-only   | status: string, limit: integer                                                                                                                                                           |
 | `itsm.create_ticket`      | `itsm.tickets.create` | —           | type: string, title: string, description: string, urgency?: integer, categoryId?: string, ciIds?: array, channel: string                                                                 |
 | `itsm.add_comment`        | `itsm.tickets.create` | —           | ticketId: string, body: string, public: boolean                                                                                                                                          |
-| `itsm.get_triage_options` | `itsm.tickets.triage` | —           | —                                                                                                                                                                                        |
+| `itsm.get_triage_options` | `itsm.tickets.triage` | read-only   | —                                                                                                                                                                                        |
 | `itsm.triage_ticket`      | `itsm.tickets.triage` | —           | ticketId: string, categoryId?: string, impact?: integer, urgency?: integer, assignmentGroupId?: string, assigneeId?: string, onlyEmpty: boolean, confidence?: number, rationale?: string |
-| `itsm.resolve_ticket`     | `itsm.tickets.work`   | yes         | ticketId: string, resolutionCode: string, resolutionNotes: string                                                                                                                        |
+| `itsm.resolve_ticket`     | `itsm.tickets.work`   | destructive | ticketId: string, resolutionCode: string, resolutionNotes: string                                                                                                                        |
 
 ### Settings
 
@@ -1407,11 +1525,11 @@ Answers and how-to guides for everyone, troubleshooting guides for the service d
 
 ### AI tools
 
-| Tool                        | Permission                 | Destructive | Input                                                                                                                                |
-| --------------------------- | -------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `knowledge.search_articles` | `knowledge.articles.read`  | —           | query: string, limit: integer, locale?: string                                                                                       |
-| `knowledge.get_article`     | `knowledge.articles.read`  | —           | id?: string, reference?: string                                                                                                      |
-| `knowledge.create_draft`    | `knowledge.articles.write` | —           | title: string, summary?: string, body: string, categoryKey?: string, tags?: array, locale: string, audience: string, source?: object |
+| Tool                        | Permission                 | Kind      | Input                                                                                                                                |
+| --------------------------- | -------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `knowledge.search_articles` | `knowledge.articles.read`  | read-only | query: string, limit: integer, locale?: string                                                                                       |
+| `knowledge.get_article`     | `knowledge.articles.read`  | read-only | id?: string, reference?: string                                                                                                      |
+| `knowledge.create_draft`    | `knowledge.articles.write` | —         | title: string, summary?: string, body: string, categoryKey?: string, tags?: array, locale: string, audience: string, source?: object |
 
 ### Settings
 
@@ -1530,13 +1648,13 @@ Projects, tasks, milestones, boards, timelines and workload
 
 ### AI tools
 
-| Tool                          | Permission              | Destructive | Input                                                                                                             |
-| ----------------------------- | ----------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------- |
-| `projects.my_tasks`           | `projects.projects.use` | —           | status: string                                                                                                    |
-| `projects.find_tasks`         | `projects.projects.use` | —           | query?: string, project?: string, assignee?: string, status?: string\\                                            | string, limit: integer |
-| `projects.create_task`        | `projects.projects.use` | —           | project: string, title: string, description?: string, assigneeEmail?: string, dueDate?: string, priority?: string |
-| `projects.update_task_status` | `projects.projects.use` | —           | task: string, status: string, comment?: string                                                                    |
-| `projects.project_status`     | `projects.projects.use` | —           | project: string                                                                                                   |
+| Tool                          | Permission              | Kind      | Input                                                                                                             |
+| ----------------------------- | ----------------------- | --------- | ----------------------------------------------------------------------------------------------------------------- |
+| `projects.my_tasks`           | `projects.projects.use` | read-only | status: string                                                                                                    |
+| `projects.find_tasks`         | `projects.projects.use` | read-only | query?: string, project?: string, assignee?: string, status?: string\\                                            | string, limit: integer |
+| `projects.create_task`        | `projects.projects.use` | —         | project: string, title: string, description?: string, assigneeEmail?: string, dueDate?: string, priority?: string |
+| `projects.update_task_status` | `projects.projects.use` | —         | task: string, status: string, comment?: string                                                                    |
+| `projects.project_status`     | `projects.projects.use` | read-only | project: string                                                                                                   |
 
 ### Settings
 
@@ -1642,10 +1760,10 @@ HTTP calls, SQL tasks, sandboxed scripts and module tasks on a schedule, with re
 
 ### AI tools
 
-| Tool                  | Permission            | Destructive | Input                                           |
+| Tool                  | Permission            | Kind        | Input                                           |
 | --------------------- | --------------------- | ----------- | ----------------------------------------------- |
-| `scheduler.list_jobs` | `scheduler.jobs.read` | —           | query?: string, status?: string, limit: integer |
-| `scheduler.run_job`   | `scheduler.jobs.run`  | yes         | job: string                                     |
+| `scheduler.list_jobs` | `scheduler.jobs.read` | read-only   | query?: string, status?: string, limit: integer |
+| `scheduler.run_job`   | `scheduler.jobs.run`  | destructive | job: string                                     |
 
 ### Settings
 

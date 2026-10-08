@@ -1,10 +1,10 @@
 # IS Big Platform — Architecture
 
-> Status: Phase 5 (Integrations Hub) done, on top of Phase 4 (Data APIs and ETL, Scheduled Jobs, Database
-> access), Phase 3 (Asset Management, Project Management, Application Lifecycle, record links and attachments),
-> Phase 2 (ITSM, CMDB, Knowledge Base, Helpdesk AI and the AI gateway), Phase 1 (workflows, forms, notifications,
-> access requests, Role Query API) and the Phase 0 foundation. Phase 6 (AI Agent) is next. This document is the
-> design baseline that later phases extend.
+> Status: Phase 6 (AI Agent) done, on top of Phase 5 (Integrations Hub), Phase 4 (Data APIs and ETL, Scheduled
+> Jobs, Database access), Phase 3 (Asset Management, Project Management, Application Lifecycle, record links and
+> attachments), Phase 2 (ITSM, CMDB, Knowledge Base, Helpdesk AI and the AI gateway), Phase 1 (workflows, forms,
+> notifications, access requests, Role Query API) and the Phase 0 foundation. This document is the design baseline
+> that later phases extend.
 
 ## 1. Shape of the system
 
@@ -412,15 +412,15 @@ labels for its audit actions. See [module-development.md](module-development.md)
 
 ## 7. Delivery phases
 
-| Phase                     | Scope                                                                                                                                                                                                                                                                      |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0 – Foundation** (done) | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI                                  |
-| **1** (done)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                                                 |
-| **2** (done)              | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                                                      |
-| **3** (done)              | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                                                                                                                 |
-| **4** (done)              | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                                                               |
-| **5** (done)              | Integrations Hub: two-way sync with on-premises ManageEngine ServiceDesk Plus and Azure DevOps Server (§12)                                                                                                                                                                |
-| 6 – AI Agent              | AI agents that customise the platform from a conversation (approval workflows, forms, custom fields, notifications, roles, scheduled jobs, Data APIs, sync mappings) as drafts a person reviews and applies; the assistant on every page; an MCP server for outside agents |
+| Phase                     | Scope                                                                                                                                                                                                                                                     |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0 – Foundation** (done) | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI                 |
+| **1** (done)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                                |
+| **2** (done)              | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                                     |
+| **3** (done)              | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                                                                                                |
+| **4** (done)              | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                                              |
+| **5** (done)              | Integrations Hub: two-way sync with on-premises ManageEngine ServiceDesk Plus and Azure DevOps Server (§12)                                                                                                                                               |
+| **6** (done)              | AI Agent: a built-in agent on every page that works through the platform's own MCP tools as the person, customisation kinds in 13 surfaces, change sets (dry run, apply on confirmation or review, rollback), and the MCP server for outside agents (§13) |
 
 ## 8. Phase 1 design: workflows, forms, notifications, access requests, Role Query API
 
@@ -1633,29 +1633,209 @@ recorded). Approvals are never filled in. ALM's `branches` and `pullRequests` fo
 | 56  | Directions on value-map rows                                                                    | Real systems map several values to one in one direction ("Resolved" for incidents and service requests); ambiguity is still refused per direction               | One value map per direction; free-form scripts                               |
 | 57  | The snapshot keeps what the module stored, read back in the sync's transaction                  | Module normalizations don't bounce back to the other system as fake changes                                                                                     | Snapshotting what was sent; module-specific echo filters                     |
 
-## 13. Phase 6 outline: AI Agent (customise the platform from a conversation)
+## 13. Phase 6 design: AI Agent (customise the platform from a conversation)
 
-> An outline, so earlier phases keep it in mind. The detailed design is written when Phase 6 starts.
+People describe what they want ("laptop requests over 60 000 TWD go to the department head, then IT asset
+management"), and an agent builds it with the same configuration surfaces an administrator uses. The platform has its
+**own built-in agent** — nobody needs an outside tool — and it works through the platform's own MCP plumbing, the
+same tools outside agents get. Configuration changes are **change sets**: the built-in agent can apply one itself, but
+only with the permissions of the person it works for and after that person confirms it; a person without the
+permissions requests a review instead. Every applied change can be rolled back. The work splits along ownership again:
 
-People describe what they want ("approvals for laptop requests over 60 000 TWD go to the department head, then
-IT asset management"), and an agent builds it with the same configuration surfaces an administrator uses. Nothing
-the agent makes is live until a person with the right permissions reviews and applies it.
+| Piece                                             | Owner                            | What it does                                                                                                          |
+| ------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Customisation kinds** (`ctx.customizations`)    | the module that owns the surface | Describe a configurable surface (schema, guide, live reference data), list and read objects, check and apply changes  |
+| **Change sets and the assistant** (`assistant`)   | module `assistant`               | The built-in agent (chat panel, guided templates), change sets: dry runs, diffs, previews, apply / review / roll back |
+| **MCP server** (`ctx.ai.mcp`, `POST /api/v1/mcp`) | core                             | One tool surface: in-process sessions for the built-in agent, Streamable HTTP for outside agents (Claude Code, IDEs)  |
 
-- **Customisation tools.** Every configurable surface gets AI tools in the registry (§9.1), owned by the module
-  that owns the surface: approval workflows and their graphs, forms and custom fields, notification rules, roles and
-  permissions (within what the requester holds), portal entries, scheduled jobs, Data APIs and pipelines, sync
-  profiles and mappings, dashboards and saved views. Tools validate with the same Zod schemas and services as the
-  admin pages, so an agent can't produce what the UI would refuse.
-- **Drafts, preview and apply.** The agent's output is a **change set**: a draft per object, shown as a readable
-  diff and a live preview (the workflow builder's simulator, a form preview, a dry run of a sync profile). Applying
-  is one audited transaction by a person; every change set can be rolled back. Destructive steps keep the
-  registry's confirmation rule.
-- **Who the agent acts as.** In a conversation it acts as the signed-in person, with their permissions; it can
-  propose more than they may apply, and routes the rest to someone who can (an approval of the change set).
-- **Where it lives.** An assistant panel on every page that knows the page's context (the record, the list filter,
-  the form being edited), and an **MCP server** that exposes the same tools and resources to outside agents
-  (Claude Code, Claude Desktop, IDEs) with API-client authentication and the same permission checks.
-- **Grounding.** The agent reads the platform's own extension-point reference (manifests, field catalogues,
-  existing workflows) through tools, not from training data, and the semantic index for organisation knowledge.
-- **Builtin mode.** Without a chat model, the panel offers guided templates instead of free text (consistent with
-  §9.1's "every feature has a builtin mode").
+```mermaid
+flowchart LR
+  subgraph People
+    U["Person in ISBP<br/>(assistant panel)"]
+    X["Outside agent<br/>(MCP, API client)"]
+    R["Reviewer<br/>(approval inbox)"]
+  end
+  subgraph AS["assistant"]
+    C["Conversation<br/>tool loop"]
+    CS[("change sets<br/>items · dry runs")]
+  end
+  subgraph K["Kernel"]
+    T["Tool registry<br/>(ctx.ai.tools)"]
+    CZ["Customisation kinds<br/>(ctx.customizations)"]
+    WF["Workflow engine"]
+  end
+  subgraph M["Owning modules"]
+    CO["core: workflow · form · custom field<br/>role · notification channel · settings"]
+    MO["scheduler.job · etl.pipeline · etl.endpoint<br/>integrations.profile · itsm.category<br/>itsm.sla-policy · itsm.catalog-item"]
+  end
+  U --> C -- "ctx.ai.mcp (in-process)" --> T
+  X -- "MCP over HTTP (2026-07-28, legacy initialize)" --> T
+  U -. "confirms apply" .-> C
+  T -- "assistant.propose_change" --> CS
+  CS -- "dry run · apply · roll back (one tx)" --> CZ --> CO & MO
+  CS -- "request review" --> WF --> R
+  R -- "approve = apply as the approver" --> CS
+```
+
+### 13.1 Customisation kinds (kernel, `ctx.customizations`)
+
+- **Declaration.** `manifest.customizations: [{ kind, label, description, icon?, readPermission, applyPermission,
+operations? }]`; the full kind is `<module>.<kind>` (`core.workflow`). `operations` is a subset of `create`,
+  `update`, `archive`, `delete` (default `update`). A kind that can create must also archive or delete, so a rollback
+  can always undo a create. `archive` means whatever the surface calls disabling (archived, inactive, disabled); the
+  flag is never part of the value.
+- **Handler.** `defineServerModule({ customizations: { [kind]: CustomizationHandler } })`:
+  - `schema`: the full value of an object — what `create` takes and `update` replaces. Built from the admin API's
+    Zod schemas, with `.describe()` texts for models. `get(id).value` round-trips: applying it as an update changes
+    nothing.
+  - `guide(ctx, auth)`: instructions for models, live reference data (triggers and their facts, task types and their
+    config schemas, groups, permissions) and worked examples. The agent reads the platform through this, never from
+    training data.
+  - `list`, `get` (as the caller), `check` (references, uniqueness, immutable fields; never writes).
+  - `apply({ op, id, value }, ctx, auth)`: writes with the module's own services. Its `ctx` is **bound to the
+    change set's transaction** (`ctx.db`, `ctx.transaction` → savepoints, audit entries default to that `tx`, carry
+    the change set in their metadata and the applying person as principal). `apply` must stay transactional: no
+    outside calls, follow-up work through events.
+  - `templates`: guided templates for builtin mode (questions as `FieldDef`s with live options → a value).
+- **Service.** `ctx.customizations.kinds(auth)`, `describe`, `list`, `get` (with `version`, a hash of value and
+  archived flag), `validate`, `apply(kind, change & { baseVersion? }, { auth, tx, source?, dryRun? })`,
+  `templateFields`, `buildTemplate`. Reading needs the kind's `readPermission` at any scope; applying needs its
+  `applyPermission` globally. With `baseVersion`, an object that changed since the proposal fails with
+  `409 CHANGE_SET_STALE`. A **dry run** assumes the kind's `applyPermission` (the services' own checks, such as the
+  privilege-escalation guard, still run against the proposer) inside a transaction the caller rolls back.
+
+| Kind                        | Value (summary)                                                         | Operations                      | Apply                                                                  |
+| --------------------------- | ----------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------- |
+| `core.workflow`             | name, description, trigger, graph, isDefault                            | create, update, archive         | save the draft, publish a new version, bind to the trigger             |
+| `core.form`                 | key, name, description, icon, category, form schema, workflow, audience | create, update, archive         | save the draft and publish                                             |
+| `core.custom-field`         | entity type, field definition                                           | create, update, archive         | live on save (key and type are fixed after creation)                   |
+| `core.role`                 | key, name, description, permission patterns                             | create, update, delete          | live; escalation guard: only permissions the applying person holds     |
+| `core.notification-channel` | name, notification type patterns, locale (never the webhook URL)        | update                          | live                                                                   |
+| `core.module-settings`      | a module's setting values (no secrets, no AI provider settings)         | update                          | live                                                                   |
+| `scheduler.job`             | the job form: type, config, trigger, retries, alerts                    | create, update, archive, delete | live; archive disables                                                 |
+| `etl.pipeline`              | source, incremental column, target, mappings                            | create, update, archive, delete | live; archive disables                                                 |
+| `etl.endpoint`              | name, slug, description, definition, allowed callers, rate limit        | create, update, delete          | **saves the draft only**: a person tests and publishes it in Data APIs |
+| `integrations.profile`      | object, scope, entity, direction, match rule, mappings, conflict policy | create, update, archive, delete | live; archive disables                                                 |
+| `itsm.category`             | key, name, ticket types, default group                                  | create, update, archive         | live; archive deactivates                                              |
+| `itsm.sla-policy`           | ticket types, condition, targets per priority, calendar                 | create, update, archive         | live; archive deactivates                                              |
+| `itsm.catalog-item`         | form key, category, group, priority, fulfil on                          | create, update, delete          | live                                                                   |
+
+Portal cards come from module manifests (published forms are the admin-editable part, covered by `core.form`), and
+there are no admin notification rules, dashboards or saved views to customise yet: the kinds cover what exists.
+
+### 13.2 Change sets (module `assistant`, schema `assistant`)
+
+```mermaid
+stateDiagram-v2
+  [*] --> draft
+  draft --> in_review: request review
+  in_review --> draft: rejected · withdrawn · apply failed
+  draft --> applied: apply (person with the permissions)
+  in_review --> applied: approved (applied as the approver)
+  applied --> rolled_back: roll back
+  draft --> discarded
+```
+
+- **Data.** `change_sets` (number `CS-n`, title, summary, status, creator — a user or an API client —, conversation,
+  workflow instance, applied/rolled-back by and when, last error) and `change_set_items` (position, `ref`, kind, op,
+  target id, label, value, base version, dry-run result, applied id, before/after snapshots and the after version).
+- **Proposing.** People add items from the panel or a template; agents through `assistant.propose_change`. An item
+  with the same `ref` replaces the earlier one. Proposing needs `assistant.agent.use` and the kind's `readPermission`. The
+  base version of the target is captured when it is proposed.
+- **References.** An item may name a `ref`, and later items may use the string `"$ref:<ref>"` wherever an id goes (a
+  form's workflow, a catalog item's form key). At dry run and apply time it becomes the referenced item's id.
+- **Dry run.** After every edit the whole set runs in one transaction that is rolled back: each item in a savepoint,
+  as the proposer with each kind's apply permission assumed. Each item records `ok`, or the error code, message and
+  issues; an item that fails only for the proposer's own permissions (`PRIVILEGE_ESCALATION`, a service's `403`) is
+  marked as needing a reviewer who holds them. The UI and the agent see the same results.
+- **Applying** is one transaction by a person who holds every kind's `applyPermission` (from the change set page, or
+  by confirming the built-in agent's request in the panel): items in order, base versions
+  checked, `archive`/`delete` items only with an explicit confirmation. It records each item's before and after
+  snapshot, audits `assistant.change-set.applied` (every module entry carries the change set as its source) and
+  publishes `assistant.change-set.applied`.
+- **Review.** Someone who may not (or would rather not) apply alone requests a review: the required workflow trigger
+  `assistant.change-set` (facts: kinds, modules, item count, destructive) starts, by default one approval by a
+  platform administrator. Admins can bind their own workflow, e.g. role changes to identity administrators. When the
+  instance is approved, the change set is applied **as the approver** (`ctx.rbac.authFor`, their own permissions,
+  checked at that moment); if that fails, or the decision was automatic, it goes back to draft with the error and the
+  requester is notified. Approvers can open the change set from their inbox (`ctx.workflows.isApprover`).
+- **Rollback** is one transaction too, in reverse order: an update goes back to its before value, an archive is
+  restored, a create is deleted (or archived when the kind cannot delete). Every object must still be at the version
+  the change set left it in; otherwise it is refused with `CHANGE_SET_STALE`, naming the objects.
+- **Visibility.** The creator, anyone with `assistant.change-sets.read`, and the approvers of its review.
+
+### 13.3 The assistant (the built-in agent)
+
+- **Panel on every page.** The shell hosts the header slot `core.shell.header`; the assistant contributes a button
+  and a side panel. The panel knows the page: path, title, and the record on it — record pages already host
+  `core.record.links`, which reports its record to the shell's page context (`usePageRecord`, `usePageContext` in
+  `@isbp/sdk/web`), so no module had to change.
+- **Its own MCP plumbing.** The agent is an in-process client of the platform's MCP server: `ctx.ai.mcp(auth, {
+includeDestructive: true })` lists and calls exactly the tools an outside agent gets (same names, schemas,
+  annotations, checks and audit — `via: assistant`), as the signed-in person. So it edits directly: tickets,
+  comments, tasks, knowledge drafts, triage — whatever the person may do — and builds change sets for configuration.
+- **Turns.** `POST /assistant/conversations/:id/messages` streams Server-Sent Events (`delta`, `tool`, `change_set`,
+  `confirm`, `done`, `error`) from a bounded tool loop. The conversation's change set is injected into the
+  change-set tools, so a conversation builds one change set at a time.
+- **Confirmations.** Destructive tools — `assistant.apply_change_set`, `assistant.rollback_change_set` and any
+  module tool marked `destructive` — never run on the model's word. The call becomes a confirmation card (`confirm`
+  event: what will happen, in the person's language). `POST /assistant/conversations/:id/confirmations/:toolCallId`
+  with `{ approve }` runs it as the person (or not) and records the outcome in the conversation. A confirmation
+  expires when the person sends another message. Applying still needs every kind's apply permission; someone who
+  lacks one asks the agent to `assistant.request_review` instead.
+- **Builtin mode.** Without a chat model, the panel offers the kinds' guided templates instead of free text, and says
+  which mode it is in. A template's answers become an item in a change set, which then follows the same path.
+- **Usage.** Calls go through `ctx.ai` (masking, usage per feature `assistant.chat`, budget).
+
+### 13.4 MCP server (core, `POST /api/v1/mcp`)
+
+- **Protocol.** Streamable HTTP, JSON responses, no sessions. **Dual-era**: requests carrying
+  `_meta["io.modelcontextprotocol/protocolVersion"]` are served statelessly per revision `2026-07-28`
+  (`server/discover`; `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers validated against the body, `-32020`
+  on mismatch, `-32022` with the supported versions, `resultType`, `ttlMs`/`cacheScope`); an `initialize` request
+  selects legacy semantics (`2025-11-25`, `2025-06-18`, `2025-03-26`) without minting a session id. `GET` and `DELETE`
+  answer `405`. A present `Origin` other than the web app's is refused with `403`.
+- **Authentication.** API clients only (API key or OAuth client-credentials token), holding `core.mcp.use`. Every
+  call runs with the client's own grants and is audited as `core.ai.tool_invoked` with `via: mcp`.
+- **Tools.** Every non-destructive registry tool the client may use, named `<module>__<tool>`, in a deterministic
+  order, with `readOnlyHint`/`destructiveHint` annotations. Destructive tools (applying a change set among them) need
+  a person's confirmation in ISBP and are not offered: an outside agent proposes and requests reviews. Tool errors
+  come back as results with `isError` and the platform error code.
+- **One implementation.** The HTTP endpoint and `ctx.ai.mcp` sessions share the same code (`McpServer.session`), so
+  the built-in agent and outside agents can't drift apart.
+- **Resources.** `isbp://customizations` (the kinds the client may read) and the templates
+  `isbp://customizations/{kind}` (schema and guide) and `isbp://customizations/{kind}/{id}` (an object with its
+  version). Change sets are built with the assistant's tools, which return the change set's link for a person.
+
+### 13.5 Web
+
+- Change sets: a list (`/assistant/change-sets`) and a page per set with its items, a readable diff of each item
+  (current → proposed), dry-run results, the kind's **preview** (slot `assistant.preview.<module>.<kind>`: the
+  workflow diagram with the builder's simulator, the form preview, a sync profile dry run, a job's next run times),
+  and the actions the viewer may take (apply, request review, withdraw, roll back, discard).
+- Administration → AI gains **Outside agents (MCP)**: the endpoint, which API clients may use it, and how to connect
+  Claude Code (`claude mcp add --transport http …`).
+
+### 13.6 Demo data and tests
+
+- The seed grants `assistant-user` to the IT groups, `assistant-admin` to IT administrators and the core
+  `configuration-viewer` role to the service desk (who can then propose changes they can't apply). It leaves three
+  change sets: one applied (the laptop-request workflow, form and catalog item), one in review (a custom field on
+  tickets, waiting in the admin's approval inbox) and one draft (an approval workflow for knowledge articles). A demo
+  API client may use MCP; its key is printed once by the seed.
+- Tests: kernel kinds and MCP protocol (unit); every kind applied, rolled back and refused when stale, change sets
+  with references, reviews applied as the approver, MCP over HTTP with an API key (integration); the panel in builtin
+  mode and with a scripted model from `tooling/integration-mocks` (e2e).
+
+### 13.7 Phase 6 decisions
+
+| #   | Decision                                                                                               | Why                                                                                                                                                                                                | Alternatives considered                                                                                                         |
+| --- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 58  | Customisation kinds owned by the module that owns the surface, built on its admin schemas and services | An agent can't produce what the admin UI would refuse; a new module makes itself customisable with one handler                                                                                     | One generic tool per admin endpoint; letting the model call the REST API                                                        |
+| 59  | Change sets: drafts applied in one transaction by a person, with snapshots for rollback                | Nothing an agent makes is live without a person; partial application is impossible; mistakes are one click to undo                                                                                 | Applying each tool call directly with a confirmation; per-object undo                                                           |
+| 60  | Dry runs in a rolled-back transaction, with each kind's apply permission assumed                       | The proposer and the agent see exactly what applying would do, including cross-item references, before anyone with the permissions looks                                                           | Schema validation only; dry runs only for people who may apply                                                                  |
+| 61  | Reviews through the workflow engine; approval applies as the approver                                  | Routing, SLAs, delegation and the inbox come for free; the change is made with the permissions of a person who approved it                                                                         | A separate review queue; applying as a service account                                                                          |
+| 62  | Object versions are hashes of the value                                                                | Concurrent edits are detected for every kind without a version column in each module                                                                                                               | `updated_at` comparisons; locking objects while a change set is open                                                            |
+| 63  | MCP for API clients only, dual-era (2026-07-28 and initialize-based revisions)                         | Outside agents get the same tools and checks as the platform's own; current clients and older ones both work; no session state to scale                                                            | A separate MCP gateway; per-user tokens; supporting only one protocol era                                                       |
+| 64  | Destructive tools are not offered over MCP                                                             | They need a person's confirmation in ISBP, which an outside agent can't give on the person's behalf                                                                                                | Trusting the client's own confirmation prompt                                                                                   |
+| 65  | A built-in agent on the platform's own MCP plumbing, applying only after the person confirms           | Nobody needs an outside tool; the built-in and outside agents share one surface and one set of checks; "edit directly" stays a person's decision with their permissions, and rollback is one click | Propose-only in-app agent (needs a second step elsewhere); auto-apply (an injected instruction could change live configuration) |

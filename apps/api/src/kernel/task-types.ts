@@ -1,6 +1,8 @@
 import {
   type AuthContext,
+  type Db,
   ErrorCodes,
+  type ModuleContext,
   HttpError,
   type ServerModule,
   type TaskOutcome,
@@ -52,6 +54,12 @@ export class TaskTypeRegistry {
     return parsed.data;
   }
 
+  /** The type's module context, reading through `db` when the caller is inside a transaction. */
+  private context(e: Entry, db?: Db): ModuleContext {
+    const ctx = this.registry.context(e.moduleId);
+    return db ? { ...ctx, db, transaction: (fn) => db.transaction((t) => fn(t as unknown as Db)) } : ctx;
+  }
+
   service(): TaskTypesService {
     return {
       list: (auth?: AuthContext): TaskTypeInfo[] =>
@@ -70,21 +78,21 @@ export class TaskTypeRegistry {
               configSchema: this.schemas.get(e.type),
             };
           }),
-      validate: async (type, config, auth) => {
+      validate: async (type, config, auth, opts) => {
         const e = this.entry(type);
         if (!reaches(auth, e.def.permission))
           throw new HttpError(403, ErrorCodes.FORBIDDEN, `Creating ${type} jobs needs ${e.def.permission}`, {
             permission: e.def.permission,
           });
         const parsed = this.parse(e, config);
-        await e.handler.validate?.(parsed, this.registry.context(e.moduleId), auth);
+        await e.handler.validate?.(parsed, this.context(e, opts?.db), auth);
         return parsed;
       },
-      describe: async (type, config) => {
+      describe: async (type, config, opts) => {
         const e = this.entries.get(type);
         if (!e) return { label: type, href: null };
         try {
-          const d = await e.handler.describe?.(this.parse(e, config), this.registry.context(e.moduleId));
+          const d = await e.handler.describe?.(this.parse(e, config), this.context(e, opts?.db));
           return { label: d?.label ?? e.def.name, href: d?.href ?? null };
         } catch {
           return { label: e.def.name, href: null };

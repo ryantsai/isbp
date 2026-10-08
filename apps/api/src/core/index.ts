@@ -4,6 +4,8 @@ import { and, eq, ilike, isNotNull, or } from 'drizzle-orm';
 import { z } from 'zod';
 import type { DeliveryEvent } from '../kernel/notifications/service';
 import { moduleQueueName } from '../kernel/queues';
+import { customizations } from './customizations';
+import { catalogText } from './customizations/shared';
 import { getKernel } from './kernel-ref';
 import { coreManifest } from './manifest';
 import { accessRoutes } from './routes/access';
@@ -169,7 +171,15 @@ export const coreModule = defineServerModule(coreManifest, {
     'core.notification.created': async (event) => {
       await getKernel().notifications.deliver(event.payload as DeliveryEvent);
     },
+    /**
+     * The role service refreshes cached permissions as soon as it writes, which can be before a change set's
+     * transaction commits; refreshing again once the change is committed closes that window.
+     */
+    'core.role.updated': async () => getKernel().rbac.bump(),
+    'core.role.deleted': async () => getKernel().rbac.bump(),
   },
+
+  customizations,
 
   jobs: {
     'workflow-timers': {
@@ -265,6 +275,72 @@ export const coreModule = defineServerModule(coreManifest, {
     'core.explain_access': async (input, ctx) => {
       const { userId } = z.object({ userId: z.uuid() }).parse(input);
       return new AccessService(ctx).effectivePermissions(userId);
+    },
+    'core.find_groups': async (input, ctx) => {
+      const { query, limit } = z
+        .object({ query: z.string().optional(), limit: z.number().default(25) })
+        .parse(input);
+      const { items } = await new DirectoryService(ctx).listGroups({ q: query, page: 1, pageSize: limit });
+      return items.map((g) => ({
+        key: g.key,
+        name: g.name,
+        description: g.description,
+        memberCount: g.memberCount,
+      }));
+    },
+    'core.find_roles': async (input, ctx) => {
+      const { query, limit, includePermissionCatalog } = z
+        .object({
+          query: z.string().optional(),
+          limit: z.number().default(25),
+          includePermissionCatalog: z.boolean().default(false),
+        })
+        .parse(input);
+      const access = new AccessService(ctx);
+      const roleList = (await access.listRoles({ q: query })).slice(0, limit).map((r) => ({
+        key: r.key,
+        name: r.name,
+        description: r.description,
+        isSystem: r.isSystem,
+        permissions: r.permissions,
+      }));
+      if (!includePermissionCatalog) return { roles: roleList };
+      const catalog = await access.permissionCatalog();
+      return {
+        roles: roleList,
+        permissions: await Promise.all(
+          catalog.map(async (p) => ({
+            key: p.key,
+            description: await catalogText(p.description),
+            scopes: p.scopes,
+          })),
+        ),
+      };
+    },
+    'core.find_departments': async (input, ctx) => {
+      const { query, limit } = z
+        .object({ query: z.string().optional(), limit: z.number().default(25) })
+        .parse(input);
+      const all = await new DirectoryService(ctx).listDepartments();
+      const byId = new Map(all.map((d) => [d.id, d]));
+      const needle = query?.trim().toLowerCase();
+      return all
+        .filter(
+          (d) => !needle || d.name.toLowerCase().includes(needle) || d.code.toLowerCase().includes(needle),
+        )
+        .slice(0, limit)
+        .map((d) => ({
+          code: d.code,
+          name: d.name,
+          // `/id/id/` → "Sales / Taipei sales"
+          path: d.path
+            .split('/')
+            .filter(Boolean)
+            .map((id) => byId.get(id)?.name ?? '?')
+            .join(' / '),
+          manager: d.manager,
+          memberCount: d.memberCount,
+        }));
     },
     'core.offboard_user': async (input, ctx, auth) => {
       const { userId, reason } = z.object({ userId: z.uuid(), reason: z.string() }).parse(input);

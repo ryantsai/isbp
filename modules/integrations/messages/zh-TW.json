@@ -546,5 +546,8 @@
     "disabled": "已停用",
     "hint": "像「立即執行」一樣執行設定檔的同步，並套用此作業的重試與警示設定。",
     "open": "開啟 {name}"
+  },
+  "customizations": {
+    "profile": "同步設定檔"
   }
 }

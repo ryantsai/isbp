@@ -1,0 +1,401 @@
+{
+  "meta": {
+    "name": "Assistant",
+    "description": "An AI agent that customises the platform with change sets people review, apply and roll back"
+  },
+  "nav": {
+    "changeSets": "Change sets"
+  },
+  "permissions": {
+    "use": "Use the assistant and prepare change sets for the configuration you can see",
+    "changeSetsRead": "See every change set",
+    "changeSetsManage": "Edit, discard or withdraw anyone’s change sets"
+  },
+  "settings": {
+    "maxToolRounds": "Tool calls per answer",
+    "maxToolRoundsHelp": "How many rounds of tool calls the assistant may make before it must answer (1–30)."
+  },
+  "workflows": {
+    "changeSet": {
+      "name": "Change set review",
+      "description": "Runs when someone requests a review of a change set. When it is approved, the change set is applied with the approver’s permissions."
+    }
+  },
+  "notifications": {
+    "change_set_applied": {
+      "label": "My change sets are applied",
+      "title": "{reference} was applied",
+      "body": "{by} applied “{title}”."
+    },
+    "change_set_returned": {
+      "label": "My change sets come back to me",
+      "title": "{reference} is back in draft",
+      "body": "“{title}” wasn’t applied: {reason}"
+    },
+    "change_set_rolled_back": {
+      "label": "My change sets are rolled back",
+      "title": "{reference} was rolled back",
+      "body": "{by} rolled back “{title}”."
+    }
+  },
+  "audit": {
+    "change-set_created": "Started a change set",
+    "change-set_submitted": "Requested a review of a change set",
+    "change-set_withdrawn": "Withdrew a change set from review",
+    "change-set_applied": "Applied a change set",
+    "change-set_returned": "A change set went back to draft",
+    "change-set_rolled_back": "Rolled back a change set",
+    "change-set_discarded": "Discarded a change set"
+  },
+  "server": {
+    "builtin": "No AI chat model is configured, so I can’t take free-text requests yet. Use one of the guided templates below to prepare a change, or ask an administrator to set up a model in Administration → AI.",
+    "empty": "I couldn’t finish that. Try rephrasing the request, or open the change set to see where it stands.",
+    "confirmApply": "Apply {reference} ({count} changes)",
+    "confirmApplyOne": "Apply {reference} (1 change)",
+    "confirmRollback": "Roll back {reference}",
+    "confirmTool": "Run {tool}",
+    "confirmedBy": "Confirmed: {label}",
+    "declinedBy": "Declined: {label}",
+    "confirmDone": "Done: {label}.",
+    "confirmFailed": "{label} didn’t go through: {message}",
+    "declined": "OK, I won’t do that: {label}."
+  },
+  "status": {
+    "draft": "Draft",
+    "in_review": "In review",
+    "applied": "Applied",
+    "rolled_back": "Rolled back",
+    "discarded": "Discarded"
+  },
+  "ops": {
+    "create": "Create",
+    "update": "Update",
+    "archive": "Archive",
+    "delete": "Delete",
+    "destructive": "Destructive"
+  },
+  "mode": {
+    "builtin": "Guided templates",
+    "builtinHint": "No AI chat model is configured, so the assistant offers guided templates instead of free text.",
+    "llm": "AI model: {model}",
+    "llmUnknown": "AI model",
+    "llmHint": "Answers come from the AI model your administrator configured. The assistant works as you, with your permissions; it asks you to confirm before it applies or rolls back anything."
+  },
+  "panel": {
+    "open": "Assistant",
+    "close": "Close the assistant",
+    "title": "Assistant",
+    "description": "Describe what you want or pick a template. The assistant works as you, with your permissions, and asks before it applies anything.",
+    "history": "Recent conversations",
+    "historyEmpty": "No conversations yet.",
+    "untitled": "New conversation",
+    "messages": "{count, plural, one {# message} other {# messages}}",
+    "newConversation": "New conversation",
+    "changeSets": "Change sets",
+    "loading": "Loading the assistant",
+    "loadError": "The assistant couldn’t be loaded. Try again in a moment.",
+    "noKinds": "There is nothing you can customise yet",
+    "noKindsHint": "The assistant prepares changes to configuration you can see, such as approval workflows or request forms. Ask an administrator for access."
+  },
+  "chat": {
+    "log": "Conversation with the assistant",
+    "you": "You",
+    "assistant": "Assistant",
+    "typing": "The assistant is working",
+    "inputLabel": "Message to the assistant",
+    "placeholder": "Describe the change you want…",
+    "hint": "Enter to send, Shift+Enter for a new line. The assistant sees the page you are on.",
+    "send": "Send",
+    "context": "Page: {page}",
+    "welcomeTitle": "What would you like to change?",
+    "welcomeBody": "Describe it in your own words. I work with the platform’s real configuration as you, and I ask before I apply anything.",
+    "starters": "Suggestions",
+    "starter": {
+      "approval": "Laptop requests over 60,000 TWD also need approval from IT asset management",
+      "field": "Add a cost centre field to people",
+      "form": "Create a request form for a second monitor"
+    },
+    "networkError": "The connection dropped. Check your network and try again.",
+    "genericError": "The assistant couldn’t answer.",
+    "dismissError": "Dismiss the error",
+    "loadError": "This conversation couldn’t be loaded."
+  },
+  "tools": {
+    "label": "What the assistant did",
+    "running": "{action}…",
+    "failed": "{action} (failed)",
+    "doneSuffix": "(done)",
+    "other": "Looking things up in {module}",
+    "names": {
+      "assistant_list_kinds": "Looking at what can be customised",
+      "assistant_describe_kind": "Reading a configuration schema",
+      "assistant_list_objects": "Listing existing configuration",
+      "assistant_get_object": "Reading the current configuration",
+      "assistant_propose_change": "Proposing a change",
+      "assistant_remove_change": "Removing a proposed change",
+      "assistant_get_change_set": "Checking the change set",
+      "assistant_update_change_set": "Naming the change set",
+      "core_find_users": "Looking up people",
+      "core_find_groups": "Looking up groups",
+      "core_find_roles": "Looking up roles",
+      "core_find_departments": "Looking up departments",
+      "core_explain_access": "Checking access",
+      "assistant_apply_change_set": "Applying the change set",
+      "assistant_rollback_change_set": "Rolling back the change set",
+      "assistant_request_review": "Requesting a review"
+    }
+  },
+  "card": {
+    "title": "Change set {reference}",
+    "items": "{count, plural, =0 {No changes yet} one {# change} other {# changes}}",
+    "ready": "Ready",
+    "notReady": "Not ready",
+    "failing": "{count, plural, one {# failing} other {# failing}}",
+    "needsApprover": "{count, plural, one {# needs a reviewer} other {# need a reviewer}}",
+    "unchecked": "Not checked yet",
+    "open": "Review and apply",
+    "view": "Open the change set"
+  },
+  "templates": {
+    "title": "Guided templates",
+    "intro": "Pick what you want to change and answer a few questions. I prepare a change set for you to review.",
+    "back": "All templates",
+    "build": "Prepare the change",
+    "nothingLive": "Nothing changes yet: the change goes into a change set that you review and apply.",
+    "needsReviewer": "You can prepare this change; applying it needs someone with the permission, so request a review.",
+    "loadError": "The questions couldn’t be loaded.",
+    "built": "Added to {reference}.",
+    "addingTo": "New changes are added to this change set.",
+    "startNew": "Start a new change set",
+    "noTemplates": "No guided templates for what you can change",
+    "noTemplatesHint": "An administrator can configure an AI chat model in Administration → AI so you can describe other changes in your own words.",
+    "withoutTemplates": "Without an AI chat model, these have no guided template: {kinds}."
+  },
+  "list": {
+    "title": "Change sets",
+    "description": "Configuration changes prepared with the assistant. Nothing is live until someone applies it, and an applied change set can be rolled back.",
+    "tabs": {
+      "label": "Whose change sets",
+      "mine": "Mine",
+      "all": "All"
+    },
+    "search": "Search by reference or title",
+    "allStatuses": "All statuses",
+    "columns": {
+      "changeSet": "Change set",
+      "kinds": "Changes to",
+      "items": "Changes",
+      "readiness": "Dry run",
+      "author": "Prepared by"
+    },
+    "readiness": {
+      "ready": "Ready",
+      "notReady": "Not ready",
+      "empty": "Empty"
+    },
+    "untitled": "Untitled change set",
+    "apiClient": "API client",
+    "empty": "No change sets yet",
+    "emptyHint": "Open the assistant with the sparkles button in the header to prepare one.",
+    "emptyFiltered": "No change sets match",
+    "emptyFilteredHint": "Try another status or search.",
+    "liveCount": "{count, plural, one {# change set} other {# change sets}}"
+  },
+  "detail": {
+    "back": "Change sets",
+    "notFound": "This change set doesn’t exist, or you can’t see it.",
+    "untitled": "Untitled change set",
+    "fromApiClient": "From an API client",
+    "edit": "Rename the change set",
+    "editTitle": "Rename the change set",
+    "editDescription": "The title and summary of {reference}, as reviewers see them.",
+    "titleLabel": "Title",
+    "titleRequired": "Enter a title.",
+    "summaryLabel": "Summary for the reviewer",
+    "summaryHint": "What the change set does and why. Reviewers read it in their approval.",
+    "createdByYou": "Prepared by you",
+    "createdBy": "Prepared by {name}",
+    "appliedBy": "Applied by {name}",
+    "rolledBackBy": "Rolled back by {name}",
+    "checked": "Dry run finished",
+    "refreshed": "The change set now uses the current versions",
+    "actions": {
+      "apply": "Apply",
+      "submit": "Request review",
+      "withdraw": "Withdraw review",
+      "rollback": "Roll back",
+      "discard": "Discard",
+      "check": "Check again",
+      "refresh": "Refresh",
+      "more": "More actions"
+    },
+    "missing": {
+      "title": "You can’t apply this change set yourself",
+      "body": "Applying it needs {permissions}. Request a review: an approver who holds them applies it.",
+      "bodyInReview": "Applying it needs {permissions}. An approver who holds them applies it when they approve the review."
+    },
+    "rollbackBlocked": {
+      "notReversible": "Some changes can’t be undone automatically (a delete), so this change set can’t be rolled back here.",
+      "other": "This change set can’t be rolled back automatically."
+    },
+    "itemsTitle": "Changes, in the order they apply",
+    "itemsEmpty": "No changes yet",
+    "itemsEmptyHint": "Add changes from the assistant panel.",
+    "summaryTitle": "Summary",
+    "noSummary": "No summary yet.",
+    "destructiveNote": "This change set archives or deletes something: applying it needs an explicit confirmation.",
+    "stats": {
+      "items": "Changes",
+      "kinds": "Changes to",
+      "result": "Dry run",
+      "checked": "Last dry run",
+      "updated": "Updated"
+    }
+  },
+  "lastError": {
+    "title": "The last attempt didn’t go through",
+    "rejected": "The review was rejected: {comment}",
+    "rejectedPlain": "The review was rejected.",
+    "noApprover": "The review was approved without a person who could apply it. Apply it yourself, or request a review again.",
+    "stale": "Someone changed {items} after this change set was prepared. Refresh it, review the differences, then try again.",
+    "staleGeneric": "Someone changed the configuration after this change set was prepared. Refresh it, review the differences, then try again.",
+    "forbidden": "Applying it needed permissions the person applying doesn’t hold: {permissions}.",
+    "privilege": "Applying it would grant permissions the person applying doesn’t hold.",
+    "validation": "A change didn’t pass validation.",
+    "validationItem": "“{label}” didn’t pass validation.",
+    "notReversible": "Some changes can’t be undone automatically.",
+    "generic": "Something went wrong.",
+    "item": "In “{label}”."
+  },
+  "actionErrors": {
+    "validation": "Some changes fail their dry run. Fix or remove them first.",
+    "forbidden": "This needs permissions you don’t hold: {permissions}.",
+    "stale": "Someone changed {items} after this change set was prepared. Refresh it and review the differences first.",
+    "notReversible": "Some changes can’t be undone automatically."
+  },
+  "review": {
+    "title": "In review",
+    "requested": "Requested",
+    "note": "Note for the reviewer",
+    "atStep": "Step: {step}",
+    "pendingWith": "Waiting for {names}",
+    "approveApplies": "Approving the review applies the change set with the approver’s permissions.",
+    "yourTurn": "Decide in my approvals"
+  },
+  "item": {
+    "position": "Change {n}:",
+    "ref": "Reference name",
+    "refTarget": "The object created by “{ref}” in this change set",
+    "target": "Object",
+    "createdId": "Created",
+    "openObject": "Open the object",
+    "remove": "Remove “{label}”",
+    "removeTitle": "Remove this change?",
+    "removeBody": "“{label}” is removed from {reference}. Later changes that refer to it fail their dry run until they are fixed.",
+    "removeConfirm": "Remove",
+    "removed": "Change removed",
+    "stale": "This object changed after the change was proposed. Review the differences below, then refresh the change set to accept the current version as the base.",
+    "refresh": "Refresh",
+    "note": "Note",
+    "changes": "Differences: current → proposed",
+    "changesApplied": "Differences: before → after",
+    "proposedValue": "Proposed value",
+    "preview": "Preview",
+    "previewFailed": "This preview couldn’t be shown.",
+    "currentUnavailable": "The current object can’t be read, so the whole proposed value is shown.",
+    "archiveNote": "Applying archives this object. Rolling back restores it.",
+    "archiveDone": "This object was archived.",
+    "deleteNote": "Applying deletes this object. A delete can’t be rolled back.",
+    "deleteDone": "This object was deleted.",
+    "check": {
+      "unchecked": "Not checked yet",
+      "ok": "Dry run passed",
+      "failing": "Dry run failed",
+      "failingWith": "Dry run failed: {reason}",
+      "needsApprover": "Needs someone with more permissions to apply it",
+      "needsPermission": "Needs someone with {permission} to apply it",
+      "issues": "Problems",
+      "applied": "Applied",
+      "rolledBack": "Rolled back"
+    }
+  },
+  "diff": {
+    "label": "Differences from {before} to {after}",
+    "added": "Added",
+    "removed": "Removed",
+    "changed": "Changed",
+    "reordered": "Order changed",
+    "current": "Current",
+    "proposed": "Proposed",
+    "before": "Before",
+    "after": "After",
+    "empty": "empty",
+    "emptyValue": "The value is empty.",
+    "true": "Yes",
+    "false": "No",
+    "root": "(the whole value)",
+    "none": "No differences: the proposed value is the same as the current one.",
+    "more": "{count, plural, one {# more difference isn’t shown} other {# more differences aren’t shown}}",
+    "show": "Show the value ({summary})",
+    "items": "{count, plural, one {# item} other {# items}}",
+    "fields": "{count, plural, one {# field} other {# fields}}",
+    "chars": "{count, plural, one {# character} other {# characters}}",
+    "raw": "Full value (JSON)"
+  },
+  "apply": {
+    "title": "Apply {reference}?",
+    "body": "Every change is applied in one transaction with your permissions: if one fails, nothing is applied. You can roll it back afterwards.",
+    "inReview": "This change set is in review. Applying it now cancels the review.",
+    "notReady": "Some changes didn’t pass their dry run, so applying will probably fail.",
+    "destructiveTitle": "Archives and deletes",
+    "destructiveConfirm": "{count, plural, one {I understand that # object will be archived or deleted} other {I understand that # objects will be archived or deleted}}",
+    "confirm": "Apply",
+    "done": "{reference} was applied"
+  },
+  "submit": {
+    "title": "Request a review of {reference}",
+    "body": "An approver reviews the changes and their dry run. Approving applies the change set with the approver’s permissions.",
+    "note": "Note for the reviewer (optional)",
+    "confirm": "Request review",
+    "done": "Review requested"
+  },
+  "withdraw": {
+    "title": "Withdraw the review of {reference}?",
+    "body": "The review is cancelled and the change set goes back to draft, so you can change it again.",
+    "confirm": "Withdraw",
+    "done": "Review withdrawn"
+  },
+  "rollback": {
+    "title": "Roll back {reference}?",
+    "body": "Every change is undone in one transaction, in reverse order: updates go back to their earlier values, archived objects are restored and created ones are removed. Objects someone changed since can’t be rolled back.",
+    "reason": "Reason (optional, kept in the audit log)",
+    "confirm": "Roll back",
+    "done": "{reference} was rolled back"
+  },
+  "discard": {
+    "title": "Discard {reference}?",
+    "body": "The draft is closed and can’t be applied any more. Nothing in the configuration changes.",
+    "confirm": "Discard",
+    "done": "{reference} was discarded"
+  },
+  "confirm": {
+    "title": "Confirm before it runs",
+    "region": "Confirmation: {label}",
+    "tool": "Action: {tool}",
+    "input": "Show what it will send",
+    "pending": "Waiting for your confirmation",
+    "done": "Confirmed",
+    "failed": "Failed: {message}",
+    "declined": "Declined",
+    "expired": "Expired: the conversation moved on",
+    "hint": "The assistant asked to do this. Nothing happens unless you confirm, and it runs with your permissions.",
+    "approve": "Confirm",
+    "decline": "Decline",
+    "approveAria": "Confirm: {label}",
+    "declineAria": "Decline: {label}",
+    "reviewFirst": "Review the changes before you confirm",
+    "openChangeSet": "Open the change set",
+    "alreadyDecided": "This was already decided. The conversation shows what happened.",
+    "alreadyExpired": "This expired when the conversation moved on. Ask the assistant again if you still want it."
+  }
+}

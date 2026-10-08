@@ -28,6 +28,7 @@ import { seedPhase2 } from './seed-phase2';
 import { seedPhase3, seedPhase3Links } from './seed-phase3';
 import { seedPhase4, seedPhase4Links } from './seed-phase4';
 import { seedPhase5, seedPhase5Links } from './seed-phase5';
+import { seedPhase6, seedPhase6Links } from './seed-phase6';
 
 const { config, kernel } = await bootstrap('isbp-seed');
 const db = kernel.db;
@@ -771,6 +772,7 @@ try {
   await kernel.migrate();
   let apiKey: { apiClient: string; apiKey: string } | null = null;
   let biKey: { clientId: string; apiKey: string } | null = null;
+  let mcpKey: { clientId: string; apiKey: string } | null = null;
   await runWithContext({ principal: { type: 'system', id: null, name: 'seed' } }, async () => {
     const created = await seedCore();
     if (created) apiKey = await seedPhase1(kernel);
@@ -781,6 +783,7 @@ try {
       await seedPhase3(kernel);
       biKey = await seedPhase4(kernel);
       await seedPhase5(kernel);
+      await seedPhase6(kernel);
     }
     for (const m of kernel.registry.modules) {
       if (m.seed && modules) {
@@ -793,6 +796,7 @@ try {
       await seedPhase3Links(kernel);
       await seedPhase4Links(kernel);
       await seedPhase5Links(kernel);
+      mcpKey = await seedPhase6Links(kernel);
     }
   });
   await kernel.rbac.bump();
@@ -806,6 +810,12 @@ try {
       log.info(
         `Data API demo client ${bi.clientId} — API key (shown once): ${bi.apiKey}\n` +
           `  curl -H "Authorization: Bearer ${bi.apiKey}" "${config.PUBLIC_URL}/api/v1/etl/data/customers-by-region?region=north"`,
+      );
+    const mcp = mcpKey as { clientId: string; apiKey: string } | null;
+    if (mcp)
+      log.info(
+        `MCP demo client ${mcp.clientId} — API key (shown once): ${mcp.apiKey}\n` +
+          `  claude mcp add --transport http isbp ${config.PUBLIC_URL}/api/v1/mcp --header "Authorization: Bearer ${mcp.apiKey}"`,
       );
     const key = apiKey as { apiClient: string; apiKey: string } | null;
     if (key)

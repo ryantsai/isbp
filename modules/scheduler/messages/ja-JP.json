@@ -524,5 +524,17 @@
     "allClear": "すべてのジョブが正常に実行されました。",
     "count": "{count, plural, other {# 個のジョブが失敗しています}}",
     "streak": "{count, plural, one {# 回失敗} other {# 回連続}}"
+  },
+  "customizations": {
+    "job": "スケジュール ジョブ",
+    "templates": {
+      "httpCheck": {
+        "label": "HTTP 正常性チェック",
+        "description": "数分ごとに URL を呼び出し、失敗したら所有者に通知します",
+        "name": "名前",
+        "url": "チェックする URL",
+        "every": "間隔 (分)"
+      }
+    }
   }
 }

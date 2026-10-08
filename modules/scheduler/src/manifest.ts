@@ -151,6 +151,7 @@ export const manifest = defineManifest({
           'List scheduled jobs (HTTP calls, SQL tasks, scripts, ETL pipelines…) with their schedule, next run, last run status and failure streak; filter by name or by failing, disabled, enabled or running.',
         input: aiListJobsInput,
         permission: 'scheduler.jobs.read',
+        readOnly: true,
       },
       {
         name: 'scheduler.run_job',
@@ -178,6 +179,18 @@ export const manifest = defineManifest({
       },
     ],
   },
+  customizations: [
+    {
+      kind: 'job',
+      label: 'scheduler.customizations.job',
+      description:
+        'A scheduled job: an HTTP call, SQL statement, sandboxed script or module task (such as an ETL pipeline) on a cron, interval, after-other-jobs or manual trigger, with timeout, retries and failure alerts. Applying makes it live; archiving disables it.',
+      icon: 'calendar-clock',
+      readPermission: 'scheduler.jobs.read',
+      applyPermission: 'scheduler.jobs.manage',
+      operations: ['create', 'update', 'archive', 'delete'],
+    },
+  ],
   taskTypes: [
     {
       type: 'http',

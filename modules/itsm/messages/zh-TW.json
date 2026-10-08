@@ -1027,5 +1027,18 @@
     },
     "resolvedIn": "已於 {system} {reference} 解決",
     "cancelledIn": "已於 {system} {reference} 取消"
+  },
+  "customizations": {
+    "category": "工單類別",
+    "slaPolicy": "SLA 政策",
+    "catalogItem": "服務目錄項目",
+    "templates": {
+      "slaTargets": {
+        "label": "SLA 目標",
+        "description": "依優先順序為選擇的工單類型設定回應與解決目標",
+        "response": "{priority}：回應時間（分鐘）",
+        "resolution": "{priority}：解決時間（分鐘）"
+      }
+    }
   }
 }

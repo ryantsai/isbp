@@ -222,6 +222,7 @@ export const manifest = defineManifest({
           "List the caller's tasks across projects (open by default) with reference (e.g. NET-12), project, status, priority and due date. Use it for 'what am I working on' or 'what is due this week'.",
         input: aiMyTasksInput,
         permission: PERMISSIONS.use,
+        readOnly: true,
       },
       {
         name: 'projects.find_tasks',
@@ -229,6 +230,7 @@ export const manifest = defineManifest({
           'Search project tasks the caller can see by text, project (key such as NET or name), assignee ("me" or an email) and status (a status, "open" or "closed"). Returns compact summaries with references like ERP-7.',
         input: aiFindTasksInput,
         permission: PERMISSIONS.use,
+        readOnly: true,
       },
       {
         name: 'projects.create_task',
@@ -250,6 +252,7 @@ export const manifest = defineManifest({
           "Status report of one project (key such as NET, or part of its name): status, health and the manager's note, progress, overdue and blocked tasks, and the next milestones. Good for questions like 'how is the network refresh going?'.",
         input: aiProjectStatusInput,
         permission: PERMISSIONS.use,
+        readOnly: true,
       },
     ],
   },

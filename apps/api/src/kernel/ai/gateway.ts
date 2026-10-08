@@ -35,6 +35,7 @@ import {
   type ProviderOutput,
   type ProviderRequest,
 } from './providers';
+import type { McpServer } from './mcp';
 import { ToolRegistry, wireName } from './tools';
 
 interface UsageRow {
@@ -62,6 +63,7 @@ export class AiGateway {
   readonly index: SemanticIndex;
   readonly tools: ToolRegistry;
   private budgetCache?: { at: number; spent: number };
+  private mcpServer?: McpServer;
 
   constructor(
     private readonly deps: {
@@ -74,6 +76,11 @@ export class AiGateway {
   ) {
     this.index = new SemanticIndex(deps.db, deps.logger);
     this.tools = new ToolRegistry(deps.registry, (row) => this.logUsage(row));
+  }
+
+  /** The MCP server modules reach in-process (`ctx.ai.mcp`); set once the customisation kinds exist. */
+  attachMcp(server: McpServer) {
+    this.mcpServer = server;
   }
 
   async config(): Promise<AiConfig> {
@@ -446,6 +453,10 @@ export class AiGateway {
         invoke: (name, input, opts) => this.tools.invoke(moduleId, name, input, opts),
       },
       agent: () => this.agentAuth(manifest),
+      mcp: (auth, opts) => {
+        if (!this.mcpServer) throw new Error('The MCP server is not attached');
+        return this.mcpServer.session(auth, { via: moduleId, ...opts });
+      },
     };
   }
 

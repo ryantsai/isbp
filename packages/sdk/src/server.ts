@@ -27,6 +27,7 @@ import type {
   SyncChange,
   SyncService,
 } from './integrations';
+import type { CustomizationHandler, CustomizationsService } from './customizations';
 import type { ModuleManifest } from './manifest';
 import type { PermissionReach, PermissionSet, ResourceScope } from './permissions';
 
@@ -152,6 +153,11 @@ export interface SettingsReader {
 export interface RbacReader {
   /** Effective permissions of any user (cached). */
   permissionsFor(userId: string): Promise<PermissionSet>;
+  /**
+   * An `AuthContext` for an active user, as if they had signed in (null for unknown or inactive users). For work
+   * done later on a person's behalf with their own permissions, e.g. applying a change set when they approve it.
+   */
+  authFor(userId: string): Promise<AuthContext | null>;
 }
 
 /* ───────────────────────────── workflows ───────────────────────────── */
@@ -192,6 +198,8 @@ export interface WorkflowCompletion {
   requesterId: string | null;
   /** Comment of the deciding approver (rejections), if any. */
   comment: string | null;
+  /** The approver whose decision completed the instance (null for SLA auto-decisions and cancellations). */
+  decidedBy?: { id: string; name: string } | null;
 }
 
 export interface WorkflowService {
@@ -206,6 +214,8 @@ export interface WorkflowService {
   ): Promise<WorkflowStartResult | null>;
   /** Cancels a running instance (e.g. the request was withdrawn); pending tasks are closed. */
   cancel(instanceId: string, reason?: string | null, opts?: { tx?: Db }): Promise<void>;
+  /** Whether the user has (or had) an approval task on one of this module's instances — to show them the subject. */
+  isApprover(instanceId: string, userId: string): Promise<boolean>;
 }
 
 /* ───────────────────────────── notifications ───────────────────────────── */
@@ -368,6 +378,7 @@ export interface AiToolInfo {
   moduleId: string;
   permission: string;
   destructive: boolean;
+  readOnly: boolean;
 }
 
 export interface AiService {
@@ -400,6 +411,45 @@ export interface AiService {
   };
   /** This module's agent identity (`manifest.ai.agent`); throws if the module declares none. */
   agent(): AuthContext;
+  /**
+   * An in-process session on the platform's MCP server, as `auth`: the same tools (and names, schemas and
+   * annotations) and resources outside agents get over `POST /api/v1/mcp`. With `includeDestructive`, destructive
+   * tools are listed too, and calling one without `confirmed` returns `confirmationRequired` instead of running it —
+   * for agents inside the platform, where the person can confirm.
+   */
+  mcp(auth: AuthContext, opts?: { includeDestructive?: boolean; via?: string }): McpSession;
+}
+
+/** A tool as `tools/list` describes it. `name` is the wire name (`itsm__find_tickets`), `title` the registry name. */
+export interface McpToolDef {
+  name: string;
+  title: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  annotations: {
+    readOnlyHint: boolean;
+    destructiveHint: boolean;
+    idempotentHint: boolean;
+    openWorldHint: boolean;
+  };
+}
+
+/** A `tools/call` result. Tool errors are results (`isError`), with the platform error code in the text. */
+export interface McpToolResult {
+  content: { type: 'text'; text: string }[];
+  structuredContent?: unknown;
+  isError: boolean;
+  /** A destructive tool that needs a person's confirmation first (nothing ran). */
+  confirmationRequired?: boolean;
+}
+
+export interface McpSession {
+  listTools(): McpToolDef[];
+  /** `name` is a wire or registry name. */
+  callTool(name: string, args: unknown, opts?: { confirmed?: boolean }): Promise<McpToolResult>;
+  listResources(): { uri: string; name: string; title: string; description: string; mimeType: string }[];
+  /** Null when the resource doesn't exist or the caller may not read it. */
+  readResource(uri: string): Promise<{ uri: string; mimeType: string; text: string } | null>;
 }
 
 /* ───────────────────────────── request portal ───────────────────────────── */
@@ -700,9 +750,16 @@ export interface TaskTypeInfo {
 export interface TaskTypesService {
   /** Types of enabled modules whose `permission` the caller holds (all types without `auth`). */
   list(auth?: AuthContext): TaskTypeInfo[];
-  /** Parses `config` with the type's schema and runs its `validate` as `auth` (400/403/404 on failure). */
-  validate(type: string, config: unknown, auth: AuthContext): Promise<unknown>;
-  describe(type: string, config: unknown): Promise<{ label: string; href: string | null }>;
+  /**
+   * Parses `config` with the type's schema and runs its `validate` as `auth` (400/403/404 on failure). Pass `db` to
+   * read through the caller's transaction (a change set validating a job that names a pipeline created in it).
+   */
+  validate(type: string, config: unknown, auth: AuthContext, opts?: { db?: Db }): Promise<unknown>;
+  describe(
+    type: string,
+    config: unknown,
+    opts?: { db?: Db },
+  ): Promise<{ label: string; href: string | null }>;
   /** Runs the handler in its own module's context (409 `MODULE_DISABLED` when that module is off). */
   run(type: string, config: unknown, task: TaskContext): Promise<TaskOutcome>;
 }
@@ -814,6 +871,8 @@ export interface ModuleContext {
   readonly sync: SyncService;
   /** Connector types of enabled modules (Phase 5; used by the Integrations Hub). */
   readonly connectors: ConnectorsService;
+  /** Customisation kinds of enabled modules (Phase 6; used by the AI agent's change sets). */
+  readonly customizations: CustomizationsService;
   /** Runs `fn` in a DB transaction; pass `tx` to audit/events to keep them atomic. */
   transaction<T>(fn: (tx: Db) => Promise<T>): Promise<T>;
   /** Principal of the current request, job or event (from async context). */
@@ -903,6 +962,9 @@ export interface ServerModuleOptions {
    * `commentEvents`, with the record id resolved. The Integrations Hub pushes local changes from here.
    */
   onSyncChange?: (change: SyncChange, ctx: ModuleContext) => Promise<void>;
+  /** Handlers for `manifest.customizations`, keyed by kind (without the module prefix). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  customizations?: Record<string, CustomizationHandler<any>>;
   /** Demo data for `pnpm db:seed`. Must be idempotent. */
   seed?: (ctx: ModuleContext) => Promise<void>;
   onEnable?: (ctx: ModuleContext) => Promise<void>;
@@ -978,6 +1040,17 @@ export function defineServerModule(manifest: ModuleManifest, options: ServerModu
   for (const type of Object.keys(options.connectors ?? {})) {
     if (!connectorTypes.has(type))
       throw new Error(`[${manifest.id}] connector handler "${type}" is not declared in manifest.connectors`);
+  }
+  const kinds = new Set(manifest.customizations?.map((k) => k.kind) ?? []);
+  for (const kind of kinds) {
+    if (!options.customizations?.[kind])
+      throw new Error(`[${manifest.id}] customisation kind "${kind}" has no handler in customizations`);
+  }
+  for (const kind of Object.keys(options.customizations ?? {})) {
+    if (!kinds.has(kind))
+      throw new Error(
+        `[${manifest.id}] customisation handler "${kind}" is not declared in manifest.customizations`,
+      );
   }
   for (const name of Object.keys(options.jobs ?? {})) {
     if (!/^[a-z][a-z0-9-]*$/.test(name))

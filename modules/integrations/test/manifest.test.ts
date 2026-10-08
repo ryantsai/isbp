@@ -201,6 +201,7 @@ describe('catalogs', () => {
         ...(manifest.navigation ?? []).flatMap((n) => [n.label, n.group!]),
         ...(manifest.permissions ?? []).map((p) => p.description),
         ...(manifest.taskTypes ?? []).flatMap((t) => [t.name, t.description!]),
+        ...(manifest.customizations ?? []).map((k) => k.label),
       ];
       for (const key of keys) expect(get(catalog, key.replace(/^integrations\./, '')), key).toBeTruthy();
       for (const action of [

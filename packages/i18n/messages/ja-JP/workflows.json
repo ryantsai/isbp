@@ -339,5 +339,14 @@
         "waiting": "未到達"
       }
     }
+  },
+  "changePreview": {
+    "invalid": "この提案は描画できません。グラフが有効なワークフローではありません。",
+    "show": "表示",
+    "proposed": "提案",
+    "current": "現在",
+    "proposedDiagram": "提案されたワークフロー",
+    "currentDiagram": "現在のワークフロー",
+    "simulate": "試してみる"
   }
 }

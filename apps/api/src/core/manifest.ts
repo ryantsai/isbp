@@ -321,7 +321,9 @@ export const coreManifest = defineManifest({
     { key: 'core.idp.manage', description: 'core.permissions.idpManage' },
     { key: 'core.workflows.read', description: 'core.permissions.workflowsRead' },
     { key: 'core.workflows.manage', description: 'core.permissions.workflowsManage' },
+    { key: 'core.forms.read', description: 'core.permissions.formsRead' },
     { key: 'core.forms.manage', description: 'core.permissions.formsManage' },
+    { key: 'core.custom-fields.read', description: 'core.permissions.customFieldsRead' },
     { key: 'core.custom-fields.manage', description: 'core.permissions.customFieldsManage' },
     { key: 'core.notifications.manage', description: 'core.permissions.notificationsManage' },
     { key: 'core.ai.manage', description: 'core.permissions.aiManage' },
@@ -348,6 +350,7 @@ export const coreManifest = defineManifest({
     },
     { key: 'core.databases.read', description: 'core.permissions.databasesRead' },
     { key: 'core.databases.manage', description: 'core.permissions.databasesManage' },
+    { key: 'core.mcp.use', description: 'core.permissions.mcpUse' },
   ],
   roles: [
     {
@@ -368,6 +371,7 @@ export const coreManifest = defineManifest({
         'core.roles.assign',
         'core.audit.read',
         'core.access-requests.read',
+        'core.custom-fields.read',
         'core.custom-fields.manage',
       ],
     },
@@ -408,6 +412,19 @@ export const coreManifest = defineManifest({
       permissions: ['core.modules.*'],
     },
     {
+      key: 'configuration-viewer',
+      name: 'Configuration viewer',
+      description:
+        'See workflows, forms, custom fields, roles and module settings, and propose changes to them',
+      permissions: [
+        'core.workflows.read',
+        'core.forms.read',
+        'core.custom-fields.read',
+        'core.roles.read',
+        'core.modules.read',
+      ],
+    },
+    {
       key: 'everyone',
       name: 'Everyone',
       description: 'Baseline access granted to every active user',
@@ -416,7 +433,8 @@ export const coreManifest = defineManifest({
     },
   ],
   events: {
-    consumes: ['core.notification.created'],
+    // Role changes also refresh cached permissions after commit (change sets apply them in a longer transaction).
+    consumes: ['core.notification.created', 'core.role.updated', 'core.role.deleted'],
     emits: [
       { name: 'core.user.created', schema: userRef.extend({ status: z.string() }) },
       { name: 'core.user.updated', schema: userRef.extend({ changes: z.array(z.string()) }) },
@@ -734,12 +752,48 @@ export const coreManifest = defineManifest({
         description: 'Search people by name, email or username and return their status and department.',
         input: z.object({ query: z.string().min(1), limit: z.number().int().min(1).max(50).default(10) }),
         permission: 'core.users.read',
+        readOnly: true,
       },
       {
         name: 'core.explain_access',
         description: 'Explain which roles and permissions a user has, and through which group or assignment.',
         input: z.object({ userId: z.uuid() }),
         permission: 'core.roles.read',
+        readOnly: true,
+      },
+      {
+        name: 'core.find_groups',
+        description:
+          'Search groups by name or key and return their key, name, description and member count. Group keys are what approval workflows and form audiences use.',
+        input: z.object({
+          query: z.string().max(200).optional(),
+          limit: z.number().int().min(1).max(100).default(25),
+        }),
+        permission: 'core.groups.read',
+        readOnly: true,
+      },
+      {
+        name: 'core.find_roles',
+        description:
+          'Search platform roles by name or key and return their key, name and permissions; optionally the permission catalogue with what each permission allows.',
+        input: z.object({
+          query: z.string().max(200).optional(),
+          limit: z.number().int().min(1).max(100).default(25),
+          includePermissionCatalog: z.boolean().default(false),
+        }),
+        permission: 'core.roles.read',
+        readOnly: true,
+      },
+      {
+        name: 'core.find_departments',
+        description:
+          'Search departments by name or code and return their code, name, place in the organisation (path) and manager.',
+        input: z.object({
+          query: z.string().max(200).optional(),
+          limit: z.number().int().min(1).max(100).default(25),
+        }),
+        permission: 'core.departments.read',
+        readOnly: true,
       },
       {
         name: 'core.offboard_user',
@@ -791,4 +845,66 @@ export const coreManifest = defineManifest({
       { type: 'department', name: 'core.entities.department' },
     ],
   },
+  customizations: [
+    {
+      kind: 'workflow',
+      label: 'core.customizations.workflow',
+      description:
+        'An approval workflow for a trigger (form submissions, access requests, module events): its steps, approvers, conditions and SLAs, and whether it is the trigger’s default. Applying publishes a new version.',
+      icon: 'workflow',
+      readPermission: 'core.workflows.read',
+      applyPermission: 'core.workflows.manage',
+      operations: ['create', 'update', 'archive'],
+    },
+    {
+      kind: 'form',
+      label: 'core.customizations.form',
+      description:
+        'A request form in the portal: its questions, conditional fields, who sees it and the approval workflow attached to it. Applying publishes the form.',
+      icon: 'file-pen-line',
+      readPermission: 'core.forms.read',
+      applyPermission: 'core.forms.manage',
+      operations: ['create', 'update', 'archive'],
+    },
+    {
+      kind: 'custom-field',
+      label: 'core.customizations.customField',
+      description:
+        'A custom field on people, groups, departments or module records (such as a cost centre or an asset tag); its key and type are fixed once created.',
+      icon: 'text-cursor-input',
+      readPermission: 'core.custom-fields.read',
+      applyPermission: 'core.custom-fields.manage',
+      operations: ['create', 'update', 'archive'],
+    },
+    {
+      kind: 'role',
+      label: 'core.customizations.role',
+      description:
+        'A platform role: a named set of permission patterns. Only permissions the person applying holds can be added; system roles are read-only.',
+      icon: 'shield-check',
+      readPermission: 'core.roles.read',
+      applyPermission: 'core.roles.manage',
+      operations: ['create', 'update', 'delete'],
+    },
+    {
+      kind: 'notification-channel',
+      label: 'core.customizations.notificationChannel',
+      description:
+        'Which notifications a Teams, Slack or webhook channel receives, in which language, and whether it is on. The address and secrets are never part of it.',
+      icon: 'bell-ring',
+      readPermission: 'core.notifications.manage',
+      applyPermission: 'core.notifications.manage',
+      operations: ['update'],
+    },
+    {
+      kind: 'module-settings',
+      label: 'core.customizations.moduleSettings',
+      description:
+        'The settings of an enabled module (product name, retention periods, module options), without secrets or the AI provider settings.',
+      icon: 'settings',
+      readPermission: 'core.modules.read',
+      applyPermission: 'core.modules.manage',
+      operations: ['update'],
+    },
+  ],
 });

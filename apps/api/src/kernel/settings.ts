@@ -15,12 +15,16 @@ export class SettingsService {
     private readonly box: SecretBox,
   ) {}
 
-  private async load(moduleId: string): Promise<Record<string, unknown>> {
-    const hit = this.cache.get(moduleId);
+  /** Stored values; with `tx`, read in that transaction and never cached (it may still roll back). */
+  private async load(moduleId: string, tx?: Db): Promise<Record<string, unknown>> {
+    const hit = tx ? undefined : this.cache.get(moduleId);
     if (hit && Date.now() - hit.at < 15_000) return hit.values;
-    const rows = await this.db.select().from(moduleSettings).where(eq(moduleSettings.moduleId, moduleId));
+    const rows = await (tx ?? this.db)
+      .select()
+      .from(moduleSettings)
+      .where(eq(moduleSettings.moduleId, moduleId));
     const values = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-    this.cache.set(moduleId, { at: Date.now(), values });
+    if (!tx) this.cache.set(moduleId, { at: Date.now(), values });
     return values;
   }
 
@@ -35,9 +39,9 @@ export class SettingsService {
     return out;
   }
 
-  /** Values safe to send to the admin UI (secrets masked). */
-  async publicValues(manifest: ModuleManifest): Promise<Record<string, unknown>> {
-    const stored = await this.load(manifest.id);
+  /** Values safe to send to the admin UI (secrets masked); with `tx`, as that transaction sees them. */
+  async publicValues(manifest: ModuleManifest, tx?: Db): Promise<Record<string, unknown>> {
+    const stored = await this.load(manifest.id, tx);
     const out: Record<string, unknown> = {};
     for (const def of manifest.settings ?? []) {
       const raw = def.key in stored ? stored[def.key] : (def.default ?? null);
@@ -61,7 +65,7 @@ export class SettingsService {
     tx: Db = this.db,
   ) {
     const defs = new Map((manifest.settings ?? []).map((d) => [d.key, d]));
-    const before = await this.publicValues(manifest);
+    const before = await this.publicValues(manifest, tx === this.db ? undefined : tx);
     const changes: Record<string, [unknown, unknown]> = {};
     for (const [key, value] of Object.entries(input)) {
       const def = defs.get(key);

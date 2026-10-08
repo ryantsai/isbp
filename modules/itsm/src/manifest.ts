@@ -329,6 +329,7 @@ export const manifest = defineManifest({
           'Search service desk tickets (incidents, requests, problems, changes) the caller can read, by text, status or type. Returns compact summaries with references like INC-00042.',
         input: aiFindTicketsInput,
         permission: 'itsm.tickets.read',
+        readOnly: true,
       },
       {
         name: 'itsm.get_ticket',
@@ -336,6 +337,7 @@ export const manifest = defineManifest({
           'Get one ticket by id or reference (e.g. INC-00042) with its description, classification, assignment, resolution and latest timeline entries.',
         input: aiTicketRef,
         permission: 'itsm.tickets.read',
+        readOnly: true,
       },
       {
         name: 'itsm.my_tickets',
@@ -343,6 +345,7 @@ export const manifest = defineManifest({
           "List the caller's own tickets (ones they reported or that were raised for them) with status, for answering 'what is happening with my request'.",
         input: aiMyTicketsInput,
         permission: 'itsm.tickets.create',
+        readOnly: true,
       },
       {
         name: 'itsm.create_ticket',
@@ -364,6 +367,7 @@ export const manifest = defineManifest({
           'List the ticket categories (with their default assignment group) and the assignment groups, to classify and route a ticket.',
         input: z.object({}),
         permission: 'itsm.tickets.triage',
+        readOnly: true,
       },
       {
         name: 'itsm.triage_ticket',
@@ -466,4 +470,36 @@ export const manifest = defineManifest({
       },
     ],
   },
+  customizations: [
+    {
+      kind: 'category',
+      label: 'itsm.customizations.category',
+      description:
+        'A ticket category: key, name in each language, parent category, the ticket types it is offered for and the group new tickets are routed to. Live on apply; archiving deactivates it.',
+      icon: 'folder-tree',
+      readPermission: 'itsm.config.manage',
+      applyPermission: 'itsm.config.manage',
+      operations: ['create', 'update', 'archive'],
+    },
+    {
+      kind: 'sla-policy',
+      label: 'itsm.customizations.slaPolicy',
+      description:
+        'An SLA policy: response and resolution targets per priority for some ticket types, an optional condition on ticket facts, the business calendar they are measured on and the statuses that pause them. Applies to tickets raised afterwards; archiving deactivates it.',
+      icon: 'timer',
+      readPermission: 'itsm.config.manage',
+      applyPermission: 'itsm.config.manage',
+      operations: ['create', 'update', 'archive'],
+    },
+    {
+      kind: 'catalog-item',
+      label: 'itsm.customizations.catalogItem',
+      description:
+        'A service catalog item: how the service desk fulfils a published request form (identified by its form key) — the category, group and priority of the service request it opens, and whether it opens on submission or after approval. Live on apply.',
+      icon: 'store',
+      readPermission: 'itsm.config.manage',
+      applyPermission: 'itsm.config.manage',
+      operations: ['create', 'update', 'delete'],
+    },
+  ],
 });

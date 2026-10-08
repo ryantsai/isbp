@@ -4,6 +4,7 @@ import migrations from '../../migrations';
 import { manifest } from '../manifest';
 import { ENDPOINT_TYPE, PIPELINE_TYPE } from './access';
 import { aiTools } from './ai';
+import { endpointCustomization, pipelineCustomization } from './customizations';
 import { records, search } from './records';
 import { routes } from './routes';
 import { executeRun } from './runner';
@@ -104,6 +105,7 @@ export default defineServerModule(manifest, {
 
   taskTypes: { pipeline: pipelineTask },
   ai: aiTools,
+  customizations: { pipeline: pipelineCustomization, endpoint: endpointCustomization },
   search,
   records,
   seed,

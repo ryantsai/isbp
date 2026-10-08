@@ -47,6 +47,7 @@ describe('scheduler manifest', () => {
       ...manifest.settings.flatMap((s) => [s.label, s.description]),
       ...manifest.taskTypes.flatMap((t) => [t.name, t.description]),
       ...manifest.records.types.map((r) => r.name),
+      ...(manifest.customizations ?? []).map((k) => k.label),
     ];
     for (const key of labels) if (key) expect(catalog, key).toContain(key);
   });

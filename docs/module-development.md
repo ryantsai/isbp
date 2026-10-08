@@ -115,8 +115,9 @@ collide with platform routes are reserved.
   the role is first created — admins can revoke it afterwards.
 - **Settings** render automatically as a form in Admin → Modules (`advanced: true` hides behind a
   disclosure; `type: 'secret'` is encrypted at rest and never returned).
-- **AI tools** are listed for the AI gateway / MCP server (Phase 5). Mark anything privileged or
-  destructive with `destructive: true` — it will always require human confirmation.
+- **AI tools** are listed for the AI gateway and the MCP server (Phase 6). Mark anything privileged or
+  destructive with `destructive: true` — it will always require human confirmation (and is not offered over
+  MCP) — and tools that only read with `readOnly: true`.
 
 ## 4. Server side
 
@@ -540,6 +541,17 @@ tables don't change. See `docs/ai/recipes.md` §21.
 the system only through `conn.http`, maps failures to the `REMOTE_*` codes and suggests default mappings. Add a
 stand-in under `tooling/integration-mocks` and test against it. See `docs/ai/recipes.md` §22, and the `sdp` and
 `azdo` modules.
+
+### Let the AI agent customise your module (Phase 6)
+
+If administrators configure something in your module (categories, policies, templates, jobs), make it a
+**customisation kind**: declare `manifest.customizations` (`readPermission` to see and propose, `applyPermission`
+to apply, the operations it supports) and implement `defineServerModule({ customizations })` with your admin
+schema and service: `schema`, `guide` (instructions, live reference data, examples for models), `list`, `get`,
+`check` and a transactional `apply`. The assistant (and outside agents over MCP) then build **change sets** of
+your kind that a person reviews, applies in one transaction and can roll back. Add a guided template for platforms
+without a chat model, and optionally a preview slot `assistant.preview.<module>.<kind>`. See `docs/ai/recipes.md`
+§23 and rules R45–R49.
 
 ## 7. Checklist before shipping a module
 

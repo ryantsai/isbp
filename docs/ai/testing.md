@@ -94,6 +94,18 @@ toSessionUser(user), null, await h.kernel.rbac.permissionsFor(user.id))`.
 - Hub tests that shouldn't depend on a real connector or adapter use an inline fake module in `extraModules`
   (see `apps/api/test/integration/integrations.test.ts`).
 
+## The AI agent (customisation kinds, change sets, MCP)
+
+- Test a kind through `h.kernel.customizations` (see `apps/api/test/integration/customizations-core.test.ts`):
+  apply every operation inside `h.kernel.db.transaction(…)`; prove a dry run (`dryRun: true` in a transaction you roll
+  back) leaves no rows, versions, audit entries or outbox events; `baseVersion` mismatch → `CHANGE_SET_STALE`.
+- Change sets, reviews, the chat loop and MCP are covered in `apps/api/test/integration/assistant.test.ts` with an
+  inline fake module (two kinds on their own tables) and a fake OpenAI-compatible model (a local HTTP server that
+  streams tool calls). Reviews complete through the worker: start it with `startWorker(h.kernel)` and poll.
+- `tooling/integration-mocks` also serves a **scripted chat model** at `/llm/v1` (OpenAI-compatible, streaming):
+  a user message with a ```json block of proposals makes it describe the kind, propose each change, name the change
+  set and summarise it. The e2e suite points Administration → AI at it to drive the assistant panel.
+
 ## External engines and sandboxes
 
 - `@isbp/sql` driver tests (`pnpm --filter @isbp/sql test:drivers`) run against every engine whose URL is set:

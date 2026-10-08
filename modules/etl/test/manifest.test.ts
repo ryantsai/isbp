@@ -260,6 +260,7 @@ describe('catalogs', () => {
         ...(manifest.settings ?? []).flatMap((s) => [s.label, s.description!]),
         ...(manifest.records?.types ?? []).map((r) => r.name),
         ...(manifest.taskTypes ?? []).flatMap((t) => [t.name, t.description!]),
+        ...(manifest.customizations ?? []).map((k) => k.label),
       ];
       for (const key of keys) expect(get(catalog, key.replace(/^etl\./, '')), key).toBeTruthy();
       for (const action of [

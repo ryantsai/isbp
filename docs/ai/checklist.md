@@ -53,6 +53,9 @@ your report. The rule numbers point to [rules.md](rules.md).
 
 ## Integration with the platform
 
+- [ ] Surfaces admins configure are customisation kinds (R45): `apply` is transactional (R46), creates can be
+      rolled back (R47), the guide points at live data (R49), and a dry-run test proves nothing is left behind.
+- [ ] AI tools that only read declare `readOnly: true`; no tool writes configuration directly (R48).
 - [ ] `pnpm modules:sync` was run if the module was added or removed.
 - [ ] `pnpm docs:reference` was run, and `docs/ai/reference.md` is committed (R38).
 - [ ] The module `README.md` says what it owns, its rules, its API surface and its events.

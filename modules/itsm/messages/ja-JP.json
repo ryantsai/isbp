@@ -1027,5 +1027,18 @@
     },
     "resolvedIn": "{system} {reference} で解決済み",
     "cancelledIn": "{system} {reference} でキャンセル済み"
+  },
+  "customizations": {
+    "category": "チケット カテゴリ",
+    "slaPolicy": "SLA ポリシー",
+    "catalogItem": "サービス カタログ項目",
+    "templates": {
+      "slaTargets": {
+        "label": "SLA 目標",
+        "description": "選択したチケットの種類に、優先度ごとの応答と解決の目標を設定します",
+        "response": "{priority}: 応答時間 (分)",
+        "resolution": "{priority}: 解決時間 (分)"
+      }
+    }
   }
 }

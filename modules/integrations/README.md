@@ -95,6 +95,14 @@ syncs and manages links; creating or changing a profile also needs the synced en
 `integrations.conflicts.resolve` resolves conflicts on records the caller can see. The record panel
 (`GET /links/by-record`) is for whoever can read the record. The hub writes as its agent (`*.*.sync`).
 
+## Customisation kind (Phase 6)
+
+`integrations.profile` (`src/server/customizations.ts`): the profile form without `enabled` (archive disables);
+connection, remote object, scope, entity and container are fixed after creation. Applying goes through
+`ProfileService`, so mappings are checked against both catalogues (a read of the remote one) and the entity's
+`.sync` permission is required. The guide lists connections with their objects, remote scopes and the
+connectors' suggested mappings, and the entities with their fields.
+
 ## Seed helpers (`@isbp/module-integrations/server`)
 
 ```ts

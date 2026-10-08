@@ -1,6 +1,7 @@
 import { defineServerModule } from '@isbp/sdk/server';
 import migrations from '../../migrations';
 import { manifest } from '../manifest';
+import { profileCustomization } from './customizations';
 import { routes } from './routes';
 import { services } from './services';
 import { syncTask } from './task-type';
@@ -31,6 +32,8 @@ export default defineServerModule(manifest, {
   taskTypes: { sync: syncTask },
 
   onSyncChange: async (change, ctx) => services(ctx).engine.onLocalChange(change),
+
+  customizations: { profile: profileCustomization },
 
   jobs: {
     tick: {

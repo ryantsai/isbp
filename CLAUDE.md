@@ -94,6 +94,19 @@ API reference, recipes, generated extension-point reference, testing, UI, defini
   links (remote ids live only there), runs and conflicts. Webhooks only trigger re-reads. Stand-ins for ServiceDesk
   Plus and Azure DevOps Server (both on-premises) are in `tooling/integration-mocks` (port 4100 via `pnpm dev:services`).
 
+- AI agent (Phase 6): admin-configurable surfaces are **customisation kinds** owned by their module
+  (`manifest.customizations` + `defineServerModule({ customizations })`: schema = the admin API's, `guide` with live
+  reference data, `get` that round-trips, a transactional `apply` using only the `ctx` it gets — bound to the change
+  set's transaction; creates need archive or delete for rollbacks). The `assistant` module turns proposals into
+  **change sets**: dry-run in a rolled-back transaction, applied in one transaction by a person (or as the approver of
+  an `assistant.change-set` review), rolled back in one. AI tools never write configuration in place: they propose.
+  The **built-in agent** works through the platform's own MCP plumbing (`ctx.ai.mcp(auth, { includeDestructive })`,
+  in-process, the same tools outside agents get); destructive tools (`assistant.apply_change_set`, any `destructive`
+  tool) become a confirmation card and run as the person only when they confirm. Mark read-only tools
+  `readOnly: true`. Outside agents use `POST /api/v1/mcp` (API clients with `core.mcp.use`; revisions 2026-07-28 and
+  initialize-based 2025-x; destructive tools not offered). The scripted
+  stand-in chat model for tests is `/llm/v1` in `tooling/integration-mocks`.
+
 ## Gotchas
 
 - pnpm 12: install scripts must be listed under `allowBuilds` in `pnpm-workspace.yaml`.

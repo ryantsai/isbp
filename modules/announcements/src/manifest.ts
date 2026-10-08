@@ -96,6 +96,7 @@ export const manifest = defineManifest({
           limit: z.number().int().min(1).max(20).default(10),
         }),
         permission: 'announcements.posts.read',
+        readOnly: true,
       },
       {
         name: 'announcements.publish_post',

@@ -3,6 +3,7 @@
 import type { WebModule } from '@isbp/sdk/web';
 import alm from '@isbp/module-alm/web';
 import announcements from '@isbp/module-announcements/web';
+import assistant from '@isbp/module-assistant/web';
 import azdo from '@isbp/module-azdo/web';
 import cmdb from '@isbp/module-cmdb/web';
 import dbaccess from '@isbp/module-dbaccess/web';
@@ -19,6 +20,7 @@ import sdp from '@isbp/module-sdp/web';
 export const webModules: Record<string, WebModule> = {
   'alm': alm,
   'announcements': announcements,
+  'assistant': assistant,
   'azdo': azdo,
   'cmdb': cmdb,
   'dbaccess': dbaccess,

@@ -591,5 +591,17 @@
     "allClear": "All jobs ran fine.",
     "count": "{count, plural, one {# job is failing} other {# jobs are failing}}",
     "streak": "{count, plural, one {# failure} other {# in a row}}"
+  },
+  "customizations": {
+    "job": "Scheduled job",
+    "templates": {
+      "httpCheck": {
+        "label": "HTTP health check",
+        "description": "Call a URL every few minutes and alert the owner when it fails",
+        "name": "Name",
+        "url": "URL to check",
+        "every": "Every (minutes)"
+      }
+    }
   }
 }

@@ -510,5 +510,17 @@
     "allClear": "所有作業皆執行正常。",
     "count": "{count, plural, other {有 # 個作業失敗中}}",
     "streak": "{count, plural, one {失敗 # 次} other {連續 # 次}}"
+  },
+  "customizations": {
+    "job": "排程作業",
+    "templates": {
+      "httpCheck": {
+        "label": "HTTP 健康檢查",
+        "description": "每隔幾分鐘呼叫一個 URL，失敗時通知擁有者",
+        "name": "名稱",
+        "url": "要檢查的 URL",
+        "every": "間隔（分鐘）"
+      }
+    }
   }
 }

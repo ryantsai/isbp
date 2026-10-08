@@ -49,7 +49,9 @@
     "idpManage": "Configure sign-in providers and directory sync",
     "workflowsRead": "View workflows and running approvals",
     "workflowsManage": "Design, publish and administer workflows",
+    "formsRead": "View request forms",
     "formsManage": "Build and publish forms",
+    "customFieldsRead": "View custom fields",
     "customFieldsManage": "Add custom fields to people, groups and departments",
     "notificationsManage": "Configure email, Teams, Slack and webhook notifications",
     "accessRequestsRead": "See other people's access requests",
@@ -59,7 +61,8 @@
     "roleQueryRead": "Query roles and permissions through the Role Query API",
     "aiManage": "Configure the AI gateway: models, privacy and budget",
     "databasesRead": "View database connections",
-    "databasesManage": "Manage database connections and their credentials"
+    "databasesManage": "Manage database connections and their credentials",
+    "mcpUse": "Let an API client connect to the platform's MCP server as an outside AI agent"
   },
   "settings": {
     "productName": "Product name",
@@ -129,6 +132,10 @@
     "database-admin": {
       "name": "Database connection administrator",
       "description": "Register external databases, their credentials and purposes"
+    },
+    "configuration-viewer": {
+      "name": "Configuration viewer",
+      "description": "See workflows, forms, custom fields, roles and module settings, and propose changes to them"
     }
   },
   "entities": {
@@ -215,6 +222,62 @@
     "channel_test": {
       "title": "Test notification from IS Big Platform",
       "body": "If you can read this, the channel works."
+    }
+  },
+  "customizations": {
+    "workflow": "Approval workflow",
+    "form": "Request form",
+    "customField": "Custom field",
+    "role": "Role",
+    "notificationChannel": "Notification channel",
+    "moduleSettings": "Module settings",
+    "approvalChain": {
+      "label": "Approval chain",
+      "description": "One or two approval steps for something that needs approval; the second can apply only above an amount.",
+      "trigger": "What needs approval",
+      "name": "Workflow name",
+      "firstApprover": "First approver",
+      "approverManager": "The requester's manager",
+      "approverDepartmentHead": "The head of the requester's department",
+      "approverGroup": "A member of a group",
+      "approverRole": "Someone with a role",
+      "firstGroup": "Group",
+      "firstRole": "Role",
+      "secondStep": "Add a second approval by a group",
+      "secondGroup": "Group for the second approval",
+      "onlyAbove": "Only when an amount is above a limit",
+      "conditionFact": "Amount to compare",
+      "conditionFactHelp": "A value of the request, e.g. data.amount for a form question with the key amount.",
+      "conditionAmount": "Limit",
+      "isDefault": "Use it for every request of this kind",
+      "isDefaultHelp": "Makes it the default workflow. Forms choose their own workflow, so leave this off for form approvals.",
+      "stepManager": "Manager approval",
+      "stepDepartmentHead": "Department head approval",
+      "stepGroup": "Group approval",
+      "stepRole": "Role approval",
+      "stepSecond": "Second approval"
+    },
+    "requestForm": {
+      "label": "Request form",
+      "description": "A form in the request portal with up to three questions.",
+      "name": "Form name",
+      "category": "Category",
+      "workflow": "Approval workflow",
+      "question": "Question",
+      "type": "Answer type",
+      "options": "Choices",
+      "optionsHelp": "One choice per line.",
+      "required": "Required"
+    },
+    "field": {
+      "label": "Custom field",
+      "description": "A field on people, groups, departments or module records.",
+      "entityType": "Add it to",
+      "fieldLabel": "Label",
+      "type": "Type",
+      "required": "Required",
+      "options": "Choices",
+      "optionsHelp": "One choice per line."
     }
   }
 }

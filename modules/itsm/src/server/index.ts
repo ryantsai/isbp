@@ -2,6 +2,7 @@ import { defineServerModule } from '@isbp/sdk/server';
 import migrations from '../../migrations';
 import { manifest } from '../manifest';
 import { aiTools } from './ai-tools';
+import { catalogItemCustomization, categoryCustomization, slaPolicyCustomization } from './customizations';
 import { records } from './records';
 import { routes } from './routes';
 import { seed } from './seed';
@@ -72,6 +73,12 @@ export default defineServerModule(manifest, {
   },
 
   ai: aiTools,
+
+  customizations: {
+    category: categoryCustomization,
+    'sla-policy': slaPolicyCustomization,
+    'catalog-item': catalogItemCustomization,
+  },
 
   search: (query, ctx, auth, limit) => services(ctx).tickets.search(query, auth, limit),
 

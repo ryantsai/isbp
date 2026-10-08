@@ -7,6 +7,7 @@ import type {
   ResolvedRecordInfo,
 } from '@isbp/contracts';
 import { formatRecordRef } from '@isbp/sdk';
+import { usePageRecord } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
@@ -199,6 +200,13 @@ export default function LinkedRecords({ record: ref, bare }: RecordPanelSlotProp
   const unlink = useApiMutation((api, linkId: string) => api.delete(`${linksPath(ref)}/${linkId}`), {
     invalidate: ['/records/'],
     success: t('links.removed'),
+  });
+  // Every record page hosts this panel: it tells the shell (and the assistant) which record is open.
+  const shown = data?.record;
+  usePageRecord({
+    type: ref.type,
+    id: ref.id,
+    label: shown ? `${shown.reference ? `${shown.reference} ` : ''}${shown.title}`.trim() : undefined,
   });
   if (isPending || !data) return bare ? null : <Skeleton className="h-28 w-full" />;
 

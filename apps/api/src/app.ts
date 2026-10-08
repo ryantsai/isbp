@@ -17,7 +17,7 @@ import {
 import { v7 as uuidv7 } from 'uuid';
 import { registerAuth } from './kernel/http/auth';
 import { registerErrorHandling } from './kernel/http/errors';
-import type { Kernel } from './kernel/kernel';
+import { API_VERSION, type Kernel } from './kernel/kernel';
 import { httpDuration } from './kernel/metrics';
 import { loggerOptions } from './logger';
 
@@ -34,6 +34,9 @@ export async function buildApp(kernel: Kernel) {
     requestIdHeader: 'x-request-id',
     genReqId: () => uuidv7(),
     routerOptions: { ignoreTrailingSlash: true },
+    // Server-Sent Events (notifications, assistant answers) never finish on their own: close them on shutdown so
+    // the process can exit; clients reconnect to another replica.
+    forceCloseConnections: true,
   }).withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(validatorCompiler);
@@ -77,7 +80,7 @@ export async function buildApp(kernel: Kernel) {
         openapi: '3.1.0',
         info: {
           title: 'IS Big Platform API',
-          version: '1.0.0',
+          version: API_VERSION,
           description:
             'Every UI action is backed by this API. Browsers authenticate with the session cookie; unsafe ' +
             'methods then require the `x-csrf-token` header. API clients (Role Query API, automation) send ' +
@@ -146,6 +149,45 @@ export async function buildApp(kernel: Kernel) {
       { prefix },
     );
   }
+
+  // MCP server for outside agents (API clients holding core.mcp.use): docs/architecture.md §13.4.
+  const mcp = kernel.mcp;
+  const webOrigin = new URL(kernel.config.PUBLIC_URL).origin;
+  app.post(
+    '/api/v1/mcp',
+    {
+      config: { permission: 'core.mcp.use' },
+      schema: {
+        tags: ['MCP'],
+        summary: 'Model Context Protocol endpoint (Streamable HTTP) for outside agents',
+        description:
+          'JSON-RPC 2.0 over POST. Revision 2026-07-28 (stateless, `server/discover`) and the initialize-based ' +
+          'revisions 2025-11-25, 2025-06-18 and 2025-03-26. API clients only.',
+      },
+    },
+    async (req, reply) => {
+      const origin = req.headers.origin;
+      if (origin && origin !== webOrigin)
+        return reply
+          .status(403)
+          .send({ jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Origin not allowed' } });
+      if (req.auth.principal.type !== 'service')
+        return reply
+          .status(403)
+          .send({ jsonrpc: '2.0', id: null, error: { code: -32600, message: 'MCP is for API clients' } });
+      const res = await mcp.handle({ headers: req.headers, body: req.body, auth: req.auth });
+      return res.body === undefined
+        ? reply.status(res.status).send()
+        : reply.status(res.status).send(res.body);
+    },
+  );
+  app.route({
+    method: ['GET', 'DELETE'],
+    url: '/api/v1/mcp',
+    config: { permission: 'core.mcp.use' },
+    schema: { hide: true },
+    handler: (_req, reply) => reply.status(405).header('allow', 'POST').send(),
+  });
 
   app.addHook('onResponse', (req, reply, done) => {
     const route = req.routeOptions.url ?? 'unmatched';

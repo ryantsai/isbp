@@ -15,6 +15,11 @@ export const moduleMessages: Record<string, Record<Locale, Loader>> = {
     'zh-TW': () => import('@isbp/module-announcements/messages/zh-TW.json'),
     'ja-JP': () => import('@isbp/module-announcements/messages/ja-JP.json'),
   },
+  'assistant': {
+    en: () => import('@isbp/module-assistant/messages/en.json'),
+    'zh-TW': () => import('@isbp/module-assistant/messages/zh-TW.json'),
+    'ja-JP': () => import('@isbp/module-assistant/messages/ja-JP.json'),
+  },
   'azdo': {
     en: () => import('@isbp/module-azdo/messages/en.json'),
     'zh-TW': () => import('@isbp/module-azdo/messages/zh-TW.json'),

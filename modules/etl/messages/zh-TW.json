@@ -610,5 +610,9 @@
     "hint": "以與「立即執行」相同的方式執行管線；讀取、寫入與拒絕的列數會顯示在作業執行中。",
     "disabled": "已停用",
     "open": "開啟 {name}"
+  },
+  "customizations": {
+    "pipeline": "ETL 管線",
+    "endpoint": "資料 API"
   }
 }

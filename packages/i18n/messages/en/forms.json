@@ -239,5 +239,8 @@
     "emptyTitle": "No requests yet",
     "emptyDescription": "Requests made from the portal with this form appear here.",
     "emptyFiltered": "No requests with this status"
+  },
+  "changePreview": {
+    "invalid": "This proposal can’t be previewed: its questions aren’t a valid form."
   }
 }

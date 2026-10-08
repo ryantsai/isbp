@@ -191,3 +191,30 @@ the hub re-reads them with `get`.
 
 **R44. A connector SHOULD ship a stand-in in `tooling/integration-mocks`** and test against it in-process. Tests
 and the demo never reach real tenants.
+
+## AI agent (Phase 6)
+
+**R45. A surface administrators configure SHOULD be a customisation kind** (`manifest.customizations` +
+`defineServerModule({ customizations })`), built on the admin API's own Zod schema and service. `get(id).value`
+MUST round-trip: applying it as an update changes nothing. _Why:_ the agent (and outside agents over MCP) can only
+produce what the admin UI would accept, and change sets can diff and roll back every kind the same way.
+
+**R46. A kind's `apply` MUST be transactional and use only the `ctx` it receives.** During a change set that `ctx`
+is bound to the set's transaction (`ctx.db`, `ctx.transaction` as savepoints, audit entries carrying the change set).
+No outside calls; caches and schedules are refreshed after commit (an event or the next tick). _Check:_ an
+integration test that a dry run (`apply(…, { dryRun: true })` in a rolled-back transaction) leaves nothing behind.
+
+**R47. A kind that can create MUST also archive or delete** (rollbacks undo creates with them). Archived,
+inactive or disabled flags are not part of the value: they are `archived` on the object, changed by `archive` and
+`restore`.
+
+**R48. Configuration changes are change sets, and a person decides.** No AI tool may write configuration in place:
+configuration changes are items in change sets (`assistant.propose_change`). Applying and rolling back are destructive
+tools: they run only when a person does it — on the change set page, or by confirming the built-in agent's request in
+the panel — with that person's permissions. Tools that only read MUST declare `readOnly: true`; tools that change
+something live that can't simply be undone MUST declare `destructive: true` (the built-in agent then asks the person
+to confirm, and MCP never offers them).
+
+**R49. A kind's guide MUST point at live data, in English for models.** Give the ids, keys, facts and schemas a value
+refers to (or the tools that find them) in `guide().reference`, never rely on the model's training data. Template
+questions are `FieldDef`s with labels in en, zh-TW and ja-JP.

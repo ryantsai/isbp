@@ -86,13 +86,22 @@ export const recordFilesResponseSchema = z.object({
 /**
  * Props of the core record panels a module hosts on its record pages:
  * `<Slot name="core.record.links" props={{ record }} />` and `<Slot name="core.record.files" props={{ record }} />`.
- * Whether the viewer may change them comes from the module's resolver (`editable`).
+ * Whether the viewer may change them comes from the module's resolver (`editable`). The links panel also reports
+ * the record to the shell's page context (`usePageRecord` in `@isbp/sdk/web`), so every record page tells the
+ * assistant which record is open without code of its own.
  */
 export interface RecordPanelSlotProps {
   record: { type: string; id: string };
   /** Hide the card chrome when the host renders its own heading. */
   bare?: boolean;
 }
+
+/**
+ * Props of `<Slot name="core.shell.header">`, hosted by the shell on every page in the header's action group
+ * (before the notification bell). Contributions render one compact icon button (`size="icon"`, translated
+ * `aria-label`) and open their own sheet or popover; the page they are on comes from `usePageContext()`.
+ */
+export type ShellHeaderSlotProps = Record<string, never>;
 
 /** Props of `<Slot name="core.user.overview">` on the user page (Administration → People). */
 export interface UserOverviewSlotProps {

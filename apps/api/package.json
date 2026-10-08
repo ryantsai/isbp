@@ -34,6 +34,7 @@
     "@isbp/i18n": "workspace:*",
     "@isbp/module-alm": "workspace:*",
     "@isbp/module-announcements": "workspace:*",
+    "@isbp/module-assistant": "workspace:*",
     "@isbp/module-azdo": "workspace:*",
     "@isbp/module-cmdb": "workspace:*",
     "@isbp/module-dbaccess": "workspace:*",

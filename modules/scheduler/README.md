@@ -22,6 +22,11 @@ Task types of other modules get their config editor from the slot `scheduler.tas
 `TaskConfigSlotProps` from `@isbp/contracts`); without one the job form shows a JSON editor checked against the
 type's schema.
 
+**Customisation kind (Phase 6).** `scheduler.job` (`src/server/customizations.ts`): the job form without
+`enabled` (archive disables, restore enables; the task type is fixed), applied with `JobService` as the person
+applying, so the task type's permission and the ownership rule still apply. Secrets read back as placeholders and
+keep their stored value. Template `http-check` (name, URL, every N minutes).
+
 ```bash
 pnpm --filter @isbp/module-scheduler db:generate   # after changing src/server/schema.ts
 pnpm --filter @isbp/module-scheduler test

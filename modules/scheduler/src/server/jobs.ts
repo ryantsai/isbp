@@ -123,7 +123,7 @@ export class JobService {
     available: Map<string, { name: string; icon: string | null }>,
   ): Promise<TaskInfo> {
     const type = available.get(job.type);
-    const d = await this.ctx.taskTypes.describe(job.type, job.config);
+    const d = await this.ctx.taskTypes.describe(job.type, job.config, { db: this.ctx.db });
     return {
       name: type?.name ?? job.type,
       icon: type?.icon ?? null,
@@ -374,7 +374,7 @@ export class JobService {
     }
     let parsed: unknown;
     try {
-      parsed = await this.ctx.taskTypes.validate(type, config, auth);
+      parsed = await this.ctx.taskTypes.validate(type, config, auth, { db: this.ctx.db });
     } catch (err) {
       if (err instanceof HttpError && err.code === ErrorCodes.NOT_FOUND)
         throw invalid([{ path: 'type', message: `Unknown task type ${type}` }]);

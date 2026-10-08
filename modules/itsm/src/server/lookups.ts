@@ -4,7 +4,8 @@
  */
 import { groups, users } from '@isbp/db/schema';
 import { type Db, localize, type LocalizedText } from '@isbp/sdk/server';
-import { asc, eq, inArray } from 'drizzle-orm';
+import { asc, eq, inArray, is } from 'drizzle-orm';
+import { PgTransaction } from 'drizzle-orm/pg-core';
 import type { TicketType } from '../contracts';
 import type { CalendarSpec } from './business-time';
 import { businessCalendars, categories, slaPolicies } from './schema';
@@ -37,7 +38,17 @@ let categoryCache: Entry<Map<string, CategoryInfo>> | null = null;
 let calendarCache: Entry<Map<string, CalendarInfo>> | null = null;
 let policyCache: Entry<PolicyRow[]> | null = null;
 
-function cached<T>(entry: Entry<T> | null, load: () => Promise<T>, set: (e: Entry<T>) => void): Promise<T> {
+/**
+ * Inside a transaction (a change set being applied, or a dry run that is rolled back) the tables are read
+ * directly and nothing is cached: the transaction sees its own changes, and they never outlive a rollback.
+ */
+function cached<T>(
+  db: Db,
+  entry: Entry<T> | null,
+  load: () => Promise<T>,
+  set: (e: Entry<T>) => void,
+): Promise<T> {
+  if (is(db, PgTransaction)) return load();
   if (entry && Date.now() - entry.at < TTL_MS) return entry.value;
   const value = load();
   set({ at: Date.now(), value });
@@ -54,6 +65,7 @@ export function invalidateLookups() {
 
 export function categoryMap(db: Db): Promise<Map<string, CategoryInfo>> {
   return cached(
+    db,
     categoryCache,
     async () => {
       const rows = await db.select().from(categories).orderBy(asc(categories.sortOrder), asc(categories.key));
@@ -88,6 +100,7 @@ export function categoryMap(db: Db): Promise<Map<string, CategoryInfo>> {
 
 export function calendarMap(db: Db): Promise<Map<string, CalendarInfo>> {
   return cached(
+    db,
     calendarCache,
     async () => {
       const rows = await db.select().from(businessCalendars);
@@ -108,6 +121,7 @@ export function calendarMap(db: Db): Promise<Map<string, CalendarInfo>> {
 /** Active SLA policies in evaluation order. */
 export function activePolicies(db: Db): Promise<PolicyRow[]> {
   return cached(
+    db,
     policyCache,
     () =>
       db

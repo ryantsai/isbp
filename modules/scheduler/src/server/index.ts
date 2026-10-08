@@ -2,6 +2,7 @@ import { defineServerModule } from '@isbp/sdk/server';
 import migrations from '../../migrations';
 import { manifest } from '../manifest';
 import { aiTools } from './ai';
+import { jobCustomization } from './customizations';
 import { records, search } from './records';
 import { routes } from './routes';
 import { seed } from './seed';
@@ -63,6 +64,7 @@ export default defineServerModule(manifest, {
   },
 
   ai: aiTools,
+  customizations: { job: jobCustomization },
   records,
   search,
   seed,

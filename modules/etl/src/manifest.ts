@@ -157,6 +157,7 @@ export const manifest = defineManifest({
           'List published Data APIs (REST endpoints over company databases), optionally filtered by a search term such as "customers" or "sales". Returns the slug, name, URL, method, latest version and parameters of each, so you can tell a person which API answers their question and how to call it.',
         input: aiListEndpointsInput,
         permission: 'etl.endpoints.read',
+        readOnly: true,
       },
       {
         name: 'etl.run_pipeline',
@@ -189,6 +190,28 @@ export const manifest = defineManifest({
       icon: 'workflow',
       permission: 'etl.pipelines.run',
       config: pipelineTaskConfigSchema,
+    },
+  ],
+  customizations: [
+    {
+      kind: 'pipeline',
+      label: 'etl.customizations.pipeline',
+      description:
+        'An ETL pipeline: one SELECT on a source data connection loaded into a table of a target data connection (insert, upsert or replace), optionally incremental on a watermark column, with column mappings and transforms. Applying makes it live; archiving disables it.',
+      icon: 'workflow',
+      readPermission: 'etl.pipelines.read',
+      applyPermission: 'etl.pipelines.manage',
+      operations: ['create', 'update', 'archive', 'delete'],
+    },
+    {
+      kind: 'endpoint',
+      label: 'etl.customizations.endpoint',
+      description:
+        'A Data API: a REST endpoint answering from one parameterized SQL statement or a stored procedure on a data connection, with its parameters, limits, caching and allowed callers. Applying saves the draft only; a person tests it and publishes it as a version in Data APIs.',
+      icon: 'database-zap',
+      readPermission: 'etl.endpoints.read',
+      applyPermission: 'etl.endpoints.manage',
+      operations: ['create', 'update', 'delete'],
     },
   ],
 });

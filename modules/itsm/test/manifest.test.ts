@@ -14,6 +14,11 @@ describe('itsm manifest', () => {
     for (const tool of manifest.ai?.tools ?? []) expect(tool.name.startsWith('itsm.')).toBe(true);
   });
 
+  it('has catalog text for every customisation kind', () => {
+    const catalog = new Set(keys(en).map((k) => `itsm.${k}`));
+    for (const k of manifest.customizations ?? []) expect(catalog, k.label).toContain(k.label);
+  });
+
   it('ships the same message keys in every locale', () => {
     expect(keys(zh).sort()).toEqual(keys(en).sort());
     expect(keys(ja).sort()).toEqual(keys(en).sort());

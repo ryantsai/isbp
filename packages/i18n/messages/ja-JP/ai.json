@@ -6,7 +6,8 @@
     "models": "モデル",
     "privacy": "プライバシーと予算",
     "usage": "使用状況",
-    "index": "インデックス"
+    "index": "インデックス",
+    "mcp": "外部エージェント (MCP)"
   },
   "status": {
     "generative": "生成 AI",
@@ -320,5 +321,31 @@
       "knowledge_article": "ナレッジ記事",
       "itsm_ticket": "解決済みのチケット"
     }
+  },
+  "mcp": {
+    "endpoint": "エンドポイント",
+    "description": "Claude Code、Claude Desktop、IDE のエージェントは、Model Context Protocol を使用して ISBP のツールとカスタマイズの種類を利用できます。アシスタントと同じアクセス許可の確認と監査ログが適用されます。",
+    "endpointUrl": "MCP エンドポイントの URL",
+    "copyEndpoint": "MCP エンドポイントの URL をコピー",
+    "endpointHint": "Streamable HTTP、JSON 応答、セッションなし。ほかの Web サイトからの要求は拒否されます。",
+    "versions": "プロトコルのリビジョン",
+    "stateless": "ステートレス",
+    "legacy": "initialize を使用",
+    "versionsBody": "リビジョン 2026-07-28 を指定した要求はステートレスに処理されます。initialize で開始するクライアントには 2025-11-25、2025-06-18、または 2025-03-26 が使用されます。",
+    "access": "接続できるクライアント",
+    "accessBody": "{permission} を持つ API クライアントのみが、API キーまたは OAuth クライアント資格情報のトークンで接続できます。すべての呼び出しはクライアント自身のアクセス許可で実行され、監査ログに記録されます。",
+    "clientsTitle": "MCP を使用できる API クライアント",
+    "clientsEmpty": "MCP を使用できる API クライアントはまだありません。[管理] → [API クライアント] でアクセス許可を付与してください。",
+    "manageClients": "API クライアントを管理",
+    "offered": "エージェントが利用できるもの",
+    "offeredTools": "ツール: API クライアントが使用できる、破壊的でないすべてのツール (名前は module__tool、読み取り専用かどうかを表示)。",
+    "offeredResources": "リソース: クライアントが読み取れるカスタマイズの種類 (isbp://customizations)、各種類のスキーマとガイド、オブジェクトとそのバージョン。",
+    "offeredChangeSets": "変更は変更セットになります。エージェントが提案し、ユーザーが ISBP で確認して適用するまで反映されません。",
+    "offeredNoDestructive": "破壊的なツールは ISBP でのユーザーの確認が必要なため、提供されません。",
+    "connect": "Claude Code を接続",
+    "connectBody": "ターミナルでこのコマンドを実行し、プレースホルダーを MCP を使用できるクライアントの API キーに置き換えてください。",
+    "command": "コマンド",
+    "copyCommand": "コマンドをコピー",
+    "placeholderHint": "キーはプレースホルダーです。実際のキーを共有のメモやチャットに貼り付けないでください。"
   }
 }

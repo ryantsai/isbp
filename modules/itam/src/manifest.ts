@@ -300,6 +300,7 @@ export const manifest = defineManifest({
           'Search hardware assets (laptops, phones, monitors, servers, network gear…) the caller can see, by asset tag such as AST-00042, serial number or name, optionally by the person it is assigned to or by lifecycle status. Returns tag, model, status, assignee, location and warranty end.',
         input: aiFindAssetsInput,
         permission: 'itam.hardware.read',
+        readOnly: true,
       },
       {
         name: 'itam.get_asset',
@@ -307,6 +308,7 @@ export const manifest = defineManifest({
           'Get one hardware asset by id, asset tag (AST-00042) or serial number: model, status, assignee, location, purchase and warranty, book value, the linked CMDB configuration item and recent lifecycle history.',
         input: aiGetAssetInput,
         permission: 'itam.hardware.read',
+        readOnly: true,
       },
       {
         name: 'itam.my_assets',
@@ -314,6 +316,7 @@ export const manifest = defineManifest({
           "List the devices (laptop, phone, monitor…) and software licences assigned to the caller, with asset tags, serial numbers and warranty. Use it to answer 'which laptop do I have?' or to identify the device a user reports a problem with.",
         input: z.object({}),
         permission: 'itam.self.read',
+        readOnly: true,
       },
       {
         name: 'itam.license_compliance',
@@ -321,6 +324,7 @@ export const manifest = defineManifest({
           'Software licence compliance: entitlements versus seats in use, unlicensed installs and the compliance state (compliant, over_deployed, under_used, expiring, expired) per licence, optionally for one product.',
         input: aiLicenseComplianceInput,
         permission: 'itam.software.read',
+        readOnly: true,
       },
       {
         name: 'itam.expiring_contracts',
@@ -328,6 +332,7 @@ export const manifest = defineManifest({
           'Contracts (support, maintenance, leases, subscriptions…) ending within the next N days (default 90), with vendor, end date, notice date, auto-renewal and annual cost.',
         input: aiExpiringContractsInput,
         permission: 'itam.contracts.read',
+        readOnly: true,
       },
     ],
   },

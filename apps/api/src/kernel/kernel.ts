@@ -1,15 +1,18 @@
 import { createDb, type MigrationSet, runMigrations } from '@isbp/db';
 import coreMigrations from '@isbp/db/migrations';
-import type { AuthContext, Db, ModuleContext, SearchHit, ServerModule } from '@isbp/sdk/server';
-import { sql } from 'drizzle-orm';
+import { users } from '@isbp/db/schema';
+import type { AuthContext, Db, ModuleContext, RbacReader, SearchHit, ServerModule } from '@isbp/sdk/server';
+import { eq, sql } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import { Redis } from 'ioredis';
 import type { Config } from '../config';
 import { AiGateway } from './ai/gateway';
+import { McpServer } from './ai/mcp';
 import { ApiClientAuth } from './api-clients';
 import { createAuditService } from './audit';
 import { createCacheService } from './cache';
 import { currentPrincipal } from './context';
+import { buildAuthContext } from './http/auth';
 import { SecretBox } from './crypto';
 import { DatabaseManager } from './databases';
 import { createEventPublisher } from './events';
@@ -26,14 +29,18 @@ import { QueueFactory } from './queues';
 import { RbacService } from './rbac';
 import { RecordRegistry } from './records';
 import { Sandbox } from './sandbox';
-import { SessionService } from './sessions';
+import { SessionService, toSessionUser } from './sessions';
 import { SettingsService } from './settings';
+import { CustomizationRegistry } from './customizations';
 import { ConnectorRegistry, SyncRegistry } from './integrations';
 import { TaskTypeRegistry } from './task-types';
 import { installDefaultWorkflows } from './workflow/defaults';
 import { WorkflowEngine } from './workflow/engine';
 
 export type Kernel = Awaited<ReturnType<typeof createKernel>>;
+
+/** Version reported by the OpenAPI document and the MCP server. */
+export const API_VERSION = '1.0.0';
 
 /**
  * Wires shared services once per process. API and worker both build a kernel; only the worker starts
@@ -130,6 +137,29 @@ export async function createKernel(
   const sync = new SyncRegistry(registry);
   const syncService = sync.service();
   const connectorsService = new ConnectorRegistry(registry, httpClient, redis).service();
+  const customizations = new CustomizationRegistry(registry).service();
+  // One MCP surface: the HTTP endpoint for outside agents and in-process sessions for the platform's own.
+  const mcp = new McpServer({
+    tools: ai.tools,
+    customizations,
+    version: API_VERSION,
+    publicUrl: config.PUBLIC_URL,
+  });
+  ai.attachMcp(mcp);
+
+  const rbacReader: RbacReader = {
+    permissionsFor: (userId) => rbac.permissionsFor(userId),
+    authFor: async (userId) => {
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user || user.status !== 'active') return null;
+      return buildAuthContext(
+        { type: 'user', id: user.id, name: user.displayName },
+        toSessionUser(user),
+        null,
+        await rbac.permissionsFor(user.id),
+      );
+    },
+  };
 
   const contexts = new Map<string, ModuleContext>();
   for (const m of registry.modules) {
@@ -143,7 +173,7 @@ export async function createKernel(
       events: createEventPublisher(db, m.manifest, log),
       jobs: queues.forModule(id, (name) => m.jobs?.[name]),
       settings: settings.reader(m.manifest),
-      rbac,
+      rbac: rbacReader,
       workflows: workflows.forModule(id),
       notifications: notifications.forModule(m.manifest),
       fields: fields.service(),
@@ -160,6 +190,7 @@ export async function createKernel(
       sandbox: sandboxService,
       sync: syncService,
       connectors: connectorsService,
+      customizations,
       transaction: (fn) => db.transaction((tx) => fn(tx as unknown as Db)),
       principal: currentPrincipal,
       isEnabled: () => registry.isEnabled(id),
@@ -241,6 +272,8 @@ export async function createKernel(
     databases,
     sandbox,
     sync,
+    customizations,
+    mcp,
     migrate,
     ready,
     search,

@@ -610,5 +610,9 @@
     "hint": "Runs the pipeline with the same runner as Run now; rows read, written and rejected appear in the job run.",
     "disabled": "disabled",
     "open": "Open {name}"
+  },
+  "customizations": {
+    "pipeline": "ETL pipeline",
+    "endpoint": "Data API"
   }
 }

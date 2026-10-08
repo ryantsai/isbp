@@ -5,16 +5,19 @@
  * - `/sdp/api/v3/…`: ManageEngine ServiceDesk Plus (on-premises) REST API v3, technician API key auth.
  * - `/ado/<collection>/…`: Azure DevOps Server (on-premises) REST API (work items, projects, Git).
  * - `/_mock/…`: test controls: reset, inspect, edit records "as someone in the outside system", webhooks.
+ * - `/llm/v1/…`: a scripted OpenAI-compatible chat model for the assistant's tool loop (Phase 6), see `llm.ts`.
  *
  * They follow the real APIs' shapes closely enough for the connectors to run unchanged against either. The
  * credentials they accept are the demo values in `credentials.ts`.
  */
 import Fastify, { type FastifyInstance } from 'fastify';
 import { adoMock } from './ado';
+import { registerLlm } from './llm';
 import { MockStore } from './store';
 import { sdpMock } from './sdp';
 
 export { MOCK_CREDENTIALS } from './credentials';
+export { scriptedReply } from './llm';
 export type { MockWebhook } from './store';
 export { MockStore } from './store';
 
@@ -97,6 +100,7 @@ export async function createMockServer(opts: MockServerOptions = {}): Promise<Fa
   });
 
   for (const plugin of [sdpMock, adoMock]) plugin.register(app, ctx);
+  registerLlm(app);
   app.addHook('onClose', async () => store.flush());
   return app;
 }

@@ -94,6 +94,7 @@ export const manifest = defineManifest({
           limit: z.number().int().min(1).max(25).default(10),
         }),
         permission: 'cmdb.cis.read',
+        readOnly: true,
       },
       {
         name: 'cmdb.get_ci',
@@ -103,6 +104,7 @@ export const manifest = defineManifest({
           .object({ id: z.uuid().optional(), number: z.string().max(32).optional() })
           .refine((v) => Boolean(v.id) !== Boolean(v.number), 'Give either id or number'),
         permission: 'cmdb.cis.read',
+        readOnly: true,
       },
       {
         name: 'cmdb.get_impact',
@@ -113,6 +115,7 @@ export const manifest = defineManifest({
           depth: z.number().int().min(1).max(MAX_IMPACT_DEPTH).default(3),
         }),
         permission: 'cmdb.cis.read',
+        readOnly: true,
       },
     ],
   },

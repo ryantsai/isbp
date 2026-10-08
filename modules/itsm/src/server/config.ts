@@ -2,9 +2,9 @@
  * Service-desk configuration: categories, business calendars, SLA policies, the service catalog
  * (form → fulfilment mapping) and the group/agent lookups used by pickers and AI triage.
  */
-import { groupMembers, groups, users } from '@isbp/db/schema';
+import { forms, groupMembers, groups, users } from '@isbp/db/schema';
 import { ErrorCodes, HttpError, httpErrors, type LocalizedText, type ModuleContext } from '@isbp/sdk/server';
-import { and, asc, count, eq, inArray, isNotNull, ne, sql } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import type {
   TicketType,
@@ -439,9 +439,27 @@ export class ConfigService {
     };
   }
 
+  /**
+   * Whether a published, active form has this key. Read through `ctx.db`, so a change set that publishes the
+   * form and adds it to the catalog in one transaction sees it.
+   */
+  async isPublishedForm(formKey: string): Promise<boolean> {
+    const [form] = await this.ctx.db
+      .select({ id: forms.id })
+      .from(forms)
+      .where(
+        and(
+          eq(forms.key, formKey),
+          isNotNull(forms.publishedVersion),
+          isNull(forms.archivedAt),
+          eq(forms.active, true),
+        ),
+      );
+    return Boolean(form);
+  }
+
   async upsertCatalogItem(formKey: string, input: z.output<typeof upsertCatalogItemSchema>) {
-    const forms = await this.ctx.forms.published();
-    if (!forms.some((f) => f.key === formKey)) throw httpErrors.notFound('No published form with this key');
+    if (!(await this.isPublishedForm(formKey))) throw httpErrors.notFound('No published form with this key');
     if (input.categoryId && !(await categoryMap(this.ctx.db)).get(input.categoryId))
       throw invalid('categoryId', 'Unknown category');
     if (input.groupId)

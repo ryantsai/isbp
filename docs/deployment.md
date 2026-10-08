@@ -464,6 +464,32 @@ on-premises editions of **ManageEngine ServiceDesk Plus** and **Azure DevOps Ser
   `pnpm dev:services`). The demo seed connects to them only when `INTEGRATION_MOCKS_URL` is set (it is by default
   in development). Production seeds create no connections.
 
+## 7f. AI agent and MCP (Phase 6)
+
+The **assistant** (module `assistant`) is the platform's built-in agent: it works through the platform's own MCP
+tools (in-process), as the signed-in person, so nobody needs an outside tool. Configuration it builds is a **change
+set**, applied in one transaction when the person confirms the agent's request (with their own permissions) or when a
+reviewer approves it (the `assistant.change-set` workflow), and it can be rolled back. Destructive actions always wait
+for the person's confirmation in the panel.
+
+- **Model.** The assistant uses the chat model configured in **Administration → AI** (§7b), through the same
+  gateway: masking, usage per feature (`assistant.chat`), the monthly budget. Without a chat model it offers guided
+  templates instead of free text and says so. A capable model with tool use is needed for free-text requests
+  (Claude Opus or Sonnet class; OpenAI-compatible endpoints that support streaming tool calls also work).
+- **Who.** Everyone may use the assistant only if you grant it: the `assistant-user` role (`assistant.agent.use`).
+  People can propose changes to the surfaces they can read; applying needs each surface's own manage permission.
+  The default review workflow asks a platform administrator; bind your own in **Administration → Approval
+  workflows** (trigger "Change set review"), e.g. role changes to identity administrators.
+- **MCP for outside agents.** `POST <PUBLIC_URL>/api/v1/mcp` serves Claude Code, Claude Desktop and other MCP clients
+  (Streamable HTTP; revision 2026-07-28 and the initialize-based 2025 revisions). It is reached through the web
+  app's proxy like the rest of the API, needs no extra ingress rule, and keeps no sessions (any replica answers).
+  Give each outside agent its own **API client** holding `core.mcp.use` plus what it should reach — usually
+  `assistant.agent.use` and the read permissions of the surfaces it may propose changes to. Destructive tools are
+  never offered over MCP, and its proposals are drafts until a person applies them. Requests with a browser
+  `Origin` other than `PUBLIC_URL` are refused.
+- **Audit.** Tool calls (`core.ai.tool_invoked`, with `via: mcp` for MCP), change sets (`assistant.change-set.*`)
+  and every module audit entry written while applying (with the change set as `source`) are in the audit log.
+
 ## 8. Production checklist
 
 - [ ] **TLS everywhere at the edge** and `PUBLIC_URL=https://…` — session cookies are marked `Secure` only when
@@ -498,6 +524,8 @@ on-premises editions of **ManageEngine ServiceDesk Plus** and **Azure DevOps Ser
 - [ ] Integrations: dedicated technician / service accounts with the rights listed in §7e; traffic to both
       servers allowed; internal CAs trusted with `NODE_EXTRA_CA_CERTS`; no connection left on "Allow insecure HTTP"
       without a documented reason; `INTEGRATION_MOCKS_URL` not set.
+- [ ] AI agent: the `assistant-user` role granted deliberately; the change-set review workflow routes to the right
+      approvers; one API client per outside agent with `core.mcp.use` and least privilege, keys with an expiry.
 - [ ] Alerts on `/readyz` failures, 5xx rate and latency (`isbp_http_request_duration_seconds`), job failures
       (`isbp_jobs_total{status="failed"}`), and Postgres/Redis health.
 

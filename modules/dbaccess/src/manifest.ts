@@ -272,6 +272,7 @@ export const manifest = defineManifest({
           "List the caller's database access: roles on SQL Server, Oracle and PostgreSQL servers with the account name, status (provisioning, active, expiring, failed…) and end date, plus open access requests. Use it to answer 'which databases can I use?' or 'when does my access end?'.",
         input: aiListMyAccessInput,
         permission: PERMISSIONS.request,
+        readOnly: true,
       },
       {
         name: 'dbaccess.request_access',

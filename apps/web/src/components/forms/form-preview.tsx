@@ -161,78 +161,85 @@ export function FormPreview({
   const ready = previewLocale === current || Boolean(catalogs);
   const missing = missingTexts(elements, [name, description], previewLocale);
 
+  // Laid out by the space it gets: the builder's preview tab, or a narrow card on a change set's page.
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="grid gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <LanguagesIcon className="size-4" aria-hidden />
-            <span id="preview-language">{t('language')}</span>
-          </div>
-          <Segmented
-            label={t('language')}
-            value={previewLocale}
-            onChange={(l) => {
-              setPreviewLocale(l);
-              setResult(null);
-            }}
-            options={locales.map((l) => ({
-              value: l,
-              label: <span title={localeLabels[l]}>{SHORT[l]}</span>,
-            }))}
-          />
-        </div>
-        <AnimatePresence initial={false}>
-          {missing > 0 && (
-            <motion.p
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex items-start gap-2 overflow-hidden rounded-lg bg-warning/10 px-3 py-2 text-sm text-warning-foreground"
-            >
-              <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-              {t('missingTranslations', { count: missing, language: localeLabels[previewLocale] })}
-            </motion.p>
-          )}
-        </AnimatePresence>
-        {ready && (
-          <NextIntlClientProvider locale={previewLocale} messages={merged}>
-            <PreviewForm
-              key={previewLocale}
-              elements={elements}
-              name={name}
-              description={description}
-              icon={icon}
-              onResult={setResult}
+    <div className="@container min-w-0">
+      <div className="grid min-w-0 items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid min-w-0 gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <LanguagesIcon className="size-4" aria-hidden />
+              <span id="preview-language">{t('language')}</span>
+            </div>
+            <Segmented
+              label={t('language')}
+              value={previewLocale}
+              onChange={(l) => {
+                setPreviewLocale(l);
+                setResult(null);
+              }}
+              options={locales.map((l) => ({
+                value: l,
+                label: <span title={localeLabels[l]}>{SHORT[l]}</span>,
+              }))}
             />
-          </NextIntlClientProvider>
-        )}
-      </div>
-      <Card className="lg:sticky lg:top-20">
-        <CardHeader>
-          <CardTitle className="text-base">{t('resultTitle')}</CardTitle>
-          <CardDescription>{t('resultDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent aria-live="polite">
-          {result === null ? (
-            <p className="text-sm text-muted-foreground">{t('resultEmpty')}</p>
-          ) : result.ok ? (
-            <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="grid gap-3">
-              <Badge variant="success" className="text-sm">
-                <CircleCheckIcon aria-hidden /> {t('resultValid')}
-              </Badge>
-              <pre className="max-h-96 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs leading-relaxed">
-                {JSON.stringify(result.values, null, 2)}
-              </pre>
-              <p className="text-xs text-muted-foreground">{t('resultNote')}</p>
-            </motion.div>
-          ) : (
-            <Badge variant="destructive" className="text-sm">
-              <TriangleAlertIcon aria-hidden /> {t('resultInvalid', { count: result.count })}
-            </Badge>
+          </div>
+          <AnimatePresence initial={false}>
+            {missing > 0 && (
+              <motion.p
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-start gap-2 overflow-hidden rounded-lg bg-warning/10 px-3 py-2 text-sm text-warning-foreground"
+              >
+                <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+                {t('missingTranslations', { count: missing, language: localeLabels[previewLocale] })}
+              </motion.p>
+            )}
+          </AnimatePresence>
+          {ready && (
+            <NextIntlClientProvider locale={previewLocale} messages={merged}>
+              <PreviewForm
+                key={previewLocale}
+                elements={elements}
+                name={name}
+                description={description}
+                icon={icon}
+                onResult={setResult}
+              />
+            </NextIntlClientProvider>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        <Card className="@3xl:sticky @3xl:top-20">
+          <CardHeader>
+            <CardTitle className="text-base">{t('resultTitle')}</CardTitle>
+            <CardDescription>{t('resultDescription')}</CardDescription>
+          </CardHeader>
+          <CardContent aria-live="polite">
+            {result === null ? (
+              <p className="text-sm text-muted-foreground">{t('resultEmpty')}</p>
+            ) : result.ok ? (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="grid gap-3"
+              >
+                <Badge variant="success" className="text-sm">
+                  <CircleCheckIcon aria-hidden /> {t('resultValid')}
+                </Badge>
+                <pre className="max-h-96 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs leading-relaxed">
+                  {JSON.stringify(result.values, null, 2)}
+                </pre>
+                <p className="text-xs text-muted-foreground">{t('resultNote')}</p>
+              </motion.div>
+            ) : (
+              <Badge variant="destructive" className="text-sm">
+                <TriangleAlertIcon aria-hidden /> {t('resultInvalid', { count: result.count })}
+              </Badge>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

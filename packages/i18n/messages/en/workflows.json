@@ -339,5 +339,14 @@
         "waiting": "not reached"
       }
     }
+  },
+  "changePreview": {
+    "invalid": "This proposal can’t be drawn: its graph isn’t a valid workflow.",
+    "show": "Show",
+    "proposed": "Proposed",
+    "current": "Current",
+    "proposedDiagram": "Proposed workflow",
+    "currentDiagram": "Current workflow",
+    "simulate": "Try it"
   }
 }

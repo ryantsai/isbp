@@ -165,6 +165,8 @@ export const ErrorCodes = {
   CONFLICT_RESOLVED: 'CONFLICT_RESOLVED',
   /** The connection's URL is plain HTTP and the connection doesn't allow insecure HTTP (`details.host`). */
   INSECURE_HTTP: 'INSECURE_HTTP',
+  /** An object in the change set changed since it was proposed or applied (`details.items`). */
+  CHANGE_SET_STALE: 'CHANGE_SET_STALE',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes] | (string & {});
 

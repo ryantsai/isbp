@@ -1,7 +1,20 @@
 'use client';
 
 import type { Locale } from '@isbp/i18n';
-import { createContext, Fragment, Suspense, use, useMemo, type ComponentType, type ReactNode } from 'react';
+import {
+  createContext,
+  Fragment,
+  Suspense,
+  use,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ComponentType,
+  type ReactNode,
+} from 'react';
 import type { ErrorBody } from './http';
 import type { ModuleManifest } from './manifest';
 import { PermissionSet, type Grant, type ResourceScope } from './permissions';
@@ -167,6 +180,82 @@ export function Slot<P extends object>({
     );
     return <Fragment key={moduleId}>{wrap ? wrap(node, moduleId) : node}</Fragment>;
   });
+}
+
+/* ───────────────────────────── page context ───────────────────────────── */
+
+/** The record a page shows (`core.record.links` reports it), e.g. `{ type: 'itsm.ticket', id, label: 'INC-00042 VPN drops' }`. */
+export interface PageRecord {
+  type: string;
+  id: string;
+  label?: string;
+}
+
+/** Where the person is: the path, the document title and the record on the page (if any). */
+export interface PageContextInfo {
+  path: string;
+  title: string;
+  record: PageRecord | null;
+}
+
+type ReportRecord = (key: string, record: PageRecord | null) => void;
+
+const PageRecordReporter = createContext<ReportRecord | null>(null);
+const PageLocation = createContext<{ path: string; record: PageRecord | null }>({ path: '', record: null });
+
+/**
+ * Mounted by the shell around every page: holds the current path and the records pages report with
+ * {@link usePageRecord} (the most recently mounted one wins, so a record opened in a sheet over its parent's page
+ * is "the" record until the sheet closes).
+ */
+export function PageContextProvider({ path, children }: { path: string; children: ReactNode }) {
+  const [reported, setReported] = useState<readonly { key: string; record: PageRecord }[]>([]);
+  const report = useCallback<ReportRecord>(
+    (key, record) =>
+      setReported((prev) => {
+        const rest = prev.filter((r) => r.key !== key);
+        return record ? [...rest, { key, record }] : rest;
+      }),
+    [],
+  );
+  const location = useMemo(() => ({ path, record: reported.at(-1)?.record ?? null }), [path, reported]);
+  return (
+    <PageRecordReporter value={report}>
+      <PageLocation value={location}>{children}</PageLocation>
+    </PageRecordReporter>
+  );
+}
+
+/**
+ * Reports the record this page shows to the shell (the assistant uses it as context); cleared on unmount. Record
+ * pages get this for free from `core.record.links`. Pass `null` while the record is loading.
+ */
+export function usePageRecord(record: PageRecord | null | undefined): void {
+  const report = use(PageRecordReporter);
+  const key = useId();
+  const type = record?.type;
+  const id = record?.id;
+  const label = record?.label;
+  useEffect(() => {
+    if (!report || !type || !id) return;
+    report(key, { type, id, ...(label ? { label } : {}) });
+    return () => report(key, null);
+  }, [report, key, type, id, label]);
+}
+
+function subscribeTitle(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.head, { subtree: true, childList: true, characterData: true });
+  return () => observer.disconnect();
+}
+const documentTitle = () => document.title;
+const noTitle = () => '';
+
+/** The page the person is on: path (from the router), title (`document.title`) and the reported record. */
+export function usePageContext(): PageContextInfo {
+  const { path, record } = use(PageLocation);
+  const title = useSyncExternalStore(subscribeTitle, documentTitle, noTitle);
+  return useMemo(() => ({ path, title, record }), [path, title, record]);
 }
 
 /* ───────────────────────────── API client ───────────────────────────── */

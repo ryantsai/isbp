@@ -35,7 +35,7 @@ export type AssignmentSourceRow = {
  * the compiled snapshot is cached in Redis under a global version counter — any RBAC change bumps the
  * version, which invalidates every snapshot on every replica at once.
  */
-export class RbacService implements RbacReader {
+export class RbacService implements Pick<RbacReader, 'permissionsFor'> {
   constructor(
     private readonly db: Db,
     private readonly redis: Redis,

@@ -17,12 +17,19 @@ export async function bootstrap(
 }
 
 /** Runs `stop` once on SIGINT/SIGTERM, then exits. */
+const SHUTDOWN_TIMEOUT_MS = 20_000;
+
 export function onShutdown(stop: () => Promise<void>) {
   let stopping = false;
   const handler = (signal: string) => {
     if (stopping) return;
     stopping = true;
     console.warn(`\n${signal} received — shutting down…`);
+    // Never hang on a stuck connection or job: well inside Kubernetes' default 30 s grace period.
+    setTimeout(() => {
+      console.error('Shutdown took too long — exiting');
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS).unref();
     stop()
       .catch((err) => console.error(err))
       .finally(() => process.exit(0));

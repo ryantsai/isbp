@@ -671,7 +671,10 @@ async function seedPipelines(ctx: ModuleContext, list: SeedPipeline[], ownerId: 
     for (let t = first.getTime(); t < now - HOUR; t += p.history.everyHours * HOUR) {
       const daysAgo = Math.floor((now - t) / DAY);
       const status = p.history.outcome(daysAgo);
-      const manual = r.chance(0.05);
+      // The latest run is always the scheduled one: how many runs fit depends on the time of day, and the demo (and
+      // its tests) expect the schedule to have produced each pipeline's current state.
+      const latest = t + p.history.everyHours * HOUR >= now - HOUR;
+      const manual = !latest && r.chance(0.05);
       const startedAt = new Date(t + r.int(2, 40) * 1000);
       const read = status === 'succeeded' ? p.history.rows() : status === 'failed' ? 0 : r.int(100, 400);
       const rejected = status === 'succeeded' && r.chance(0.08) ? r.int(1, 3) : 0;

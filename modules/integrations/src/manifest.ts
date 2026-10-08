@@ -138,4 +138,16 @@ export const manifest = defineManifest({
       config: syncTaskConfigSchema,
     },
   ],
+  customizations: [
+    {
+      kind: 'profile',
+      label: 'integrations.customizations.profile',
+      description:
+        'A sync profile of the Integrations Hub: which remote object type of a connection (a ServiceDesk Plus request, an Azure DevOps work item) syncs with which ISBP record type, in which direction, with field and value mappings, matching, conflict policy and schedule. Applying makes it live; archiving disables it.',
+      icon: 'arrow-left-right',
+      readPermission: 'integrations.connections.read',
+      applyPermission: 'integrations.connections.manage',
+      operations: ['create', 'update', 'archive', 'delete'],
+    },
+  ],
 });

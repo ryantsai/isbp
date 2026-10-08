@@ -1027,5 +1027,18 @@
     },
     "resolvedIn": "Resolved in {system} {reference}",
     "cancelledIn": "Cancelled in {system} {reference}"
+  },
+  "customizations": {
+    "category": "Ticket category",
+    "slaPolicy": "SLA policy",
+    "catalogItem": "Service catalog item",
+    "templates": {
+      "slaTargets": {
+        "label": "SLA targets",
+        "description": "Response and resolution targets per priority for the ticket types you choose",
+        "response": "{priority}: response time (minutes)",
+        "resolution": "{priority}: resolution time (minutes)"
+      }
+    }
   }
 }

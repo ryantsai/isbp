@@ -27,6 +27,11 @@ with `Deprecation: true` and a `Link` to the latest; retired ones answer `410 EN
 **OpenAPI.** `/api/v1/etl/openapi.json` (callers, `etl.endpoints.invoke`) lists the versions the caller may
 call; `/api/v1/etl/endpoints/openapi.json` (`etl.endpoints.read`) lists every published endpoint for the docs.
 
+**Customisation kinds (Phase 6).** `src/server/customizations.ts`: `etl.pipeline` (the pipeline form without
+`enabled`; archive disables) and `etl.endpoint` (name, slug, description, draft definition, allowed callers, rate
+limit). Applying an endpoint **saves the draft only**: a person tests and publishes it in Data APIs. The slug is
+fixed once a version is published.
+
 ```bash
 pnpm --filter @isbp/module-etl db:generate   # after changing src/server/schema.ts
 pnpm --filter @isbp/module-etl test

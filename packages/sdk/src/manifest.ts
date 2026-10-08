@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { CustomizationKindDef } from './customizations';
 import { isPermissionKey, isPermissionPattern } from './permissions';
 import { type WorkflowGraph, workflowGraphSchema } from './workflow';
 
@@ -104,6 +105,8 @@ export interface AiToolDef {
   permission: string;
   /** Destructive or privileged → requires human confirmation before execution. */
   destructive?: boolean;
+  /** Only reads: assistants may run it without asking, MCP clients see `readOnlyHint`. */
+  readOnly?: boolean;
 }
 
 /**
@@ -304,6 +307,8 @@ export interface ModuleManifest {
   syncEntities?: SyncEntityDef[];
   /** Outside systems this module connects to (handlers in `defineServerModule({ connectors })`). */
   connectors?: ConnectorDef[];
+  /** Surfaces admins configure that the AI agent may build changes for (handlers in `customizations`). */
+  customizations?: CustomizationKindDef[];
 }
 
 const zNav: z.ZodType<NavEntry> = z.lazy(() =>
@@ -396,6 +401,7 @@ export const manifestSchema = z
               input: zZodType,
               permission: z.string().refine(isPermissionKey),
               destructive: z.boolean().optional(),
+              readOnly: z.boolean().optional(),
             }),
           )
           .optional(),
@@ -519,6 +525,26 @@ export const manifestSchema = z
         }),
       )
       .optional(),
+    customizations: z
+      .array(
+        z.object({
+          kind: z.string().regex(/^[a-z][a-z0-9-]*$/),
+          label: z.string().min(1),
+          description: z.string().min(10),
+          icon: z.string().optional(),
+          readPermission: z.string().refine(isPermissionKey, 'invalid permission key'),
+          applyPermission: z.string().refine(isPermissionKey, 'invalid permission key'),
+          operations: z
+            .array(z.enum(['create', 'update', 'archive', 'delete']))
+            .min(1)
+            .refine(
+              (ops) => !ops.includes('create') || ops.includes('archive') || ops.includes('delete'),
+              'a kind that can create must also archive or delete (rollbacks undo creates with them)',
+            )
+            .optional(),
+        }),
+      )
+      .optional(),
   })
   .superRefine((m, ctx) => {
     const own = (key: string) => key.startsWith(`${m.id}.`);
@@ -599,6 +625,12 @@ export const manifestSchema = z
             message: `"${name}" is not in events.emits`,
           });
       });
+    });
+    const kinds = new Set<string>();
+    m.customizations?.forEach((k, i) => {
+      if (kinds.has(k.kind))
+        ctx.addIssue({ code: 'custom', path: ['customizations', i, 'kind'], message: 'duplicate kind' });
+      kinds.add(k.kind);
     });
     const connectors = new Set<string>();
     m.connectors?.forEach((c, i) => {

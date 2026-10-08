@@ -546,5 +546,8 @@
     "disabled": "disabled",
     "hint": "Runs the profile’s sync like Run now, with this job’s retries and alerts.",
     "open": "Open {name}"
+  },
+  "customizations": {
+    "profile": "Sync profile"
   }
 }

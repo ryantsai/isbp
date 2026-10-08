@@ -71,5 +71,6 @@
   "WEBHOOK_INVALID": "The webhook secret is missing or wrong.",
   "SYNC_RUNNING": "A sync for this profile is already running.",
   "CONFLICT_RESOLVED": "Someone has already resolved this conflict.",
-  "INSECURE_HTTP": "This connection uses plain HTTP, which isn't encrypted. Use HTTPS, or turn on “Allow insecure HTTP” for the connection."
+  "INSECURE_HTTP": "This connection uses plain HTTP, which isn't encrypted. Use HTTPS, or turn on “Allow insecure HTTP” for the connection.",
+  "CHANGE_SET_STALE": "Someone changed this configuration after the change set was prepared. Refresh the change set, review it again, then retry."
 }
