@@ -31,7 +31,6 @@
   "peerDependencies": {
     "@hookform/resolvers": "*",
     "@isbp/ui": "workspace:*",
-    "@tanstack/react-table": "*",
     "fastify": "*",
     "lucide-react": "*",
     "motion": "*",
@@ -43,7 +42,6 @@
   "peerDependenciesMeta": {
     "@hookform/resolvers": { "optional": true },
     "@isbp/ui": { "optional": true },
-    "@tanstack/react-table": { "optional": true },
     "lucide-react": { "optional": true },
     "motion": { "optional": true },
     "next": { "optional": true },
@@ -57,7 +55,6 @@
     "@isbp/i18n": "workspace:*",
     "@isbp/tsconfig": "workspace:*",
     "@isbp/ui": "workspace:*",
-    "@tanstack/react-table": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "drizzle-kit": "catalog:",

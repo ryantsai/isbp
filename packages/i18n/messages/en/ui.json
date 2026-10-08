@@ -36,7 +36,8 @@
     "noResults": "No one found",
     "loading": "Searching…",
     "clear": "Clear selection",
-    "placeholder": "Choose a person"
+    "placeholder": "Choose a person",
+    "preboarded": "Pre-boarded"
   },
   "select": {
     "placeholder": "Choose…",

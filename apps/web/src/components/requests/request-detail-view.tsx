@@ -39,6 +39,7 @@ import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { NavIcon } from '../nav-icon';
+import { useRoleText } from '../roles/role-utils';
 import { InstanceProgress } from '../workflows/instance-progress';
 import { InstanceTimeline } from '../workflows/instance-timeline';
 import { StatusBadge } from '../workflows/status-badges';
@@ -100,6 +101,8 @@ function Banner({
 function AccessDetails({ r }: { r: AccessRequest }) {
   const t = useTranslations('requests.detail');
   const format = useFormatter();
+  const roleText = useRoleText();
+  const role = roleText(r.role);
   return (
     <div className="grid grid-cols-1 gap-4">
       {r.status === 'approved' && (
@@ -113,7 +116,15 @@ function AccessDetails({ r }: { r: AccessRequest }) {
       )}
       {r.status === 'failed' && (
         <Banner tone="destructive" icon={<AlertTriangleIcon className="size-4" />}>
-          {t(`failure.${r.failureReason === 'role_deleted' ? 'role_deleted' : 'beneficiary_inactive'}`)}
+          {t(
+            `failure.${
+              r.failureReason === 'role_deleted' ||
+              r.failureReason === 'beneficiary_suspended' ||
+              r.failureReason === 'beneficiary_offboarded'
+                ? r.failureReason
+                : 'beneficiary_inactive'
+            }`,
+          )}
         </Banner>
       )}
       {r.status === 'rejected' && r.workflow?.outcomeComment && (
@@ -125,13 +136,11 @@ function AccessDetails({ r }: { r: AccessRequest }) {
         <CardContent>
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
             <Field label={t('role')}>
-              <span className="font-medium">{r.role.name}</span>
+              <span className="font-medium">{role.name}</span>
               {r.role.application.key !== 'isbp' && (
                 <span className="ml-1.5 text-muted-foreground">· {r.role.application.name}</span>
               )}
-              {r.role.description && (
-                <p className="mt-0.5 text-xs text-muted-foreground">{r.role.description}</p>
-              )}
+              {role.description && <p className="mt-0.5 text-xs text-muted-foreground">{role.description}</p>}
             </Field>
             <Field label={t('risk')}>
               <RiskBadge level={r.role.riskLevel} />
@@ -239,6 +248,7 @@ function FulfilmentCard({ f }: { f: NonNullable<FormSubmission['fulfilment']> })
 export function RequestDetailView({ reference }: { reference: string }) {
   const t = useTranslations('requests.detail');
   const locale = useLocale();
+  const roleText = useRoleText();
   const { data, isLoading, error } = useApiQuery<Lookup>(`/requests/${encodeURIComponent(reference)}`);
   const back = (
     <Link href="/requests" className="inline-flex items-center gap-1 hover:text-foreground">
@@ -261,7 +271,7 @@ export function RequestDetailView({ reference }: { reference: string }) {
     );
   const isAccess = data.kind === 'access';
   const item = isAccess ? data.request : data.submission;
-  const title = isAccess ? data.request.role.name : localize(data.submission.form.name, locale);
+  const title = isAccess ? roleText(data.request.role).name : localize(data.submission.form.name, locale);
   const instanceId = item.workflow?.id ?? null;
   const cancelPath = isAccess ? `/access-requests/${item.id}/cancel` : `/form-submissions/${item.id}/cancel`;
 

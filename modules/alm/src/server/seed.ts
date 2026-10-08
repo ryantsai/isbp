@@ -234,7 +234,7 @@ export const APPS: SeedApp[] = [
     technicalOwner: ['IT-APP', 0],
     team: 'dev-team',
     department: 'IT',
-    techStack: ['TypeScript', 'Fastify', 'Next.js', 'PostgreSQL 17', 'Redis'],
+    techStack: ['TypeScript', 'Fastify', 'Next.js', 'PostgreSQL 18', 'Redis'],
     docs: 'https://wiki.corp.example.com/apps/isbp',
     classification: 'confidential',
     goLive: '2025-11-03',

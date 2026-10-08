@@ -71,18 +71,19 @@ x-api-env: &api-env
   # reached through a socket proxy that only allows container and image calls).
   SANDBOX_RUNNER: ${SANDBOX_RUNNER:-none}
   SANDBOX_DOCKER_HOST: ${SANDBOX_DOCKER_HOST:-tcp://docker-proxy:2375}
-  SANDBOX_IMAGES: ${SANDBOX_IMAGES:-python:3.13-alpine,node:24-alpine,mcr.microsoft.com/powershell:lts-alpine-3.20,alpine:3.22}
+  SANDBOX_IMAGES: ${SANDBOX_IMAGES:-python:3.14-alpine,node:24-alpine,mcr.microsoft.com/powershell:lts-alpine-3.20,alpine:3.24}
 
 services:
   postgres:
-    image: pgvector/pgvector:pg17
+    # PostgreSQL 18 with pgvector; the PG18 images keep data in /var/lib/postgresql (one subfolder per major).
+    image: pgvector/pgvector:0.8.7-pg18-trixie
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-isbp}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-isbp}
       POSTGRES_DB: ${POSTGRES_DB:-isbp}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     shm_size: 256mb
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
@@ -93,7 +94,7 @@ services:
     logging: *logging
 
   redis:
-    image: redis:7-alpine
+    image: redis:8.10-alpine
     restart: unless-stopped
     # AOF persistence keeps queued jobs across restarts; BullMQ requires the `noeviction` policy.
     command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
@@ -215,7 +216,7 @@ services:
   # Jaeger v2 (an OpenTelemetry Collector distribution): OTLP gRPC :4317 / HTTP :4318, UI :16686,
   # in-memory storage (traces are lost on restart — fine for local troubleshooting).
   jaeger:
-    image: jaegertracing/jaeger:${JAEGER_VERSION:-2.5.0}
+    image: jaegertracing/jaeger:${JAEGER_VERSION:-2.22.0}
     profiles: ['observability']
     restart: unless-stopped
     environment:
@@ -228,7 +229,7 @@ services:
     logging: *logging
 
   prometheus:
-    image: prom/prometheus:${PROMETHEUS_VERSION:-v3.5.0}
+    image: prom/prometheus:${PROMETHEUS_VERSION:-v3.15.0}
     profiles: ['observability']
     restart: unless-stopped
     volumes:
@@ -243,7 +244,7 @@ services:
   # Script containers still run on this host's Docker daemon: prefer rootless Docker for this host.
   docker-proxy:
     profiles: [sandbox]
-    image: tecnativa/docker-socket-proxy:v0.4
+    image: tecnativa/docker-socket-proxy:v0.5.0
     restart: unless-stopped
     environment:
       CONTAINERS: 1

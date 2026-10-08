@@ -15,7 +15,8 @@ name: isbp-dev
 
 services:
   postgres:
-    image: pgvector/pgvector:pg17
+    # PostgreSQL 18 with pgvector; the PG18 images keep data in /var/lib/postgresql (one subfolder per major).
+    image: pgvector/pgvector:0.8.7-pg18-trixie
     restart: unless-stopped
     environment:
       POSTGRES_USER: isbp
@@ -24,7 +25,7 @@ services:
     ports:
       - '127.0.0.1:${DEV_PG_PORT:-5432}:5432'
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
       - ./initdb:/docker-entrypoint-initdb.d:ro
     shm_size: 256mb
     healthcheck:
@@ -34,7 +35,7 @@ services:
       retries: 20
 
   redis:
-    image: redis:7-alpine
+    image: redis:8.10-alpine
     restart: unless-stopped
     # Ephemeral like `pnpm dev:services`; BullMQ requires the `noeviction` policy.
     command: ['redis-server', '--save', '', '--appendonly', 'no', '--maxmemory-policy', 'noeviction']

@@ -8,6 +8,24 @@
     "portfolio": "專案",
     "myTasks": "我的工作"
   },
+  "systemRoles": {
+    "projects-member": {
+      "name": "專案成員",
+      "description": "檢視內部專案，並處理您所屬專案的工作項目"
+    },
+    "projects-manager": {
+      "name": "專案經理",
+      "description": "建立專案並管理您負責的專案"
+    },
+    "projects-pmo": {
+      "name": "專案管理辦公室",
+      "description": "檢視所有專案（包含私人專案）、建立專案並核准大型提案"
+    },
+    "projects-admin": {
+      "name": "專案模組管理員",
+      "description": "管理所有專案"
+    }
+  },
   "permissions": {
     "use": "檢視內部專案，並處理所屬專案的工作項目",
     "create": "建立專案（建立者成為專案經理）",
@@ -19,8 +37,8 @@
   "settings": {
     "hoursPerWeek": "每週工時",
     "hoursPerWeekHelp": "工作負載中全職人員的產能（投入比例 × 工時）。",
-    "proposalThresholdHours": "提案核准門檻（小時）",
-    "proposalThresholdHoursHelp": "啟動專案時顯示：超過門檻的提案需由負責人的主管核准。預設核准流程使用相同數值，修改時請一併調整（管理 → 工作流程）。",
+    "proposalThresholdHours": "提案簽核門檻（小時）",
+    "proposalThresholdHoursHelp": "啟動專案時顯示：超過門檻的提案需由負責人的主管核准。預設簽核流程使用相同數值，修改時請一併調整（管理 → 工作流程）。",
     "details": "基本資料",
     "members": {
       "title": "成員",
@@ -84,7 +102,7 @@
   "workflows": {
     "proposal": {
       "name": "專案提案",
-      "description": "提案專案啟動前的核准流程"
+      "description": "提案專案啟動前的簽核流程"
     }
   },
   "entities": {
@@ -143,7 +161,7 @@
     "project_updated": "更新專案",
     "project_archived": "封存專案",
     "project_unarchived": "還原封存的專案",
-    "project_submitted": "送出專案提案以供核准",
+    "project_submitted": "送出專案提案以供簽核",
     "project_status_changed": "變更專案狀態",
     "project_proposal_rejected": "專案提案未獲核准",
     "project_proposal_cancelled": "撤回專案提案",
@@ -370,7 +388,7 @@
     "labels": "標籤",
     "blocked": "受阻",
     "comments": "{count, plural, other {# 則留言}}",
-    "links": "{count, plural, other {# 筆連結記錄}}",
+    "links": "{count, plural, other {# 筆連結的紀錄}}",
     "assignedTo": "指派給 {name}",
     "unassigned": "未指派",
     "announce": {
@@ -454,13 +472,13 @@
     "tasksTitle": "{person} · {week} 當週"
   },
   "approval": {
-    "title": "提案核准",
+    "title": "提案簽核",
     "needsManager": "預估投入超過 {threshold} 小時，需由負責人的主管核准啟動。",
     "automatic": "預估投入未超過 {threshold} 小時的提案，送出後即自動啟動。",
     "notStarted": "尚未送出",
     "startHint": "請按「啟動專案」送出提案。",
     "status": {
-      "pending": "等待核准",
+      "pending": "待簽核",
       "approved": "已核准",
       "rejected": "未獲核准",
       "cancelled": "已撤回"
@@ -468,8 +486,8 @@
     "rejected": "提案未獲核准，請調整後重新啟動。",
     "rejectedWith": "未獲核准：「{comment}」",
     "waitingFor": "等待",
-    "detailsHidden": "核准流程僅提出者、負責人與核准者可檢視。",
-    "decide": "前往待核准事項決定",
+    "detailsHidden": "簽核路徑僅提出者、負責人與簽核者可檢視。",
+    "decide": "前往待簽核事項決定",
     "facts": {
       "budgetHours": "預估投入（小時）",
       "priority": "優先順序",
@@ -506,8 +524,8 @@
     "description": {
       "active": "工作將從暫停處繼續。",
       "on_hold": "不會刪除任何資料，可隨時恢復。",
-      "completed": "已完成的專案會保留在專案總覽中作為記錄。",
-      "cancelled": "等待中的提案核准將被撤回，此動作無法復原。"
+      "completed": "已完成的專案會保留在專案總覽中作為紀錄。",
+      "cancelled": "等待中的提案簽核將被撤回，此動作無法復原。"
     },
     "confirm": {
       "active": "恢復進行",
@@ -540,7 +558,7 @@
     "ownerRequired": "請選擇專案經理。",
     "noDepartment": "無部門",
     "datesInvalid": "目標完成日早於開始日。",
-    "budgetHint": "用於提案核准。",
+    "budgetHint": "用於提案簽核。",
     "budgetInvalid": "請輸入整數小時。",
     "submit": "建立專案",
     "created": "已建立專案 {key}"
@@ -608,7 +626,7 @@
     "startNeedsApproval": "預估投入（{hours} 小時）超過 {threshold} 小時，須先由負責人的主管核准，結果將通知您。",
     "startAutomatic": "預估投入未超過 {threshold} 小時的專案會立即啟動。",
     "started": "專案已開始進行",
-    "submitted": "已送出提案以供核准",
+    "submitted": "已送出提案以供簽核",
     "newTask": "新增工作項目",
     "updateHealth": "更新健康狀態",
     "changeStatus": "狀態",
@@ -632,7 +650,7 @@
     "updateHealth": "更新",
     "noHealthNote": "尚無備註。",
     "history": "歷程",
-    "system": "核准流程",
+    "system": "簽核流程",
     "healthChange": "健康狀態從「{from}」改為「{to}」",
     "statusChange": "狀態從「{from}」改為「{to}」",
     "milestones": "里程碑",

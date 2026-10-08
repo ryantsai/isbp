@@ -1,0 +1,56 @@
+[
+  {
+    "name": "data-and-automation-connections",
+    "as": "admin",
+    "path": "/admin/databases",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
+    "name": "data-and-automation-endpoint-test",
+    "as": "admin",
+    "path": "/etl/endpoints/customers-by-region?tab=test",
+    "waitFor": "main h1",
+    "steps": [
+      { "click": { "role": "combobox", "name": { "en": "region", "zh-TW": "region", "ja-JP": "region" } } },
+      { "click": { "role": "option", "name": { "en": "north", "zh-TW": "north", "ja-JP": "north" } } },
+      {
+        "click": {
+          "role": "button",
+          "name": { "en": "Run test", "zh-TW": "執行測試", "ja-JP": "テストを実行" }
+        }
+      },
+      { "wait": 1500 }
+    ],
+    "clip": null
+  },
+  {
+    "name": "data-and-automation-job-runs",
+    "as": "admin",
+    "path": "/scheduler/jobs?view=failing",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "role": "link",
+          "name": {
+            "en": "Partner feed import",
+            "zh-TW": "Partner feed import",
+            "ja-JP": "Partner feed import"
+          }
+        }
+      },
+      { "wait": 1500 },
+      { "click": { "role": "tab", "name": { "en": "Runs", "zh-TW": "執行紀錄", "ja-JP": "実行履歴" } } },
+      { "wait": 1000 }
+    ],
+    "clip": null
+  },
+  {
+    "name": "data-and-automation-database-request",
+    "as": "helpdesk",
+    "path": "/dbaccess/request",
+    "waitFor": "main h1",
+    "clip": null
+  }
+]

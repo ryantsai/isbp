@@ -36,7 +36,6 @@
   "peerDependencies": {
     "@hookform/resolvers": "*",
     "@isbp/ui": "workspace:*",
-    "@tanstack/react-table": "*",
     "fastify": "*",
     "lucide-react": "*",
     "motion": "*",
@@ -50,9 +49,6 @@
       "optional": true
     },
     "@isbp/ui": {
-      "optional": true
-    },
-    "@tanstack/react-table": {
       "optional": true
     },
     "lucide-react": {
@@ -80,7 +76,6 @@
     "@isbp/i18n": "workspace:*",
     "@isbp/tsconfig": "workspace:*",
     "@isbp/ui": "workspace:*",
-    "@tanstack/react-table": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/turndown": "^5.0.6",

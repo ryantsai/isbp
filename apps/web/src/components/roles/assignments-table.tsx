@@ -4,7 +4,7 @@ import type { Role, RoleAssignment } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Label } from '@isbp/ui/label';
 import { SearchInput } from '@isbp/ui/search-input';
@@ -20,7 +20,6 @@ import {
 } from '@isbp/ui/select';
 import { Switch } from '@isbp/ui/switch';
 import { Hint } from '@isbp/ui/tooltip';
-import type { ColumnDef } from '@tanstack/react-table';
 import { SearchXIcon, ShieldOffIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -56,7 +55,7 @@ export function AssignmentsTable() {
   });
   const filtered = Boolean(state.q || roleId || includeExpired);
 
-  const columns = useMemo<ColumnDef<RoleAssignment, unknown>[]>(
+  const columns = useMemo<DataTableColumn<RoleAssignment>[]>(
     () => [
       {
         id: 'principal',
@@ -146,7 +145,7 @@ export function AssignmentsTable() {
                   </Hint>
                 );
               },
-            } satisfies ColumnDef<RoleAssignment, unknown>,
+            } satisfies DataTableColumn<RoleAssignment>,
           ]
         : []),
     ],

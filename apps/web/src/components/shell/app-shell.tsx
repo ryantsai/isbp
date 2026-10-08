@@ -6,11 +6,13 @@ import { createApiClient, PageContextProvider, PlatformProvider, Slot, SlotProvi
 import { Button } from '@isbp/ui/button';
 import { Kbd } from '@isbp/ui/kbd';
 import { Sheet, SheetContent, SheetTitle } from '@isbp/ui/sheet';
-import { MenuIcon, SearchIcon } from 'lucide-react';
+import { MenuIcon, SearchIcon, TriangleAlertIcon } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useTheme } from '@isbp/ui/theme';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { passwordChangeHref } from '@/lib/password-change';
 import { slotRegistry } from '@/lib/slots';
 import { Brand } from './brand';
 import { CommandPalette } from './command-palette';
@@ -142,6 +144,21 @@ export function AppShell({
                     </div>
                   </div>
                 </header>
+                {session.user.mustChangePassword &&
+                  session.user.authSource === 'local' &&
+                  pathname !== '/settings' && (
+                    // Shown after client-side navigation away from the password card (full loads redirect there).
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-warning/40 bg-warning/10 px-4 py-2 text-sm text-warning-foreground sm:px-6 lg:px-8">
+                      <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
+                      <span className="min-w-0">{t('passwordRequired')}</span>
+                      <Link
+                        href={passwordChangeHref(pathname)}
+                        className="font-medium underline underline-offset-4 outline-none hover:no-underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      >
+                        {t('passwordRequiredAction')}
+                      </Link>
+                    </div>
+                  )}
                 <main
                   id="main"
                   tabIndex={-1}

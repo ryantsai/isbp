@@ -63,6 +63,8 @@ export const ErrorCodes = {
   SYSTEM_MODULE: 'SYSTEM_MODULE',
   MODULE_DEPENDENCY: 'MODULE_DEPENDENCY',
   PRINCIPAL_OFFBOARDED: 'PRINCIPAL_OFFBOARDED',
+  /** The person is suspended (investigation, long leave): no new access until they are reactivated. */
+  PRINCIPAL_SUSPENDED: 'PRINCIPAL_SUSPENDED',
   HAS_CHILDREN: 'HAS_CHILDREN',
   INVALID_PARENT: 'INVALID_PARENT',
   INVALID_STATE: 'INVALID_STATE',

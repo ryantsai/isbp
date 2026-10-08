@@ -1,0 +1,39 @@
+[
+  {
+    "name": "changes-calendar",
+    "as": "admin",
+    "path": "/itsm/changes",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
+    "name": "changes-cab-approval",
+    "as": "admin",
+    "path": "/itsm/tickets/CHG-00002",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "role": "heading",
+          "name": { "en": "CAB approval", "zh-TW": "CAB 簽核", "ja-JP": "CAB 承認" }
+        }
+      },
+      { "wait": 1000 }
+    ],
+    "clip": null
+  },
+  {
+    "name": "changes-application",
+    "as": "admin",
+    "path": "/alm/erp",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
+    "name": "changes-release-readiness",
+    "as": "admin",
+    "path": "/alm/erp/releases/12.1.0",
+    "waitFor": "main h1",
+    "clip": null
+  }
+]

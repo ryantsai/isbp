@@ -5,6 +5,20 @@
   },
   "nav": { "cis": "組態項目" },
   "entities": { "ci": "組態項目" },
+  "systemRoles": {
+    "cmdb-service-reader": {
+      "name": "業務服務讀者",
+      "description": "檢視業務服務清單，例如在回報問題時指出受影響的服務（預設授予所有人）"
+    },
+    "cmdb-viewer": {
+      "name": "CMDB 檢視者",
+      "description": "瀏覽組態項目、其關聯與影響分析"
+    },
+    "cmdb-manager": {
+      "name": "CMDB 管理員",
+      "description": "建立、編輯、除役與刪除組態項目、關聯與類別"
+    }
+  },
   "permissions": {
     "cisRead": "檢視組態項目、關聯與影響分析",
     "cisManage": "建立、編輯、除役與刪除組態項目及其關聯",

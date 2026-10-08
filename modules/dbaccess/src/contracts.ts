@@ -3,7 +3,7 @@
  * and tests.
  *
  *   Self service (dbaccess.self.request)
- *     GET    /me/access                      → myAccessSchema (grants, requests)
+ *     GET    /me/access                      → myAccessSchema (grants, requests, roles I own)
  *     GET    /me/summary                     → mySummarySchema (dashboard card)
  *     GET    /catalog                        catalogQuerySchema → { items: catalogItemSchema[] }
  *     POST   /requests                       createRequestSchema → { items: requestSchema[] } (201)
@@ -13,7 +13,7 @@
  *     POST   /reveals/:id                    → revealSchema (once; 410 REVEAL_EXPIRED)
  *
  *   Access (dbaccess.grants.read / .manage, owners)
- *     GET    /grants                         grantQuerySchema → page(grantSchema)
+ *     GET    /grants                         grantQuerySchema → page(grantSchema) (readers; owners: their roles)
  *     GET    /grants/:id                     → grantSchema
  *     POST   /grants/:id/revoke              reasonSchema → grantSchema (DBA, role owner)
  *     POST   /grants/:id/retry               → grantSchema
@@ -420,11 +420,18 @@ export const grantQuerySchema = listQuerySchema.extend({
   risk: riskSchema.optional(),
   userId: id.optional(),
   source: grantSourceSchema.optional(),
+  /**
+   * Only grants of roles the caller owns (as the person or through the owning group). Role owners without
+   * `dbaccess.grants.read` always get only those.
+   */
+  owned: z.stringbool().optional(),
 });
 
 export const myAccessSchema = z.object({
   grants: z.array(grantSchema),
   requests: z.array(requestSchema),
+  /** How many requestable roles I own (person or group): "Access to roles you own" shows when > 0. */
+  ownedRoles: z.number().int(),
 });
 export type MyAccess = z.input<typeof myAccessSchema>;
 

@@ -4,12 +4,11 @@ import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import type { ColumnDef } from '@tanstack/react-table';
 import { BuildingIcon, CircleCheckIcon, CircleMinusIcon, PlusIcon, SearchXIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -34,7 +33,7 @@ export default function VendorsPage() {
     q: state.q,
   });
   const currency = settings?.currency ?? 'TWD';
-  const columns = useMemo<ColumnDef<Vendor, unknown>[]>(
+  const columns = useMemo<DataTableColumn<Vendor>[]>(
     () => [
       {
         id: 'name',

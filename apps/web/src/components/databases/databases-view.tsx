@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
 } from '@isbp/ui/alert-dialog';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +24,6 @@ import {
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { SearchInput } from '@isbp/ui/search-input';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
   DatabaseIcon,
   LockIcon,
@@ -93,7 +92,7 @@ export function DatabasesView() {
   );
   const page = rows.slice((state.page - 1) * state.pageSize, state.page * state.pageSize);
 
-  const columns = useMemo<ColumnDef<DbConnection, unknown>[]>(
+  const columns = useMemo<DataTableColumn<DbConnection>[]>(
     () => [
       {
         id: 'name',

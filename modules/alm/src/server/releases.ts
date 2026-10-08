@@ -1,4 +1,5 @@
 import { users } from '@isbp/db/schema';
+import { NEW_CHANGE_PERMISSION } from '@isbp/module-itsm/contracts';
 import {
   type AuthContext,
   type Db,
@@ -290,7 +291,7 @@ export class ReleaseService {
 
   /* ───────────── readiness ───────────── */
 
-  async readiness(id: string, changeReference?: string): Promise<ReadinessOut> {
+  async readiness(id: string, auth: AuthContext, changeReference?: string): Promise<ReadinessOut> {
     const release = await this.resolve(id);
     const app = await this.apps.resolve(release.applicationId);
     const now = new Date();
@@ -337,7 +338,8 @@ export class ReleaseService {
         named: info(named),
         namedNotFound: Boolean(changeReference && !named),
       },
-      raiseChangeHref: raiseChangeHref(app, release),
+      // Only for people ITSM gives the new-change form to (release managers can read changes, not raise them).
+      raiseChangeHref: auth.can(NEW_CHANGE_PERMISSION) ? raiseChangeHref(app, release) : null,
     };
   }
 

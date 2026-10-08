@@ -53,6 +53,7 @@
     "forMe": "Me",
     "forSomeoneElse": "Someone else",
     "forHint": "Your direct reports — or anyone, if you administer access.",
+    "preboardedHint": "{name} hasn’t started yet. Once approved, the access is ready for their first day: it works as soon as they’re onboarded.",
     "howLong": "For how long?",
     "days": "{count, plural, one {# day} other {# days}}",
     "custom": "Custom",
@@ -116,7 +117,9 @@
     "rejectedBecause": "Rejected:",
     "failure": {
       "role_deleted": "The request was approved, but the role no longer exists.",
-      "beneficiary_inactive": "The request was approved, but the person is no longer active."
+      "beneficiary_inactive": "The request was approved, but the person is no longer active.",
+      "beneficiary_suspended": "The request was approved, but the person was suspended in the meantime, so nothing was granted.",
+      "beneficiary_offboarded": "The request was approved, but the person was offboarded in the meantime, so nothing was granted."
     },
     "withdraw": "Withdraw",
     "withdrawTitle": "Withdraw this request?",

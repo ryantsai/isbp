@@ -123,10 +123,10 @@
     },
     "workflow-admin": {
       "name": "工作流程管理員",
-      "description": "設計簽核工作流程、表單、自訂欄位與通知管道"
+      "description": "設計簽核流程、表單、自訂欄位與通知管道"
     },
     "application-manager": {
-      "name": "應用程式管理員",
+      "name": "應用程式存取管理員",
       "description": "管理應用程式的角色與權限（指派時限定於單一應用程式）"
     },
     "database-admin": {
@@ -225,7 +225,7 @@
     }
   },
   "customizations": {
-    "workflow": "簽核工作流程",
+    "workflow": "簽核流程",
     "form": "申請表單",
     "customField": "自訂欄位",
     "role": "角色",
@@ -262,7 +262,7 @@
       "description": "申請入口中最多包含三個問題的表單。",
       "name": "表單名稱",
       "category": "類別",
-      "workflow": "簽核工作流程",
+      "workflow": "簽核流程",
       "question": "問題",
       "type": "答案類型",
       "options": "選項",
@@ -271,7 +271,7 @@
     },
     "field": {
       "label": "自訂欄位",
-      "description": "人員、群組、部門或模組記錄上的欄位。",
+      "description": "人員、群組、部門或模組紀錄上的欄位。",
       "entityType": "新增至",
       "fieldLabel": "標籤",
       "type": "類型",

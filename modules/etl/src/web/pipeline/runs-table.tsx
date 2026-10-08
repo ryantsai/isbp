@@ -1,11 +1,10 @@
 'use client';
 
 import type { Page } from '@isbp/sdk';
-import { DataTable } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
-import type { ColumnDef } from '@tanstack/react-table';
 import { HistoryIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -32,7 +31,7 @@ export function RunsTable({ pipelineId, pageSize = 10 }: { pipelineId: string; p
   const active = Boolean(data?.items.some((r) => r.status === 'queued' || r.status === 'running'));
   useEffect(() => setLive(active), [active]);
 
-  const columns = useMemo<ColumnDef<RunDto, unknown>[]>(
+  const columns = useMemo<DataTableColumn<RunDto>[]>(
     () => [
       {
         id: 'when',

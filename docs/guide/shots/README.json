@@ -1,0 +1,30 @@
+[
+  {
+    "name": "readme-dashboard",
+    "as": "admin",
+    "path": "/",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
+    "name": "readme-command-palette",
+    "as": "admin",
+    "path": "/",
+    "waitFor": "main h1",
+    "steps": [{ "click": { "css": "header button:has(kbd)" } }, { "wait": 500 }],
+    "clip": "[role=\"dialog\"]"
+  },
+  {
+    "name": "readme-assistant",
+    "as": "admin",
+    "path": "/",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": { "role": "button", "name": { "en": "Assistant", "zh-TW": "助理", "ja-JP": "アシスタント" } }
+      },
+      { "wait": 1000 }
+    ],
+    "clip": "[role=\"dialog\"]"
+  }
+]

@@ -6,6 +6,16 @@
   "nav": {
     "feed": "お知らせ"
   },
+  "systemRoles": {
+    "announcements-reader": {
+      "name": "お知らせ閲覧者",
+      "description": "公開されたお知らせを閲覧します (既定ですべてのユーザーに付与)"
+    },
+    "announcements-editor": {
+      "name": "お知らせ編集者",
+      "description": "お知らせの作成、公開、アーカイブを行います"
+    }
+  },
   "permissions": {
     "read": "公開されたお知らせを閲覧",
     "manage": "お知らせの作成・公開・アーカイブ・削除"

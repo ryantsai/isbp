@@ -229,9 +229,9 @@ export const TEMPLATES: TicketTemplate[] = [
     cis: VPN,
     title: 'VPN client crashes as soon as I connect (macOS)',
     description:
-      'Since updating to VPN client 5.2 on my MacBook (macOS Sonoma), the client quits a few seconds after I click Connect. Reinstalling did not help. I can only work from the office at the moment.',
+      'Since updating to VPN client 5.2 on my MacBook (macOS 15), the client quits a few seconds after I click Connect. Reinstalling did not help. I can only work from the office at the moment.',
     resolution:
-      'Known issue with VPN client 5.2 on macOS Sonoma (PRB). Rolled the client back to 5.1.8 from Self Service and disabled auto-update; connection is stable again.',
+      'Known issue with VPN client 5.2 on macOS 15 (PRB). Rolled the client back to 5.1.8 from Self Service and disabled auto-update; connection is stable again.',
     code: 'workaround',
     urgency: 1,
     problem: 'vpn-macos',
@@ -245,7 +245,7 @@ export const TEMPLATES: TicketTemplate[] = [
     description:
       'Working from home today and the VPN drops every 5–10 minutes. Each time I have to sign in again with MFA. My home internet is fine (video calls without VPN work). MacBook Pro, client version 5.2.',
     resolution:
-      'Matched the VPN 5.2 / macOS Sonoma known error. Downgraded to 5.1.8 and the tunnel has been stable for a full day.',
+      'Matched the VPN 5.2 / macOS 15 known error. Downgraded to 5.1.8 and the tunnel has been stable for a full day.',
     code: 'workaround',
     problem: 'vpn-macos',
     times: 3,
@@ -698,9 +698,9 @@ export const TEMPLATES: TicketTemplate[] = [
 export const PROBLEMS = [
   {
     key: 'vpn-macos' as const,
-    title: 'VPN client 5.2 crashes on macOS Sonoma',
+    title: 'VPN client 5.2 crashes on macOS 15',
     description:
-      'Since VPN client 5.2 was pushed on 2 September, Mac users on macOS Sonoma report that the client quits or drops the tunnel every few minutes. Windows clients are not affected.',
+      'Since VPN client 5.2 was pushed on 2 September, Mac users on macOS 15 report that the client quits or drops the tunnel every few minutes. Windows clients are not affected.',
     status: 'known_error' as const,
     rootCause:
       'VPN client 5.2 uses a new network extension that conflicts with the macOS 14 content filter used by our endpoint agent; the extension is killed when the filter reloads.',

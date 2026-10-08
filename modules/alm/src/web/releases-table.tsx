@@ -2,12 +2,11 @@
 
 import type { Page } from '@isbp/sdk';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import type { ColumnDef } from '@tanstack/react-table';
 import { PlusIcon, RocketIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -36,7 +35,7 @@ export function ReleasesTable({ code, onNew }: { code: string; onNew?: () => voi
     },
   );
 
-  const columns = useMemo<ColumnDef<ReleaseSummary, unknown>[]>(
+  const columns = useMemo<DataTableColumn<ReleaseSummary>[]>(
     () => [
       {
         id: 'version',

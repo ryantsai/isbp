@@ -520,6 +520,15 @@ describe('disposal approval', () => {
     expect(await auditOf('itam.asset.disposed', a.id)).toHaveLength(1);
   });
 
+  it("tells the disposal dialog whether information security will sign off, by the workflow's rule", async () => {
+    // Data-bearing with book value; data-bearing, fully depreciated and over five years old; not data-bearing.
+    expect((await newAsset()).disposalSecuritySignOff).toBe(true);
+    expect((await newAsset({ purchaseDate: addDays(today, -6 * 366) })).disposalSecuritySignOff).toBe(false);
+    const dongle = await newAsset({ category: 'other', modelId: null, purchaseCost: null });
+    expect(dongle.disposalSecuritySignOff).toBe(false);
+    expect((await get('viewer', `/assets/${dongle.tag}`)).body.disposalSecuritySignOff).toBe(false);
+  });
+
   it('a rejection leaves the asset retired', async () => {
     const a = await newAsset({ category: 'other', modelId: null, purchaseCost: null });
     await post('am', `/assets/${a.tag}/status`, { status: 'retired' });

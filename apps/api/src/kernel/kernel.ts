@@ -56,7 +56,8 @@ export async function createKernel(
     applicationName: 'isbp',
   });
   const db = drizzleDb as unknown as Db;
-  const redis = new Redis(config.REDIS_URL, { maxRetriesPerRequest: 3, lazyConnect: false });
+  // RESP2: BullMQ's Lua scripts and our pub/sub expect the v5 wire protocol (ioredis 6 defaults to RESP3).
+  const redis = new Redis(config.REDIS_URL, { maxRetriesPerRequest: 3, lazyConnect: false, protocol: 2 });
   redis.on('error', (err) => logger.error({ err }, 'redis error'));
 
   const box = new SecretBox(config.masterKey, config.ISBP_MASTER_KEY_PREVIOUS);

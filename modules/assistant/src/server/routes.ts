@@ -39,7 +39,7 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       config: { permission: USE },
       schema: {
         tags,
-        summary: 'Mode (chat model or guided templates) and the kinds you may propose',
+        summary: 'Mode (chat model or guided templates), the kinds you may propose and the tools you may use',
         response: { 200: assistantStatusSchema },
       },
     },
@@ -48,6 +48,8 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       return {
         mode: status.chat.available ? ('llm' as const) : ('builtin' as const),
         model: status.chat.available ? status.chat.model : null,
+        // Everyday work goes through other modules' tools; the assistant's own are about configuration.
+        tools: ctx.ai.tools.list(req.auth).filter((t) => t.moduleId !== 'assistant').length,
         kinds: ctx.customizations.kinds(req.auth).map((k) => ({
           kind: k.kind,
           moduleId: k.moduleId,

@@ -3,7 +3,7 @@
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
-import { DataTable, type ListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, type ListState } from '@isbp/ui/data-table';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,6 @@ import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
   EllipsisIcon,
   ExternalLinkIcon,
@@ -235,7 +234,7 @@ export function LinksTable({
     onSuccess: () => setUnlinking(null),
   });
 
-  const columns = useMemo<ColumnDef<LinkDto, unknown>[]>(
+  const columns = useMemo<DataTableColumn<LinkDto>[]>(
     () => [
       {
         id: 'local',

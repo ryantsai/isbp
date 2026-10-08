@@ -9,6 +9,20 @@
     "pipelines": "管線",
     "logs": "呼叫紀錄"
   },
+  "systemRoles": {
+    "etl-viewer": {
+      "name": "資料 API 檢視者",
+      "description": "檢視資料 API 及其版本、文件與執行紀錄，以及 ETL 管線及其執行紀錄"
+    },
+    "etl-developer": {
+      "name": "資料 API 開發人員",
+      "description": "建置、測試、發佈與呼叫資料 API；建置、執行與排程 ETL 管線"
+    },
+    "etl-consumer": {
+      "name": "資料 API 取用者",
+      "description": "呼叫允許已登入人員使用的已發佈資料 API（授予於單一端點即可限制範圍）"
+    }
+  },
   "permissions": {
     "endpointsRead": "檢視資料 API、版本、文件與執行紀錄",
     "endpointsManage": "建立、編輯、測試、發佈與停用資料 API",
@@ -254,7 +268,7 @@
     "access": "存取",
     "accessHint": "誰可以呼叫已發佈的版本。變更立即生效，不需要新版本。",
     "allowUsersHint": "人員需具備呼叫資料 API 的權限（全域或此端點）。",
-    "noClients": "尚無 API 用戶端。請由管理員在「應用程式與 API 用戶端」中建立。",
+    "noClients": "尚無 API 用戶端。請由管理員在「系統管理 → API 用戶端」中建立。",
     "revoked": "已撤銷",
     "rateLimitHint": "留白即使用預設值。目前：每位呼叫者每分鐘 {n} 次。",
     "unsaved": "有未儲存的變更",
@@ -494,7 +508,7 @@
     "connectionMissing": "此管線的某個資料庫連線已刪除。請在定義中選擇其他連線。",
     "tabs": {
       "overview": "概觀",
-      "runs": "執行",
+      "runs": "執行紀錄",
       "definition": "定義",
       "links": "連結與檔案"
     }
@@ -560,8 +574,8 @@
     }
   },
   "runs": {
-    "title": "執行",
-    "recent": "最近的執行",
+    "title": "執行紀錄",
+    "recent": "最近的執行紀錄",
     "when": "開始時間",
     "trigger": "觸發方式",
     "manualBy": "{name} 立即執行",

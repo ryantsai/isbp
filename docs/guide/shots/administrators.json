@@ -1,0 +1,37 @@
+[
+  {
+    "name": "administrators-roles",
+    "as": "admin",
+    "path": "/admin/roles?tab=assignments",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
+    "name": "administrators-grant-role",
+    "as": "admin",
+    "path": "/admin/roles?assign=1",
+    "waitFor": "main h1",
+    "steps": [{ "wait": 1000 }],
+    "clip": "[role=\"dialog\"]"
+  },
+  {
+    "name": "administrators-workflow-builder",
+    "as": "admin",
+    "path": "/admin/workflows",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "role": "link",
+          "name": {
+            "en": "Laptop request approval",
+            "zh-TW": "Laptop request approval",
+            "ja-JP": "Laptop request approval"
+          }
+        }
+      },
+      { "wait": 2000 }
+    ],
+    "clip": null
+  }
+]

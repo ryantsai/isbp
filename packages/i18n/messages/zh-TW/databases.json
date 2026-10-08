@@ -9,7 +9,7 @@
     "description": "登錄 SQL Server、PostgreSQL、MySQL 或 Oracle 資料庫，供模組使用。"
   },
   "forbidden": {
-    "title": "你無法檢視資料庫連線",
+    "title": "您無法檢視資料庫連線",
     "description": "請向管理員申請「資料庫連線管理員」角色。"
   },
   "columns": {

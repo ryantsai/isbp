@@ -13,10 +13,13 @@ import {
 } from '../contracts';
 import { manifest } from '../manifest';
 import { ArticleService, INDEX_TYPE, viewerOf, visibleWhere } from './articles';
+import { importGuide } from './guide';
 import { routes } from './routes';
 import { articles } from './schema';
 import { seedKnowledge } from './seed';
 import { sync } from './sync';
+
+export { importGuide } from './guide';
 
 type ArticleEvent = { articleId: string };
 
@@ -53,6 +56,17 @@ export default defineServerModule(manifest, {
   },
 
   jobs: {
+    'guide-sync': {
+      description:
+        'Publishes the user guide ("Using IS Big Platform") when a new version of the platform ships it',
+      schedule: { everyMs: 15 * 60_000 },
+      attempts: 2,
+      handler: async (job, ctx) => {
+        const published = await importGuide(ctx);
+        if (published) await job.log(`published ${published} guide article(s)`);
+        return { published };
+      },
+    },
     'reindex-articles': {
       description: 'Re-embeds every published article in the semantic index (weekly, or run it manually)',
       schedule: { cron: '0 3 * * 0' },

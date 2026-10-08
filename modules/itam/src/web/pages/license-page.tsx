@@ -6,7 +6,7 @@ import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { DataTable } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Label } from '@isbp/ui/label';
 import { FadeIn } from '@isbp/ui/motion';
@@ -17,7 +17,6 @@ import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Switch } from '@isbp/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
   ArrowLeftIcon,
   CircleAlertIcon,
@@ -324,7 +323,7 @@ function SeatsTab({ lic }: { lic: LicenseDetail }) {
     (api, id: string) => api.delete(`/itam/licenses/${lic.id}/assignments/${id}`),
     { invalidate: INVALIDATE, success: t('seatRemoved') },
   );
-  const columns = useMemo<ColumnDef<LicenseAssignment, unknown>[]>(
+  const columns = useMemo<DataTableColumn<LicenseAssignment>[]>(
     () => [
       {
         id: 'holder',
@@ -398,7 +397,7 @@ function SeatsTab({ lic }: { lic: LicenseDetail }) {
                   <Trash2Icon />
                 </Button>
               ),
-            } satisfies ColumnDef<LicenseAssignment, unknown>,
+            } satisfies DataTableColumn<LicenseAssignment>,
           ]
         : []),
     ],
@@ -508,7 +507,7 @@ function InstallationsTab({ lic }: { lic: LicenseDetail }) {
     { invalidate: INVALIDATE, success: t('seatAssigned') },
   );
   const perDevice = deviceTypes.includes(lic.licenseType) && !userTypes.includes(lic.licenseType);
-  const columns = useMemo<ColumnDef<Installation, unknown>[]>(
+  const columns = useMemo<DataTableColumn<Installation>[]>(
     () => [
       {
         id: 'device',
@@ -594,7 +593,7 @@ function InstallationsTab({ lic }: { lic: LicenseDetail }) {
                   </Button>
                 );
               },
-            } satisfies ColumnDef<Installation, unknown>,
+            } satisfies DataTableColumn<Installation>,
           ]
         : []),
     ],

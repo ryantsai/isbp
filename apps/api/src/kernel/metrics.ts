@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { Counter, collectDefaultMetrics, Histogram, Registry } from 'prom-client';
+import { Counter, collectDefaultMetrics, Histogram, Registry } from '@prometheus-io/client';
 
 export const registry = new Registry();
 collectDefaultMetrics({ register: registry, prefix: 'isbp_' });

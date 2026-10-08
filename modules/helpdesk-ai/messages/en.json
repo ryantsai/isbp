@@ -7,6 +7,20 @@
     "chat": "Ask IT",
     "insights": "AI insights"
   },
+  "systemRoles": {
+    "helpdesk-ai-user": {
+      "name": "Virtual agent user",
+      "description": "Ask the IT virtual agent for help (granted to everyone by default)"
+    },
+    "helpdesk-ai-agent": {
+      "name": "AI-assisted agent",
+      "description": "Use the AI assist panel on tickets (triage, similar tickets, reply drafts, summaries)"
+    },
+    "helpdesk-ai-admin": {
+      "name": "Helpdesk AI administrator",
+      "description": "Everything in Helpdesk AI, including accuracy metrics and conversation review"
+    }
+  },
   "permissions": {
     "chat": "Ask the IT virtual agent",
     "assist": "Use the AI assist panel on tickets",

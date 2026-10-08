@@ -1,13 +1,13 @@
 {
   "links": {
-    "title": "相關紀錄",
+    "title": "連結的紀錄",
     "add": "連結紀錄",
     "empty": "尚未連結任何紀錄。可連結相關的工單、變更、任務、資產或版本。",
     "remove": "移除與 {name} 的連結",
     "removed": "已移除連結",
     "linked": "已連結",
-    "hiddenForbidden": "{count, plural, other {另有 # 筆您沒有權限檢視的相關紀錄}}",
-    "hiddenUnavailable": "{count, plural, other {另有 # 筆相關紀錄屬於已停用的模組}}"
+    "hiddenForbidden": "{count, plural, other {另有 # 筆您沒有權限檢視的連結的紀錄}}",
+    "hiddenUnavailable": "{count, plural, other {另有 # 筆連結的紀錄屬於已停用的模組}}"
   },
   "picker": {
     "title": "連結紀錄",

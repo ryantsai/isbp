@@ -2,6 +2,7 @@
 
 import type { Me } from '@isbp/contracts';
 import { cn } from '@isbp/ui';
+import { Button } from '@isbp/ui/button';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import {
@@ -11,6 +12,7 @@ import {
   PlaneTakeoffIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
+  TriangleAlertIcon,
   UserRoundIcon,
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -63,9 +65,26 @@ export function SettingsView() {
   const me = useApiQuery<Me>('/me');
   const active = useActiveSection();
 
+  const mustChange = Boolean(me.data?.mustChangePassword && me.data.authSource === 'local');
+
   return (
     <>
       <PageHeader title={t('title')} description={t('description')} />
+      {mustChange && (
+        <div
+          role="alert"
+          className="mb-6 flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning-foreground sm:flex-row sm:items-center"
+        >
+          <TriangleAlertIcon className="size-5 shrink-0" aria-hidden />
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <p className="font-medium">{t('password.requiredTitle')}</p>
+            <p>{t('password.requiredBody')}</p>
+          </div>
+          <Button asChild size="sm" variant="outline" className="shrink-0">
+            <a href="#security">{t('password.requiredAction')}</a>
+          </Button>
+        </div>
+      )}
       <div className="grid gap-8 lg:grid-cols-[11rem_minmax(0,1fr)]">
         <nav aria-label={t('nav.label')} className="hidden lg:block">
           <ul className="sticky top-20 space-y-0.5">

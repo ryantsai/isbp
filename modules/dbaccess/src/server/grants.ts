@@ -50,7 +50,7 @@ import {
   checkDuration,
   bareAccountName,
 } from '../model';
-import { groupsOf, isRoleOwner, PERMISSIONS, personOf } from './access';
+import { groupsOf, isRoleOwner, ownedRoleIds, PERMISSIONS, personOf } from './access';
 import {
   createAccountSteps,
   generatePassword,
@@ -240,12 +240,21 @@ export class GrantService {
       risk?: string;
       userId?: string;
       source?: string;
+      owned?: boolean;
     },
     auth: AuthContext,
   ) {
     const now = new Date();
     const soon = new Date(now.getTime() + EXPIRING_DAYS * DAY_MS);
     const where: (SQL | undefined)[] = [];
+    // Grants readers see everything (or, with `owned`, their own roles' grants); role owners only ever see
+    // the grants of the roles they own; anybody else is refused (and the denial audited).
+    const canRead = auth.can(PERMISSIONS.grantsRead);
+    if (query.owned || !canRead) {
+      const owned = await ownedRoleIds(this.db, auth);
+      if (!owned.length && !canRead) auth.require(PERMISSIONS.grantsRead);
+      where.push(owned.length ? inArray(grants.roleId, owned) : sql`false`);
+    }
     switch (query.status) {
       case undefined:
         break;

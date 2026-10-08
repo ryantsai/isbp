@@ -106,7 +106,7 @@ describe('database host guard', () => {
 
 describe('script sandbox', () => {
   const req = {
-    image: 'python:3.13-alpine',
+    image: 'python:3.14-alpine',
     language: 'python' as const,
     script: 'print("hi")',
     env: { REGION: 'tw', API_TOKEN: 's3cret' },

@@ -17,7 +17,7 @@ import { Textarea } from '@isbp/ui/textarea';
 import { ShieldCheckIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, type ReactNode, useId, useState } from 'react';
-import { type AssetDetail, type AssetStatus, isDataBearing, RETURN_STATUSES } from '../contracts';
+import { type AssetDetail, type AssetStatus, RETURN_STATUSES } from '../contracts';
 import { AssetStatusBadge } from './badges';
 import { INVALIDATE } from './lib';
 
@@ -280,7 +280,6 @@ function DisposeDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChan
       onSuccess: () => onOpenChange(false),
     },
   );
-  const dataBearing = isDataBearing(asset.category);
   return (
     <ActionDialog
       open
@@ -292,7 +291,8 @@ function DisposeDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChan
       disabled={!note.trim()}
       onSubmit={() => dispose.mutate({ note: note.trim() })}
     >
-      {dataBearing && (
+      {/* Computed by the server with the workflow's own condition (`needsSecuritySignOff`). */}
+      {asset.disposalSecuritySignOff && (
         <p className="flex gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
           <ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
           {t('securitySignOff')}

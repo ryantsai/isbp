@@ -6,7 +6,7 @@ import { ApiError } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,6 @@ import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Switch } from '@isbp/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
   CircleCheckIcon,
   CircleMinusIcon,
@@ -100,7 +99,7 @@ function ModelsTab() {
     category,
     sort: state.sort,
   });
-  const columns = useMemo<ColumnDef<Model, unknown>[]>(
+  const columns = useMemo<DataTableColumn<Model>[]>(
     () => [
       {
         id: 'name',

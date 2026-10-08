@@ -1,0 +1,35 @@
+[
+  {
+    "name": "service-desk-workspace",
+    "as": "helpdesk",
+    "path": "/itsm",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
+    "name": "service-desk-ticket",
+    "as": "helpdesk",
+    "path": "/itsm/tickets/INC-00101",
+    "waitFor": "main h1",
+    "steps": [{ "wait": 1500 }],
+    "clip": null
+  },
+  {
+    "name": "service-desk-knowledge-article",
+    "as": "helpdesk",
+    "path": "/knowledge/KB-00007",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
+    "name": "service-desk-ci-impact",
+    "as": "helpdesk",
+    "path": "/cmdb/CI-00036",
+    "waitFor": "main h1",
+    "steps": [
+      { "click": { "role": "tab", "name": { "en": "Impact", "zh-TW": "影響", "ja-JP": "影響" } } },
+      { "wait": 1000 }
+    ],
+    "clip": null
+  }
+]

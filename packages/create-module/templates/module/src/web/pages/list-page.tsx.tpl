@@ -4,13 +4,12 @@ import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
-import type { ColumnDef } from '@tanstack/react-table';
 import { InboxIcon, PlusIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -29,7 +28,7 @@ export default function ListPage() {
   const [creating, setCreating] = useState(false);
   const { data, isLoading, isFetching } = useApiQuery<Page<Item>>('/__ID__/items', { page: state.page, pageSize: state.pageSize, sort: state.sort, q: state.q });
 
-  const columns = useMemo<ColumnDef<Item, unknown>[]>(
+  const columns = useMemo<DataTableColumn<Item>[]>(
     () => [
       {
         id: 'title',

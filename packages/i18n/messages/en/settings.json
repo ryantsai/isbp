@@ -117,6 +117,9 @@
     "wrongCurrent": "That's not your current password.",
     "mismatch": "The passwords don't match.",
     "mustChange": "Your administrator asked you to choose a new password.",
+    "requiredTitle": "Choose a new password",
+    "requiredBody": "Your administrator asked you to set a new password at this sign-in. Enter your current password and a new one under Password.",
+    "requiredAction": "Change password",
     "rules": {
       "label": "Password requirements",
       "length": "At least {min} characters",

@@ -389,6 +389,7 @@ export class AccessService {
         a: roleAssignments,
         roleKey: roles.key,
         roleName: roles.name,
+        roleModuleId: roles.moduleId,
         userName: users.displayName,
         userEmail: users.email,
         groupName: groups.name,
@@ -427,7 +428,7 @@ export class AccessService {
     return {
       items: rows.map((r) => ({
         id: r.a.id,
-        role: { id: r.a.roleId, key: r.roleKey, name: r.roleName },
+        role: { id: r.a.roleId, key: r.roleKey, name: r.roleName, moduleId: r.roleModuleId },
         principal: r.a.userId
           ? { type: 'user' as const, id: r.a.userId, name: r.userName ?? '?', detail: r.userEmail }
           : { type: 'group' as const, id: r.a.groupId!, name: r.groupName ?? '?', detail: r.groupKey },
@@ -617,7 +618,7 @@ export class AccessService {
       grants: [...set.grants],
       sources: sources.map((s) => ({
         permission: s.permission,
-        role: { id: s.role_id, key: s.role_key, name: s.role_name },
+        role: { id: s.role_id, key: s.role_key, name: s.role_name, moduleId: s.role_module_id },
         via: s.user_id
           ? ('direct' as const)
           : s.group_key === EVERYONE_GROUP_KEY

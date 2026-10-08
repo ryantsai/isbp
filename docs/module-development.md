@@ -516,6 +516,10 @@ advanced options behind a disclosure, permission-gated actions (`useCan`), and m
   placeholders differ between locales.
 - Manifest strings (names, nav labels, permission descriptions, setting labels) are keys into the same
   catalog.
+- Role names and descriptions are plain English in the manifest (stored as the fallback text). Translate each
+  role under `systemRoles.<role key>` with `name` and `description` (the English ones equal the manifest's); the
+  web shows them in the reader's language wherever roles appear (`useRoleText`), and the catalog test in
+  `packages/i18n` fails when a manifest role has no text.
 - Label your audit actions under `audit` (`asset-tracker.asset.retired` → `audit.asset_retired`) and the
   audit log, dashboard and activity feeds show them translated.
 
@@ -562,7 +566,7 @@ without a chat model, and optionally a preview slot `assistant.preview.<module>.
 - [ ] AI features work in builtin mode (no chat model) and index content from event handlers, with ACLs.
 - [ ] Workflow triggers have an `onCompleted` handler that is idempotent, and you cancel instances whose subject disappears.
 - [ ] Notification types are declared and have `label`/`title`/`body` text in all three catalogs.
-- [ ] Catalogs exist for en, zh-TW and ja-JP, including `audit` labels.
+- [ ] Catalogs exist for en, zh-TW and ja-JP, including `audit` labels and `systemRoles` for every role.
 - [ ] Record pages declare a record type with a resolver and host the `core.record.links` / `core.record.files` panels; deletes call `ctx.records.forget`.
 - [ ] Syncable entities have a `.sync` permission and an adapter that refuses what the UI refuses; connectors use only `conn.http` and ship a stand-in.
 - [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm modules:check` pass.

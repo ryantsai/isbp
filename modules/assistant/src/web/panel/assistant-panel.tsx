@@ -24,6 +24,7 @@ import {
   HistoryIcon,
   LockIcon,
   MapPinIcon,
+  SparklesIcon,
   SquarePenIcon,
   WorkflowIcon,
   XIcon,
@@ -95,8 +96,24 @@ function ConversationMenu({
   );
 }
 
-function Welcome({ onPick }: { onPick: (text: string) => void }) {
+/** First screen of a conversation. Configuration starters only for people who can customise something. */
+function Welcome({ onPick, customise }: { onPick: (text: string) => void; customise: boolean }) {
   const t = useTranslations('assistant.chat');
+  if (!customise)
+    return (
+      <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-4 text-center">
+        <span
+          className="grid size-11 place-items-center rounded-xl bg-gradient-to-br from-primary to-chart-4 text-primary-foreground shadow-md"
+          aria-hidden
+        >
+          <SparklesIcon className="size-5" />
+        </span>
+        <div className="space-y-1.5">
+          <h3 className="text-base font-semibold tracking-tight">{t('workTitle')}</h3>
+          <p className="text-sm text-muted-foreground">{t('workBody')}</p>
+        </div>
+      </div>
+    );
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-4 text-center">
       <motion.span
@@ -130,8 +147,19 @@ function Welcome({ onPick }: { onPick: (text: string) => void }) {
   );
 }
 
-/** The conversation (model mode): messages, tool activity, the conversation's change set and the composer. */
-function ChatView({ chat, onNavigate }: { chat: AssistantChat; onNavigate: () => void }) {
+/**
+ * The conversation (model mode): messages, tool activity, the conversation's change set and the composer.
+ * `customise` is false for people who can't read any customisation kind: they chat about everyday work only.
+ */
+function ChatView({
+  chat,
+  onNavigate,
+  customise,
+}: {
+  chat: AssistantChat;
+  onNavigate: () => void;
+  customise: boolean;
+}) {
   const t = useTranslations('assistant.chat');
   const errorText = useErrorText();
   const page = usePageContext();
@@ -179,6 +207,7 @@ function ChatView({ chat, onNavigate }: { chat: AssistantChat; onNavigate: () =>
           </p>
         ) : !messages.length && !chat.pendingQuestion ? (
           <Welcome
+            customise={customise}
             onPick={(text) => {
               setDraft(text);
               input.current?.focus();
@@ -300,7 +329,7 @@ function ChatView({ chat, onNavigate }: { chat: AssistantChat; onNavigate: () =>
             value={draft}
             rows={1}
             maxLength={8_000}
-            placeholder={t('placeholder')}
+            placeholder={customise ? t('placeholder') : t('placeholderWork')}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               // Enter sends; Shift+Enter adds a line; never while an IME is composing (zh / ja input).
@@ -352,13 +381,16 @@ export function AssistantPanel({
   const t = useTranslations('assistant.panel');
   const status = useApiQuery<AssistantStatusDto>(STATUS_PATH);
   const s = status.data;
+  const customise = Boolean(s?.kinds.length);
+  // A chat model works for everyday tools too; guided templates (builtin mode) only exist for customisation kinds.
+  const canChat = s?.mode === 'llm' && (customise || s.tools > 0);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-11 min-w-0 items-center gap-2 border-b px-4 py-2">
         {s ? <ModeBadge mode={s.mode} model={s.model} /> : <Skeleton className="h-5 w-28" />}
         <div className="ml-auto flex shrink-0 items-center gap-1">
-          {s?.mode === 'llm' && s.kinds.length > 0 && (
+          {canChat && (
             <>
               <ConversationMenu current={conversationId} onPick={onConversation} />
               <Button
@@ -381,7 +413,7 @@ export function AssistantPanel({
       </div>
 
       {status.isLoading ? (
-        <div className="grid gap-3 p-4" aria-busy="true" aria-label={t('loading')}>
+        <div className="grid gap-3 p-4" role="status" aria-busy="true" aria-label={t('loading')}>
           <Skeleton className="h-16 w-full rounded-xl" />
           <Skeleton className="h-16 w-full rounded-xl" />
         </div>
@@ -389,9 +421,13 @@ export function AssistantPanel({
         <p role="alert" className="p-4 text-sm text-destructive">
           {t('loadError')}
         </p>
-      ) : s.kinds.length === 0 ? (
+      ) : canChat ? (
+        <ChatView chat={chat} onNavigate={onNavigate} customise={customise} />
+      ) : s.mode === 'llm' ? (
+        <EmptyState icon={<LockIcon />} title={t('noTools')} description={t('noToolsHint')} />
+      ) : !customise ? (
         <EmptyState icon={<LockIcon />} title={t('noKinds')} description={t('noKindsHint')} />
-      ) : s.mode === 'builtin' ? (
+      ) : (
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
           <TemplatesView
             kinds={s.kinds}
@@ -400,8 +436,6 @@ export function AssistantPanel({
             onNavigate={onNavigate}
           />
         </div>
-      ) : (
-        <ChatView chat={chat} onNavigate={onNavigate} />
       )}
     </div>
   );

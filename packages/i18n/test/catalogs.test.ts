@@ -57,3 +57,50 @@ describe('module catalogs', () => {
     }
   }
 });
+
+interface ManifestRole {
+  key: string;
+  name: string;
+  description?: string;
+}
+
+/**
+ * Every role a manifest declares is translated as `<module>.systemRoles.<key>.{name,description}` (the web shows
+ * it through `useRoleText`), with the manifest's English text in en. The other locales follow from the key checks
+ * above. Core's roles live in the core namespace (`core.json`).
+ */
+function expectRoleTexts(roles: readonly ManifestRole[], catalog: Messages, label: string) {
+  const texts = (catalog.systemRoles ?? {}) as Record<string, { name?: string; description?: string }>;
+  for (const role of roles) {
+    expect(texts[role.key]?.name, `${label}: systemRoles.${role.key}.name`).toBe(role.name);
+    expect(texts[role.key]?.description, `${label}: systemRoles.${role.key}.description`).toBe(
+      role.description ?? '',
+    );
+  }
+  expect(Object.keys(texts).sort(), `${label}: systemRoles without a manifest role`).toEqual(
+    roles.map((r) => r.key).sort(),
+  );
+}
+
+describe('role names and descriptions', () => {
+  it('core: every core role has catalog text', async () => {
+    const { coreManifest } = (await import(join(root, 'apps', 'api', 'src', 'core', 'manifest.ts'))) as {
+      coreManifest: { roles?: ManifestRole[] };
+    };
+    expectRoleTexts(
+      coreManifest.roles ?? [],
+      load(join(root, 'packages', 'i18n', 'messages', 'en', 'core.json')),
+      'core',
+    );
+  });
+
+  const modulesDir = join(root, 'modules');
+  for (const mod of readdirSync(modulesDir)) {
+    it(`${mod}: every manifest role has catalog text`, async () => {
+      const { manifest } = (await import(join(modulesDir, mod, 'src', 'manifest.ts'))) as {
+        manifest: { roles?: ManifestRole[] };
+      };
+      expectRoleTexts(manifest.roles ?? [], load(join(modulesDir, mod, 'messages', 'en.json')), mod);
+    });
+  }
+});

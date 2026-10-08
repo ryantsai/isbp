@@ -43,7 +43,7 @@ const requestGraph: WorkflowGraph = {
     {
       id: 'manager',
       type: 'approval',
-      name: { en: 'Manager approval', 'zh-TW': '主管核准', 'ja-JP': '上長の承認' },
+      name: { en: 'Manager approval', 'zh-TW': '主管簽核', 'ja-JP': '上長の承認' },
       approvers: [{ type: 'manager' }],
       mode: 'any',
       ifNoApprover: 'skip',
@@ -52,7 +52,7 @@ const requestGraph: WorkflowGraph = {
     {
       id: 'owner',
       type: 'approval',
-      name: { en: 'Role owner approval', 'zh-TW': '角色擁有者核准', 'ja-JP': 'ロール所有者の承認' },
+      name: { en: 'Role owner approval', 'zh-TW': '角色擁有者簽核', 'ja-JP': 'ロール所有者の承認' },
       approvers: [
         { type: 'fact', fact: 'role.approverIds', fallback: { type: 'role', roleKey: 'dbaccess-dba' } },
       ],
@@ -70,7 +70,7 @@ const requestGraph: WorkflowGraph = {
       type: 'approval',
       name: {
         en: 'Information security approval',
-        'zh-TW': '資訊安全核准',
+        'zh-TW': '資訊安全簽核',
         'ja-JP': '情報セキュリティの承認',
       },
       when: { fact: 'role.risk', op: 'eq', value: 'high' },

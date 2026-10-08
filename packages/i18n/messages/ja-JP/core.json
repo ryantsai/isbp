@@ -39,7 +39,7 @@
     "groupsManage": "グループの作成とメンバーシップの管理",
     "departmentsRead": "組織階層の表示",
     "departmentsManage": "部署の作成、移動、削除",
-    "rolesRead": "ロール、権限、割り当ての表示",
+    "rolesRead": "ロール、アクセス許可、割り当ての表示",
     "rolesManage": "カスタム ロールの作成と編集",
     "rolesAssign": "ロールの付与と取り消し",
     "auditRead": "監査ログの閲覧",
@@ -126,7 +126,7 @@
       "description": "承認ワークフロー、フォーム、カスタム フィールド、通知チャネルを設計"
     },
     "application-manager": {
-      "name": "アプリケーション管理者",
+      "name": "アプリケーション アクセス管理者",
       "description": "アプリケーションのロールとアクセス許可を管理（1 つのアプリケーションに限定して割り当て）"
     },
     "database-admin": {

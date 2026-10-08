@@ -3,13 +3,12 @@
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowRightIcon, ClipboardCheckIcon, PlusIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -43,7 +42,7 @@ export default function ReviewsPage() {
   });
   const awaiting = summary.data?.reviews ?? [];
 
-  const columns = useMemo<ColumnDef<Review, unknown>[]>(
+  const columns = useMemo<DataTableColumn<Review>[]>(
     () => [
       {
         id: 'name',

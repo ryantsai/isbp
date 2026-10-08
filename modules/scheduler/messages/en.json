@@ -12,6 +12,20 @@
   "entities": {
     "job": "Scheduled job"
   },
+  "systemRoles": {
+    "scheduler-viewer": {
+      "name": "Scheduled jobs viewer",
+      "description": "See jobs, run history, logs and the monitoring dashboard"
+    },
+    "scheduler-operator": {
+      "name": "Scheduled jobs operator",
+      "description": "Create HTTP jobs and jobs of module task types; edit, run and cancel own and team jobs; run or cancel any job"
+    },
+    "scheduler-admin": {
+      "name": "Scheduled jobs administrator",
+      "description": "Everything in Scheduled jobs, including SQL and script jobs"
+    }
+  },
   "permissions": {
     "jobsRead": "See scheduled jobs, run history, logs and the monitoring dashboard",
     "jobsCreate": "Create jobs; edit, run, cancel and delete jobs they own or their group owns",

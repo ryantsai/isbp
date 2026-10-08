@@ -28,12 +28,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup
 
       - name: Restore Turborepo cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .turbo/cache
           key: turbo-quality-${{ runner.os }}-${{ github.sha }}
@@ -53,8 +53,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: azure/setup-helm@v4
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
       - name: Lint and render the default and the sandbox/S3 variants
         working-directory: infra/helm/isbp
         run: |
@@ -72,7 +72,7 @@ jobs:
     timeout-minutes: 20
     services:
       postgres:
-        image: pgvector/pgvector:pg17
+        image: pgvector/pgvector:0.8.7-pg18-trixie
         env:
           POSTGRES_USER: isbp
           POSTGRES_PASSWORD: isbp
@@ -84,7 +84,7 @@ jobs:
           --health-timeout 5s
           --health-retries 20
       redis:
-        image: redis:7-alpine
+        image: redis:8.10-alpine
         ports: ['6379:6379']
         options: >-
           --health-cmd "redis-cli ping"
@@ -92,7 +92,7 @@ jobs:
           --health-timeout 3s
           --health-retries 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup
 
@@ -110,7 +110,7 @@ jobs:
     # for the engines whose ISBP_TEST_*_URL is set.
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: isbp
           POSTGRES_PASSWORD: isbp
@@ -122,7 +122,7 @@ jobs:
           --health-timeout 5s
           --health-retries 20
       mssql:
-        image: mcr.microsoft.com/mssql/server:2022-latest
+        image: mcr.microsoft.com/mssql/server:2025-latest
         env:
           ACCEPT_EULA: 'Y'
           MSSQL_SA_PASSWORD: Isbp-Ci-2026!
@@ -133,7 +133,7 @@ jobs:
           --health-timeout 5s
           --health-retries 30
       mysql:
-        image: mysql:8.4
+        image: mysql:9.7
         env:
           MYSQL_ROOT_PASSWORD: isbp
           MYSQL_DATABASE: isbp_drv
@@ -156,7 +156,7 @@ jobs:
           --health-timeout 5s
           --health-retries 40
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup
 
@@ -179,7 +179,7 @@ jobs:
     timeout-minutes: 30
     services:
       postgres:
-        image: pgvector/pgvector:pg17
+        image: pgvector/pgvector:0.8.7-pg18-trixie
         env:
           POSTGRES_USER: isbp
           POSTGRES_PASSWORD: isbp
@@ -191,7 +191,7 @@ jobs:
           --health-timeout 5s
           --health-retries 20
       redis:
-        image: redis:7-alpine
+        image: redis:8.10-alpine
         ports: ['6379:6379']
         options: >-
           --health-cmd "redis-cli ping"
@@ -217,7 +217,7 @@ jobs:
       # integrations to them.
       INTEGRATION_MOCKS_URL: http://localhost:4100
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup
 
@@ -264,7 +264,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -282,7 +282,7 @@ jobs:
 
       - name: Upload Playwright report and server logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-report
           path: |
@@ -307,7 +307,7 @@ jobs:
     # Smoke-test dependencies for the API image (reached from containers via --network host).
     services:
       postgres:
-        image: pgvector/pgvector:pg17
+        image: pgvector/pgvector:0.8.7-pg18-trixie
         env:
           POSTGRES_USER: isbp
           POSTGRES_PASSWORD: isbp
@@ -319,7 +319,7 @@ jobs:
           --health-timeout 5s
           --health-retries 20
       redis:
-        image: redis:7-alpine
+        image: redis:8.10-alpine
         ports: ['6379:6379']
         options: >-
           --health-cmd "redis-cli ping"
@@ -330,18 +330,18 @@ jobs:
       PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       LOCAL_TAG: isbp-${{ matrix.component }}:ci
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # GHCR repository names must be lowercase.
       - name: Image name
         id: image
         run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/isbp-${{ matrix.component }}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Image metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.image.outputs.name }}
           tags: |
@@ -353,7 +353,7 @@ jobs:
             org.opencontainers.image.title=isbp-${{ matrix.component }}
 
       - name: Build (load for smoke test)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: infra/docker/${{ matrix.component }}.Dockerfile
@@ -402,7 +402,7 @@ jobs:
 
       - name: Log in to GHCR
         if: env.PUSH == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -411,7 +411,7 @@ jobs:
       # Fully cached by the build above; only runs for pushes to main.
       - name: Push
         if: env.PUSH == 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: infra/docker/${{ matrix.component }}.Dockerfile

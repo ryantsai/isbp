@@ -7,7 +7,8 @@ your report. The rule numbers point to [rules.md](rules.md).
 
 - [ ] `manifest.ts` declares every permission, role, event (with Zod payload), notification, workflow trigger,
       record type, task type, AI tool, setting and nav entry the code uses, all prefixed with the module id (R6).
-- [ ] User-visible manifest text is i18n keys. Role names and descriptions are plain English (R7).
+- [ ] User-visible manifest text is i18n keys. Role names and descriptions are plain English, translated in the
+      catalog under `systemRoles.<role key>` (R7).
 - [ ] `events.consumes` lists exactly the events the server handles (R8).
 - [ ] Nav entries have a `group`, `order` and `permission`; new icons are in `nav-icon.tsx`.
 
@@ -60,6 +61,9 @@ your report. The rule numbers point to [rules.md](rules.md).
 - [ ] `pnpm docs:reference` was run, and `docs/ai/reference.md` is committed (R38).
 - [ ] The module `README.md` says what it owns, its rules, its API surface and its events.
 - [ ] Notable decisions are added to `docs/architecture.md` (the phase's design section and decisions table).
+- [ ] If what people see or do changed, the user guide says so in all three languages
+      ([docs/guide/CONTRIBUTING.md](../guide/CONTRIBUTING.md)), `pnpm docs:guide` was run, and changed screens were
+      re-captured with `pnpm docs:screenshots` against a freshly seeded demo.
 
 ## Commands (all must pass)
 

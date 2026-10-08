@@ -9,16 +9,23 @@ import { useErrorText } from '@/lib/api';
 
 /* ───────────────────────── role labels ───────────────────────── */
 
-/** Translated name/description for system roles (`core.systemRoles.<key>`); stored values otherwise. */
+/**
+ * Translated name/description of a role. Roles a module's manifest declares (`moduleId` set) come from that module's
+ * catalog, `<moduleId>.systemRoles.<key>.{name,description}` (core's are `core.systemRoles.<key>`); custom roles
+ * (`moduleId: null`) and missing keys show the stored text. Refs without `moduleId` fall back to core's catalog.
+ */
 export function useRoleText() {
-  const t = useTranslations('core.systemRoles');
+  const t = useTranslations();
   return useCallback(
-    (role: { key: string; name: string; description?: string | null }) => ({
-      name: t.has(`${role.key}.name`) ? t(`${role.key}.name`) : role.name,
-      description: t.has(`${role.key}.description`)
-        ? t(`${role.key}.description`)
-        : (role.description ?? null),
-    }),
+    (role: { key: string; name: string; description?: string | null; moduleId?: string | null }) => {
+      const base = role.moduleId === null ? null : `${role.moduleId ?? 'core'}.systemRoles.${role.key}`;
+      const text = (field: 'name' | 'description') =>
+        base && t.has(`${base}.${field}`) ? t(`${base}.${field}`) : null;
+      return {
+        name: text('name') ?? role.name,
+        description: text('description') ?? role.description ?? null,
+      };
+    },
     [t],
   );
 }

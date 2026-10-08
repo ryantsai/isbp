@@ -12,6 +12,8 @@ API reference, recipes, generated extension-point reference, testing, UI, defini
 - Run: `pnpm dev` (API + worker on :4000, web on :3000) · seed: `pnpm db:seed` · reset: `pnpm db:reset`
 - Quality gate: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm modules:check && pnpm docs:check && pnpm test`
 - After changing a manifest, slot or error code: `pnpm docs:reference` (regenerates `docs/ai/reference.md`)
+- After changing the user guide: `pnpm docs:guide`; after changing screens it shows: `pnpm db:reset`, then
+  `pnpm docs:screenshots` (stack running)
 - Integration tests (real Postgres/Redis, `isbp_test` DB): `pnpm test:integration`
 - E2E (stack must be running): `E2E_BASE_URL=http://localhost:3000 pnpm e2e`
 - New module: `pnpm create-module <id>` · after adding/removing modules: `pnpm modules:sync`
@@ -106,6 +108,14 @@ API reference, recipes, generated extension-point reference, testing, UI, defini
   `readOnly: true`. Outside agents use `POST /api/v1/mcp` (API clients with `core.mcp.use`; revisions 2026-07-28 and
   initialize-based 2025-x; destructive tools not offered). The scripted
   stand-in chat model for tests is `/llm/v1` in `tooling/integration-mocks`.
+
+- User guide (Phase 7): `docs/guide/<locale>/*.md` (style and screenshot lists: `docs/guide/CONTRIBUTING.md`) is the
+  user documentation, in all three languages with the UI's exact labels; translations keep the English `##`/`###`
+  structure. `pnpm docs:guide` embeds it into `@isbp/guide` (and localises translations' anchors); the knowledge base
+  publishes it as "Using IS Big Platform" (`guide-sync` job; the guide is the source of truth). In-app links are
+  `guideHref(slug, anchor)` from `@isbp/guide/meta` (web code never imports the package root: it holds every guide).
+  Screenshots: `pnpm docs:screenshots` against a freshly reset demo → `apps/web/public/help/<locale>/`. When a change
+  alters what people see or do, update the guide in all three languages.
 
 ## Gotchas
 

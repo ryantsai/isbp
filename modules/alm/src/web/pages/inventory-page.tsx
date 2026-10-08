@@ -5,7 +5,7 @@ import { useCan } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { AnimatedNumber, Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
@@ -15,7 +15,6 @@ import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
   AppWindowIcon,
   CalendarRangeIcon,
@@ -192,7 +191,7 @@ export default function InventoryPage() {
   });
   const filtered = FILTER_KEYS.some((k) => str(k)) || Boolean(stage);
 
-  const columns = useMemo<ColumnDef<AppSummary, unknown>[]>(
+  const columns = useMemo<DataTableColumn<AppSummary>[]>(
     () => [
       {
         id: 'code',

@@ -8,6 +8,24 @@
     "portfolio": "プロジェクト",
     "myTasks": "マイ タスク"
   },
+  "systemRoles": {
+    "projects-member": {
+      "name": "プロジェクト メンバー",
+      "description": "社内プロジェクトを表示し、所属するプロジェクトのタスクを作業します"
+    },
+    "projects-manager": {
+      "name": "プロジェクト マネージャー",
+      "description": "プロジェクトを作成し、自分が率いるプロジェクトを管理します"
+    },
+    "projects-pmo": {
+      "name": "プロジェクト管理オフィス",
+      "description": "非公開を含むすべてのプロジェクトを表示し、プロジェクトを作成して大規模な提案を承認します"
+    },
+    "projects-admin": {
+      "name": "プロジェクト管理者",
+      "description": "すべてのプロジェクトを管理します"
+    }
+  },
   "permissions": {
     "use": "社内プロジェクトを表示し、所属するプロジェクトのタスクを作業する",
     "create": "プロジェクトを作成する (作成者がマネージャーになります)",
@@ -315,7 +333,7 @@
   "task": {
     "loading": "タスクを読み込んでいます…",
     "notFound": "タスクが見つかりません",
-    "notFoundHint": "{reference} は存在しないか、そのプロジェクトを表示する権限がありません。",
+    "notFoundHint": "{reference} は存在しないか、そのプロジェクトを表示するアクセス許可がありません。",
     "loadFailed": "タスクを読み込めませんでした",
     "toMyTasks": "マイ タスクへ",
     "backToProject": "{key} に戻る",
@@ -468,7 +486,7 @@
     "rejected": "提案は承認されませんでした。修正してもう一度開始してください。",
     "rejectedWith": "却下: 「{comment}」",
     "waitingFor": "承認者:",
-    "detailsHidden": "承認経路は申請者、責任者、承認者だけが表示できます。",
+    "detailsHidden": "承認ルートは申請者、責任者、承認者だけが表示できます。",
     "decide": "承認の受信トレイで判断する",
     "facts": {
       "budgetHours": "予定工数 (時間)",
@@ -613,7 +631,7 @@
     "updateHealth": "健全性を更新",
     "changeStatus": "状態",
     "notFound": "プロジェクトが見つかりません",
-    "notFoundHint": "{key} は存在しないか、表示する権限がありません。",
+    "notFoundHint": "{key} は存在しないか、表示するアクセス許可がありません。",
     "loadFailed": "プロジェクトを読み込めませんでした"
   },
   "overview": {

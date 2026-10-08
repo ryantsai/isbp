@@ -64,6 +64,12 @@ export function formatTicketRef(type: TicketType, number: number): string {
   return `${TICKET_PREFIX[type]}-${String(number).padStart(5, '0')}`;
 }
 
+/**
+ * Who gets the "New change" form on `/itsm/changes` (also opened by `?new=1&title=…&link=<type>:<id>`). Modules
+ * that link there (ALM's "Raise a change") offer the action only to these people.
+ */
+export const NEW_CHANGE_PERMISSION = 'itsm.changes.manage';
+
 /** `INC-00042` → { type, number }; null for anything else. */
 export function parseTicketRef(ref: string): { type: TicketType; number: number } | null {
   const m = /^(INC|SR|PRB|CHG)-0*(\d{1,12})$/i.exec(ref.trim());

@@ -2,13 +2,12 @@
 
 import type { Page } from '@isbp/sdk';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import type { ColumnDef } from '@tanstack/react-table';
 import { HistoryIcon, SearchXIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -79,7 +78,7 @@ export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunVi
   );
   const filtered = FILTER_KEYS.some((k) => str(k));
 
-  const columns = useMemo<ColumnDef<RunSummary, unknown>[]>(
+  const columns = useMemo<DataTableColumn<RunSummary>[]>(
     () => [
       ...(jobId
         ? []
@@ -97,7 +96,7 @@ export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunVi
                   {row.original.job.name}
                 </Link>
               ),
-            } satisfies ColumnDef<RunSummary, unknown>,
+            } satisfies DataTableColumn<RunSummary>,
           ]),
       {
         id: 'status',

@@ -26,12 +26,33 @@ root filesystem (only `/tmp`, plus `/app/apps/web/.next/cache` for the web app, 
 
 **Stateful dependencies are not bundled** into the Helm chart:
 
-- **PostgreSQL 17+** with `pg_trgm` available (and `vector`/pgvector from Phase 2; use an image or managed
+- **PostgreSQL 18** (17 also works) with `pg_trgm` available (and `vector`/pgvector from Phase 2; use an image or managed
   service that ships it). Migrations run `CREATE EXTENSION IF NOT EXISTS …`, so the migration user needs that
   privilege, or a DBA pre-creates the extensions. The worker uses `LISTEN/NOTIFY`: a PgBouncer in front must run
   in **session** mode (or the worker must bypass it).
-- **Redis 7+ / Valkey** with `maxmemory-policy noeviction` (required by BullMQ) and persistence (AOF) if queued
+- **Redis 8** (7.2+ also works) / Valkey with `maxmemory-policy noeviction` (required by BullMQ) and persistence (AOF) if queued
   jobs must survive restarts.
+
+### Component versions
+
+Every component is on its latest stable release (checked 2026-10-08); upgrade them together and rerun the full test
+suites.
+
+| Component                       | Version                                                                                               | Notes                                                                                                               |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Node.js                         | 24 LTS (images `node:24-slim`, `.nvmrc`)                                                              | Node 26 becomes LTS on 2026-10-28; move then (`NODE_VERSION`, `.nvmrc`, `@types/node`).                             |
+| pnpm                            | 12.10                                                                                                 | `package.json#packageManager`                                                                                       |
+| PostgreSQL + pgvector           | 18 + 0.8.7 (`pgvector/pgvector:0.8.7-pg18-trixie`)                                                    | 17 also works. PostgreSQL 19 is due 2026-10-29. The Docker-free dev Postgres is 18.4 (the newest embeddable build). |
+| Redis                           | 8.10 (`redis:8.10-alpine`)                                                                            | Clients speak RESP2 (`protocol: 2`), which BullMQ's scripts expect.                                                 |
+| Next.js / React                 | 16.4 / 19.3                                                                                           |                                                                                                                     |
+| TypeScript / ESLint             | 6.0 / 9.39                                                                                            | TypeScript 7 and ESLint 10 exist, but typescript-eslint and eslint-config-next's plugins don't support them yet.    |
+| CI test targets                 | SQL Server 2025, MySQL 9.7 LTS, Oracle Database Free 23, PostgreSQL 18                                | Driver tests (`ISBP_TEST_*_URL`)                                                                                    |
+| Script sandboxes                | `python:3.14-alpine`, `node:24-alpine`, `mcr.microsoft.com/powershell:lts-alpine-3.20`, `alpine:3.24` | `SANDBOX_IMAGES`                                                                                                    |
+| Observability (compose profile) | Jaeger 2.22, Prometheus 3.15                                                                          | `JAEGER_VERSION`, `PROMETHEUS_VERSION`                                                                              |
+
+> **Upgrading an existing Compose install from PostgreSQL 17:** the PG18 images keep their data in
+> `/var/lib/postgresql/18/docker` (the volume is now mounted at `/var/lib/postgresql`). Dump with `pg_dumpall` on the
+> old container and restore into the new one, or use `pg_upgrade`; an old volume is not upgraded in place.
 
 ## 2. Local development
 
@@ -42,7 +63,7 @@ plus a throwaway `isbp_test` database):
 # A) No Docker: embedded Postgres + Redis, data in .dev-data/ (Ctrl+C to stop)
 pnpm dev:services
 
-# B) Docker: pgvector/pgvector:pg17 + redis:7-alpine, bound to 127.0.0.1 only
+# B) Docker: pgvector/pgvector:0.8.7-pg18-trixie + redis:8.10-alpine, bound to 127.0.0.1 only
 docker compose -f infra/compose/docker-compose.dev.yml up -d
 ```
 
@@ -330,7 +351,7 @@ Use `sslmode=require` (or stricter) for remote Postgres and `rediss://` for Redi
 ## 7b. AI gateway and semantic search (Phase 2)
 
 - **Postgres needs pgvector** for semantic search with HNSW indexes. The compose files, Helm and CI use
-  `pgvector/pgvector:pg17`. On managed Postgres, enable the `vector` extension _before_ the first migration.
+  `pgvector/pgvector:0.8.7-pg18-trixie`. On managed Postgres, enable the `vector` extension _before_ the first migration.
   The embedding column type is chosen when migration `0005_ai_vectors` runs:
   - with pgvector available it is `vector`;
   - without it (e.g. `pnpm dev:services`) it falls back to a slow portable `real[]` column and the API logs
@@ -367,8 +388,9 @@ Records (contracts, tickets, CIs, tasks, releases …) carry attachments. Choose
 
 - **Malware scanning.** Set `CLAMAV_HOST` (and `CLAMAV_PORT`, default 3310) to a `clamd` service. Every upload
   is then scanned before it is stored, and uploads are **refused while the scanner is unreachable**.
-- **Limits.** Administration → Settings → "Largest attachment" (default 25 MB, at most 50 MB) and "Blocked file
-  types".
+- **Limits.** Administration → Modules → **Core platform** → **Settings**, under the advanced settings: "Largest
+  attachment" (default 25 MB, at most 50 MB) and "Blocked file types" (the core settings `files.maxSizeMb` and
+  `files.blockedExtensions`).
 - **Upload path.** Uploads pass through the web server's proxy (it accepts up to 52 MB) and stream through
   `/tmp` in the API. Size the Helm `api.tmpSizeLimit` (default 512Mi) for concurrent uploads.
 - **Backups.** Back up the volume or bucket together with the database. Rows in `core.files` point at
@@ -536,7 +558,7 @@ for the person's confirmation in the panel.
 | Job           | What it does                                                                                                                                                                                                                      |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `quality`     | `pnpm install --frozen-lockfile`, `format:check`, `lint`, `typecheck`, `modules:check`, `test` (Turborepo cache restored)                                                                                                         |
-| `integration` | `pnpm test:integration` against `pgvector/pgvector:pg17` + `redis:7-alpine` service containers (`isbp_test`)                                                                                                                      |
+| `integration` | `pnpm test:integration` against `pgvector/pgvector:0.8.7-pg18-trixie` + `redis:8.10-alpine` service containers (`isbp_test`)                                                                                                      |
 | `e2e`         | Builds api + web, migrates and seeds, starts API, worker and the standalone web server, runs Playwright; uploads report + logs on failure                                                                                         |
 | `docker`      | After `quality`: builds both images (GHA layer cache), smoke-tests them (non-root, migrate → API/worker ready, web health) and, on `main` only, pushes `ghcr.io/<owner>/isbp-{api,web}` tagged `main`, `sha-<short>` and `latest` |
 

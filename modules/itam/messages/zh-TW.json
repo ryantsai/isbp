@@ -14,12 +14,34 @@
   },
   "portal": {
     "myDevices": "我的設備",
-    "myDevicesDescription": "查看配發給你的筆電、手機與軟體。"
+    "myDevicesDescription": "查看配發給您的筆電、手機與軟體。"
   },
   "entities": {
     "asset": "硬體資產",
     "license": "軟體授權",
     "contract": "合約"
+  },
+  "systemRoles": {
+    "itam-self": {
+      "name": "我的設備",
+      "description": "檢視配發給您的設備與軟體（預設授予所有人）"
+    },
+    "itam-viewer": {
+      "name": "資產檢視者",
+      "description": "瀏覽硬體、軟體授權與合約"
+    },
+    "itam-asset-manager": {
+      "name": "資產管理員",
+      "description": "管理硬體與軟體授權、顯示授權金鑰、維護型號目錄與廠商；核准報廢"
+    },
+    "itam-contract-manager": {
+      "name": "合約管理員",
+      "description": "管理合約、續約與廠商；檢視合約涵蓋的硬體與軟體"
+    },
+    "itam-admin": {
+      "name": "資產模組管理員",
+      "description": "資產管理的所有功能"
+    }
   },
   "permissions": {
     "hardwareRead": "檢視硬體資產（全部，或某部門與其人員的資產）",
@@ -50,8 +72,8 @@
   "notifications": {
     "asset_assigned": {
       "label": "配發給我的設備",
-      "title": "{model}（{tag}）已配發給你",
-      "body": "{name} 自今天起由你保管。你可以在「我的設備」查看保固資訊，並回報問題。"
+      "title": "{model}（{tag}）已配發給您",
+      "body": "{name} 自今天起由您保管。您可以在「我的設備」查看保固資訊，並回報問題。"
     },
     "license_non_compliant": {
       "label": "不合規的授權",
@@ -266,7 +288,7 @@
   "overview": {
     "title": "資產",
     "description": "硬體資產、軟體合規，以及維持營運的合約。",
-    "noAccess": "你沒有檢視硬體資產的權限",
+    "noAccess": "您沒有檢視硬體資產的權限",
     "unavailable": "無法載入總覽",
     "kpi": {
       "total": "資產",
@@ -343,7 +365,7 @@
     "namePlaceholder": "例如 TPE-LT-0042",
     "serialPlaceholder": "依設備上標示",
     "statusHint": "已訂購的設備到貨後會轉為庫存。",
-    "deployHint": "將直接配發給你選擇的人員。",
+    "deployHint": "將直接配發給您選擇的人員。",
     "assignTo": "配發給（選填）",
     "assignToPlaceholder": "暫不配發，留在庫存",
     "locationPlaceholder": "例如 台北總部 12F",
@@ -414,7 +436,7 @@
       "maintenance": "維護中",
       "retired": "已除役"
     },
-    "disposalPending": "報廢申請等待核准中。",
+    "disposalPending": "報廢申請等待簽核中。",
     "disposedBanner": "已於 {date} 報廢。",
     "lostBanner": "此資產已回報遺失。",
     "installed": "已安裝的軟體",
@@ -428,7 +450,7 @@
     "seatsHint": "此設備與其使用人的席次。",
     "deviceSeats": "此設備",
     "userSeats": "{name} 持有",
-    "contractsHidden": "你沒有檢視合約的權限",
+    "contractsHidden": "您沒有檢視合約的權限",
     "noContracts": "沒有涵蓋此資產的合約",
     "noContractsHint": "支援、維護或租賃合約會列出其涵蓋的資產。"
   },
@@ -451,7 +473,7 @@
   },
   "links": {
     "unavailable": "無法使用連結與檔案",
-    "unavailableHint": "平台的關聯紀錄與附件功能未啟用。"
+    "unavailableHint": "平台的「連結的紀錄」與附件功能未啟用。"
   },
   "software": {
     "title": "軟體",
@@ -674,7 +696,7 @@
     "assetsBought": "項資產向此廠商購買",
     "empty": "沒有廠商",
     "loading": "廠商",
-    "noAccess": "你沒有檢視廠商的權限"
+    "noAccess": "您沒有檢視廠商的權限"
   },
   "vendorForm": {
     "createTitle": "新增廠商",
@@ -688,11 +710,11 @@
   },
   "mine": {
     "title": "我的設備",
-    "description": "資訊部門配發給你的設備與軟體。設備有問題？可以直接在這裡回報。",
+    "description": "資訊部門配發給您的設備與軟體。設備有問題？可以直接在這裡回報。",
     "devices": "{count, plural, =0 {設備} other {# 項設備}}",
     "software": "{count, plural, =0 {軟體} other {# 項軟體授權}}",
-    "noDevices": "目前沒有配發給你的設備",
-    "noDevicesHint": "如果你有公司配發的筆電或手機，請通知服務台登錄。",
+    "noDevices": "目前沒有配發給您的設備",
+    "noDevicesHint": "如果您有公司配發的筆電或手機，請通知服務台登錄。",
     "tellUs": "通知服務台",
     "tag": "資產編號",
     "serial": "序號",
@@ -700,7 +722,7 @@
     "warranty": "保固",
     "report": "回報問題",
     "reportFor": "回報 {device} 的問題",
-    "noSoftware": "目前沒有指派給你個人的軟體授權。",
+    "noSoftware": "目前沒有指派給您個人的軟體授權。",
     "onDevice": "於 {tag}",
     "until": "至 {date}"
   },

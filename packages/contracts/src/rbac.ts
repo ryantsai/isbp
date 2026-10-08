@@ -56,9 +56,20 @@ export type UpdateRoleInput = z.input<typeof updateRoleSchema>;
 
 export const principalTypeSchema = z.enum(['user', 'group']);
 
+/**
+ * A role as other records show it. `moduleId` is set for roles a module's manifest declares (system roles): their
+ * name and description are translated from that module's catalog (`<moduleId>.systemRoles.<key>`).
+ */
+export const roleRefSchema = z.object({
+  id,
+  key: z.string(),
+  name: z.string(),
+  moduleId: z.string().nullable(),
+});
+
 export const roleAssignmentSchema = z.object({
   id,
-  role: z.object({ id, key: z.string(), name: z.string() }),
+  role: roleRefSchema,
   principal: z.object({ type: principalTypeSchema, id, name: z.string(), detail: z.string().nullable() }),
   scopeType: scopeTypeSchema,
   scope: z.object({
@@ -114,7 +125,7 @@ export const effectivePermissionsSchema = z.object({
   sources: z.array(
     z.object({
       permission: z.string(),
-      role: z.object({ id, key: z.string(), name: z.string() }),
+      role: roleRefSchema,
       via: z.enum(['direct', 'group', 'everyone']),
       group: z.object({ id, name: z.string() }).nullable(),
       scopeType: scopeTypeSchema,

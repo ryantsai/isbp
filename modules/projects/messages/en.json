@@ -8,6 +8,24 @@
     "portfolio": "Projects",
     "myTasks": "My tasks"
   },
+  "systemRoles": {
+    "projects-member": {
+      "name": "Project member",
+      "description": "See internal projects and work on tasks of the projects you belong to"
+    },
+    "projects-manager": {
+      "name": "Project manager",
+      "description": "Create projects and manage the ones you lead"
+    },
+    "projects-pmo": {
+      "name": "Project management office",
+      "description": "See every project (including private ones), create projects and approve large proposals"
+    },
+    "projects-admin": {
+      "name": "Projects administrator",
+      "description": "Manage any project"
+    }
+  },
   "permissions": {
     "use": "See internal projects and work on tasks of the projects you belong to",
     "create": "Create projects (you become their manager)",

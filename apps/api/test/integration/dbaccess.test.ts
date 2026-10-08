@@ -477,6 +477,27 @@ describe('request → approve → provision → reveal → expiry', () => {
     const audit = await auditOf('dbaccess.account.enabled');
     expect(audit.map((a) => (a.metadata as LooseJson).passwordReset)).toEqual([true]);
 
+    // Role owners find the grants of their roles ("Access to roles you own"), and only those.
+    expect((await get('owner', '/me/access')).body.ownedRoles).toBe(2);
+    expect((await get('bob', '/me/access')).body.ownedRoles).toBe(1); // the high-risk role, via the group
+    expect((await get('alice', '/me/access')).body.ownedRoles).toBe(0);
+    const owned = await get('owner', '/grants?status=live');
+    expect(owned.status, JSON.stringify(owned.body)).toBe(200);
+    expect(owned.body.items.map((x: LooseJson) => x.id)).toContain(id);
+    for (const x of owned.body.items) expect([fx.reader, fx.writer]).toContain(x.role.id);
+    expect(owned.body.items.find((x: LooseJson) => x.id === id).viewer.canRevoke).toBe(true);
+    // Asking for someone else's role doesn't widen the scope.
+    expect((await get('bob', `/grants?roleId=${fx.reader}`)).body).toMatchObject({ items: [], total: 0 });
+    expect((await get('bob', '/grants')).body.items.map((x: LooseJson) => x.id)).not.toContain(id);
+    // Without owned roles or dbaccess.grants.read the list is refused (and the denial audited).
+    expect((await get('alice', '/grants')).status).toBe(403);
+    expect((await get('mgr', '/grants?owned=true')).status).toBe(403);
+    // Readers see all access, or with `owned` only the grants of the roles they own.
+    expect((await get('dba', '/grants?status=live')).body.items.map((x: LooseJson) => x.id)).toContain(id);
+    const dbaOwned = await get('dba', '/grants?owned=true');
+    expect(dbaOwned.status).toBe(200);
+    for (const x of dbaOwned.body.items) expect(x.role.id).toBe(fx.hi);
+
     expect((await post('bob', `/grants/${id}/revoke`, { reason: 'Not needed' })).status).toBe(403);
     const revoked = await post('owner', `/grants/${id}/revoke`, { reason: 'Project finished early' });
     expect(revoked.status, JSON.stringify(revoked.body)).toBe(200);

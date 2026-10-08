@@ -4,11 +4,10 @@ import type { ApiClient, CreatedSecret } from '@isbp/contracts';
 import { ApiError, useCan } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { SearchInput } from '@isbp/ui/search-input';
-import type { ColumnDef } from '@tanstack/react-table';
 import { GlobeIcon, LockIcon, PlugIcon, PlusIcon, SearchXIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -80,7 +79,7 @@ export function ApiClientsView() {
   const page = rows.slice((state.page - 1) * state.pageSize, state.page * state.pageSize);
   const nowMs = now.getTime();
 
-  const columns = useMemo<ColumnDef<ApiClient, unknown>[]>(
+  const columns = useMemo<DataTableColumn<ApiClient>[]>(
     () => [
       {
         id: 'name',

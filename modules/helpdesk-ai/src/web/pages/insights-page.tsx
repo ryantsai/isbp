@@ -6,7 +6,7 @@ import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { AnimatedNumber, FadeIn, Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
@@ -15,7 +15,6 @@ import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
   CheckIcon,
   CircleCheckIcon,
@@ -132,7 +131,7 @@ export default function InsightsPage() {
     [],
   );
 
-  const columns = useMemo<ColumnDef<Conversation, unknown>[]>(
+  const columns = useMemo<DataTableColumn<Conversation>[]>(
     () => [
       {
         id: 'title',

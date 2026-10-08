@@ -21,6 +21,28 @@
     "license": "Software licence",
     "contract": "Contract"
   },
+  "systemRoles": {
+    "itam-self": {
+      "name": "My devices",
+      "description": "See the devices and software assigned to you (granted to everyone by default)"
+    },
+    "itam-viewer": {
+      "name": "Asset viewer",
+      "description": "Browse hardware, software licences and contracts"
+    },
+    "itam-asset-manager": {
+      "name": "Asset manager",
+      "description": "Manage hardware and software licences, reveal licence keys, maintain the model catalogue and vendors; approves disposals"
+    },
+    "itam-contract-manager": {
+      "name": "Contract manager",
+      "description": "Manage contracts and their renewals, and vendors; see the hardware and software they cover"
+    },
+    "itam-admin": {
+      "name": "Asset administrator",
+      "description": "Everything in asset management"
+    }
+  },
   "permissions": {
     "hardwareRead": "See hardware assets (everywhere, or of a department and its people)",
     "hardwareManage": "Register, assign, return and retire hardware; request disposal",

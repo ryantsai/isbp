@@ -7,6 +7,20 @@
     "chat": "詢問 IT",
     "insights": "AI 分析"
   },
+  "systemRoles": {
+    "helpdesk-ai-user": {
+      "name": "虛擬客服使用者",
+      "description": "向 IT 虛擬客服尋求協助（預設授予所有人）"
+    },
+    "helpdesk-ai-agent": {
+      "name": "AI 輔助專員",
+      "description": "使用工單上的 AI 輔助面板（分類建議、相似工單、回覆草稿、摘要）"
+    },
+    "helpdesk-ai-admin": {
+      "name": "服務台 AI 管理員",
+      "description": "服務台 AI 的所有功能，包括準確度指標與對話審閱"
+    }
+  },
   "permissions": {
     "chat": "使用 IT 虛擬客服",
     "assist": "使用工單上的 AI 輔助面板",
@@ -86,10 +100,10 @@
   },
   "resolution": {
     "solved": "已解決",
-    "workaround": "暫時解決方法",
-    "user_error": "使用者操作錯誤",
+    "workaround": "提供暫時解法",
+    "user_error": "使用者操作問題／說明",
     "duplicate": "重複",
-    "no_fault_found": "查無故障",
+    "no_fault_found": "未發現異常",
     "not_reproducible": "無法重現",
     "cancelled_by_requester": "申請人取消"
   },
@@ -127,7 +141,7 @@
   },
   "ticketStatus": {
     "new": "新建",
-    "pending_approval": "待核准",
+    "pending_approval": "待簽核",
     "in_progress": "處理中",
     "on_hold": "暫停",
     "resolved": "已解決",

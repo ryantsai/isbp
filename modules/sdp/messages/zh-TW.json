@@ -1,10 +1,10 @@
 {
   "meta": {
     "name": "ServiceDesk Plus",
-    "description": "將自行架設的 ManageEngine ServiceDesk Plus 伺服器連接到整合中心：請求、問題、變更、資產與解決方案。"
+    "description": "將自行架設的 ManageEngine ServiceDesk Plus 伺服器連接到整合中樞：請求、問題、變更、資產與解決方案。"
   },
   "connector": {
-    "name": "ServiceDesk Plus（內部部署）",
+    "name": "ServiceDesk Plus（地端）",
     "description": "透過自行架設之 ServiceDesk Plus 伺服器的 REST API v3，以技術人員 API 金鑰同步請求、問題、變更、資產與解決方案。"
   },
   "objects": {

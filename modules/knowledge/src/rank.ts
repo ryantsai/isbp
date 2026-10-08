@@ -33,6 +33,8 @@ export interface RankDoc {
   tags: readonly string[];
   /** Best-passage cosine similarity from the index (0–1). */
   similarity: number;
+  /** Multiplies the final score (default 1), e.g. to rank the platform's user guide below our own articles. */
+  weight?: number;
 }
 
 /** Share of query terms found, weighted by where they appear (title 1, summary/tags 0.75, body 0.5). */
@@ -62,7 +64,9 @@ export function rankDocuments(query: string, docs: readonly RankDoc[]): { id: st
 
   const max = 2 / (RRF_K + 1);
   const similarity = new Map(docs.map((d) => [d.id, d.similarity]));
+  const weight = new Map(docs.map((d) => [d.id, d.weight ?? 1]));
   return [...fused.entries()]
+    .map(([id, score]) => [id, score * weight.get(id)!] as const)
     .sort((a, b) => b[1] - a[1] || similarity.get(b[0])! - similarity.get(a[0])!)
     .map(([id, score]) => ({ id, score: Math.min(1, score / max) }));
 }

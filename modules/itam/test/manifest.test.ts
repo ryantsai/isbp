@@ -1,5 +1,6 @@
 import { advanceWorkflow, emptyWorkflowState, type ModuleManifest, workflowGraphSchema } from '@isbp/sdk';
 import { describe, expect, it } from 'vitest';
+import { type DisposalFacts, needsSecuritySignOff, SECURITY_SIGN_OFF_WHEN } from '../src/contracts';
 import { manifest as declared } from '../src/manifest';
 
 const manifest: ModuleManifest = declared;
@@ -70,6 +71,18 @@ describe('itam manifest', () => {
     expect(ancient).toMatchObject({ outcome: 'approved', activated: [] });
     const monitor = afterManager({ category: 'monitor', dataBearing: false, bookValue: 5000, ageMonths: 10 });
     expect(monitor).toMatchObject({ outcome: 'approved', activated: [] });
+    // The disposal dialog's notice uses the step's own condition, so it says the same for every case.
+    expect(graph.steps.find((s) => s.id === 'security')).toMatchObject({ when: SECURITY_SIGN_OFF_WHEN });
+    const cases: [DisposalFacts['asset'], boolean][] = [
+      [{ category: 'laptop', dataBearing: true, bookValue: 1000, ageMonths: 20 }, true],
+      [{ category: 'server', dataBearing: true, bookValue: 0, ageMonths: 30 }, true],
+      [{ category: 'server', dataBearing: true, bookValue: 0, ageMonths: 90 }, false],
+      [{ category: 'monitor', dataBearing: false, bookValue: 5000, ageMonths: 10 }, false],
+    ];
+    for (const [asset, asked] of cases) {
+      expect(needsSecuritySignOff({ asset })).toBe(asked);
+      expect(afterManager(asset).activated.some((s) => s.id === 'security')).toBe(asked);
+    }
     expect(
       trigger!.facts!.safeParse({
         asset: { category: 'laptop', dataBearing: true, bookValue: 1, ageMonths: 2 },

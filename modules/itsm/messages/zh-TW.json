@@ -19,6 +19,32 @@
     "ticket": "工單",
     "change": "變更"
   },
+  "systemRoles": {
+    "itsm-requester": {
+      "name": "服務台申請者",
+      "description": "回報問題並追蹤自己的工單（預設授予所有人）"
+    },
+    "itsm-agent": {
+      "name": "服務台專員",
+      "description": "處理事件與服務請求；檢視問題、變更與報表"
+    },
+    "itsm-problem-manager": {
+      "name": "問題經理",
+      "description": "調查問題，記錄根本原因與已知錯誤"
+    },
+    "itsm-change-viewer": {
+      "name": "變更檢視者",
+      "description": "檢視變更與變更行事曆，例如供將發行版本連結到變更的發行經理使用"
+    },
+    "itsm-change-manager": {
+      "name": "變更經理",
+      "description": "提出、評估與排程變更；核准一般變更"
+    },
+    "itsm-admin": {
+      "name": "服務台管理員",
+      "description": "ITSM 的所有功能，包括類別、SLA 原則、行事曆與服務目錄"
+    }
+  },
   "permissions": {
     "ticketsCreate": "回報問題並追蹤自己的工單",
     "ticketsRead": "檢視所有工單",
@@ -35,7 +61,7 @@
   "workflows": {
     "change": {
       "name": "變更授權",
-      "description": "變更排程前的核准流程（CAB）"
+      "description": "變更排程前的簽核流程（CAB）"
     }
   },
   "types": {
@@ -52,7 +78,7 @@
   },
   "status": {
     "new": "新建",
-    "pending_approval": "等待核准",
+    "pending_approval": "待簽核",
     "in_progress": "處理中",
     "on_hold": "暫停",
     "resolved": "已解決",
@@ -63,7 +89,7 @@
     "known_error": "已知錯誤",
     "draft": "草稿",
     "assessment": "評估中",
-    "authorization": "等待 CAB 核准",
+    "authorization": "等待 CAB 簽核",
     "scheduled": "已排程",
     "implementing": "實施中",
     "review": "實施後檢討",
@@ -191,7 +217,7 @@
     "ticket_resolved": {
       "label": "我的工單已解決",
       "title": "{status, select, fulfilled {已完成} other {已解決}}：{reference} {title}",
-      "body": "{notes} 如果問題仍未解決，請開啟工單並選擇「仍有問題」。"
+      "body": "{notes} 如果問題仍未解決，請開啟工單並選擇「不，還是有問題」。"
     },
     "ticket_reopened": {
       "label": "申請人重新開啟的工單",
@@ -281,6 +307,13 @@
       "noResults": "找不到服務",
       "clear": "清除服務"
     },
+    "articlePicker": {
+      "placeholder": "選擇文章",
+      "search": "依標題或 KB 編號搜尋…",
+      "loading": "搜尋中…",
+      "noResults": "找不到文章",
+      "clear": "取消連結文章"
+    },
     "linkedTo": "連結至",
     "unlink": "不要連結此紀錄"
   },
@@ -331,8 +364,8 @@
       "tickets": "{count, plural, other {張工單}}"
     },
     "empty": {
-      "assigned": "目前沒有指派給你的工單。",
-      "groups": "你的群組沒有未結案的工單。",
+      "assigned": "目前沒有指派給您的工單。",
+      "groups": "您的群組沒有未結案的工單。",
       "unassigned": "每張工單都已有人處理。",
       "all": "沒有未結案的工單，難得清閒。",
       "breached": "沒有違反 SLA 的工單。",
@@ -350,8 +383,8 @@
     "description": "代人登錄、分類並指派，一次完成。",
     "type": "工單類型",
     "requester": "申請人",
-    "requesterPlaceholder": "你自己",
-    "requesterHint": "留空表示以你自己的名義登錄。",
+    "requesterPlaceholder": "您自己",
+    "requesterHint": "留空表示以您自己的名義登錄。",
     "titleLabel": "標題",
     "titleTooShort": "請至少輸入 3 個字元",
     "titleTooLong": "標題請少於 200 個字元",
@@ -365,13 +398,13 @@
     "assignee": "處理人員",
     "cis": "受影響的組態項目",
     "major": "重大事件",
-    "majorHint": "宣告為重大事件：會通知相關人員，並排在所有佇列的最前面。",
+    "majorHint": "宣告為重大事件：工單會加上「重大事件」標記並列在「重大事件」佇列中，若已開啟公告，也會在團隊頻道發布公告。其他佇列的排序不受影響。",
     "submit": "建立工單",
     "created": "已建立 {reference}"
   },
   "newChange": {
     "title": "新增變更",
-    "description": "說明要變更什麼、何時進行，以及如何復原。一般與緊急變更需經 CAB 核准。",
+    "description": "說明要變更什麼、何時進行，以及如何回復。一般與緊急變更需經 CAB 簽核。",
     "titleLabel": "要變更什麼？",
     "titlePlaceholder": "例如：升級核心交換器韌體",
     "titleTooShort": "請至少輸入 3 個字元",
@@ -394,8 +427,8 @@
     "majorTitle": "重大事件",
     "majorBody": "請在此協調處理，並以公開回覆向相關人員更新進度。",
     "notFound": "找不到工單",
-    "notFoundHint": "{reference} 不存在，或你沒有檢視權限。",
-    "forbidden": "你沒有存取此工單的權限",
+    "notFoundHint": "{reference} 不存在，或您沒有檢視權限。",
+    "forbidden": "您沒有存取此工單的權限",
     "loadFailed": "無法載入工單"
   },
   "actions": {
@@ -404,9 +437,9 @@
     "moveTo": "變更為",
     "resolveButton": "解決",
     "fulfilButton": "完成",
-    "submitForApproval": "送出核准",
+    "submitForApproval": "送出簽核",
     "assignToMe": "指派給我",
-    "assignedToMe": "已指派給你",
+    "assignedToMe": "已指派給您",
     "editButton": "編輯",
     "statusChanged": "狀態已變更為「{status}」",
     "resolve": {
@@ -509,11 +542,11 @@
     "slaWarning": "{metric}目標即將逾期",
     "slaBreached": "{metric}目標已違反",
     "approval": {
-      "started": "已送出核准",
+      "started": "已送出簽核",
       "approved": "已核准",
       "rejected": "已駁回",
-      "cancelled": "已撤回核准",
-      "updated": "核准進度已更新"
+      "cancelled": "已撤回簽核",
+      "updated": "簽核進度已更新"
     },
     "triage": {
       "aiSet": "{name} 設定了{fields}",
@@ -550,7 +583,7 @@
       "plannedStart": "預計開始",
       "plannedEnd": "預計結束",
       "implementationPlan": "實施計畫",
-      "backoutPlan": "復原計畫",
+      "backoutPlan": "回復計畫",
       "testPlan": "測試計畫",
       "rootCause": "根本原因",
       "workaround": "暫時解法",
@@ -603,19 +636,19 @@
     "reasonLabel": "還有哪裡不對？",
     "reasonRequired": "請說明哪裡仍無法正常運作。",
     "reopen": "重新開啟工單",
-    "closedToast": "謝謝！你的工單已結案。",
-    "reopenedToast": "你的工單已重新開啟"
+    "closedToast": "謝謝！您的工單已結案。",
+    "reopenedToast": "您的工單已重新開啟"
   },
   "requester": {
     "back": "我的申請",
     "cancelled": "此工單已取消。",
     "conversation": "對話",
-    "noMessages": "目前還沒有訊息。我們會在這裡回覆，你也可以在下方補充資訊。",
-    "detailsLabel": "你回報的內容",
-    "yourReport": "你告訴我們的內容",
+    "noMessages": "目前還沒有訊息。我們會在這裡回覆，您也可以在下方補充資訊。",
+    "detailsLabel": "您回報的內容",
+    "yourReport": "您告訴我們的內容",
     "noDescription": "未提供詳細資訊。",
     "reported": "回報時間",
-    "urgency": "對你的影響程度",
+    "urgency": "對您的影響程度",
     "category": "類別",
     "service": "受影響的服務",
     "handledBy": "處理單位",
@@ -648,7 +681,10 @@
     "knownErrorSwitch": "已知錯誤",
     "knownErrorHint": "原因與暫時解法均已記錄，處理人員可套用到新的事件。",
     "incidents": "{count, plural, =0 {關聯的事件} other {# 個關聯的事件}}",
-    "noIncidents": "尚未有事件關聯到此問題。"
+    "noIncidents": "尚未有事件關聯到此問題。",
+    "kbArticle": "知識文章",
+    "kbArticleHint": "記錄此已知錯誤的文章，供處理人員處理此問題造成的事件時參考。只會列出您可以閱讀的文章。",
+    "openArticle": "開啟文章"
   },
   "problems": {
     "title": "問題",
@@ -679,7 +715,7 @@
     "changeType": "變更類型",
     "typeHint": {
       "standard": "已預先核准的低風險變更，無須 CAB 審查。",
-      "normal": "由變更經理核准；高風險時另須 CAB 核准。",
+      "normal": "由變更經理核准；高風險時另須 CAB 簽核。",
       "emergency": "緊急修正：由緊急 CAB 在數小時內決定。"
     },
     "risk": "風險",
@@ -689,7 +725,7 @@
     "end": "結束",
     "endBeforeStart": "結束時間必須晚於開始時間。",
     "implementationPlan": "實施計畫",
-    "backoutPlan": "復原計畫",
+    "backoutPlan": "回復計畫",
     "testPlan": "測試計畫",
     "conflicts": {
       "found": "{count, plural, other {此時段內有 # 個其他變更涉及相同的 CI}}",
@@ -697,13 +733,13 @@
       "none": "此時段內沒有其他變更涉及這些 CI。"
     },
     "approval": {
-      "title": "CAB 核准",
-      "notStarted": "計畫準備好後，即可送出核准。",
-      "unavailable": "無法顯示核准資訊。",
+      "title": "CAB 簽核",
+      "notStarted": "計畫準備好後，即可送出簽核。",
+      "unavailable": "無法顯示簽核資訊。",
       "waitingFor": "等待",
-      "openInbox": "開啟我的核准",
+      "openInbox": "開啟我的簽核",
       "status": {
-        "running": "等待核准",
+        "running": "待簽核",
         "approved": "已核准",
         "rejected": "已駁回",
         "cancelled": "已撤回"
@@ -746,16 +782,16 @@
     }
   },
   "report": {
-    "back": "你需要什麼？",
+    "back": "您需要什麼？",
     "title": "回報問題",
-    "description": "告訴我們哪裡不對勁，我們會在這裡及透過通知讓你掌握處理進度。",
+    "description": "告訴我們哪裡不對勁，我們會在這裡及透過通知讓您掌握處理進度。",
     "whatsWrong": "發生了什麼問題？",
     "whatsWrongPlaceholder": "例如：在家無法連上 VPN",
     "titleRequired": "請簡短描述發生了什麼問題。",
     "tellUsMore": "補充說明",
-    "tellUsMorePlaceholder": "發生了什麼事、從何時開始、你已嘗試過什麼、任何錯誤訊息…",
+    "tellUsMorePlaceholder": "發生了什麼事、從何時開始、您已嘗試過什麼、任何錯誤訊息…",
     "tellUsMoreHint": "詳細的資訊能幫助我們更快解決。",
-    "impactLegend": "對你的影響有多大？",
+    "impactLegend": "對您的影響有多大？",
     "impact": {
       "blocked": "我無法工作",
       "blockedHint": "工作已經停擺",
@@ -773,7 +809,7 @@
     "suggestions": {
       "title": "這些文章或許有幫助",
       "empty": "開始描述問題後，我們會建議可能解決問題的文章。",
-      "hint": "如果其中一篇已解決你的問題，就不需要送出回報。",
+      "hint": "如果其中一篇已解決您的問題，就不需要送出回報。",
       "announce": "{count, plural, other {有 # 篇文章或許有幫助}}"
     }
   },
@@ -881,7 +917,7 @@
       "calendarPlaceholder": "選擇行事曆",
       "createTitle": "新增 SLA 政策",
       "editTitle": "編輯 SLA 政策",
-      "sheetHint": "目標只計算營業時間，並會在你選擇的狀態下暫停計時。",
+      "sheetHint": "目標只計算營業時間，並會在您選擇的狀態下暫停計時。",
       "name": "名稱",
       "nameRequired": "請輸入名稱。",
       "descriptionLabel": "說明",
@@ -955,7 +991,7 @@
       "formBuilder": "開啟表單設計工具",
       "empty": "尚未發布任何表單。",
       "emptyHint": "在「管理 → 表單」建立並發布申請表單後，就會出現在這裡。",
-      "approval": "需核准",
+      "approval": "需簽核",
       "fulfilled": "由服務台處理",
       "paused": "已暫停",
       "notFulfilled": "不由服務台處理",
@@ -973,8 +1009,8 @@
         "submitted": "送出時",
         "submittedHint": "立即開始處理。",
         "approved": "核准後",
-        "approvedHint": "表單核准完成後才開始處理。",
-        "noApproval": "此表單沒有核准步驟。"
+        "approvedHint": "表單簽核完成後才開始處理。",
+        "noApproval": "此表單沒有簽核步驟。"
       },
       "stopTitle": "要停止處理此表單嗎？",
       "stopBody": "新的申請將不會開立服務請求，現有工單會保留。",
@@ -989,11 +1025,11 @@
   },
   "dashboardCard": {
     "title": "服務台",
-    "description": "你的佇列，以及最需要你優先處理的工單。",
+    "description": "您的佇列，以及最需要您優先處理的工單。",
     "open": "開啟工作區",
     "queues": "佇列",
     "mostUrgent": "指派給我，最緊急的優先",
-    "nothingAssigned": "目前沒有指派給你的工單。"
+    "nothingAssigned": "目前沒有指派給您的工單。"
   },
   "sync": {
     "entities": {
@@ -1022,7 +1058,7 @@
       "plannedStart": "預計開始",
       "plannedEnd": "預計結束",
       "implementationPlan": "實施計畫",
-      "backoutPlan": "復原計畫",
+      "backoutPlan": "回復計畫",
       "testPlan": "測試計畫"
     },
     "resolvedIn": "已於 {system} {reference} 解決",

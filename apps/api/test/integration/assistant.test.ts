@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { auditLogs } from '@isbp/db/schema';
+import { auditLogs, users } from '@isbp/db/schema';
 import {
   type CustomizationHandler,
   defineManifest,
@@ -12,8 +12,9 @@ import {
 import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { hashPassword } from '../../src/kernel/passwords';
 import { startWorker } from '../../src/kernel/worker';
-import { createHarness, type Harness, type LooseJson, type Session } from './harness';
+import { createHarness, type Harness, type LooseJson, PASSWORD, type Session } from './harness';
 
 /*
  * Phase 6: change sets (proposals, dry runs, references, apply, staleness, review applied as the approver,
@@ -265,6 +266,25 @@ describe('customisation kinds (kernel)', () => {
     const adminKinds = (await h.call(admin, 'GET', `${A}/status`)).body.kinds as LooseJson[];
     expect(adminKinds.find((k) => k.kind === 'itest-config.widget').canApply).toBe(true);
     expect((await h.call(outsider, 'GET', `${A}/status`)).status).toBe(403);
+  });
+
+  it('counts the everyday tools of people who can’t customise anything, so they can still chat', async () => {
+    const [helper] = await h.kernel.db
+      .insert(users)
+      .values({
+        email: 'helper@test.example',
+        username: 'helper',
+        displayName: 'Helper',
+        passwordHash: await hashPassword(PASSWORD),
+      })
+      .returning();
+    await grant(helper!.id, 'assistant-everyday', ['assistant.agent.use', 'core.departments.read']);
+    const status = (await h.call(await h.login('helper'), 'GET', `${A}/status`)).body;
+    expect(status.kinds).toEqual([]);
+    // core.find_departments at least; the assistant's own (configuration) tools are not counted.
+    expect(status.tools).toBeGreaterThanOrEqual(1);
+    const authorStatus = (await h.call(author, 'GET', `${A}/status`)).body;
+    expect(authorStatus.tools).toBeGreaterThanOrEqual(1);
   });
 });
 

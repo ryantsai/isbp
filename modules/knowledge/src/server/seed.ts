@@ -1,8 +1,9 @@
 import { departments, groupMembers, groups, users, uuidv7 } from '@isbp/db/schema';
 import type { ModuleContext } from '@isbp/sdk/server';
-import { and, asc, count, eq, notInArray } from 'drizzle-orm';
+import { and, asc, count, eq, notInArray, sql } from 'drizzle-orm';
 import type { ArticleStatus } from '../contracts';
 import { type ArticleRow, ArticleService, indexDocument } from './articles';
+import { importGuide } from './guide';
 import { articles, articleVersions, categories, feedback } from './schema';
 import { SEED_ARTICLES, SEED_CATEGORIES, SEED_FEEDBACK, type SeedOwner } from './seed-content';
 
@@ -64,9 +65,14 @@ async function resolveOwners(ctx: ModuleContext): Promise<Record<SeedOwner, stri
  */
 export async function seedKnowledge(ctx: ModuleContext) {
   const svc = new ArticleService(ctx);
-  const [existing] = await ctx.db.select({ n: count() }).from(articles);
+  // The user guide's articles (published by `importGuide`) don't count as demo data.
+  const [existing] = await ctx.db
+    .select({ n: count() })
+    .from(articles)
+    .where(sql`coalesce(${articles.source}->>'type', '') <> 'guide'`);
   if (existing!.n > 0) {
-    // Already seeded: just make sure the index matches (unchanged chunks are not re-embedded).
+    // Already seeded: just make sure the guide and the index are current (unchanged chunks are not re-embedded).
+    await importGuide(ctx);
     await svc.reindexAll();
     return;
   }
@@ -220,4 +226,7 @@ export async function seedKnowledge(ctx: ModuleContext) {
   for (const a of published)
     await ctx.ai.index.upsert(indexDocument(a, a.categoryId ? (catById.get(a.categoryId) ?? null) : null));
   ctx.logger.info({ articles: inserted.length, indexed: published.length }, 'knowledge demo data seeded');
+
+  // The user guide after the demo articles, so their numbers (KB-00001…) don't depend on the guide.
+  if (await importGuide(ctx)) await svc.reindexAll();
 }

@@ -97,7 +97,7 @@ describe('itsm demo seed', () => {
       .select({ id: tickets.id, status: tickets.status, knownError: problems.knownError })
       .from(tickets)
       .innerJoin(problems, eq(problems.ticketId, tickets.id))
-      .where(eq(tickets.title, 'VPN client 5.2 crashes on macOS Sonoma'));
+      .where(eq(tickets.title, 'VPN client 5.2 crashes on macOS 15'));
     expect(vpn).toMatchObject({ status: 'known_error', knownError: true });
     const [links] = await h.kernel.db
       .select({ n: count() })

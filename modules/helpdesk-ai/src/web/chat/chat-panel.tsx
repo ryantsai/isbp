@@ -130,7 +130,7 @@ export function ChatPanel({
 
       <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {chat.loading ? (
-          <div className="space-y-4" aria-busy="true" aria-label={t('chat.loading')}>
+          <div className="space-y-4" role="status" aria-busy="true" aria-label={t('chat.loading')}>
             <Skeleton className="ml-auto h-10 w-2/3 rounded-2xl" />
             <Skeleton className="h-24 w-3/4 rounded-2xl" />
           </div>

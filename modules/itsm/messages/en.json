@@ -19,6 +19,32 @@
     "ticket": "Ticket",
     "change": "Change"
   },
+  "systemRoles": {
+    "itsm-requester": {
+      "name": "Service desk requester",
+      "description": "Report issues and follow your own tickets (granted to everyone by default)"
+    },
+    "itsm-agent": {
+      "name": "Service desk agent",
+      "description": "Work incidents and service requests; see problems, changes and reports"
+    },
+    "itsm-problem-manager": {
+      "name": "Problem manager",
+      "description": "Investigate problems, record root causes and known errors"
+    },
+    "itsm-change-viewer": {
+      "name": "Change viewer",
+      "description": "See changes and the change calendar, e.g. for release managers who link releases to their changes"
+    },
+    "itsm-change-manager": {
+      "name": "Change manager",
+      "description": "Raise, assess and schedule changes; approves normal changes"
+    },
+    "itsm-admin": {
+      "name": "Service desk administrator",
+      "description": "Everything in ITSM, including categories, SLA policies, calendars and the catalog"
+    }
+  },
   "permissions": {
     "ticketsCreate": "Report issues and follow your own tickets",
     "ticketsRead": "See all tickets",
@@ -191,7 +217,7 @@
     "ticket_resolved": {
       "label": "My tickets resolved",
       "title": "{status, select, fulfilled {Fulfilled} other {Resolved}}: {reference} {title}",
-      "body": "{notes} If it is not fixed, open the ticket and choose “Still broken”."
+      "body": "{notes} If it is not fixed, open the ticket and choose “No, it's still broken”."
     },
     "ticket_reopened": {
       "label": "Tickets reopened by requesters",
@@ -281,6 +307,13 @@
       "noResults": "No services found",
       "clear": "Clear the service"
     },
+    "articlePicker": {
+      "placeholder": "Choose an article",
+      "search": "Search by title or KB number…",
+      "loading": "Searching…",
+      "noResults": "No articles found",
+      "clear": "Unlink the article"
+    },
     "linkedTo": "Linked to",
     "unlink": "Don't link this record"
   },
@@ -365,7 +398,7 @@
     "assignee": "Assigned to",
     "cis": "Affected configuration items",
     "major": "Major incident",
-    "majorHint": "Declares a major incident: stakeholders are informed and it tops every queue.",
+    "majorHint": "Declares a major incident: it gets a Major incident badge, appears in the Major incidents queue and, when announcements are on, is posted to team channels. Other queues keep their order.",
     "submit": "Create ticket",
     "created": "{reference} created"
   },
@@ -648,7 +681,10 @@
     "knownErrorSwitch": "Known error",
     "knownErrorHint": "The cause and a workaround are documented; agents can apply it to new incidents.",
     "incidents": "{count, plural, =0 {Linked incidents} one {# linked incident} other {# linked incidents}}",
-    "noIncidents": "No incidents are linked to this problem yet."
+    "noIncidents": "No incidents are linked to this problem yet.",
+    "kbArticle": "Knowledge article",
+    "kbArticleHint": "The article that documents this known error, for agents handling the incidents it causes. Only articles you can read are listed.",
+    "openArticle": "Open the article"
   },
   "problems": {
     "title": "Problems",

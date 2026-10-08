@@ -1,6 +1,7 @@
 'use client';
 
-import { ApiError } from '@isbp/sdk/web';
+import { NEW_CHANGE_PERMISSION } from '@isbp/module-itsm/contracts';
+import { ApiError, useCan, usePlatform } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
 import {
@@ -45,11 +46,18 @@ import { INVALIDATE, useDebounced } from './lib';
 
 const STATUSES: DeploymentStatus[] = ['succeeded', 'failed', 'in_progress', 'rolled_back'];
 
-/** `/itsm/changes?new=1&title=…&link=alm.release:<id>`: ITSM opens its new-change dialog, linked. */
+/**
+ * `/itsm/changes?new=1&title=…&link=alm.release:<id>`: ITSM opens its new-change dialog, linked. Null for people
+ * ITSM doesn't give that dialog to (e.g. release managers who only read changes), so the action isn't offered.
+ */
 export function useRaiseChangeHref() {
   const t = useTranslations('alm.release');
-  return (app: { name: string }, release: { id: string; version: string }) =>
-    `/itsm/changes?new=1&title=${encodeURIComponent(t('raiseChangeTitle', { app: app.name, version: release.version }))}&link=alm.release:${release.id}`;
+  const { enabledModules } = usePlatform();
+  const canRaise = useCan(NEW_CHANGE_PERMISSION) && enabledModules.includes('itsm');
+  return (app: { name: string }, release: { id: string; version: string }): string | null =>
+    canRaise
+      ? `/itsm/changes?new=1&title=${encodeURIComponent(t('raiseChangeTitle', { app: app.name, version: release.version }))}&link=alm.release:${release.id}`
+      : null;
 }
 
 function Panel({

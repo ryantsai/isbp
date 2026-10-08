@@ -117,6 +117,9 @@
     "wrongCurrent": "目前的密碼不正確。",
     "mismatch": "兩次輸入的密碼不一致。",
     "mustChange": "您的管理員要求您設定新密碼。",
+    "requiredTitle": "請設定新密碼",
+    "requiredBody": "您的管理員要求您在這次登入時設定新密碼。請在「密碼」下方輸入目前的密碼和新密碼。",
+    "requiredAction": "變更密碼",
     "rules": {
       "label": "密碼規則",
       "length": "至少 {min} 個字元",

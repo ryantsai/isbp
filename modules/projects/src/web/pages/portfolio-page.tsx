@@ -6,7 +6,7 @@ import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@isbp/ui/card';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Label } from '@isbp/ui/label';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
@@ -16,7 +16,6 @@ import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Switch } from '@isbp/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
   CalendarIcon,
   ChevronLeftIcon,
@@ -239,7 +238,7 @@ export default function PortfolioPage() {
   );
   const filtered = Boolean(state.q) || filter !== 'all' || archived;
 
-  const columns = useMemo<ColumnDef<ProjectSummary, unknown>[]>(
+  const columns = useMemo<DataTableColumn<ProjectSummary>[]>(
     () => [
       {
         id: 'key',

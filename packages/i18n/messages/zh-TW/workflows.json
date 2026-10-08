@@ -1,7 +1,7 @@
 {
   "status": {
     "request": {
-      "pending": "等待核准",
+      "pending": "待簽核",
       "submitted": "已送出",
       "approved": "已核准",
       "rejected": "已駁回",
@@ -93,7 +93,7 @@
   },
   "list": {
     "title": "工作流程",
-    "description": "權限申請、表單與模組的簽核流程。發佈後的變更會套用到新的申請。",
+    "description": "權限申請、表單與模組的簽核路徑。發佈後的變更會套用到新的申請。",
     "tabs": {
       "definitions": "工作流程",
       "instances": "進行中與歷史紀錄"
@@ -106,7 +106,7 @@
     "optional": "選用",
     "usesDefault": "使用中：{name}",
     "perForm": "每張表單各自選擇工作流程。",
-    "noDefault": "未使用：在您選擇預設工作流程前不需要核准。",
+    "noDefault": "未使用：在您選擇預設工作流程前不需要簽核。",
     "empty": "此觸發條件尚無工作流程。",
     "default": "預設",
     "system": "內建",
@@ -171,8 +171,8 @@
     "publish": "發佈",
     "more": "更多動作",
     "makeDefault": "用於新的申請",
-    "clearDefault": "停止使用（不需核准）",
-    "defaultCleared": "已關閉此觸發條件的核准",
+    "clearDefault": "停止使用（不需簽核）",
+    "defaultCleared": "已關閉此觸發條件的簽核",
     "restore": "還原",
     "archive": "封存",
     "zoomOut": "縮小",

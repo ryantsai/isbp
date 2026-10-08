@@ -5,7 +5,7 @@ import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { SearchInput } from '@isbp/ui/search-input';
 import {
@@ -18,7 +18,6 @@ import {
 } from '@isbp/ui/select';
 import { toast } from '@isbp/ui/sonner';
 import { Hint } from '@isbp/ui/tooltip';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
   HandIcon,
   RefreshCwIcon,
@@ -85,7 +84,7 @@ export function AppAccessPanel({ app }: { app: Application }) {
   );
   const filtered = Boolean(state.q || roleId);
 
-  const columns = useMemo<ColumnDef<RoleAssignment, unknown>[]>(
+  const columns = useMemo<DataTableColumn<RoleAssignment>[]>(
     () => [
       {
         id: 'principal',
@@ -172,7 +171,7 @@ export function AppAccessPanel({ app }: { app: Application }) {
                   </Hint>
                 );
               },
-            } satisfies ColumnDef<RoleAssignment, unknown>,
+            } satisfies DataTableColumn<RoleAssignment>,
           ]
         : []),
     ],

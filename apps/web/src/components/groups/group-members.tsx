@@ -5,7 +5,7 @@ import type { Page } from '@isbp/sdk';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent } from '@isbp/ui/card';
-import { DataTable } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, type DataTableSelection } from '@isbp/ui/data-table';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,6 @@ import { EmptyState } from '@isbp/ui/empty-state';
 import { Label } from '@isbp/ui/label';
 import { easeOut } from '@isbp/ui/motion';
 import { SearchInput } from '@isbp/ui/search-input';
-import type { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import {
   InfoIcon,
   RefreshCwIcon,
@@ -83,7 +82,7 @@ function MembersTable({ group, canManage }: { group: Group; canManage: boolean }
   const [pageSize, setPageSize] = useState(25);
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<string | undefined>();
-  const [selection, setSelection] = useState<RowSelectionState>({});
+  const [selection, setSelection] = useState<DataTableSelection>({});
   const [dialog, setDialog] = useState<'add' | 'remove' | null>(null);
   // Snapshot of the ids being removed, so the dialog text stays stable while it closes.
   const [toRemove, setToRemove] = useState<string[]>([]);
@@ -109,7 +108,7 @@ function MembersTable({ group, canManage }: { group: Group; canManage: boolean }
     },
   );
 
-  const columns = useMemo<ColumnDef<GroupMember, unknown>[]>(
+  const columns = useMemo<DataTableColumn<GroupMember>[]>(
     () => [
       {
         id: 'person',

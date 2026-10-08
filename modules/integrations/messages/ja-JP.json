@@ -8,6 +8,16 @@
     "overview": "統合",
     "conflicts": "同期の競合"
   },
+  "systemRoles": {
+    "integrations-viewer": {
+      "name": "統合閲覧者",
+      "description": "接続、同期プロファイル、実行、リンクされたレコード、競合を表示します"
+    },
+    "integrations-admin": {
+      "name": "統合管理者",
+      "description": "同期可能なすべてのエンティティの接続と同期プロファイルを設定し、同期を実行して競合を解決します"
+    }
+  },
   "permissions": {
     "connectionsRead": "接続、同期プロファイル、実行、リンクされたレコード、競合を表示する",
     "connectionsManage": "接続を追加、編集、テストし、同期プロファイルを設定して同期を実行する",
@@ -295,7 +305,7 @@
     "pushFilterHint": "すべての条件を満たす ISBP レコードのみを {system} で作成します。条件がない場合はすべて作成します。",
     "schedule": "スケジュール",
     "interval": "同期の間隔 (分)",
-    "intervalHint": "0 にするとスケジュールされた同期がオフになります (Webhook、[今すぐ実行]、スケジュールされたジョブは引き続き動作します)。",
+    "intervalHint": "0 にするとスケジュールされた同期がオフになります (Webhook、[今すぐ実行]、スケジュール ジョブは引き続き動作します)。",
     "intervalPush": "ISBP で変更が発生するとすぐに送信されます。",
     "intervalInvalid": "0 から 1440 までの整数を入力してください。",
     "enabled": "有効",
@@ -397,7 +407,7 @@
     "scope_required": "リモート システム内の場所を選択してください。",
     "container_required": "ISBP 内の場所を選択してください。",
     "unknown_scope": "リモート システムに見つかりません。",
-    "unknown_container": "見つからないか、表示する権限がありません。",
+    "unknown_container": "見つからないか、表示するアクセス許可がありません。",
     "duplicate_local_value": "「{value}」が 2 つの行で ISBP から送信されます。一方を [ISBP への取り込みのみ] にしてください。"
   },
   "preview": {
@@ -481,7 +491,7 @@
     "profile": "プロファイル",
     "lastSynced": "前回の同期",
     "notCreated": "未作成",
-    "hidden": "表示する権限のないレコード",
+    "hidden": "表示するアクセス許可のないレコード",
     "opensNewTab": "(新しいタブで開きます)",
     "actionsFor": "{ref} の操作",
     "syncNow": "今すぐ同期",
@@ -519,8 +529,8 @@
   "resolve": {
     "title": "同期の競合の解決",
     "description": "{local} と {system} の {remote} の両方が変更されました。フィールドごとに保持する値を選択してください。",
-    "hiddenRecord": "表示する権限のないレコード",
-    "hiddenHint": "このレコードを表示する権限がないため、値は表示されません。",
+    "hiddenRecord": "表示するアクセス許可のないレコード",
+    "hiddenHint": "このレコードを表示するアクセス許可がないため、値は表示されません。",
     "base": "前回同期した値",
     "inIsbp": "ISBP の値を保持",
     "inRemote": "{system} の値を保持",

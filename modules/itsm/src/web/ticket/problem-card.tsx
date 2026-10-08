@@ -1,6 +1,6 @@
 'use client';
 
-import { useCan } from '@isbp/sdk/web';
+import { useCan, usePlatform } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
@@ -16,9 +16,22 @@ import { type ReactNode, useId, useState } from 'react';
 import type { z } from 'zod';
 import type { TicketDetail, updateProblemSchema } from '../../contracts';
 import { PriorityBadge, TicketStatusBadge, TypeIcon } from '../components/badges';
+import { ArticlePicker } from '../components/pickers';
 import { INVALIDATE, ticketApi, ticketHref } from '../lib';
 
 type ProblemPatch = z.input<typeof updateProblemSchema>;
+
+function ArticleLink({ article, label }: { article: { reference: string }; label: string }) {
+  return (
+    <Link
+      href={`/knowledge/${article.reference}`}
+      className="inline-flex min-w-0 items-center gap-2 text-sm font-medium text-primary hover:underline"
+    >
+      <BookOpenIcon className="size-4 shrink-0" aria-hidden />
+      <span className="truncate">{label}</span>
+    </Link>
+  );
+}
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -35,6 +48,9 @@ export function ProblemCard({ ticket }: { ticket: TicketDetail }) {
   const tc = useTranslations('common');
   const id = useId();
   const canManage = useCan('itsm.problems.manage') && ticket.viewer.canEdit;
+  const { enabledModules } = usePlatform();
+  // The article is checked on the server as the caller (knowledge.get_article), like the picker's search.
+  const chooseArticle = canManage && enabledModules.includes('knowledge');
   const problem = ticket.problem;
   const [editing, setEditing] = useState(false);
   const [rootCause, setRootCause] = useState('');
@@ -143,14 +159,31 @@ export function ProblemCard({ ticket }: { ticket: TicketDetail }) {
             onCheckedChange={(knownError) => save.mutate({ knownError })}
           />
         </div>
-        {problem.kbArticle && (
-          <Link
-            href={`/knowledge/${problem.kbArticle.reference}`}
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-          >
-            <BookOpenIcon className="size-4" aria-hidden />
-            {problem.kbArticle.reference} · {problem.kbArticle.title}
-          </Link>
+        {chooseArticle ? (
+          <div className="grid gap-2">
+            <Label htmlFor={`${id}-article`}>{t('kbArticle')}</Label>
+            <ArticlePicker
+              id={`${id}-article`}
+              aria-describedby={`${id}-article-hint`}
+              value={problem.kbArticle}
+              disabled={save.isPending}
+              onChange={(a) => {
+                if ((a?.id ?? null) !== (problem.kbArticle?.id ?? null))
+                  save.mutate({ kbArticleId: a?.id ?? null });
+              }}
+            />
+            <p id={`${id}-article-hint`} className="text-xs text-muted-foreground">
+              {t('kbArticleHint')}
+            </p>
+            {problem.kbArticle && <ArticleLink article={problem.kbArticle} label={t('openArticle')} />}
+          </div>
+        ) : (
+          problem.kbArticle && (
+            <ArticleLink
+              article={problem.kbArticle}
+              label={`${problem.kbArticle.reference} · ${problem.kbArticle.title}`}
+            />
+          )
         )}
         <Section title={t('incidents', { count: incidents.length })}>
           {incidents.length ? (

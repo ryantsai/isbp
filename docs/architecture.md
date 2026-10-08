@@ -1,10 +1,10 @@
 # IS Big Platform — Architecture
 
-> Status: Phase 6 (AI Agent) done, on top of Phase 5 (Integrations Hub), Phase 4 (Data APIs and ETL, Scheduled
-> Jobs, Database access), Phase 3 (Asset Management, Project Management, Application Lifecycle, record links and
-> attachments), Phase 2 (ITSM, CMDB, Knowledge Base, Helpdesk AI and the AI gateway), Phase 1 (workflows, forms,
-> notifications, access requests, Role Query API) and the Phase 0 foundation. This document is the design baseline
-> that later phases extend.
+> Status: Phase 7 (Documentation) in progress; Phase 8 (Process builder) planned. Phase 6 (AI Agent) done, on top
+> of Phase 5 (Integrations Hub), Phase 4 (Data APIs and ETL, Scheduled Jobs, Database access), Phase 3 (Asset
+> Management, Project Management, Application Lifecycle, record links and attachments), Phase 2 (ITSM, CMDB, Knowledge
+> Base, Helpdesk AI and the AI gateway), Phase 1 (workflows, forms, notifications, access requests, Role Query API)
+> and the Phase 0 foundation. This document is the design baseline that later phases extend.
 
 ## 1. Shape of the system
 
@@ -42,7 +42,7 @@ flowchart LR
     Q["BullMQ workers<br/>event handlers · module jobs · schedulers"]
   end
 
-  PG[("PostgreSQL 17/18<br/>schema per module<br/>(pgvector from Phase 2)")]
+  PG[("PostgreSQL 18<br/>schema per module<br/>(pgvector from Phase 2)")]
   R[("Redis<br/>queues · RBAC cache · rate limits · pub/sub")]
   IDP["Entra ID (OIDC/SAML)<br/>LDAP / AD"]
   OBS["OTel collector · Prometheus"]
@@ -412,15 +412,17 @@ labels for its audit actions. See [module-development.md](module-development.md)
 
 ## 7. Delivery phases
 
-| Phase                     | Scope                                                                                                                                                                                                                                                     |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0 – Foundation** (done) | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI                 |
-| **1** (done)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                                |
-| **2** (done)              | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                                     |
-| **3** (done)              | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                                                                                                |
-| **4** (done)              | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                                              |
-| **5** (done)              | Integrations Hub: two-way sync with on-premises ManageEngine ServiceDesk Plus and Azure DevOps Server (§12)                                                                                                                                               |
-| **6** (done)              | AI Agent: a built-in agent on every page that works through the platform's own MCP tools as the person, customisation kinds in 13 surfaces, change sets (dry run, apply on confirmation or review, rollback), and the MCP server for outside agents (§13) |
+| Phase                     | Scope                                                                                                                                                                                                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0 – Foundation** (done) | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI                         |
+| **1** (done)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                                        |
+| **2** (done)              | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                                             |
+| **3** (done)              | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                                                                                                        |
+| **4** (done)              | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                                                      |
+| **5** (done)              | Integrations Hub: two-way sync with on-premises ManageEngine ServiceDesk Plus and Azure DevOps Server (§12)                                                                                                                                                       |
+| **6** (done)              | AI Agent: a built-in agent on every page that works through the platform's own MCP tools as the person, customisation kinds in 13 surfaces, change sets (dry run, apply on confirmation or review, rollback), and the MCP server for outside agents (§13)         |
+| 7 – Documentation         | User guides for every role in en, zh-TW and ja-JP: how to use the main features and how they map to our IT work, with screenshots, a glossary and FAQ; published in the platform's knowledge base, where Ask IT and the assistant can cite them (§14)             |
+| 8 – Process builder       | Any IT process as a form + approval + follow-up actions, described to the assistant: record fields (pick a CI, application, asset…), approval rules on linked records' data, cross-field rules, actions after approval, custom fields in built-in approvals (§15) |
 
 ## 8. Phase 1 design: workflows, forms, notifications, access requests, Role Query API
 
@@ -701,7 +703,7 @@ flowchart LR
   - Every chunk carries an **ACL**: a permission and an optional scope, or a list of user ids. Results are
     filtered with the caller's `AuthContext`, so retrieval can never leak what the UI would hide.
   - The embedding column is `vector` with an HNSW index when the `pgvector` extension is available at
-    migration time. Production images (`pgvector/pgvector:pg17`) always have it. The Docker-free embedded
+    migration time. Production images (`pgvector/pgvector:0.8.7-pg18-trixie`) always have it. The Docker-free embedded
     dev Postgres has no pgvector, so there the column is `real[]` with a SQL cosine function. The schema
     and API are the same, it is slower, and Admin → AI shows which mode is active. Changing the embedding
     model re-embeds everything in a background job.
@@ -928,7 +930,8 @@ flowchart LR
   search, unlink) and `<Slot name="core.record.files" props={{ record }} />`.
 - **Creating with links.** ITSM's create API accepts `links: RecordRef[]`, and its report page and new-change
   dialog read `?link=<type>:<id>`. "Report a problem" on a device (Assets) and "Raise a change" on a release
-  (ALM) therefore land in ITSM's own forms, already linked, without ITSM knowing either module.
+  (ALM) therefore land in ITSM's own forms, already linked, without ITSM knowing either module. They are offered
+  only to people ITSM gives that form to (`itsm.tickets.create`; `NEW_CHANGE_PERMISSION` for changes).
 
 ### 10.2 Attachments (kernel, `ctx.files`)
 
@@ -969,7 +972,8 @@ reuse it.
   `asset_events` (the asset's timeline). An asset links to its **CMDB CI** (`ci_id`), and the CI page shows
   the asset through the `cmdb.ci.related` slot.
 - **Disposal** is a required approval (`itam.disposal`): the asset manager, plus information security for
-  data-bearing devices.
+  data-bearing devices that still have book value or are under five years old (`SECURITY_SIGN_OFF_WHEN`, the
+  default graph's condition, which the asset DTO also evaluates for the disposal dialog's notice).
 - **Book value** is straight-line depreciation over the model's lifespan, computed and never stored.
 - **Licences.** Entitlement (`quantity`) is compared with usage (assignments to people or devices). Software
   installs reported by discovery tools (`POST /discovery/software`) reveal unlicensed installs. A stored
@@ -1273,7 +1277,8 @@ A module declares **task types** that Scheduled Jobs can run, just as it declare
 - **Time-bound access.**
   - Grants carry `expires_at`. A job every 5 minutes revokes expired grants.
   - Grantees are reminded 3 days before expiry, with "Request extension", which starts a prefilled request.
-  - Owners and DBAs can revoke early, with a reason.
+  - Owners and DBAs can revoke early, with a reason. Role owners find the grants of their roles under "Access to
+    roles you own" on My database access (`GET /grants` is scoped to the roles they own).
   - `core.user.offboarded` revokes everything and disables the person's accounts.
 - **Access reviews.**
   - A campaign has a scope (servers, risk), reviewers (role owner or the grantee's manager) and a due date. It
@@ -1810,9 +1815,11 @@ includeDestructive: true })` lists and calls exactly the tools an outside agent 
 ### 13.5 Web
 
 - Change sets: a list (`/assistant/change-sets`) and a page per set with its items, a readable diff of each item
-  (current → proposed), dry-run results, the kind's **preview** (slot `assistant.preview.<module>.<kind>`: the
-  workflow diagram with the builder's simulator, the form preview, a sync profile dry run, a job's next run times),
-  and the actions the viewer may take (apply, request review, withdraw, roll back, discard).
+  (current → proposed), dry-run results, the kind's **preview** where its module contributes one (slot
+  `assistant.preview.<module>.<kind>`; core contributes the workflow diagram with the builder's simulator for
+  `core.workflow` and the form preview for `core.form`; other kinds, such as sync profiles and scheduled jobs, show
+  the diff and the dry run only), and the actions the viewer may take (apply, request review, withdraw, roll back,
+  discard).
 - Administration → AI gains **Outside agents (MCP)**: the endpoint, which API clients may use it, and how to connect
   Claude Code (`claude mcp add --transport http …`).
 
@@ -1839,3 +1846,115 @@ includeDestructive: true })` lists and calls exactly the tools an outside agent 
 | 63  | MCP for API clients only, dual-era (2026-07-28 and initialize-based revisions)                         | Outside agents get the same tools and checks as the platform's own; current clients and older ones both work; no session state to scale                                                            | A separate MCP gateway; per-user tokens; supporting only one protocol era                                                       |
 | 64  | Destructive tools are not offered over MCP                                                             | They need a person's confirmation in ISBP, which an outside agent can't give on the person's behalf                                                                                                | Trusting the client's own confirmation prompt                                                                                   |
 | 65  | A built-in agent on the platform's own MCP plumbing, applying only after the person confirms           | Nobody needs an outside tool; the built-in and outside agents share one surface and one set of checks; "edit directly" stays a person's decision with their permissions, and rollback is one click | Propose-only in-app agent (needs a second step elsewhere); auto-apply (an injected instruction could change live configuration) |
+
+## 14. Phase 7 design: Documentation (how to use ISBP for our work)
+
+Earlier phases documented the platform for the people who build and run it (this document, `deployment.md`,
+`api.md`, `module-development.md`, `docs/ai/`). Phase 7 documents it for the people who **use** it: what each
+feature is for in our IT work, how to do the everyday tasks, and how the pieces connect.
+
+### 14.1 Audiences and guides (`docs/guide/<locale>/`)
+
+| Guide                     | For                                      | Covers                                                                                                           |
+| ------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `README.md` (Start here)  | everyone                                 | Signing in, the screen (navigation, search, notifications, language, the assistant), which guide to read         |
+| `how-it-fits-our-work.md` | everyone, team leads                     | Our IT practices ↔ ISBP areas, the shared building blocks, end-to-end scenarios across modules                   |
+| `employees.md`            | every employee, managers, approvers      | Requests and forms, access requests, Ask IT, reporting issues, my requests and devices, approvals, notifications |
+| `service-desk.md`         | service desk agents and leads            | Tickets, SLAs, Helpdesk AI, knowledge, CMDB, major incidents, reports                                            |
+| `changes-and-releases.md` | change managers, CAB, application owners | Changes and CAB approval, applications, releases, deployments from CI/CD, delivery metrics                       |
+| `assets.md`               | asset managers                           | Hardware lifecycle, licences and compliance, contracts, vendors, disposal                                        |
+| `projects.md`             | project managers and teams               | Projects, proposals, board, timeline, workload                                                                   |
+| `data-and-automation.md`  | data and platform engineers, DBAs        | Database connections, Data APIs and pipelines, scheduled jobs, database access                                   |
+| `integrations.md`         | integration admins, agents               | Connections to ServiceDesk Plus and Azure DevOps Server, sync profiles, conflicts, what syncs where              |
+| `assistant-and-ai.md`     | everyone, administrators                 | AI modes and privacy, Ask IT, Helpdesk AI, the built-in agent and change sets, outside agents over MCP           |
+| `administrators.md`       | IT and platform administrators           | People and access, SSO, approval workflows, forms and fields, notifications, modules, AI, audit, API clients     |
+| `glossary.md`, `faq.md`   | everyone                                 | Terms in English, 繁體中文 and 日本語; troubleshooting                                                           |
+
+- **Task-oriented**: every task is "when you need to … → steps → what happens next", with the exact UI labels of
+  each language, and a "How it connects" section per guide. The demo data (laptop requests, VPN incidents, Finance
+  ERP) gives every example a concrete record to look at.
+- **Three languages.** English is written first; zh-TW and ja-JP follow the platform's vocabulary rules and use the
+  UI's own translated labels, so a guide always matches the screen in the reader's language.
+- **Screenshots** are captured from the demo stack for each language by a script (`pnpm docs:screenshots`, shot
+  lists in `docs/guide/shots/*.json`), so they can be refreshed after UI changes instead of going stale. Images live
+  in `apps/web/public/help/<locale>/` (served by the web app, shipped with it).
+
+### 14.2 In-app help
+
+- The guides are embedded into a workspace package (`@isbp/guide`, generated by `pnpm docs:guide`, checked by
+  `pnpm docs:check`). The generator turns links between guides into in-app links (`/knowledge/guide/<slug>#section`),
+  screenshot paths into web paths (`/help/<locale>/…`), and other repository links into plain text. Translations may
+  keep the English anchors in their links; the generator rewrites them to the translated heading at the same
+  position (every translation keeps the English section structure, which the guide test enforces).
+- The **knowledge base** publishes them in a "Using IS Big Platform" category (`importGuide`): one article per guide,
+  its zh-TW and ja-JP versions as translations of the English one, audience everyone (staff guides serve roles such as
+  asset managers and engineers that don't read the service desk's internal articles), tag `isbp-guide`, source
+  `{ type: 'guide' }`. `knowledge.guide_articles` maps each guide and
+  language to its article with a content hash; only guides whose hash changed are republished (as a new version,
+  without the review workflow), so upgrades bring their documentation while unchanged articles keep local edits.
+  The `guide-sync` job runs every 15 minutes (one query when nothing changed; a short Redis lock keeps the seed and
+  the job from importing at once); the demo seed imports the guide after its own articles so demo article numbers
+  stay stable. The knowledge setting **Publish the user guide** (`guide.publish`, on by default) turns it off; the
+  integration-test harness turns it off so suites don't race the worker's import.
+- Because they are knowledge articles, Ask IT and the assistant find and cite them, and search covers them. They
+  rank at half weight, so for an IT problem the organisation's own troubleshooting articles come first (the guide's
+  scenarios mention VPN drops, laptops…). The article page notes that a guide article is maintained with the
+  platform.
+- `GET /api/v1/knowledge/guide/:slug?locale=` resolves a guide to the article in the reader's language (English when
+  untranslated) if they may read it; the web page `/knowledge/guide/<slug>` redirects there, keeping `#section`.
+- Article Markdown renders images only from the platform itself (`/help/…`); other images stay links. Headings get
+  GitHub-style anchors (`@isbp/ui/lib/slug`, shared with the generator and the guide test) so section links work.
+- The user menu has **Help**, opening "Start here" in the reader's language.
+
+### 14.3 Phase 7 decisions
+
+| #   | Decision                                                          | Why                                                                                                 | Alternatives considered                            |
+| --- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 66  | Guides in the repo as Markdown, published into the knowledge base | One source reviewed like code; people read them where they work; Ask IT and the assistant cite them | A separate docs site; hand-written KB articles     |
+| 67  | Guides in all three UI languages, with each language's UI labels  | Readers follow steps on a screen in their own language                                              | English only; machine translation at read time     |
+| 68  | Screenshots captured by a script from the demo                    | Images stay current with the UI and exist for every language                                        | Manual screenshots (stale quickly); no screenshots |
+
+## 15. Phase 8 outline: Process builder (any IT process, described to the assistant)
+
+Asked for during Phase 7: _"I want a process to approve configuration changes: define the data I want (built-in or
+custom), constraints and approval rules, just ask the built-in assistant to create it, then get a URL for that
+form."_ Phases 1 and 6 already cover most of it: forms with typed fields, conditional fields and per-field
+validation; approval workflows (sequences, parallel branches, any/all/quorum, people/group/role/manager/department
+head/a person named in the form, conditions on answers, SLAs with escalation); the assistant creating a form and its
+workflow as one change set; the form at `/requests/forms/<key>`. Phase 8 closes the gaps that stop it from fitting
+**any** IT process. The detailed design is written at the start of the phase.
+
+### 15.1 Scope
+
+1. **Record fields.** A `record` field type for forms and custom fields: pick a configuration item, application,
+   asset, licence, project, group, person or any `manifest.records.types` type, through the existing record
+   resolvers (only what the person may read; stored as a record reference, shown as a link). Options: allowed
+   types, one or many, filters (e.g. CI class, environment).
+2. **Approval rules on linked data.** Workflow facts include the chosen records' approval-relevant attributes,
+   declared by each record type (e.g. `ci.criticality`, `ci.environment`, `ci.ownerGroup`, `application.owner`), so
+   rules can say "critical CI → CAB" and approvers can be "the CI's owner group" or "the application's owner". Facts
+   are captured when the workflow starts (auditable, stable while it runs).
+3. **Custom fields in built-in approvals.** Module triggers (ITSM changes, access requests, disposals, database
+   access…) expose the entity's custom fields as facts, so admins can route built-in processes on their own data.
+4. **Form-level rules.** Constraints across fields (end after start, "a rollback plan is required when risk is high",
+   at least one of…), using the same condition model as visibility and approvals; checked in the browser and the
+   API like field validation. Optionally, blocked windows (change freezes) from a business calendar.
+5. **Actions after approval (and rejection).** A form's outcome can do more than open a service request: create an
+   ITSM change or ticket from the answers (with linked records), run a scheduled job or task type, call a webhook
+   through `ctx.http`, update a record's custom fields, grant a role for a time. Actions are module-provided (a new
+   `manifest.processActions` + handlers, like task types), run in the worker after commit, are retried and shown on
+   the request's timeline and in "My requests".
+6. **The assistant.** The form, workflow and action kinds learn the new pieces, so one sentence produces the whole
+   process as one change set; after applying, the assistant answers with the form's own link
+   (`/requests/forms/<key>`), not only the admin page. Builtin-mode templates gain "approval process for a change".
+7. **Documentation.** The user guide (Phase 7) gets a "Build your own process" chapter in all three languages, and
+   the demo gets a configuration-change request process built this way.
+
+### 15.2 Questions to settle when the phase starts
+
+- Which record attributes each module exposes as facts (and how they stay within the requester's and approver's
+  visibility).
+- Whether actions may run as the requester, the last approver or the module's agent identity (default: the
+  module's `ai.agent` identity, recorded with the approver).
+- How a form-built "configuration change" relates to ITSM changes: build on the change record (recommended when
+  CAB scheduling and the change calendar matter) or stay a standalone request.

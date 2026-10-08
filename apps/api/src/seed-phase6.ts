@@ -119,7 +119,7 @@ export async function seedPhase6Links(kernel: Kernel): Promise<{ clientId: strin
               {
                 id: 'department-head',
                 type: 'approval',
-                name: t3('Department head approval', '部門主管核准', '部門長の承認'),
+                name: t3('Department head approval', '部門主管簽核', '部門長の承認'),
                 approvers: [{ type: 'department-head' }],
                 mode: 'any',
                 sla: { dueHours: 48, remindHours: 24, onBreach: 'notify' },

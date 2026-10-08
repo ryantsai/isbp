@@ -16,6 +16,7 @@
   "SYSTEM_MODULE": "System modules can't be disabled.",
   "MODULE_DEPENDENCY": "Other modules depend on this one — change them first.",
   "PRINCIPAL_OFFBOARDED": "This person has been offboarded.",
+  "PRINCIPAL_SUSPENDED": "This person is suspended. Reactivate them first.",
   "HAS_CHILDREN": "Move or delete the sub-departments first.",
   "INVALID_PARENT": "A department can't be moved under itself.",
   "INVALID_STATE": "That isn't possible in the current state.",

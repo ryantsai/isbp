@@ -7,11 +7,11 @@
 #   migrate  pre-install/pre-upgrade hook Job running `node dist/migrate.js`
 #
 # External dependencies — NOT bundled (stateful services deserve their own lifecycle, backups and HA):
-#   * PostgreSQL 17+ with the `pg_trgm` extension available (and `vector`/pgvector from Phase 2). The migration
+#   * PostgreSQL 18 (17 also works) with the `pg_trgm` extension available (and `vector`/pgvector from Phase 2). The migration
 #     user must be allowed to CREATE EXTENSION, or a DBA pre-creates them. In-cluster options: the CloudNativePG
 #     operator (recommended; use an image with pgvector) or the Bitnami PostgreSQL chart. LISTEN/NOTIFY is used,
 #     so a PgBouncer in front must run in session mode (or bypass it for the worker).
-#   * Redis 7+ (or Valkey) with `maxmemory-policy noeviction` (required by BullMQ) — e.g. a managed Redis or
+#   * Redis 8 (7.2+ also works, or Valkey) with `maxmemory-policy noeviction` (required by BullMQ) — e.g. a managed Redis or
 #     the Bitnami Redis/Valkey charts.
 # Their URLs are secrets: see `secrets` below.
 
@@ -141,10 +141,10 @@ sandbox:
   createNamespace: true
   # Images script jobs may use (pre-pull or mirror them in air-gapped clusters).
   images:
-    - python:3.13-alpine
+    - python:3.14-alpine
     - node:24-alpine
     - mcr.microsoft.com/powershell:lts-alpine-3.20
-    - alpine:3.22
+    - alpine:3.24
   # Where scripts with network "egress" may connect. Private ranges are excluded so scripts can't reach
   # cluster services or the platform's databases; add specific CIDRs to `egress.allow` for internal APIs.
   egress:

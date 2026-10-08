@@ -15,6 +15,13 @@
       "when": 1791383332306,
       "tag": "0001_nasty_obadiah_stane",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791432576416,
+      "tag": "0002_fearless_post",
+      "breakpoints": true
     }
   ]
 }

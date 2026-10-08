@@ -15,6 +15,7 @@ export default defineWebModule(manifest, {
       load: () => import('./pages/categories-page'),
       permission: 'knowledge.categories.manage',
     },
+    { path: '/guide/:slug', load: () => import('./pages/guide-page'), permission: 'knowledge.articles.read' },
     { path: '/:ref', load: () => import('./pages/article-page'), permission: 'knowledge.articles.read' },
     { path: '/:ref/edit', load: () => import('./pages/editor-page'), permission: 'knowledge.articles.write' },
   ],

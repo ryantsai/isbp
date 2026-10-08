@@ -36,7 +36,7 @@ import {
   updateRoleSchema,
   updateServerSchema,
 } from '../contracts';
-import { PERMISSIONS, requireAny } from './access';
+import { ownedRoleIds, PERMISSIONS, requireAny } from './access';
 import { services } from './services';
 
 const idParams = z.object({ id: z.uuid() });
@@ -68,7 +68,11 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
         response: { 200: myAccessSchema },
       },
     },
-    async (req) => ({ grants: await s().grants.mine(req.auth), requests: await s().requests.mine(req.auth) }),
+    async (req) => ({
+      grants: await s().grants.mine(req.auth),
+      requests: await s().requests.mine(req.auth),
+      ownedRoles: (await ownedRoleIds(ctx.db, req.auth)).length,
+    }),
   );
 
   app.get(
@@ -183,11 +187,12 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
   app.get(
     '/grants',
     {
-      config: { permission: PERMISSIONS.grantsRead },
+      // Scoped: grants readers see all access, role owners the grants of the roles they own (`owned`).
+      config: { permission: PERMISSIONS.request, scoped: true },
       schema: {
         tags: access,
         summary:
-          'All database access (filters: status incl. expiring/live/ended, server, role, risk, person, source)',
+          'Database access: all of it for grants readers, the grants of their roles for role owners (filters: status incl. expiring/live/ended, server, role, risk, person, source, owned)',
         querystring: grantQuerySchema,
         response: { 200: pageSchema(grantSchema) },
       },

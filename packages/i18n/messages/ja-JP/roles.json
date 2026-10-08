@@ -11,7 +11,7 @@
   "noRolesMatch": "「{q}」に一致するロールはありません",
   "noCustomRoles": {
     "title": "カスタム ロールはまだありません",
-    "description": "チームに必要な権限だけをロールにまとめ、ユーザーやグループに付与します。"
+    "description": "チームに必要なアクセス許可だけをロールにまとめ、ユーザーやグループに付与します。"
   },
   "tabs": {
     "roles": "ロール",
@@ -23,7 +23,7 @@
     "module": "モジュール: {module}"
   },
   "card": {
-    "permissions": "{count, plural, =0 {権限なし} one {# 個の権限} other {# 個の権限}}",
+    "permissions": "{count, plural, =0 {アクセス許可なし} one {# 個のアクセス許可} other {# 個のアクセス許可}}",
     "assignments": "{count, plural, =0 {未割り当て} one {# 件の有効な割り当て} other {# 件の有効な割り当て}}",
     "more": "+{count} 件",
     "noDescription": "説明なし",
@@ -42,45 +42,45 @@
   },
   "permissions": {
     "patterns": "ワイルドカードとその他のパターン",
-    "covers": "{count, plural, =0 {まだ何にも一致しません} one {# 個の権限が対象} other {# 個の権限が対象}}",
+    "covers": "{count, plural, =0 {まだ何にも一致しません} one {# 個のアクセス許可が対象} other {# 個のアクセス許可が対象}}",
     "notInCatalog": "カタログにありません",
     "removePattern": "{pattern} を除外",
-    "filter": "権限をフィルター…",
-    "emptyCatalog": "登録されている権限はまだありません。",
+    "filter": "アクセス許可をフィルター…",
+    "emptyCatalog": "登録されているアクセス許可はまだありません。",
     "selectModule": "{module} のすべてを付与",
     "selectResource": "{resource} のすべてを付与",
     "selectedOf": "{count} / {total}",
     "scopes": "サポートされるスコープ",
-    "notHeld": "この権限は自分が保持していないため、付与できません。",
+    "notHeld": "このアクセス許可は自分が保持していないため、付与できません。",
     "impliedBy": "<code>{pattern}</code> に含まれます",
     "granted": "付与済み",
     "notGranted": "未付与",
-    "selectAllHint": "{pattern} を選択します (後から追加される権限も含まれます)",
+    "selectAllHint": "{pattern} を選択します (後から追加されるアクセス許可も含まれます)",
     "advanced": "カスタム パターンを追加",
-    "addPattern": "権限パターン",
+    "addPattern": "アクセス許可パターン",
     "patternHint": "module.resource.action の形式です。任意のセグメントに * を使用できます (例: core.users.* や *.*.read)。",
     "patternInvalid": "有効なパターンではありません。module.resource.action の形式で、必要に応じて * ワイルドカードを使用してください。",
     "patternExists": "このロールには既にそのパターンがあります。",
-    "patternNotHeld": "付与できるのは、自分が保持している権限のみです。"
+    "patternNotHeld": "付与できるのは、自分が保持しているアクセス許可のみです。"
   },
   "form": {
     "createTitle": "新しいロール",
     "duplicateTitle": "ロールの複製",
     "editTitle": "{name} の編集",
-    "createDescription": "ロールは権限をまとめたものです。作成後にユーザーやグループに付与します。",
+    "createDescription": "ロールはアクセス許可をまとめたものです。作成後にユーザーやグループに付与します。",
     "editDescription": "変更内容は監査ログに記録されます。",
     "sections": {
       "details": "詳細",
-      "permissions": "権限"
+      "permissions": "アクセス許可"
     },
     "name": "名前",
-    "namePlaceholder": "例: サービス デスク担当者",
+    "namePlaceholder": "例: 人事パートナー",
     "key": "キー",
     "keyHint": "連携機能で使用される不変の識別子です。英小文字、数字、「-」、「_」を使用できます。",
     "description": "説明",
     "descriptionPlaceholder": "このロールの対象者を入力してください",
-    "permissionsHint": "まずは最小限から始めましょう。権限はいつでも変更できます。",
-    "permissionsInvalid": "無効な権限パターンが 1 つ以上あります。",
+    "permissionsHint": "まずは最小限から始めましょう。アクセス許可はいつでも変更できます。",
+    "permissionsInvalid": "無効なアクセス許可パターンが 1 つ以上あります。",
     "selected": "{count, plural, =0 {選択なし} one {# 件を選択中} other {# 件を選択中}}",
     "submit": "ロールを作成",
     "created": "ロール「{name}」を作成しました",
@@ -88,10 +88,10 @@
   },
   "grant": {
     "title": "ロールの付与",
-    "description": "ロールに含まれる権限をユーザーまたはグループに付与します。すべての付与は監査ログに記録されます。",
+    "description": "ロールに含まれるアクセス許可をユーザーまたはグループに付与します。すべての付与は監査ログに記録されます。",
     "role": "ロール",
     "rolePlaceholder": "ロールを選択",
-    "roleNotHeld": "自分が保持していない権限を含みます",
+    "roleNotHeld": "自分が保持していないアクセス許可を含みます",
     "to": "付与先",
     "principalType": "ユーザーまたはグループに付与",
     "person": "ユーザー",
@@ -118,8 +118,8 @@
     "scope": "スコープ",
     "scopeHint": {
       "global": "ロールはすべての対象に適用されます。",
-      "department": "部署スコープをサポートする権限について、その部署と下位部署の範囲内で適用されます。",
-      "record": "レコード スコープをサポートする権限について、1 つのレコード (例: 単一のグループ) のみに適用されます。"
+      "department": "部署スコープをサポートするアクセス許可について、その部署と下位部署の範囲内で適用されます。",
+      "record": "レコード スコープをサポートするアクセス許可について、1 つのレコード (例: 単一のグループ) のみに適用されます。"
     },
     "chooseDepartment": "部署を選択",
     "recordType": "レコードの種類",
@@ -159,8 +159,8 @@
   },
   "revoke": {
     "title": "{name} から {role} を取り消しますか?",
-    "body": "{name} はこのロールの権限を直ちに失います。この操作は監査ログに記録されます。",
-    "bodyGroup": "{name} の全員が、他の経路で付与されていない限り、このロールの権限を直ちに失います。この操作は監査ログに記録されます。",
+    "body": "{name} はこのロールのアクセス許可を直ちに失います。この操作は監査ログに記録されます。",
+    "bodyGroup": "{name} の全員が、他の経路で付与されていない限り、このロールのアクセス許可を直ちに失います。この操作は監査ログに記録されます。",
     "scope": "スコープ:",
     "confirm": "取り消し",
     "done": "{name} から {role} を取り消しました"
@@ -197,21 +197,21 @@
     "copyOf": "{name} のコピー",
     "systemTitle": "システム ロールです。",
     "systemNotice": "モジュールによって定義され、モジュールと同期されているため、編集できません。複製すると、編集可能なコピーを作成できます。",
-    "permissions": "権限",
-    "permissionsHint": "個々の権限をオンにするか、モジュールまたはリソース全体を選択してワイルドカードで付与します。",
+    "permissions": "アクセス許可",
+    "permissionsHint": "個々のアクセス許可をオンにするか、モジュールまたはリソース全体を選択してワイルドカードで付与します。",
     "permissionsReadOnly": "このロールを持つユーザーが実行できる操作です。",
-    "unsavedRegion": "未保存の権限の変更",
+    "unsavedRegion": "未保存のアクセス許可の変更",
     "unsaved": "{count, plural, one {未保存の変更 # 件} other {未保存の変更 # 件}}",
     "added": "{count, plural, one {+# 件追加} other {+# 件追加}}",
     "removed": "{count, plural, one {−# 件除外} other {−# 件除外}}",
-    "blocked": "自分が保持していない権限が含まれているため、このロールを保存できません: {permissions}",
+    "blocked": "自分が保持していないアクセス許可が含まれているため、このロールを保存できません: {permissions}",
     "discard": "破棄",
-    "saved": "権限を保存しました",
+    "saved": "アクセス許可を保存しました",
     "deleted": "ロール「{name}」を削除しました",
     "deleteTitle": "{name} を削除しますか?",
     "deleteBody": "ロールは完全に削除されます。この操作は監査ログに記録されます。",
     "deleteBodyAssigned": "ロールとその {count, plural, one {# 件の割り当て} other {# 件の割り当て}}は完全に削除されます。この操作は監査ログに記録されます。",
-    "deleteWarning": "{count, plural, one {# 件のユーザーまたはグループ} other {# 件のユーザーまたはグループ}}が、これらの権限を直ちに失います。",
+    "deleteWarning": "{count, plural, one {# 件のユーザーまたはグループ} other {# 件のユーザーまたはグループ}}が、これらのアクセス許可を直ちに失います。",
     "deleteConfirm": "ロールを削除",
     "assignments": "このロールの付与先",
     "assignmentsHint": "ユーザーとグループへの有効な付与です。",
@@ -221,7 +221,7 @@
     "manageAssignments": "割り当ての管理"
   },
   "errors": {
-    "escalation": "自分が保持していない権限は付与できません: {permissions}",
+    "escalation": "自分が保持していないアクセス許可は付与できません: {permissions}",
     "ownAdmin": "自分のプラットフォーム管理者ロールは取り消せません。他の管理者に依頼してください。",
     "offboarded": "このユーザーはオフボーディング済みのため、ロールを付与できません。",
     "systemReadOnly": "システム ロールはモジュールによって定義されているため、変更できません。",

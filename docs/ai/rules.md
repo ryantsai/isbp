@@ -36,7 +36,9 @@ permissions `<id>.<resource>.<action>`, events `<id>.<entity>.<verb_past>`, noti
 
 **R7. User-visible manifest text MUST be an i18n key in the module's catalog** (`name`, `description`, nav
 labels, permission descriptions, setting labels, record and task type names). The exceptions are role `name`
-and `description`, which are plain English: they are stored in the database and admins can rename them.
+and `description`, which are plain English (they are stored in the database as the fallback text): translate
+each role in the catalog as `systemRoles.<role key>.{name,description}`, with the manifest's English in `en.json`.
+The web shows them through `useRoleText`; the catalog test fails on a role without them.
 
 **R8. Event payloads MUST have a Zod `schema` in the manifest, carry ids plus enough context to act without a
 query (e.g. `{ ticketId, number, status }`), and never carry secrets or personal data beyond ids and display

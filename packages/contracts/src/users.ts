@@ -137,6 +137,8 @@ export const personLookupSchema = z.object({
   jobTitle: z.string().nullable(),
   avatarUrl: z.string().nullable(),
   department: z.string().nullable(),
+  /** `pending` = pre-boarded (only with `includePreboarded`); everyone else found is `active`. */
+  status: z.enum(['active', 'pending']),
 });
 export type PersonLookup = z.input<typeof personLookupSchema>;
 
@@ -146,4 +148,9 @@ export const personLookupQuerySchema = z.object({
     .union([id, z.array(id).max(50)])
     .transform((v) => (Array.isArray(v) ? v : [v]))
     .optional(),
+  /**
+   * Also find pre-boarded people (not started yet) the caller may request access for: their direct reports, and
+   * people in departments where the caller may assign roles. Used by "Request access → Someone else".
+   */
+  includePreboarded: z.stringbool().optional(),
 });

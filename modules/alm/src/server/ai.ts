@@ -102,13 +102,13 @@ export const aiTools: Record<string, AiToolHandler> = {
     };
   },
 
-  'alm.release_readiness': async (input, ctx) => {
+  'alm.release_readiness': async (input, ctx, auth) => {
     const { application, version } = aiReleaseReadinessInput.parse(input);
     const s = services(ctx);
     const app = await s.apps.resolve(application);
     const release = await s.releases.byVersion(app.id, version);
     if (!release) throw httpErrors.notFound(`${app.code} has no release ${version}`);
-    const r = await s.releases.readiness(release.id);
+    const r = await s.releases.readiness(release.id, auth);
     const change = (c: NonNullable<typeof r.change>) => ({
       reference: c.reference,
       title: c.title,

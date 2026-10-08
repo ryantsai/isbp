@@ -474,9 +474,10 @@ async function seedCore() {
   // Custom roles (system roles come from manifests via registry.sync)
   const custom = [
     {
-      key: 'service-desk-agent',
-      name: 'Service desk agent',
-      description: 'Look up people and groups to support callers',
+      // Not the service desk module's "Service desk agent" (itsm-agent): this one only reads the directory.
+      key: 'directory-lookup',
+      name: 'Directory lookup',
+      description: 'Look up people and groups, for example to support callers',
       permissions: ['core.users.read', 'core.groups.read'],
     },
     {
@@ -528,7 +529,7 @@ async function seedCore() {
       grantedAt: daysAgo(80),
     },
     {
-      roleId: roleIds.get('service-desk-agent')!,
+      roleId: roleIds.get('directory-lookup')!,
       groupId: groupIds.get('service-desk')!,
       grantedBy: admin!.id,
       grantedAt: daysAgo(80),
@@ -715,7 +716,7 @@ async function seedCore() {
           entityId: target.id,
           entityLabel: names.get(target.id) ?? null,
           metadata: {
-            role: faker.helpers.arrayElement(['service-desk-agent', 'group-manager']),
+            role: faker.helpers.arrayElement(['directory-lookup', 'group-manager']),
             scopeType: 'global',
           },
         });

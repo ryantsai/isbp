@@ -19,6 +19,32 @@
     "ticket": "チケット",
     "change": "変更"
   },
+  "systemRoles": {
+    "itsm-requester": {
+      "name": "サービス デスク申請者",
+      "description": "問題を報告し、自分のチケットを確認します (既定ですべてのユーザーに付与)"
+    },
+    "itsm-agent": {
+      "name": "サービス デスク担当者",
+      "description": "インシデントとサービス要求に対応し、問題、変更、レポートを表示します"
+    },
+    "itsm-problem-manager": {
+      "name": "問題マネージャー",
+      "description": "問題を調査し、根本原因と既知のエラーを記録します"
+    },
+    "itsm-change-viewer": {
+      "name": "変更閲覧者",
+      "description": "変更と変更カレンダーを表示します (リリースを変更にリンクするリリース マネージャー向けなど)"
+    },
+    "itsm-change-manager": {
+      "name": "変更マネージャー",
+      "description": "変更を起票、評価、スケジュールし、通常の変更を承認します"
+    },
+    "itsm-admin": {
+      "name": "サービス デスク管理者",
+      "description": "ITSM のすべての機能 (カテゴリ、SLA ポリシー、カレンダー、カタログを含む)"
+    }
+  },
   "permissions": {
     "ticketsCreate": "問題を報告し、自分のチケットを確認する",
     "ticketsRead": "すべてのチケットを表示する",
@@ -176,7 +202,7 @@
     "ticket_created": {
       "label": "自分が作成したチケット",
       "title": "{reference} を受け付けました: {title}",
-      "body": "サービスデスクが{type, select, service_request {リクエスト} other {報告}}を受け付けました。進捗は「マイリクエスト」で確認できます。"
+      "body": "サービス デスクが{type, select, service_request {サービス要求} other {報告}}を受け付けました。進捗は [自分の申請] で確認できます。"
     },
     "ticket_assigned": {
       "label": "自分に割り当てられたチケット",
@@ -191,7 +217,7 @@
     "ticket_resolved": {
       "label": "自分のチケットの解決",
       "title": "{status, select, fulfilled {完了} other {解決}}: {reference} {title}",
-      "body": "{notes} 解決していない場合は、チケットを開いて「まだ解決していない」を選択してください。"
+      "body": "{notes} 解決していない場合は、チケットを開いて「いいえ、まだ解決していません」を選択してください。"
     },
     "ticket_reopened": {
       "label": "依頼者が再オープンしたチケット",
@@ -281,6 +307,13 @@
       "noResults": "サービスが見つかりません",
       "clear": "サービスをクリア"
     },
+    "articlePicker": {
+      "placeholder": "記事を選択",
+      "search": "タイトルまたは KB 番号で検索…",
+      "loading": "検索しています…",
+      "noResults": "記事が見つかりません",
+      "clear": "記事のリンクを解除"
+    },
     "linkedTo": "リンク先",
     "unlink": "このレコードをリンクしない"
   },
@@ -365,7 +398,7 @@
     "assignee": "担当者",
     "cis": "影響を受ける構成アイテム",
     "major": "重大インシデント",
-    "majorHint": "重大インシデントとして宣言します。関係者に通知され、すべてのキューの先頭に表示されます。",
+    "majorHint": "重大インシデントとして宣言します。「重大インシデント」バッジが付き、「重大インシデント」キューに表示されます。告知が有効な場合はチャネルにも投稿されます。他のキューの並び順は変わりません。",
     "submit": "チケットを作成",
     "created": "{reference} を作成しました"
   },
@@ -394,8 +427,8 @@
     "majorTitle": "重大インシデント",
     "majorBody": "ここで対応を調整し、公開の返信で関係者に最新状況を伝えてください。",
     "notFound": "チケットが見つかりません",
-    "notFoundHint": "{reference} は存在しないか、表示する権限がありません。",
-    "forbidden": "このチケットにアクセスする権限がありません",
+    "notFoundHint": "{reference} は存在しないか、表示するアクセス許可がありません。",
+    "forbidden": "このチケットにアクセスするアクセス許可がありません",
     "loadFailed": "チケットを読み込めませんでした"
   },
   "actions": {
@@ -648,7 +681,10 @@
     "knownErrorSwitch": "既知のエラー",
     "knownErrorHint": "原因と回避策が文書化されており、担当者は新しいインシデントに適用できます。",
     "incidents": "{count, plural, =0 {リンクされたインシデント} other {リンクされたインシデント # 件}}",
-    "noIncidents": "この問題にリンクされたインシデントはまだありません。"
+    "noIncidents": "この問題にリンクされたインシデントはまだありません。",
+    "kbArticle": "ナレッジ記事",
+    "kbArticleHint": "この既知のエラーを文書化した記事です。担当者はこの問題が原因のインシデントに対応するときに参照します。閲覧できる記事のみが表示されます。",
+    "openArticle": "記事を開く"
   },
   "problems": {
     "title": "問題",
@@ -746,7 +782,7 @@
     }
   },
   "report": {
-    "back": "何が必要ですか?",
+    "back": "何が必要ですか？",
     "title": "問題を報告",
     "description": "うまく動かないことを教えてください。対応状況はここと通知でお知らせします。",
     "whatsWrong": "何が起きていますか?",

@@ -3,7 +3,7 @@
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
@@ -11,7 +11,6 @@ import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
   BotIcon,
   CircleCheckIcon,
@@ -77,7 +76,7 @@ export default function ChangeSetsPage() {
     sort: state.sort,
   });
 
-  const columns = useMemo<ColumnDef<ChangeSetSummaryDto, unknown>[]>(
+  const columns = useMemo<DataTableColumn<ChangeSetSummaryDto>[]>(
     () => [
       {
         id: 'changeSet',

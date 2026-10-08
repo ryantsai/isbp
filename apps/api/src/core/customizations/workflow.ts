@@ -209,7 +209,7 @@ const laptopExample: WorkflowValue = {
       {
         id: 'department-head',
         type: 'approval',
-        name: { en: 'Department head approval', 'zh-TW': '部門主管核准', 'ja-JP': '部門長の承認' },
+        name: { en: 'Department head approval', 'zh-TW': '部門主管簽核', 'ja-JP': '部門長の承認' },
         approvers: [{ type: 'department-head' }],
         mode: 'any',
         sla: { dueHours: 48, remindHours: 24, onBreach: 'notify' },
@@ -236,7 +236,7 @@ const riskExample: WorkflowValue = {
       {
         id: 'manager',
         type: 'approval',
-        name: { en: 'Manager approval', 'zh-TW': '主管核准', 'ja-JP': '上長の承認' },
+        name: { en: 'Manager approval', 'zh-TW': '主管簽核', 'ja-JP': '上長の承認' },
         approvers: [{ type: 'manager' }],
         mode: 'any',
         ifNoApprover: 'skip',

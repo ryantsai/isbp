@@ -11,7 +11,7 @@ import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,6 @@ import { Skeleton } from '@isbp/ui/skeleton';
 import { Switch } from '@isbp/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { Textarea } from '@isbp/ui/textarea';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
   ArchiveIcon,
   ChevronRightIcon,
@@ -357,7 +356,7 @@ function InstancesTab() {
     const tr = triggers.data?.items.find((x) => x.key === key);
     return tr ? label(tr.name) : key;
   };
-  const columns = useMemo<ColumnDef<WorkflowInstanceSummary, unknown>[]>(
+  const columns = useMemo<DataTableColumn<WorkflowInstanceSummary>[]>(
     () => [
       {
         id: 'subject',

@@ -35,6 +35,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
 import { useApiMutation, useApiQuery, useErrorText } from '@/lib/api';
+import { useRoleText } from '../roles/role-utils';
 import { RiskBadge } from '../workflows/subject-details';
 
 type Step = 0 | 1 | 2;
@@ -211,13 +212,19 @@ export function RequestAccessView() {
   const roles = useApiQuery<{ items: RequestableRole[] }>('/requestable-roles', {
     for: beneficiaryId ?? undefined,
   });
-  const role = roles.data?.items.find((r) => r.id === roleId) ?? null;
+  const roleText = useRoleText();
+  // Module roles in the reader's language (search matches what they see).
+  const items = useMemo(
+    () => (roles.data?.items ?? []).map((r) => ({ ...r, ...roleText(r) })),
+    [roles.data, roleText],
+  );
+  const role = items.find((r) => r.id === roleId) ?? null;
   const apps = useMemo(() => {
     const seen = new Map<string, { id: string; name: string; isPlatform: boolean }>();
-    for (const r of roles.data?.items ?? []) seen.set(r.application.id, r.application);
+    for (const r of items) seen.set(r.application.id, r.application);
     return [...seen.values()];
-  }, [roles.data]);
-  const visible = (roles.data?.items ?? []).filter(
+  }, [items]);
+  const visible = items.filter(
     (r) =>
       (app === 'all' || r.application.id === app) &&
       (!q ||
@@ -389,11 +396,14 @@ export function RequestAccessView() {
                       value={person}
                       onChange={setPerson}
                       excludeIds={[user.id]}
+                      includePreboarded
                       invalid={touched && !person}
                       aria-describedby={`${id}-for-hint`}
                     />
                     <p id={`${id}-for-hint`} className="text-xs text-muted-foreground">
-                      {t('forHint')}
+                      {person?.status === 'pending'
+                        ? t('preboardedHint', { name: person.displayName })
+                        : t('forHint')}
                     </p>
                   </div>
                 )}

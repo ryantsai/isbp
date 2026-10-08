@@ -5,12 +5,11 @@ import { localize } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Switch } from '@isbp/ui/switch';
-import type { ColumnDef } from '@tanstack/react-table';
 import {
   ClipboardListIcon,
   LockIcon,
@@ -57,7 +56,7 @@ export function FormsView() {
     [all],
   );
 
-  const columns = useMemo<ColumnDef<FormSummary, unknown>[]>(
+  const columns = useMemo<DataTableColumn<FormSummary>[]>(
     () => [
       {
         id: 'name',

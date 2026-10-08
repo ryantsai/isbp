@@ -4,7 +4,7 @@ import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { PersonPicker, usePeople } from '@isbp/ui/person-picker';
@@ -12,7 +12,6 @@ import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import type { ColumnDef } from '@tanstack/react-table';
 import { NetworkIcon, PlusIcon, SearchXIcon, ShapesIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -97,7 +96,7 @@ export default function CiListPage() {
   });
   const filtered = FILTER_KEYS.some((k) => str(k));
 
-  const columns = useMemo<ColumnDef<CiSummary, unknown>[]>(
+  const columns = useMemo<DataTableColumn<CiSummary>[]>(
     () => [
       {
         id: 'number',

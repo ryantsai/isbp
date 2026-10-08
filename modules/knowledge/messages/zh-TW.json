@@ -8,6 +8,20 @@
     "manage": "管理文章",
     "categories": "分類"
   },
+  "systemRoles": {
+    "knowledge-reader": {
+      "name": "知識庫讀者",
+      "description": "閱讀已發佈的自助服務文章（預設授予所有人）"
+    },
+    "knowledge-agent": {
+      "name": "知識庫專員",
+      "description": "閱讀內部文章、撰寫草稿並送出審查"
+    },
+    "knowledge-editor": {
+      "name": "知識庫編輯者",
+      "description": "發佈、停用與還原文章，編輯任何文章並管理分類"
+    }
+  },
   "permissions": {
     "read": "閱讀已發佈的自助服務文章",
     "readInternal": "閱讀內部（僅限客服人員）文章",
@@ -18,7 +32,9 @@
   },
   "settings": {
     "reviewIntervalDays": "文章發佈後幾天需要重新審閱（0 = 不設定預設審閱日期）",
-    "reminderRepeatDays": "逾期審閱提醒每隔 N 天重複一次"
+    "reminderRepeatDays": "逾期審閱提醒每隔 N 天重複一次",
+    "guidePublish": "發佈使用指南",
+    "guidePublishHelp": "在知識庫中保留「使用 IS Big Platform」（平台的使用指南，含所有語言），並隨每個新版本更新。關閉後會停止發佈與更新；如要移除，請將其文章停用。"
   },
   "portal": {
     "browse": {
@@ -94,7 +110,7 @@
   "toast": {
     "published": "文章已發佈",
     "submitted": "已送出——將由編輯發佈",
-    "sentForApproval": "已送出核准——核准後即會上線",
+    "sentForApproval": "已送出簽核——核准後即會上線",
     "retired": "文章已停用",
     "draft": "文章已回到草稿",
     "deleted": "文章已刪除"
@@ -141,7 +157,7 @@
     "generatedFrom": "由 {reference} 產生的草稿",
     "tools": "文章操作",
     "translate": "翻譯",
-    "history": "{count, plural, other {歷程記錄（# 個版本）}}",
+    "history": "{count, plural, other {歷程紀錄（# 個版本）}}",
     "emptyBody": "此文章尚無內容。",
     "related": "相關文章",
     "noRelated": "目前沒有相關文章。",
@@ -151,12 +167,13 @@
     "tags": "標籤",
     "bannerDraft": "這是草稿，只有作者與編輯可以看到。",
     "bannerReview": "已送出審查：編輯可以發佈或退回。",
-    "bannerApproval": "等待核准中。核准後會自動發佈；若要修改請先撤回。",
+    "bannerApproval": "等待簽核中。核准後會自動發佈；若要修改請先撤回。",
     "bannerRetired": "此文章已停用，不會出現在搜尋結果中。還原後即可編輯並重新發佈。",
     "bannerReviewDue": "此文章已於 {date} 到期需要審閱。請確認內容仍然正確，再設定新的審閱日期。",
     "deleteTitle": "要刪除此文章嗎？",
-    "deleteDescription": "{reference} 及其版本歷程記錄將被永久刪除。若要保留歷程記錄，請改為停用。",
-    "syncedFrom": "同步自 {reference}"
+    "deleteDescription": "{reference} 及其版本歷程紀錄將被永久刪除。若要保留歷程紀錄，請改為停用。",
+    "syncedFrom": "同步自 {reference}",
+    "fromGuide": "本文屬於 IS Big Platform 使用指南，會隨平台一併更新；在此所做的編輯，會在新版指南推出時被取代。"
   },
   "feedback": {
     "question": "這篇文章有幫助嗎？",
@@ -171,7 +188,7 @@
     "thanksComment": "謝謝——作者會看到您的留言。"
   },
   "versions": {
-    "title": "版本歷程記錄",
+    "title": "版本歷程紀錄",
     "description": "{reference} 每次發佈都會保留為一個版本。",
     "back": "所有版本",
     "version": "第 {version} 版",
@@ -212,7 +229,7 @@
     "allAudiences": "所有對象",
     "allLanguages": "所有語言",
     "audienceFilter": "對象",
-    "awaitingApproval": "等待核准",
+    "awaitingApproval": "待簽核",
     "noOwner": "無擁有者",
     "due": "已到期"
   },
@@ -251,7 +268,7 @@
     "reviewAtHint": "會在此日期提醒擁有者檢查文章內容。",
     "saveDraft": "儲存草稿",
     "saveAndSubmit": "儲存並送出",
-    "submitHint": "送出的文章由編輯發佈（或由核准流程決定）。",
+    "submitHint": "送出的文章由編輯發佈（或由簽核流程決定）。",
     "publishUpdate": "發佈更新",
     "toast": {
       "saved": "變更已儲存",
@@ -321,5 +338,10 @@
       "zh-TW": "繁體中文",
       "ja-JP": "日文"
     }
+  },
+  "guide": {
+    "notFound": "無法開啟這份指南。",
+    "notFoundHint": "指南可能尚未發佈，請稍候幾分鐘再試，或直接瀏覽知識庫。",
+    "opening": "正在開啟指南…"
   }
 }

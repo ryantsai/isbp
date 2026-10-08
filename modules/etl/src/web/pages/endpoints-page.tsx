@@ -4,14 +4,13 @@ import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import type { ColumnDef } from '@tanstack/react-table';
 import { DatabaseZapIcon, FileJsonIcon, PlusIcon, ScrollTextIcon, SearchXIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -43,7 +42,7 @@ export default function EndpointsPage() {
     status: view === 'all' ? undefined : (view as EndpointStatus),
   });
 
-  const columns = useMemo<ColumnDef<EndpointSummary, unknown>[]>(
+  const columns = useMemo<DataTableColumn<EndpointSummary>[]>(
     () => [
       {
         id: 'name',

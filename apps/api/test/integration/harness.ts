@@ -83,6 +83,10 @@ export async function createHarness(opts: { extraModules?: ServerModule[] } = {}
   await kernel.redis.flushdb();
   await kernel.migrate();
   await kernel.registry.loadState();
+  // The worker would publish the user guide (~40 articles) into the knowledge base as it starts; suites that test
+  // it turn this back on.
+  const knowledge = kernel.registry.get('knowledge');
+  if (knowledge) await kernel.settings.update(knowledge.manifest, { 'guide.publish': false }, null);
 
   // Fixtures
   const hash = await hashPassword(PASSWORD);

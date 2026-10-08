@@ -127,7 +127,7 @@
     },
     "application-manager": {
       "name": "Application manager",
-      "description": "Manage an application's roles and permissions (assign it scoped to one application)"
+      "description": "Manage an application’s roles and permissions (assign it scoped to one application)"
     },
     "database-admin": {
       "name": "Database connection administrator",

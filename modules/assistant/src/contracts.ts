@@ -226,8 +226,13 @@ export const assistantStatusSchema = z.object({
   /** `llm` with a chat model; `builtin` (guided templates) without. */
   mode: z.enum(AI_MODES),
   model: z.string().nullable(),
-  /** The kinds the viewer may propose changes to. */
+  /** The kinds the viewer may propose changes to (guided templates and change sets need at least one). */
   kinds: z.array(kindInfoSchema),
+  /**
+   * How many of the platform's tools outside the assistant's own (tickets, comments, tasks, lookups …) the viewer
+   * may use in a conversation. With a chat model, the panel chats when this or `kinds` is non-empty.
+   */
+  tools: z.number().int(),
 });
 
 /* ───────────── conversations ───────────── */

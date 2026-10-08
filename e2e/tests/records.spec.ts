@@ -34,8 +34,8 @@ test('link a knowledge article to a CI and remove the link again', async ({ page
   await dialog.getByRole('combobox', { name: 'Record type' }).click();
   await page.getByRole('option', { name: 'Knowledge article' }).click();
   await dialog.getByRole('searchbox').fill('VPN');
-  // Wait for the search results (the dialog first lists recent articles).
-  const first = dialog.getByRole('button', { name: /^Link .*VPN/ }).first();
+  // Wait for the article results (the dialog first lists recent records of the type chosen before).
+  const first = dialog.getByRole('button', { name: /^Link KB-\d+ .*VPN/ }).first();
   await expect(first).toBeVisible();
   const label = (await first.getAttribute('aria-label'))!.replace(/^Link /, '');
   await first.click();

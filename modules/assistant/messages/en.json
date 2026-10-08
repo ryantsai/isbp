@@ -6,6 +6,16 @@
   "nav": {
     "changeSets": "Change sets"
   },
+  "systemRoles": {
+    "assistant-user": {
+      "name": "Assistant user",
+      "description": "Use the assistant and prepare change sets for the surfaces you can see"
+    },
+    "assistant-admin": {
+      "name": "Assistant administrator",
+      "description": "See every change set, and edit, discard or withdraw anyone’s"
+    }
+  },
   "permissions": {
     "use": "Use the assistant and prepare change sets for the configuration you can see",
     "changeSetsRead": "See every change set",
@@ -95,7 +105,9 @@
     "loading": "Loading the assistant",
     "loadError": "The assistant couldn’t be loaded. Try again in a moment.",
     "noKinds": "There is nothing you can customise yet",
-    "noKindsHint": "The assistant prepares changes to configuration you can see, such as approval workflows or request forms. Ask an administrator for access."
+    "noKindsHint": "Without an AI model, the assistant offers guided templates for configuration you can see, such as approval workflows or request forms. Ask an administrator for access to what you need, or to set up a model so you can also ask for everyday work.",
+    "noTools": "There is nothing the assistant can do for you yet",
+    "noToolsHint": "The assistant works through the platform’s tools and configuration with your permissions, and your roles don’t include any of them yet. Ask an administrator for the access you need."
   },
   "chat": {
     "log": "Conversation with the assistant",
@@ -104,11 +116,14 @@
     "typing": "The assistant is working",
     "inputLabel": "Message to the assistant",
     "placeholder": "Describe the change you want…",
+    "placeholderWork": "Describe what you need…",
     "hint": "Enter to send, Shift+Enter for a new line. The assistant sees the page you are on.",
     "send": "Send",
     "context": "Page: {page}",
     "welcomeTitle": "What would you like to change?",
     "welcomeBody": "Describe it in your own words. I work with the platform’s real configuration as you, and I ask before I apply anything.",
+    "workTitle": "How can I help?",
+    "workBody": "Ask for everyday work in your own words, such as finding a ticket or adding a note to it. I work as you, with your permissions, and I ask before anything that needs your confirmation.",
     "starters": "Suggestions",
     "starter": {
       "approval": "Laptop requests over 60,000 TWD also need approval from IT asset management",

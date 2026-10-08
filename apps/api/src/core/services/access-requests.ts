@@ -23,20 +23,58 @@ import {
   ErrorCodes,
   HttpError,
   httpErrors,
+  type LocalizedText,
   type ModuleContext,
   type WorkflowCompletion,
 } from '@isbp/sdk/server';
 import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { PLATFORM_APP_KEY } from '../../kernel/rbac';
+import { catalogLocalized } from '../customizations/shared';
 import { getKernel } from '../kernel-ref';
 import { likePattern, pageOffset } from '../util';
 import { peopleById, ref } from './people';
 import { InstanceViews } from './workflows';
 
 export const ACCESS_REQUEST_TRIGGER = 'core.access-request';
+
+/** A role's name in every locale: module roles from `<moduleId>.systemRoles.<key>.name`, the stored name otherwise. */
+async function roleTitle(moduleId: string | null, key: string, name: string): Promise<LocalizedText> {
+  if (!moduleId) return { en: name };
+  const catalogKey = `${moduleId}.systemRoles.${key}.name`;
+  const texts = await catalogLocalized(catalogKey);
+  return Object.fromEntries(Object.entries(texts).map(([l, v]) => [l, v === catalogKey ? name : v]));
+}
 type RequestRow = typeof accessRequests.$inferSelect;
 const DAY = 86_400_000;
+
+/**
+ * Why access can't be requested for (or granted to) a person in this lifecycle state, or null when it can.
+ * Pre-boarded people (`pending`) can get access before their first day: grants only take effect once they're
+ * onboarded, because RBAC resolves nothing for people who aren't active. `reason` is the request's `failureReason`
+ * when the state changed while the request was waiting for approval.
+ */
+export function beneficiaryRefusal(
+  status: string,
+): { code: string; message: string; reason: 'beneficiary_suspended' | 'beneficiary_offboarded' } | null {
+  switch (status) {
+    case 'active':
+    case 'pending':
+      return null;
+    case 'suspended':
+      return {
+        code: ErrorCodes.PRINCIPAL_SUSPENDED,
+        message: 'This person is suspended; reactivate them before requesting access',
+        reason: 'beneficiary_suspended',
+      };
+    default:
+      return {
+        code: ErrorCodes.PRINCIPAL_OFFBOARDED,
+        message: 'This person has been offboarded',
+        reason: 'beneficiary_offboarded',
+      };
+  }
+}
 
 /** Self-service role requests: submitted here, decided by the `core.access-request` workflow. */
 export class AccessRequestService {
@@ -110,6 +148,7 @@ export class AccessRequestService {
         key: r.r.key,
         name: r.r.name,
         description: r.r.description,
+        moduleId: r.r.moduleId,
         application: { ...r.app, isPlatform: r.app.key === PLATFORM_APP_KEY },
         riskLevel: r.r.riskLevel,
         maxDurationDays: r.r.maxDurationDays,
@@ -212,12 +251,8 @@ export class AccessRequestService {
       .from(users)
       .where(eq(users.id, beneficiaryId));
     if (!beneficiary) throw httpErrors.notFound('Person not found');
-    if (beneficiary.status !== 'active')
-      throw new HttpError(
-        409,
-        ErrorCodes.PRINCIPAL_OFFBOARDED,
-        'Access can only be requested for active people',
-      );
+    const refusal = beneficiaryRefusal(beneficiary.status);
+    if (refusal) throw new HttpError(409, refusal.code, refusal.message, { status: beneficiary.status });
 
     const durationDays = input.durationDays ?? null;
     if (role.maxDurationDays && (durationDays === null || durationDays > role.maxDurationDays))
@@ -389,8 +424,10 @@ export class AccessRequestService {
       .select({ status: users.status })
       .from(users)
       .where(eq(users.id, req.beneficiaryId));
-    if (!role || !beneficiary || beneficiary.status !== 'active') {
-      const reason = !role ? 'role_deleted' : 'beneficiary_inactive';
+    // Pre-boarded people are granted too (the grant waits for their first day); suspended or gone people aren't.
+    const refusal = beneficiary ? beneficiaryRefusal(beneficiary.status) : null;
+    if (!role || !beneficiary || refusal) {
+      const reason = !role ? 'role_deleted' : (refusal?.reason ?? 'beneficiary_offboarded');
       await this.ctx.transaction(async (tx) => {
         await tx
           .update(accessRequests)
@@ -562,6 +599,7 @@ export class AccessRequestService {
         key: roles.key,
         name: roles.name,
         description: roles.description,
+        moduleId: roles.moduleId,
         riskLevel: roles.riskLevel,
         appKey: applications.key,
         appName: applications.name,
@@ -605,6 +643,7 @@ export class AccessRequestService {
           key: role?.key ?? '?',
           name: role?.name ?? '?',
           description: role?.description ?? null,
+          moduleId: role?.moduleId ?? null,
           riskLevel: role?.riskLevel ?? 'low',
           application: { key: role?.appKey ?? '?', name: role?.appName ?? '?' },
         },
@@ -746,6 +785,8 @@ export class AccessRequestService {
             .select({
               id: accessRequests.id,
               roleName: roles.name,
+              roleKey: roles.key,
+              roleModuleId: roles.moduleId,
               appKey: applications.key,
               appName: applications.name,
               beneficiaryId: accessRequests.beneficiaryId,
@@ -791,6 +832,11 @@ export class AccessRequestService {
     const people = await peopleById(
       this.db,
       accessInfo.map((a) => a.beneficiaryId),
+    );
+    const roleTitles = new Map(
+      await Promise.all(
+        accessInfo.map(async (a) => [a.id, await roleTitle(a.roleModuleId, a.roleKey, a.roleName)] as const),
+      ),
     );
     return {
       items: rows.map((r) => {
@@ -843,7 +889,7 @@ export class AccessRequestService {
           return {
             ...base,
             kind: 'access' as const,
-            title: { en: a?.roleName ?? '?' },
+            title: roleTitles.get(r.id) ?? { en: a?.roleName ?? '?' },
             subtitle:
               [a && a.appKey !== PLATFORM_APP_KEY ? a.appName : null, forOther].filter(Boolean).join(' · ') ||
               null,

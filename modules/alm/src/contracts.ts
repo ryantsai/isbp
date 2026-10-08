@@ -600,8 +600,11 @@ export const readinessSchema = z.object({
     /** `changeReference` was given but no such change exists. */
     namedNotFound: z.boolean(),
   }),
-  /** Link that opens ITSM's new-change dialog, prefilled and linked to this release. */
-  raiseChangeHref: z.string(),
+  /**
+   * Link that opens ITSM's new-change dialog, prefilled and linked to this release. Null for people who can't
+   * raise changes (ITSM's `NEW_CHANGE_PERMISSION`).
+   */
+  raiseChangeHref: z.string().nullable(),
 });
 export type Readiness = z.input<typeof readinessSchema>;
 

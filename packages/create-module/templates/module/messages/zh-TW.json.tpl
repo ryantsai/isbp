@@ -1,6 +1,10 @@
 {
   "meta": { "name": "__TITLE__", "description": "__DESCRIPTION__" },
   "nav": { "home": "__TITLE__" },
+  "systemRoles": {
+    "__ID__-manager": { "name": "__TITLE__ 管理員", "description": "建立、編輯及刪除 __TITLE__ 項目" },
+    "__ID__-viewer": { "name": "__TITLE__ 檢視者", "description": "唯讀存取 __TITLE__" }
+  },
   "permissions": { "read": "檢視 __TITLE__ 項目", "manage": "建立、編輯及刪除 __TITLE__ 項目" },
   "settings": { "defaultStatus": "新項目的預設狀態" },
   "fields": { "title": "標題", "description": "說明", "status": "狀態", "owner": "負責人", "updated": "更新時間" },

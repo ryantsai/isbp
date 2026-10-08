@@ -4,6 +4,8 @@
   "openNavigation": "Open navigation",
   "searchPlaceholder": "Search or jump to…",
   "searchShortcut": "Search",
+  "passwordRequired": "Your administrator asked you to choose a new password.",
+  "passwordRequiredAction": "Change password",
   "commandPalette": {
     "placeholder": "Type a command or search people, groups, roles…",
     "navigate": "Go to",
@@ -26,6 +28,7 @@
   "language": "Language",
   "profile": "Profile & preferences",
   "signOut": "Sign out",
+  "help": "Help",
   "apiDocs": "API documentation",
   "breadcrumbHome": "Home",
   "moduleNotFound": "This page does not exist or the module is disabled.",

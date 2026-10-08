@@ -114,3 +114,25 @@ test('knowledge pages fit a 375px screen', async ({ page }) => {
   await settle(page);
   await expectNoHorizontalScroll(page);
 });
+
+test('in-app help: the user menu opens the user guide, with screenshots and links between guides', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('banner').getByRole('button').last().click();
+  await page.getByRole('menuitem', { name: 'Help' }).click();
+  // /knowledge/guide/start-here resolves to the guide's article in the reader's language.
+  await expect(page).toHaveURL(/\/knowledge\/KB-\d{5}$/);
+  await expect(page.getByRole('heading', { name: 'Start here', level: 1 })).toBeVisible();
+  await expect(page.getByText(/Part of the IS Big Platform user guide/)).toBeVisible();
+  // The guide's screenshots load (served by the web app, inline only for /help/).
+  const shot = page.locator('main img[src^="/help/en/"]').first();
+  await shot.scrollIntoViewIfNeeded();
+  await expect.poll(() => shot.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  await expectAccessible(page);
+
+  // A link to a section of another guide opens that guide at the section.
+  await page.getByRole('link', { name: 'Personal settings' }).first().click();
+  await expect(page).toHaveURL(/\/knowledge\/KB-\d{5}#set-your-language-time-zone-and-sessions$/);
+  await expect(page.locator('#set-your-language-time-zone-and-sessions')).toBeInViewport();
+});

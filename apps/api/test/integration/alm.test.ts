@@ -642,8 +642,13 @@ describe('deployments and the change policy', () => {
         enforceWindow: false,
         production: { outcome: 'allow', change: { id: change.id } },
       },
-      raiseChangeHref: expect.stringContaining(`link=alm.release:${releaseId}`),
+      // Viewers and release managers read changes but can't raise them: no link to a form they won't get.
+      raiseChangeHref: null,
     });
+    const asRelman = await h.call(s.relman!, 'GET', `${API}/releases/${releaseId}/readiness`);
+    expect(asRelman.body.raiseChangeHref).toBeNull();
+    const asAdmin = await h.call(s.admin!, 'GET', `${API}/releases/${releaseId}/readiness`);
+    expect(asAdmin.body.raiseChangeHref).toEqual(expect.stringContaining(`link=alm.release:${releaseId}`));
     expect(await notificationsOf(ids.owner, 'alm.release.ready')).toHaveLength(0);
     // Release notes complete readiness: the owners hear about it once.
     await h.call(s.owner!, 'PATCH', `${API}/releases/${releaseId}`, {

@@ -5,12 +5,11 @@ import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import type { ColumnDef } from '@tanstack/react-table';
 import { LockIcon, PlusIcon, SearchXIcon, UsersRoundIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -50,7 +49,7 @@ export function GroupsView() {
   const { data, isLoading, isFetching } = useApiQuery<Page<Group>>('/groups', query);
   const filtered = Boolean(state.q || state.source);
 
-  const columns = useMemo<ColumnDef<Group, unknown>[]>(
+  const columns = useMemo<DataTableColumn<Group>[]>(
     () => [
       {
         id: 'name',

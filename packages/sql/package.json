@@ -15,11 +15,11 @@
     "test:drivers": "vitest run test/drivers"
   },
   "dependencies": {
-    "mssql": "^12.7.0",
-    "mysql2": "^3.24.0",
+    "mssql": "^12.7.4",
+    "mysql2": "^3.24.5",
     "oracledb": "^7.0.1",
     "pg": "catalog:",
-    "pg-cursor": "^2.22.0"
+    "pg-cursor": "^2.22.1"
   },
   "devDependencies": {
     "@isbp/eslint-config": "workspace:*",

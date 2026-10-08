@@ -9,7 +9,9 @@ import { Input } from '@isbp/ui/input';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { CheckIcon, CircleIcon, KeyRoundIcon, ShieldCheckIcon, TriangleAlertIcon } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import {
   type FieldProblem,
@@ -19,6 +21,7 @@ import {
 } from '@/components/idp/contract-resolver';
 import { SourceBadge } from '@/components/status-badge';
 import { applyServerErrors, useApiMutation, useErrorText } from '@/lib/api';
+import { PASSWORD_REQUIRED_PARAM, safeNextPath } from '@/lib/password-change';
 
 interface Values {
   currentPassword: string;
@@ -83,12 +86,30 @@ export function PasswordCard({ me, loading }: { me: Me | undefined; loading: boo
     }),
   });
 
+  const router = useRouter();
+  const sp = useSearchParams();
+  // Sent here right after sign-in because an administrator requires a new password.
+  const prompted = sp.get(PASSWORD_REQUIRED_PARAM) === 'required';
+  const mustChange = Boolean(me?.mustChangePassword && me.authSource === 'local');
+
+  useEffect(() => {
+    if (!prompted || !mustChange) return;
+    document.getElementById('security')?.scrollIntoView({ block: 'start' });
+    form.setFocus('currentPassword');
+  }, [prompted, mustChange, form]);
+
   const change = useApiMutation(
     (api, body: { currentPassword: string; newPassword: string }) => api.post('/me/password', body),
     {
       invalidate: ['/me'],
       success: t('changed'),
-      onSuccess: () => form.reset(),
+      onSuccess: () => {
+        form.reset();
+        if (!mustChange) return;
+        // The session the shell holds still says "must change": reload it, going on to where they were going.
+        if (prompted) window.location.assign(safeNextPath(sp.get('next')) ?? '/');
+        else router.refresh();
+      },
       silent: true,
     },
   );
@@ -137,10 +158,7 @@ export function PasswordCard({ me, loading }: { me: Me | undefined; loading: boo
           <Form {...form}>
             <form onSubmit={onSubmit} noValidate className="space-y-4">
               {me.mustChangePassword && (
-                <p
-                  role="alert"
-                  className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-foreground"
-                >
+                <p className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
                   <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
                   {t('mustChange')}
                 </p>

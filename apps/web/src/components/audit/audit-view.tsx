@@ -5,7 +5,7 @@ import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Input } from '@isbp/ui/input';
 import { PageHeader } from '@isbp/ui/page-header';
@@ -20,7 +20,6 @@ import {
 } from '@isbp/ui/select';
 import { toast } from '@isbp/ui/sonner';
 import { Hint } from '@isbp/ui/tooltip';
-import type { ColumnDef } from '@tanstack/react-table';
 import { DownloadIcon, ScrollTextIcon, SearchXIcon, XIcon } from 'lucide-react';
 import { useNow, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -71,7 +70,7 @@ export function AuditView() {
     state.q || query.category || query.outcome || query.moduleId || from || to || linkFilters.length,
   );
 
-  const columns = useMemo<ColumnDef<AuditLog, unknown>[]>(
+  const columns = useMemo<DataTableColumn<AuditLog>[]>(
     () => [
       {
         id: 'when',

@@ -15,9 +15,10 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@isbp/ui/popover';
 import { useApiQuery } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { CheckIcon, ChevronsUpDownIcon, ServerIcon, XIcon } from 'lucide-react';
+import { BookOpenIcon, CheckIcon, ChevronsUpDownIcon, ServerIcon, XIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import type { ResolvedRecordInfo } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import type { PersonRef, TicketType } from '../../contracts';
 import { useCategories, useGroupAgents, useGroups } from '../lib';
@@ -370,6 +371,121 @@ export function ServicePicker({
                     {value?.id === s.id && <CheckIcon className="ml-auto" />}
                   </CommandItem>
                 ))}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/* ───────────────────────────── knowledge articles ───────────────────────────── */
+
+export interface ArticleOption {
+  id: string;
+  reference: string | null;
+  title: string;
+}
+
+/**
+ * Single knowledge-article combobox. It searches the record registry (`GET /records/search`), so it lists only
+ * the articles the person may read, and never calls the knowledge module's own API.
+ */
+export function ArticlePicker({
+  value,
+  onChange,
+  id,
+  disabled,
+  'aria-describedby': describedBy,
+}: {
+  value: ArticleOption | null;
+  onChange: (article: ArticleOption | null) => void;
+  id?: string;
+  disabled?: boolean;
+  'aria-describedby'?: string;
+}) {
+  const t = useTranslations('itsm.common.articlePicker');
+  const root = useTranslations();
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const debounced = useDebounced(q);
+  const { data, isFetching } = useApiQuery<{ items: ResolvedRecordInfo[] }>(open ? '/records/search' : null, {
+    q: debounced,
+    types: 'knowledge.article',
+    limit: 15,
+  });
+  const items = data?.items ?? [];
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <div className="relative">
+        <PopoverTrigger asChild>
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            aria-describedby={describedBy}
+            disabled={disabled}
+            className="h-auto min-h-9 w-full justify-between py-2 text-left font-normal"
+          >
+            {value ? (
+              <span className="flex min-w-0 items-center gap-2 pr-6">
+                <BookOpenIcon className="text-muted-foreground" aria-hidden />
+                <span className="truncate">
+                  {value.reference && (
+                    <span className="mr-1.5 font-mono text-xs text-muted-foreground">{value.reference}</span>
+                  )}
+                  {value.title}
+                </span>
+              </span>
+            ) : (
+              <span className="text-muted-foreground">{t('placeholder')}</span>
+            )}
+            <ChevronsUpDownIcon className="opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        {value && !disabled && (
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            aria-label={t('clear')}
+            className="absolute top-1/2 right-8 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
+            <XIcon className="size-3.5" />
+          </button>
+        )}
+      </div>
+      <PopoverContent className="w-(--radix-popover-trigger-width) min-w-72 p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput value={q} onValueChange={setQ} placeholder={t('search')} />
+          <CommandList>
+            <CommandEmpty>{isFetching ? t('loading') : t('noResults')}</CommandEmpty>
+            {items.length > 0 && (
+              <CommandGroup>
+                {items.map((a) => {
+                  const status = a.status && root.has(a.status.key) ? root(a.status.key) : null;
+                  return (
+                    <CommandItem
+                      key={a.id}
+                      value={a.id}
+                      onSelect={() => {
+                        onChange({ id: a.id, reference: a.reference, title: a.title });
+                        setOpen(false);
+                      }}
+                    >
+                      <BookOpenIcon />
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate">{a.title}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {[a.reference, status].filter(Boolean).join(' · ')}
+                        </span>
+                      </div>
+                      {value?.id === a.id && <CheckIcon className="ml-auto" />}
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             )}
           </CommandList>

@@ -144,6 +144,13 @@ export const manifest = defineManifest({
       default: 7,
       advanced: true,
     },
+    {
+      key: 'guide.publish',
+      label: 'knowledge.settings.guidePublish',
+      description: 'knowledge.settings.guidePublishHelp',
+      type: 'boolean',
+      default: true,
+    },
   ],
   ai: {
     tools: [

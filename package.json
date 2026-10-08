@@ -1,10 +1,10 @@
 {
   "name": "isbp",
   "private": true,
-  "description": "IS Big Platform — unified resource management for IT operations",
-  "packageManager": "pnpm@12.4.1",
+  "description": "IS Big Platform \u2014 unified resource management for IT operations",
+  "packageManager": "pnpm@12.10.1",
   "engines": {
-    "node": ">=22.12"
+    "node": ">=24.11"
   },
   "type": "module",
   "scripts": {
@@ -26,7 +26,9 @@
     "modules:check": "tsx packages/create-module/src/cli.ts sync --check",
     "create-module": "tsx packages/create-module/src/cli.ts create",
     "docs:reference": "tsx packages/create-module/src/cli.ts docs",
-    "docs:check": "tsx packages/create-module/src/cli.ts docs --check"
+    "docs:check": "tsx packages/create-module/src/cli.ts docs --check && tsx packages/create-module/src/cli.ts guide --check",
+    "docs:guide": "tsx packages/create-module/src/cli.ts guide",
+    "docs:screenshots": "pnpm --filter @isbp/e2e screenshots"
   },
   "devDependencies": {
     "prettier": "catalog:",

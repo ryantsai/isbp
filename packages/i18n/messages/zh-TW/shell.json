@@ -4,6 +4,8 @@
   "openNavigation": "開啟導覽選單",
   "searchPlaceholder": "搜尋或跳至…",
   "searchShortcut": "搜尋",
+  "passwordRequired": "您的管理員要求您設定新密碼。",
+  "passwordRequiredAction": "變更密碼",
   "commandPalette": {
     "placeholder": "輸入命令，或搜尋人員、群組、角色…",
     "navigate": "前往",
@@ -26,6 +28,7 @@
   "language": "語言",
   "profile": "個人資料與偏好設定",
   "signOut": "登出",
+  "help": "說明",
   "apiDocs": "API 文件",
   "breadcrumbHome": "首頁",
   "moduleNotFound": "此頁面不存在，或該模組已停用。",

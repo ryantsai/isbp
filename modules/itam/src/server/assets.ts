@@ -57,6 +57,7 @@ import {
   formatAssetTag,
   HARDWARE_VIEWS,
   manualTransitions,
+  needsSecuritySignOff,
   parseRef,
   warrantyState,
 } from '../model';
@@ -382,6 +383,18 @@ export class AssetService {
       disposedAt: a.disposedAt,
       disposalNote: a.disposalNote,
       disposalInstanceId: a.disposalInstanceId,
+      // The same facts and condition "Request disposal" starts the workflow with.
+      disposalSecuritySignOff: needsSecuritySignOff(
+        disposalFacts(
+          {
+            category: a.category,
+            purchaseCost: a.purchaseCost,
+            purchaseDate: a.purchaseDate,
+            lifespanMonths: lifespanOf(row),
+          },
+          today,
+        ),
+      ),
       viewer: this.viewer(a, auth),
       createdAt: a.createdAt,
     };

@@ -1,6 +1,10 @@
 {
   "meta": { "name": "__TITLE__", "description": "__DESCRIPTION__" },
   "nav": { "home": "__TITLE__" },
+  "systemRoles": {
+    "__ID__-manager": { "name": "__TITLE__ manager", "description": "Create, edit and delete __TITLE__ items" },
+    "__ID__-viewer": { "name": "__TITLE__ viewer", "description": "Read-only access to __TITLE__" }
+  },
   "permissions": { "read": "View __TITLE__ items", "manage": "Create, edit and delete __TITLE__ items" },
   "settings": { "defaultStatus": "Default status for new items" },
   "fields": { "title": "Title", "description": "Description", "status": "Status", "owner": "Owner", "updated": "Updated" },

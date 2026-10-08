@@ -9,7 +9,7 @@ import {
   TRANSITIONS,
   type Viewer,
 } from '../src/lifecycle';
-import { keywordTerms, rankDocuments, termCoverage } from '../src/rank';
+import { keywordTerms, type RankDoc, rankDocuments, termCoverage } from '../src/rank';
 
 const reader: Viewer = { userId: 'r', read: true, readInternal: false, write: false, publish: false };
 const agent: Viewer = { userId: 'a', read: true, readInternal: true, write: true, publish: false };
@@ -160,5 +160,20 @@ describe('search ranking', () => {
     ]);
     expect(ranked.map((r) => r.id)).toEqual(['exact', 'long']);
     expect(ranked[0]!.score).toBe(1);
+  });
+
+  it('weights a document down (the user guide ranks below our own articles of similar relevance)', () => {
+    const doc = { summary: '', body: '', tags: [] };
+    const docs: RankDoc[] = [
+      { ...doc, id: 'guide', title: 'VPN keeps dropping', similarity: 0.7, weight: 0.5 },
+      { ...doc, id: 'kb', title: 'VPN disconnects every few minutes', similarity: 0.6 },
+    ];
+    expect(rankDocuments('vpn keeps dropping', docs).map((r) => r.id)).toEqual(['kb', 'guide']);
+    expect(
+      rankDocuments(
+        'vpn keeps dropping',
+        docs.map(({ weight: _, ...d }) => d),
+      )[0]!.id,
+    ).toBe('guide');
   });
 });

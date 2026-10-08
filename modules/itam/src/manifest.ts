@@ -8,6 +8,7 @@ import {
   assetCategorySchema,
   assetStatusSchema,
   complianceStateSchema,
+  SECURITY_SIGN_OFF_WHEN,
 } from './contracts';
 
 const assetRef = z.object({ assetId: z.uuid(), tag: z.string(), name: z.string() });
@@ -34,7 +35,7 @@ const disposalGraph: WorkflowGraph = {
     {
       id: 'asset-manager',
       type: 'approval',
-      name: { en: 'Asset manager approval', 'zh-TW': '資產管理員核准', 'ja-JP': '資産管理者の承認' },
+      name: { en: 'Asset manager approval', 'zh-TW': '資產管理員簽核', 'ja-JP': '資産マネージャーの承認' },
       approvers: [
         {
           type: 'role',
@@ -53,17 +54,7 @@ const disposalGraph: WorkflowGraph = {
         'zh-TW': '資訊安全簽核',
         'ja-JP': '情報セキュリティの承認',
       },
-      when: {
-        all: [
-          { fact: 'asset.dataBearing', op: 'eq', value: true },
-          {
-            any: [
-              { fact: 'asset.bookValue', op: 'gt', value: 0 },
-              { fact: 'asset.ageMonths', op: 'lt', value: 60 },
-            ],
-          },
-        ],
-      },
+      when: SECURITY_SIGN_OFF_WHEN,
       approvers: [
         { type: 'group', groupKey: 'security-team', fallback: { type: 'role', roleKey: 'itam-admin' } },
       ],

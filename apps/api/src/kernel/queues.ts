@@ -19,7 +19,8 @@ export class QueueFactory {
   constructor(private readonly config: Config) {}
 
   get connection() {
-    return { url: this.config.REDIS_URL, maxRetriesPerRequest: null };
+    // RESP2, which BullMQ's scripts were written for (ioredis 6 defaults to RESP3).
+    return { url: this.config.REDIS_URL, maxRetriesPerRequest: null, protocol: 2 as const };
   }
 
   get(name: string): Queue {

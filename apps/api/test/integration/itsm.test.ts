@@ -1,9 +1,11 @@
 import {
   aiChunks,
   approvalTasks,
+  auditLogs,
   groupMembers,
   groups,
   notifications,
+  outboxEvents,
   roleAssignments,
   roles,
   users,
@@ -905,6 +907,8 @@ describe('configuration and reports', () => {
     expect(inactive.status).toBe(400);
     expect(inactive.body.error.details.fields.requesterId).toBeDefined();
 
+    const slasBefore = (await h.call(s.agent!, 'GET', `${API}/tickets/${t.reference}`)).body.slas;
+    expect(slasBefore.length).toBeGreaterThan(0);
     const moved = await h.call(s.agent!, 'PATCH', `${API}/tickets/${t.reference}`, { requesterId: ids.bob });
     expect(moved.status).toBe(200);
     expect(moved.body).toMatchObject({ requester: { id: ids.bob }, department: { id: h.ids.salesTpe } });
@@ -914,6 +918,31 @@ describe('configuration and reports', () => {
       public: false,
       data: { changes: { requesterId: [ids.alice, ids.bob] } },
     });
+    // Audited and published like any other update; choosing the same person again is a no-op.
+    const audit = await h.kernel.db
+      .select({ changes: auditLogs.changes, actorId: auditLogs.actorId })
+      .from(auditLogs)
+      .where(and(eq(auditLogs.action, 'itsm.ticket.updated'), eq(auditLogs.entityId, t.id)));
+    expect(audit).toEqual([{ changes: { requesterId: [ids.alice, ids.bob] }, actorId: ids.agent }]);
+    const events = await h.kernel.db
+      .select({ payload: outboxEvents.payload })
+      .from(outboxEvents)
+      .where(eq(outboxEvents.name, 'itsm.ticket.updated'));
+    expect(events.map((e) => e.payload)).toContainEqual(
+      expect.objectContaining({ ticketId: t.id, changes: ['requesterId'] }),
+    );
+    const same = await h.call(s.agent!, 'PATCH', `${API}/tickets/${t.reference}`, { requesterId: ids.bob });
+    expect(same.status).toBe(200);
+    expect(
+      await h.kernel.db
+        .select({ seq: auditLogs.seq })
+        .from(auditLogs)
+        .where(and(eq(auditLogs.action, 'itsm.ticket.updated'), eq(auditLogs.entityId, t.id))),
+    ).toHaveLength(1);
+    // The SLA targets don't depend on who reported it.
+    expect(moved.body.slas.map((x: LooseJson) => [x.metric, x.dueAt])).toEqual(
+      slasBefore.map((x: LooseJson) => [x.metric, x.dueAt]),
+    );
     // "My requests" moves to the new requester; the old one no longer sees the ticket.
     const bobs = await h.call(s.bob!, 'GET', '/api/v1/me/requests');
     expect(bobs.body.items.map((i: LooseJson) => i.reference)).toContain(t.reference);

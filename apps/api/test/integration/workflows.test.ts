@@ -37,7 +37,14 @@ async function eventually<T>(
   }
 }
 
-async function mkUser(username: string, opts: { managerId?: string; departmentId?: string } = {}) {
+async function mkUser(
+  username: string,
+  opts: {
+    managerId?: string;
+    departmentId?: string;
+    status?: 'pending' | 'active' | 'suspended' | 'offboarded';
+  } = {},
+) {
   const [u] = await h.kernel.db
     .insert(users)
     .values({
@@ -47,6 +54,7 @@ async function mkUser(username: string, opts: { managerId?: string; departmentId
       passwordHash: await hashPassword(PASSWORD),
       managerId: opts.managerId ?? null,
       departmentId: opts.departmentId ?? null,
+      ...(opts.status ? { status: opts.status } : {}),
     })
     .returning();
   return u!.id;
@@ -307,6 +315,89 @@ describe('access requests through the default workflow', () => {
     const moved = await pendingTask(created.body.workflow.id);
     expect(moved).toMatchObject({ assigneeId: ids.sec1, delegatedFromId: ids.sec2 });
     await h.call(s.lead!, 'DELETE', `/api/v1/me/delegations/${ooo.body.id}`);
+  });
+
+  it('gets access ready for a pre-boarded new joiner, effective once they are onboarded', async () => {
+    const editor = await roleId('announcements-editor');
+    const joiner = await mkUser('joiner', { managerId: ids.lead, status: 'pending' });
+
+    // The manager finds the new joiner in the "someone else" picker; other people don't, nor does the plain lookup.
+    type Found = { id: string; status: string };
+    const lookup = (who: Session, extra = '') =>
+      h.call(who, 'GET', `/api/v1/people/lookup?q=joiner${extra}`).then((r) => r.body.items as Found[]);
+    expect(await lookup(s.lead!, '&includePreboarded=true')).toEqual([
+      expect.objectContaining({ id: joiner, status: 'pending' }),
+    ]);
+    expect(await lookup(s.lead!)).toEqual([]);
+    expect(await lookup(s.worker!, '&includePreboarded=true')).toEqual([]);
+    expect((await lookup(admin, '&includePreboarded=true')).map((p) => p.id)).toEqual([joiner]);
+
+    const created = await h.call(s.lead!, 'POST', '/api/v1/access-requests', {
+      roleId: editor,
+      beneficiaryId: joiner,
+      durationDays: 14,
+      justification: 'Publishes the sales notices from day one.',
+    });
+    expect(created.status).toBe(201);
+    // The lead is the joiner's manager and the requester, so the manager step falls through to the role owner.
+    const instanceId = created.body.workflow.id as string;
+    for (let i = 0; i < 3; i++) {
+      const task = await pendingTask(instanceId);
+      if (!task) break;
+      const who = task.assigneeId === ids.owner ? s.owner! : task.assigneeId === ids.lead ? s.lead! : admin;
+      await h.call(who, 'POST', `/api/v1/approvals/${task.id}/approve`, {});
+    }
+    const granted = await eventually(
+      () => h.call(s.lead!, 'GET', `/api/v1/access-requests/${created.body.id}`),
+      (r) => r.body.status !== 'pending',
+    );
+    expect(granted.body).toMatchObject({ status: 'approved', failureReason: null });
+
+    // Nothing works before day one (pre-boarded people can't sign in); onboarding makes the grant effective.
+    expect((await h.call(admin, 'POST', `/api/v1/users/${joiner}/onboard`)).status).toBeLessThan(300);
+    const perms = await h.call(await h.login('joiner'), 'GET', '/api/v1/me/permissions');
+    expect(JSON.stringify(perms.body)).toContain('announcements.posts');
+  });
+
+  it('refuses suspended and offboarded people with an accurate code, and fails grants that became impossible', async () => {
+    const editor = await roleId('announcements-editor');
+    const body = (beneficiaryId: string) => ({
+      roleId: editor,
+      beneficiaryId,
+      durationDays: 7,
+      justification: 'Covering the notices this week.',
+    });
+    const away = await mkUser('away', { managerId: ids.lead, status: 'suspended' });
+    const gone = await mkUser('gone', { managerId: ids.lead, status: 'offboarded' });
+    expect((await h.call(s.lead!, 'POST', '/api/v1/access-requests', body(away))).body.error.code).toBe(
+      'PRINCIPAL_SUSPENDED',
+    );
+    expect((await h.call(s.lead!, 'POST', '/api/v1/access-requests', body(gone))).body.error.code).toBe(
+      'PRINCIPAL_OFFBOARDED',
+    );
+
+    // Suspended while the request waited for approval: approved, but nothing is granted.
+    const mover = await mkUser('mover', { managerId: ids.lead });
+    const created = await h.call(s.lead!, 'POST', '/api/v1/access-requests', body(mover));
+    expect(created.status).toBe(201);
+    await h.kernel.db.update(users).set({ status: 'suspended' }).where(eq(users.id, mover));
+    const instanceId = created.body.workflow.id as string;
+    for (let i = 0; i < 3; i++) {
+      const task = await pendingTask(instanceId);
+      if (!task) break;
+      const who = task.assigneeId === ids.owner ? s.owner! : task.assigneeId === ids.lead ? s.lead! : admin;
+      await h.call(who, 'POST', `/api/v1/approvals/${task.id}/approve`, {});
+    }
+    const failed = await eventually(
+      () => h.call(s.lead!, 'GET', `/api/v1/access-requests/${created.body.id}`),
+      (r) => r.body.status !== 'pending',
+    );
+    expect(failed.body).toMatchObject({ status: 'failed', failureReason: 'beneficiary_suspended' });
+    const held = await h.kernel.db
+      .select()
+      .from(roleAssignments)
+      .where(and(eq(roleAssignments.userId, mover), eq(roleAssignments.roleId, editor)));
+    expect(held).toEqual([]);
   });
 });
 

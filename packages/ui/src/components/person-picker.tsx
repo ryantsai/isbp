@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { cn } from '../lib/utils';
 import { UserAvatar } from './avatar';
+import { Badge } from './badge';
 import { Button } from './button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './command';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
@@ -18,6 +19,8 @@ export interface PersonOption {
   jobTitle?: string | null;
   avatarUrl?: string | null;
   department?: string | null;
+  /** `pending` = pre-boarded (hasn't started yet); only found with `includePreboarded`. */
+  status?: 'active' | 'pending';
 }
 
 /** Resolves display names for person ids (e.g. "person" field values). */
@@ -29,7 +32,10 @@ export function usePeople(ids: readonly (string | null | undefined)[]) {
   return useMemo(() => new Map((data?.items ?? []).map((p) => [p.id, p])), [data]);
 }
 
-/** Searchable single-person picker for any signed-in user (active people only). */
+/**
+ * Searchable single-person picker for any signed-in user (active people only; with `includePreboarded`, also the
+ * pre-boarded people the caller may request access for, marked as such).
+ */
 export function PersonPicker({
   value,
   onChange,
@@ -38,6 +44,8 @@ export function PersonPicker({
   id,
   invalid,
   disabled,
+  clearable = true,
+  includePreboarded = false,
   className,
   'aria-describedby': describedBy,
   'aria-label': ariaLabel,
@@ -49,6 +57,10 @@ export function PersonPicker({
   id?: string;
   invalid?: boolean;
   disabled?: boolean;
+  /** False for required fields: no clear button, so the value can only be replaced. */
+  clearable?: boolean;
+  /** Also find pre-boarded people (not started yet) the caller may request access for. */
+  includePreboarded?: boolean;
   className?: string;
   'aria-describedby'?: string;
   /** Name for pickers without a `<label htmlFor={id}>` (e.g. filters); defaults to the placeholder. */
@@ -64,7 +76,7 @@ export function PersonPicker({
   }, [q]);
   const { data, isFetching } = useApiQuery<{ items: PersonOption[] }>(
     open && debounced ? '/people/lookup' : null,
-    { q: debounced },
+    { q: debounced, includePreboarded: includePreboarded ? 'true' : undefined },
   );
   const results = (data?.items ?? []).filter((p) => !excludeIds.includes(p.id));
 
@@ -88,6 +100,7 @@ export function PersonPicker({
               <span className="flex min-w-0 items-center gap-2">
                 <UserAvatar name={value.displayName} src={value.avatarUrl} className="size-5 text-[9px]" />
                 <span className="truncate">{value.displayName}</span>
+                {value.status === 'pending' && <Badge variant="muted">{t('preboarded')}</Badge>}
               </span>
             ) : (
               <span className="text-muted-foreground">{placeholder ?? t('placeholder')}</span>
@@ -95,7 +108,7 @@ export function PersonPicker({
             <ChevronsUpDownIcon className="opacity-50" />
           </Button>
         </PopoverTrigger>
-        {value && !disabled && (
+        {value && clearable && !disabled && (
           <button
             type="button"
             onClick={() => onChange(null)}
@@ -129,7 +142,14 @@ export function PersonPicker({
                         {[p.jobTitle, p.department].filter(Boolean).join(' · ') || p.email}
                       </span>
                     </div>
-                    {value?.id === p.id && <CheckIcon className="ml-auto" />}
+                    {p.status === 'pending' && (
+                      <Badge variant="muted" className="ml-auto">
+                        {t('preboarded')}
+                      </Badge>
+                    )}
+                    {value?.id === p.id && (
+                      <CheckIcon className={p.status === 'pending' ? undefined : 'ml-auto'} />
+                    )}
                   </CommandItem>
                 ))}
               </CommandGroup>

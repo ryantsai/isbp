@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
 } from '@isbp/ui/alert-dialog';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, type DataTableSelection, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { AnimatedNumber } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
@@ -21,7 +21,6 @@ import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import type { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import {
   ClipboardCheckIcon,
   DownloadIcon,
@@ -63,7 +62,7 @@ export default function ReviewPage({ params }: WebPageProps) {
   const date = useDate();
   const id = params.id!;
   const [state, set] = useListState({ pageSize: 50 });
-  const [selection, setSelection] = useState<RowSelectionState>({});
+  const [selection, setSelection] = useState<DataTableSelection>({});
   const [revoking, setRevoking] = useState<string[] | null>(null);
   const [closing, setClosing] = useState(false);
   const review = useApiQuery<Review>(`/dbaccess/reviews/${id}`);
@@ -97,7 +96,7 @@ export default function ReviewPage({ params }: WebPageProps) {
   );
   const selectedIds = Object.keys(selection).filter((k) => selection[k] && decidable.has(k));
 
-  const columns = useMemo<ColumnDef<ReviewItem, unknown>[]>(
+  const columns = useMemo<DataTableColumn<ReviewItem>[]>(
     () => [
       {
         id: 'grantee',

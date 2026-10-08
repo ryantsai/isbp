@@ -5,12 +5,11 @@ import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import type { ColumnDef } from '@tanstack/react-table';
 import { SearchXIcon, UserPlusIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -55,7 +54,7 @@ export function UsersView() {
   const { data, isLoading, isFetching } = useApiQuery<Page<UserSummary>>('/users', query);
   const filtered = Boolean(state.q || state.status || state.authSource || state.departmentId || attr.length);
 
-  const columns = useMemo<ColumnDef<UserSummary, unknown>[]>(
+  const columns = useMemo<DataTableColumn<UserSummary>[]>(
     () => [
       {
         id: 'person',

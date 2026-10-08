@@ -1,0 +1,24 @@
+{
+  "name": "@isbp/guide",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The user guide (docs/guide), embedded for the knowledge base's in-app help",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./meta": "./src/meta.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@isbp/eslint-config": "workspace:*",
+    "@isbp/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

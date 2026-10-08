@@ -6,6 +6,16 @@
   "nav": {
     "feed": "公告"
   },
+  "systemRoles": {
+    "announcements-reader": {
+      "name": "公告讀者",
+      "description": "閱讀已發布的公告（預設授予所有人）"
+    },
+    "announcements-editor": {
+      "name": "公告編輯者",
+      "description": "撰寫、發布與封存公告"
+    }
+  },
   "permissions": {
     "read": "閱讀已發布的公告",
     "manage": "撰寫、發布、封存及刪除公告"
@@ -28,7 +38,7 @@
     "draft": "草稿",
     "published": "已發布",
     "archived": "已封存",
-    "pending": "等候核准"
+    "pending": "待簽核"
   },
   "views": {
     "current": "目前",
@@ -104,5 +114,5 @@
   "submittedToast": "已送出審核，核准後即會發佈",
   "withdrawnToast": "已撤回審核，回到草稿",
   "withdraw": "撤回審核",
-  "pendingHint": "此公告正在等候核准，核准後會自動發佈；若要修改請先撤回。"
+  "pendingHint": "此公告正在等候簽核，核准後會自動發佈；若要修改請先撤回。"
 }

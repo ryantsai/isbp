@@ -1,6 +1,6 @@
 {
   "title": "角色與存取權",
-  "description": "決定人員可以執行哪些操作，再加以授予——可套用於全域、單一部門或單一記錄。",
+  "description": "決定人員可以執行哪些操作，再加以授予——可套用於全域、單一部門或單一紀錄。",
   "newRole": "新增角色",
   "grantRole": "授予角色",
   "searchRoles": "搜尋角色…",
@@ -74,7 +74,7 @@
       "permissions": "權限"
     },
     "name": "名稱",
-    "namePlaceholder": "例如：服務台專員",
+    "namePlaceholder": "例如：人資夥伴",
     "key": "索引鍵",
     "keyHint": "供整合服務使用的固定識別碼。可使用小寫英文字母、數字、「-」及「_」。",
     "description": "描述",
@@ -114,16 +114,16 @@
     "reason": "原因",
     "reasonPlaceholder": "例如：上線期間支援服務台（CHG-1042）",
     "reasonHint": "會記錄在稽核日誌中，並顯示給其他管理員。",
-    "limitScope": "限定於部門或記錄",
+    "limitScope": "限定於部門或紀錄",
     "scope": "範圍",
     "scopeHint": {
       "global": "此角色在全域生效。",
       "department": "適用於該部門及其子部門，僅限支援部門範圍的權限。",
-      "record": "僅適用於單一記錄（例如單一群組），僅限支援記錄範圍的權限。"
+      "record": "僅適用於單一紀錄（例如單一群組），僅限支援紀錄範圍的權限。"
     },
     "chooseDepartment": "選擇部門",
-    "recordType": "記錄類型",
-    "recordId": "記錄 ID",
+    "recordType": "紀錄類型",
+    "recordId": "紀錄 ID",
     "submit": "授予存取權",
     "granted": "已將 {role} 授予 {name}",
     "validation": {
@@ -131,8 +131,8 @@
       "user": "請選擇人員。",
       "group": "請選擇群組。",
       "department": "請選擇部門。",
-      "recordType": "請輸入記錄類型。",
-      "recordId": "請輸入記錄 ID。",
+      "recordType": "請輸入紀錄類型。",
+      "recordId": "請輸入紀錄 ID。",
       "date": "請選擇結束日期。",
       "future": "結束日期必須是未來的日期。",
       "reason": "原因不得超過 500 個字元。"
@@ -146,7 +146,7 @@
   "scope": {
     "global": "全域",
     "department": "部門：{name}",
-    "record": "記錄：{record}"
+    "record": "紀錄：{record}"
   },
   "expiry": {
     "never": "永不到期",
@@ -232,7 +232,7 @@
     "description": "讓人員在申請入口網站申請此角色。申請核准後會自動授予，並在期限到時自動到期。",
     "requestable": "人員可以申請此角色",
     "requestableShort": "申請",
-    "requestableHint": "此角色會顯示在申請入口網站中。簽核工作流程完成後即授予存取權。",
+    "requestableHint": "此角色會顯示在申請入口網站中。簽核流程完成後即授予存取權。",
     "notRequestableHint": "不在申請入口網站中——只有管理員可以授予。",
     "risk": "風險等級",
     "riskHint": "會顯示給申請者與簽核者。工作流程可將風險較高的申請交由更多簽核者審核。",
@@ -264,9 +264,9 @@
     "days": "{count, plural, other {# 天}}",
     "years": "{count, plural, other {# 年}}",
     "daysInvalid": "請輸入 1 到 3650 之間的整數天數。",
-    "workflow": "簽核工作流程",
+    "workflow": "簽核流程",
     "workflowHint": "負責處理此角色申請的工作流程。",
-    "workflowDefault": "預設的存取權申請工作流程",
+    "workflowDefault": "預設的權限申請簽核流程",
     "workflowDefaultNamed": "預設（{name}）",
     "badges": {
       "requestable": "可申請",

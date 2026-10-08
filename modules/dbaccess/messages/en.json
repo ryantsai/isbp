@@ -14,6 +14,24 @@
     "request": "Request database access",
     "requestDescription": "Get a role on a SQL Server, Oracle or PostgreSQL database for a limited time."
   },
+  "systemRoles": {
+    "dbaccess-requester": {
+      "name": "Database access requester",
+      "description": "Request database roles and manage your own database access (granted to everyone by default)"
+    },
+    "dbaccess-dba": {
+      "name": "Database access administrator",
+      "description": "Configure servers and requestable roles, run inventory syncs, see all access, revoke, adopt unmanaged access and retry provisioning"
+    },
+    "dbaccess-auditor": {
+      "name": "Database access auditor",
+      "description": "See all database access, accounts, drift and access reviews"
+    },
+    "dbaccess-review-manager": {
+      "name": "Database access review manager",
+      "description": "Run access review campaigns: start, follow up, close and export them"
+    }
+  },
   "permissions": {
     "selfRequest": "Request database roles and manage your own database access",
     "serversManage": "Configure servers and requestable roles, run inventory syncs",
@@ -243,7 +261,14 @@
     "relinquish": "Give back",
     "relinquishTitle": "Give back {role}?",
     "relinquishDescription": "The role is removed from your account right away. You can request it again later.",
-    "relinquished": "Your access is being removed"
+    "relinquished": "Your access is being removed",
+    "owned": {
+      "title": "Access to roles you own",
+      "description": "Who holds the database roles you or your group own. Select a row to see the details or revoke the access early.",
+      "table": "Grants of roles you own",
+      "empty": "Nobody holds your roles right now",
+      "emptyHint": "Access granted to your roles shows up here, and you can revoke it early."
+    }
   },
   "wizard": {
     "title": "Request database access",

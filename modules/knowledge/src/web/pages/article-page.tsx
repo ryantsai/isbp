@@ -1,6 +1,8 @@
 'use client';
 
-import { usePlatform, type WebPageProps } from '@isbp/sdk/web';
+import type { RecordPanelSlotProps } from '@isbp/contracts';
+import { Slot, usePlatform, type WebPageProps } from '@isbp/sdk/web';
+import { cn } from '@isbp/ui';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +34,7 @@ import {
   GitBranchIcon,
   HistoryIcon,
   LanguagesIcon,
+  LifeBuoyIcon,
   PencilIcon,
   SendIcon,
   SparklesIcon,
@@ -42,7 +45,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   type Article,
   type ArticleAction,
@@ -198,6 +201,12 @@ export default function ArticlePage({ params }: WebPageProps) {
               : t('toast.draft'),
     },
   );
+  // A link to a section (`#raise-a-ticket`, e.g. from the in-app help) can only scroll once the body is rendered.
+  const loadedId = article?.id;
+  useEffect(() => {
+    const id = loadedId && decodeURIComponent(window.location.hash.slice(1));
+    if (id) document.getElementById(id)?.scrollIntoView();
+  }, [loadedId]);
   const remove = useApiMutation((api) => api.delete(`/knowledge/articles/${article!.id}`), {
     invalidate: ['/knowledge/'],
     success: t('toast.deleted'),
@@ -229,6 +238,9 @@ export default function ArticlePage({ params }: WebPageProps) {
   const source = article.source;
   const sourceLink = source ? sourceHref(source) : null;
   const editorTools = article.canEdit || article.actions.length > 0 || article.canDelete;
+  // Like the agent view of a ticket: people who work with articles get the record panels ("Linked records",
+  // and "Synced with" for articles synced with an outside system, e.g. ServiceDesk Plus solutions).
+  const recordPanels = editorTools || permissions.hasAny('knowledge.articles.read-internal');
   const canTranslate =
     permissions.hasAny('knowledge.articles.write') &&
     article.translations.length + 1 < ARTICLE_LOCALES.length;
@@ -309,7 +321,12 @@ export default function ArticlePage({ params }: WebPageProps) {
             <Translations article={article} />
           </FadeIn>
 
-          {source?.type === 'integration' ? (
+          {source?.type === 'guide' ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <LifeBuoyIcon className="size-4 shrink-0 text-primary" aria-hidden />
+              <span>{t('article.fromGuide')}</span>
+            </p>
+          ) : source?.type === 'integration' ? (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <ArrowLeftRightIcon className="size-4 text-primary" aria-hidden />
               <span>{t('article.syncedFrom', { reference: source.reference ?? source.id })}</span>
@@ -382,7 +399,9 @@ export default function ArticlePage({ params }: WebPageProps) {
           <Card>
             <CardContent>
               {article.body.trim() ? (
-                <Markdown className="text-[15px]">{article.body}</Markdown>
+                <Markdown className="text-[15px]" anchors>
+                  {article.body}
+                </Markdown>
               ) : (
                 <p className="text-sm text-muted-foreground">{t('article.emptyBody')}</p>
               )}
@@ -392,8 +411,22 @@ export default function ArticlePage({ params }: WebPageProps) {
           {article.status === 'published' && <FeedbackBox key={article.id} article={article} />}
         </article>
 
-        <aside className="grid min-w-0 content-start gap-6 lg:sticky lg:top-6 lg:self-start">
+        {/* Not sticky with the record panels: a taller aside would hide its end below the fold. */}
+        <aside
+          className={cn(
+            'grid min-w-0 content-start gap-6',
+            !recordPanels && 'lg:sticky lg:top-6 lg:self-start',
+          )}
+        >
           <Related article={article} />
+          {recordPanels && (
+            <div className="min-w-0">
+              <Slot<RecordPanelSlotProps>
+                name="core.record.links"
+                props={{ record: { type: 'knowledge.article', id: article.id } }}
+              />
+            </div>
+          )}
           <div className="grid gap-1.5 rounded-xl border p-4 text-sm">
             {article.publishedAt && (
               <p className="text-muted-foreground">

@@ -36,7 +36,8 @@
     "noResults": "找不到人員",
     "loading": "搜尋中…",
     "clear": "清除選擇",
-    "placeholder": "選擇人員"
+    "placeholder": "選擇人員",
+    "preboarded": "預先建立"
   },
   "select": {
     "placeholder": "請選擇…",

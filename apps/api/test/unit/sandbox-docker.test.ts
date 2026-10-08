@@ -6,14 +6,14 @@ import { DockerRunner } from '../../src/kernel/sandbox/docker';
 describe.skipIf(!process.env.ISBP_TEST_DOCKER)('Docker script runner', () => {
   const sandbox = new Sandbox(
     'docker',
-    ['alpine:3.22', 'python:3.13-alpine'],
+    ['alpine:3.24', 'python:3.14-alpine'],
     new DockerRunner(process.env.SANDBOX_DOCKER_HOST ?? 'unix:///var/run/docker.sock'),
   ).service();
 
   it('runs a script as nobody, without network, on a read-only root', async () => {
     const lines: string[] = [];
     const result = await sandbox.run({
-      image: 'alpine:3.22',
+      image: 'alpine:3.24',
       language: 'shell',
       script: [
         'echo "user=$(id -u) region=$REGION"',
@@ -39,7 +39,7 @@ describe.skipIf(!process.env.ISBP_TEST_DOCKER)('Docker script runner', () => {
   it('runs Python and reports the exit code', async () => {
     const lines: string[] = [];
     const result = await sandbox.run({
-      image: 'python:3.13-alpine',
+      image: 'python:3.14-alpine',
       language: 'python',
       script: 'import sys\nprint("sum", sum(range(10)))\nsys.exit(3)',
       timeoutMs: 120_000,
@@ -51,7 +51,7 @@ describe.skipIf(!process.env.ISBP_TEST_DOCKER)('Docker script runner', () => {
 
   it('kills the container at the timeout', async () => {
     const result = await sandbox.run({
-      image: 'alpine:3.22',
+      image: 'alpine:3.24',
       language: 'shell',
       script: 'sleep 60',
       timeoutMs: 2_000,

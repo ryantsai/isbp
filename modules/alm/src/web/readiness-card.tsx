@@ -92,7 +92,7 @@ export function ReadinessCard({ release }: { release: ReleaseDetail }) {
                 </li>
               ))}
             </ul>
-            {!data.changes.length && !done && (
+            {!data.changes.length && !done && raiseHref && (
               <Button variant="outline" size="sm" asChild className="w-fit">
                 <Link href={raiseHref}>
                   <GitPullRequestIcon /> {t('raiseChange')}

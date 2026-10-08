@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "資料庫存取",
-    "description": "申請 SQL Server、Oracle 與 PostgreSQL 的資料庫角色：核准、自動佈建、限時存取、存取審查與偏差偵測"
+    "description": "申請 SQL Server、Oracle 與 PostgreSQL 的資料庫角色：簽核、自動佈建、限時存取、存取審查與偏差偵測"
   },
   "nav": {
     "group": "資料庫存取",
@@ -13,6 +13,24 @@
   "portal": {
     "request": "申請資料庫存取",
     "requestDescription": "在 SQL Server、Oracle 或 PostgreSQL 資料庫上取得限時的角色。"
+  },
+  "systemRoles": {
+    "dbaccess-requester": {
+      "name": "資料庫存取申請者",
+      "description": "申請資料庫角色並管理自己的資料庫存取（預設授予所有人）"
+    },
+    "dbaccess-dba": {
+      "name": "資料庫存取管理員",
+      "description": "設定伺服器與可申請的角色、執行盤點同步、檢視所有存取、撤銷存取、納管未受管理的存取並重試佈建"
+    },
+    "dbaccess-auditor": {
+      "name": "資料庫存取稽核員",
+      "description": "檢視所有資料庫存取、帳戶、偏差與存取審查"
+    },
+    "dbaccess-review-manager": {
+      "name": "資料庫存取審查管理員",
+      "description": "執行存取審查活動：啟動、追蹤、結束與匯出"
+    }
   },
   "permissions": {
     "selfRequest": "申請資料庫角色並管理自己的資料庫存取",
@@ -113,7 +131,7 @@
     "review_exported": "匯出資料庫存取審查報告"
   },
   "portalStatus": {
-    "pending": "等待核准",
+    "pending": "待簽核",
     "provisioning": "設定中",
     "active": "已授予存取",
     "failed": "設定失敗（已通知 DBA）",
@@ -133,7 +151,7 @@
     "failed": "失敗"
   },
   "requestStatus": {
-    "pending": "等待核准",
+    "pending": "待簽核",
     "approved": "已核准",
     "rejected": "遭拒",
     "cancelled": "已撤回"
@@ -224,8 +242,8 @@
   "mine": {
     "title": "我的資料庫存取",
     "description": "您擁有的資料庫角色、您的申請，以及一次性密碼。",
-    "request": "申請存取",
-    "pending": "{count, plural, other {# 筆申請等待核准}}",
+    "request": "申請權限",
+    "pending": "{count, plural, other {# 筆申請等待簽核}}",
     "access": "{count, plural, =0 {您的存取} other {您的存取（#）}}",
     "empty": "您目前沒有任何資料庫存取",
     "emptyHint": "申請資料庫角色：由您的主管與角色擁有者核准後，系統會自動設定您的帳戶。",
@@ -243,11 +261,18 @@
     "relinquish": "交還",
     "relinquishTitle": "要交還 {role} 嗎？",
     "relinquishDescription": "角色會立即從您的帳戶移除。之後仍可再次申請。",
-    "relinquished": "正在移除您的存取"
+    "relinquished": "正在移除您的存取",
+    "owned": {
+      "title": "您擁有的角色的存取",
+      "description": "持有您或您的群組所擁有之資料庫角色的人員。選取一列即可查看詳細資料，或提前撤銷存取。",
+      "table": "您擁有的角色的授權",
+      "empty": "目前沒有人持有您的角色",
+      "emptyHint": "授予您的角色的存取會顯示在這裡，您可以提前撤銷。"
+    }
   },
   "wizard": {
     "title": "申請資料庫存取",
-    "description": "選擇需要的角色，說明期限與原因，然後送出核准。",
+    "description": "選擇需要的角色，說明期限與原因，然後送出簽核。",
     "extendTitle": "申請延長",
     "extendDescription": "選擇新的結束日期，並說明為何仍需要此存取。",
     "myAccess": "我的資料庫存取",
@@ -282,7 +307,7 @@
     "noEndDate": "無期限",
     "justification": "為什麼需要？",
     "justificationPlaceholder": "例如：財務團隊的月結報表。",
-    "justificationHint": "核准者會閱讀這段說明。如有相關專案、工單或變更，請一併註明。",
+    "justificationHint": "簽核者會閱讀這段說明。如有相關專案、工單或變更，請一併註明。",
     "until": "至 {date}",
     "whoApproves": "由誰核准",
     "approver": {
@@ -306,18 +331,18 @@
     "cancel": "撤回申請",
     "cancelled": "已撤回申請",
     "statusHint": {
-      "pending": "等待核准中。",
+      "pending": "等待簽核中。",
       "approved": "已核准，系統會自動設定存取。",
       "rejected": "此申請未獲核准。",
       "cancelled": "此申請已撤回。"
     },
-    "approval": "核准",
+    "approval": "簽核",
     "comment": "意見：{comment}",
-    "noWorkflow": "此申請未經核准流程即已決定。",
-    "pathHidden": "您無法檢視核准路徑。",
+    "noWorkflow": "此申請未經簽核流程即已決定。",
+    "pathHidden": "您無法檢視簽核路徑。",
     "waitingFor": "目前在「{step}」等待",
     "andMore": "以及另外 {count} 人",
-    "decide": "前往我的核准決定",
+    "decide": "前往我的簽核決定",
     "details": "詳細資料",
     "role": "資料庫角色",
     "server": "伺服器",
@@ -329,7 +354,7 @@
     "justification": "原因",
     "access": "存取",
     "openMyAccess": "開啟我的資料庫存取",
-    "path": "核准路徑"
+    "path": "簽核路徑"
   },
   "grant": {
     "title": "資料庫存取",
@@ -491,7 +516,7 @@
       "inventory": "盤點",
       "unmanaged": "未受管理（{count}）"
     },
-    "rolesHint": "人員可在此伺服器上申請的角色，以及其擁有者（核准者）、風險與期限。",
+    "rolesHint": "人員可在此伺服器上申請的角色，以及其擁有者（簽核者）、風險與期限。",
     "addRole": "將角色設為可申請",
     "rolesTable": "可申請的角色",
     "noRoles": "沒有可申請的角色",
@@ -532,7 +557,7 @@
     "ownerKind": "擁有者類型",
     "ownerGroup": "群組",
     "ownerPerson": "人員",
-    "owner": "擁有者（核准者）",
+    "owner": "擁有者（簽核者）",
     "groupPlaceholder": "選擇群組…",
     "risk": "風險",
     "riskHint": "高風險角色另需資訊安全核准。",

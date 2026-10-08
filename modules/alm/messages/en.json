@@ -12,6 +12,28 @@
     "application": "Application",
     "release": "Release"
   },
+  "systemRoles": {
+    "alm-viewer": {
+      "name": "Applications viewer",
+      "description": "Browse applications, environments, releases and deployments. Owners and team members still edit their own applications."
+    },
+    "alm-release-manager": {
+      "name": "Release manager",
+      "description": "Plan and edit releases of any application and record deployments"
+    },
+    "alm-pipeline": {
+      "name": "CI/CD pipeline",
+      "description": "For API clients of CI/CD tools: record deployments through the deployment API"
+    },
+    "alm-manager": {
+      "name": "Applications manager",
+      "description": "Create and edit any application, environment, repository and release; record deployments"
+    },
+    "alm-admin": {
+      "name": "Applications administrator",
+      "description": "Everything in Applications, including overriding the change policy (audited)"
+    }
+  },
   "permissions": {
     "appsRead": "Browse applications, environments, releases and deployments",
     "appsManage": "Create and edit any application, environment and repository",

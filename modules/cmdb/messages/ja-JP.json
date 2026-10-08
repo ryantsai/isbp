@@ -5,6 +5,20 @@
   },
   "nav": { "cis": "構成アイテム" },
   "entities": { "ci": "構成アイテム" },
+  "systemRoles": {
+    "cmdb-service-reader": {
+      "name": "ビジネス サービス閲覧者",
+      "description": "ビジネス サービスの一覧を表示します。問題の報告時に影響を受けるサービスを指定する場合などに使います (既定ですべてのユーザーに付与)"
+    },
+    "cmdb-viewer": {
+      "name": "CMDB 閲覧者",
+      "description": "構成アイテム、その関係、影響分析を参照します"
+    },
+    "cmdb-manager": {
+      "name": "CMDB マネージャー",
+      "description": "構成アイテム、関係、クラスを作成、編集、廃止、削除します"
+    }
+  },
   "permissions": {
     "cisRead": "構成アイテム、その関係、影響分析を表示する",
     "cisManage": "構成アイテムとその関係を作成、編集、廃止、削除する",

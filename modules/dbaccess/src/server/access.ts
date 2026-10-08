@@ -2,15 +2,16 @@
  * Who may do what — the one place the rules live, so routes, AI tools and jobs agree:
  *
  * - Everyone with `dbaccess.self.request` requests roles and sees and relinquishes their own access.
- * - Role owners (the person, or members of the owning group) may revoke grants of their roles early and
- *   review them in campaigns.
+ * - Role owners (the person, or members of the owning group) see the grants of their roles ("Access to roles
+ *   you own"), may revoke them early and review them in campaigns.
  * - `dbaccess.grants.read` sees all access; `dbaccess.grants.manage` revokes, adopts and retries.
  * - A person's manager sees that person's database access (people page).
  */
 import { groupMembers, users } from '@isbp/db/schema';
 import { type AuthContext, type Db, httpErrors, PermissionSet } from '@isbp/sdk/server';
-import { eq } from 'drizzle-orm';
+import { eq, inArray, or } from 'drizzle-orm';
 import { PERMISSIONS } from '../manifest';
+import { requestableRoles } from './schema';
 
 export { PERMISSIONS };
 
@@ -68,6 +69,26 @@ export interface OwnedRole {
 export function isRoleOwner(me: string | null, role: OwnedRole, groups: ReadonlySet<string>): boolean {
   if (!me) return false;
   return role.ownerUserId === me || Boolean(role.ownerGroupId && groups.has(role.ownerGroupId));
+}
+
+/**
+ * The requestable roles the caller owns (as the person, or through the owning group), active or not: the
+ * same rule as `isRoleOwner`, for scoping lists ("Access to roles you own").
+ */
+export async function ownedRoleIds(db: Db, auth: AuthContext): Promise<string[]> {
+  const me = personOf(auth);
+  if (!me) return [];
+  const groups = [...(await groupsOf(db, auth))];
+  const rows = await db
+    .select({ id: requestableRoles.id })
+    .from(requestableRoles)
+    .where(
+      or(
+        eq(requestableRoles.ownerUserId, me),
+        groups.length ? inArray(requestableRoles.ownerGroupId, groups) : undefined,
+      ),
+    );
+  return rows.map((r) => r.id);
 }
 
 /** The person's manager (`core.users.manager_id`). */

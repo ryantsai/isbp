@@ -117,6 +117,9 @@
     "wrongCurrent": "現在のパスワードが正しくありません。",
     "mismatch": "パスワードが一致しません。",
     "mustChange": "管理者から新しいパスワードの設定を求められています。",
+    "requiredTitle": "新しいパスワードを設定してください",
+    "requiredBody": "管理者から、今回のサインイン時に新しいパスワードを設定するよう求められています。[パスワード] で現在のパスワードと新しいパスワードを入力してください。",
+    "requiredAction": "パスワードを変更",
     "rules": {
       "label": "パスワードの要件",
       "length": "{min} 文字以上",
@@ -150,10 +153,10 @@
   "access": {
     "title": "自分のアクセス権",
     "description": "保持しているロールと、その付与経路です。不足しているものがあれば、管理者に依頼してください。",
-    "summary": "{roles, plural, one {ロール # 個} other {ロール # 個}} · {permissions, plural, one {権限 # 個} other {権限 # 個}}",
+    "summary": "{roles, plural, one {ロール # 個} other {ロール # 個}} · {permissions, plural, one {アクセス許可 # 個} other {アクセス許可 # 個}}",
     "none": "ロールはまだありません。",
-    "permissionCount": "{count, plural, one {# 個の権限} other {# 個の権限}}",
-    "allPermissions": "すべての権限",
+    "permissionCount": "{count, plural, one {# 個のアクセス許可} other {# 個のアクセス許可}}",
+    "allPermissions": "すべてのアクセス許可",
     "expires": "{date} まで",
     "via": {
       "direct": "直接割り当て",

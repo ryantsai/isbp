@@ -286,6 +286,9 @@ Static segments must come before dynamic ones (`/settings` before `/:id`). A pag
 {
   "meta": { "name": "Things", "description": "…" },
   "nav": { "group": "Things", "home": "Things" },
+  "systemRoles": {
+    "things-manager": { "name": "Things manager", "description": "Create and edit things" }
+  },
   "permissions": { "read": "View things", "manage": "Create and edit things" },
   "entities": { "item": "Thing" },
   "audit": { "item_created": "Created a thing", "item_updated": "Updated a thing" },

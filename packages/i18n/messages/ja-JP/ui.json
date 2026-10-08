@@ -36,7 +36,8 @@
     "noResults": "見つかりません",
     "loading": "検索中…",
     "clear": "選択を解除",
-    "placeholder": "ユーザーを選択"
+    "placeholder": "ユーザーを選択",
+    "preboarded": "事前登録"
   },
   "select": {
     "placeholder": "選択…",

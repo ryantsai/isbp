@@ -186,6 +186,11 @@ export const assetDetailSchema = assetListItemSchema.extend({
   disposalNote: z.string().nullable(),
   /** The running disposal approval, if any. */
   disposalInstanceId: z.uuid().nullable(),
+  /**
+   * Whether a disposal request today would ask information security to sign off (`needsSecuritySignOff` on the
+   * workflow's facts: data-bearing, with book value or under five years old).
+   */
+  disposalSecuritySignOff: z.boolean(),
   viewer: assetViewerSchema,
   createdAt: dateTime,
 });

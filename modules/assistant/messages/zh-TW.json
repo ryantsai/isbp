@@ -1,10 +1,20 @@
 {
   "meta": {
     "name": "助理",
-    "description": "以變更集自訂平台的 AI 代理程式，變更由人員檢閱、套用及復原"
+    "description": "以變更集自訂平台的 AI 代理程式，變更由人員檢閱、套用及回復"
   },
   "nav": {
     "changeSets": "變更集"
+  },
+  "systemRoles": {
+    "assistant-user": {
+      "name": "助理使用者",
+      "description": "使用助理，並為您可檢視的設定準備變更集"
+    },
+    "assistant-admin": {
+      "name": "助理管理員",
+      "description": "檢視所有變更集，並可編輯、捨棄或撤回任何人的變更集"
+    }
   },
   "permissions": {
     "use": "使用助理，並為您可檢視的設定準備變更集",
@@ -18,7 +28,7 @@
   "workflows": {
     "changeSet": {
       "name": "變更集審核",
-      "description": "有人要求審核變更集時執行。核准後，將以核准者的權限套用變更集。"
+      "description": "有人要求審核變更集時執行。核准後，將以簽核者的權限套用變更集。"
     }
   },
   "notifications": {
@@ -33,9 +43,9 @@
       "body": "「{title}」未套用：{reason}"
     },
     "change_set_rolled_back": {
-      "label": "我的變更集已復原",
-      "title": "{reference} 已復原",
-      "body": "{by} 已復原「{title}」。"
+      "label": "我的變更集已回復",
+      "title": "{reference} 已回復",
+      "body": "{by} 已回復「{title}」。"
     }
   },
   "audit": {
@@ -44,7 +54,7 @@
     "change-set_withdrawn": "撤回變更集的審核",
     "change-set_applied": "套用了變更集",
     "change-set_returned": "變更集已退回草稿",
-    "change-set_rolled_back": "復原了變更集",
+    "change-set_rolled_back": "回復了變更集",
     "change-set_discarded": "捨棄了變更集"
   },
   "server": {
@@ -52,7 +62,7 @@
     "empty": "我無法完成此要求。請換個方式描述，或開啟變更集查看目前進度。",
     "confirmApply": "套用 {reference}（{count} 項變更）",
     "confirmApplyOne": "套用 {reference}（1 項變更）",
-    "confirmRollback": "復原 {reference}",
+    "confirmRollback": "回復 {reference}",
     "confirmTool": "執行 {tool}",
     "confirmedBy": "已確認：{label}",
     "declinedBy": "已拒絕：{label}",
@@ -64,7 +74,7 @@
     "draft": "草稿",
     "in_review": "審核中",
     "applied": "已套用",
-    "rolled_back": "已復原",
+    "rolled_back": "已回復",
     "discarded": "已捨棄"
   },
   "ops": {
@@ -79,7 +89,7 @@
     "builtinHint": "尚未設定 AI 聊天模型，因此助理改以引導式範本取代自由文字。",
     "llm": "AI 模型：{model}",
     "llmUnknown": "AI 模型",
-    "llmHint": "回答來自管理員設定的 AI 模型。助理會以您的身分和權限運作；套用或復原任何變更前，都會請您確認。"
+    "llmHint": "回答來自管理員設定的 AI 模型。助理會以您的身分和權限運作；套用或回復任何變更前，都會請您確認。"
   },
   "panel": {
     "open": "助理",
@@ -95,7 +105,9 @@
     "loading": "正在載入助理",
     "loadError": "無法載入助理，請稍後再試。",
     "noKinds": "目前沒有您可以自訂的項目",
-    "noKindsHint": "助理會為您可檢視的設定（例如簽核工作流程或申請表單）準備變更。請向管理員申請存取權限。"
+    "noKindsHint": "未設定 AI 模型時，助理會為您可檢視的設定（例如簽核流程或申請表單）提供引導式範本。請向管理員申請所需的存取權，或請管理員設定模型，讓您也能提出日常工作需求。",
+    "noTools": "助理目前還無法為您做任何事",
+    "noToolsHint": "助理會以您的權限透過平台的工具與設定運作，而您的角色目前不包含其中任何一項。請向管理員申請所需的存取權。"
   },
   "chat": {
     "log": "與助理的對話",
@@ -104,14 +116,17 @@
     "typing": "助理正在處理",
     "inputLabel": "傳送給助理的訊息",
     "placeholder": "描述您要的變更…",
+    "placeholderWork": "描述您需要什麼…",
     "hint": "按 Enter 傳送，Shift+Enter 換行。助理會看到您目前所在的頁面。",
     "send": "傳送",
     "context": "頁面：{page}",
     "welcomeTitle": "您想變更什麼？",
     "welcomeBody": "請用您自己的話描述。我會以您的身分使用平台的實際設定，套用任何變更前都會先詢問您。",
+    "workTitle": "需要什麼協助？",
+    "workBody": "請用您自己的話提出日常工作需求，例如尋找工單或為工單新增備註。我會以您的身分和權限運作，需要您確認的事項都會先詢問您。",
     "starters": "建議",
     "starter": {
-      "approval": "超過 60,000 元新台幣的筆電申請，也需要 IT 資產管理的核准",
+      "approval": "超過 60,000 元新台幣的筆電申請，也需要 IT 資產管理的簽核",
       "field": "為人員新增成本中心欄位",
       "form": "建立第二台螢幕的申請表單"
     },
@@ -141,7 +156,7 @@
       "core_find_departments": "正在查詢部門",
       "core_explain_access": "正在檢查存取權限",
       "assistant_apply_change_set": "正在套用變更集",
-      "assistant_rollback_change_set": "正在復原變更集",
+      "assistant_rollback_change_set": "正在回復變更集",
       "assistant_request_review": "正在要求審核"
     }
   },
@@ -173,7 +188,7 @@
   },
   "list": {
     "title": "變更集",
-    "description": "透過助理準備的設定變更。在有人套用之前不會生效，已套用的變更集也可以復原。",
+    "description": "透過助理準備的設定變更。在有人套用之前不會生效，已套用的變更集也可以回復。",
     "tabs": {
       "label": "變更集的擁有者",
       "mine": "我的",
@@ -216,14 +231,14 @@
     "createdByYou": "由您準備",
     "createdBy": "由 {name} 準備",
     "appliedBy": "由 {name} 套用",
-    "rolledBackBy": "由 {name} 復原",
+    "rolledBackBy": "由 {name} 回復",
     "checked": "試行完成",
     "refreshed": "變更集已改用目前的版本",
     "actions": {
       "apply": "套用",
       "submit": "要求審核",
       "withdraw": "撤回審核",
-      "rollback": "復原",
+      "rollback": "回復",
       "discard": "捨棄",
       "check": "重新檢查",
       "refresh": "重新整理",
@@ -231,12 +246,12 @@
     },
     "missing": {
       "title": "您無法自行套用此變更集",
-      "body": "套用此變更集需要 {permissions}。請要求審核：具備這些權限的核准者會套用它。",
-      "bodyInReview": "套用此變更集需要 {permissions}。具備這些權限的核准者在核准審核時會套用它。"
+      "body": "套用此變更集需要 {permissions}。請要求審核：具備這些權限的簽核者會套用它。",
+      "bodyInReview": "套用此變更集需要 {permissions}。具備這些權限的簽核者在核准審核時會套用它。"
     },
     "rollbackBlocked": {
-      "notReversible": "部分變更無法自動復原（刪除），因此無法在此復原此變更集。",
-      "other": "此變更集無法自動復原。"
+      "notReversible": "部分變更無法自動復原（刪除），因此無法在此回復此變更集。",
+      "other": "此變更集無法自動回復。"
     },
     "itemsTitle": "變更（依套用順序）",
     "itemsEmpty": "尚無變更",
@@ -279,7 +294,7 @@
     "note": "給審核者的備註",
     "atStep": "步驟：{step}",
     "pendingWith": "等待 {names}",
-    "approveApplies": "核准審核後，將以核准者的權限套用變更集。",
+    "approveApplies": "核准審核後，將以簽核者的權限套用變更集。",
     "yourTurn": "前往我的簽核進行決定"
   },
   "item": {
@@ -303,9 +318,9 @@
     "preview": "預覽",
     "previewFailed": "無法顯示此預覽。",
     "currentUnavailable": "無法讀取目前的物件，因此顯示完整的提議值。",
-    "archiveNote": "套用後會封存此物件。復原時會還原。",
+    "archiveNote": "套用後會封存此物件。回復時會還原。",
     "archiveDone": "此物件已封存。",
-    "deleteNote": "套用後會刪除此物件。刪除無法復原。",
+    "deleteNote": "套用後會刪除此物件。刪除無法回復。",
     "deleteDone": "此物件已刪除。",
     "check": {
       "unchecked": "尚未檢查",
@@ -316,7 +331,7 @@
       "needsPermission": "需要具備 {permission} 的人員套用",
       "issues": "問題",
       "applied": "已套用",
-      "rolledBack": "已復原"
+      "rolledBack": "已回復"
     }
   },
   "diff": {
@@ -344,7 +359,7 @@
   },
   "apply": {
     "title": "要套用 {reference} 嗎？",
-    "body": "所有變更會以您的權限在單一交易中套用：只要有一項失敗，就不會套用任何變更。之後可以復原。",
+    "body": "所有變更會以您的權限在單一交易中套用：只要有一項失敗，就不會套用任何變更。之後可以回復。",
     "inReview": "此變更集正在審核中。現在套用會取消審核。",
     "notReady": "部分變更未通過試行，套用很可能會失敗。",
     "destructiveTitle": "封存與刪除",
@@ -354,7 +369,7 @@
   },
   "submit": {
     "title": "要求審核 {reference}",
-    "body": "核准者會檢閱變更及其試行結果。核准後，將以核准者的權限套用變更集。",
+    "body": "簽核者會檢閱變更及其試行結果。核准後，將以簽核者的權限套用變更集。",
     "note": "給審核者的備註（選填）",
     "confirm": "要求審核",
     "done": "已要求審核"
@@ -366,11 +381,11 @@
     "done": "已撤回審核"
   },
   "rollback": {
-    "title": "要復原 {reference} 嗎？",
-    "body": "所有變更會在單一交易中依相反順序還原：更新回到先前的值、封存的物件會還原、建立的物件會移除。之後被他人修改過的物件無法復原。",
+    "title": "要回復 {reference} 嗎？",
+    "body": "所有變更會在單一交易中依相反順序還原：更新回到先前的值、封存的物件會還原、建立的物件會移除。之後被他人修改過的物件無法回復。",
     "reason": "原因（選填，會記錄於稽核日誌）",
-    "confirm": "復原",
-    "done": "{reference} 已復原"
+    "confirm": "回復",
+    "done": "{reference} 已回復"
   },
   "discard": {
     "title": "要捨棄 {reference} 嗎？",

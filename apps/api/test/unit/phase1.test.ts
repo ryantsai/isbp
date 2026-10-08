@@ -11,6 +11,7 @@ import {
 import { notificationKey, renderNotification } from '../../src/kernel/notifications/render';
 import { resolveChannels } from '../../src/kernel/notifications/service';
 import { coreManifest } from '../../src/core/manifest';
+import { beneficiaryRefusal } from '../../src/core/services/access-requests';
 import { PermissionSet } from '@isbp/sdk';
 
 const message: OutboundMessage = {
@@ -152,5 +153,23 @@ describe('core manifest', () => {
       const { title } = await renderNotification(n.type, {}, { locale: 'en' });
       expect(title, n.type).not.toBe(n.type);
     }
+  });
+});
+
+describe('access requests and the people lifecycle', () => {
+  it('accepts active and pre-boarded people, so access is ready on day one', () => {
+    expect(beneficiaryRefusal('active')).toBeNull();
+    expect(beneficiaryRefusal('pending')).toBeNull();
+  });
+
+  it('refuses suspended and offboarded people with a code for each state', () => {
+    expect(beneficiaryRefusal('suspended')).toMatchObject({
+      code: 'PRINCIPAL_SUSPENDED',
+      reason: 'beneficiary_suspended',
+    });
+    expect(beneficiaryRefusal('offboarded')).toMatchObject({
+      code: 'PRINCIPAL_OFFBOARDED',
+      reason: 'beneficiary_offboarded',
+    });
   });
 });

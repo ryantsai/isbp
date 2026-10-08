@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@eslint/js": "catalog:",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "16.4.0",
     "globals": "catalog:",
     "typescript-eslint": "catalog:"
   },

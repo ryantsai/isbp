@@ -17,14 +17,16 @@ import {
   KeyRoundIcon,
   PlusIcon,
   RefreshCwIcon,
+  ShieldCheckIcon,
   Undo2Icon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import type { Grant, MyAccess } from '../../contracts';
+import type { Grant, MyAccess, ServerOption } from '../../contracts';
 import { EngineLabel, GrantStatusBadge, RequestStatusBadge, RiskBadge } from '../badges';
 import { ReasonDialog, RevealDialog } from '../dialogs';
+import { GrantsTable } from '../grants-table';
 import { INVALIDATE, requestHref, useDate, useDay, useLocalized } from '../lib';
 
 const LIVE = new Set(['provisioning', 'active', 'revoking', 'failed']);
@@ -138,7 +140,28 @@ function GrantCard({ grant }: { grant: Grant }) {
   );
 }
 
-/** "My database access": what I hold, what I asked for, and the one-time password reveals. */
+/**
+ * "Access to roles you own": who holds the roles the person (or their group) owns, scoped by the API to those
+ * roles. A row opens the grant, where the owner may revoke it early.
+ */
+function OwnedAccess() {
+  const t = useTranslations('dbaccess.mine.owned');
+  const servers = useApiQuery<{ items: ServerOption[] }>('/dbaccess/lookups/servers');
+  return (
+    <section aria-labelledby="dbaccess-owned" className="grid min-w-0 gap-3">
+      <div className="grid gap-1">
+        <h2 id="dbaccess-owned" className="flex items-center gap-2 text-lg font-semibold">
+          <ShieldCheckIcon className="size-4 text-muted-foreground" aria-hidden />
+          {t('title')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t('description')}</p>
+      </div>
+      <GrantsTable owned servers={servers.data?.items ?? []} />
+    </section>
+  );
+}
+
+/** "My database access": what I hold, what I asked for, the one-time password reveals, and roles I own. */
 export default function MyAccessPage() {
   const t = useTranslations('dbaccess.mine');
   const te = useTranslations('dbaccess.endReason');
@@ -232,6 +255,8 @@ export default function MyAccessPage() {
               </Stagger>
             )}
           </section>
+
+          {data.ownedRoles > 0 && <OwnedAccess />}
 
           {(ended.length > 0 || decided.length > 0) && (
             <section aria-labelledby="dbaccess-history" className="grid gap-3">

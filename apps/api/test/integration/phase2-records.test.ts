@@ -147,4 +147,43 @@ describe('ITSM, CMDB and Knowledge records', () => {
     const alice = await h.call(s.alice, 'GET', `/api/v1/records/knowledge.article/${found.body.items[0].id}`);
     expect(alice.status).toBe(404);
   });
+
+  it("sets and clears a problem's known-error article chosen through the record search", async () => {
+    await mkUser('pm', 'itsm-problem-manager');
+    await h.kernel.rbac.bump();
+    const pm = await h.login('pm');
+    const problem = await h.call(pm, 'POST', '/api/v1/itsm/tickets', {
+      type: 'problem',
+      title: 'Rec VPN drops every hour',
+    });
+    expect(problem.status).toBe(201);
+    const path = `/api/v1/itsm/tickets/${problem.body.reference}/problem`;
+    const draft = await h.call(s.admin, 'POST', '/api/v1/knowledge/articles', {
+      title: 'Rec VPN reconnect workaround',
+      body: 'Reconnect…',
+      locale: 'en',
+    });
+    // The problem manager can't read the draft, so they can't pick it either.
+    const hidden = await h.call(pm, 'PATCH', path, { kbArticleId: draft.body.id });
+    expect(hidden.status).toBe(400);
+    expect(hidden.body.error.details.fields.kbArticleId).toBeDefined();
+    const submitted = await h.call(s.admin, 'POST', `/api/v1/knowledge/articles/${draft.body.id}/submit`);
+    if (submitted.body.status !== 'published')
+      await h.call(s.admin, 'POST', `/api/v1/knowledge/articles/${draft.body.id}/publish`);
+
+    const found = await h.call(pm, 'GET', '/api/v1/records/search?q=rec%20vpn&types=knowledge.article');
+    expect(found.body.items.map((r: { id: string }) => r.id)).toContain(draft.body.id);
+    // Agents without problem management can't change it.
+    expect((await h.call(s.agent, 'PATCH', path, { kbArticleId: draft.body.id })).status).toBe(403);
+    const set = await h.call(pm, 'PATCH', path, { kbArticleId: draft.body.id });
+    expect(set.status).toBe(200);
+    expect(set.body.problem.kbArticle).toEqual({
+      id: draft.body.id,
+      reference: draft.body.reference,
+      title: 'Rec VPN reconnect workaround',
+    });
+    const cleared = await h.call(pm, 'PATCH', path, { kbArticleId: null });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.problem.kbArticle).toBeNull();
+  });
 });

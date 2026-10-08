@@ -1,0 +1,50 @@
+[
+  {
+    "name": "integrations-overview",
+    "as": "admin",
+    "path": "/integrations",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
+    "name": "integrations-profile",
+    "as": "admin",
+    "path": "/integrations",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "role": "link",
+          "name": {
+            "en": "Contoso ServiceDesk Plus",
+            "zh-TW": "Contoso ServiceDesk Plus",
+            "ja-JP": "Contoso ServiceDesk Plus"
+          }
+        }
+      },
+      { "wait": 1500 },
+      {
+        "click": {
+          "role": "tab",
+          "name": { "en": "Sync profiles", "zh-TW": "同步設定檔", "ja-JP": "同期プロファイル" }
+        }
+      },
+      { "wait": 1000 },
+      {
+        "click": {
+          "role": "link",
+          "name": { "en": "Requests ↔ tickets", "zh-TW": "Requests ↔ tickets", "ja-JP": "Requests ↔ tickets" }
+        }
+      },
+      { "wait": 2000 }
+    ],
+    "clip": null
+  },
+  {
+    "name": "integrations-conflicts",
+    "as": "admin",
+    "path": "/integrations/conflicts",
+    "waitFor": "main h1",
+    "clip": null
+  }
+]

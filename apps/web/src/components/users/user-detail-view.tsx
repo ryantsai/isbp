@@ -46,6 +46,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { CustomFieldsCard } from '@/components/fields/entity-fields';
 import { type PickedUser, UserPicker } from '@/components/pickers/user-picker';
 import { DateTime, RelativeTime } from '@/components/relative-time';
+import { useRoleText } from '@/components/roles/role-utils';
 import { SourceBadge, UserStatusBadge } from '@/components/status-badge';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { UserFormSheet } from './user-form';
@@ -357,7 +358,7 @@ export function UserDetailView({ id }: { id: string }) {
 function AccessPanel({ userId, self }: { userId: string; self: boolean }) {
   const t = useTranslations('users.detail');
   const tc = useTranslations('common');
-  const tr = useTranslations('core.systemRoles');
+  const roleText = useRoleText();
   const { data, isLoading } = useApiQuery<EffectivePermissions>(
     self ? '/me/permissions' : `/users/${userId}/permissions`,
   );
@@ -380,7 +381,7 @@ function AccessPanel({ userId, self }: { userId: string; self: boolean }) {
     const key = `${s.role.id}|${s.via}|${s.group?.id ?? ''}|${s.scopeType}|${s.scopeLabel ?? ''}`;
     const via = s.via === 'group' ? t('via.group', { group: s.group?.name ?? '' }) : t(`via.${s.via}`);
     const entry = groups.get(key) ?? {
-      role: tr.has(`${s.role.key}.name`) ? tr(`${s.role.key}.name`) : s.role.name,
+      role: roleText(s.role).name,
       roleKey: s.role.key,
       via,
       scope: s.scopeType === 'global' ? null : `${tc(`scope_values.${s.scopeType}`)}: ${s.scopeLabel}`,

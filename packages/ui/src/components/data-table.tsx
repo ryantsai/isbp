@@ -2,10 +2,15 @@
 
 import {
   type ColumnDef,
+  columnSizingFeature,
   flexRender,
-  getCoreRowModel,
+  functionalUpdate,
+  metaHelper,
+  type RowData,
   type RowSelectionState,
-  useReactTable,
+  rowSelectionFeature,
+  tableFeatures,
+  useTable,
 } from '@tanstack/react-table';
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -19,15 +24,41 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Skeleton } from './skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table';
 
-declare module '@tanstack/react-table' {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface ColumnMeta<TData, TValue> {
-    /** Server sort key; makes the header clickable. */
-    sortKey?: string;
-    className?: string;
-    headerClassName?: string;
-  }
+/** Column `meta` understood by `DataTable`. */
+export interface DataTableColumnMeta {
+  /** Server sort key; makes the header clickable. */
+  sortKey?: string;
+  className?: string;
+  headerClassName?: string;
 }
+
+/**
+ * The one feature set every `DataTable` is built with. Sorting and paging happen on the server (URL state), so no
+ * client row models are registered and rows render exactly as given. `columnSizingFeature` provides a column's
+ * `size` (default 150, used as the header width) and `rowSelectionFeature` the checkbox column.
+ */
+const dataTableFeatures = tableFeatures({
+  columnSizingFeature,
+  rowSelectionFeature,
+  columnMeta: metaHelper<DataTableColumnMeta>(),
+});
+
+export type DataTableFeatures = typeof dataTableFeatures;
+
+/**
+ * A `DataTable` column. Apps and modules type their column arrays with this and never import
+ * `@tanstack/react-table` themselves.
+ */
+export type DataTableColumn<TData extends RowData, TValue = unknown> = ColumnDef<
+  DataTableFeatures,
+  TData,
+  TValue
+>;
+
+/** Selected rows, keyed by row id (`getRowId`). */
+export type DataTableSelection = RowSelectionState;
+
+const NO_SELECTION: DataTableSelection = {};
 
 /* ───────────────────────── URL-synced list state ───────────────────────── */
 
@@ -84,8 +115,8 @@ export function useListState(defaults: Partial<ListState> = {}) {
 
 /* ───────────────────────── table ───────────────────────── */
 
-export interface DataTableProps<T> {
-  columns: ColumnDef<T, unknown>[];
+export interface DataTableProps<T extends RowData> {
+  columns: DataTableColumn<T>[];
   data: T[];
   total: number;
   page: number;
@@ -99,8 +130,8 @@ export interface DataTableProps<T> {
   getRowId?: (row: T) => string;
   onRowClick?: (row: T) => void;
   selectable?: boolean;
-  selection?: RowSelectionState;
-  onSelectionChange?: (selection: RowSelectionState) => void;
+  selection?: DataTableSelection;
+  onSelectionChange?: (selection: DataTableSelection) => void;
   empty?: React.ReactNode;
   toolbar?: React.ReactNode;
   className?: string;
@@ -109,7 +140,7 @@ export interface DataTableProps<T> {
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
-export function DataTable<T>({
+export function DataTable<T extends RowData>({
   columns,
   data,
   total,
@@ -132,7 +163,7 @@ export function DataTable<T>({
   label,
 }: DataTableProps<T>) {
   const t = useTranslations('ui.table');
-  const allColumns = React.useMemo<ColumnDef<T, unknown>[]>(() => {
+  const allColumns = React.useMemo<DataTableColumn<T>[]>(() => {
     if (!selectable) return columns;
     return [
       {
@@ -164,19 +195,15 @@ export function DataTable<T>({
     ];
   }, [columns, selectable, t]);
 
-  const table = useReactTable({
+  const table = useTable({
+    features: dataTableFeatures,
     data,
     columns: allColumns,
     getRowId: getRowId ? (row) => getRowId(row) : undefined,
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    manualSorting: true,
-    rowCount: total,
     enableRowSelection: selectable,
-    state: { rowSelection: selection ?? {} },
+    state: { rowSelection: selection ?? NO_SELECTION },
     onRowSelectionChange: (updater) => {
-      const next = typeof updater === 'function' ? updater(selection ?? {}) : updater;
-      onSelectionChange?.(next);
+      onSelectionChange?.(functionalUpdate(updater, selection ?? NO_SELECTION));
     },
   });
 
@@ -276,7 +303,7 @@ export function DataTable<T>({
                     onRowClick && 'cursor-pointer',
                   )}
                 >
-                  {row.getVisibleCells().map((cell) => (
+                  {row.getAllCells().map((cell) => (
                     <TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>

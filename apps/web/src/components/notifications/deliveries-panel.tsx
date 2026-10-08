@@ -3,7 +3,7 @@
 import type { Delivery } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import {
   Select,
@@ -14,7 +14,6 @@ import {
   SelectValue,
 } from '@isbp/ui/select';
 import { Hint } from '@isbp/ui/tooltip';
-import type { ColumnDef } from '@tanstack/react-table';
 import { RefreshCwIcon, ScrollTextIcon, SearchXIcon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -46,7 +45,7 @@ export function DeliveriesPanel() {
   const { data, isLoading, isFetching, refetch } = useApiQuery<Page<Delivery>>(PATH, query);
   const filtered = Boolean(status || channel);
 
-  const columns = useMemo<ColumnDef<Delivery, unknown>[]>(
+  const columns = useMemo<DataTableColumn<Delivery>[]>(
     () => [
       {
         id: 'channel',

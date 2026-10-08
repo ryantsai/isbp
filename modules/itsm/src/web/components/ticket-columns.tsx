@@ -1,7 +1,7 @@
 'use client';
 
+import type { DataTableColumn } from '@isbp/ui/data-table';
 import { RelativeTime } from '@isbp/ui/relative-time';
-import type { ColumnDef } from '@tanstack/react-table';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -28,8 +28,8 @@ export function useTicketColumns(columns: readonly TicketColumn[]) {
   const t = useTranslations('itsm.columns');
   const format = useFormatter();
   const categoryLabel = useCategoryLabel();
-  return useMemo<ColumnDef<TicketListItem, unknown>[]>(() => {
-    const all: Record<TicketColumn, ColumnDef<TicketListItem, unknown>> = {
+  return useMemo<DataTableColumn<TicketListItem>[]>(() => {
+    const all: Record<TicketColumn, DataTableColumn<TicketListItem>> = {
       reference: {
         id: 'reference',
         header: t('reference'),

@@ -53,6 +53,7 @@
     "forMe": "自分",
     "forSomeoneElse": "他の人",
     "forHint": "直属の部下、またはアクセス管理者であれば誰でも申請できます。",
+    "preboardedHint": "{name} さんはまだ入社していません。承認されると、アクセスは初日に向けて準備され、オンボーディングされた時点で使えるようになります。",
     "howLong": "期間",
     "days": "{count} 日",
     "custom": "カスタム",
@@ -116,7 +117,9 @@
     "rejectedBecause": "却下理由:",
     "failure": {
       "role_deleted": "申請は承認されましたが、ロールが存在しません。",
-      "beneficiary_inactive": "申請は承認されましたが、対象者が無効になっています。"
+      "beneficiary_inactive": "申請は承認されましたが、対象者が無効になっています。",
+      "beneficiary_suspended": "申請は承認されましたが、その間に対象者が一時停止されたため、何も付与されていません。",
+      "beneficiary_offboarded": "申請は承認されましたが、その間に対象者がオフボーディングされたため、何も付与されていません。"
     },
     "withdraw": "取り下げ",
     "withdrawTitle": "この申請を取り下げますか？",

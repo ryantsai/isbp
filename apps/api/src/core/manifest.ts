@@ -44,7 +44,7 @@ const accessRequestGraph: WorkflowGraph = {
     {
       id: 'manager',
       type: 'approval',
-      name: { en: 'Manager approval', 'zh-TW': '主管核准', 'ja-JP': '上長の承認' },
+      name: { en: 'Manager approval', 'zh-TW': '主管簽核', 'ja-JP': '上長の承認' },
       approvers: [{ type: 'manager' }],
       mode: 'any',
       ifNoApprover: 'skip',
@@ -67,7 +67,7 @@ const accessRequestGraph: WorkflowGraph = {
     {
       id: 'owner',
       type: 'approval',
-      name: { en: 'Access owner approval', 'zh-TW': '權限擁有者核准', 'ja-JP': 'アクセス所有者の承認' },
+      name: { en: 'Access owner approval', 'zh-TW': '權限擁有者簽核', 'ja-JP': 'アクセス所有者の承認' },
       approvers: [
         {
           type: 'fact',

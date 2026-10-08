@@ -8,6 +8,7 @@ import { ChevronDownIcon, ShieldCheckIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
+import { useRoleText } from '@/components/roles/role-utils';
 import { useApiQuery } from '@/lib/api';
 
 interface RoleRow {
@@ -23,7 +24,7 @@ interface RoleRow {
 export function AccessCard() {
   const t = useTranslations('settings.access');
   const tc = useTranslations('common');
-  const tr = useTranslations('core.systemRoles');
+  const roleText = useRoleText();
   const format = useFormatter();
   const { data, isLoading } = useApiQuery<EffectivePermissions>('/me/permissions');
   const [open, setOpen] = useState<string | null>(null);
@@ -38,7 +39,7 @@ export function AccessCard() {
         byRole.get(s.role.id) ??
         ({
           id: s.role.id,
-          name: tr.has(`${s.role.key}.name`) ? tr(`${s.role.key}.name`) : s.role.name,
+          name: roleText(s.role).name,
           vias: [],
           scopes: [],
           expiresAt: null,
@@ -62,7 +63,7 @@ export function AccessCard() {
         permissions: [...permSet].sort(),
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [data, t, tc, tr]);
+  }, [data, t, tc, roleText]);
 
   const permissionCount = new Set((data?.sources ?? []).map((s) => s.permission)).size;
 

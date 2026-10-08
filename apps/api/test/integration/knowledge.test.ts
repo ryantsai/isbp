@@ -6,6 +6,8 @@ import { buildAuthContext } from '../../src/kernel/http/auth';
 import { hashPassword } from '../../src/kernel/passwords';
 import { toSessionUser } from '../../src/kernel/sessions';
 import { startWorker } from '../../src/kernel/worker';
+import { importGuide } from '@isbp/module-knowledge/server';
+import { guideArticles } from '@isbp/module-knowledge/schema';
 import { createHarness, type Harness, type LooseJson, PASSWORD, type Session } from './harness';
 
 let h: Harness;
@@ -104,6 +106,8 @@ describe('seed', () => {
   it('creates categories, articles in every state and indexes them directly; idempotent', async () => {
     const mod = h.kernel.registry.get('knowledge')!;
     const ctx = h.kernel.registry.context('knowledge');
+    // The seed publishes the user guide after the demo articles (the harness turns guide publishing off).
+    await h.kernel.settings.update(mod.manifest, { 'guide.publish': true }, null);
     await mod.seed!(ctx);
     const first = await h.call(editor, 'GET', `${API}/articles?pageSize=100`);
     expect(first.body.total).toBeGreaterThanOrEqual(25);
@@ -147,11 +151,61 @@ describe('seed', () => {
       global.body.hits.some((hit: { moduleId: string; href: string }) => hit.moduleId === 'knowledge'),
     ).toBe(true);
 
+    // The demo's seven categories, plus "Using IS Big Platform" (the user guide).
     const cats = await h.call(reader, 'GET', `${API}/categories`);
-    expect(cats.body.items.length).toBe(7);
+    expect(cats.body.items.length).toBe(8);
     expect(
       cats.body.items.find((c: { key: string }) => c.key === 'network-vpn').articleCount,
     ).toBeGreaterThan(1);
+  });
+});
+
+describe('user guide', () => {
+  it("is published once, in its category, and opened in the reader's language", async () => {
+    const ctx = h.kernel.registry.context('knowledge');
+    // The seed imported it after the demo articles: nothing left to do.
+    expect(await importGuide(ctx)).toBe(0);
+
+    const start = await h.call(reader, 'GET', `${API}/guide/start-here?locale=en`);
+    expect(start.status).toBe(200);
+    expect(start.body.href).toBe(`/knowledge/${start.body.reference}`);
+    const article = await h.call(reader, 'GET', `${API}/articles/${start.body.reference}`);
+    expect(article.body).toMatchObject({
+      status: 'published',
+      locale: 'en',
+      audience: 'everyone',
+      tags: ['isbp-guide'],
+      source: { type: 'guide', id: 'start-here' },
+      category: { key: 'using-isbp' },
+    });
+    // Links between guides became in-app links, screenshots web paths.
+    expect(article.body.body).toContain('](/knowledge/guide/');
+    expect(article.body.body).not.toContain('../../../apps/web/public');
+
+    // A language without a translation falls back to English; a translation joins the English article's group.
+    const zh = await h.call(reader, 'GET', `${API}/guide/start-here?locale=zh-TW`);
+    expect(zh.status).toBe(200);
+    const zhArticle = await h.call(reader, 'GET', `${API}/articles/${zh.body.reference}`);
+    if (zhArticle.body.locale === 'zh-TW')
+      expect(zhArticle.body.translations.map((t: { id: string }) => t.id)).toContain(article.body.id);
+    else expect(zh.body.reference).toBe(start.body.reference);
+
+    // Every guide is for everyone (staff guides serve roles that don't read internal articles); unknown ones 404.
+    expect((await h.call(reader, 'GET', `${API}/guide/service-desk`)).status).toBe(200);
+    expect((await h.call(reader, 'GET', `${API}/guide/no-such-guide`)).status).toBe(404);
+
+    // A new version of a guide is republished over the same article, as a new version.
+    const faq = (await h.call(reader, 'GET', `${API}/guide/faq?locale=en`)).body.reference as string;
+    const before = (await h.call(editor, 'GET', `${API}/articles/${faq}/versions`)).body.items.length;
+    await h.kernel.db
+      .update(guideArticles)
+      .set({ hash: 'outdated' })
+      .where(and(eq(guideArticles.slug, 'faq'), eq(guideArticles.locale, 'en')));
+    expect(await importGuide(ctx)).toBe(1);
+    expect((await h.call(reader, 'GET', `${API}/guide/faq?locale=en`)).body.reference).toBe(faq);
+    expect((await h.call(editor, 'GET', `${API}/articles/${faq}/versions`)).body.items.length).toBe(
+      before + 1,
+    );
   });
 });
 

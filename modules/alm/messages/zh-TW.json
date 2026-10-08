@@ -12,6 +12,28 @@
     "application": "應用程式",
     "release": "發行版本"
   },
+  "systemRoles": {
+    "alm-viewer": {
+      "name": "應用程式檢視者",
+      "description": "瀏覽應用程式、環境、發行版本與部署紀錄。擁有者與團隊成員仍可編輯自己的應用程式。"
+    },
+    "alm-release-manager": {
+      "name": "發行經理",
+      "description": "規劃與編輯任何應用程式的發行版本，並記錄部署"
+    },
+    "alm-pipeline": {
+      "name": "CI/CD 管線",
+      "description": "供 CI/CD 工具的 API 用戶端使用：透過部署 API 記錄部署"
+    },
+    "alm-manager": {
+      "name": "應用程式管理員",
+      "description": "建立與編輯任何應用程式、環境、程式碼儲存庫與發行版本；記錄部署"
+    },
+    "alm-admin": {
+      "name": "應用程式模組管理員",
+      "description": "應用程式模組的所有功能，包括略過變更政策（列入稽核日誌）"
+    }
+  },
   "permissions": {
     "appsRead": "檢視應用程式、環境、發行版本與部署紀錄",
     "appsManage": "建立與編輯任何應用程式、環境與程式碼儲存庫",
@@ -190,9 +212,9 @@
     "stageFilter": "階段：{stages}",
     "neverDeployed": "尚未部署",
     "empty": "沒有應用程式",
-    "emptyMine": "你目前沒有負責的應用程式",
+    "emptyMine": "您目前沒有負責的應用程式",
     "emptyFiltered": "沒有符合篩選條件的項目。",
-    "emptyHint": "你負責的、或你所屬團隊交付的應用程式會顯示在這裡。",
+    "emptyHint": "您負責的、或您所屬團隊交付的應用程式會顯示在這裡。",
     "liveCount": "{count, plural, other {# 個應用程式}}"
   },
   "form": {
@@ -232,7 +254,7 @@
     "clear": "移除組態項目"
   },
   "app": {
-    "notFound": "此應用程式不存在，或你沒有檢視權限",
+    "notFound": "此應用程式不存在，或您沒有檢視權限",
     "edit": "編輯",
     "newRelease": "新增發行版本",
     "recordDeployment": "記錄部署",
@@ -378,7 +400,7 @@
     "recorded": "已記錄 {version} 部署到{environment}"
   },
   "release": {
-    "notFound": "此發行版本不存在，或你沒有檢視權限",
+    "notFound": "此發行版本不存在，或您沒有檢視權限",
     "plannedFor": "預定",
     "releasedOn": "發行於",
     "edit": "編輯",
@@ -480,8 +502,8 @@
     "overridden": "已略過政策"
   },
   "dashboardCard": {
-    "title": "你的發行版本",
-    "description": "你負責或交付的 {count, plural, other {# 個應用程式}}即將發行的版本",
+    "title": "您的發行版本",
+    "description": "您負責或交付的 {count, plural, other {# 個應用程式}}即將發行的版本",
     "open": "行事曆",
     "none": "未來三週沒有預定的發行。"
   },

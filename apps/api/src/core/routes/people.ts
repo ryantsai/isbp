@@ -25,10 +25,11 @@ import {
   type ModuleRouter,
   pageSchema,
 } from '@isbp/sdk/server';
-import { and, asc, eq, ilike, inArray, or } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { hashPassword, verifyPassword } from '../../kernel/passwords';
 import { getKernel } from '../kernel-ref';
+import { reachFilter } from '../util';
 import type { AccessService } from '../services/access';
 import type { UserService } from '../services/users';
 import { meDto } from './auth';
@@ -39,7 +40,10 @@ export function meRoutes(app: ModuleRouter, ctx: ModuleContext, access: AccessSe
   const kernel = getKernel();
   const tags = ['Me'];
 
-  /** Colleague lookup for pickers (form "person" fields, delegation): active people, minimal profile. */
+  /**
+   * Colleague lookup for pickers (form "person" fields, delegation): active people, minimal profile. With
+   * `includePreboarded`, also the pre-boarded people the caller may request access for (so it is ready on day one).
+   */
   app.get(
     '/people/lookup',
     {
@@ -51,8 +55,20 @@ export function meRoutes(app: ModuleRouter, ctx: ModuleContext, access: AccessSe
       },
     },
     async (req) => {
-      const { q, ids } = req.query;
+      const { q, ids, includePreboarded } = req.query;
       if (!q && !ids?.length) return { items: [] };
+      const me = req.auth.user?.id;
+      // The same people AccessRequestService.assertMayRequestFor accepts: direct reports, or role-assign reach.
+      const assignReach = req.auth.reach('core.roles.assign');
+      const preboarded =
+        includePreboarded && me
+          ? and(
+              eq(users.status, 'pending'),
+              assignReach.global
+                ? undefined
+                : or(eq(users.managerId, me), reachFilter(assignReach, users.departmentId, users.id, 'user')),
+            )
+          : undefined;
       const rows = await ctx.db
         .select({
           id: users.id,
@@ -61,12 +77,13 @@ export function meRoutes(app: ModuleRouter, ctx: ModuleContext, access: AccessSe
           jobTitle: users.jobTitle,
           avatarUrl: users.avatarUrl,
           department: departments.name,
+          status: sql<'active' | 'pending'>`${users.status}`,
         })
         .from(users)
         .leftJoin(departments, eq(departments.id, users.departmentId))
         .where(
           and(
-            eq(users.status, 'active'),
+            preboarded ? or(eq(users.status, 'active'), preboarded) : eq(users.status, 'active'),
             ids?.length ? inArray(users.id, ids) : undefined,
             q
               ? or(

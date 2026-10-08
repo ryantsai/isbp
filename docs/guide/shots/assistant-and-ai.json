@@ -1,0 +1,42 @@
+[
+  {
+    "name": "assistant-and-ai-panel",
+    "as": "admin",
+    "path": "/",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": { "role": "button", "name": { "en": "Assistant", "zh-TW": "助理", "ja-JP": "アシスタント" } }
+      },
+      { "wait": 1500 }
+    ],
+    "clip": "[role=\"dialog\"]"
+  },
+  {
+    "name": "assistant-and-ai-change-set",
+    "as": "admin",
+    "path": "/assistant/change-sets?q=CS-00001",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "role": "link",
+          "name": {
+            "en": "Laptop requests over 60 000 TWD",
+            "zh-TW": "Laptop requests over 60 000 TWD",
+            "ja-JP": "Laptop requests over 60 000 TWD"
+          }
+        }
+      },
+      { "wait": 2000 }
+    ],
+    "clip": null
+  },
+  {
+    "name": "assistant-and-ai-mcp",
+    "as": "admin",
+    "path": "/admin/ai?tab=mcp",
+    "waitFor": "main h1",
+    "clip": null
+  }
+]

@@ -467,7 +467,7 @@ export async function seedPhase1(kernel: Kernel) {
       {
         id: 'manager',
         type: 'approval',
-        name: t3('Manager approval', '主管核准', '上長の承認'),
+        name: t3('Manager approval', '主管簽核', '上長の承認'),
         approvers: [{ type: 'manager' }],
         mode: 'any',
         ifNoApprover: 'skip',
@@ -515,7 +515,7 @@ export async function seedPhase1(kernel: Kernel) {
               {
                 id: 'owner',
                 type: 'approval',
-                name: t3('Access owner approval', '權限擁有者核准', 'アクセス所有者の承認'),
+                name: t3('Access owner approval', '權限擁有者簽核', 'アクセス所有者の承認'),
                 approvers: [
                   {
                     type: 'fact',
@@ -576,7 +576,7 @@ export async function seedPhase1(kernel: Kernel) {
       {
         id: 'manager',
         type: 'approval',
-        name: t3('Manager approval', '主管核准', '上長の承認'),
+        name: t3('Manager approval', '主管簽核', '上長の承認'),
         approvers: [{ type: 'manager' }],
         mode: 'any',
         ifNoApprover: 'skip',
@@ -613,7 +613,7 @@ export async function seedPhase1(kernel: Kernel) {
       {
         id: 'fyi',
         type: 'notify',
-        name: t3('Tell the service desk', '通知服務台', 'サービスデスクに通知'),
+        name: t3('Tell the service desk', '通知服務台', 'サービス デスクに通知'),
         recipients: [{ type: 'group', groupKey: 'service-desk' }],
         message: t3(
           'Approved — please order and prepare the equipment.',
@@ -628,7 +628,7 @@ export async function seedPhase1(kernel: Kernel) {
       {
         id: 'manager',
         type: 'approval',
-        name: t3('Manager approval', '主管核准', '上長の承認'),
+        name: t3('Manager approval', '主管簽核', '上長の承認'),
         approvers: [{ type: 'manager' }],
         mode: 'any',
         ifNoApprover: 'skip',
@@ -732,7 +732,7 @@ export async function seedPhase1(kernel: Kernel) {
   await as(admin.id, async (auth) => {
     const settings: [string, 'low' | 'medium' | 'high', number | null, string | null, string | null][] = [
       ['announcements-editor', 'low', 180, admin.id, null],
-      ['service-desk-agent', 'low', null, helpdesk.id, null],
+      ['directory-lookup', 'low', null, helpdesk.id, null],
       ['security-auditor', 'medium', 90, auditor.id, null],
       ['module-admin', 'high', 30, admin.id, wfIds['privileged-access']!],
       ['workflow-admin', 'medium', 180, admin.id, null],
@@ -946,7 +946,7 @@ export async function seedPhase1(kernel: Kernel) {
         text: t3(
           'Report as soon as possible — the service desk will lock the device and revoke its sessions.',
           '請盡快通報，服務台將鎖定裝置並撤銷其工作階段。',
-          'できるだけ早く報告してください。サービスデスクが端末をロックしセッションを無効化します。',
+          'できるだけ早く報告してください。サービス デスクが端末をロックしセッションを無効化します。',
         ),
       },
       {
@@ -1185,7 +1185,7 @@ export async function seedPhase1(kernel: Kernel) {
     appRoleIds.get('hr-portal:hr-viewer')!,
     appRoleIds.get('expense-app:claims-approver')!,
     appRoleIds.get('finance-erp:ap-approver')!,
-    platformRole('service-desk-agent'),
+    platformRole('directory-lookup'),
   ];
   for (const [i, p] of pool.entries()) {
     const roleId = choices[i % choices.length]!;

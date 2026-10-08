@@ -1,0 +1,26 @@
+[
+  {
+    "name": "projects-board",
+    "as": "admin",
+    "path": "/projects/NET?view=board",
+    "waitFor": "main h1",
+    "steps": [{ "wait": 800 }],
+    "clip": null
+  },
+  {
+    "name": "projects-timeline",
+    "as": "admin",
+    "path": "/projects/NET?view=timeline",
+    "waitFor": "main h1",
+    "steps": [{ "wait": 800 }],
+    "clip": null
+  },
+  {
+    "name": "projects-workload",
+    "as": "admin",
+    "path": "/projects/NET?view=workload",
+    "waitFor": "main h1",
+    "steps": [{ "wait": 800 }],
+    "clip": null
+  }
+]

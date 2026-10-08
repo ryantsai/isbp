@@ -74,7 +74,7 @@
       "permissions": "Permissions"
     },
     "name": "Name",
-    "namePlaceholder": "e.g. Service desk agent",
+    "namePlaceholder": "e.g. HR partner",
     "key": "Key",
     "keyHint": "A stable identifier used by integrations. Lowercase letters, digits, “-” and “_”.",
     "description": "Description",

@@ -1,13 +1,13 @@
 {
   "title": "表單",
-  "description": "建立人員在申請入口填寫的申請表單，可包含條件式欄位，並可選擇搭配簽核工作流程。",
+  "description": "建立人員在申請入口填寫的申請表單，可包含條件式欄位，並可選擇搭配簽核流程。",
   "add": "新增表單",
   "searchPlaceholder": "依名稱或代碼搜尋表單…",
   "showArchived": "顯示已封存",
   "noAccess": "您沒有管理表單的權限。",
   "noApproval": "不需簽核",
   "audienceGroups": "{count, plural, other {開放給 # 個群組}}",
-  "pendingCount": "{count, plural, other {# 件等待核准}}",
+  "pendingCount": "{count, plural, other {# 件待簽核}}",
   "columns": {
     "form": "表單",
     "category": "類別",
@@ -31,7 +31,7 @@
   },
   "submissionStatus": {
     "submitted": "已送出",
-    "pending": "等待核准",
+    "pending": "待簽核",
     "approved": "已核准",
     "rejected": "已駁回",
     "cancelled": "已撤回"
@@ -117,7 +117,7 @@
       "archived": "請先還原表單再發布",
       "noFields": "請至少加入一個欄位再發布",
       "issues": "{count, plural, other {請先修正 # 個問題再發布}}",
-      "workflow": "請先發布所連結的簽核工作流程",
+      "workflow": "請先發布所連結的簽核流程",
       "upToDate": "第 {version} 版的欄位已是最新內容。設定變更在儲存後即生效。"
     },
     "tabs": {

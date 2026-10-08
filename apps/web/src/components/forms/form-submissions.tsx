@@ -4,10 +4,9 @@ import type { SubmissionStatus, SubmissionSummary } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import type { ColumnDef } from '@tanstack/react-table';
 import { InboxIcon, SearchXIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -37,7 +36,7 @@ export function FormSubmissions({ formId }: { formId: string }) {
     },
   );
 
-  const columns = useMemo<ColumnDef<SubmissionSummary, unknown>[]>(
+  const columns = useMemo<DataTableColumn<SubmissionSummary>[]>(
     () => [
       {
         id: 'reference',

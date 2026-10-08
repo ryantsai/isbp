@@ -1,12 +1,26 @@
 {
   "meta": {
     "name": "排程作業",
-    "description": "依排程執行 HTTP 呼叫、SQL 工作、沙箱指令碼與模組工作，提供重試、執行紀錄、即時記錄與警示"
+    "description": "依排程執行 HTTP 呼叫、SQL 工作、沙箱指令碼與模組工作，提供重試、執行紀錄、即時記錄檔與警示"
   },
   "nav": { "group": "排程作業", "overview": "總覽", "jobs": "作業", "runs": "執行紀錄" },
   "entities": { "job": "排程作業" },
+  "systemRoles": {
+    "scheduler-viewer": {
+      "name": "排程作業檢視者",
+      "description": "檢視作業、執行紀錄、記錄檔與監控儀表板"
+    },
+    "scheduler-operator": {
+      "name": "排程作業操作員",
+      "description": "建立 HTTP 作業與模組工作類型的作業；編輯、執行與取消自己及團隊的作業；執行或取消任何作業"
+    },
+    "scheduler-admin": {
+      "name": "排程作業管理員",
+      "description": "排程作業的所有功能，包括 SQL 作業與指令碼作業"
+    }
+  },
   "permissions": {
-    "jobsRead": "檢視排程作業、執行紀錄、記錄與監控儀表板",
+    "jobsRead": "檢視排程作業、執行紀錄、記錄檔與監控儀表板",
     "jobsCreate": "建立作業；編輯、執行、取消及刪除自己或所屬群組擁有的作業",
     "jobsManage": "編輯、啟用、停用及刪除任何作業",
     "jobsRun": "執行及取消任何作業",
@@ -17,7 +31,7 @@
     "allowedHosts": "HTTP 作業可呼叫的私人主機",
     "allowedHostsHelp": "每行一個主機名稱或 *.suffix。除非主機列於此處，否則會拒絕私人、回送及內部位址。",
     "retentionDays": "保留執行紀錄（天）",
-    "retentionDaysHelp": "每晚刪除早於此天數的執行與其記錄。每個作業的最新一次執行一律保留。",
+    "retentionDaysHelp": "每晚刪除早於此天數的執行與其記錄檔。每個作業的最新一次執行一律保留。",
     "misfireGraceMinutes": "錯過排程寬限（分鐘）",
     "misfireGraceMinutesHelp": "排程器停止期間錯過的執行，若延遲未超過此時間仍會執行一次；更早的則記錄為已錯過。"
   },
@@ -294,16 +308,16 @@
     "finished": "已結束"
   },
   "log": {
-    "title": "記錄",
+    "title": "記錄檔",
     "live": "即時 · {count, plural, other {# 行}}",
     "lines": "{count, plural, other {# 行}}",
     "follow": "自動捲動",
     "copy": "複製",
-    "copied": "已複製記錄",
-    "copyFailed": "無法複製記錄",
+    "copied": "已複製記錄檔",
+    "copyFailed": "無法複製記錄檔",
     "download": "下載",
     "waiting": "正在等待第一行記錄…",
-    "empty": "此執行沒有寫入記錄。",
+    "empty": "此執行沒有寫入記錄檔。",
     "level": { "info": "資訊", "warn": "警告", "error": "錯誤" }
   },
   "secret": { "stored": "已儲存（隱藏）", "replace": "取代", "secret": "機密" },

@@ -15,13 +15,14 @@ import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { AuditIcon, useActionLabel } from '@/components/audit-action';
 import { RelativeTime } from '@/components/relative-time';
+import { useRoleText } from '@/components/roles/role-utils';
 import { useApiQuery } from '@/lib/api';
 
 /** Role assignments granted to the group (all members inherit them). */
 export function GroupRolesPanel({ groupId }: { groupId: string }) {
   const t = useTranslations('groups.roles');
   const tc = useTranslations('common');
-  const tr = useTranslations('core.systemRoles');
+  const roleText = useRoleText();
   const format = useFormatter();
   const canAssign = useCan('core.roles.assign');
   const { data, isLoading } = useApiQuery<Page<RoleAssignment>>('/role-assignments', {
@@ -30,8 +31,7 @@ export function GroupRolesPanel({ groupId }: { groupId: string }) {
   });
   const items = data?.items ?? [];
 
-  const roleName = (a: RoleAssignment) =>
-    tr.has(`${a.role.key}.name`) ? tr(`${a.role.key}.name`) : a.role.name;
+  const roleName = (a: RoleAssignment) => roleText(a.role).name;
   const scopeLabel = (a: RoleAssignment) => {
     if (a.scopeType === 'department')
       return t('scope', { type: tc('scope_values.department'), label: a.scope.departmentName ?? '—' });

@@ -3,12 +3,11 @@
 import type { Page } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import type { ColumnDef } from '@tanstack/react-table';
 import { BotIcon, HistoryIcon, ShieldAlertIcon, TriangleAlertIcon, UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -46,7 +45,7 @@ export function DeploymentsTable({
     pageSize: state.pageSize,
   });
 
-  const columns = useMemo<ColumnDef<Deployment, unknown>[]>(
+  const columns = useMemo<DataTableColumn<Deployment>[]>(
     () => [
       {
         id: 'environment',

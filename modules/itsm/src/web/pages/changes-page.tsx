@@ -23,7 +23,7 @@ import { CalendarRangeIcon, GitCompareArrowsIcon, ListIcon, PlusIcon } from 'luc
 import { useRouter } from 'next/navigation';
 import { useNow, useTimeZone, useTranslations } from 'next-intl';
 import { useState } from 'react';
-import type { TicketListItem } from '../../contracts';
+import { NEW_CHANGE_PERMISSION, type TicketListItem } from '../../contracts';
 import { ChangeCalendar } from '../components/change-calendar';
 import { NewChangeDialog } from '../components/new-change-dialog';
 import { type TicketColumn, useTicketColumns } from '../components/ticket-columns';
@@ -93,7 +93,7 @@ function ChangeList() {
 /** Changes: the calendar (month grid or agenda) and the list. */
 export default function ChangesPage() {
   const t = useTranslations('itsm.changes');
-  const canManage = useCan('itsm.changes.manage');
+  const canManage = useCan(NEW_CHANGE_PERMISSION);
   const [state, set] = useListState();
   const [creating, setCreating] = useState(false);
   const timeZone = useTimeZone() ?? 'UTC';

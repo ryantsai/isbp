@@ -15,6 +15,8 @@ export type AssignmentSourceRow = {
   role_id: string;
   role_key: string;
   role_name: string;
+  /** Set for roles a module's manifest declares. */
+  role_module_id: string | null;
   permission: string;
   user_id: string | null;
   group_id: string | null;
@@ -57,7 +59,8 @@ export class RbacService implements Pick<RbacReader, 'permissionsFor'> {
 
   async assignmentSources(userId: string): Promise<AssignmentSourceRow[]> {
     const result = await this.db.execute<AssignmentSourceRow>(sql`
-      select ra.id as assignment_id, r.id as role_id, r.key as role_key, r.name as role_name, rp.permission,
+      select ra.id as assignment_id, r.id as role_id, r.key as role_key, r.name as role_name,
+             r.module_id as role_module_id, rp.permission,
              ra.user_id, ra.group_id, g.key as group_key, g.name as group_name,
              ra.scope_type, ra.scope_department_id, d.path as department_path, d.name as department_name,
              ra.scope_record_type, ra.scope_record_id, ra.expires_at

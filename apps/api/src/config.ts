@@ -72,7 +72,7 @@ const schema = z
     /** Allowed container images, comma-separated. */
     SANDBOX_IMAGES: z
       .string()
-      .default('python:3.13-alpine,node:24-alpine,mcr.microsoft.com/powershell:lts-alpine-3.20,alpine:3.22'),
+      .default('python:3.14-alpine,node:24-alpine,mcr.microsoft.com/powershell:lts-alpine-3.20,alpine:3.24'),
     SANDBOX_DOCKER_HOST: z.string().default('unix:///var/run/docker.sock'),
     SANDBOX_K8S_NAMESPACE: z.string().default('isbp-sandbox'),
     SANDBOX_K8S_API: z.string().default('https://kubernetes.default.svc'),

@@ -12,6 +12,11 @@ export const migrations: Migration[] = [
     hash: 'ed32cefcd6dd43b42bff50186fc58762e04f7434fa10f86c48de4e817cf22600',
     sql: 'CREATE INDEX "articles_updated_idx" ON "knowledge"."articles" USING btree ("updated_at","id");',
   },
+  {
+    tag: '0002_fearless_post',
+    hash: 'e57e751fa7d5b9f7dab9987bc01d907a325f6c1b76a866148603a0127da10958',
+    sql: 'CREATE TABLE "knowledge"."guide_articles" (\n\t"slug" varchar(64) NOT NULL,\n\t"locale" varchar(10) NOT NULL,\n\t"article_id" uuid NOT NULL,\n\t"hash" varchar(64) NOT NULL,\n\t"updated_at" timestamp with time zone DEFAULT now() NOT NULL,\n\tCONSTRAINT "guide_articles_slug_locale_pk" PRIMARY KEY("slug","locale")\n);\n--> statement-breakpoint\nALTER TABLE "knowledge"."guide_articles" ADD CONSTRAINT "guide_articles_article_id_articles_id_fk" FOREIGN KEY ("article_id") REFERENCES "knowledge"."articles"("id") ON DELETE cascade ON UPDATE no action;',
+  },
 ];
 
 export default migrations;

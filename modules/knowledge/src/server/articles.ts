@@ -62,6 +62,8 @@ type CategoryRow = typeof categories.$inferSelect;
 /** Document type of articles in the shared semantic index. */
 export const INDEX_TYPE = 'knowledge.article';
 export const PUBLISH_TRIGGER = 'knowledge.publish';
+/** Score multiplier of the user guide's articles in search (they rank below our own of similar relevance). */
+const GUIDE_WEIGHT = 0.5;
 
 export function viewerOf(auth: AuthContext): Viewer {
   return {
@@ -516,6 +518,51 @@ export class ArticleService {
         { tx },
       );
       return a;
+    });
+  }
+
+  /**
+   * Publishes text maintained outside the knowledge base — the user guide, reviewed in the repository — as the live
+   * version: creates the article on first import, otherwise replaces its text, category, audience and tags and records
+   * a new version. Review workflows decide about text written here, so this doesn't go through them.
+   */
+  async publishMaintained(
+    articleId: string | null,
+    input: z.output<typeof createArticleSchema>,
+    auth: AuthContext,
+  ): Promise<ArticleRow> {
+    const [existing] = articleId
+      ? await this.ctx.db.select().from(articles).where(eq(articles.id, articleId))
+      : [];
+    const row = existing ?? (await this.create(input, auth, null));
+    return this.ctx.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(articles)
+        .set({
+          title: input.title,
+          summary: input.summary,
+          body: input.body,
+          categoryId: input.categoryId ?? null,
+          audience: input.audience,
+          tags: [...new Set(input.tags)],
+          source: input.source ?? null,
+        })
+        .where(eq(articles.id, row.id))
+        .returning();
+      if (existing)
+        await this.ctx.audit.record(
+          {
+            action: 'knowledge.article.updated',
+            entityType: 'knowledge.article',
+            entityId: row.id,
+            entityLabel: this.label(updated!),
+            metadata: { source: input.source ?? null },
+          },
+          { tx },
+        );
+      return updated!.status === 'published'
+        ? this.snapshot(tx, updated!, null)
+        : this.markPublished(tx, updated!, null);
     });
   }
 
@@ -1007,6 +1054,8 @@ export class ArticleService {
         body: a.body,
         tags: a.tags,
         similarity: hitById.get(a.id)!.similarity,
+        // The user guide explains the platform; for an IT problem our own articles come first.
+        weight: a.source?.type === 'guide' ? GUIDE_WEIGHT : 1,
       })),
     );
 

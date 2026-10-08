@@ -3,7 +3,7 @@
 import type { Page } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
@@ -12,7 +12,6 @@ import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import type { ColumnDef } from '@tanstack/react-table';
 import { BotIcon, ScrollTextIcon, SearchXIcon, UserIcon, ZapIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
@@ -157,7 +156,7 @@ export default function LogsPage() {
   });
   const filtered = FILTERS.some((k) => k !== 'period' && str(k));
 
-  const columns = useMemo<ColumnDef<CallDto, unknown>[]>(
+  const columns = useMemo<DataTableColumn<CallDto>[]>(
     () => [
       {
         id: 'createdAt',

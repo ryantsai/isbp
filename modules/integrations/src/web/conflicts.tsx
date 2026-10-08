@@ -2,7 +2,7 @@
 
 import type { Page } from '@isbp/sdk';
 import { Button } from '@isbp/ui/button';
-import { DataTable, type ListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, type ListState } from '@isbp/ui/data-table';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,6 @@ import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import type { ColumnDef } from '@tanstack/react-table';
 import { GitCompareArrowsIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
@@ -238,7 +237,7 @@ export function ConflictsTable({
   });
   const open = typeof state.conflict === 'string' ? state.conflict : null;
 
-  const columns = useMemo<ColumnDef<ConflictSummary, unknown>[]>(
+  const columns = useMemo<DataTableColumn<ConflictSummary>[]>(
     () => [
       {
         id: 'local',

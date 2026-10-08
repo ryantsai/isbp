@@ -8,6 +8,16 @@
     "overview": "Integrations",
     "conflicts": "Sync conflicts"
   },
+  "systemRoles": {
+    "integrations-viewer": {
+      "name": "Integrations viewer",
+      "description": "See connections, sync profiles, runs, linked records and conflicts"
+    },
+    "integrations-admin": {
+      "name": "Integrations administrator",
+      "description": "Set up connections and sync profiles for every syncable entity, run syncs and resolve conflicts"
+    }
+  },
   "permissions": {
     "connectionsRead": "See connections, sync profiles, runs, linked records and conflicts",
     "connectionsManage": "Add, edit and test connections, set up sync profiles and run syncs",

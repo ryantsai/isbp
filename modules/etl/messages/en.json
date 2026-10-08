@@ -9,6 +9,20 @@
     "pipelines": "Pipelines",
     "logs": "Call log"
   },
+  "systemRoles": {
+    "etl-viewer": {
+      "name": "Data APIs viewer",
+      "description": "See Data APIs, their versions, docs and execution logs, and ETL pipelines with their runs"
+    },
+    "etl-developer": {
+      "name": "Data APIs developer",
+      "description": "Build, test, publish and call Data APIs; build, run and schedule ETL pipelines"
+    },
+    "etl-consumer": {
+      "name": "Data APIs consumer",
+      "description": "Call published Data APIs that allow signed-in people (grant on one endpoint to limit it)"
+    }
+  },
   "permissions": {
     "endpointsRead": "See Data APIs, their versions, docs and execution logs",
     "endpointsManage": "Create, edit, test, publish and retire Data APIs",
@@ -254,7 +268,7 @@
     "access": "Access",
     "accessHint": "Who may call the published versions. Changes apply at once; no new version is needed.",
     "allowUsersHint": "People need the permission to call Data APIs, globally or on this endpoint.",
-    "noClients": "No API clients exist yet. An administrator creates them under Applications & API clients.",
+    "noClients": "No API clients exist yet. An administrator creates them under Administration → API clients.",
     "revoked": "revoked",
     "rateLimitHint": "Leave empty for the default. Now: {n} calls per caller per minute.",
     "unsaved": "Unsaved changes",

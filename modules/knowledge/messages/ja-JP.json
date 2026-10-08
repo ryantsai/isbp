@@ -8,6 +8,20 @@
     "manage": "記事の管理",
     "categories": "カテゴリ"
   },
+  "systemRoles": {
+    "knowledge-reader": {
+      "name": "ナレッジ閲覧者",
+      "description": "公開済みのセルフサービス記事を閲覧します (既定ですべてのユーザーに付与)"
+    },
+    "knowledge-agent": {
+      "name": "ナレッジ担当者",
+      "description": "社内向け記事を閲覧し、下書きを作成してレビューに提出します"
+    },
+    "knowledge-editor": {
+      "name": "ナレッジ編集者",
+      "description": "記事の公開、廃止、復元、すべての記事の編集、カテゴリの管理を行います"
+    }
+  },
   "permissions": {
     "read": "公開済みのセルフサービス記事の閲覧",
     "readInternal": "社内向け（エージェント専用）記事の閲覧",
@@ -18,7 +32,9 @@
   },
   "settings": {
     "reviewIntervalDays": "公開後にレビューするまでの日数（0 = 既定のレビュー日なし）",
-    "reminderRepeatDays": "期限切れレビューの通知を N 日ごとに繰り返す"
+    "reminderRepeatDays": "期限切れレビューの通知を N 日ごとに繰り返す",
+    "guidePublish": "ユーザー ガイドを公開する",
+    "guidePublishHelp": "ナレッジ ベースに「IS Big Platform の使い方」(プラットフォームのユーザー ガイド、全言語) を掲載し、新しいバージョンごとに更新します。オフにすると公開と更新が止まります。削除するには、その記事を廃止してください。"
   },
   "portal": {
     "browse": {
@@ -130,7 +146,7 @@
     "pageOf": "{page} / {pages} ページ"
   },
   "article": {
-    "notFound": "この記事は存在しないか、表示する権限がありません。",
+    "notFound": "この記事は存在しないか、表示するアクセス許可がありません。",
     "backHome": "ナレッジ ベースに戻る",
     "category": "カテゴリ",
     "updated": "更新",
@@ -156,7 +172,8 @@
     "bannerReviewDue": "この記事のレビュー期限は {date} でした。内容が正しいことを確認してから、新しいレビュー日を設定してください。",
     "deleteTitle": "この記事を削除しますか?",
     "deleteDescription": "{reference} とそのバージョン履歴は完全に削除されます。履歴を残すには廃止してください。",
-    "syncedFrom": "{reference} から同期"
+    "syncedFrom": "{reference} から同期",
+    "fromGuide": "この記事は IS Big Platform ユーザー ガイドの一部で、プラットフォームと一緒に更新されます。ここで編集した内容は、新しいバージョンのガイドが提供されると置き換えられます。"
   },
   "feedback": {
     "question": "この記事は役に立ちましたか?",
@@ -182,7 +199,7 @@
   "manage": {
     "title": "記事の管理",
     "description": "記事の作成、レビュー、最新状態の維持。",
-    "noAccess": "ナレッジ記事を作成する権限が必要です。",
+    "noAccess": "ナレッジ記事を作成するアクセス許可が必要です。",
     "search": "タイトル、概要、KB 番号で検索…",
     "tabs": {
       "mine": "自分の下書き",
@@ -267,7 +284,7 @@
   "categoriesAdmin": {
     "title": "ナレッジ カテゴリ",
     "description": "ナレッジのホームで記事をまとめるトピック。",
-    "noAccess": "ナレッジ カテゴリを管理する権限が必要です。",
+    "noAccess": "ナレッジ カテゴリを管理するアクセス許可が必要です。",
     "add": "新しいカテゴリ",
     "createTitle": "新しいカテゴリ",
     "editTitle": "カテゴリの編集",
@@ -321,5 +338,10 @@
       "zh-TW": "繁体字中国語",
       "ja-JP": "日本語"
     }
+  },
+  "guide": {
+    "notFound": "このガイドは利用できません。",
+    "notFoundHint": "まだ公開されていない可能性があります。数分後にもう一度お試しいただくか、ナレッジ ベースを参照してください。",
+    "opening": "ガイドを開いています…"
   }
 }

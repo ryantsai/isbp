@@ -5,6 +5,20 @@
   },
   "nav": { "cis": "Configuration items" },
   "entities": { "ci": "Configuration item" },
+  "systemRoles": {
+    "cmdb-service-reader": {
+      "name": "Business service reader",
+      "description": "See the list of business services, e.g. to name the affected service when reporting an issue (granted to everyone by default)"
+    },
+    "cmdb-viewer": {
+      "name": "CMDB viewer",
+      "description": "Browse configuration items, their relationships and impact analysis"
+    },
+    "cmdb-manager": {
+      "name": "CMDB manager",
+      "description": "Create, edit, retire and delete configuration items, relationships and classes"
+    }
+  },
   "permissions": {
     "cisRead": "View configuration items, their relationships and impact analysis",
     "cisManage": "Create, edit, retire and delete configuration items and their relationships",

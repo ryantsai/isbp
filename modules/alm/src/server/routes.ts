@@ -416,7 +416,7 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
         response: { 200: readinessSchema },
       },
     },
-    async (req) => s.releases.readiness(req.params.id, req.query.changeReference),
+    async (req) => s.releases.readiness(req.params.id, req.auth, req.query.changeReference),
   );
 
   /* ───────────── deployments ───────────── */

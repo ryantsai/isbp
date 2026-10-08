@@ -20,7 +20,7 @@ import {
 } from '@isbp/sdk/server';
 import { asc, eq } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
-import { Counter } from 'prom-client';
+import { Counter } from '@prometheus-io/client';
 import type { SecretBox } from './crypto';
 import { registry as metrics } from './metrics';
 

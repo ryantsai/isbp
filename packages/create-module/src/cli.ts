@@ -23,6 +23,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { namesFor, render, validateModuleId } from './naming';
+import { syncGuide } from './guide';
 import { renderReference } from './reference';
 import { discoverModules, syncAppDependencies, syncRegistries } from './registry';
 
@@ -113,7 +114,16 @@ async function docs(check: boolean) {
 
 try {
   if (command === 'docs') await docs(values.check);
-  else if (command === 'create') create(arg);
+  else if (command === 'guide') {
+    const fresh = await syncGuide(root, values.check);
+    if (values.check && !fresh) {
+      console.error(
+        "✗ The embedded user guide (or a translation's anchors) is out of date. Run `pnpm docs:guide`.",
+      );
+      process.exit(1);
+    }
+    console.warn(fresh ? '✓ The embedded user guide is up to date' : '✓ Updated the embedded user guide');
+  } else if (command === 'create') create(arg);
   else if (command === 'sync') {
     const stale = syncRegistries(root, values.check);
     if (values.check && stale.length) {
@@ -131,7 +141,7 @@ try {
     );
   } else {
     console.error(
-      'Usage:\n  create-module create <module-id> [--description "…"] [--icon lucide-name] [--no-install]\n  create-module sync [--check]\n  create-module docs [--check]',
+      'Usage:\n  create-module create <module-id> [--description "…"] [--icon lucide-name] [--no-install]\n  create-module sync [--check]\n  create-module docs [--check]\n  create-module guide [--check]',
     );
     process.exit(1);
   }

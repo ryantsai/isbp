@@ -1,0 +1,30 @@
+[
+  {
+    "name": "employees-portal",
+    "as": "hr.partner",
+    "path": "/requests",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
+    "name": "employees-access-request",
+    "as": "hr.partner",
+    "path": "/requests/access",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
+    "name": "employees-ask-it",
+    "as": "hr.partner",
+    "path": "/helpdesk-ai/chat",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
+    "name": "employees-approvals",
+    "as": "admin",
+    "path": "/approvals",
+    "waitFor": "main h1",
+    "clip": null
+  }
+]

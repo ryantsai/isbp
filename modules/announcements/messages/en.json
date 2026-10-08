@@ -6,6 +6,16 @@
   "nav": {
     "feed": "Announcements"
   },
+  "systemRoles": {
+    "announcements-reader": {
+      "name": "Announcement reader",
+      "description": "See published announcements (granted to everyone by default)"
+    },
+    "announcements-editor": {
+      "name": "Announcement editor",
+      "description": "Write, publish and archive announcements"
+    }
+  },
   "permissions": {
     "read": "Read published announcements",
     "manage": "Write, publish, archive and delete announcements"

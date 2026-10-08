@@ -4,6 +4,8 @@
   "openNavigation": "ナビゲーションを開く",
   "searchPlaceholder": "検索またはジャンプ…",
   "searchShortcut": "検索",
+  "passwordRequired": "管理者から新しいパスワードの設定を求められています。",
+  "passwordRequiredAction": "パスワードを変更",
   "commandPalette": {
     "placeholder": "コマンドを入力するか、ユーザー、グループ、ロールを検索…",
     "navigate": "移動",
@@ -26,6 +28,7 @@
   "language": "言語",
   "profile": "プロファイルと設定",
   "signOut": "サインアウト",
+  "help": "ヘルプ",
   "apiDocs": "API ドキュメント",
   "breadcrumbHome": "ホーム",
   "moduleNotFound": "このページは存在しないか、モジュールが無効になっています。",

@@ -4,8 +4,12 @@ A unified resource-management platform for IT operations — identity, access, s
 assets, automation and AI — built as a **modular monolith**: a small kernel plus modules that all use
 the same SDK. The UI ships in **English, 繁體中文（台灣）and 日本語**.
 
-> **Status: Phase 6 complete (awaiting review).**
+> **Status: Phase 7 complete (awaiting review).**
 >
+> - **Phase 7:** the user guide: how to use each area for our IT work, for every role, with end-to-end scenarios
+>   across modules, a glossary and FAQ, in English, 繁體中文 and 日本語 with screenshots of each language's screens.
+>   It is also published in the knowledge base ("Using IS Big Platform", **Help** in the user menu), so Ask IT and
+>   the assistant cite it. Start at [docs/guide/en/README.md](docs/guide/en/README.md).
 > - **Phase 6:** the AI Agent: a built-in agent on every page — no outside tools needed — that works through the
 >   platform's own MCP tools as you. It handles everyday work directly and customises the platform (approval
 >   workflows, forms, custom fields, roles, notification routing, settings, scheduled jobs, pipelines, Data API
@@ -32,7 +36,7 @@ the same SDK. The UI ships in **English, 繁體中文（台灣）and 日本語**
 
 ## Quick start (no Docker needed)
 
-Requirements: Node 22.12+ (24 recommended), pnpm 12.
+Requirements: Node 24 LTS (24.11+), pnpm 12.
 
 ```bash
 pnpm install
@@ -172,13 +176,14 @@ packages/db       Drizzle schema for core, migration runner, embedded migrations
 packages/contracts Zod DTOs shared by API and web
 packages/ui       Component library (shadcn/ui on Radix + Motion), DataTable, data hooks
 packages/i18n     Locales and core message catalogs (en, zh-TW, ja-JP)
-packages/create-module  `pnpm create-module` scaffolder + registry sync
+packages/create-module  `pnpm create-module` scaffolder + registry sync + docs generators
+packages/guide    The user guide embedded for the knowledge base's in-app help (generated)
 modules/*         Feature modules: announcements (the sample), cmdb, knowledge, itsm, helpdesk-ai, itam, projects, alm,
                   etl, scheduler, dbaccess
 packages/sql      Driver-neutral access to external databases (bound parameters, dialects, catalog, writers)
 infra/            Dockerfiles, docker-compose, Helm chart
 e2e/              Playwright end-to-end + accessibility tests
-docs/             Architecture, module guide, API guide, deployment
+docs/             Architecture, module guide, API guide, deployment; docs/guide: the user guide (3 languages)
 ```
 
 ## Everyday commands
@@ -194,10 +199,14 @@ docs/             Architecture, module guide, API guide, deployment
 | `pnpm test`                                          | Unit tests (SDK, contracts, i18n catalog parity, API, modules)                         |
 | `pnpm test:integration`                              | API integration tests against a real Postgres/Redis (`isbp_test` database)             |
 | `pnpm e2e`                                           | Playwright journeys + axe accessibility scans against a running stack (`E2E_BASE_URL`) |
+| `pnpm docs:guide` · `pnpm docs:screenshots`          | Embed the user guide for in-app help · re-capture its screenshots from the demo stack  |
 | `pnpm build`                                         | Production builds (API bundle via tsdown, Next.js standalone)                          |
 
 ## Documentation
 
+- **User guide** — how to use ISBP for our work: [English](docs/guide/en/README.md) ·
+  [繁體中文](docs/guide/zh-TW/README.md) · [日本語](docs/guide/ja-JP/README.md) (also in the app: **Help** in the
+  user menu); contributing: [docs/guide/CONTRIBUTING.md](docs/guide/CONTRIBUTING.md)
 - [Architecture](docs/architecture.md) — diagrams, data model, manifest spec, key decisions, security model
 - [Module development guide](docs/module-development.md) — build a module end to end
 - [API guide](docs/api.md) — authentication, conventions, errors, OpenAPI

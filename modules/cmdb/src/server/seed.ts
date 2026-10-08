@@ -396,7 +396,7 @@ export const ESTATE: SeedCi[] = [
     environment: 'production',
     owner: ['IT-DATA', 0],
     group: 'dba-team',
-    description: 'PostgreSQL 17 with pgvector for IS Big Platform.',
+    description: 'PostgreSQL 18 with pgvector for IS Big Platform.',
     tags: ['postgresql'],
   },
 

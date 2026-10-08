@@ -151,3 +151,21 @@ export const articleReads = knowledgeSchema.table(
   },
   (t) => [primaryKey({ columns: [t.articleId, t.userId] })],
 );
+
+/**
+ * Articles that publish the user guide (`@isbp/guide`, docs/guide): one per guide and language. The guide is the
+ * source of truth; `hash` tells the importer whether the article is current.
+ */
+export const guideArticles = knowledgeSchema.table(
+  'guide_articles',
+  {
+    slug: varchar('slug', { length: 64 }).notNull(),
+    locale: varchar('locale', { length: 10 }).$type<ArticleLocale>().notNull(),
+    articleId: uuid('article_id')
+      .notNull()
+      .references(() => articles.id, { onDelete: 'cascade' }),
+    hash: varchar('hash', { length: 64 }).notNull(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [primaryKey({ columns: [t.slug, t.locale] })],
+);

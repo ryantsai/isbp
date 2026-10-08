@@ -86,9 +86,20 @@ export function DetailsCard({ ticket }: { ticket: TicketDetail }) {
       </CardHeader>
       <CardContent>
         <div className="grid gap-4" aria-busy={patch.isPending || undefined}>
-          {/* Read-only until PATCH /tickets/:ref applies `requesterId` (contract field, server pending). */}
-          <Row label={td('requester')}>
-            <PersonChip person={ticket.requester} size="md" />
+          {/* Correcting who reported it; required, so it can be replaced but not cleared. */}
+          <Row label={td('requester')} htmlFor={editable ? `${id}-requester` : undefined}>
+            {editable ? (
+              <PersonPicker
+                id={`${id}-requester`}
+                value={ticket.requester}
+                clearable={false}
+                onChange={(p) => {
+                  if (p && p.id !== ticket.requester?.id) save({ requesterId: p.id });
+                }}
+              />
+            ) : (
+              <PersonChip person={ticket.requester} size="md" />
+            )}
           </Row>
           <Row label={td('requestedFor')} htmlFor={editable ? `${id}-for` : undefined}>
             {editable ? (

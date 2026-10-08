@@ -4,7 +4,7 @@ import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Button } from '@isbp/ui/button';
-import { DataTable, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
@@ -12,7 +12,6 @@ import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { SelectItem } from '@isbp/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import type { ColumnDef } from '@tanstack/react-table';
 import { CalendarClockIcon, PlusIcon, SearchXIcon, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -53,7 +52,7 @@ export default function JobsPage() {
   );
   const filtered = FILTER_KEYS.some((k) => str(k));
 
-  const columns = useMemo<ColumnDef<JobSummary, unknown>[]>(
+  const columns = useMemo<DataTableColumn<JobSummary>[]>(
     () => [
       {
         id: 'name',

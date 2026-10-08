@@ -21,6 +21,8 @@ export const requestableRoleSchema = z.object({
   key: z.string(),
   name: z.string(),
   description: z.string().nullable(),
+  /** Set for roles a module declares: translated from `<moduleId>.systemRoles.<key>`. */
+  moduleId: z.string().nullable(),
   application: z.object({ id, key: z.string(), name: z.string(), isPlatform: z.boolean() }),
   riskLevel: riskLevelSchema,
   maxDurationDays: z.number().int().nullable(),
@@ -67,6 +69,7 @@ export const accessRequestSchema = z.object({
     key: z.string(),
     name: z.string(),
     description: z.string().nullable(),
+    moduleId: z.string().nullable(),
     riskLevel: riskLevelSchema,
     application: z.object({ key: z.string(), name: z.string() }),
   }),

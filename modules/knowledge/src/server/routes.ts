@@ -2,6 +2,7 @@ import { type AuthContext, type ModuleContext, type ModuleRouter, pageSchema } f
 import { z } from 'zod';
 import {
   articleCardSchema,
+  articleLocaleSchema,
   articleListItemSchema,
   articleQuerySchema,
   articleSchema,
@@ -20,6 +21,7 @@ import {
 import { PERMISSIONS } from '../lifecycle';
 import { ArticleService } from './articles';
 import { CategoryService } from './categories';
+import { guideArticleRef } from './guide';
 
 const refParams = z.object({ ref: z.string().trim().min(1).max(64).describe('uuid or KB-00042') });
 const tags = ['Knowledge'];
@@ -207,6 +209,24 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       },
     },
     async (req) => svc.related(req.params.ref, req.auth),
+  );
+
+  /* ───────────── in-app help ───────────── */
+
+  app.get(
+    '/guide/:slug',
+    {
+      config: { permission: READ },
+      schema: {
+        tags,
+        summary: "The user guide's article for an in-app help link, in the caller's language when translated",
+        params: z.object({ slug: z.string().trim().min(1).max(64) }),
+        querystring: z.object({ locale: articleLocaleSchema.optional() }),
+        response: { 200: z.object({ reference: z.string(), href: z.string() }) },
+      },
+    },
+    async (req) =>
+      guideArticleRef(ctx, req.params.slug, req.query.locale ?? req.auth.user?.locale ?? null, req.auth),
   );
 
   /* ───────────── search ───────────── */

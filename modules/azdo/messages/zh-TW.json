@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "Azure DevOps Server（地端）",
-    "description": "將整合中心連接到自行架設的 Azure DevOps Server 集合：小組專案、工作項目與 Git 存放庫。"
+    "description": "將整合中樞連接到自行架設的 Azure DevOps Server 集合：小組專案、工作項目與 Git 存放庫。"
   },
   "connector": {
     "name": "Azure DevOps Server（地端）",
@@ -54,13 +54,13 @@
       "scopeProject": "專案與小組：讀取",
       "patStep4": "將權杖貼到上方欄位。權杖會過期：請在到期前建立新權杖並貼到這裡。",
       "hooksTitle": "如何即時傳送變更（服務攔截）",
-      "hooksIntro": "未設定服務攔截時，變更會在下一次排程同步時取得。設定後，Azure DevOps 會通知整合中心哪些紀錄已變更，整合中心再透過 API 讀取。",
+      "hooksIntro": "未設定服務攔截時，變更會在下一次排程同步時取得。設定後，Azure DevOps 會通知整合中樞哪些紀錄已變更，整合中樞再透過 API 讀取。",
       "hooksStep1": "在每個小組專案中，開啟「專案設定」→「服務攔截」→「建立訂閱」→「Web Hooks」。",
       "hooksStep2": "為下列每個事件各建立一個訂閱：",
       "hooksStep3": "將 URL 設為此連線概觀中顯示的 Webhook URL。",
       "hooksStep4": "在「HTTP 標頭」中加入概觀中顯示的 Webhook 密鑰：",
       "hooksStep5": "將「要傳送的資源詳細資料」設為「最少」，然後選擇「測試」與「完成」。",
-      "hooksNote": "整合中心每次呼叫都會檢查密鑰，且只用通知判斷要讀取哪些紀錄。輪替密鑰後，請更新各訂閱。",
+      "hooksNote": "整合中樞每次呼叫都會檢查密鑰，且只用通知判斷要讀取哪些紀錄。輪替密鑰後，請更新各訂閱。",
       "hooksNetwork": "服務攔截由 Azure DevOps Server 從貴公司網路內送出，因此伺服器必須能連到 Webhook URL。",
       "secretPlaceholder": "webhook-密鑰",
       "events": {

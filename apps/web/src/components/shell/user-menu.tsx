@@ -10,14 +10,16 @@ import {
   DropdownMenuTrigger,
 } from '@isbp/ui/dropdown-menu';
 import { usePlatform } from '@isbp/sdk/web';
-import { BookOpenIcon, LogOutIcon, UserCogIcon } from 'lucide-react';
+import { guideHref } from '@isbp/guide/meta';
+import { BookOpenIcon, LifeBuoyIcon, LogOutIcon, UserCogIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useSignOut } from './use-sign-out';
 
 export function UserMenu() {
   const t = useTranslations('shell');
-  const { user } = usePlatform();
+  const { user, enabledModules, permissions } = usePlatform();
+  const help = enabledModules.includes('knowledge') && permissions.hasAny('knowledge.articles.read');
   const signOut = useSignOut();
   return (
     <DropdownMenu>
@@ -41,6 +43,13 @@ export function UserMenu() {
             <UserCogIcon /> {t('profile')}
           </Link>
         </DropdownMenuItem>
+        {help && (
+          <DropdownMenuItem asChild>
+            <Link href={guideHref('start-here')}>
+              <LifeBuoyIcon /> {t('help')}
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <a href="/api/docs" target="_blank" rel="noreferrer">
             <BookOpenIcon /> {t('apiDocs')}

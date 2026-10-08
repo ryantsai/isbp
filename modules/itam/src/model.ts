@@ -7,6 +7,8 @@
  * are compared as calendar days in the company's time zone (`Asia/Taipei`).
  */
 
+import { type Condition, evaluateCondition } from '@isbp/sdk';
+
 /* ───────────────────────────── hardware ───────────────────────────── */
 
 export const ASSET_CATEGORIES = [
@@ -466,3 +468,24 @@ export function disposalFacts(
     },
   };
 }
+
+/**
+ * When the `itam.disposal` workflow asks information security to sign off that the storage was wiped or
+ * destroyed: data-bearing devices that still carry book value or are under five years old. The workflow's
+ * default graph uses this condition as the step's `when`, and the disposal dialog says so with
+ * `needsSecuritySignOff`, so the two can't drift apart.
+ */
+export const SECURITY_SIGN_OFF_WHEN: Condition = {
+  all: [
+    { fact: 'asset.dataBearing', op: 'eq', value: true },
+    {
+      any: [
+        { fact: 'asset.bookValue', op: 'gt', value: 0 },
+        { fact: 'asset.ageMonths', op: 'lt', value: 60 },
+      ],
+    },
+  ],
+};
+
+export const needsSecuritySignOff = (facts: DisposalFacts): boolean =>
+  evaluateCondition(SECURITY_SIGN_OFF_WHEN, facts);

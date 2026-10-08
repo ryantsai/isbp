@@ -30,6 +30,9 @@ allowBuilds:
 # Single source of truth for shared dependency versions (`"dep": "catalog:"`).
 catalog:
   # language & tooling
+  # TypeScript 7 (the native compiler) and ESLint 10 are out, but typescript-eslint supports TypeScript < 6.1 and
+  # eslint-config-next's React, import and jsx-a11y plugins ESLint ≤ 9: these are the newest the toolchain accepts.
+  # @types/node follows the runtime (Node 24 LTS).
   typescript: 6.0.3
   '@types/node': ^24.19.1
   tsx: ^4.23.15
@@ -37,7 +40,7 @@ catalog:
   turbo: ^2.11.7
   prettier: ^3.9.9
   eslint: ^9.39.5
-  '@eslint/js': ^9.39.0
+  '@eslint/js': ^9.39.5
   typescript-eslint: ^8.71.1
   globals: ^17.13.0
   vitest: ^5.0.3
@@ -53,7 +56,7 @@ catalog:
   fastify-type-provider-zod: ^7.0.0
   uuid: ^14.0.2
   # web
-  next: 16.3.8
+  next: 16.4.0
   react: 19.3.0
   react-dom: 19.3.0
   '@types/react': ^19.3.0
@@ -61,7 +64,7 @@ catalog:
   next-intl: ^4.14.9
   motion: ^14.0.0
   '@tanstack/react-query': ^5.104.1
-  '@tanstack/react-table': ^8.21.3
+  '@tanstack/react-table': ^9.2.6
   lucide-react: ^1.52.0
   radix-ui: ^1.7.0
   tailwindcss: ^4.3.3

@@ -21,6 +21,28 @@
     "license": "ソフトウェア ライセンス",
     "contract": "契約"
   },
+  "systemRoles": {
+    "itam-self": {
+      "name": "マイ デバイス",
+      "description": "自分に割り当てられたデバイスとソフトウェアを表示します (既定ですべてのユーザーに付与)"
+    },
+    "itam-viewer": {
+      "name": "資産閲覧者",
+      "description": "ハードウェア、ソフトウェア ライセンス、契約を参照します"
+    },
+    "itam-asset-manager": {
+      "name": "資産マネージャー",
+      "description": "ハードウェアとソフトウェア ライセンスの管理、ライセンス キーの表示、モデル カタログとベンダーの管理を行い、廃棄を承認します"
+    },
+    "itam-contract-manager": {
+      "name": "契約マネージャー",
+      "description": "契約とその更新、ベンダーを管理し、契約の対象となるハードウェアとソフトウェアを表示します"
+    },
+    "itam-admin": {
+      "name": "資産管理者",
+      "description": "資産管理のすべての機能"
+    }
+  },
   "permissions": {
     "hardwareRead": "ハードウェア資産を表示する (すべて、または部署とその所属ユーザーの資産)",
     "hardwareManage": "ハードウェアの登録、割り当て、返却、廃止、廃棄の申請",
@@ -266,7 +288,7 @@
   "overview": {
     "title": "資産",
     "description": "ハードウェア資産、ソフトウェアのコンプライアンス、運用を支える契約。",
-    "noAccess": "ハードウェア資産を表示する権限がありません",
+    "noAccess": "ハードウェア資産を表示するアクセス許可がありません",
     "unavailable": "概要を読み込めませんでした",
     "kpi": {
       "total": "資産",
@@ -383,7 +405,7 @@
     "disposalViaRequest": "廃止済みの資産を廃棄するには [廃棄を申請] を使用します (承認が必要です)。",
     "statusChanged": "{tag} は「{status}」になりました",
     "disposeTitle": "{tag} の廃棄を申請",
-    "disposeHint": "資産管理者が申請を承認すると、資産は廃棄済みになります。",
+    "disposeHint": "資産マネージャーが申請を承認すると、資産は廃棄済みになります。",
     "securitySignOff": "このデバイスには会社のデータが保存されている可能性があるため、ストレージの消去または破壊について情報セキュリティの承認も必要です。",
     "disposalNote": "どのように廃棄しますか?",
     "disposalNoteHint": "例: SSD を消去して認定リサイクル業者に引き渡す",
@@ -428,7 +450,7 @@
     "seatsHint": "このデバイスとそのユーザーのシート。",
     "deviceSeats": "このデバイス",
     "userSeats": "{name} が保有",
-    "contractsHidden": "契約を表示する権限がありません",
+    "contractsHidden": "契約を表示するアクセス許可がありません",
     "noContracts": "この資産を対象とする契約はありません",
     "noContractsHint": "サポート、保守、リースの契約には対象の資産が表示されます。"
   },
@@ -574,7 +596,7 @@
   "contractForm": {
     "createTitle": "新しい契約",
     "editTitle": "{reference} を編集",
-    "hint": "通知期間が始まると、担当者と契約管理者に更新の通知が送られます。",
+    "hint": "通知期間が始まると、担当者と契約マネージャーに更新の通知が送られます。",
     "titleRequired": "タイトルを入力してください",
     "endBeforeStart": "終了日が開始日より前です",
     "noticeHint": "終了の何日前に通知を送るか。",
@@ -674,7 +696,7 @@
     "assetsBought": "件の資産をこのベンダーから購入",
     "empty": "ベンダーはありません",
     "loading": "ベンダー",
-    "noAccess": "ベンダーを表示する権限がありません"
+    "noAccess": "ベンダーを表示するアクセス許可がありません"
   },
   "vendorForm": {
     "createTitle": "新しいベンダー",
@@ -762,7 +784,7 @@
   },
   "attention": {
     "title": "資産の要対応事項",
-    "description": "資産管理者が今日対応すべき事項",
+    "description": "資産マネージャーが今日対応すべき事項",
     "open": "開く",
     "nonCompliantLicenses": "コンプライアンス違反のライセンス",
     "contractsRenewing30": "30 日以内に更新の契約",

@@ -1,6 +1,10 @@
 {
   "meta": { "name": "__TITLE__", "description": "__DESCRIPTION__" },
   "nav": { "home": "__TITLE__" },
+  "systemRoles": {
+    "__ID__-manager": { "name": "__TITLE__ マネージャー", "description": "__TITLE__ の項目を作成・編集・削除" },
+    "__ID__-viewer": { "name": "__TITLE__ 閲覧者", "description": "__TITLE__ への読み取り専用アクセス" }
+  },
   "permissions": { "read": "__TITLE__ の項目を閲覧", "manage": "__TITLE__ の項目を作成・編集・削除" },
   "settings": { "defaultStatus": "新規項目の既定ステータス" },
   "fields": { "title": "タイトル", "description": "説明", "status": "ステータス", "owner": "担当者", "updated": "更新日時" },

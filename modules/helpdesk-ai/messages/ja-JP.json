@@ -7,6 +7,20 @@
     "chat": "IT に質問",
     "insights": "AI インサイト"
   },
+  "systemRoles": {
+    "helpdesk-ai-user": {
+      "name": "バーチャル エージェント ユーザー",
+      "description": "IT バーチャル エージェントに問い合わせます (既定ですべてのユーザーに付与)"
+    },
+    "helpdesk-ai-agent": {
+      "name": "AI アシスト担当者",
+      "description": "チケットの AI アシスト パネルを使用します (トリアージ、類似チケット、返信の下書き、要約)"
+    },
+    "helpdesk-ai-admin": {
+      "name": "ヘルプデスク AI 管理者",
+      "description": "ヘルプデスク AI のすべての機能 (精度メトリックと会話のレビューを含む)"
+    }
+  },
   "permissions": {
     "chat": "IT バーチャル エージェントに質問する",
     "assist": "チケットの AI アシスト パネルを使用する",
@@ -86,12 +100,12 @@
   },
   "resolution": {
     "solved": "解決",
-    "workaround": "回避策",
-    "user_error": "ユーザーの操作ミス",
+    "workaround": "回避策を提供",
+    "user_error": "操作ミス／使い方",
     "duplicate": "重複",
-    "no_fault_found": "障害なし",
-    "not_reproducible": "再現不可",
-    "cancelled_by_requester": "依頼者による取り消し"
+    "no_fault_found": "異常なし",
+    "not_reproducible": "再現しない",
+    "cancelled_by_requester": "依頼者によるキャンセル"
   },
   "articles": {
     "title": "おすすめの記事",
