@@ -55,13 +55,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: azure/setup-helm@v5
-      - name: Lint and render the default and the sandbox/S3 variants
+      - name: Lint and render the chart-secret, external-secret and sandbox/S3 variants
         working-directory: infra/helm/isbp
         run: |
           set -euo pipefail
-          helm lint .
-          helm template ci . > /dev/null
-          helm template ci . --set sandbox.runner=kubernetes \
+          # values.yaml has no usable secrets or URL on purpose: render with the CI values files.
+          helm lint . -f ci/create-values.yaml
+          helm lint . -f ci/external-values.yaml
+          helm template ci . -f ci/external-values.yaml > /dev/null
+          helm template ci . -f ci/create-values.yaml --set sandbox.runner=kubernetes \
             --set networkPolicy.enabled=true --set files.storage=s3 --set files.s3.bucket=ci > rendered.yaml
           grep -q 'name: isbp-sandbox-deny-all' rendered.yaml
           grep -q 'SANDBOX_RUNNER: kubernetes' rendered.yaml
@@ -174,9 +176,14 @@ jobs:
           ISBP_TEST_DOCKER: '1'
 
   e2e:
-    name: End-to-end (Playwright)
+    name: End-to-end (Playwright ${{ matrix.shard }}/3)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # One stack per shard: the suite outgrew a single 30-minute job.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     services:
       postgres:
         image: pgvector/pgvector:0.8.7-pg18-trixie
@@ -277,14 +284,20 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm --filter @isbp/e2e exec playwright install-deps chromium
 
+      # The assistant spec switches the platform's AI model (a global setting), so it runs after the last
+      # shard's tests on that shard's stack (locally the `chat-model` project depends on the whole suite).
       - name: Run Playwright
-        run: pnpm e2e
+        run: |
+          pnpm --filter @isbp/e2e exec playwright test --project=chromium --shard=${{ matrix.shard }}/3
+          if [ "${{ matrix.shard }}" = 3 ]; then
+            pnpm --filter @isbp/e2e exec playwright test --project=chat-model --no-deps
+          fi
 
       - name: Upload Playwright report and server logs
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: e2e-report
+          name: e2e-report-${{ matrix.shard }}
           path: |
             e2e/playwright-report
             e2e/test-results

@@ -182,7 +182,10 @@ export function oracleDriver(config: ConnectionConfig): EngineDriver {
             else await conn.rollback();
           } else if (tx !== 'none' && commit) throw new Error('Transaction was interrupted');
         } finally {
-          await conn.close({ drop: broken }).catch(() => undefined);
+          // An interrupted statement can keep running until the server notices the break, and the driver
+          // queues close() behind it: drop the connection without waiting so the caller isn't held up.
+          if (broken) void conn.close({ drop: true }).catch(() => undefined);
+          else await conn.close().catch(() => undefined);
         }
       },
     };
