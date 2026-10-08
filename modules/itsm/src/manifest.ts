@@ -9,6 +9,7 @@ import {
   aiTicketRef,
   aiTriageTicketInput,
   changeTypeSchema,
+  resolutionCodeSchema,
   riskSchema,
   ticketStatusSchema,
   ticketTypeSchema,
@@ -21,18 +22,115 @@ const ticketRef = z.object({
   title: z.string(),
 });
 
-/** Facts the CAB workflow decides on (`change.type`, `change.risk`, …). */
-export const changeFacts = z.object({
-  change: z.object({
-    type: changeTypeSchema,
-    risk: riskSchema,
-    impact: z.number().int().min(1).max(3).describe('1 high … 3 low'),
-    ciCount: z.number().int(),
-    /** Planned window in hours. */
-    durationHours: z.number().nullable(),
-    criticalCis: z.boolean().describe('Touches a CI with criticality "critical"'),
-  }),
+const fact = (key: string) => `itsm.recordFacts.${key}`;
+
+/**
+ * Approval facts of a ticket (`itsm.ticket`: incidents, service requests, problems) picked in a record field, for
+ * workflows (`records.<field>.<fact>`) and record-field filters. People are user ids, groups are group keys.
+ */
+export const ticketFactsSchema = z.object({
+  type: ticketTypeSchema.meta({ label: fact('type'), valueLabels: 'itsm.types' }),
+  status: ticketStatusSchema.meta({ label: fact('status'), valueLabels: 'itsm.status' }),
+  priority: z
+    .number()
+    .int()
+    .min(1)
+    .max(4)
+    .meta({ label: fact('priority') }),
+  impact: z
+    .number()
+    .int()
+    .min(1)
+    .max(3)
+    .meta({ label: fact('impact') }),
+  urgency: z
+    .number()
+    .int()
+    .min(1)
+    .max(3)
+    .meta({ label: fact('urgency') }),
+  major: z.boolean().meta({ label: fact('major') }),
+  category: z
+    .string()
+    .nullable()
+    .meta({ label: fact('category') }),
+  groupKey: z
+    .string()
+    .nullable()
+    .meta({ label: fact('groupKey'), ref: 'group' }),
+  assigneeId: z
+    .uuid()
+    .nullable()
+    .meta({ label: fact('assigneeId'), ref: 'user' }),
+  requesterId: z
+    .uuid()
+    .nullable()
+    .meta({ label: fact('requesterId'), ref: 'user' }),
+  departmentCode: z
+    .string()
+    .nullable()
+    .meta({ label: fact('departmentCode') }),
 });
+export type TicketFacts = z.infer<typeof ticketFactsSchema>;
+
+/** Approval facts of a change (`itsm.change`): the ticket's, plus the change type, risk and window. */
+export const changeRecordFactsSchema = ticketFactsSchema.extend({
+  changeType: changeTypeSchema.meta({ label: fact('changeType'), valueLabels: 'itsm.changeType' }),
+  risk: riskSchema.meta({ label: fact('risk'), valueLabels: 'itsm.risk' }),
+  plannedStart: z.iso
+    .datetime()
+    .nullable()
+    .meta({ label: fact('plannedStart') }),
+  plannedEnd: z.iso
+    .datetime()
+    .nullable()
+    .meta({ label: fact('plannedEnd') }),
+});
+export type ChangeRecordFacts = z.infer<typeof changeRecordFactsSchema>;
+
+/**
+ * Facts the CAB workflow decides on (`change.type`, `change.risk`, …). The ticket's custom fields come along as
+ * `attributes.<key>` and `records.<key>.<fact>` (`customFieldEntity` on the trigger), hence `loose()`.
+ */
+export const changeFacts = z
+  .object({
+    change: z.object({
+      type: changeTypeSchema,
+      risk: riskSchema,
+      impact: z.number().int().min(1).max(3).describe('1 high … 3 low'),
+      ciCount: z.number().int(),
+      /** Planned window in hours. */
+      durationHours: z.number().nullable(),
+      criticalCis: z.boolean().describe('Touches a CI with criticality "critical"'),
+    }),
+  })
+  .loose();
+
+/**
+ * Facts the optional resolution sign-off (`itsm.resolution`) decides on: what kind of ticket is being resolved and
+ * how. Admins scope the workflow with conditions on them (e.g. `ticket.category` = an "equipment anomaly" category).
+ * The ticket's custom fields come along as `attributes.<key>` and `records.<key>.<fact>`, hence `loose()`.
+ */
+export const resolutionFacts = z
+  .object({
+    ticket: z.object({
+      type: ticketTypeSchema,
+      category: z.string().nullable().describe('Category key'),
+      priority: z.number().int().min(1).max(4).describe('1 critical … 4 low'),
+      impact: z.number().int().min(1).max(3).describe('1 high … 3 low'),
+      urgency: z.number().int().min(1).max(3).describe('1 high … 3 low'),
+      major: z.boolean().describe('A major incident'),
+      groupKey: z.string().nullable().describe('Key of the assignment group'),
+      resolutionCode: resolutionCodeSchema,
+      ciCount: z.number().int(),
+      ciCriticality: z
+        .enum(['critical', 'high', 'medium', 'low'])
+        .nullable()
+        .describe('Highest criticality of the affected CIs'),
+      criticalCis: z.boolean().describe('Touches a CI with criticality "critical"'),
+    }),
+  })
+  .loose();
 
 /**
  * Change authorization: standard changes are pre-approved; emergencies go to the emergency CAB (any
@@ -285,6 +383,17 @@ export const manifest = defineManifest({
       { name: 'itsm.change.submitted', schema: ticketRef.extend({ instanceId: z.uuid().nullable() }) },
       { name: 'itsm.change.approved', schema: ticketRef },
       { name: 'itsm.change.rejected', schema: ticketRef.extend({ comment: z.string().nullable() }) },
+      {
+        name: 'itsm.change.acceptance_recorded',
+        description:
+          "The change's requester accepted it, or reported a problem, in the post-implementation review",
+        schema: ticketRef.extend({ accepted: z.boolean() }),
+      },
+      {
+        name: 'itsm.ticket.sign_off_requested',
+        description: 'Resolving the ticket started its resolution sign-off (itsm.resolution)',
+        schema: ticketRef.extend({ instanceId: z.uuid(), to: ticketStatusSchema }),
+      },
       { name: 'itsm.problem.known_error', schema: ticketRef },
     ],
     consumes: [
@@ -312,6 +421,13 @@ export const manifest = defineManifest({
       default: 'service-desk',
     },
     { key: 'csatEnabled', label: 'itsm.settings.csatEnabled', type: 'boolean', default: true },
+    {
+      key: 'changes.requireAcceptance',
+      label: 'itsm.settings.requireAcceptance',
+      description: 'itsm.settings.requireAcceptanceHelp',
+      type: 'boolean',
+      default: false,
+    },
     {
       key: 'majorIncidentBroadcast',
       label: 'itsm.settings.majorIncidentBroadcast',
@@ -407,8 +523,18 @@ export const manifest = defineManifest({
       description: 'itsm.workflows.change.description',
       subject: 'change',
       facts: changeFacts,
+      customFieldEntity: 'itsm.ticket',
       required: true,
       defaultGraph: changeGraph,
+    },
+    {
+      // Optional: bind a workflow (with conditions) to have a manager sign off resolutions before they take effect.
+      key: 'itsm.resolution',
+      name: 'itsm.workflows.resolution.name',
+      description: 'itsm.workflows.resolution.description',
+      subject: 'ticket',
+      facts: resolutionFacts,
+      customFieldEntity: 'itsm.ticket',
     },
   ],
   notifications: [
@@ -421,6 +547,10 @@ export const manifest = defineManifest({
     { type: 'itsm.sla.breached', defaultChannels: ['inApp', 'email'] },
     { type: 'itsm.change.approved', defaultChannels: ['inApp', 'email'] },
     { type: 'itsm.change.rejected', defaultChannels: ['inApp', 'email'] },
+    { type: 'itsm.change.acceptance_requested', defaultChannels: ['inApp', 'email'] },
+    { type: 'itsm.change.accepted', defaultChannels: ['inApp'] },
+    { type: 'itsm.change.problem_reported', defaultChannels: ['inApp', 'email'] },
+    { type: 'itsm.ticket.sign_off_rejected', defaultChannels: ['inApp', 'email'] },
     /** Broadcast to subscribed Teams/Slack channels when a major incident is declared. */
     { type: 'itsm.major-incident.declared' },
   ],
@@ -461,15 +591,39 @@ export const manifest = defineManifest({
   ],
   records: {
     types: [
-      { type: 'ticket', name: 'itsm.entities.ticket', icon: 'life-buoy', permission: 'itsm.tickets.read' },
+      {
+        type: 'ticket',
+        name: 'itsm.entities.ticket',
+        icon: 'life-buoy',
+        permission: 'itsm.tickets.read',
+        facts: ticketFactsSchema,
+      },
       {
         type: 'change',
         name: 'itsm.entities.change',
         icon: 'calendar-clock',
         permission: 'itsm.changes.read',
+        facts: changeRecordFactsSchema,
       },
     ],
   },
+  /** What request forms can do here after they are sent or decided (handlers in `server/process-actions.ts`). */
+  processActions: [
+    {
+      action: 'create-change',
+      name: 'itsm.processActions.createChange.name',
+      description: 'itsm.processActions.createChange.description',
+      icon: 'calendar-clock',
+      permission: 'itsm.changes.manage',
+    },
+    {
+      action: 'create-ticket',
+      name: 'itsm.processActions.createTicket.name',
+      description: 'itsm.processActions.createTicket.description',
+      icon: 'life-buoy',
+      permission: 'itsm.config.manage',
+    },
+  ],
   customizations: [
     {
       kind: 'category',

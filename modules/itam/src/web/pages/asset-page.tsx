@@ -21,6 +21,7 @@ import {
   ArrowRightLeftIcon,
   CircleAlertIcon,
   CircleCheckIcon,
+  EraserIcon,
   FileQuestionIcon,
   FileTextIcon,
   GavelIcon,
@@ -32,6 +33,7 @@ import {
   RecycleIcon,
   ShieldAlertIcon,
   StickyNoteIcon,
+  CalendarClockIcon,
   Undo2Icon,
   UserPlusIcon,
   UserRoundXIcon,
@@ -42,7 +44,15 @@ import { type ReactNode, useState } from 'react';
 import type { AssetDetail, AssetEvent, AssetSoftware, ContractListItem } from '../../contracts';
 import { type AssetAction, AssetActionDialog } from '../asset-actions';
 import { AssetFormDialog } from '../asset-form-dialog';
-import { AssetStatusBadge, CategoryIcon, CategoryLabel, ContractStatusBadge, WarrantyEnd } from '../badges';
+import {
+  ApprovalBadge,
+  AssetStatusBadge,
+  CategoryIcon,
+  CategoryLabel,
+  ContractStatusBadge,
+  WarrantyEnd,
+  WipeBadge,
+} from '../badges';
 import { CustomFieldsCard } from '../custom-fields';
 import { contractHref, licenseHref, modelLabel, useDay, useMoney } from '../lib';
 import { DepreciationBar } from '../meters';
@@ -130,6 +140,7 @@ export default function AssetPage({ params }: WebPageProps) {
                   {t(`warranty.badge.${asset.warrantyState}`)}
                 </Badge>
               ) : null}
+              <WipeBadge state={asset.wipeState} date={asset.wipeDue} />
             </div>
           </div>
         </div>
@@ -154,6 +165,11 @@ export default function AssetPage({ params }: WebPageProps) {
             <Button variant="outline" onClick={() => setEditing(true)}>
               <PencilIcon /> {t('actions.edit')}
             </Button>
+            {v.canRecordWipe && (
+              <Button variant="outline" onClick={() => setAction('wipe')}>
+                <EraserIcon /> {t('wipe.action')}
+              </Button>
+            )}
             {v.canDispose && (
               <Button variant="outline" onClick={() => setAction('dispose')}>
                 <RecycleIcon /> {t('actions.requestDisposal')}
@@ -264,6 +280,9 @@ export default function AssetPage({ params }: WebPageProps) {
           </div>
           <div className="min-w-0 space-y-6">
             <AssignmentCard asset={asset} onAssign={v.canAssign ? () => setAction('assign') : undefined} />
+            {asset.dataBearing && (
+              <WipeCard asset={asset} onRecord={v.canRecordWipe ? () => setAction('wipe') : undefined} />
+            )}
             <CiCard asset={asset} />
           </div>
         </TabsContent>
@@ -376,6 +395,63 @@ function AssignmentCard({ asset, onAssign }: { asset: AssetDetail; onAssign?: ()
   );
 }
 
+/** Data retention and wipes of a device that stores data: the pending wipe and the last recorded one. */
+function WipeCard({ asset, onRecord }: { asset: AssetDetail; onRecord?: () => void }) {
+  const t = useTranslations('itam.wipe');
+  const tm = useTranslations('itam.wipeMethod');
+  const day = useDay();
+  const format = useFormatter();
+  const w = asset.lastWipe;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <EraserIcon className="size-4 text-primary" aria-hidden />
+          {t('cardTitle')}
+        </CardTitle>
+        <CardDescription>{t('cardHint')}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        {asset.wipeDue ? (
+          <dl className="grid gap-2">
+            {asset.dataRetainUntil && (
+              <div className="flex flex-wrap justify-between gap-2">
+                <dt className="text-muted-foreground">{t('retainUntil')}</dt>
+                <dd>{day(asset.dataRetainUntil)}</dd>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <dt className="text-muted-foreground">{t('due')}</dt>
+              <dd>
+                <WipeBadge state={asset.wipeState} date={asset.wipeDue} />
+              </dd>
+            </div>
+          </dl>
+        ) : (
+          <p className="text-muted-foreground">{t('nonePending')}</p>
+        )}
+        {w ? (
+          <p className="flex items-start gap-2 text-muted-foreground">
+            <CircleCheckIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+            <span>
+              {t('last', {
+                date: format.dateTime(new Date(w.at), { dateStyle: 'medium', timeStyle: 'short' }),
+                method: w.method ? tm(w.method) : '—',
+                name: w.by?.displayName ?? '—',
+              })}
+            </span>
+          </p>
+        ) : null}
+        {onRecord && (
+          <Button variant="outline" size="sm" onClick={onRecord}>
+            <EraserIcon /> {t('action')}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function CiCard({ asset }: { asset: AssetDetail }) {
   const t = useTranslations('itam.asset');
   const locale = useLocale();
@@ -431,8 +507,16 @@ function SoftwareTab({ asset }: { asset: AssetDetail }) {
             <ul className="divide-y">
               {data.installations.map((i) => (
                 <li key={i.id} className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
-                  <span className="min-w-0 flex-1 truncate font-medium">{i.product}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{i.product}</span>
+                    {i.reportedAs && (
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {t('reportedAs', { title: i.reportedAs })}
+                      </span>
+                    )}
+                  </span>
                   <span className="text-xs text-muted-foreground tabular-nums">{i.version ?? ''}</span>
+                  {i.approval !== 'allowed' && <ApprovalBadge approval={i.approval} />}
                   {i.managed ? (
                     i.licensed ? (
                       <Badge variant="success">
@@ -543,6 +627,8 @@ const EVENT_ICON: Record<AssetEvent['kind'], LucideIcon> = {
   return_requested: UserRoundXIcon,
   disposal_requested: GavelIcon,
   disposed: RecycleIcon,
+  wipe_scheduled: CalendarClockIcon,
+  data_wiped: EraserIcon,
 };
 
 /** "via ServiceDesk Plus #1234": a step a sync with another system made, linking to its record there. */
@@ -566,6 +652,7 @@ function Via({ via }: { via: NonNullable<AssetEvent['via']> }) {
 
 function HistoryTab({ asset }: { asset: AssetDetail }) {
   const t = useTranslations('itam');
+  const day = useDay();
   const [pageSize, setPageSize] = useState(30);
   const { data, isLoading, isFetching } = useApiQuery<Page<AssetEvent>>(`/itam/assets/${asset.id}/events`, {
     pageSize,
@@ -594,6 +681,16 @@ function HistoryTab({ asset }: { asset: AssetDetail }) {
         return t('history.disposalRequested');
       case 'disposed':
         return t('history.disposed');
+      case 'wipe_scheduled':
+        return e.fromValue
+          ? t('history.wipeScheduledRetained', { retain: day(e.fromValue), due: day(e.toValue) })
+          : t('history.wipeScheduled', { due: day(e.toValue) });
+      case 'data_wiped':
+        return t('history.dataWiped', {
+          method:
+            e.toValue && t.has(`wipeMethod.${e.toValue}`) ? t(`wipeMethod.${e.toValue as 'other'}`) : '—',
+          name: e.user?.displayName ?? '—',
+        });
       default:
         return e.toValue === 'disposal_rejected'
           ? t('history.disposalRejected')
@@ -631,6 +728,17 @@ function HistoryTab({ asset }: { asset: AssetDetail }) {
                   {e.via && (
                     <>
                       <Via via={e.via} />
+                      {' · '}
+                    </>
+                  )}
+                  {e.request && (
+                    <>
+                      <Link
+                        href={e.request.href}
+                        className="underline underline-offset-4 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
+                      >
+                        {t('history.viaRequest', { reference: e.request.reference })}
+                      </Link>
                       {' · '}
                     </>
                   )}

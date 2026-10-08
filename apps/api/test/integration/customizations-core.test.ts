@@ -14,8 +14,9 @@ import type { AuthContext, CustomizationChange, Db, WorkflowGraph } from '@isbp/
 import { and, count, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { customizations } from '../../src/core/customizations';
+import { configChangeForm, configChangeWorkflow } from '../../src/core/customizations/examples';
 import { hashPassword } from '../../src/kernel/passwords';
-import { createHarness, type Harness, PASSWORD } from './harness';
+import { createHarness, type Harness, type LooseJson, PASSWORD } from './harness';
 
 let h: Harness;
 let admin: AuthContext;
@@ -183,13 +184,14 @@ afterAll(async () => {
 });
 
 describe('kinds', () => {
-  it('lists the six core kinds to an administrator and only readable ones to others', () => {
+  it('lists the seven core kinds to an administrator and only readable ones to others', () => {
     const kinds = cz()
       .kinds(admin)
       .filter((k) => k.moduleId === 'core');
     expect(kinds.map((k) => k.kind).sort()).toEqual([
       'core.custom-field',
       'core.form',
+      'core.group',
       'core.module-settings',
       'core.notification-channel',
       'core.role',
@@ -199,12 +201,14 @@ describe('kinds', () => {
     expect(kinds.find((k) => k.kind === 'core.workflow')!.templates.map((t) => t.id)).toEqual([
       'approval-chain',
     ]);
-    // hr is a department-scoped identity administrator: custom fields and roles only, without applying roles.
+    // hr is a department-scoped identity administrator: custom fields, groups and roles only, without applying
+    // roles or groups (that needs the permission globally).
     const forHr = cz()
       .kinds(hr)
       .filter((k) => k.moduleId === 'core');
-    expect(forHr.map((k) => k.kind).sort()).toEqual(['core.custom-field', 'core.role']);
+    expect(forHr.map((k) => k.kind).sort()).toEqual(['core.custom-field', 'core.group', 'core.role']);
     expect(forHr.find((k) => k.kind === 'core.role')!.canApply).toBe(false);
+    expect(forHr.find((k) => k.kind === 'core.group')!.canApply).toBe(false);
   });
 
   it('describes every kind with a JSON schema and a guide', async () => {
@@ -230,6 +234,7 @@ describe('kinds', () => {
       'core.form',
       'core.custom-field',
       'core.role',
+      'core.group',
       'core.notification-channel',
     ]) {
       const { guide } = await cz().describe(kind, admin);
@@ -555,6 +560,361 @@ describe('core.form', () => {
   });
 });
 
+describe('core.form: record fields, rules and process actions (Phase 8)', () => {
+  const field = (key: string, type: string, extra: Record<string, unknown> = {}) => ({
+    id: key,
+    key,
+    type,
+    label: name(key),
+    ...extra,
+  });
+
+  it('guides with the record types the person may offer, their facts, and actions with form-dependent fields', async () => {
+    const { guide } = await cz().describe('core.form', admin);
+    const ref = guide.reference as LooseJson;
+    expect(ref.fieldTypes).toContain('record');
+    const ciType = ref.recordTypes.find((t: LooseJson) => t.type === 'cmdb.ci');
+    expect(ciType.name).toEqual(expect.any(String));
+    expect(ciType.facts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fact: 'criticality',
+          type: 'string',
+          values: ['critical', 'high', 'medium', 'low'],
+          label: expect.not.stringContaining('.'),
+        }),
+        expect.objectContaining({ fact: 'ownerGroup', holds: expect.stringContaining('group key') }),
+        expect.objectContaining({ fact: 'ownerId', holds: expect.stringContaining('user id') }),
+      ]),
+    );
+    // Configuration fields that exist only when the form has such a field are described as "a field of this form".
+    const change = ref.processActions.find((a: LooseJson) => a.type === 'itsm.create-change');
+    expect(change.allowed).toBe(true);
+    const cfg = (key: string) => change.fields.find((f: LooseJson) => f.key === key);
+    expect(cfg('ciField').formField).toMatchObject({
+      value: '<fieldKey>',
+      types: ['record'],
+      recordTypes: ['cmdb.ci'],
+    });
+    expect(cfg('ciField').options).toBeUndefined();
+    expect(cfg('plannedStartField').formField.types).toEqual(['date']);
+    expect(cfg('riskField').formField.types).toEqual(['select']);
+    expect(cfg('changeType').options.map((o: LooseJson) => o.value)).toEqual(['normal', 'emergency']);
+    expect(cfg('changeTypeField').formField.types).toEqual(['select']);
+    const grant = ref.processActions.find((a: LooseJson) => a.type === 'core.grant-role');
+    const person = grant.fields.find((f: LooseJson) => f.key === 'person');
+    expect(person.formField).toMatchObject({ value: 'field:<fieldKey>', types: ['user'] });
+    expect(person.options.map((o: LooseJson) => o.value)).toEqual(['requester']);
+    expect(guide.instructions).toContain('records.<fieldKey>.<fact>');
+    expect(guide.instructions).toContain('valueFact');
+    expect(guide.instructions).toContain('/requests/forms/<key>');
+  });
+
+  it('accepts what the form builder accepts: record fields, rules across answers and actions', async () => {
+    const value = { ...configChangeForm(null, ['it-asset-management']), key: 'cz-config-change' };
+    expect(await issueCodes('core.form', { op: 'create', id: null, value })).toEqual([]);
+    const applied = await apply('core.form', { op: 'create', id: null, value }, admin);
+    const after = applied.after!.value as ReturnType<typeof configChangeForm>;
+    expect(after.schema.rules).toEqual(value.schema.rules);
+    expect(after.schema.actions![0]!.config).toEqual(value.schema.actions![0]!.config);
+    expect(applied.after!.links).toEqual([
+      {
+        href: '/requests/forms/cz-config-change',
+        label: { en: 'Open the form', 'zh-TW': '開啟表單', 'ja-JP': 'フォームを開く' },
+      },
+    ]);
+    // Round-trips; an inactive form has no link people could use.
+    const same = await apply(
+      'core.form',
+      { op: 'update', id: applied.id, value: after, baseVersion: applied.after!.version },
+      admin,
+    );
+    expect(same.after!.version).toBe(applied.after!.version);
+    const hidden = await apply(
+      'core.form',
+      { op: 'update', id: applied.id, value: { ...after, active: false } },
+      admin,
+    );
+    expect(hidden.after!.links).toEqual([]);
+  });
+
+  it('refuses what the form builder refuses', async () => {
+    const codes = (schema: unknown) =>
+      issueCodes('core.form', {
+        op: 'create',
+        id: null,
+        value: laptopForm(null, { key: 'cz-refused', schema }),
+      });
+    const a = field('a', 'text');
+    expect(
+      await codes({
+        elements: [field('a', 'text', { visibleWhen: { fact: 'nope', op: 'eq', value: 'x' } })],
+      }),
+    ).toEqual(['unknown_field']);
+    expect(
+      await codes({ elements: [field('a', 'text', { visibleWhen: { fact: 'a', op: 'notEmpty' } })] }),
+    ).toEqual(['condition_self']);
+    expect(await codes({ elements: [{ id: 'h', type: 'heading' }, a] })).toEqual(['text_required']);
+    expect(await codes({ elements: [field('n', 'number', { defaultValue: 'many' })] })).toEqual([
+      'default_invalid',
+    ]);
+    expect(await codes({ elements: [field('r', 'record', { record: { types: ['nope.thing'] } })] })).toEqual([
+      'unknown_record_type',
+    ]);
+    expect(
+      await codes({ elements: [a], rules: [{ id: 'r', require: { all: [] }, message: name('M') }] }),
+    ).toEqual(['require_empty']);
+    // Rules read answers by field key, not data.<key> (that is the workflow's view).
+    expect(
+      await codes({
+        elements: [a],
+        rules: [{ id: 'r', require: { fact: 'data.a', op: 'notEmpty' }, message: name('M') }],
+      }),
+    ).toEqual(['unknown_field']);
+  });
+
+  it('leaves permissions to whoever applies: a designer without CMDB access gets a 403 a reviewer can resolve', async () => {
+    const [designer] = await h.kernel.db
+      .insert(users)
+      .values({
+        email: 'designer@test.example',
+        username: 'designer',
+        displayName: 'designer',
+        passwordHash: await hashPassword(PASSWORD),
+      })
+      .returning();
+    const [role] = await h.kernel.db
+      .insert(roles)
+      .values({
+        applicationId: (
+          await h.kernel.db.execute<{ id: string }>(sql`select id from core.applications where key = 'isbp'`)
+        ).rows[0]!.id,
+        key: 'test-form-designer',
+        name: 'Test form designer',
+      })
+      .returning();
+    await h.kernel.db.execute(
+      sql`insert into core.role_permissions (role_id, permission) values (${role!.id}, 'core.forms.*')`,
+    );
+    await h.kernel.db.insert(roleAssignments).values({ roleId: role!.id, userId: designer!.id });
+    await h.kernel.rbac.bump();
+    const auth = await authOf(designer!.id);
+    const value = { ...configChangeForm(null, ['it-asset-management']), key: 'cz-designer' };
+    // Nothing is wrong with the value itself …
+    expect(await issueCodes('core.form', { op: 'create', id: null, value }, auth)).toEqual([]);
+    // … but offering CIs needs CMDB access (a dry run marks it for a reviewer who holds it).
+    await expect(
+      rolledBack((tx) =>
+        cz().apply('core.form', { op: 'create', id: null, value }, { auth, tx, dryRun: true }),
+      ),
+    ).rejects.toMatchObject({ statusCode: 403, details: { permission: 'cmdb.cis.read' } });
+    // Without the CI field, the "raise a change" action needs its own permission.
+    const withoutCis = {
+      ...value,
+      schema: {
+        ...value.schema,
+        elements: value.schema.elements.filter((e) => e.id !== 'cis'),
+        actions: [
+          {
+            ...value.schema.actions![0]!,
+            config: { ...value.schema.actions![0]!.config, ciField: undefined },
+          },
+        ],
+      },
+    };
+    await expect(
+      rolledBack((tx) =>
+        cz().apply('core.form', { op: 'create', id: null, value: withoutCis }, { auth, tx, dryRun: true }),
+      ),
+    ).rejects.toMatchObject({ statusCode: 403, code: 'PROCESS_ACTION_FORBIDDEN' });
+  });
+
+  it('builds a workflow and the form that uses it from the approval-process template', async () => {
+    const fields = await cz().templateFields('core.form', 'approval-process', admin);
+    const keys = fields.map((f) => f.key);
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        'name',
+        'recordType',
+        'recordLabel',
+        'recordMultiple',
+        'q1Label',
+        'managerApproves',
+        'recordGroupApproves',
+        'groupApproves',
+        'group',
+        'createChange',
+      ]),
+    );
+    const recordType = fields.find((f) => f.key === 'recordType')!;
+    expect(recordType.options!.map((o) => o.value)).toContain('cmdb.ci');
+    expect(recordType.label['zh-TW']).toBe('申請人選取的紀錄');
+    const ciFact = fields.find(
+      (f) =>
+        f.key.startsWith('recordGroupFact') && JSON.stringify(f.visibleWhen).includes('"value":"cmdb.ci"'),
+    )!;
+    expect(ciFact.options!.map((o) => o.value)).toContain('ownerGroup');
+
+    const answers = {
+      name: 'Server change request',
+      recordType: 'cmdb.ci',
+      recordLabel: 'Servers',
+      recordMultiple: true,
+      q1Label: 'Summary',
+      q1Type: 'text',
+      q1Required: true,
+      q2Label: 'Start',
+      q2Type: 'date',
+      q3Label: 'End',
+      q3Type: 'date',
+      managerApproves: true,
+      recordGroupApproves: true,
+      [ciFact.key]: 'ownerGroup',
+      groupApproves: true,
+      group: 'it-asset-management',
+      createChange: true,
+    };
+    const built = await cz().buildTemplate('core.form', 'approval-process', answers, admin);
+    expect(built.items.map((i) => [i.kind, i.op, i.ref])).toEqual([
+      ['core.workflow', 'create', 'approval'],
+      ['core.form', 'create', 'form'],
+    ]);
+    const form = built.value as ReturnType<typeof configChangeForm>;
+    expect(form).toMatchObject({ key: 'server-change-request', workflowId: '$ref:approval' });
+    expect(form.schema.elements.map((e) => ('key' in e ? [e.key, e.type] : [e.id, e.type]))).toEqual([
+      ['servers', 'record'],
+      ['summary', 'text'],
+      ['start', 'date'],
+      ['end', 'date'],
+    ]);
+    expect(form.schema.elements[0]).toMatchObject({ record: { types: ['cmdb.ci'], multiple: true } });
+    expect(form.schema.actions).toEqual([
+      expect.objectContaining({
+        type: 'itsm.create-change',
+        on: 'approved',
+        config: expect.objectContaining({
+          ciField: 'servers',
+          plannedStartField: 'start',
+          plannedEndField: 'end',
+          submit: true,
+        }),
+      }),
+    ]);
+    const workflow = built.items[0]!.value as { name: string; graph: WorkflowGraph };
+    expect(workflow.name).toBe('Server change request – approval');
+    expect(workflow.graph.steps.map((st) => st.id)).toEqual(['manager', 'record-group', 'group']);
+    expect(workflow.graph.steps[1]).toMatchObject({
+      approvers: [{ type: 'fact', fact: 'records.servers.ownerGroup', kind: 'group' }],
+    });
+    expect(workflow.graph.steps[0]!.name['ja-JP']).toBe('上長の承認');
+
+    // Both pass their kinds' checks, applied in one transaction with the reference resolved.
+    await rolledBack(async (tx) => {
+      const opts = { auth: admin, tx };
+      const wf = await cz().apply('core.workflow', { op: 'create', id: null, value: workflow }, opts);
+      const f = await cz().apply(
+        'core.form',
+        { op: 'create', id: null, value: { ...form, workflowId: wf.id } },
+        opts,
+      );
+      expect(f.after!.links![0]!.href).toBe('/requests/forms/server-change-request');
+    });
+
+    // Somebody has to approve.
+    await expect(
+      cz().buildTemplate(
+        'core.form',
+        'approval-process',
+        { name: 'Nobody approves', q1Label: 'Why', q1Type: 'text', managerApproves: false },
+        admin,
+      ),
+    ).rejects.toMatchObject({ statusCode: 422, details: { issues: [{ path: 'managerApproves' }] } });
+  });
+});
+
+describe('core.workflow: record facts and custom fields in the guide (Phase 8)', () => {
+  it('lists record types with facts, the published forms’ fields and the subjects’ custom fields', async () => {
+    await apply(
+      'core.custom-field',
+      {
+        op: 'create',
+        id: null,
+        value: {
+          entityType: 'itsm.ticket',
+          field: { key: 'mainCi', type: 'record', label: name('Main CI'), record: { types: ['cmdb.ci'] } },
+        },
+      },
+      admin,
+    );
+    const { guide } = await cz().describe('core.workflow', admin);
+    const ref = guide.reference as LooseJson;
+    expect(ref.recordTypes.map((t: LooseJson) => t.type)).toEqual(
+      expect.arrayContaining(['cmdb.ci', 'itsm.ticket']),
+    );
+    const form = ref.forms.find((f: LooseJson) => f.key === 'cz-config-change');
+    expect(form.fields).toEqual(
+      expect.arrayContaining([
+        { key: 'cis', type: 'record', recordTypes: ['cmdb.ci'], multiple: true },
+        { key: 'risk', type: 'select', options: ['low', 'medium', 'high'] },
+      ]),
+    );
+    const change = ref.triggers.find((t: LooseJson) => t.key === 'itsm.change');
+    expect(change.customFieldEntity).toBe('itsm.ticket');
+    expect(change.customFieldFacts).toEqual([
+      expect.objectContaining({
+        path: 'attributes.mainCi',
+        type: 'record',
+        records: expect.stringContaining('records.mainCi'),
+      }),
+    ]);
+    expect(guide.instructions).toContain('"kind": "group"');
+    expect(guide.instructions).toContain('attributes.<key>');
+    expect(guide.examples!.map((e) => (e.value as { name: string }).name)).toContain(
+      'Configuration change approval',
+    );
+  });
+
+  it('accepts record-fact routing and group-fact approvers; custom-field facts only where the trigger has them', async () => {
+    await h.kernel.db
+      .insert(groups)
+      .values([
+        { key: 'cab', name: 'CAB' },
+        { key: 'it-admins', name: 'IT administrators' },
+      ])
+      .onConflictDoNothing();
+    expect(
+      await issueCodes('core.workflow', { op: 'create', id: null, value: configChangeWorkflow }),
+    ).toEqual([]);
+    const onAttributes = (triggerKey: string) => ({
+      ...configChangeWorkflow,
+      name: `Custom fields ${triggerKey}`,
+      triggerKey,
+      graph: {
+        steps: [
+          {
+            id: 'site',
+            type: 'approval',
+            name: name('Site'),
+            when: { fact: 'attributes.mainCi', op: 'notEmpty' },
+            approvers: [{ type: 'fact', fact: 'records.mainCi.ownerGroup', kind: 'group' }],
+            mode: 'any',
+          },
+        ],
+      },
+    });
+    expect(
+      await issueCodes('core.workflow', { op: 'create', id: null, value: onAttributes('itsm.change') }),
+    ).toEqual([]);
+    expect(
+      await issueCodes('core.workflow', {
+        op: 'create',
+        id: null,
+        value: onAttributes('core.access-request'),
+      }),
+    ).toContain('unknown_fact');
+  });
+});
+
 describe('core.custom-field', () => {
   let id: string;
   const costCentre = {
@@ -708,6 +1068,117 @@ describe('core.role', () => {
         ),
       ),
     ).rejects.toMatchObject({ code: 'PRIVILEGE_ESCALATION' });
+  });
+});
+
+describe('core.group', () => {
+  let id: string;
+  const group = {
+    key: 'security-committee',
+    name: 'Security committee',
+    description: 'Approves security exceptions',
+    attributes: {},
+  };
+  const groupRow = async (key: string) =>
+    (await h.kernel.db.select().from(groups).where(eq(groups.key, key)))[0];
+
+  it('guides with the existing groups and says members are not configuration', async () => {
+    const { guide, schema } = await cz().describe('core.group', admin);
+    expect(guide.instructions).toMatch(/Members are people, not configuration/);
+    const reference = guide.reference as { groups: { key: string }[]; customFields: unknown[] };
+    expect(reference.groups.map((g) => g.key)).toEqual(
+      expect.arrayContaining(['everyone', 'it-asset-management']),
+    );
+    expect(Object.keys((schema as { properties: object }).properties)).toEqual([
+      'key',
+      'name',
+      'description',
+      'attributes',
+    ]);
+  });
+
+  it('creates, updates (members untouched, no-ops kept) and deletes groups', async () => {
+    const created = await apply('core.group', { op: 'create', id: null, value: group }, admin, {
+      type: 'change-set',
+      id: 'g1',
+      reference: 'CS-G1',
+    });
+    id = created.id;
+    expect(created.after!.value).toEqual(group);
+    expect(created.after!.href).toBe(`/admin/groups/${id}`);
+    const [audit] = await h.kernel.db
+      .select()
+      .from(auditLogs)
+      .where(and(eq(auditLogs.action, 'core.group.created'), eq(auditLogs.entityId, id)));
+    expect(audit!.metadata).toMatchObject({ source: { reference: 'CS-G1' } });
+
+    // People are added on the group's page; the kind never touches them.
+    await h.kernel.db.insert(groupMembers).values({ groupId: id, userId: h.ids.hr });
+    const same = await apply('core.group', { op: 'update', id, value: created.after!.value }, admin);
+    expect(same.after!.version).toBe(created.after!.version);
+    const updated = await apply(
+      'core.group',
+      {
+        op: 'update',
+        id,
+        value: { ...group, name: 'Information security committee', description: null },
+        baseVersion: created.after!.version,
+      },
+      admin,
+    );
+    expect(updated.after!.value).toMatchObject({ name: 'Information security committee', description: null });
+    const [{ n }] = (await h.kernel.db
+      .select({ n: count() })
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, id))) as [{ n: number }];
+    expect(n).toBe(1);
+
+    const deleted = await apply('core.group', { op: 'delete', id, value: null }, admin);
+    expect(deleted.after).toBeNull();
+    expect(await groupRow('security-committee')).toBeUndefined();
+  });
+
+  it('keeps keys unique and fixed; system groups cannot be deleted', async () => {
+    const [assets] = await h.kernel.db.select().from(groups).where(eq(groups.key, 'it-asset-management'));
+    expect(
+      await issueCodes('core.group', {
+        op: 'create',
+        id: null,
+        value: { ...group, key: 'it-asset-management' },
+      }),
+    ).toEqual(['duplicate_key']);
+    expect(
+      await issueCodes('core.group', {
+        op: 'update',
+        id: assets!.id,
+        value: { key: 'it-assets', name: 'IT asset management', description: null, attributes: {} },
+      }),
+    ).toEqual(['immutable']);
+    expect(
+      await issueCodes('core.group', { op: 'create', id: null, value: { ...group, key: 'Bad Key' } }),
+    ).toEqual(['invalid_format']);
+    const everyone = (await groupRow('everyone'))!;
+    await expect(
+      apply('core.group', { op: 'delete', id: everyone.id, value: null }, admin),
+    ).rejects.toMatchObject({
+      code: 'SYSTEM_GROUP',
+    });
+  });
+
+  it('dry-runs without leaving the group behind, and applying needs core.groups.manage globally', async () => {
+    const dry = await rolledBack((tx) =>
+      cz().apply(
+        'core.group',
+        { op: 'create', id: null, value: { ...group, key: 'dry-group' } },
+        { auth: outsider, tx, dryRun: true },
+      ),
+    );
+    expect(dry.after!.value).toMatchObject({ key: 'dry-group' });
+    expect(await groupRow('dry-group')).toBeUndefined();
+    // hr manages groups in one department only.
+    await expect(
+      apply('core.group', { op: 'create', id: null, value: { ...group, key: 'hr-group' } }, hr),
+    ).rejects.toMatchObject({ statusCode: 403 });
   });
 });
 

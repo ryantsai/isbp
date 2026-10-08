@@ -35,6 +35,15 @@ describe('projects manifest', () => {
       PROPOSAL_THRESHOLD_HOURS,
     );
     expect(condition).toContain('"roleKey":"projects-pmo"');
+    // The project's custom fields are facts too (`attributes.<key>`, `records.<key>.<fact>`).
+    expect(trigger.customFieldEntity).toBe('projects.project');
+    expect(
+      trigger.facts!.safeParse({
+        project: { budgetHours: 10, priority: 'medium', departmentId: null, memberCount: 1 },
+        attributes: { sponsor: 'CFO' },
+        records: {},
+      }).success,
+    ).toBe(true);
   });
 
   it('lets the Integrations Hub sync projects and their tasks, with permissions no role template holds', () => {

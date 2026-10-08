@@ -11,7 +11,10 @@ import {
   type RecordSummary,
   type SearchHit,
 } from '@isbp/sdk/server';
+import { departments, groups } from '@isbp/db/schema';
 import { and, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
+import type { AppFacts } from '../manifest';
 import { appHref, RELEASE_TONE, releaseHref, STAGE_TONE } from '../model';
 import { groupsOf, READ, viewerOf } from './access';
 import { appSearchCondition } from './applications';
@@ -64,7 +67,41 @@ async function releaseSummaries(
   }));
 }
 
+/** Approval facts of applications (`appFactsSchema`) by id — not permission-filtered (they route approvals). */
+async function appFacts(ids: readonly string[], ctx: ModuleContext): Promise<Map<string, AppFacts>> {
+  const valid = validIds(ids);
+  if (!valid.length) return new Map();
+  const team = alias(groups, 'team_group');
+  const support = alias(groups, 'support_group');
+  const rows = await ctx.db
+    .select({ app: applications, team: team.key, support: support.key, departmentCode: departments.code })
+    .from(applications)
+    .leftJoin(team, eq(team.id, applications.teamGroupId))
+    .leftJoin(support, eq(support.id, applications.supportGroupId))
+    .leftJoin(departments, eq(departments.id, applications.departmentId))
+    .where(inArray(applications.id, valid));
+  return new Map(
+    rows.map(({ app: a, team: teamKey, support: supportKey, departmentCode }) => [
+      a.id,
+      {
+        code: a.code,
+        stage: a.stage,
+        criticality: a.criticality,
+        hosting: a.hosting,
+        dataClassification: a.dataClassification,
+        disposition: a.disposition ?? null,
+        ownerId: a.technicalOwnerId,
+        businessOwnerId: a.businessOwnerId,
+        teamGroup: teamKey,
+        supportGroup: supportKey,
+        departmentCode,
+      },
+    ]),
+  );
+}
+
 const application: RecordResolver = {
+  facts: appFacts,
   async resolve(ids, ctx, auth) {
     const valid = validIds(ids);
     if (!valid.length || !auth.can(READ)) return [];

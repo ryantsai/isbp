@@ -2,6 +2,7 @@ import { defineServerModule } from '@isbp/sdk/server';
 import migrations from '../../migrations';
 import { manifest } from '../manifest';
 import { aiTools } from './ai';
+import { processActions } from './process-actions';
 import { recordResolvers, searchItam } from './records';
 import { routes } from './routes';
 import { seedItam } from './seed';
@@ -46,10 +47,22 @@ export default defineServerModule(manifest, {
         const s = services(ctx);
         const contracts = await s.contracts.daily();
         const warranties = await s.assets.warrantyDigest();
+        const approvals = await s.approvedSoftware.expiryDigest();
         await job.log(
-          `contracts: ${contracts.renewed} renewed, ${contracts.statusChanged} status changes, ${contracts.reminders} reminders; ${warranties} warranties in the digest`,
+          `contracts: ${contracts.renewed} renewed, ${contracts.statusChanged} status changes, ${contracts.reminders} reminders; ${warranties} warranties and ${approvals} ending software approvals in the digests`,
         );
-        return { ...contracts, warranties };
+        return { ...contracts, warranties, approvals };
+      },
+    },
+    'wipe-reminders': {
+      description:
+        'Daily: reminds asset managers of returned devices whose data wipe is due soon or overdue (once per stage)',
+      schedule: { cron: '15 8 * * *', tz: 'Asia/Taipei' },
+      attempts: 3,
+      handler: async (job, ctx) => {
+        const sent = await services(ctx).assets.wipeDigest();
+        if (sent.due || sent.overdue) await job.log(`${sent.due} wipes due soon, ${sent.overdue} overdue`);
+        return sent;
       },
     },
     'compliance-recompute': {
@@ -67,6 +80,7 @@ export default defineServerModule(manifest, {
   },
 
   ai: aiTools,
+  processActions,
   records: recordResolvers,
   search: searchItam,
   sync,

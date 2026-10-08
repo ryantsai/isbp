@@ -17,6 +17,7 @@
  *     DELETE /tickets/:ref/links/:linkId    → ticketDetailSchema
  *     POST   /tickets/:ref/reopen           reopenSchema → ticketDetailSchema       (requester: "still broken")
  *     POST   /tickets/:ref/confirm          confirmSchema → ticketDetailSchema      (requester: fixed + CSAT)
+ *     POST   /tickets/:ref/acceptance       acceptanceSchema → ticketDetailSchema   (change requester, in review)
  *     PATCH  /tickets/:ref/problem          updateProblemSchema → ticketDetailSchema
  *     PATCH  /tickets/:ref/change           updateChangeSchema → ticketDetailSchema
  *     GET    /queues                        → queueCountsSchema   (counts for the agent views)
@@ -138,6 +139,13 @@ export const TRANSITIONS: Record<TicketType, Partial<Record<TicketStatus, Ticket
     rejected: ['draft'],
   },
 };
+
+/**
+ * Resolution sign-off (`itsm.resolution`): resolving these types starts the bound workflow; while it runs the ticket is
+ * `pending_approval` ("Waiting for sign-off") and may only go back to work or be cancelled.
+ */
+export const SIGN_OFF_TYPES: readonly TicketType[] = ['incident', 'service_request', 'problem'];
+export const SIGN_OFF_TRANSITIONS: readonly TicketStatus[] = ['in_progress', 'cancelled'];
 
 /** Statuses where the ticket no longer needs work (closed for SLA, queues and "My requests"). */
 export const DONE_STATUSES: readonly TicketStatus[] = [
@@ -272,6 +280,8 @@ export const ticketListItemSchema = z.object({
   /** Changes: planned window. */
   plannedStart: dateTime.nullable(),
   plannedEnd: dateTime.nullable(),
+  /** `pending_approval` because its resolution waits for a sign-off (`itsm.resolution`). */
+  awaitingSignOff: z.boolean(),
   createdAt: dateTime,
   updatedAt: dateTime,
   resolvedAt: dateTime.nullable(),
@@ -318,8 +328,10 @@ export const problemDetailSchema = z.object({
 
 export const ticketSourceSchema = z
   .object({
-    type: z.literal('form-submission'),
+    /** A catalog fulfilment of the submission, or a form's process action (`id` is then the run). */
+    type: z.enum(['form-submission', 'process-action']),
     id,
+    submissionId: id.optional(),
     reference: z.string(),
     formKey: z.string(),
     formName: localizedTextSchema,
@@ -341,6 +353,21 @@ export const ticketDetailSchema = ticketListItemSchema.extend({
   source: ticketSourceSchema,
   answers: z.array(z.object({ key: z.string(), label: localizedTextSchema, value: z.string() })).nullable(),
   change: changeDetailSchema.nullable(),
+  /**
+   * A change's acceptance by its requester in the post-implementation review (`review`, and once closed): `pending`
+   * until they accept it or report a problem. `required`: closing waits for their acceptance (ITSM setting).
+   */
+  acceptance: z
+    .object({
+      state: z.enum(['pending', 'accepted', 'problem']),
+      note: z.string().nullable(),
+      by: personRefSchema.nullable(),
+      at: dateTime.nullable(),
+      required: z.boolean(),
+    })
+    .nullable(),
+  /** The running resolution sign-off: the status it resolves to once approved. */
+  signOff: z.object({ instanceId: id, to: ticketStatusSchema }).nullable(),
   problem: problemDetailSchema.nullable(),
   /** Custom field values (`itsm.ticket`). */
   attributes: z.record(z.string(), z.unknown()),
@@ -356,6 +383,8 @@ export const ticketDetailSchema = ticketListItemSchema.extend({
     transitions: z.array(ticketStatusSchema),
     canReopen: z.boolean(),
     canConfirm: z.boolean(),
+    /** The change's requester may accept it or report a problem (post-implementation review). */
+    canAccept: z.boolean(),
   }),
 });
 export type TicketDetail = z.input<typeof ticketDetailSchema>;
@@ -465,6 +494,18 @@ export const commentSchema = z.object({
 export type CommentInput = z.input<typeof commentSchema>;
 
 export const reopenSchema = z.object({ reason: z.string().trim().min(3).max(5_000) });
+/** The change's requester in its post-implementation review: "Accept the change", or "Report a problem" (reason). */
+export const acceptanceSchema = z
+  .object({
+    accepted: z.boolean(),
+    note: z.string().trim().max(5_000).optional(),
+  })
+  .refine((v) => v.accepted || (v.note?.length ?? 0) >= 3, {
+    message: 'Say what is wrong',
+    path: ['note'],
+  });
+export type AcceptanceInput = z.input<typeof acceptanceSchema>;
+
 export const confirmSchema = z.object({
   rating: z.number().int().min(1).max(5).optional(),
   comment: z.string().trim().max(2_000).optional(),

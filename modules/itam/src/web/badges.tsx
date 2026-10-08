@@ -5,10 +5,13 @@ import { Badge } from '@isbp/ui/badge';
 import {
   ArchiveIcon,
   BanIcon,
+  CalendarClockIcon,
+  CircleHelpIcon,
   BoxIcon,
   CircleCheckIcon,
   CircleXIcon,
   ClockAlertIcon,
+  EraserIcon,
   FilePenLineIcon,
   HardDriveIcon,
   KeyboardIcon,
@@ -34,11 +37,14 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type {
+  ApprovalStatus,
   AssetCategory,
   AssetStatus,
   ComplianceState,
   ContractStatus,
+  InstallApproval,
   WarrantyState,
+  WipeState,
 } from '../contracts';
 import { useDay } from './lib';
 
@@ -200,4 +206,71 @@ export function WarrantyEnd({
     );
   }
   return <span className={className}>{day(date)}</span>;
+}
+
+/* ───────────────────────────── approved software ───────────────────────────── */
+
+export const APPROVAL: Record<InstallApproval, { tone: Tone; icon: LucideIcon }> = {
+  allowed: { tone: 'success', icon: CircleCheckIcon },
+  unapproved: { tone: 'warning', icon: CircleHelpIcon },
+  blocked: { tone: 'destructive', icon: BanIcon },
+};
+
+/** An install against the approved-software list: "Approved", "Not on the approved list", "Blocked". */
+export function ApprovalBadge({ approval, className }: { approval: InstallApproval; className?: string }) {
+  const t = useTranslations('itam.approval');
+  const s = APPROVAL[approval] ?? APPROVAL.allowed;
+  const Icon = s.icon;
+  return (
+    <Badge variant="outline" className={cn(TONE[s.tone], className)}>
+      <Icon aria-hidden />
+      {t(approval)}
+    </Badge>
+  );
+}
+
+/** An entry of the list: "Allowed" or "Blocked". */
+export function ApprovalStatusBadge({ status, className }: { status: ApprovalStatus; className?: string }) {
+  const t = useTranslations('itam.approvalStatus');
+  const Icon = status === 'blocked' ? BanIcon : ShieldCheckIcon;
+  return (
+    <Badge
+      variant="outline"
+      className={cn(TONE[status === 'blocked' ? 'destructive' : 'success'], className)}
+    >
+      <Icon aria-hidden />
+      {t(status)}
+    </Badge>
+  );
+}
+
+/* ───────────────────────────── data wipes ───────────────────────────── */
+
+const WIPE: Record<Exclude<WipeState, 'none'>, { tone: Tone; icon: LucideIcon }> = {
+  scheduled: { tone: 'info', icon: CalendarClockIcon },
+  due: { tone: 'warning', icon: ClockAlertIcon },
+  overdue: { tone: 'destructive', icon: EraserIcon },
+};
+
+/** A pending data wipe: "Wipe by 1 Dec", "Wipe due 1 Dec", "Wipe overdue since 1 Dec" (icon + text). */
+export function WipeBadge({
+  state,
+  date,
+  className,
+}: {
+  state: WipeState;
+  date: string | null;
+  className?: string;
+}) {
+  const t = useTranslations('itam.wipe.badge');
+  const day = useDay();
+  if (state === 'none' || !date) return null;
+  const s = WIPE[state];
+  const Icon = s.icon;
+  return (
+    <Badge variant="outline" className={cn(TONE[s.tone], className)}>
+      <Icon aria-hidden />
+      {t(state, { date: day(date) })}
+    </Badge>
+  );
 }

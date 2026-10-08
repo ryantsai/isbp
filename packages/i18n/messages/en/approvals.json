@@ -33,7 +33,10 @@
     "reject": "Reject",
     "cancel": "Cancel",
     "approvedToast": "Approved",
-    "rejectedToast": "Rejected — the requester has been told why"
+    "rejectedToast": "Rejected — the requester has been told why",
+    "fieldsTitle": "To fill in",
+    "fieldsHint": "Kept with your decision and shown on the request. Fields marked * are needed to approve.",
+    "fieldsOptionalHint": "Optional when you reject; kept with your decision and shown on the request."
   },
   "delegate": {
     "title": "Hand this approval to someone else",

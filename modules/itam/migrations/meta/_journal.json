@@ -15,6 +15,20 @@
       "when": 1791383165380,
       "tag": "0001_tidy_timeslip",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791450619010,
+      "tag": "0002_swift_warstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791457033684,
+      "tag": "0003_nebulous_talisman",
+      "breakpoints": true
     }
   ]
 }

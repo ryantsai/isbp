@@ -27,6 +27,21 @@ export interface RunOptions {
   signal?: AbortSignal;
   /** Mirrors log lines (Scheduled Jobs' live log). */
   log?: (message: string, level?: 'info' | 'warn' | 'error') => void;
+  /**
+   * Who hears about a failure besides the run row: by default the pipeline's owner. `false` sends nothing (a
+   * scheduled attempt the job will retry); `except` leaves out people who get the scheduled job's own alert.
+   */
+  notify?: false | { except?: readonly string[] };
+}
+
+/** The people told about a failed run: the pipeline's owner, minus those alerted elsewhere. */
+export function failureRecipients(
+  p: Pick<PipelineRow, 'ownerId'>,
+  notify: RunOptions['notify'] = {},
+): string[] {
+  if (notify === false) return [];
+  const except = new Set(notify.except ?? []);
+  return [p.ownerId].filter((id): id is string => id !== null && !except.has(id));
 }
 
 /** Why a run stopped: a person cancelled it, or Scheduled Jobs aborted it (timeout/cancel). */
@@ -232,11 +247,14 @@ export async function executeRun(ctx: ModuleContext, runId: string, opts: RunOpt
       );
     else {
       await ctx.events.publish('etl.pipeline.run_failed', { ...ref, error: error ?? status }, { tx });
-      if (status === 'failed' && run.trigger === 'manual' && p.ownerId)
+      // However the run was started (Run now, a schedule, a tool): the owner hears about it, unless the
+      // scheduled job's own failure alert already reaches them.
+      const recipients = status === 'failed' ? failureRecipients(p, opts.notify) : [];
+      if (recipients.length)
         await ctx.notifications.notify(
           {
             type: 'etl.pipeline.failed',
-            recipients: [p.ownerId],
+            recipients,
             params: { pipeline: p.name, error: (error ?? '').slice(0, 300) },
             href: runHref(p.id, runId),
           },

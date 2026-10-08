@@ -22,11 +22,13 @@ import { localize } from '@isbp/sdk';
 import { ARTICLE_LOCALES, type ArticleListItem, type ArticleQuery, type Category } from '../../contracts';
 import {
   ArticleStats,
+  ClassificationBadge,
   InternalBadge,
   LOCALE_LABEL,
   LocaleChip,
   StatusBadge,
   useCategoryName,
+  useClassifications,
 } from '../parts';
 
 const TABS = ['mine', 'review', 'published', 'retired', 'due'] as const;
@@ -49,6 +51,7 @@ export default function ManagePage() {
   const locale = useLocale();
   const router = useRouter();
   const categoryName = useCategoryName();
+  const classifications = useClassifications();
   const canWrite = useCan('knowledge.articles.write');
   const canManageCategories = useCan('knowledge.categories.manage');
   const canPublish = useCan('knowledge.articles.publish');
@@ -65,6 +68,7 @@ export default function ManagePage() {
       category: state.category as string | undefined,
       audience: state.audience as string | undefined,
       locale: state.locale as string | undefined,
+      classification: state.classification as string | undefined,
       sort: state.sort ?? (tab === 'due' ? 'reviewAt' : '-updatedAt'),
       page: state.page,
       pageSize: state.pageSize,
@@ -88,6 +92,7 @@ export default function ManagePage() {
               <span className="flex min-w-0 items-center gap-2">
                 <span className="truncate font-medium hover:underline">{a.title}</span>
                 {a.audience === 'agents' && <InternalBadge className="shrink-0" />}
+                {a.classification && <ClassificationBadge value={a.classification} className="shrink-0" />}
               </span>
               <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                 <span className="shrink-0 font-mono">{a.reference}</span>
@@ -198,7 +203,7 @@ export default function ManagePage() {
       </>
     );
 
-  const filter = (key: 'category' | 'audience' | 'locale', value: string) =>
+  const filter = (key: 'category' | 'audience' | 'locale' | 'classification', value: string) =>
     set({ [key]: value === ALL ? undefined : value });
 
   const toolbar = (
@@ -236,6 +241,23 @@ export default function ManagePage() {
           {ARTICLE_LOCALES.map((l) => (
             <SelectItem key={l} value={l}>
               {LOCALE_LABEL[l]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        value={(state.classification as string) ?? ALL}
+        onValueChange={(v) => filter('classification', v)}
+      >
+        <SelectTrigger size="sm" className="w-full sm:w-48" aria-label={t('classificationFilter')}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>{t('allClassifications')}</SelectItem>
+          <SelectItem value="none">{t('unclassified')}</SelectItem>
+          {classifications.levels.map((l) => (
+            <SelectItem key={l.key} value={l.key}>
+              {classifications.label(l.key)}
             </SelectItem>
           ))}
         </SelectContent>

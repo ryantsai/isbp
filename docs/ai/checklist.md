@@ -28,7 +28,12 @@ your report. The rule numbers point to [rules.md](rules.md).
 - [ ] Sync adapters write through the module's own logic in the hub's `tx`, with a `.sync` permission, and refuse
       what the UI refuses, approvals included (R40, R41). Connectors use only `conn.http`, typed remote errors
       and a mock-backed test (R42–R44).
-- [ ] Resolvers and search providers return only what the caller may read (R18).
+- [ ] Resolvers and search providers return only what the caller may read (R18). Record facts (if declared) are
+      cheap, approval-relevant, labelled in all three catalogs, and never returned to users (R50).
+- [ ] Process actions (if any) are declared with a permission, idempotent on `runId`, write through the module's own
+      services, never skip an approval, validate their config like the admin UI and seal secrets (R52–R54).
+- [ ] Built-in packages (if any) only create, name earlier items by `$ref`/key, carry no people or secrets, and
+      install `ready: true` on a fresh platform (R55, recipe 28).
 - [ ] Migrations are generated (`db:generate`), and no applied migration was edited (R10).
 - [ ] `seed(ctx)` is idempotent and makes the UI look alive. Roles are granted to demo groups in the platform seed
       (R36).

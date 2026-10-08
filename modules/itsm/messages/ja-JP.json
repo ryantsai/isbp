@@ -3,6 +3,43 @@
     "name": "サービス デスク",
     "description": "インシデント、サービス要求、問題、変更と SLA の管理"
   },
+  "processActions": {
+    "createChange": {
+      "name": "変更を作成",
+      "description": "申請から変更を作成し、申請で選択された CI にリンクします。変更諮問委員会 (CAB) の承認に提出することもできます。",
+      "title": "タイトル",
+      "descriptionField": "説明",
+      "changeType": "変更の種類",
+      "risk": "リスク",
+      "changeTypeField": "この回答を変更の種類として使用",
+      "changeTypeFieldHelp": "回答が normal または emergency の場合に使用します。それ以外は上の変更の種類を使用します。フォームから事前承認済みの標準変更が作成されることはありません。",
+      "riskField": "この回答をリスクとして使用",
+      "riskFieldHelp": "回答が low、medium、high のいずれかの場合に使用します。それ以外は上のリスクを使用します。",
+      "category": "カテゴリ",
+      "group": "割り当てグループ",
+      "ciField": "影響を受ける CI の取得元",
+      "ciFieldHelp": "このフォームの構成アイテム フィールドです。変更はそこで選択された CI にリンクされます。",
+      "plannedStart": "開始予定の取得元",
+      "plannedEnd": "終了予定の取得元",
+      "backoutPlan": "切り戻し計画",
+      "submit": "承認に提出",
+      "submitHelp": "変更自体の承認ワークフローを開始します (リスクや CI に応じて CAB を含みます)。スキップされることはありません。",
+      "created": "変更を作成しました",
+      "submitted": "変更を作成し、承認に提出しました",
+      "windowPassed": "変更を作成しました。予定期間がすでに過ぎていたため、承認には提出していません"
+    },
+    "createTicket": {
+      "name": "チケットを作成",
+      "description": "指定したタイトル、説明、カテゴリ、グループで、申請者のインシデントまたはサービス要求を作成します。",
+      "type": "種類",
+      "priority": "優先度",
+      "title": "タイトル",
+      "descriptionField": "説明",
+      "category": "カテゴリ",
+      "group": "割り当てグループ",
+      "created": "チケットを作成しました"
+    }
+  },
   "nav": {
     "group": "サービス デスク",
     "desk": "チケット",
@@ -13,7 +50,7 @@
   },
   "portal": {
     "report": "問題を報告",
-    "reportDescription": "うまく動かないものがありますか？サービス デスクに伝えて、対応状況を確認できます。"
+    "reportDescription": "うまく動かないものがありますか? サービス デスクに伝えて、対応状況を確認できます。"
   },
   "entities": {
     "ticket": "チケット",
@@ -62,6 +99,10 @@
     "change": {
       "name": "変更の承認",
       "description": "スケジュール前に変更を承認します (CAB)"
+    },
+    "resolution": {
+      "name": "解決の承認",
+      "description": "省略可能: チケットを解決する前にマネージャーが解決内容を承認します (カテゴリなどの条件で対象を絞り込みます)"
     }
   },
   "types": {
@@ -196,7 +237,9 @@
     "defaultGroupKeyHelp": "カテゴリにグループが設定されていない新しいチケットは、このグループに割り当てられます (例: service-desk)。",
     "csatEnabled": "依頼者が解決を確認するときに満足度の評価を依頼する",
     "majorIncidentBroadcast": "重大インシデントをチャネルで告知する",
-    "majorIncidentBroadcastHelp": "インシデントが重大インシデントとして宣言されたときに、組織が登録している Teams、Slack、Webhook のチャネルに投稿します。"
+    "majorIncidentBroadcastHelp": "インシデントが重大インシデントとして宣言されたときに、組織が登録している Teams、Slack、Webhook のチャネルに投稿します。",
+    "requireAcceptance": "変更を終了する前に申請者の受け入れを必須にする",
+    "requireAcceptanceHelp": "申請者がいる変更は、申請者が受け入れた後にのみ実施後レビューから終了できます。"
   },
   "notifications": {
     "ticket_created": {
@@ -248,6 +291,26 @@
       "label": "重大インシデント (チャネル)",
       "title": "重大インシデント: {reference} {title}",
       "body": "{description}"
+    },
+    "change_acceptance_requested": {
+      "label": "受け入れを待つ変更",
+      "title": "変更を確認してください: {reference} {title}",
+      "body": "変更が実施されました。期待どおりに動作する場合は受け入れ、そうでない場合は問題を報告してください。"
+    },
+    "change_accepted": {
+      "label": "申請者が受け入れた変更",
+      "title": "受け入れ済み: {reference} {title}",
+      "body": "{name} が変更を受け入れました。"
+    },
+    "change_problem_reported": {
+      "label": "変更について報告された問題",
+      "title": "問題の報告: {reference} {title}",
+      "body": "{name} が変更の問題を報告しました: {reason}"
+    },
+    "ticket_sign_off_rejected": {
+      "label": "承認されなかった解決",
+      "title": "解決が承認されませんでした: {reference} {title}",
+      "body": "{name} が解決を承認しませんでした: {reason} チケットは対応中に戻りました。"
     }
   },
   "audit": {
@@ -272,7 +335,9 @@
     "sla_policy_updated": "SLA ポリシーを更新",
     "sla_policy_deleted": "SLA ポリシーを削除",
     "catalog_item_updated": "サービスカタログの履行設定を変更",
-    "catalog_item_deleted": "サービスカタログからフォームを削除"
+    "catalog_item_deleted": "サービスカタログからフォームを削除",
+    "change_accepted": "申請者が変更を受け入れ",
+    "change_problem_reported": "申請者が変更の問題を報告"
   },
   "common": {
     "major": "重大インシデント",
@@ -471,7 +536,9 @@
       "titleTooShort": "3 文字以上入力してください",
       "descriptionLabel": "説明",
       "markdownHint": "Markdown を使用できます。"
-    }
+    },
+    "withdrawResolution": "解決を取り下げる",
+    "sentForSignOff": "解決を承認に回しました"
   },
   "details": {
     "title": "詳細",
@@ -601,7 +668,25 @@
     "autoClosed": "依頼者からの応答がないため自動的にクローズしました",
     "assignmentChanged": "{name} が割り当てを変更しました",
     "offboarded": "前の担当者は退職しました。",
-    "via": "({system} {reference} 経由)"
+    "via": "({system} {reference} 経由)",
+    "acceptance": {
+      "accepted": "{name} が変更を受け入れました",
+      "problem": "{name} が変更の問題を報告しました",
+      "acceptedLabel": "変更を受け入れ",
+      "problemLabel": "問題を報告",
+      "closedAccepted": "申請者が受け入れ済み",
+      "closedProblem": "申請者が問題を報告",
+      "closedPending": "申請者は未受け入れ"
+    },
+    "signOff": {
+      "requested": "{name} が解決しました: 承認待ち",
+      "withdrawn": "{name} が解決を取り下げました",
+      "started": "解決の承認を開始しました",
+      "approved": "解決が承認されました",
+      "rejected": "解決が承認されませんでした",
+      "cancelled": "解決の承認が取り下げられました",
+      "updated": "解決の承認が更新されました"
+    }
   },
   "composer": {
     "label": "会話に追加",
@@ -1076,5 +1161,47 @@
         "resolution": "{priority}: 解決時間 (分)"
       }
     }
+  },
+  "recordFacts": {
+    "type": "チケットの種類",
+    "status": "状態",
+    "priority": "優先度 (1 = 最高)",
+    "impact": "影響度 (1 = 高)",
+    "urgency": "緊急度 (1 = 高)",
+    "major": "重大インシデント",
+    "category": "カテゴリ キー",
+    "groupKey": "割り当てグループ",
+    "assigneeId": "担当者",
+    "requesterId": "依頼者",
+    "departmentCode": "部署コード",
+    "changeType": "変更の種類",
+    "risk": "リスク",
+    "plannedStart": "開始予定",
+    "plannedEnd": "終了予定"
+  },
+  "signOff": {
+    "status": "承認待ち (解決)",
+    "resolutionTitle": "承認待ちの解決",
+    "resolutionHint": "承認されるとチケットは解決済みになります。却下されると対応中に戻ります。"
+  },
+  "acceptance": {
+    "title": "申請者の受け入れ",
+    "state": {
+      "pending": "受け入れ待ち",
+      "accepted": "受け入れ済み",
+      "problem": "問題の報告あり"
+    },
+    "askRequester": "変更が実施されました。期待どおりに動作していますか?",
+    "waiting": "申請者が変更を受け入れるのを待っています。",
+    "waitingRequired": "申請者が変更を受け入れるのを待っています。受け入れ後にのみ終了できます。",
+    "acceptedBy": "{name} が変更を受け入れました。",
+    "problemBy": "{name} が問題を報告しました。",
+    "accept": "変更を受け入れる",
+    "reportProblem": "問題を報告",
+    "problemLabel": "何が問題ですか?",
+    "problemRequired": "問題を入力してください (3 文字以上)。",
+    "sendProblem": "問題を報告",
+    "acceptedToast": "変更を受け入れました",
+    "problemToast": "問題を報告しました"
   }
 }

@@ -22,6 +22,8 @@ import {
   BanIcon,
   BotIcon,
   CircleAlertIcon,
+  CircleCheckIcon,
+  DownloadIcon,
   FileQuestionIcon,
   HourglassIcon,
   InboxIcon,
@@ -38,7 +40,7 @@ import {
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useId, useState } from 'react';
-import type { ChangeSetItem } from '../../contracts';
+import { type ChangeSetItem, packageFileName } from '../../contracts';
 import { CHECK, StatusBadge, ToneText } from '../badges';
 import {
   ApplyDialog,
@@ -51,11 +53,13 @@ import {
   useChangeSetAction,
 } from '../change-set/dialogs';
 import { ItemCard } from '../change-set/item-card';
+import { LiveLinks, liveLinksOf } from '../change-set/live-links';
 import {
   type AssistantStatusDto,
   type ChangeSetDetailDto,
   changeSetApiPath,
   checkCounts,
+  exportHref,
   isOpenStatus,
   STATUS_PATH,
   useKindLabel,
@@ -222,7 +226,11 @@ export default function ChangeSetPage({ params }: WebPageProps) {
   const kindsById = new Map((status.data?.kinds ?? []).map((k) => [k.kind, k]));
   const isMine = detail.createdBy.type === 'user' && detail.createdBy.id === user.id;
   const actionError = check.error ?? refresh.error;
-  const more = p.canDiscard || p.canWithdraw;
+  // Export works in every status (a package file for another environment), once there is something to export.
+  const canExport = detail.items.length > 0;
+  const more = p.canDiscard || p.canWithdraw || canExport;
+  // Where people use what it made (a form's own page), once applied.
+  const live = liveLinksOf(detail.status, detail.items);
 
   return (
     <div className="grid min-w-0 grid-cols-1 gap-6">
@@ -309,6 +317,13 @@ export default function ChangeSetPage({ params }: WebPageProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {canExport && (
+                  <DropdownMenuItem asChild>
+                    <a href={exportHref(detail.id)} download={packageFileName(detail.reference)}>
+                      <DownloadIcon /> {t('actions.export')}
+                    </a>
+                  </DropdownMenuItem>
+                )}
                 {p.canWithdraw && (
                   <DropdownMenuItem onSelect={() => setDialog('withdraw')}>
                     <UndoDotIcon /> {t('actions.withdraw')}
@@ -335,6 +350,21 @@ export default function ChangeSetPage({ params }: WebPageProps) {
         </p>
       )}
       {detail.lastError && <LastErrorBanner error={detail.lastError} />}
+      {live.length > 0 && (
+        <section
+          aria-labelledby={`${headingId}-live`}
+          className="flex items-start gap-3 rounded-xl border border-success/30 bg-success/8 px-4 py-3 text-sm"
+        >
+          <CircleCheckIcon className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
+          <div className="min-w-0 space-y-1.5">
+            <h2 id={`${headingId}-live`} className="font-semibold text-success">
+              {t('live.title')}
+            </h2>
+            <p>{t('live.body')}</p>
+            <LiveLinks links={live} />
+          </div>
+        </section>
+      )}
 
       {open && !p.canApply && p.missing.length > 0 && (
         <div className="flex items-start gap-3 rounded-xl border border-info/30 bg-info/8 px-4 py-3 text-sm">

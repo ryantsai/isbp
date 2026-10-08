@@ -19,7 +19,7 @@ import type { FastifyBaseLogger, FastifyInstance, RawServerDefault } from 'fasti
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import type { z } from 'zod';
 import type { LocalizedText } from './conditions';
-import type { FieldDef, FormSchema } from './fields';
+import type { FieldDef, FormSchema, ProcessActionOutcome } from './fields';
 import type {
   ConnectorHandler,
   ConnectorsService,
@@ -27,7 +27,7 @@ import type {
   SyncChange,
   SyncService,
 } from './integrations';
-import type { CustomizationHandler, CustomizationsService } from './customizations';
+import type { ChangeSetPackage, CustomizationHandler, CustomizationsService } from './customizations';
 import type { ModuleManifest } from './manifest';
 import type { PermissionReach, PermissionSet, ResourceScope } from './permissions';
 
@@ -216,6 +216,26 @@ export interface WorkflowService {
   cancel(instanceId: string, reason?: string | null, opts?: { tx?: Db }): Promise<void>;
   /** Whether the user has (or had) an approval task on one of this module's instances — to show them the subject. */
   isApprover(instanceId: string, userId: string): Promise<boolean>;
+  /**
+   * Who would decide, without starting anything: the steps of the workflow `start()` would run for these facts
+   * (assuming every step approves), with their approvers resolved. `null` when no workflow would run.
+   */
+  preview(triggerKey: string, input: Omit<StartWorkflowInput, 'subject'>): Promise<WorkflowPreview | null>;
+}
+
+export interface WorkflowPreviewStep {
+  id: string;
+  name: LocalizedText;
+  type: 'approval' | 'notify';
+  /** `ask` people; `skipped` by a condition; nobody matched and the step is skipped (`no-approver`) or rejects. */
+  outcome: 'ask' | 'skipped' | 'no-approver' | 'reject';
+  people: { id: string; displayName: string }[];
+}
+
+export interface WorkflowPreview {
+  definition: { id: string; name: string };
+  /** Steps in the order they would run (parallel branches flattened). */
+  steps: WorkflowPreviewStep[];
 }
 
 /* ───────────────────────────── notifications ───────────────────────────── */
@@ -249,13 +269,25 @@ export interface CustomFieldService {
   definitions(entityType: string): Promise<FieldDef[]>;
   /**
    * Validates submitted custom-field values and merges them over `existing` (values of retired
-   * fields are kept). Throws 400 `VALIDATION_FAILED` with `details.fields` on invalid input.
+   * fields are kept). Throws 400 `VALIDATION_FAILED` with `details.issues` on invalid input.
+   * Records picked in `record` fields must be readable by `auth` — by default the caller of the current request or
+   * AI tool call; in system work (sync, jobs) they only have to exist — and match the field's `where`.
    */
   validate(
     entityType: string,
     input: Record<string, unknown>,
     existing?: Record<string, unknown>,
+    auth?: AuthContext | null,
   ): Promise<Record<string, unknown>>;
+  /**
+   * Workflow facts for an entity's custom fields: `{ attributes: { <key>: value }, records: { <key>: <facts> } }`,
+   * where `records` holds the facts of records picked in `record` custom fields (see `RecordsService.facts`).
+   * Spread into `start({ facts })` for triggers that declare `customFieldEntity`.
+   */
+  facts(
+    entityType: string,
+    attributes: Record<string, unknown> | null | undefined,
+  ): Promise<{ attributes: Record<string, unknown>; records: Record<string, unknown> }>;
 }
 
 /* ───────────────────────────── AI gateway ───────────────────────────── */
@@ -560,6 +592,11 @@ export interface RecordResolver {
   resolve(ids: readonly string[], ctx: ModuleContext, auth: AuthContext): Promise<RecordSummary[]>;
   /** For pickers: records whose reference or title matches `query`, most relevant first. */
   search(query: string, ctx: ModuleContext, auth: AuthContext, limit: number): Promise<RecordSummary[]>;
+  /**
+   * The record type's approval facts (shape: `RecordTypeDef.facts`) for workflows and record-field filters, by id.
+   * Not permission-filtered: facts route approvals and are never shown to the requester.
+   */
+  facts?(ids: readonly string[], ctx: ModuleContext): Promise<Map<string, Record<string, unknown>>>;
 }
 
 export interface RecordLinkInfo {
@@ -596,6 +633,8 @@ export interface RecordsService {
   counts(refs: readonly RecordRef[]): Promise<Map<string, number>>;
   /** Drops the links and attachments of a record that was deleted. */
   forget(ref: RecordRef, opts?: { tx?: Db }): Promise<void>;
+  /** Approval facts of records (types whose resolver has `facts`), keyed by `type:id`; unknown ones are skipped. */
+  facts(refs: readonly RecordRef[]): Promise<Map<string, Record<string, unknown>>>;
 }
 
 export interface FileInfo {
@@ -707,7 +746,19 @@ export interface TaskContext {
   jobId: string;
   /** 1-based attempt number (retries increase it). */
   attempt: number;
+  /** Attempts the job allows, retries included: `attempt === maxAttempts` is the last one. */
+  maxAttempts?: number;
+  /**
+   * People the job itself alerts when this run fails for good (its owner and owner-group members, when its failure
+   * alerts are on). A task type that sends its own failure notices leaves them out, so nobody hears twice.
+   */
+  failureRecipients?: readonly string[];
   scheduledFor: Date;
+  /**
+   * The job's IANA time zone (its cron trigger's; `UTC` unless set), for work that depends on the local date —
+   * e.g. which month a run belongs to.
+   */
+  timeZone?: string;
   /** End of the job's last successful run, e.g. for incremental loads. */
   lastSuccessAt: Date | null;
   /** The job's timeout; `signal` fires when it is reached (pass it on, e.g. as a statement timeout). */
@@ -962,9 +1013,21 @@ export interface ServerModuleOptions {
    * `commentEvents`, with the record id resolved. The Integrations Hub pushes local changes from here.
    */
   onSyncChange?: (change: SyncChange, ctx: ModuleContext) => Promise<void>;
+  /** Handlers for `manifest.processActions`, keyed by action (without the module prefix). */
+  processActions?: Record<string, ProcessActionHandler>;
   /** Handlers for `manifest.customizations`, keyed by kind (without the module prefix). */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   customizations?: Record<string, CustomizationHandler<any>>;
+  /**
+   * Content of `manifest.customizationPackages`, keyed by package key: returns the package (static data, built or
+   * read when someone lists or installs it). Installing creates a draft change set (`docs/ai/recipes.md`). It is
+   * built for the installer's `locale` (the viewer's when listing; English for API clients): values the kinds keep
+   * as plain text — group and job names, reminder titles — are written in that language. Built once per locale.
+   */
+  customizationPackages?: Record<
+    string,
+    (opts: { locale: Locale }) => ChangeSetPackage | Promise<ChangeSetPackage>
+  >;
   /** Demo data for `pnpm db:seed`. Must be idempotent. */
   seed?: (ctx: ModuleContext) => Promise<void>;
   onEnable?: (ctx: ModuleContext) => Promise<void>;
@@ -1052,6 +1115,28 @@ export function defineServerModule(manifest: ModuleManifest, options: ServerModu
         `[${manifest.id}] customisation handler "${kind}" is not declared in manifest.customizations`,
       );
   }
+  const packages = new Set(manifest.customizationPackages?.map((p) => p.key) ?? []);
+  for (const key of packages) {
+    if (typeof options.customizationPackages?.[key] !== 'function')
+      throw new Error(`[${manifest.id}] package "${key}" has no content in customizationPackages`);
+  }
+  for (const key of Object.keys(options.customizationPackages ?? {})) {
+    if (!packages.has(key))
+      throw new Error(
+        `[${manifest.id}] package content "${key}" is not declared in manifest.customizationPackages`,
+      );
+  }
+  const actions = new Set(manifest.processActions?.map((a) => a.action) ?? []);
+  for (const action of actions) {
+    if (!options.processActions?.[action])
+      throw new Error(`[${manifest.id}] process action "${action}" has no handler in processActions`);
+  }
+  for (const action of Object.keys(options.processActions ?? {})) {
+    if (!actions.has(action))
+      throw new Error(
+        `[${manifest.id}] process action handler "${action}" is not declared in manifest.processActions`,
+      );
+  }
   for (const name of Object.keys(options.jobs ?? {})) {
     if (!/^[a-z][a-z0-9-]*$/.test(name))
       throw new Error(`[${manifest.id}] job name "${name}" must be kebab-case`);
@@ -1078,4 +1163,103 @@ declare module 'fastify' {
     /** Set `false` to skip the CSRF check (e.g. SAML POST bindings that carry their own proof). */
     csrf?: boolean;
   }
+}
+
+/* ───────────────────────────── process actions ───────────────────────────── */
+
+/** The request a process action runs for (a form submission), with its answers. */
+export interface ProcessActionRequest {
+  id: string;
+  /** `REQ-01042`. */
+  reference: string;
+  href: string;
+  form: { key: string; name: LocalizedText };
+  outcome: ProcessActionOutcome;
+  /** Cleaned answers by field key (`record` fields hold refs `type:id`). */
+  data: Record<string, unknown>;
+  /** Approval facts of the records picked in `record` fields, by field key (a list for multi-pick fields). */
+  records: Record<string, unknown>;
+  /**
+   * What approvers filled in with their decisions (`ApprovalStep.fields`), by step id then field key, e.g.
+   * `steps.review.wipeDate`; with several approvers on a step, the latest decision's value of each field.
+   */
+  steps: Record<string, Record<string, unknown>>;
+  requester: { id: string; displayName: string; email: string; departmentId: string | null } | null;
+  /** Who made the final decision (approved / rejected outcomes). */
+  decidedBy: { id: string; displayName: string } | null;
+}
+
+export interface ProcessActionInput {
+  /**
+   * The action's configuration, validated against its fields, with `{{…}}` templates already rendered in `text` and
+   * `textarea` fields (other values — URLs, choices, people — are used exactly as configured). Values of the
+   * handler's `secrets` arrive opened (plain text): never log or return them.
+   */
+  config: Record<string, unknown>;
+  request: ProcessActionRequest;
+  /**
+   * This run's id: the same on every attempt and retry, so use it to make `run` idempotent (e.g. store it on the
+   * record you create and return that record when it already exists).
+   */
+  runId: string;
+  /** 1 for the first attempt. */
+  attempt: number;
+  /**
+   * Who the action acts as: a system principal holding the providing module's own permissions, named after the
+   * form; audit entries carry the request and the approver.
+   */
+  auth: AuthContext;
+}
+
+export interface ProcessActionResult {
+  /** What it created or changed, e.g. `CHG-00042`, shown on the request. */
+  reference?: string | null;
+  href?: string | null;
+  /** An i18n key in the module's catalog (`itsm.processActions.createChange.submitted`), or short plain text. */
+  summary?: string | null;
+  /**
+   * Values of the summary's ICU arguments (`{ date: '2026-11-01T01:00:00.000Z' }` for "Reminder set for {date, date,
+   * long}"): strings and numbers; ISO dates and date-times are passed to the message as dates.
+   */
+  summaryParams?: Record<string, string | number> | null;
+  /** A record to link to the request's records (e.g. the change it created). */
+  record?: RecordRef | null;
+}
+
+/**
+ * A process action (`manifest.processActions`): `fields` describe its configuration in the form builder (the
+ * shared FieldDef model; text fields accept templates), `run` does the work in the worker after commit. Throw
+ * `HttpError` for a permanent failure (no retry); other errors are retried with backoff.
+ */
+export interface ProcessActionHandler {
+  /**
+   * The configuration fields. Options may come from live data and from the form's own fields (`form`, e.g. "the
+   * person in field …"). `auth` is the administrator configuring the form when there is one (to narrow choices to
+   * what they may hand out); without it (validating a saved form) return every valid choice.
+   */
+  fields(
+    ctx: ModuleContext,
+    opts: { form: FormSchema | null; locale: string; auth?: AuthContext },
+  ): Promise<FieldDef[]> | FieldDef[];
+  /**
+   * Checks beyond the fields, for the administrator who adds or changes the action (e.g. "may they grant this
+   * role?", "is this host allowed?"). Throw `HttpError` to refuse: 400 `VALIDATION_FAILED` with
+   * `details.issues: [{ path: '<config key>', message }]`, or 403.
+   */
+  validate?(
+    config: Record<string, unknown>,
+    ctx: ModuleContext,
+    opts: { form: FormSchema; auth: AuthContext },
+  ): Promise<void>;
+  /**
+   * Config keys (text fields) that hold secrets, such as a header value: sealed when the form is saved, never
+   * returned to the browser (it sees `{ set: true }`) and opened only for `run`.
+   */
+  secrets?: readonly string[];
+  /**
+   * Config keys whose templates are rendered with JSON string escaping, for text that becomes a JSON document
+   * (`{"title": "{{data.title}}"}` stays valid whatever the answer holds).
+   */
+  jsonTemplates?: readonly string[];
+  run(input: ProcessActionInput, ctx: ModuleContext): Promise<ProcessActionResult>;
 }

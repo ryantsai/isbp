@@ -8,9 +8,11 @@
     "overview": "資產總覽",
     "hardware": "硬體",
     "software": "軟體",
+    "discovery": "軟體盤點",
     "contracts": "合約",
     "vendors": "廠商",
-    "settings": "資產"
+    "settings": "資產",
+    "approvedSoftware": "軟體白名單"
   },
   "portal": {
     "myDevices": "我的設備",
@@ -61,7 +63,11 @@
     "warrantyDays": "保固提醒期間（天）",
     "warrantyDaysHelp": "保固在此天數內到期的使用中資產會被標示，並列入每日摘要。",
     "underUsedPercent": "使用率偏低門檻（%）",
-    "underUsedPercentHelp": "授權數 10 以上的授權，使用比例低於此值即視為使用率偏低。"
+    "underUsedPercentHelp": "授權數 10 以上的授權，使用比例低於此值即視為使用率偏低。",
+    "wipeMonths": "保存期限後資料抹除期限（月）",
+    "wipeMonthsHelp": "歸還的設備須在資料保存期限後此月數內完成資料抹除（未指定保存期限時，自歸還日起算）。",
+    "wipeRemindDays": "資料抹除提醒期間（天）",
+    "wipeRemindDaysHelp": "在此天數內到期的資料抹除會被標示，並在每日提醒中通知資產管理員。"
   },
   "workflows": {
     "disposal": {
@@ -94,6 +100,16 @@
       "label": "需向離職人員收回的設備",
       "title": "請向 {name} 收回 {count, plural, other {# 項設備}}",
       "body": "{name} 已離職，其軟體授權席次已收回；請收回：{tags}"
+    },
+    "wipe_due": {
+      "label": "資料抹除到期",
+      "title": "{overdue, plural, =0 {} other {# 台設備的資料抹除已逾期。}}{due, plural, =0 {} other {# 台即將到期。}}",
+      "body": "請抹除已歸還設備的資料，並在各資產上記錄：{tags}"
+    },
+    "approved_software_expiring": {
+      "label": "軟體核准即將到期",
+      "title": "{count, plural, other {# 項軟體核准}}將在 {days} 天內到期",
+      "body": "請延長或讓其到期：{titles}"
     }
   },
   "audit": {
@@ -114,6 +130,8 @@
     "license_compliance_changed": "授權合規狀態變更",
     "license_key_revealed": "顯示授權金鑰",
     "discovery_reported": "回報軟體盤點",
+    "title-rule_created": "對應或忽略盤點到的軟體名稱",
+    "title-rule_deleted": "移除盤點軟體名稱規則",
     "contract_created": "新增合約",
     "contract_updated": "更新合約",
     "contract_renewed": "續約",
@@ -125,7 +143,11 @@
     "vendor_created": "新增廠商",
     "vendor_updated": "更新廠商",
     "model_created": "新增硬體型號",
-    "model_updated": "更新硬體型號"
+    "model_updated": "更新硬體型號",
+    "asset_data_wiped": "記錄資料抹除",
+    "approved-software_created": "加入軟體白名單",
+    "approved-software_updated": "變更軟體白名單項目",
+    "approved-software_deleted": "自軟體白名單移除"
   },
   "category": {
     "laptop": "筆記型電腦",
@@ -147,7 +169,7 @@
     "in_repair": "維修中",
     "retired": "已除役",
     "disposed": "已報廢",
-    "lost": "遺失"
+    "lost": "遺失或遭竊"
   },
   "compliance": {
     "compliant": "合規",
@@ -283,7 +305,8 @@
     "typeToSearch": "輸入關鍵字以搜尋",
     "searching": "搜尋中…",
     "noMatches": "找不到符合的項目",
-    "clear": "清除"
+    "clear": "清除",
+    "contract": "搜尋合約…"
   },
   "overview": {
     "title": "資產",
@@ -345,7 +368,12 @@
       "allLocations": "所有位置",
       "allModels": "所有型號",
       "allVendors": "所有廠商",
-      "anyone": "所有人"
+      "anyone": "所有人",
+      "wipe": "資料抹除",
+      "anyWipe": "任何資料抹除狀態",
+      "wipePending": "待抹除",
+      "wipeDue": "抹除到期",
+      "wipeOverdue": "抹除逾期"
     },
     "empty": {
       "title": "沒有資產",
@@ -405,11 +433,21 @@
     "disposalViaRequest": "已除役的資產需透過「申請報廢」並經核准後才能報廢。",
     "statusChanged": "{tag} 目前為「{status}」",
     "disposeTitle": "申請報廢 {tag}",
-    "disposeHint": "由資產管理員核准；核准後資產會標示為已報廢。",
+    "disposeHint": "申請會送交下列簽核者；核准後資產會標示為已報廢。",
     "securitySignOff": "此設備可能儲存公司資料：資訊安全團隊也需簽核，確認儲存媒體已抹除或銷毀。",
+    "approvers": "簽核者",
+    "approversMore": "另有 {count} 人",
+    "approversAnyOf": "任一人核准即可",
+    "approversNone": "不需要簽核：資產會直接標示為已報廢。",
+    "approverNoApprover": "已略過：找不到簽核者",
+    "approverReject": "此步驟沒有人能核准，申請將遭駁回",
     "disposalNote": "預計如何處置？",
     "disposalNoteHint": "例如抹除 SSD 後交由合格回收商處理",
-    "disposalRequested": "已送出 {tag} 的報廢申請"
+    "disposalRequested": "已送出 {tag} 的報廢申請",
+    "scheduleWipe": "排定資料抹除",
+    "scheduleWipeHint": "設備的儲存資料須在資料保存期限後的設定月數內抹除。",
+    "retainUntil": "資料保存至",
+    "retainUntilHint": "留空：不保存，抹除期限自今天起算。"
   },
   "asset": {
     "notFound": "找不到資產",
@@ -441,6 +479,7 @@
     "lostBanner": "此資產已回報遺失。",
     "installed": "已安裝的軟體",
     "installedHint": "依盤點工具最近一次回報。",
+    "reportedAs": "回報名稱：{title}",
     "unlicensedCount": "有 {count, plural, other {# 項產品}}安裝但未取得授權。",
     "noInstalls": "此設備沒有軟體回報資料。",
     "licensed": "已授權",
@@ -469,7 +508,11 @@
     "note": "備註",
     "system": "系統",
     "more": "顯示更多",
-    "via": "經由 {system} {reference}"
+    "via": "經由 {system} {reference}",
+    "wipeScheduled": "資料須於 {due} 前抹除",
+    "wipeScheduledRetained": "資料保存至 {retain}；須於 {due} 前抹除",
+    "dataWiped": "已抹除資料：{method}，執行人員 {name}",
+    "viaRequest": "申請 {reference}"
   },
   "links": {
     "unavailable": "無法使用連結與檔案",
@@ -494,6 +537,147 @@
       "none": "新增第一項軟體授權。"
     },
     "liveCount": "{count, plural, other {# 項授權}}"
+  },
+  "discovery": {
+    "title": "軟體盤點",
+    "description": "盤點工具回報的已安裝軟體、未對應到任何授權的軟體名稱，以及 CSV 匯入。",
+    "import": "匯入 CSV",
+    "liveCount": "{count, plural, other {# 筆}}",
+    "tabs": {
+      "titles": "待審查",
+      "reports": "最近的回報",
+      "rules": "已對應與已忽略",
+      "compliance": "未核准"
+    },
+    "titles": {
+      "search": "搜尋軟體名稱",
+      "title": "軟體名稱",
+      "publisher": "發行商",
+      "devices": "設備數",
+      "lastSeen": "最近一次發現",
+      "map": "對應到授權",
+      "ignore": "忽略",
+      "actionsFor": "{title} 的動作",
+      "hint": "使用中設備上盤點到、但與任何授權的產品名稱都不相符的軟體名稱。請將名稱對應到所屬的授權，或忽略不需要授權的軟體。",
+      "emptyTitle": "沒有待審查的項目",
+      "empty": "所有盤點到的軟體名稱都已符合授權，或已對應或忽略。",
+      "emptyFiltered": "沒有符合搜尋條件的軟體名稱。",
+      "allow": "加入軟體白名單",
+      "block": "禁止"
+    },
+    "reports": {
+      "search": "搜尋設備或檔案",
+      "device": "設備",
+      "source": "來源",
+      "changes": "變更",
+      "changesValue": "回報 {reported} 項：新增 {added}、更新 {updated}、移除 {removed}",
+      "by": "回報者",
+      "when": "時間",
+      "allSources": "所有來源",
+      "sources": {
+        "api": "盤點工具",
+        "import": "CSV 匯入"
+      },
+      "emptyTitle": "尚無回報",
+      "empty": "盤點工具會透過 POST /api/v1/itam/discovery/software 回報，您也可以在此匯入 CSV 匯出檔。",
+      "emptyFiltered": "沒有符合篩選條件的回報。"
+    },
+    "rules": {
+      "search": "搜尋軟體名稱或授權",
+      "title": "盤點到的名稱",
+      "outcome": "視為",
+      "ignored": "已忽略：不需要授權",
+      "by": "新增者",
+      "when": "新增時間",
+      "remove": "移除",
+      "removeFor": "移除 {title} 的規則",
+      "removeTitle": "要移除「{title}」的規則嗎？",
+      "removeHint": "其安裝會重新依名稱比對：已對應的名稱會改回盤點工具回報的名稱。",
+      "removed": "已移除「{title}」的規則",
+      "all": "所有規則",
+      "kinds": {
+        "mapped": "已對應",
+        "ignored": "已忽略"
+      },
+      "emptyTitle": "尚無規則",
+      "empty": "請在「待審查」頁籤對應或忽略軟體名稱。",
+      "emptyFiltered": "沒有符合篩選條件的規則。"
+    },
+    "map": {
+      "title": "將「{title}」對應到授權",
+      "description": "以此名稱回報的安裝，在所有設備上（包括之後的回報）都會視為該授權的產品。",
+      "license": "授權",
+      "submit": "對應",
+      "done": "「{title}」現在視為 {product}"
+    },
+    "ignore": {
+      "title": "要忽略「{title}」嗎？",
+      "description": "適用於不需要授權的軟體。安裝紀錄仍會保留在設備上，但此名稱不會再出現在待審查清單中。",
+      "submit": "忽略",
+      "done": "已忽略「{title}」"
+    },
+    "importDialog": {
+      "title": "匯入盤點 CSV",
+      "description": "檔案中的每台設備都視為完整的回報：該設備不再列出的產品會從設備上移除（手動記錄的項目會保留）。",
+      "columns": "欄位",
+      "column": "欄位",
+      "required": "必填",
+      "meaning": "內容",
+      "requiredDevice": "兩者擇一",
+      "requiredAlways": "是",
+      "requiredNo": "否",
+      "col": {
+        "serial_number": "設備的序號（不分大小寫）",
+        "asset_tag": "資產標籤，例如 AST-00042",
+        "product": "盤點工具回報的軟體名稱",
+        "publisher": "發行商或廠商",
+        "version": "已安裝的版本"
+      },
+      "format": "第一列為標題列，之後每列代表一個已安裝的產品。標題名稱不分大小寫，並忽略空格與底線；欄位可用逗號、分號或 Tab 分隔。請以 UTF-8 儲存檔案。",
+      "example": "範例",
+      "file": "CSV 檔案",
+      "parsed": "{devices, plural, other {# 台設備}}，共 {rows, plural, other {# 列}}",
+      "skipped": "{count, plural, other {將略過 # 列：}}",
+      "issues": {
+        "noDevice": "第 {line} 行：沒有序號或資產標籤",
+        "noProduct": "第 {line} 行：沒有產品",
+        "tooLong": "第 {line} 行：有值過長",
+        "tooManyProducts": "第 {line} 行：此設備的產品超過 2,000 項"
+      },
+      "moreIssues": "…另有 {count} 列",
+      "errors": {
+        "empty": "檔案中標題列以下沒有資料。",
+        "tooManyRows": "檔案超過 100,000 列：請分割成較小的檔案。",
+        "missingColumns": "缺少欄位：{columns}",
+        "unreadable": "無法讀取此檔案。"
+      },
+      "submit": "匯入 {count, plural, other {# 台設備}}",
+      "progress": "已匯入 {done}／{total} 台設備…",
+      "done": "{count, plural, other {已更新 # 台設備}}：新增 {added} 項產品、更新 {updated} 項、移除 {removed} 項。",
+      "notFound": "{count, plural, other {有 # 台設備未在資產中登錄：}}",
+      "failed": "匯入已停止：{error}"
+    },
+    "compliance": {
+      "label": "不在白名單中的安裝",
+      "hint": "使用中設備上，沒有任何允許項目涵蓋該設備部門（或其使用者部門）的軟體，以及被禁止的軟體。",
+      "notInUse": "軟體白名單尚無允許項目，因此只標示被禁止的軟體。",
+      "openList": "開啟軟體白名單",
+      "summary": "{unapproved, plural, other {# 筆安裝}}不在白名單中，{blocked} 筆被禁止，分布於 {devices, plural, other {# 台設備}}",
+      "search": "搜尋軟體或設備",
+      "title": "軟體",
+      "state": "核准狀態",
+      "device": "設備",
+      "department": "部門",
+      "lastSeen": "最後偵測",
+      "allStates": "未核准或已禁止",
+      "unapproved": "不在白名單中",
+      "blocked": "已禁止",
+      "allDepartments": "所有部門",
+      "allowFor": "將 {title} 加入軟體白名單",
+      "emptyTitle": "全部皆已核准",
+      "empty": "使用中設備上的每筆安裝都在軟體白名單中。",
+      "emptyFiltered": "沒有符合篩選條件的安裝。"
+    }
   },
   "licenseForm": {
     "createTitle": "新增授權",
@@ -745,7 +929,7 @@
     "lifespanMonths": "使用年限（月）",
     "lifespanHint": "留空則使用類別預設值。",
     "lifespanInvalid": "請輸入 1 到 600 個月",
-    "months": "{months} 個月",
+    "months": "{months, plural, other {# 個月}}",
     "assets": "資產",
     "activeModel": "可用於新資產",
     "noModels": "沒有型號",
@@ -764,7 +948,11 @@
     "underUsedHint": "授權數 10 以上、使用率低於此值的授權會標示為使用率偏低。",
     "days": "{days, plural, other {# 天}}",
     "editInAdmin": "在「管理 → 模組」中編輯",
-    "askAdmin": "這些設定由平台管理員在「管理 → 模組」中變更。"
+    "askAdmin": "這些設定由平台管理員在「管理 → 模組」中變更。",
+    "wipeMonths": "保存期限後資料抹除期限",
+    "wipeMonthsHint": "歸還的設備須在資料保存期限後此期間內完成抹除。",
+    "wipeRemindDays": "資料抹除提醒期間",
+    "wipeRemindDaysHint": "在此期間內到期的抹除會被標示並提醒。"
   },
   "ciSlot": {
     "title": "資產紀錄",
@@ -788,7 +976,9 @@
     "open": "開啟",
     "nonCompliantLicenses": "不合規的授權",
     "contractsRenewing30": "30 天內需續約的合約",
-    "warrantiesExpiring30": "30 天內保固到期"
+    "warrantiesExpiring30": "30 天內保固到期",
+    "wipesDue": "到期的資料抹除",
+    "unapprovedSoftware": "不在白名單中的軟體"
   },
   "sync": {
     "entities": {
@@ -809,6 +999,208 @@
       "warrantyEnd": "保固到期日",
       "notes": "備註",
       "ref": "資產編號"
+    }
+  },
+  "recordFacts": {
+    "category": "類別",
+    "status": "狀態",
+    "dataBearing": "存有資料",
+    "assigneeId": "使用人",
+    "departmentCode": "部門代碼",
+    "location": "位置",
+    "warrantyEnd": "保固到期日",
+    "product": "產品",
+    "publisher": "發行商",
+    "licenseType": "授權類型",
+    "billing": "計費方式",
+    "complianceState": "合規狀態",
+    "quantity": "授權數",
+    "cost": "費用",
+    "endDate": "結束日期",
+    "wipeDue": "資料抹除期限"
+  },
+  "licenseModel": {
+    "free": "免費軟體",
+    "open_source": "開源軟體",
+    "shareware": "共享／試用軟體",
+    "paid": "付費授權",
+    "subscription": "訂閱制"
+  },
+  "approvalStatus": {
+    "allowed": "允許",
+    "blocked": "禁止"
+  },
+  "approval": {
+    "allowed": "已核准",
+    "unapproved": "不在白名單中",
+    "blocked": "已禁止"
+  },
+  "wipeMethod": {
+    "factory_reset": "回復原廠設定",
+    "secure_erase": "安全抹除（覆寫）",
+    "crypto_erase": "加密抹除",
+    "physical_destruction": "實體銷毀",
+    "other": "其他"
+  },
+  "wipe": {
+    "badge": {
+      "scheduled": "{date} 前抹除",
+      "due": "{date} 到期抹除",
+      "overdue": "自 {date} 起逾期未抹除"
+    },
+    "action": "記錄資料抹除",
+    "title": "記錄 {tag} 的資料抹除",
+    "hint": "由誰、何時、以何種方式抹除設備的儲存資料。記錄後將清除待抹除狀態，並保留於歷程與稽核日誌。",
+    "method": "方式",
+    "methodPlaceholder": "選擇抹除方式",
+    "when": "抹除時間",
+    "whenHint": "留空表示現在。",
+    "who": "執行人員",
+    "note": "備註",
+    "noteHint": "例如使用的工具，或報廢廠商的證明編號。",
+    "submit": "記錄抹除",
+    "recorded": "已記錄 {tag} 的資料抹除",
+    "cardTitle": "資料抹除",
+    "cardHint": "歸還的設備會保存資料至保存期限，之後須完成抹除。",
+    "retainUntil": "資料保存至",
+    "due": "抹除",
+    "nonePending": "沒有待抹除的資料。",
+    "last": "上次抹除：{date}（{method}），執行人員 {name}"
+  },
+  "approvedSoftware": {
+    "title": "軟體白名單",
+    "description": "核准軟體清單：可安裝的軟體（全公司或特定部門）以及禁止安裝的軟體。",
+    "export": {
+      "number": "項次",
+      "title": "軟體名稱",
+      "version": "版次",
+      "publisher": "開發商",
+      "licenseModel": "授權類型",
+      "reference": "序號／合約編號",
+      "scope": "適用範圍",
+      "status": "狀態",
+      "validUntil": "有效期限",
+      "request": "申請單",
+      "notes": "備註",
+      "anyVersion": "不限",
+      "company": "全公司",
+      "permanent": "永久"
+    },
+    "exportCsv": "匯出 CSV",
+    "add": "新增軟體",
+    "search": "搜尋軟體、開發商或申請單號",
+    "allModels": "所有授權類型",
+    "allDepartments": "所有部門",
+    "anyVersion": "任何版本",
+    "permanent": "永久",
+    "liveCount": "{count, plural, other {# 個項目}}",
+    "emptyTitle": "清單中沒有軟體",
+    "empty": "請加入允許安裝的軟體。在有允許項目之前，只會標示被禁止的軟體。",
+    "emptyFiltered": "沒有符合篩選條件的項目。",
+    "views": {
+      "allowed": "允許",
+      "blocked": "禁止",
+      "expiring": "即將到期",
+      "all": "全部"
+    },
+    "state": {
+      "expiring": "{date} 到期",
+      "expired": "已於 {date} 到期"
+    },
+    "scope": {
+      "company": "全公司",
+      "departments": "特定部門"
+    },
+    "fields": {
+      "title": "軟體名稱",
+      "publisher": "開發商",
+      "version": "版次",
+      "status": "狀態",
+      "licenseModel": "授權類型",
+      "license": "授權（序號）",
+      "contract": "合約",
+      "scope": "適用範圍",
+      "departments": "部門",
+      "department": "部門",
+      "validUntil": "有效期限",
+      "request": "申請單",
+      "notes": "備註"
+    },
+    "form": {
+      "createTitle": "將軟體加入清單",
+      "editTitle": "編輯核准軟體",
+      "hint": "安裝依名稱比對（不分大小寫）；版次也涵蓋更細的版本（23 涵蓋 23.01）。",
+      "versionHint": "留空表示任何版本。",
+      "licenseHint": "付費軟體請指定保存序號或授權數量的授權紀錄。",
+      "validUntilHint": "用於短期使用；留空表示永久。",
+      "requestHint": "核准時所依據的軟體安裝申請單。",
+      "titleRequired": "請輸入軟體名稱",
+      "departmentsRequired": "請至少選擇一個部門",
+      "add": "新增",
+      "saved": "已儲存 {title}",
+      "created": "已將 {title} 加入清單",
+      "deleted": "已將 {title} 自清單移除",
+      "deleteTitle": "要將 {title} 自清單移除嗎？",
+      "deleteDescription": "其安裝將不再被涵蓋：會顯示為不在白名單中（若為禁止項目，則恢復為允許）。"
+    }
+  },
+  "processActions": {
+    "common": {
+      "fromStep": "簽核步驟中填寫的欄位",
+      "stepField": "步驟欄位",
+      "stepFieldHint": "步驟 ID 與欄位鍵值，例如 receive.retainUntil。",
+      "assetField": "設備欄位",
+      "assetFieldHelp": "選取設備（資產）的位置：此表單的問題，或 IT 在簽核步驟中填寫的設備欄位。",
+      "noAsset": "未選取設備：無需處理",
+      "assetStepFieldHint": "步驟 ID 與欄位鍵值，例如 issue.device（該簽核步驟的設備欄位）。"
+    },
+    "approveSoftware": {
+      "name": "核准軟體",
+      "description": "將申請的軟體加入軟體白名單，或延長涵蓋該軟體的項目。",
+      "title": "軟體名稱",
+      "titleHelp": "通常取自申請內容：使用「插入值」從表單帶入。",
+      "publisher": "開發商",
+      "version": "版次",
+      "versionHelp": "留空：任何版本。",
+      "licenseModel": "授權類型",
+      "licenseModelField": "授權類型取自以下問題的回答",
+      "licenseModelFieldHelp": "當回答為 free、open_source、shareware、paid 或 subscription 時，改用該回答。",
+      "scope": "核准範圍",
+      "scopeDepartment": "申請人所屬部門",
+      "scopeCompany": "全公司",
+      "validUntil": "有效期限",
+      "validUntilHelp": "取自回答或步驟欄位的日期，用於短期使用。",
+      "permanent": "永久",
+      "notes": "備註",
+      "added": "已加入軟體白名單",
+      "addedUntil": "已加入軟體白名單，有效至 {until, date, medium}",
+      "extended": "已延長軟體白名單項目",
+      "extendedUntil": "軟體白名單項目現在有效至 {until, date, medium}",
+      "unchanged": "已在軟體白名單中"
+    },
+    "assignAsset": {
+      "name": "領用設備",
+      "description": "將表單中選取的設備交付給申請人或表單中指定的人員；申請單會記錄在設備的歷程中。",
+      "assignTo": "交付給",
+      "requester": "申請人",
+      "note": "歷程備註",
+      "assigned": "已交付設備"
+    },
+    "returnAsset": {
+      "name": "歸還設備",
+      "description": "將表單中選取的設備歸還至庫存或送修，並記錄設備狀況、資料保存期限與資料抹除期限。",
+      "toStatus": "歸還至",
+      "condition": "設備狀況",
+      "conditionHelp": "記錄於歷程中。使用「插入值」帶入設備外觀等回答。",
+      "retention": "資料保存至",
+      "retentionHelp": "取自回答或步驟欄位的日期；留空則自歸還日起算。",
+      "noRetention": "無保存期限",
+      "wipeMonths": "抹除期限（保存期限後月數）",
+      "wipeMonthsHelp": "預設為模組設定值。",
+      "scheduleWipe": "排定資料抹除",
+      "scheduleWipeHelp": "適用於會儲存資料的設備（筆記型電腦、手機、伺服器等）。",
+      "returned": "已歸還設備",
+      "returnedWipe": "已歸還設備；資料須於 {date, date, medium} 前抹除"
     }
   }
 }

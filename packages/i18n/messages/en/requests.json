@@ -22,6 +22,7 @@
     "software": "Software",
     "security": "Security",
     "access": "Access",
+    "changes": "Changes",
     "other": "Other"
   },
   "risk": {
@@ -91,7 +92,11 @@
     "submitted": "Request {reference} submitted",
     "failed": "The request could not be submitted.",
     "unavailable": "This form isn't available",
-    "unavailableHint": "It may have been paused or isn't offered to you. Pick another request type."
+    "unavailableHint": "It may have been paused or isn't offered to you. Pick another request type.",
+    "approval": {
+      "title": "Who will approve this?",
+      "description": "Based on your answers so far and the form’s approval workflow. It updates as you fill in the form."
+    }
   },
   "detail": {
     "back": "All requests",
@@ -126,12 +131,90 @@
     "withdrawBody": "Approvers won't see it any more. You can send a new request later.",
     "keep": "Keep it",
     "withdrawn": "Request withdrawn",
+    "decisions": {
+      "title": "Filled in by approvers",
+      "description": "What the approvers recorded with their decisions.",
+      "decidedBy": "{name}",
+      "decidedAutomatically": "Decided automatically after the deadline"
+    },
     "fulfilment": {
       "open": "Being fulfilled",
       "done": "Fulfilled",
       "cancelled": "Fulfilment cancelled",
       "updated": "Updated",
       "openRef": "Open {reference}"
+    },
+    "actions": {
+      "title": "What happens next",
+      "description": "What this request set off. Each step runs on its own and is retried if it fails.",
+      "on": {
+        "submitted": "When sent",
+        "approved": "After approval",
+        "rejected": "After rejection"
+      },
+      "status": {
+        "queued": "Waiting",
+        "running": "Running",
+        "succeeded": "Done",
+        "failed": "Failed",
+        "skipped": "Skipped"
+      },
+      "retrying": "Retrying (attempt {attempt})",
+      "open": "Open {reference}",
+      "error": "Error:",
+      "retry": "Retry",
+      "retryNamed": "Retry {name}",
+      "retried": "{name} will run again.",
+      "fulfilled": "Done",
+      "reason": {
+        "condition": "Not needed for this request: its condition didn't hold.",
+        "unavailable": "The action is no longer available."
+      }
+    },
+    "print": "Print",
+    "reminders": {
+      "title": "Reminders",
+      "description": "Notifications this request's actions scheduled for a later date.",
+      "untitled": "Reminder",
+      "dueAt": "Goes out",
+      "sentAt": "Sent",
+      "status": {
+        "pending": "Scheduled",
+        "sent": "Sent",
+        "cancelled": "Cancelled"
+      }
     }
+  },
+  "print": {
+    "pageTitle": "{reference} (print)",
+    "back": "Back to the request",
+    "print": "Print",
+    "formsOnly": "Only form requests can be printed",
+    "version": "Version {version}",
+    "summary": "Summary",
+    "requester": "Requester",
+    "submitted": "Submitted",
+    "completed": "Completed",
+    "form": "Form",
+    "formVersion": "Form version",
+    "status": "Status",
+    "decisions": "Approval decisions",
+    "noDecisions": "No decisions yet.",
+    "approver": "Approver",
+    "decidedAutomatically": "Decided automatically after the deadline",
+    "decidedAt": "Decided",
+    "comment": "Comment",
+    "noComment": "No comment",
+    "outcomeComment": "Outcome:",
+    "actions": "Actions",
+    "action": "Action",
+    "result": "Result",
+    "attachments": "Attachments",
+    "noAttachments": "No attachments.",
+    "fileName": "File",
+    "fileSize": "Size",
+    "fileAdded": "Added",
+    "kilobytes": "{size} KB",
+    "printedAt": "Printed"
   }
 }

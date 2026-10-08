@@ -26,6 +26,7 @@ import { CHECK, OpBadge, TEXT_TONE, ToneText } from '../badges';
 import { Disclosure, PreviewBoundary } from '../disclosure';
 import { type ChangeSetDetailDto, checkState, isRecord, type KindInfoDto, splitKind } from '../lib';
 import { JsonDiff, ValueFields } from './json-diff';
+import { LiveLinks, liveLinksOf } from './live-links';
 
 /** The dry run of one item: passed, failing (with the reason and issues) or waiting for someone allowed to apply. */
 function CheckResult({ item, status }: { item: ChangeSetItem; status: ChangeSetDetailDto['status'] }) {
@@ -151,6 +152,8 @@ export function ItemCard({
     current: done ? item.before : item.current,
   };
   const raw = done ? (item.after?.value ?? item.value) : item.value;
+  // Where people use the object now (a form's own page), besides its admin page.
+  const live = liveLinksOf(detail.status, [item]);
 
   return (
     <article
@@ -212,6 +215,7 @@ export function ItemCard({
                   <ArrowUpRightIcon className="size-3" aria-hidden />
                 </Link>
               )}
+              <LiveLinks links={live} showObject={false} />
             </div>
           </div>
           {canEdit && (

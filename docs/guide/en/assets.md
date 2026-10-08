@@ -14,7 +14,8 @@ decision soon.
 - [Dispose of a retired device](#dispose-of-a-retired-device) with the required approval
 - [Collect devices from leavers](#collect-devices-from-leavers)
 - [Manage software licences](#manage-software-licences) and
-  [keep them compliant](#check-licence-compliance), including installs found by inventory tools
+  [keep them compliant](#check-licence-compliance), including installs found by inventory tools, and
+  [review discovered software](#review-discovered-software) or import an inventory CSV
 - [Keep contracts and renewals on track](#keep-contracts-and-renewals-on-track), with the signed documents attached
 - [Track vendors and spend](#track-vendors-and-spend) and
   [maintain the model catalogue](#maintain-the-model-catalogue)
@@ -93,6 +94,18 @@ it under **My devices**. The **History** tab records "Assigned to …".
 To take it back, select **Return**, choose **Return to** (**In stock** or **In repair**), note the condition (for
 example missing accessories) and select **Return**. History records "Returned by …".
 
+Devices that store data (laptops, desktops, phones, tablets, servers, storage) get a data wipe when they come back:
+leave **Schedule a data wipe** on and, if the data must be kept for a while, set **Keep the data until**. The wipe is
+due 2 months after that date (or after today; an administrator sets the months under **Administration → Modules**).
+The device shows **Wipe by …**, then **Wipe due …** a week before and **Wipe overdue since …** after it, the asset
+managers are reminded, and **Assets → Hardware** filters by **Data wipe**. When the storage is wiped, select
+**Record data wipe**, choose the **Method** (for example **Factory reset** for a phone), and optionally **Wiped at**,
+**Wiped by** and a **Note**; the **Data wipe** card and the history show who wiped it, when and how.
+
+Request forms can do both for you: the **Assign a device** and **Take back a device** actions hand over or take back
+the device picked in the form (or by IT at an approval step), with the request (for example the signed
+confidentiality agreement) linked from the device's history.
+
 ![An asset page with its details, finance and assignment](../../../apps/web/public/help/en/assets-asset.jpg)
 
 ## Move a device through its lifecycle
@@ -139,10 +152,10 @@ have a book value or are under five years old need information security's sign-o
 
 1. Make sure the device is **Retired** (use **Change status**).
 2. Select **Request disposal**.
-3. Fill in **How will it be disposed of?**, for example "wipe the SSD and send it to the certified recycler". For a
-   laptop, desktop, server, storage device, phone or tablet that still has a book value or is under five years old,
-   the dialog reminds you that information security also
-   signs off.
+3. Fill in **How will it be disposed of?**, for example "wipe the SSD and send it to the certified recycler". Under
+   **Who will approve it**, the dialog lists the approval steps and people of the disposal workflow in use. When
+   information security signs off too (by default for a laptop, desktop, server, storage device, phone or tablet that
+   still has a book value or is under five years old), the dialog reminds you.
 4. Select **Request disposal**.
 
 **What happens next:**
@@ -223,6 +236,57 @@ report are treated as uninstalled; installs you recorded by hand are kept. On a 
 installed product is marked **Licensed**, **Unlicensed** or **Not managed** (no licence record exists for that
 product).
 
+## Review discovered software
+
+Inventory tools name products their own way: a laptop may report "Microsoft Office 365 ProPlus" for the **Microsoft
+365 E3** licence we own. Review those names regularly so compliance counts every install, and import a CSV export
+when a tool can't call the API.
+
+1. Go to **Assets → Discovery**. You need the **Asset manager** or **Asset administrator** role.
+2. On **To review**, check the discovered titles that match no licence's product, most widespread first, with their
+   **Devices** and **Last seen**.
+3. Open a title's actions (the ⋯ button at the end of its row) and choose:
+   - **Map to licence**: choose the **Licence** and select **Map**. Installs reported under this title now count as
+     that licence's product on every device, now and in later reports; the device's **Software** tab shows
+     "Reported as …".
+   - **Ignore**: for software that needs no licence. The installs stay on the devices; the title leaves the list.
+4. **Mapped & ignored** lists the decisions. Select the bin next to one to remove it: a mapped title goes back to
+   the name the tool reported.
+5. **Recent reports** lists every device report with its **Source** (**Inventory tool** or **CSV import**), the
+   changes and who reported it.
+
+To import an inventory tool's export, select **Import CSV**, choose the **CSV file**, check the summary (rows,
+devices and skipped lines) and select **Import … devices**. The dialog lists the columns:
+
+| Column          | Required       | What it holds                                |
+| --------------- | -------------- | -------------------------------------------- |
+| `serial_number` | One of the two | The device's serial number (case is ignored) |
+| `asset_tag`     | One of the two | The asset tag, e.g. AST-00042                |
+| `product`       | Yes            | The software title as the tool reports it    |
+| `publisher`     | No             | Publisher or vendor                          |
+| `version`       | No             | Installed version                            |
+
+One row per installed product, after a header row; commas, semicolons or tabs separate the columns.
+
+**What happens next:** each device in the file is a complete report, exactly like an inventory tool's: products it no
+longer lists are removed from that device (installs recorded by hand are kept), and licence compliance is
+recomputed. Devices that aren't registered in Assets are listed, so you can register them and import again. Every
+report and every decision is recorded in the audit log.
+
+In the demo, **7-Zip** is already ignored, and a few laptops still report **Microsoft Office 365 ProPlus**: map it to
+**Microsoft 365 E3**.
+
+**Keep the approved software list.** **Assets → Approved software** is the software whitelist: each entry allows (or
+blocks) a title, optionally one **Version** (empty for any), for the **Whole company** or some **Departments**,
+optionally **Valid until** a date for short-term use, with its **Licence type**, the licence or contract it is used
+under and the request it was approved with. Asset managers select **Add software** (or, on **To review**, **Add to
+approved list** or **Block** in a title's actions); everyone with access to software sees the list, and **Export CSV**
+downloads it in the whitelist layout. Once the list has an allowed entry, **Discovery → Not approved** lists the
+installs on devices in use that no entry covers for the device's department (**Not on the approved list**) and the
+blocked ones (**Blocked**); the device's **Software** tab shows the same labels, and the home dashboard counts them.
+A software install request form can add the title for you with the **Approve software** action. In the demo, two
+laptops run **WinRAR** (not on the list) and one runs **uTorrent** (blocked).
+
 ## Keep contracts and renewals on track
 
 Support, maintenance, lease and subscription contracts renew or lapse on fixed dates. Assets reminds you in time
@@ -300,6 +364,11 @@ next to its CMDB record.
   search for a ticket, change, task or other record by reference or title, and select **Link**.
 - **People.** In **Administration → People**, a person's page shows **Assets & software**: the devices and licences
   assigned to them.
+- **Request forms.** A form can let people pick hardware assets or licences with a **Record** field, for example the
+  device to replace. Only people who can see assets (such as **Asset viewer**) can pick them. The form's approval can
+  route on the asset's **Category**, **Status**, **Stores data**, **Assigned to**, **Location** or **Warranty end**,
+  or a licence's **Product**, **Compliance** or **End date**: see
+  [Build your own process](processes.md#let-people-pick-records).
 
 In the demo, the incident "Laptop battery drains in two hours" is linked to the reporter's own laptop. You only see
 linked records you are allowed to see; others are counted, not named.
@@ -327,7 +396,9 @@ mappings and conflict rules is covered in the [Integrations guide](integrations.
 - **Service desk** agents see the linked device on the ticket and the CMDB record behind servers:
   [Service desk guide](service-desk.md).
 - **Approvals** for disposals go through the same inbox as every other approval; administrators can adjust the
-  **Asset disposal** workflow (but not remove it): [Administrators guide](administrators.md).
+  **Asset disposal** workflow (but not remove it), including conditions on the assets' custom fields:
+  [Administrators guide](administrators.md) and
+  [Build your own process](processes.md#use-custom-fields-in-built-in-approvals).
 - **ServiceDesk Plus** sync: [Integrations guide](integrations.md).
 - **The assistant** can answer "which laptop do I have?", find assets, check licence compliance and list
   contracts ending soon, with your permissions: [Assistant and AI](assistant-and-ai.md).

@@ -24,17 +24,19 @@
   },
   "permissions": {
     "read": "公開済みのセルフサービス記事の閲覧",
-    "readInternal": "社内向け（エージェント専用）記事の閲覧",
+    "readInternal": "社内向け (エージェント専用) 記事の閲覧",
     "write": "下書きの作成、自分の下書きの編集とレビューへの提出",
     "publish": "記事の公開、廃止、復元、およびすべての記事の編集",
     "manageCategories": "ナレッジ カテゴリの作成、編集、削除",
     "sync": "統合を通じて記事を書き込む (公開には公開のアクセス許可が必要)"
   },
   "settings": {
-    "reviewIntervalDays": "公開後にレビューするまでの日数（0 = 既定のレビュー日なし）",
+    "reviewIntervalDays": "公開後にレビューするまでの日数 (0 = 既定のレビュー日なし)",
     "reminderRepeatDays": "期限切れレビューの通知を N 日ごとに繰り返す",
     "guidePublish": "ユーザー ガイドを公開する",
-    "guidePublishHelp": "ナレッジ ベースに「IS Big Platform の使い方」(プラットフォームのユーザー ガイド、全言語) を掲載し、新しいバージョンごとに更新します。オフにすると公開と更新が止まります。削除するには、その記事を廃止してください。"
+    "guidePublishHelp": "ナレッジ ベースに「IS Big Platform の使い方」(プラットフォームのユーザー ガイド、全言語) を掲載し、新しいバージョンごとに更新します。オフにすると公開と更新が止まります。削除するには、その記事を廃止してください。",
+    "classificationLevels": "機密区分ラベル",
+    "classificationLevelsHelp": "1 行に 1 つのラベルを、最も厳しいものから順に入力します。組み込みの (翻訳済み) ラベルには strictly-confidential、customer-confidential、confidential、internal-use-only を使用するか、独自のラベルを入力します。"
   },
   "portal": {
     "browse": {
@@ -98,7 +100,7 @@
   },
   "audienceHint": {
     "everyone": "セルフサービス: ナレッジ ベースを閲覧できるすべてのユーザー。",
-    "agents": "社内向け: 社内アクセス権を持つユーザー（サービス デスク）のみ。"
+    "agents": "社内向け: 社内アクセス権を持つユーザー (サービス デスク) のみ。"
   },
   "actions": {
     "submit": "レビューに提出",
@@ -123,7 +125,7 @@
   "home": {
     "description": "回答や手順ガイドを検索するか、トピックから参照します。",
     "searchLabel": "どのようなことでお困りですか?",
-    "searchPlaceholder": "問題を入力してください（例:「VPN が頻繁に切断される」）",
+    "searchPlaceholder": "問題を入力してください (例:「VPN が頻繁に切断される」)",
     "searchHintArrows": "結果間を移動",
     "searchHintEscape": "検索をクリア",
     "clear": "検索をクリア",
@@ -157,7 +159,7 @@
     "generatedFrom": "{reference} から生成された下書き",
     "tools": "記事の操作",
     "translate": "翻訳",
-    "history": "{count, plural, other {履歴（# バージョン）}}",
+    "history": "{count, plural, other {履歴 (# バージョン)}}",
     "emptyBody": "この記事にはまだ内容がありません。",
     "related": "関連記事",
     "noRelated": "関連記事はまだありません。",
@@ -179,7 +181,7 @@
     "question": "この記事は役に立ちましたか?",
     "yes": "はい",
     "no": "いいえ",
-    "commentLabel": "足りない点や誤りは何でしたか?（任意）",
+    "commentLabel": "足りない点や誤りは何でしたか? (任意)",
     "commentPlaceholder": "記事を改善する方法を作成者に伝えてください",
     "skip": "スキップ",
     "send": "フィードバックを送信",
@@ -231,7 +233,10 @@
     "audienceFilter": "対象",
     "awaitingApproval": "承認待ち",
     "noOwner": "所有者なし",
-    "due": "期限切れ"
+    "due": "期限切れ",
+    "classificationFilter": "機密区分",
+    "allClassifications": "すべての機密区分",
+    "unclassified": "区分なし"
   },
   "editor": {
     "newTitle": "新しい記事",
@@ -268,7 +273,7 @@
     "reviewAtHint": "この日に、記事を確認するよう所有者に通知されます。",
     "saveDraft": "下書きを保存",
     "saveAndSubmit": "保存して提出",
-    "submitHint": "提出された記事は編集者が公開します（または承認ワークフローが判断します）。",
+    "submitHint": "提出された記事は編集者が公開します (または承認ワークフローが判断します)。",
     "publishUpdate": "更新を公開",
     "toast": {
       "saved": "変更を保存しました",
@@ -279,7 +284,10 @@
       "tooLong": "{max} 文字以内で入力してください",
       "date": "有効な日付を入力してください",
       "localeTaken": "{reference} がすでにこの言語の翻訳です"
-    }
+    },
+    "classification": "機密区分",
+    "noClassification": "区分なし",
+    "classificationHint": "記事、一覧、検索結果に表示されます。ラベルはモジュールの設定で指定します。"
   },
   "categoriesAdmin": {
     "title": "ナレッジ カテゴリ",
@@ -294,10 +302,10 @@
     "keyHint": "英小文字、数字、ハイフン。リンク、フィルター、ワークフローの条件に使用され、後から変更できません。",
     "descriptionLabel": "説明",
     "icon": "アイコン",
-    "iconHint": "lucide のアイコン名（例: key-round、wifi、printer）。",
+    "iconHint": "lucide のアイコン名 (例: key-round、wifi、printer)。",
     "sortOrder": "並び順",
     "parent": "親カテゴリ",
-    "noParent": "なし（最上位）",
+    "noParent": "なし (最上位)",
     "articles": "記事数",
     "empty": "カテゴリはまだありません。",
     "created": "カテゴリを作成しました",
@@ -343,5 +351,24 @@
     "notFound": "このガイドは利用できません。",
     "notFoundHint": "まだ公開されていない可能性があります。数分後にもう一度お試しいただくか、ナレッジ ベースを参照してください。",
     "opening": "ガイドを開いています…"
+  },
+  "recordFacts": {
+    "audience": "対象",
+    "categoryKey": "カテゴリ キー",
+    "status": "状態",
+    "locale": "言語",
+    "ownerId": "所有者",
+    "tags": "タグ",
+    "classification": "機密区分"
+  },
+  "classificationLevel": {
+    "strictly-confidential": "極秘",
+    "customer-confidential": "顧客機密",
+    "confidential": "機密",
+    "internal-use-only": "社内限り"
+  },
+  "classification": {
+    "label": "機密区分",
+    "banner": "機密区分: {label}。この記事と添付ファイルは情報分類ポリシーに従って取り扱ってください。"
   }
 }

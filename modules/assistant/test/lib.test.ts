@@ -1,8 +1,10 @@
 import { ErrorCodes, HttpError } from '@isbp/sdk/server';
 import { describe, expect, it } from 'vitest';
-import { labelOf, refsIn, resolveRefs } from '../src/lib/refs';
+import { appliedLinks, linkText } from '../src/lib/links';
+import { labelOf, refsIn, renameRefs, resolveRefs, uniqueRef } from '../src/lib/refs';
 import { checkFromError } from '../src/server/change-sets';
 import { systemPrompt } from '../src/server/chat';
+import { linkLines } from '../src/server/text';
 
 describe('references between items', () => {
   const value = { workflowId: '$ref:flow', steps: [{ group: '$ref:team' }, '$ref:flow'], note: 'not $ref:x' };
@@ -41,6 +43,66 @@ describe('references between items', () => {
     ).toBe('Cost center');
     expect(labelOf({ formKey: 'laptop' })).toBe('laptop');
     expect(labelOf(null)).toBeNull();
+  });
+});
+
+describe('template refs', () => {
+  it('renames references to items whose names were taken, leaving others alone', () => {
+    const names = new Map([['approval', 'approval-2']]);
+    expect(renameRefs({ workflowId: '$ref:approval', other: '$ref:form', text: 'approval' }, names)).toEqual({
+      workflowId: '$ref:approval-2',
+      other: '$ref:form',
+      text: 'approval',
+    });
+  });
+
+  it('finds the first free name within 40 characters', () => {
+    expect(uniqueRef('approval', new Set())).toBe('approval');
+    expect(uniqueRef('approval', new Set(['approval', 'approval-2']))).toBe('approval-3');
+    const long = 'a'.repeat(40);
+    expect(uniqueRef(long, new Set([long]))).toBe(`${'a'.repeat(38)}-2`);
+  });
+});
+
+describe('links of what a change set made', () => {
+  const label = { en: 'Open the form', 'zh-TW': '開啟表單', 'ja-JP': 'フォームを開く' };
+  const snap = (over: Record<string, unknown>) => ({
+    id: 'x',
+    label: 'Laptop request',
+    archived: false,
+    href: '/admin/forms/x',
+    version: 'v',
+    value: {},
+    ...over,
+  });
+
+  it('lists the links of the objects as applied, once each, skipping archived ones', () => {
+    const items = [
+      { id: '1', label: 'Approval', after: snap({ label: 'Approval' }) },
+      { id: '2', label: 'Laptop', after: snap({ links: [{ href: '/requests/forms/laptop', label }] }) },
+      {
+        id: '3',
+        label: 'Old',
+        after: snap({ archived: true, links: [{ href: '/requests/forms/old', label }] }),
+      },
+      { id: '4', label: 'Laptop again', after: snap({ links: [{ href: '/requests/forms/laptop', label }] }) },
+      { id: '5', label: 'Not applied', after: null },
+    ];
+    expect(appliedLinks(items)).toEqual([
+      { itemId: '2', object: 'Laptop request', href: '/requests/forms/laptop', label },
+    ]);
+    expect(linkText(label, 'ja-JP')).toBe('フォームを開く');
+    expect(linkText({ en: 'Open' }, 'zh-TW')).toBe('Open');
+  });
+
+  it('writes them as Markdown lines in the person’s language, escaping what would break a link', () => {
+    const links = [{ itemId: '2', object: 'Laptop [new] request', href: '/requests/forms/laptop', label }];
+    expect(linkLines(links, 'en')).toBe(
+      'Ready to use:\n\n- Laptop \\[new\\] request: [Open the form](/requests/forms/laptop)',
+    );
+    expect(linkLines(links, 'zh-TW')).toBe(
+      '已可使用：\n\n- Laptop \\[new\\] request：[開啟表單](/requests/forms/laptop)',
+    );
   });
 });
 

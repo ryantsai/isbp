@@ -23,6 +23,8 @@ import type { AccessRequestService } from '../services/access-requests';
 import type { FormService } from '../services/forms';
 
 const idParams = z.object({ id: z.uuid() });
+/** A form assignment (to-do) the request is for. */
+const assignmentQuery = z.object({ assignment: z.uuid().optional() });
 
 /** The self-service portal: request access, fill in forms, follow "My requests". */
 export function requestRoutes(app: ModuleRouter, access: AccessRequestService, forms: FormService) {
@@ -194,12 +196,14 @@ export function requestRoutes(app: ModuleRouter, access: AccessRequestService, f
     {
       schema: {
         tags,
-        summary: 'Published version of a form, for filling in',
+        summary:
+          'Published version of a form, for filling in (`assignment`: your open to-do for it, whatever its audience)',
         params: z.object({ key: z.string().max(100) }),
+        querystring: assignmentQuery,
         response: { 200: publishedFormSchema },
       },
     },
-    async (req) => forms.published(req.params.key, req.auth),
+    async (req) => forms.published(req.params.key, req.auth, req.query.assignment),
   );
 
   app.post(
@@ -207,13 +211,35 @@ export function requestRoutes(app: ModuleRouter, access: AccessRequestService, f
     {
       schema: {
         tags,
-        summary: 'Submit a form (validated server-side, hidden fields dropped); starts its workflow',
+        summary:
+          'Submit a form (validated server-side, hidden fields dropped); starts its workflow. `assignment`: the to-do it completes',
         params: z.object({ key: z.string().max(100) }),
+        querystring: assignmentQuery,
         body: submitFormSchema,
         response: { 201: formSubmissionSchema },
       },
     },
-    async (req, reply) => reply.status(201).send(await forms.submit(req.params.key, req.body.data, req.auth)),
+    async (req, reply) =>
+      reply
+        .status(201)
+        .send(
+          await forms.submit(req.params.key, req.body.data, req.auth, { assignmentId: req.query.assignment }),
+        ),
+  );
+
+  app.post(
+    '/forms/by-key/:key/preview',
+    {
+      schema: {
+        tags,
+        summary: 'Who would approve these answers (dry run of the attached workflow, nothing is saved)',
+        params: z.object({ key: z.string().max(100) }),
+        querystring: assignmentQuery,
+        body: submitFormSchema,
+        response: { 200: approvalPreviewSchema },
+      },
+    },
+    async (req) => forms.preview(req.params.key, req.body.data, req.auth, req.query.assignment),
   );
 
   app.get(
@@ -241,5 +267,19 @@ export function requestRoutes(app: ModuleRouter, access: AccessRequestService, f
       },
     },
     async (req) => forms.cancel(req.params.id, req.body.reason, req.auth),
+  );
+
+  app.post(
+    '/form-submissions/:id/actions/:runId/retry',
+    {
+      config: { permission: 'core.forms.manage' },
+      schema: {
+        tags,
+        summary: 'Run a failed (or skipped) process action of a request again',
+        params: z.object({ id: z.uuid(), runId: z.uuid() }),
+        response: { 200: formSubmissionSchema },
+      },
+    },
+    async (req) => forms.retryAction(req.params.id, req.params.runId, req.auth),
   );
 }

@@ -90,6 +90,8 @@ export const ErrorCodes = {
   DURATION_TOO_LONG: 'DURATION_TOO_LONG',
   /** The form is not published, paused, archived or not available to you. */
   FORM_NOT_AVAILABLE: 'FORM_NOT_AVAILABLE',
+  /** The form assignment (a to-do) was already done or cancelled (`details.status`). */
+  ASSIGNMENT_CLOSED: 'ASSIGNMENT_CLOSED',
   /** OAuth: unknown client, wrong secret or revoked credentials (RFC 6749 `invalid_client`). */
   INVALID_CLIENT: 'INVALID_CLIENT',
   /** The webhook URL is not HTTPS or points at a private network. */
@@ -169,6 +171,12 @@ export const ErrorCodes = {
   INSECURE_HTTP: 'INSECURE_HTTP',
   /** An object in the change set changed since it was proposed or applied (`details.items`). */
   CHANGE_SET_STALE: 'CHANGE_SET_STALE',
+  /** The change-set package needs modules that aren't enabled or kinds that don't exist (`details.missingModules`, `details.unknownKinds`). */
+  PACKAGE_UNSUPPORTED: 'PACKAGE_UNSUPPORTED',
+  /** Adding or changing this process action on a form needs a permission you don't hold (`details.permission`, `details.action`). */
+  PROCESS_ACTION_FORBIDDEN: 'PROCESS_ACTION_FORBIDDEN',
+  /** The process action type is unknown, or its module is disabled (`details.action`). */
+  PROCESS_ACTION_UNAVAILABLE: 'PROCESS_ACTION_UNAVAILABLE',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes] | (string & {});
 

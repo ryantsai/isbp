@@ -86,14 +86,17 @@ async function settle(page: Page) {
   await page.waitForTimeout(300);
 }
 
+/** A heading is a scroll target: the step brings it to the top of the screen instead of clicking it. */
+const scrollsToHeading = (step: Step) =>
+  'click' in step && 'role' in step.click && step.click.role === 'heading';
+
 async function runStep(page: Page, step: Step, locale: Locale) {
   if ('wait' in step) return page.waitForTimeout(step.wait);
   const target =
     'css' in step.click
       ? page.locator(step.click.css).first()
       : page.getByRole(step.click.role, { name: step.click.name[locale] ?? step.click.name.en }).first();
-  // A heading is a scroll target: bring it to the top of the screen instead of clicking it.
-  if ('role' in step.click && step.click.role === 'heading') {
+  if (scrollsToHeading(step)) {
     await target.evaluate((el) => el.scrollIntoView({ block: 'start' }));
     return;
   }
@@ -150,7 +153,12 @@ async function capture(browser: Browser, s: Session, shot: Shot, locale: Locale)
       .first()
       .waitFor({ timeout: 30_000 });
     await settle(page);
-    for (const step of shot.steps ?? []) await runStep(page, step, locale);
+    const steps = shot.steps ?? [];
+    for (const step of steps) await runStep(page, step, locale);
+    // Clicking scrolls the target into view: show the page from its header again, unless the shot ends by
+    // scrolling to a heading on purpose.
+    if (steps.length && !scrollsToHeading(steps.at(-1)!))
+      await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
     await settle(page);
     const file = join(ROOT, 'apps/web/public/help', locale, `${shot.name}.jpg`);
     const options = { path: file, type: 'jpeg' as const, quality: 80, animations: 'disabled' as const };

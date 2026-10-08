@@ -13,7 +13,9 @@ import type {
   SearchHit,
   StatusTone,
 } from '@isbp/sdk/server';
+import { departments } from '@isbp/db/schema';
 import { desc, eq, inArray, sql } from 'drizzle-orm';
+import type { AssetFacts, LicenseFacts } from '../manifest';
 import {
   type AssetStatus,
   type ComplianceState,
@@ -21,6 +23,7 @@ import {
   formatAssetTag,
   formatContractRef,
   formatLicenseRef,
+  isDataBearing,
   isUuid,
 } from '../model';
 import {
@@ -84,6 +87,31 @@ function assetSummary(r: AssetItemRow, auth: AuthContext, hardware: boolean): Re
 }
 
 const assetResolver: RecordResolver = {
+  /** Approval facts (`assetFactsSchema`), not permission-filtered: they route approvals. */
+  async facts(ids, ctx) {
+    const wanted = uuids(ids);
+    if (!wanted.length) return new Map();
+    const rows = await ctx.db
+      .select({ asset: assets, departmentCode: departments.code })
+      .from(assets)
+      .leftJoin(departments, eq(departments.id, assets.departmentId))
+      .where(inArray(assets.id, wanted));
+    return new Map(
+      rows.map(({ asset: a, departmentCode }): [string, AssetFacts] => [
+        a.id,
+        {
+          category: a.category,
+          status: a.status,
+          dataBearing: isDataBearing(a.category),
+          assigneeId: a.assignedTo,
+          departmentCode,
+          location: a.location,
+          warrantyEnd: a.warrantyEnd,
+          wipeDue: a.status === 'disposed' ? null : a.wipeDue,
+        },
+      ]),
+    );
+  },
   async resolve(ids, ctx, auth) {
     const wanted = uuids(ids);
     if (!wanted.length) return [];
@@ -131,6 +159,27 @@ async function licenseSummaries(
 }
 
 const licenseResolver: RecordResolver = {
+  /** Approval facts (`licenseFactsSchema`), not permission-filtered. */
+  async facts(ids, ctx) {
+    const wanted = uuids(ids);
+    if (!wanted.length) return new Map();
+    const rows = await ctx.db.select().from(licenses).where(inArray(licenses.id, wanted));
+    return new Map(
+      rows.map((l): [string, LicenseFacts] => [
+        l.id,
+        {
+          product: l.product,
+          publisher: l.publisher,
+          licenseType: l.licenseType,
+          billing: l.billing,
+          complianceState: l.complianceState,
+          quantity: l.quantity,
+          cost: l.cost,
+          endDate: l.endDate,
+        },
+      ]),
+    );
+  },
   async resolve(ids, ctx, auth) {
     const wanted = uuids(ids);
     if (!wanted.length || !canReadSoftware(auth)) return [];

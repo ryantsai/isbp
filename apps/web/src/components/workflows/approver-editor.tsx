@@ -2,6 +2,7 @@
 
 import { APPROVER_TYPES, type ApproverRule, type ApproverType } from '@isbp/sdk';
 import { Button } from '@isbp/ui/button';
+import { Checkbox } from '@isbp/ui/checkbox';
 import { Label } from '@isbp/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { cn } from '@isbp/ui';
@@ -12,8 +13,16 @@ import { UserPicker } from '../pickers/user-picker';
 import { GroupPicker } from '../roles/group-picker';
 import { useBuilder } from './builder-context';
 
-function emptyRule(type: ApproverType): ApproverRule {
+/** The type picker's choices: the approver types, with "a group from a fact" next to "a person from a fact". */
+type Choice = ApproverType | 'fact-group';
+
+const choiceOf = (rule: ApproverRule): Choice =>
+  rule.type === 'fact' && rule.kind === 'group' ? 'fact-group' : rule.type;
+
+function emptyRule(type: Choice): ApproverRule {
   switch (type) {
+    case 'fact-group':
+      return { type: 'fact', fact: '', kind: 'group' };
     case 'user':
       return { type, userId: '' };
     case 'group':
@@ -48,8 +57,13 @@ export function ApproverRuleEditor({
   const t = useTranslations('workflows.builder.approvers');
   const { facts, names, roles, remember, readOnly } = useBuilder();
   const id = useId();
-  const types = APPROVER_TYPES.filter((x) => x !== 'requester' || allowRequester);
-  const idFacts = facts.filter((f) => f.type === 'id');
+  const types = APPROVER_TYPES.filter((x) => x !== 'requester' || allowRequester).flatMap((x): Choice[] =>
+    x === 'fact' ? ['fact', 'fact-group'] : [x],
+  );
+  const groupKind = rule.type === 'fact' && rule.kind === 'group';
+  const idFacts = groupKind
+    ? facts.filter((f) => f.ref === 'group')
+    : facts.filter((f) => f.type === 'id' || f.ref === 'user');
   const fallback = 'fallback' in rule ? rule.fallback : undefined;
   const setFallback = (f: ApproverRule | undefined) => {
     if (rule.type === 'requester') return;
@@ -65,11 +79,11 @@ export function ApproverRuleEditor({
         )}
         <div className="grid min-w-0 flex-1 gap-2">
           <Select
-            value={rule.type}
+            value={choiceOf(rule)}
             disabled={readOnly}
             onValueChange={(v) =>
               onChange({
-                ...emptyRule(v as ApproverType),
+                ...emptyRule(v as Choice),
                 ...(fallback && v !== 'requester' ? { fallback } : {}),
               } as ApproverRule)
             }
@@ -156,8 +170,11 @@ export function ApproverRuleEditor({
                 disabled={readOnly}
                 onValueChange={(v) => onChange({ ...rule, fact: v })}
               >
-                <SelectTrigger aria-label={t('types.fact')} className="w-full">
-                  <SelectValue placeholder={t('pickFact')} />
+                <SelectTrigger
+                  aria-label={groupKind ? t('types.fact-group') : t('types.fact')}
+                  className="w-full"
+                >
+                  <SelectValue placeholder={groupKind ? t('pickGroupFact') : t('pickFact')} />
                 </SelectTrigger>
                 <SelectContent>
                   {idFacts.map((f) => (
@@ -170,6 +187,33 @@ export function ApproverRuleEditor({
                   )}
                 </SelectContent>
               </Select>
+            )}
+            {groupKind && (
+              <p className="pt-2 text-xs text-muted-foreground">
+                {idFacts.length ? t('hints.fact-group') : t('noGroupFacts')}
+              </p>
+            )}
+            {rule.type === 'fact' && depth === 0 && (
+              <div className="flex items-start gap-2 pt-1">
+                <Checkbox
+                  id={`${id}-each`}
+                  checked={rule.each === true}
+                  disabled={readOnly}
+                  onCheckedChange={(v) => {
+                    const { each: _each, ...rest } = rule;
+                    onChange(v === true ? { ...rest, each: true } : rest);
+                  }}
+                  aria-describedby={`${id}-each-hint`}
+                />
+                <div className="grid gap-0.5">
+                  <Label htmlFor={`${id}-each`} className="text-sm font-normal">
+                    {t('each')}
+                  </Label>
+                  <p id={`${id}-each-hint`} className="text-xs text-muted-foreground">
+                    {t('eachHint')}
+                  </p>
+                </div>
+              </div>
             )}
             {(rule.type === 'department-head' || rule.type === 'requester') && (
               <p className="pt-2 text-xs text-muted-foreground">{t(`hints.${rule.type}`)}</p>

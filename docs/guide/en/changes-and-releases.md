@@ -11,7 +11,8 @@ approved change.
 - [Raise a change](#raise-a-change) and [plan its window around other changes](#plan-the-window-around-other-changes)
 - [Get CAB approval](#get-cab-approval), or [decide on a change as an approver](#decide-on-a-change-as-an-approver)
 - [Implement and review a change](#implement-and-review-a-change)
-- [Handle changes that come from ServiceDesk Plus](#handle-changes-that-come-from-servicedesk-plus)
+- [Handle changes that come from ServiceDesk Plus](#handle-changes-that-come-from-servicedesk-plus) and
+  [changes raised by a request form](#handle-changes-raised-by-a-request-form)
 - [Keep your application's record up to date](#keep-your-applications-record-up-to-date), including its Git status
 - [Plan a release and check its readiness](#plan-a-release-and-check-its-readiness)
 - [Record a deployment](#record-a-deployment), by hand or [from a CI/CD pipeline](#record-deployments-from-a-cicd-pipeline)
@@ -50,7 +51,8 @@ the **Change manager** role; in the demo, `admin` has it.
 submit it, you can change the plan with **Edit** on the **Change plan** card.
 
 > **Tip:** From a release in Applications, **Raise a change** opens this form for change managers, with the title
-> "Deploy (application) (version) to production" filled in and the release already linked.
+> "Deploy (application) (version) to production" filled in and the release already linked. A request form can also
+> raise changes for you: see [Handle changes raised by a request form](#handle-changes-raised-by-a-request-form).
 
 ## Plan the window around other changes
 
@@ -121,8 +123,12 @@ For a group step, the first answer decides. Reminders and escalations follow the
 1. When the window opens, choose **Implementing** in **Status**.
 2. Keep a record of the work as **Work note**s on the change, and record the deployment in Applications if the
    change deploys an application version (see [Record a deployment](#record-a-deployment)).
-3. When the work is done, choose **Post-implementation review**. Note what went as planned and what didn't.
-4. Choose **Closed**.
+3. When the work is done, choose **Post-implementation review**. Note what went as planned and what didn't. The
+   change's requester is asked to check it: on the change they select **Accept the change**, or **Report a problem**
+   and say what is wrong. The **Requester acceptance** card shows their answer, and you are notified.
+4. Choose **Closed**. The timeline records whether the requester accepted the change. If an administrator turned on
+   **Require the requester's acceptance before closing a change**, a change with a requester can only be closed once
+   they have accepted it.
 
 A scheduled change can still be cancelled (with a code and a reason). Once it is **Implementing**, it can only go
 on to review.
@@ -140,6 +146,30 @@ bring them into ISBP (in the demo, the **Changes → changes** profile of Contos
 The sync can fill in a change and submit it, but it can't approve it: a change from outside stops at **Waiting
 for CAB** until the CAB approves it in ISBP, exactly like one raised here. See
 [Integrations](integrations.md).
+
+## Handle changes raised by a request form
+
+Some request forms raise the change themselves once the request is approved, so people who aren't change managers
+can ask for a change in the portal. In the demo, the **Configuration change request** does this: the requester picks
+the CIs and describes the change, their manager and the CIs' support group approve the request, and the form's
+**Raise a change** action creates the change.
+
+- The change shows **From request REQ-… · Configuration change request** at the top; it opens the request with its
+  answers and approvals. The person who sent the request is the change's requester, and its channel is **Request
+  form**.
+- It is linked to the CIs picked on the form, so the conflict check and the CAB routing work as for any change, and
+  the CIs list it.
+- When the form submits it, the change arrives in **Waiting for CAB** and goes through **Change authorization**
+  exactly like a change you submit: the change manager, and the CAB when the risk is high or a critical CI is
+  involved (the emergency CAB for an emergency change). The request's own approval never replaces it, and a form
+  can't raise a pre-approved standard change from a requester's answer.
+- A change the form didn't submit waits in **Draft**; one whose planned window had already started when the request
+  was approved waits in **Assessment**. Check the plan, adjust the window with **Edit** and select **Submit for
+  approval** yourself.
+
+The form's planned dates have no time of day, so the window starts and ends at midnight UTC (08:00 in Taipei) on
+those days. In the demo, the approved request "Raise the department share quota on fs-01" raised such a change; it is
+waiting for the change manager. How such a form is built: [Build your own process](processes.md#add-actions).
 
 ## Keep your application's record up to date
 
@@ -269,6 +299,8 @@ are only as good as the deployment records, which is one more reason to record d
 - **Incidents and problems** that a change fixes are linked with **Implements fix for**:
   [Service desk](service-desk.md).
 - **Configuration items** decide conflicts and the CAB step: [Service desk](service-desk.md#check-what-a-configuration-item-affects).
+- **Request forms** that raise changes, and approvals that route on the picked CIs:
+  [Build your own process](processes.md).
 - **Projects** link their tasks to changes and releases: [Projects](projects.md).
 - **ServiceDesk Plus** changes and **Azure DevOps Server** repositories sync through the hub:
   [Integrations](integrations.md).

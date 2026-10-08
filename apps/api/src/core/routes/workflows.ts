@@ -235,14 +235,15 @@ export function workflowRoutes(app: ModuleRouter, admin: WorkflowAdminService, a
     {
       schema: {
         tags: inboxTags,
-        summary: 'Approve a task assigned to me',
+        summary:
+          'Approve a task assigned to me; `data` fills in the step’s fields (400 VALIDATION_FAILED, issues under data.<key>)',
         params: idParams,
         body: decisionSchema,
         response: { 200: outcome },
       },
     },
     async (req) => ({
-      outcome: await approvals.decide(req.params.id, 'approve', req.body.comment, req.auth),
+      outcome: await approvals.decide(req.params.id, 'approve', req.body.comment, req.auth, req.body.data),
     }),
   );
 
@@ -251,13 +252,16 @@ export function workflowRoutes(app: ModuleRouter, admin: WorkflowAdminService, a
     {
       schema: {
         tags: inboxTags,
-        summary: 'Reject a task assigned to me (a comment is required)',
+        summary:
+          'Reject a task assigned to me (a comment is required; the step’s required fields only when it asks for them on rejection too)',
         params: idParams,
         body: decisionSchema,
         response: { 200: outcome },
       },
     },
-    async (req) => ({ outcome: await approvals.decide(req.params.id, 'reject', req.body.comment, req.auth) }),
+    async (req) => ({
+      outcome: await approvals.decide(req.params.id, 'reject', req.body.comment, req.auth, req.body.data),
+    }),
   );
 
   app.post(

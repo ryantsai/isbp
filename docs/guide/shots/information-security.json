@@ -1,0 +1,42 @@
+[
+  {
+    "name": "information-security-register",
+    "as": "admin",
+    "path": "/isms",
+    "waitFor": "main h1",
+    "steps": [{ "wait": 800 }],
+    "clip": null
+  },
+  {
+    "name": "information-security-asset",
+    "as": "admin",
+    "path": "/isms/assets/DC01HW0001",
+    "waitFor": "main h1",
+    "steps": [{ "wait": 800 }],
+    "clip": null
+  },
+  {
+    "name": "information-security-stocktake",
+    "as": "admin",
+    "path": "/isms/stocktakes/STK-00001",
+    "waitFor": "main h1",
+    "steps": [{ "wait": 800 }],
+    "clip": null
+  },
+  {
+    "name": "information-security-account",
+    "as": "admin",
+    "path": "/isms/accounts/SHA-00001",
+    "waitFor": "main h1",
+    "steps": [{ "wait": 800 }],
+    "clip": null
+  },
+  {
+    "name": "information-security-review",
+    "as": "admin",
+    "path": "/isms/reviews/ACR-00001",
+    "waitFor": "main h1",
+    "steps": [{ "wait": 800 }],
+    "clip": null
+  }
+]

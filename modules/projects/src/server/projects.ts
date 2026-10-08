@@ -746,6 +746,7 @@ export class ProjectService {
             href: projectHref(locked.key),
           },
           facts: {
+            ...(await this.ctx.fields.facts('projects.project', locked.attributes)),
             project: {
               budgetHours: locked.budgetHours ?? 0,
               priority: locked.priority,

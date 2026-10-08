@@ -24,6 +24,8 @@ import {
   type AuthContext,
   ErrorCodes,
   factsFromJsonSchema,
+  type FieldDef,
+  findStep,
   HttpError,
   httpErrors,
   type ModuleContext,
@@ -38,6 +40,7 @@ import { canonicalJson } from '../../kernel/crypto';
 import { PLATFORM_APP_KEY } from '../../kernel/rbac';
 import { getKernel } from '../kernel-ref';
 import { likePattern, pageOffset } from '../util';
+import { assertRecordFieldTypes } from './forms';
 import { peopleById, ref } from './people';
 
 type InstanceRow = typeof workflowInstances.$inferSelect;
@@ -64,6 +67,14 @@ function rulesOf(graph: WorkflowGraph): ApproverRule[] {
       step.sla?.escalateTo?.forEach(push);
     } else if (step.type === 'notify') step.recipients.forEach(push);
   }
+  return out;
+}
+
+/** The fields approvers fill in (`ApprovalStep.fields`), by step id. */
+export function stepFieldsOf(graph: WorkflowGraph): Map<string, FieldDef[]> {
+  const out = new Map<string, FieldDef[]>();
+  for (const { step } of walkSteps(graph.steps))
+    if (step.type === 'approval' && step.fields?.length) out.set(step.id, step.fields);
   return out;
 }
 
@@ -190,11 +201,63 @@ export class InstanceViews {
       delegatedFrom: ref(people, t.delegatedFromId),
       isEscalation: t.isEscalation,
       comment: t.comment,
+      data: t.data ?? null,
       decidedAt: t.decidedAt,
       decidedBy: ref(people, t.decidedById),
       dueAt: t.dueAt,
       createdAt: t.createdAt,
     };
+  }
+
+  /**
+   * The decisions of an instance in order (approved and rejected tasks, also automatic ones), each with its step's
+   * fields and what the approver filled in; `userIds` are the people named in those values.
+   */
+  async decisions(instanceId: string | null) {
+    const none = { items: [], userIds: [] as string[] };
+    if (!instanceId) return none;
+    const [row] = await this.ctx.db
+      .select({ definitionId: workflowInstances.definitionId, version: workflowInstances.version })
+      .from(workflowInstances)
+      .where(eq(workflowInstances.id, instanceId));
+    if (!row) return none;
+    const [graph, tasks] = await Promise.all([
+      this.engine.graph(row.definitionId, row.version),
+      this.ctx.db
+        .select()
+        .from(approvalTasks)
+        .where(
+          and(
+            eq(approvalTasks.instanceId, instanceId),
+            inArray(approvalTasks.status, ['approved', 'rejected']),
+          ),
+        )
+        .orderBy(asc(approvalTasks.decidedAt), asc(approvalTasks.createdAt)),
+    ]);
+    const people = await peopleById(
+      this.ctx.db,
+      tasks.map((t) => t.decidedById),
+    );
+    const userIds: string[] = [];
+    const items = tasks.map((t) => {
+      const step = findStep(graph, t.stepId);
+      const fields = step?.type === 'approval' ? (step.fields ?? []) : [];
+      const data = t.data ?? {};
+      for (const f of fields)
+        if (f.type === 'user' && typeof data[f.key] === 'string') userIds.push(data[f.key] as string);
+      return {
+        taskId: t.id,
+        stepId: t.stepId,
+        step: step?.name ?? { en: t.stepId },
+        status: t.status as 'approved' | 'rejected',
+        decidedBy: ref(people, t.decidedById),
+        decidedAt: t.decidedAt,
+        comment: t.comment,
+        fields,
+        data,
+      };
+    });
+    return { items, userIds };
   }
 
   async canView(row: InstanceRow, auth: AuthContext): Promise<boolean> {
@@ -292,6 +355,7 @@ export class WorkflowAdminService {
         description: def.description ?? null,
         subject: def.subject,
         required: Boolean(def.required),
+        customFieldEntity: def.customFieldEntity ?? null,
         facts: [
           ...facts,
           { path: 'requester.departmentCode', type: 'string' as const },
@@ -421,6 +485,11 @@ export class WorkflowAdminService {
           issues.push({ stepId: step.id, code: 'unknownUser' });
       }
     }
+    // Record step fields may only offer record types that exist.
+    const records = getKernel().records;
+    for (const [stepId, fields] of stepFieldsOf(graph))
+      if (fields.some((f) => f.type === 'record' && f.record?.types.some((t) => !records.entry(t))))
+        issues.push({ stepId, code: 'unknownRecordType' });
     return issues as WorkflowIssue[];
   }
 
@@ -513,6 +582,17 @@ export class WorkflowAdminService {
     const before = await this.find(id);
     if (before.archivedAt)
       throw new HttpError(409, ErrorCodes.INVALID_STATE, 'Restore the workflow before editing it');
+    if (input.draft) {
+      // Step fields may only newly offer record types the editor may pick from (as form fields).
+      const had = stepFieldsOf(before.draft);
+      for (const [stepId, fields] of stepFieldsOf(input.draft))
+        assertRecordFieldTypes(
+          fields,
+          had.get(stepId) ?? [],
+          auth,
+          (i) => `draft.steps.${stepId}.fields.${i}.record.types`,
+        );
+    }
     const changes = this.ctx.audit.diff(
       { name: before.name, description: before.description },
       { name: input.name, description: input.description },
@@ -775,6 +855,8 @@ export class ApprovalService {
           instructions: step?.type === 'approval' ? (step.instructions ?? null) : null,
           mode: step?.type === 'approval' ? step.mode : ('any' as const),
           allowDelegation: step?.type === 'approval' ? step.allowDelegation !== false : false,
+          fields: step?.type === 'approval' ? (step.fields ?? []) : [],
+          fieldsRequiredOn: step?.type === 'approval' ? (step.fieldsRequiredOn ?? 'approve') : 'approve',
         },
         trigger: { key: r.i.triggerKey, name: trigger?.def.name ?? r.i.triggerKey, moduleId: r.i.moduleId },
       });
@@ -787,8 +869,9 @@ export class ApprovalService {
     decision: 'approve' | 'reject',
     comment: string | null | undefined,
     auth: AuthContext,
+    data?: Record<string, unknown> | null,
   ) {
-    return this.engine.decide(taskId, decision, comment ?? null, auth);
+    return this.engine.decide(taskId, decision, comment ?? null, auth, data);
   }
 
   delegate(taskId: string, userId: string, comment: string | null | undefined, auth: AuthContext) {

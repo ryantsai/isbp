@@ -14,6 +14,14 @@ const CORE_SLOTS: { slot: string; load: WebSlot['load']; permission?: string }[]
   // Previews of core customisation kinds on the assistant's change set page (`assistant.preview.<module>.<kind>`).
   { slot: 'assistant.preview.core.workflow', load: () => import('@/components/workflows/change-preview') },
   { slot: 'assistant.preview.core.form', load: () => import('@/components/forms/change-preview') },
+  // The person's open form assignments ("To do") on the dashboard; nothing when there are none.
+  { slot: 'core.dashboard.work', load: () => import('@/components/assignments/dashboard-todo') },
+  // The `core.assign-form` task type's editor in Scheduled Jobs' job form.
+  {
+    slot: 'scheduler.task-config.core.assign-form',
+    load: () => import('@/components/assignments/task-config'),
+    permission: 'core.forms.manage',
+  },
 ];
 
 export const slotRegistry: SlotRegistry = (() => {

@@ -417,6 +417,16 @@ function GeneralTab() {
           hint: t('warrantyDaysHint'),
         },
         { label: t('underUsed'), value: `${data.underUsedPercent}%`, hint: t('underUsedHint') },
+        {
+          label: t('wipeMonths'),
+          value: t('months', { months: data.wipeMonths }),
+          hint: t('wipeMonthsHint'),
+        },
+        {
+          label: t('wipeRemindDays'),
+          value: t('days', { days: data.wipeRemindDays }),
+          hint: t('wipeRemindDaysHint'),
+        },
       ]
     : [];
   return (

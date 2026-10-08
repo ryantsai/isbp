@@ -27,6 +27,7 @@ import {
   SearchIcon,
   ShieldAlertIcon,
   SirenIcon,
+  StampIcon,
   XCircleIcon,
 } from 'lucide-react';
 import { useNow, useTranslations } from 'next-intl';
@@ -102,15 +103,27 @@ export function statusIcon(status: TicketStatus): LucideIcon {
   return STATUS[status]?.icon ?? CircleDotIcon;
 }
 
-/** Ticket status: icon + text + tone (never colour alone). */
-export function TicketStatusBadge({ status, className }: { status: TicketStatus; className?: string }) {
+/**
+ * Ticket status: icon + text + tone (never colour alone). `signOff`: a resolution waiting for its sign-off shows as
+ * "Waiting for sign-off" instead of "Pending approval".
+ */
+export function TicketStatusBadge({
+  status,
+  signOff,
+  className,
+}: {
+  status: TicketStatus;
+  signOff?: boolean;
+  className?: string;
+}) {
   const t = useTranslations('itsm.status');
+  const ts = useTranslations('itsm.signOff');
   const s = STATUS[status] ?? { tone: 'muted' as const, icon: CircleDotIcon };
-  const Icon = s.icon;
+  const Icon = signOff && status === 'pending_approval' ? StampIcon : s.icon;
   return (
     <Badge variant="outline" className={cn(TONE[s.tone], className)}>
       <Icon aria-hidden />
-      {t.has(status) ? t(status) : status}
+      {signOff && status === 'pending_approval' ? ts('status') : t.has(status) ? t(status) : status}
     </Badge>
   );
 }

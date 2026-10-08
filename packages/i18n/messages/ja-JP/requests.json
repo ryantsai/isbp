@@ -22,6 +22,7 @@
     "software": "ソフトウェア",
     "security": "セキュリティ",
     "access": "アクセス",
+    "changes": "変更",
     "other": "その他"
   },
   "risk": {
@@ -91,7 +92,11 @@
     "submitted": "申請 {reference} を送信しました",
     "failed": "申請を送信できませんでした。",
     "unavailable": "このフォームは利用できません",
-    "unavailableHint": "一時停止中か、あなたは対象外の可能性があります。別の申請を選んでください。"
+    "unavailableHint": "一時停止中か、あなたは対象外の可能性があります。別の申請を選んでください。",
+    "approval": {
+      "title": "この申請の承認者",
+      "description": "現在の回答とフォームの承認ワークフローに基づきます。入力に合わせて更新されます。"
+    }
   },
   "detail": {
     "back": "すべての申請",
@@ -126,12 +131,90 @@
     "withdrawBody": "承認者には表示されなくなります。後でもう一度申請できます。",
     "keep": "残す",
     "withdrawn": "申請を取り下げました",
+    "decisions": {
+      "title": "承認者による入力",
+      "description": "承認者が決定時に記録した内容です。",
+      "decidedBy": "{name}",
+      "decidedAutomatically": "期限後に自動的に決定"
+    },
     "fulfilment": {
       "open": "対応中",
       "done": "完了",
       "cancelled": "対応はキャンセルされました",
       "updated": "更新",
       "openRef": "{reference} を開く"
+    },
+    "actions": {
+      "title": "その後の処理",
+      "description": "この申請によって実行されるアクションです。各アクションは個別に実行され、失敗した場合は再試行されます。",
+      "on": {
+        "submitted": "送信時",
+        "approved": "承認後",
+        "rejected": "却下後"
+      },
+      "status": {
+        "queued": "待機中",
+        "running": "実行中",
+        "succeeded": "完了",
+        "failed": "失敗",
+        "skipped": "スキップ"
+      },
+      "retrying": "再試行中 ({attempt} 回目)",
+      "open": "{reference} を開く",
+      "error": "エラー:",
+      "retry": "再試行",
+      "retryNamed": "{name} を再試行",
+      "retried": "{name} をもう一度実行します。",
+      "fulfilled": "完了",
+      "reason": {
+        "condition": "この申請では不要です (条件を満たしていません)。",
+        "unavailable": "このアクションは使用できなくなりました。"
+      }
+    },
+    "print": "印刷",
+    "reminders": {
+      "title": "リマインダー",
+      "description": "この申請のアクションが後日に送信するよう設定した通知です。",
+      "untitled": "リマインダー",
+      "dueAt": "送信予定",
+      "sentAt": "送信済み",
+      "status": {
+        "pending": "予定",
+        "sent": "送信済み",
+        "cancelled": "キャンセル済み"
+      }
     }
+  },
+  "print": {
+    "pageTitle": "{reference} (印刷)",
+    "back": "申請に戻る",
+    "print": "印刷",
+    "formsOnly": "印刷できるのはフォームの申請のみです",
+    "version": "バージョン {version}",
+    "summary": "概要",
+    "requester": "申請者",
+    "submitted": "送信日時",
+    "completed": "完了日時",
+    "form": "フォーム",
+    "formVersion": "フォームのバージョン",
+    "status": "状態",
+    "decisions": "承認の記録",
+    "noDecisions": "まだ決定はありません。",
+    "approver": "承認者",
+    "decidedAutomatically": "期限後に自動的に決定",
+    "decidedAt": "決定日時",
+    "comment": "コメント",
+    "noComment": "コメントなし",
+    "outcomeComment": "結果:",
+    "actions": "アクション",
+    "action": "アクション",
+    "result": "結果",
+    "attachments": "添付ファイル",
+    "noAttachments": "添付ファイルはありません。",
+    "fileName": "ファイル",
+    "fileSize": "サイズ",
+    "fileAdded": "追加日時",
+    "kilobytes": "{size} KB",
+    "printedAt": "印刷日時"
   }
 }

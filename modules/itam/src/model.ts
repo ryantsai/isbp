@@ -7,8 +7,6 @@
  * are compared as calendar days in the company's time zone (`Asia/Taipei`).
  */
 
-import { type Condition, evaluateCondition } from '@isbp/sdk';
-
 /* ───────────────────────────── hardware ───────────────────────────── */
 
 export const ASSET_CATEGORIES = [
@@ -470,22 +468,140 @@ export function disposalFacts(
 }
 
 /**
- * When the `itam.disposal` workflow asks information security to sign off that the storage was wiped or
- * destroyed: data-bearing devices that still carry book value or are under five years old. The workflow's
- * default graph uses this condition as the step's `when`, and the disposal dialog says so with
- * `needsSecuritySignOff`, so the two can't drift apart.
+ * The id of the information-security sign-off step in the default `itam.disposal` graph. The disposal dialog
+ * shows its notice when the bound workflow's dry run (`ctx.workflows.preview`) would ask a step with this id.
  */
-export const SECURITY_SIGN_OFF_WHEN: Condition = {
-  all: [
-    { fact: 'asset.dataBearing', op: 'eq', value: true },
-    {
-      any: [
-        { fact: 'asset.bookValue', op: 'gt', value: 0 },
-        { fact: 'asset.ageMonths', op: 'lt', value: 60 },
-      ],
-    },
-  ],
-};
+export const SECURITY_SIGN_OFF_STEP = 'security';
 
-export const needsSecuritySignOff = (facts: DisposalFacts): boolean =>
-  evaluateCondition(SECURITY_SIGN_OFF_WHEN, facts);
+/* ───────────────────────────── approved software ───────────────────────────── */
+
+/**
+ * The approved-software list (allow list / block list): which software titles may be installed, by whom. A title
+ * on an allowed entry for the device's department (or the whole company) is approved; a title on a blocked entry
+ * must not be installed. Versions are optional (`null` = any version).
+ */
+export const LICENSE_MODELS = ['free', 'open_source', 'shareware', 'paid', 'subscription'] as const;
+export type LicenseModel = (typeof LICENSE_MODELS)[number];
+
+export const APPROVAL_STATUSES = ['allowed', 'blocked'] as const;
+export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
+
+export const APPROVAL_SCOPES = ['company', 'departments'] as const;
+export type ApprovalScope = (typeof APPROVAL_SCOPES)[number];
+
+/** Where an installed title stands against the list. */
+export const INSTALL_APPROVALS = ['allowed', 'unapproved', 'blocked'] as const;
+export type InstallApproval = (typeof INSTALL_APPROVALS)[number];
+
+/** An allowed entry ending within this many days is "expiring" (list badge and the reminder digest). */
+export const APPROVAL_EXPIRING_DAYS = 14;
+
+export type ApprovalEntryState = 'active' | 'expiring' | 'expired';
+
+export function approvalEntryState(validUntil: string | null, today: string): ApprovalEntryState {
+  if (!validUntil) return 'active';
+  const days = daysBetween(today, validUntil);
+  if (days < 0) return 'expired';
+  return days <= APPROVAL_EXPIRING_DAYS ? 'expiring' : 'active';
+}
+
+/**
+ * An entry's version covers an installed version: no version on the entry means any; otherwise the same version or
+ * a more precise one (`23` covers `23.01`, never `230`), ignoring case.
+ */
+export function versionMatches(entryVersion: string | null, installVersion: string | null): boolean {
+  const want = entryVersion?.trim().toLowerCase();
+  if (!want) return true;
+  const have = installVersion?.trim().toLowerCase();
+  if (!have) return false;
+  return have === want || have.startsWith(`${want}.`);
+}
+
+export interface ApprovalEntry {
+  title: string;
+  version: string | null;
+  status: ApprovalStatus;
+  scope: ApprovalScope;
+  departmentIds: readonly string[];
+  validUntil: string | null;
+  /** The product of the linked licence: installs counted as it (title rules) match too. */
+  licenseProduct?: string | null;
+}
+
+export interface InstallFacts {
+  /** The product as stored (a title rule may have renamed it to a licence's product). */
+  product: string;
+  /** The title the inventory tool reported, when a title rule renamed it. */
+  reportedAs: string | null;
+  version: string | null;
+  /** The device's department and its assignee's: an entry for either covers it. */
+  departmentIds: readonly (string | null)[];
+}
+
+const same = (a: string | null | undefined, b: string | null | undefined) =>
+  Boolean(a && b && a.trim().toLowerCase() === b.trim().toLowerCase());
+
+/** The entry is about this install: same title (as stored or as reported, or its licence's product) and version. */
+export function entryMatches(entry: ApprovalEntry, install: InstallFacts): boolean {
+  const titled =
+    same(entry.title, install.product) ||
+    same(entry.title, install.reportedAs) ||
+    same(entry.licenseProduct, install.product);
+  if (!titled || !versionMatches(entry.version, install.version)) return false;
+  return (
+    entry.scope === 'company' ||
+    install.departmentIds.some((d) => d !== null && entry.departmentIds.includes(d))
+  );
+}
+
+/**
+ * Where an install stands: `blocked` when a blocked entry covers it; `allowed` when an allowed entry that has not
+ * ended covers it; otherwise `unapproved`. With no allowed entry at all the allow list is not in use and nothing is
+ * `unapproved` (only blocked titles are flagged). The SQL twin is in `server/approved-software.ts`.
+ */
+export function installApproval(
+  install: InstallFacts,
+  entries: readonly ApprovalEntry[],
+  today: string,
+): InstallApproval {
+  const live = entries.filter((e) => !e.validUntil || daysBetween(today, e.validUntil) >= 0);
+  if (live.some((e) => e.status === 'blocked' && entryMatches(e, install))) return 'blocked';
+  if (!entries.some((e) => e.status === 'allowed')) return 'allowed';
+  return live.some((e) => e.status === 'allowed' && entryMatches(e, install)) ? 'allowed' : 'unapproved';
+}
+
+/* ───────────────────────────── data wipes ───────────────────────────── */
+
+/** How a device's storage was wiped (NIST 800-88 clear, purge, destroy; phones are reset to factory settings). */
+export const WIPE_METHODS = [
+  'factory_reset',
+  'secure_erase',
+  'crypto_erase',
+  'physical_destruction',
+  'other',
+] as const;
+export type WipeMethod = (typeof WIPE_METHODS)[number];
+
+/** Months after the data retention date by which a returned device must be wiped (ISMS: 2). */
+export const DEFAULT_WIPE_MONTHS = 2;
+/** Wipes due within this many days are "due" (hardware filter, reminders, attention). */
+export const DEFAULT_WIPE_REMIND_DAYS = 7;
+
+/** The date a returned device must be wiped by: the retention date (else the return day) plus the months. */
+export function wipeDueDate(retainUntil: string | null, returnedOn: string, months: number): string {
+  return addMonths(retainUntil ?? returnedOn, Math.max(0, Math.round(months)));
+}
+
+export type WipeState = 'none' | 'scheduled' | 'due' | 'overdue';
+
+/** `due` from `remindDays` before the date, `overdue` after it; `none` without a pending wipe. */
+export function wipeState(
+  wipeDue: string | null,
+  today: string,
+  remindDays = DEFAULT_WIPE_REMIND_DAYS,
+): WipeState {
+  if (!wipeDue) return 'none';
+  const days = daysBetween(today, wipeDue);
+  if (days < 0) return 'overdue';
+  return days <= remindDays ? 'due' : 'scheduled';
+}

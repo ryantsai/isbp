@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CustomizationKindDef } from './customizations';
+import type { CustomizationKindDef, CustomizationPackageDef } from './customizations';
 import { isPermissionKey, isPermissionPattern } from './permissions';
 import { type WorkflowGraph, workflowGraphSchema } from './workflow';
 
@@ -123,6 +123,11 @@ export interface WorkflowTriggerDef {
   subject: string;
   /** Shape of the facts passed to `start()` — conditions and "approver from fact" pick from it. */
   facts?: z.ZodType;
+  /**
+   * The entity whose custom fields are passed as facts (`attributes.<key>`, and `records.<key>.<fact>` for record
+   * fields — see `ctx.fields.facts`), e.g. `itsm.ticket`. The workflow builder lists them as facts.
+   */
+  customFieldEntity?: string;
   /** A workflow always runs: without a bound definition the `defaultGraph` is installed and used. */
   required?: boolean;
   /** Installed as a system definition on first sync. */
@@ -192,6 +197,28 @@ export interface RecordTypeDef {
   /** lucide icon name. */
   icon?: string;
   /** Holding it (at any scope) lists the type in record pickers; resolvers still check every record. */
+  permission: string;
+  /**
+   * Approval facts of a record (e.g. a CI's `criticality`, `environment`, `ownerGroup`): what workflows may route on
+   * when the record is picked in a `record` field. Served by the resolver's `facts`. Ids of people are user ids,
+   * groups are group keys.
+   */
+  facts?: z.ZodType;
+}
+
+/**
+ * Work a form can do after it is sent, approved or rejected (`<module>.<action>`, e.g. `itsm.create-change`). The
+ * module provides a `processActions[action]` handler in `defineServerModule`.
+ */
+export interface ProcessActionDef {
+  /** Action name inside the module; the full type is `<module>.<action>`. */
+  action: string;
+  /** i18n keys. */
+  name: string;
+  description: string;
+  /** lucide icon name. */
+  icon?: string;
+  /** Needed (in addition to managing forms) to add the action to a form. */
   permission: string;
 }
 
@@ -301,6 +328,8 @@ export interface ModuleManifest {
   customFields?: { entities: CustomFieldEntityDef[] };
   /** Record types that can be linked across modules and carry attachments. */
   records?: { types: RecordTypeDef[] };
+  /** Work forms can do after they are sent or decided (handlers in `defineServerModule({ processActions })`). */
+  processActions?: ProcessActionDef[];
   /** Work Scheduled Jobs can run on a schedule (handlers in `defineServerModule({ taskTypes })`). */
   taskTypes?: TaskTypeDef[];
   /** Entities the Integrations Hub may sync (adapters in `defineServerModule({ sync })`). */
@@ -309,6 +338,8 @@ export interface ModuleManifest {
   connectors?: ConnectorDef[];
   /** Surfaces admins configure that the AI agent may build changes for (handlers in `customizations`). */
   customizations?: CustomizationKindDef[];
+  /** Ready-made sets of changes installed as one change set (content in `customizationPackages`). */
+  customizationPackages?: CustomizationPackageDef[];
 }
 
 const zNav: z.ZodType<NavEntry> = z.lazy(() =>
@@ -437,6 +468,10 @@ export const manifestSchema = z
           description: z.string().optional(),
           subject: z.string().regex(/^[a-z][a-z0-9-]*$/),
           facts: zZodType.optional(),
+          customFieldEntity: z
+            .string()
+            .regex(/^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$/)
+            .optional(),
           required: z.boolean().optional(),
           defaultGraph: workflowGraphSchema.optional(),
         }),
@@ -464,9 +499,21 @@ export const manifestSchema = z
             name: z.string().min(1),
             icon: z.string().optional(),
             permission: z.string().refine(isPermissionKey, 'invalid permission key'),
+            facts: zZodType.optional(),
           }),
         ),
       })
+      .optional(),
+    processActions: z
+      .array(
+        z.object({
+          action: z.string().regex(/^[a-z][a-z0-9-]*$/),
+          name: z.string().min(1),
+          description: z.string().min(1),
+          icon: z.string().optional(),
+          permission: z.string().refine(isPermissionKey, 'invalid permission key'),
+        }),
+      )
       .optional(),
     taskTypes: z
       .array(
@@ -545,6 +592,18 @@ export const manifestSchema = z
         }),
       )
       .optional(),
+    customizationPackages: z
+      .array(
+        z.object({
+          key: z
+            .string()
+            .regex(/^[a-z][a-z0-9-]{0,59}$/, 'package keys are kebab-case, at most 60 characters'),
+          name: z.string().min(1),
+          description: z.string().min(1),
+          icon: z.string().optional(),
+        }),
+      )
+      .optional(),
   })
   .superRefine((m, ctx) => {
     const own = (key: string) => key.startsWith(`${m.id}.`);
@@ -607,6 +666,16 @@ export const manifestSchema = z
         ctx.addIssue({ code: 'custom', path: ['taskTypes', i, 'type'], message: 'duplicate task type' });
       taskTypes.add(t.type);
     });
+    const actions = new Set<string>();
+    m.processActions?.forEach((a, i) => {
+      if (actions.has(a.action))
+        ctx.addIssue({
+          code: 'custom',
+          path: ['processActions', i, 'action'],
+          message: 'duplicate process action',
+        });
+      actions.add(a.action);
+    });
     const emitted = new Set(m.events?.emits?.map((e) => e.name) ?? []);
     const entities = new Set<string>();
     m.syncEntities?.forEach((e, i) => {
@@ -631,6 +700,16 @@ export const manifestSchema = z
       if (kinds.has(k.kind))
         ctx.addIssue({ code: 'custom', path: ['customizations', i, 'kind'], message: 'duplicate kind' });
       kinds.add(k.kind);
+    });
+    const packages = new Set<string>();
+    m.customizationPackages?.forEach((p, i) => {
+      if (packages.has(p.key))
+        ctx.addIssue({
+          code: 'custom',
+          path: ['customizationPackages', i, 'key'],
+          message: 'duplicate package',
+        });
+      packages.add(p.key);
     });
     const connectors = new Set<string>();
     m.connectors?.forEach((c, i) => {
@@ -663,8 +742,9 @@ export function defineManifest<const M extends ModuleManifest>(manifest: M): M {
 /** JSON-safe view of a manifest (Zod schemas converted to JSON Schema) for APIs, admin UI and MCP. */
 export interface SerializedManifest extends Omit<
   ModuleManifest,
-  'events' | 'ai' | 'workflows' | 'taskTypes' | 'connectors'
+  'events' | 'ai' | 'workflows' | 'taskTypes' | 'connectors' | 'records'
 > {
+  records?: { types: (Omit<RecordTypeDef, 'facts'> & { facts?: unknown })[] };
   events?: { emits?: { name: string; description?: string; schema?: unknown }[]; consumes?: string[] };
   ai?: { tools?: (Omit<AiToolDef, 'input'> & { input: unknown })[]; agent?: AiAgentDef };
   workflows?: (Omit<WorkflowTriggerDef, 'facts'> & { facts?: unknown })[];
@@ -697,6 +777,7 @@ export function serializeManifest(m: ModuleManifest): SerializedManifest {
       agent: m.ai.agent,
     },
     workflows: m.workflows?.map((w) => ({ ...w, facts: toJsonSchema(w.facts) })),
+    records: m.records && { types: m.records.types.map((t) => ({ ...t, facts: toJsonSchema(t.facts) })) },
     taskTypes: m.taskTypes?.map((t) => ({ ...t, config: toJsonSchema(t.config) })),
     connectors: m.connectors?.map((c) => ({
       ...c,

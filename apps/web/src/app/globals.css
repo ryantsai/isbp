@@ -5,7 +5,12 @@
 @source '../../../../packages/ui/src';
 @source '../../../../modules';
 
-@custom-variant dark (&:is(.dark *));
+/* Pages that hold `[data-force-light]` (print views) stay light whatever the theme. */
+@custom-variant dark (&:is(.dark:not(:has([data-force-light])) *));
+
+html:has([data-force-light]) {
+  color-scheme: light !important;
+}
 
 :root {
   --radius: 0.625rem;
@@ -62,7 +67,7 @@
     'Meiryo', sans-serif;
 }
 
-.dark {
+.dark:not(:has([data-force-light])) {
   --background: oklch(0.155 0.008 264);
   --foreground: oklch(0.96 0.005 264);
   --card: oklch(0.195 0.01 264);

@@ -78,6 +78,8 @@ export const articles = knowledgeSchema.table(
     source: jsonb('source').$type<ArticleSource>(),
     /** Running `knowledge.publish` review workflow while `in_review`. */
     reviewInstanceId: uuid('review_instance_id'),
+    /** Classification label: a key of the `classification.levels` setting (built-in key or custom label). */
+    classification: varchar('classification', { length: 100 }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -96,6 +98,9 @@ export const articles = knowledgeSchema.table(
     index('articles_review_idx')
       .on(t.reviewAt)
       .where(sql`${t.status} = 'published'`),
+    index('articles_classification_idx')
+      .on(t.classification)
+      .where(sql`${t.classification} is not null`),
   ],
 );
 

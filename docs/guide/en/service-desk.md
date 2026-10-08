@@ -204,6 +204,12 @@ When the work is done, resolve the ticket so the requester can confirm the fix.
   under **Administration → Modules**).
 - Resolved tickets feed Helpdesk AI's similar-ticket search.
 
+Some resolutions need a sign-off first: if an administrator bound a **Resolution sign-off** workflow (for example a
+manager's approval for the "Equipment anomaly" category), resolving such a ticket sends it for approval instead. It
+shows **Waiting for sign-off** and its resolution waits on the card; it is resolved when the approver signs off, and
+it comes back **In progress** with the approver's reason if they don't. Until then you can **Withdraw the
+resolution** from **Status → Move to**.
+
 You can also close a resolved ticket, or reopen it, from **Status → Move to**. To cancel a ticket, choose
 **Cancelled** there and give a code (**Duplicate**, **Cancelled by requester**, **User error / how-to** or **No
 fault found**) and a reason; the requester is told it was cancelled.
@@ -227,6 +233,10 @@ above 60 000 TWD. Approved requests become service requests in Hardware › Lapt
 fulfilment; its status follows your ticket. A ticket created when the form was submitted waits in **Waiting for
 approval** until the approval finishes, and is cancelled if the request is rejected. See
 [Employees](employees.md) for what the requester sees.
+
+Some forms raise their ticket or change themselves with a **Raise a ticket** or **Raise a change** action instead
+of the service catalog. Those tickets also show **From request REQ-…** and the channel **Request form**, and the
+request page lists them under **What happens next**. See [Build your own process](processes.md#add-actions).
 
 ## Investigate a problem and record a known error
 
@@ -335,6 +345,13 @@ when approved; you are notified either way. An editor's own submission is publis
 approval applies. To change a live article, an editor selects **Edit** and **Publish update**, which makes a new
 version. **Retire** takes an article out of search; **Restore as draft** brings it back.
 
+**Classify an article and attach documents.** In the editor, choose a **Classification** (by default **Strictly
+Confidential**, **Customer Confidential**, **Confidential** or **Internal Use Only**; an administrator sets the list
+under **Administration → Modules**). Readers see it as a label and a banner on the article and in lists and search
+results, and **Manage articles** filters by it. The classification doesn't change who can read the article: the
+**Audience** does. Editors attach diagrams and controlled documents (a network diagram, a rack layout) in the
+**Attachments** panel of the article; everyone who can read the article can download them.
+
 **Translate an article.** On the article, select **Translate**. The new article is linked as a translation, so
 readers can switch languages; each language has its own number and goes through review on its own.
 
@@ -369,6 +386,11 @@ information only.
 **Link CIs to tickets.** Record the affected CIs on each ticket (see [Work a ticket](#work-a-ticket)). They show
 on the CI's page, help you spot related incidents during an outage, and on a change they drive the conflict check
 and the CAB routing.
+
+**Keep the support group and criticality right.** Request forms can let people pick CIs, and their approvals can
+route on a CI's data: the demo's **Configuration change request** asks the picked CI's **Support group** to approve,
+and the CAB when a CI is critical. A CI without a support group, or with the wrong one, sends approvals to the wrong
+people. See [Build your own process](processes.md#let-a-group-named-in-a-record-approve).
 
 In the demo, open `tpe-sw-core-01` (CI-00036): losing the core switch impacts most business services.
 
@@ -411,6 +433,7 @@ How connections, profiles and conflicts work: [Integrations](integrations.md).
 - **Employees** report issues, follow them under **My requests**, confirm fixes and rate the service:
   [Employees](employees.md).
 - **Changes** that fix problems go through CAB approval: [Changes and releases](changes-and-releases.md).
+- **Request forms** that raise tickets and changes, and route approvals on CIs: [Build your own process](processes.md).
 - **Assets**: "Report a problem" on a device opens a ticket already linked to it: [Assets](assets.md).
 - **Ask IT and Helpdesk AI** answer from the knowledge base and raise tickets only when the person confirms:
   [Assistant and AI](assistant-and-ai.md).

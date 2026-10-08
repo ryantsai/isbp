@@ -24,7 +24,8 @@ import {
 import { toAiMessages } from '../lib/history';
 import { ChangeSetService } from './change-sets';
 import { type ConversationRow, changeSets, conversations, type MessageRow, messages } from './schema';
-import { text } from './text';
+import { linkLines, text } from './text';
+import { appendTurns, type NewTurn } from './turns';
 
 /**
  * Tools that act on the conversation's change set: its id is filled in, whatever the model passes (a proposal
@@ -43,7 +44,7 @@ const CHANGE_SET_TOOLS = new Set([
 const MAX_RESULT_CHARS = 16_000;
 export const DEFAULT_TOOL_ROUNDS = 12;
 
-type Mutable = Omit<typeof messages.$inferInsert, 'conversationId' | 'seq'>;
+type Mutable = NewTurn;
 
 export interface PreparedTurn {
   conversation: ConversationRow;
@@ -242,26 +243,8 @@ export class ChatService {
     return { ...this.toDto(row), messages: toMessageDto(rows), changeSet };
   }
 
-  private async append(conversationId: string, turns: Mutable[], tx?: Db): Promise<MessageRow[]> {
-    if (!turns.length) return [];
-    const run = async (db: Db) => {
-      const [conv] = await db
-        .select({ n: conversations.messageCount })
-        .from(conversations)
-        .where(eq(conversations.id, conversationId))
-        .for('update');
-      const start = conv?.n ?? 0;
-      const rows = await db
-        .insert(messages)
-        .values(turns.map((t, i) => ({ ...t, conversationId, seq: start + i })))
-        .returning();
-      await db
-        .update(conversations)
-        .set({ messageCount: start + turns.length, updatedAt: new Date() })
-        .where(eq(conversations.id, conversationId));
-      return rows;
-    };
-    return tx ? run(tx) : this.ctx.transaction(run);
+  private append(conversationId: string, turns: Mutable[], tx?: Db): Promise<MessageRow[]> {
+    return appendTurns(this.ctx, conversationId, turns, tx);
   }
 
   /** Stores the person's message (errors here are ordinary JSON responses, before the stream starts). */
@@ -536,13 +519,16 @@ export class ChatService {
         status: pending.status,
       });
     let decided: Confirmation = { ...pending, status: approve ? 'confirmed' : 'declined' };
+    // What the model reads for this call from now on: what actually happened.
+    let toolContent = JSON.stringify({ status: 'declined', note: 'The person declined: nothing ran.' });
     if (approve) {
       const session = this.ctx.ai.mcp(auth, { includeDestructive: true, via: 'assistant' });
       const result = await session.callTool(pending.name, pending.input, { confirmed: true });
       const error = result.isError ? errorOf(result) : { code: null, message: null };
       decided = { ...decided, result: { ok: !result.isError, ...error } };
+      toolContent = truncate(result.content[0]?.text ?? 'null', MAX_RESULT_CHARS);
     }
-    const outcome = !approve
+    let outcome = !approve
       ? text(locale, 'declined', { label: pending.label })
       : decided.result?.ok
         ? text(locale, 'confirmDone', { label: pending.label })
@@ -550,8 +536,20 @@ export class ChatService {
             label: pending.label,
             message: decided.result?.message ?? decided.result?.code ?? '',
           });
+    // An applied change set says where to use what it made (a form's own page), besides its admin pages.
+    if (decided.result?.ok && pending.name === 'assistant.apply_change_set' && pending.changeSetId) {
+      const links = await new ChangeSetService(this.ctx).appliedLinksOf(pending.changeSetId);
+      if (links.length) outcome = `${outcome}\n\n${linkLines(links, locale)}`;
+    }
     await this.ctx.transaction(async (tx) => {
-      await tx.update(messages).set({ confirmation: decided }).where(eq(messages.id, row.id));
+      await tx
+        .update(messages)
+        .set({
+          confirmation: decided,
+          content: toolContent,
+          isError: approve ? decided.result?.ok === false : false,
+        })
+        .where(eq(messages.id, row.id));
       await this.append(
         id,
         [

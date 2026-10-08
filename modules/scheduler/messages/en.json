@@ -3,6 +3,15 @@
     "name": "Scheduled jobs",
     "description": "HTTP calls, SQL tasks, sandboxed scripts and module tasks on a schedule, with retries, run history, live logs and alerts"
   },
+  "processActions": {
+    "runJob": {
+      "name": "Run a scheduled job",
+      "description": "Runs one of your scheduled jobs now, as if someone pressed \"Run now\"; the request links to the run.",
+      "job": "Job",
+      "jobHelp": "Runs with the job's own configuration, retries and alerts.",
+      "started": "Run started"
+    }
+  },
   "nav": {
     "group": "Scheduled jobs",
     "overview": "Overview",

@@ -1,4 +1,5 @@
 import { dateTime } from '@isbp/contracts';
+import { CHANGE_SET_PACKAGE_FORMAT, type ChangeSetPackage, MAX_PACKAGE_ITEMS, MODULE_ID_RE } from '@isbp/sdk';
 import { z } from 'zod';
 
 /*
@@ -49,12 +50,25 @@ export const checkResultSchema = z.object({
 });
 export type CheckResult = z.infer<typeof checkResultSchema>;
 
+/** A page where people use an object (a request form in the portal): `label` per locale. */
+export const objectLinkSchema = z.object({
+  href: z.string(),
+  label: z.object({
+    en: z.string().optional(),
+    'zh-TW': z.string().optional(),
+    'ja-JP': z.string().optional(),
+  }),
+});
+export type ObjectLink = z.infer<typeof objectLinkSchema>;
+
 /** An object as a kind returns it, with its version. */
 export const objectSnapshotSchema = z.object({
   id: z.string(),
   label: z.string(),
   archived: z.boolean(),
   href: z.string().nullable(),
+  /** Where people use it (not part of the version); absent on snapshots taken before links existed. */
+  links: z.array(objectLinkSchema).optional(),
   version: z.string(),
   value: z.unknown(),
 });
@@ -196,6 +210,84 @@ export const rollbackSchema = z.object({
 });
 
 export const submitSchema = z.object({ note: z.string().trim().max(2000).optional() });
+
+/* ───────────── packages (a change set as a file) ───────────── */
+
+export { CHANGE_SET_PACKAGE_FORMAT, MAX_PACKAGE_ITEMS };
+export type { ChangeSetPackage, ChangeSetPackageItem } from '@isbp/sdk';
+
+/** Text in en / zh-TW / ja-JP (at least one); shown in the installer's language, else English, else any. */
+const packageText = (max: number) =>
+  z
+    .object({
+      en: z.string().trim().max(max).optional(),
+      'zh-TW': z.string().trim().max(max).optional(),
+      'ja-JP': z.string().trim().max(max).optional(),
+    })
+    .strict()
+    .refine((t) => !!(t.en || t['zh-TW'] || t['ja-JP']), 'Enter the text in at least one language');
+
+/** One change of a package: the shape `POST /change-sets/:id/items` takes (unknown fields are refused). */
+export const packageItemSchema = proposeItemSchema.strict();
+
+/**
+ * `isbp.change-set-package` version 1: a change set as a file (export, import into another environment, a module's
+ * built-in package). Typed by the SDK's `ChangeSetPackage`, which module authors write against.
+ */
+export const changeSetPackageSchema: z.ZodType<ChangeSetPackage> = z
+  .object({
+    format: z.literal(CHANGE_SET_PACKAGE_FORMAT),
+    version: z.literal(1),
+    key: z
+      .string()
+      .regex(/^[a-z][a-z0-9-]{0,59}$/, 'lowercase letters, digits and dashes, starting with a letter')
+      .optional(),
+    title: packageText(200),
+    summary: packageText(4000).optional(),
+    requires: z
+      .object({ modules: z.array(z.string().regex(MODULE_ID_RE, 'a module id')).max(50).optional() })
+      .strict()
+      .optional(),
+    items: z.array(packageItemSchema).min(1).max(MAX_PACKAGE_ITEMS),
+  })
+  .strict();
+
+const packageRequirementsSchema = z.object({
+  missingModules: z.array(z.string()),
+  unknownKinds: z.array(z.string()),
+  unreadableKinds: z.array(z.object({ kind: z.string(), permission: z.string() })),
+  unsupported: z.array(
+    z.object({
+      index: z.number().int(),
+      kind: z.string(),
+      op: z.string(),
+      operations: z.array(itemOpSchema),
+    }),
+  ),
+  missingApplyPermissions: z.array(z.string()),
+});
+
+/** A built-in package: `name` and `description` are catalog keys of the module that ships it. */
+export const packageInfoSchema = z.object({
+  key: z.string(),
+  moduleId: z.string(),
+  name: z.string(),
+  description: z.string(),
+  icon: z.string().nullable(),
+  itemCount: z.number().int(),
+  kinds: z.array(z.string()),
+  requirements: packageRequirementsSchema,
+  /** The viewer may install it (every module and kind is there, and they can read every kind). */
+  canPropose: z.boolean(),
+  /** …and holds every kind's apply permission. */
+  canApply: z.boolean(),
+});
+export type PackageInfo = z.output<typeof packageInfoSchema>;
+
+export const packageListSchema = z.object({ items: z.array(packageInfoSchema) });
+
+/** `/change-sets/:id/export` → `CS-00012.json`. */
+export const packageFileName = (reference: string) => `${reference}.json`;
 
 export const buildTemplateSchema = z.object({
   kind: z.string().max(100),

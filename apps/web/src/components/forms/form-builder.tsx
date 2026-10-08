@@ -52,6 +52,7 @@ import {
   ArchiveIcon,
   ArchiveRestoreIcon,
   ArrowLeftIcon,
+  ClipboardCheckIcon,
   ClipboardListIcon,
   ExternalLinkIcon,
   EyeIcon,
@@ -65,9 +66,11 @@ import {
   RocketIcon,
   SaveIcon,
   Settings2Icon,
+  ShieldCheckIcon,
   Trash2Icon,
   TriangleAlertIcon,
   Undo2Icon,
+  WorkflowIcon,
   XIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -101,8 +104,11 @@ import { BuilderCanvas, CANVAS_END, CanvasGhost, type DropTarget } from './build
 import { BuilderPalette, PALETTE_PREFIX, type PaletteData, PaletteGhost } from './builder-palette';
 import { FormIconTile, FormStatusBadges } from './form-meta';
 import { FormPreview } from './form-preview';
+import { actionsIssues, FormActions, useActionCatalog } from './form-actions';
+import { FormRules, rulesIssues } from './form-rules';
 import { FormSettings, settingsIssues } from './form-settings';
 import { FormSubmissions } from './form-submissions';
+import { FormAssignments } from '@/components/assignments/form-assignments';
 import {
   type BuilderState,
   createElement,
@@ -113,7 +119,7 @@ import {
   useHistory,
 } from './use-builder';
 
-const TABS = ['build', 'preview', 'settings', 'submissions'] as const;
+const TABS = ['build', 'rules', 'actions', 'preview', 'settings', 'submissions', 'assignments'] as const;
 type Tab = (typeof TABS)[number];
 
 function useMediaQuery(query: string) {
@@ -206,6 +212,7 @@ function FormBuilder({ form }: { form: FormDetail }) {
   const t = useTranslations('forms.builder');
   const tf = useTranslations('fields');
   const tforms = useTranslations('forms');
+  const tAssign = useTranslations('assignments.admin');
   const locale = useLocale();
   const router = useRouter();
   const sp = useSearchParams();
@@ -229,8 +236,8 @@ function FormBuilder({ form }: { form: FormDetail }) {
     const params = new URLSearchParams(sp.toString());
     if (next === 'build') params.delete('tab');
     else params.set('tab', next);
-    // List state of the submissions tab does not carry over.
-    if (next !== 'submissions') ['page', 'pageSize', 'status'].forEach((k) => params.delete(k));
+    // List state of the submissions and assignments tabs does not carry over.
+    if (next !== tab) ['page', 'pageSize', 'status', 'state', 'period', 'q'].forEach((k) => params.delete(k));
     router.replace(`/admin/forms/${form.id}${params.size ? `?${params}` : ''}`, { scroll: false });
   };
 
@@ -240,7 +247,19 @@ function FormBuilder({ form }: { form: FormDetail }) {
   const fields = useMemo(() => elements.filter(isField), [elements]);
   const issues = useMemo(() => formIssues(elements), [elements]);
   const formSettingsIssues = settingsIssues(state);
-  const issueCount = [...issues.values()].reduce((n, l) => n + l.length, 0) + formSettingsIssues.length;
+  const ruleIssues = useMemo(() => rulesIssues(state.rules, fields), [state.rules, fields]);
+  const ruleIssueCount = [...ruleIssues.values()].reduce((n, l) => n + l.length, 0);
+  const actionCatalog = useActionCatalog(form.id, elements);
+  const actionIssues = useMemo(
+    () => actionsIssues(state.actions, actionCatalog.items),
+    [state.actions, actionCatalog.items],
+  );
+  const actionIssueCount = [...actionIssues.values()].reduce((n, c) => n + c, 0);
+  const issueCount =
+    [...issues.values()].reduce((n, l) => n + l.length, 0) +
+    formSettingsIssues.length +
+    ruleIssueCount +
+    actionIssueCount;
   const patch = useMemo(() => toPatch(state), [state]);
   const baseline = useMemo(() => canonical(toPatch(fromDetail(form))), [form]);
   const dirty = canonical(patch) !== baseline;
@@ -253,7 +272,9 @@ function FormBuilder({ form }: { form: FormDetail }) {
     () => new Set(fields.filter((f) => publishedFields.has(f.id)).map((f) => f.id)),
     [fields, publishedFields],
   );
-  const draftChanged = !published || canonical(toDraft(elements)) !== canonical(published);
+  const draftChanged =
+    !published ||
+    canonical(toDraft(elements, { rules: state.rules, actions: state.actions })) !== canonical(published);
   const facts = useMemo(() => fieldFacts(fields, locale), [fields, locale]);
   const conditionText = useConditionText(facts);
   const selected = elements.find((e) => e.id === selectedId) ?? null;
@@ -502,6 +523,14 @@ function FormBuilder({ form }: { form: FormDetail }) {
 
   /** Jumps to the first problem (element or settings) so it can be fixed. */
   const revealFirstIssue = () => {
+    if (ruleIssueCount && !issues.size) {
+      setTab('rules');
+      return;
+    }
+    if (actionIssueCount && !issues.size && !ruleIssueCount) {
+      setTab('actions');
+      return;
+    }
     if (formSettingsIssues.length) {
       setTab('settings');
       return;
@@ -540,6 +569,10 @@ function FormBuilder({ form }: { form: FormDetail }) {
         setTab('build');
         setSelectedId(el.id);
       }
+      // Process actions the API refused (a config issue, a permission, a disabled module).
+      const actionPath =
+        err instanceof ApiError ? (path ?? (err.details as { path?: string } | undefined)?.path) : undefined;
+      if (actionPath?.startsWith('draft.actions.')) setTab('actions');
       toast.error(errorText(err));
       return false;
     }
@@ -810,6 +843,36 @@ function FormBuilder({ form }: { form: FormDetail }) {
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="rules">
+            <ShieldCheckIcon /> {t('tabs.rules')}
+            {ruleIssueCount > 0 ? (
+              <Badge variant="destructive" className="px-1.5 tabular-nums">
+                <TriangleAlertIcon aria-hidden />
+                {ruleIssueCount}
+              </Badge>
+            ) : (
+              state.rules.length > 0 && (
+                <Badge variant="muted" className="px-1.5 tabular-nums">
+                  {state.rules.length}
+                </Badge>
+              )
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="actions">
+            <WorkflowIcon /> {t('tabs.actions')}
+            {actionIssueCount > 0 ? (
+              <Badge variant="destructive" className="px-1.5 tabular-nums">
+                <TriangleAlertIcon aria-hidden />
+                {actionIssueCount}
+              </Badge>
+            ) : (
+              state.actions.length > 0 && (
+                <Badge variant="muted" className="px-1.5 tabular-nums">
+                  {state.actions.length}
+                </Badge>
+              )
+            )}
+          </TabsTrigger>
           <TabsTrigger value="preview">
             <EyeIcon /> {t('tabs.preview')}
           </TabsTrigger>
@@ -827,6 +890,9 @@ function FormBuilder({ form }: { form: FormDetail }) {
             <Badge variant="muted" className="px-1.5 tabular-nums">
               {form.submissionCount.toLocaleString(locale)}
             </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="assignments">
+            <ClipboardCheckIcon /> {tAssign('tab')}
           </TabsTrigger>
         </TabsList>
 
@@ -909,9 +975,32 @@ function FormBuilder({ form }: { form: FormDetail }) {
           )}
         </TabsContent>
 
+        <TabsContent value="rules">
+          <FormRules
+            rules={state.rules}
+            fields={fields}
+            readOnly={form.archived}
+            onChange={(rules, tag) => update((s) => ({ ...s, rules }), tag)}
+          />
+        </TabsContent>
+
+        <TabsContent value="actions">
+          <FormActions
+            actions={state.actions}
+            elements={elements}
+            items={actionCatalog.items}
+            loading={actionCatalog.loading}
+            hasApproval={Boolean(state.workflowDefinitionId)}
+            workflowId={state.workflowDefinitionId}
+            readOnly={form.archived}
+            onChange={(actions, tag) => update((s) => ({ ...s, actions }), tag)}
+          />
+        </TabsContent>
+
         <TabsContent value="preview">
           <FormPreview
             elements={elements}
+            rules={state.rules}
             name={state.name}
             description={state.description}
             icon={state.icon}
@@ -930,6 +1019,9 @@ function FormBuilder({ form }: { form: FormDetail }) {
 
         <TabsContent value="submissions">
           <FormSubmissions formId={form.id} />
+        </TabsContent>
+        <TabsContent value="assignments">
+          <FormAssignments form={form} />
         </TabsContent>
       </Tabs>
 

@@ -20,6 +20,7 @@ extension point is in [api-reference.md](api-reference.md) and [recipes.md](reci
 | `etl`           | Data APIs & ETL                   | —                   | REST endpoints from parameterized SQL and stored procedures, and ETL pipelines between databases                                           |
 | `helpdesk-ai`   | Helpdesk AI                       | `itsm`, `knowledge` | AI triage, similar tickets, grounded reply drafts, summaries and the self-service virtual agent.                                           |
 | `integrations`  | Integrations                      | —                   | Connections to outside systems, sync profiles with field mappings, two-way sync, runs, linked records and conflicts                        |
+| `isms`          | Information security              | —                   | Information asset register with C/I/A values, stocktakes, shared accounts and account reviews                                              |
 | `itam`          | Assets                            | `cmdb`              | Hardware, software licences, contracts and vendors                                                                                         |
 | `itsm`          | Service desk                      | `cmdb`              | Incidents, service requests, problems and changes with SLAs                                                                                |
 | `knowledge`     | Knowledge base                    | —                   | Answers and how-to guides for everyone, troubleshooting guides for the service desk.                                                       |
@@ -49,45 +50,76 @@ What the Integrations Hub can sync (adapters, `manifest.syncEntities`) and conne
 Configuration surfaces the AI agent builds change sets for (`manifest.customizations`, handlers in
 `defineServerModule({ customizations })`). Operations default to `update`.
 
-| Kind                        | Module         | Name                 | Read permission                 | Apply permission                  | Operations                      |
-| --------------------------- | -------------- | -------------------- | ------------------------------- | --------------------------------- | ------------------------------- |
-| `core.workflow`             | `core`         | Approval workflow    | `core.workflows.read`           | `core.workflows.manage`           | create, update, archive         |
-| `core.form`                 | `core`         | Request form         | `core.forms.read`               | `core.forms.manage`               | create, update, archive         |
-| `core.custom-field`         | `core`         | Custom field         | `core.custom-fields.read`       | `core.custom-fields.manage`       | create, update, archive         |
-| `core.role`                 | `core`         | Role                 | `core.roles.read`               | `core.roles.manage`               | create, update, delete          |
-| `core.notification-channel` | `core`         | Notification channel | `core.notifications.manage`     | `core.notifications.manage`       | update                          |
-| `core.module-settings`      | `core`         | Module settings      | `core.modules.read`             | `core.modules.manage`             | update                          |
-| `etl.pipeline`              | `etl`          | ETL pipeline         | `etl.pipelines.read`            | `etl.pipelines.manage`            | create, update, archive, delete |
-| `etl.endpoint`              | `etl`          | Data API             | `etl.endpoints.read`            | `etl.endpoints.manage`            | create, update, delete          |
-| `integrations.profile`      | `integrations` | Sync profile         | `integrations.connections.read` | `integrations.connections.manage` | create, update, archive, delete |
-| `itsm.category`             | `itsm`         | Ticket category      | `itsm.config.manage`            | `itsm.config.manage`              | create, update, archive         |
-| `itsm.sla-policy`           | `itsm`         | SLA policy           | `itsm.config.manage`            | `itsm.config.manage`              | create, update, archive         |
-| `itsm.catalog-item`         | `itsm`         | Service catalog item | `itsm.config.manage`            | `itsm.config.manage`              | create, update, delete          |
-| `scheduler.job`             | `scheduler`    | Scheduled job        | `scheduler.jobs.read`           | `scheduler.jobs.manage`           | create, update, archive, delete |
+| Kind                        | Module         | Name                    | Read permission                 | Apply permission                  | Operations                      |
+| --------------------------- | -------------- | ----------------------- | ------------------------------- | --------------------------------- | ------------------------------- |
+| `core.workflow`             | `core`         | Approval workflow       | `core.workflows.read`           | `core.workflows.manage`           | create, update, archive         |
+| `core.form`                 | `core`         | Request form            | `core.forms.read`               | `core.forms.manage`               | create, update, archive         |
+| `core.custom-field`         | `core`         | Custom field            | `core.custom-fields.read`       | `core.custom-fields.manage`       | create, update, archive         |
+| `core.role`                 | `core`         | Role                    | `core.roles.read`               | `core.roles.manage`               | create, update, delete          |
+| `core.group`                | `core`         | Group                   | `core.groups.read`              | `core.groups.manage`              | create, update, delete          |
+| `core.notification-channel` | `core`         | Notification channel    | `core.notifications.manage`     | `core.notifications.manage`       | update                          |
+| `core.module-settings`      | `core`         | Module settings         | `core.modules.read`             | `core.modules.manage`             | update                          |
+| `etl.pipeline`              | `etl`          | ETL pipeline            | `etl.pipelines.read`            | `etl.pipelines.manage`            | create, update, archive, delete |
+| `etl.endpoint`              | `etl`          | Data API                | `etl.endpoints.read`            | `etl.endpoints.manage`            | create, update, delete          |
+| `integrations.profile`      | `integrations` | Sync profile            | `integrations.connections.read` | `integrations.connections.manage` | create, update, archive, delete |
+| `isms.asset-class`          | `isms`         | Information asset class | `isms.assets.read`              | `isms.config.manage`              | create, update, archive         |
+| `itsm.category`             | `itsm`         | Ticket category         | `itsm.config.manage`            | `itsm.config.manage`              | create, update, archive         |
+| `itsm.sla-policy`           | `itsm`         | SLA policy              | `itsm.config.manage`            | `itsm.config.manage`              | create, update, archive         |
+| `itsm.catalog-item`         | `itsm`         | Service catalog item    | `itsm.config.manage`            | `itsm.config.manage`              | create, update, delete          |
+| `scheduler.job`             | `scheduler`    | Scheduled job           | `scheduler.jobs.read`           | `scheduler.jobs.manage`           | create, update, archive, delete |
+
+## Customisation packages
+
+Built-in packages: ready-made sets of changes an administrator installs as one change set (Change sets → From
+a package; `manifest.customizationPackages`, content in `defineServerModule({ customizationPackages })`).
+
+| Package               | Name              | Items | Kinds                                                                                             | Description                                                                                                                                                                                                                                                                                                       |
+| --------------------- | ----------------- | ----- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isms/isms-processes` | ISMS process pack | 59    | `core.custom-field`, `core.form`, `core.group`, `core.workflow`, `itsm.category`, `scheduler.job` | Request forms, approval workflows and recurring checklists for an ISO 27001-style IT security process set: accounts and access, firewall rules, server room and backup inspections, devices, software, exceptions and incident reports. Creates the groups, service desk categories and scheduled jobs they need. |
+
+## Process actions
+
+What request forms can do after they are sent, approved or rejected (`manifest.processActions`, handlers in
+`defineServerModule({ processActions })`). Adding one to a form needs the permission; it runs as the module.
+
+| Action                         | Module      | Name                       | Permission                  | Description                                                                                                                                                                          |
+| ------------------------------ | ----------- | -------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `core.grant-role`              | `core`      | Grant a role               | `core.roles.assign`         | Gives the requester, or a person picked in the form, a role of the platform or of a registered application (VPN, Active Directory, server access), for a number of days or for good. |
+| `core.notify`                  | `core`      | Notify people              | `core.forms.manage`         | Sends a notification with your own title and message to the requester, people named in the form, a person or groups.                                                                 |
+| `core.webhook`                 | `core`      | Call a webhook             | `core.notifications.manage` | Posts JSON about the request to another system over HTTPS (allowed hosts only), with an optional secret header.                                                                      |
+| `core.remind`                  | `core`      | Send a reminder            | `core.forms.manage`         | Reminds people on a date taken from an answer or from a field an approver filled in, a number of days before or after: a rule that expires, short-term use ending, data to wipe.     |
+| `cmdb.update-ci`               | `cmdb`      | Update configuration items | `cmdb.cis.manage`           | Sets the status, environment, criticality, support group or custom fields of the CIs picked in the request.                                                                          |
+| `isms.register-shared-account` | `isms`      | Register a shared account  | `isms.accounts.manage`      | Registers the approved shared account (or adds the new members to it) with its custodian and the people using it.                                                                    |
+| `itam.approve-software`        | `itam`      | Approve software           | `itam.software.manage`      | Add the requested software to the approved software list, or extend the entry that covers it.                                                                                        |
+| `itam.assign-asset`            | `itam`      | Assign a device            | `itam.hardware.manage`      | Hand the device picked in the form to the requester or a person picked in the form; the request goes on the device's history.                                                        |
+| `itam.return-asset`            | `itam`      | Take back a device         | `itam.hardware.manage`      | Return the device picked in the form to stock or repair, with its condition, the data retention date and the data wipe due date.                                                     |
+| `itsm.create-change`           | `itsm`      | Raise a change             | `itsm.changes.manage`       | Raises a change from the request, linked to the CIs it picked, and can submit it to its CAB authorization.                                                                           |
+| `itsm.create-ticket`           | `itsm`      | Raise a ticket             | `itsm.config.manage`        | Raises an incident or a service request for the requester, with your title, description, category and group.                                                                         |
+| `scheduler.run-job`            | `scheduler` | Run a scheduled job        | `scheduler.jobs.run`        | Runs one of your scheduled jobs now, as if someone pressed "Run now"; the request links to the run.                                                                                  |
 
 ## Web slots
 
 Hosts render `<Slot name=… props=… />`; modules contribute with `defineWebModule({ slots })`. Template names
 (`${…}`) are families: contribute the concrete name, e.g. `scheduler.task-config.etl.pipeline`.
 
-| Slot                                        | Hosted in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Contributed by                                                                                                                                                                  |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `assistant.preview.${moduleId}.${name}`     | `modules/assistant/src/web/change-set/item-card.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | —                                                                                                                                                                               |
-| `cmdb.ci.related`                           | `modules/cmdb/src/web/pages/detail-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | alm (alm.apps.read), itam (itam.hardware.read), itsm (itsm.tickets.read)                                                                                                        |
-| `core.dashboard.work`                       | `apps/web/src/components/dashboard/dashboard-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | alm (alm.apps.read), dbaccess (dbaccess.self.request), itam (itam.hardware.manage), itsm (itsm.tickets.work), projects (projects.projects.use), scheduler (scheduler.jobs.read) |
-| `core.record.files`                         | `apps/web/src/components/records/record-files.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/itsm/src/web/ticket/requester-view.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx`                                                            | —                                                                                                                                                                               |
-| `core.record.links`                         | `apps/web/src/components/records/linked-records.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/knowledge/src/web/pages/article-page.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/projects/src/web/project/overview-tab.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx` | integrations                                                                                                                                                                    |
-| `core.requests.assist`                      | `apps/web/src/components/requests/requests-home.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                              |
-| `core.shell.header`                         | `apps/web/src/components/shell/app-shell.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | assistant (assistant.agent.use)                                                                                                                                                 |
-| `core.user.overview`                        | `apps/web/src/components/users/user-detail-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | dbaccess (dbaccess.self.request), itam (itam.hardware.read)                                                                                                                     |
-| `integrations.connector-config.${type}`     | `modules/integrations/src/web/connection/connection-sheet.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | —                                                                                                                                                                               |
-| `integrations.connector-config.azdo.server` | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | azdo                                                                                                                                                                            |
-| `integrations.connector-config.sdp.server`  | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | sdp                                                                                                                                                                             |
-| `itsm.ticket.aside`                         | `modules/itsm/src/web/ticket/agent-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | alm (alm.apps.read), helpdesk-ai (helpdesk-ai.assist.use)                                                                                                                       |
-| `knowledge.home.assist`                     | `modules/knowledge/src/web/pages/home-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                              |
-| `scheduler.task-config.dbaccess.sync`       | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | dbaccess (dbaccess.servers.manage)                                                                                                                                              |
-| `scheduler.task-config.etl.pipeline`        | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | etl (etl.pipelines.run)                                                                                                                                                         |
-| `scheduler.task-config.integrations.sync`   | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | integrations (integrations.connections.manage)                                                                                                                                  |
+| Slot                                        | Hosted in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Contributed by                                                                                                                                                                                        |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assistant.preview.${moduleId}.${name}`     | `modules/assistant/src/web/change-set/item-card.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | —                                                                                                                                                                                                     |
+| `cmdb.ci.related`                           | `modules/cmdb/src/web/pages/detail-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | alm (alm.apps.read), itam (itam.hardware.read), itsm (itsm.tickets.read)                                                                                                                              |
+| `core.dashboard.work`                       | `apps/web/src/components/dashboard/dashboard-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | alm (alm.apps.read), dbaccess (dbaccess.self.request), isms (isms.self.use), itam (itam.hardware.manage), itsm (itsm.tickets.work), projects (projects.projects.use), scheduler (scheduler.jobs.read) |
+| `core.record.files`                         | `apps/web/src/components/records/record-files.tsx`<br>`apps/web/src/components/requests/request-evidence.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/isms/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/itsm/src/web/ticket/requester-view.tsx`<br>`modules/knowledge/src/web/pages/article-page.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx`      | —                                                                                                                                                                                                     |
+| `core.record.links`                         | `apps/web/src/components/records/linked-records.tsx`<br>`apps/web/src/components/requests/request-evidence.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/isms/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/knowledge/src/web/pages/article-page.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/projects/src/web/project/overview-tab.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx` | integrations                                                                                                                                                                                          |
+| `core.requests.assist`                      | `apps/web/src/components/requests/requests-home.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                                                    |
+| `core.shell.header`                         | `apps/web/src/components/shell/app-shell.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | assistant (assistant.agent.use)                                                                                                                                                                       |
+| `core.user.overview`                        | `apps/web/src/components/users/user-detail-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | dbaccess (dbaccess.self.request), itam (itam.hardware.read)                                                                                                                                           |
+| `integrations.connector-config.${type}`     | `modules/integrations/src/web/connection/connection-sheet.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | —                                                                                                                                                                                                     |
+| `integrations.connector-config.azdo.server` | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | azdo                                                                                                                                                                                                  |
+| `integrations.connector-config.sdp.server`  | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | sdp                                                                                                                                                                                                   |
+| `itsm.ticket.aside`                         | `modules/itsm/src/web/ticket/agent-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | alm (alm.apps.read), helpdesk-ai (helpdesk-ai.assist.use)                                                                                                                                             |
+| `knowledge.home.assist`                     | `modules/knowledge/src/web/pages/home-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                                                    |
+| `scheduler.task-config.dbaccess.sync`       | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | dbaccess (dbaccess.servers.manage)                                                                                                                                                                    |
+| `scheduler.task-config.etl.pipeline`        | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | etl (etl.pipelines.run)                                                                                                                                                                               |
+| `scheduler.task-config.integrations.sync`   | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | integrations (integrations.connections.manage)                                                                                                                                                        |
 
 ## Error codes
 
@@ -101,6 +133,7 @@ Throw `new HttpError(status, ErrorCodes.X, message, details)`. The UI translates
 | `AI_NOT_CONFIGURED`           | No AI model is set up yet. An administrator can add one under Administration → AI.                                         |
 | `AI_PROVIDER_ERROR`           | The AI service didn't respond. Try again in a moment.                                                                      |
 | `ALREADY_GRANTED`             | This person already has this access.                                                                                       |
+| `ASSIGNMENT_CLOSED`           | This to-do was already done or cancelled.                                                                                  |
 | `BAD_REQUEST`                 | The request was not valid.                                                                                                 |
 | `CHANGE_REQUIRED`             | A production deployment needs an approved change.                                                                          |
 | `CHANGE_SET_STALE`            | Someone changed this configuration after the change set was prepared. Refresh the change set, review it again, then retry. |
@@ -141,10 +174,13 @@ Throw `new HttpError(status, ErrorCodes.X, message, details)`. The UI translates
 | `NOT_FOUND`                   | That item no longer exists.                                                                                                |
 | `NOT_REQUESTABLE`             | This access can't be requested.                                                                                            |
 | `NOT_SUPPORTED`               | The connected system doesn't support this.                                                                                 |
+| `PACKAGE_UNSUPPORTED`         | This package needs modules that aren't enabled or kinds of configuration this platform doesn't have.                       |
 | `PASSWORD_MANAGED_EXTERNALLY` | This password is managed by the identity provider.                                                                         |
 | `PRINCIPAL_OFFBOARDED`        | This person has been offboarded.                                                                                           |
 | `PRINCIPAL_SUSPENDED`         | This person is suspended. Reactivate them first.                                                                           |
 | `PRIVILEGE_ESCALATION`        | You can only grant permissions you hold yourself.                                                                          |
+| `PROCESS_ACTION_FORBIDDEN`    | You can't add or change this action: it needs a permission you don't have.                                                 |
+| `PROCESS_ACTION_UNAVAILABLE`  | This action isn't available. Its module may be disabled.                                                                   |
 | `RATE_LIMITED`                | You're going a bit fast. Please wait a moment.                                                                             |
 | `RELATIONSHIP_INVALID`        | That relationship isn't allowed.                                                                                           |
 | `REMOTE_AUTH_FAILED`          | The connected system refused the connection's credentials. Check them in the connection settings.                          |
@@ -231,63 +267,83 @@ Identity, access control, audit and the module system that every other module bu
 
 ### Events emitted
 
-| Event                            | Payload                                                                                                                | Description                                                       |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `core.user.created`              | userId: string, email: string, status: string                                                                          | —                                                                 |
-| `core.user.updated`              | userId: string, email: string, changes: array                                                                          | —                                                                 |
-| `core.user.onboarded`            | userId: string, email: string                                                                                          | —                                                                 |
-| `core.user.offboarded`           | userId: string, email: string, reason: string\\                                                                        | null                                                              | Modules must revoke the user’s access |
-| `core.user.suspended`            | userId: string, email: string                                                                                          | —                                                                 |
-| `core.user.reactivated`          | userId: string, email: string                                                                                          | —                                                                 |
-| `core.group.created`             | groupId: string                                                                                                        | —                                                                 |
-| `core.group.updated`             | groupId: string                                                                                                        | —                                                                 |
-| `core.group.deleted`             | groupId: string                                                                                                        | —                                                                 |
-| `core.group.members_changed`     | groupId: string, added: array, removed: array                                                                          | —                                                                 |
-| `core.department.created`        | departmentId: string                                                                                                   | —                                                                 |
-| `core.department.updated`        | departmentId: string                                                                                                   | —                                                                 |
-| `core.department.deleted`        | departmentId: string                                                                                                   | —                                                                 |
-| `core.role.created`              | roleId: string                                                                                                         | —                                                                 |
-| `core.role.updated`              | roleId: string                                                                                                         | —                                                                 |
-| `core.role.deleted`              | roleId: string                                                                                                         | —                                                                 |
-| `core.role-assignment.granted`   | assignmentId: string, roleId: string                                                                                   | —                                                                 |
-| `core.role-assignment.revoked`   | assignmentId: string, roleId: string                                                                                   | —                                                                 |
-| `core.role-assignment.expired`   | assignmentId: string, roleId: string                                                                                   | —                                                                 |
-| `core.record.linked`             | linkId: string, a: object, b: object                                                                                   | Two records were linked (`a`/`b` in canonical order)              |
-| `core.record.unlinked`           | linkId: string, a: object, b: object                                                                                   | —                                                                 |
-| `core.file.attached`             | fileId: string, record: object, name: string, size: number                                                             | —                                                                 |
-| `core.file.deleted`              | fileId: string, record: object, name: string                                                                           | —                                                                 |
-| `core.module.enabled`            | moduleId: string                                                                                                       | —                                                                 |
-| `core.module.disabled`           | moduleId: string                                                                                                       | —                                                                 |
-| `core.workflow.completed`        | instanceId: string, triggerKey: string, subjectType: string, subjectId: string, outcome: string, requesterId: string\\ | null, comment: string\\                                           | null                                  | A workflow instance finished; the trigger owner gets it through `workflows.onCompleted` |
-| `core.notification.created`      | userIds: array, deliveryIds: array                                                                                     | Internal: hands new notifications to the worker for delivery      |
-| `core.access-request.submitted`  | requestId: string, number: number, roleId: string, beneficiaryId: string                                               | —                                                                 |
-| `core.access-request.approved`   | requestId: string, number: number, roleId: string, beneficiaryId: string, assignmentId: string                         | —                                                                 |
-| `core.access-request.rejected`   | requestId: string, number: number, roleId: string, beneficiaryId: string                                               | —                                                                 |
-| `core.access-request.cancelled`  | requestId: string, number: number, roleId: string, beneficiaryId: string                                               | —                                                                 |
-| `core.access-request.failed`     | requestId: string, number: number, roleId: string, beneficiaryId: string, reason: string                               | —                                                                 |
-| `core.form-submission.created`   | submissionId: string, number: number, formId: string                                                                   | —                                                                 |
-| `core.form-submission.completed` | submissionId: string, number: number, formId: string, status: string                                                   | —                                                                 |
-| `core.application.created`       | applicationId: string                                                                                                  | —                                                                 |
-| `core.application.updated`       | applicationId: string                                                                                                  | —                                                                 |
-| `core.application.deleted`       | applicationId: string                                                                                                  | —                                                                 |
-| `core.api-client.created`        | apiClientId: string                                                                                                    | —                                                                 |
-| `core.api-client.updated`        | apiClientId: string                                                                                                    | —                                                                 |
-| `core.api-client.revoked`        | apiClientId: string                                                                                                    | —                                                                 |
-| `core.db-connection.created`     | connectionId: string                                                                                                   | —                                                                 |
-| `core.db-connection.updated`     | connectionId: string                                                                                                   | Settings or credentials changed: modules drop cached state for it |
-| `core.db-connection.deleted`     | connectionId: string, key: string                                                                                      | —                                                                 |
-| `core.directory.synced`          | idpId: string, created: number, updated: number, suspended: number                                                     | —                                                                 |
+| Event                            | Payload                                                                                                                                                   | Description                                                                                                             |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `core.user.created`              | userId: string, email: string, status: string                                                                                                             | —                                                                                                                       |
+| `core.user.updated`              | userId: string, email: string, changes: array                                                                                                             | —                                                                                                                       |
+| `core.user.onboarded`            | userId: string, email: string                                                                                                                             | —                                                                                                                       |
+| `core.user.offboarded`           | userId: string, email: string, reason: string\|null                                                                                                       | Modules must revoke the user’s access                                                                                   |
+| `core.user.suspended`            | userId: string, email: string                                                                                                                             | —                                                                                                                       |
+| `core.user.reactivated`          | userId: string, email: string                                                                                                                             | —                                                                                                                       |
+| `core.user.transferred`          | userId: string, fromDepartmentId: string\|null, toDepartmentId: string\|null                                                                              | A person moved to another department: the old and the new manager are asked to review their access (nothing is revoked) |
+| `core.group.created`             | groupId: string                                                                                                                                           | —                                                                                                                       |
+| `core.group.updated`             | groupId: string                                                                                                                                           | —                                                                                                                       |
+| `core.group.deleted`             | groupId: string                                                                                                                                           | —                                                                                                                       |
+| `core.group.members_changed`     | groupId: string, added: array, removed: array                                                                                                             | —                                                                                                                       |
+| `core.department.created`        | departmentId: string                                                                                                                                      | —                                                                                                                       |
+| `core.department.updated`        | departmentId: string                                                                                                                                      | —                                                                                                                       |
+| `core.department.deleted`        | departmentId: string                                                                                                                                      | —                                                                                                                       |
+| `core.role.created`              | roleId: string                                                                                                                                            | —                                                                                                                       |
+| `core.role.updated`              | roleId: string                                                                                                                                            | —                                                                                                                       |
+| `core.role.deleted`              | roleId: string                                                                                                                                            | —                                                                                                                       |
+| `core.role-assignment.granted`   | assignmentId: string, roleId: string                                                                                                                      | —                                                                                                                       |
+| `core.role-assignment.revoked`   | assignmentId: string, roleId: string                                                                                                                      | —                                                                                                                       |
+| `core.role-assignment.expired`   | assignmentId: string, roleId: string                                                                                                                      | —                                                                                                                       |
+| `core.record.linked`             | linkId: string, a: object, b: object                                                                                                                      | Two records were linked (`a`/`b` in canonical order)                                                                    |
+| `core.record.unlinked`           | linkId: string, a: object, b: object                                                                                                                      | —                                                                                                                       |
+| `core.file.attached`             | fileId: string, record: object, name: string, size: number                                                                                                | —                                                                                                                       |
+| `core.file.deleted`              | fileId: string, record: object, name: string                                                                                                              | —                                                                                                                       |
+| `core.module.enabled`            | moduleId: string                                                                                                                                          | —                                                                                                                       |
+| `core.module.disabled`           | moduleId: string                                                                                                                                          | —                                                                                                                       |
+| `core.workflow.completed`        | instanceId: string, triggerKey: string, subjectType: string, subjectId: string, outcome: string, requesterId: string\|null, comment: string\|null         | A workflow instance finished; the trigger owner gets it through `workflows.onCompleted`                                 |
+| `core.notification.created`      | userIds: array, deliveryIds: array                                                                                                                        | Internal: hands new notifications to the worker for delivery                                                            |
+| `core.access-request.submitted`  | requestId: string, number: number, roleId: string, beneficiaryId: string                                                                                  | —                                                                                                                       |
+| `core.access-request.approved`   | requestId: string, number: number, roleId: string, beneficiaryId: string, assignmentId: string                                                            | —                                                                                                                       |
+| `core.access-request.rejected`   | requestId: string, number: number, roleId: string, beneficiaryId: string                                                                                  | —                                                                                                                       |
+| `core.access-request.cancelled`  | requestId: string, number: number, roleId: string, beneficiaryId: string                                                                                  | —                                                                                                                       |
+| `core.access-request.failed`     | requestId: string, number: number, roleId: string, beneficiaryId: string, reason: string                                                                  | —                                                                                                                       |
+| `core.form-submission.created`   | submissionId: string, number: number, formId: string                                                                                                      | —                                                                                                                       |
+| `core.form-submission.completed` | submissionId: string, number: number, formId: string, status: string                                                                                      | —                                                                                                                       |
+| `core.process-action.queued`     | submissionId: string, runIds: array                                                                                                                       | Internal: hands new (or retried) process action runs of a submission to the worker                                      |
+| `core.process-action.succeeded`  | runId: string, submissionId: string, type: string, actionId: string                                                                                       | A form’s process action did its work (e.g. created a change)                                                            |
+| `core.process-action.failed`     | runId: string, submissionId: string, type: string, actionId: string, code: string                                                                         | A form’s process action failed for good (after its retries, or at once for a refusal)                                   |
+| `core.form-assignment.created`   | assignmentId: string, formId: string, periodKey: string\|null, assigneeUserId: string\|null, assigneeGroupId: string\|null, dueAt: string, source: string | A form was assigned to a person or group, due by a date (by hand or a core.assign-form job)                             |
+| `core.form-assignment.completed` | assignmentId: string, formId: string, periodKey: string\|null, submissionId: string, late: boolean                                                        | The assignee submitted the assigned form (`late`: after the due date)                                                   |
+| `core.form-assignment.cancelled` | assignmentId: string, formId: string, periodKey: string\|null                                                                                             | —                                                                                                                       |
+| `core.form-assignment.overdue`   | assignmentId: string, formId: string, periodKey: string\|null, dueAt: string                                                                              | An assignment passed its due date without being done (published once, by the reminder job)                              |
+| `core.application.created`       | applicationId: string                                                                                                                                     | —                                                                                                                       |
+| `core.application.updated`       | applicationId: string                                                                                                                                     | —                                                                                                                       |
+| `core.application.deleted`       | applicationId: string                                                                                                                                     | —                                                                                                                       |
+| `core.api-client.created`        | apiClientId: string                                                                                                                                       | —                                                                                                                       |
+| `core.api-client.updated`        | apiClientId: string                                                                                                                                       | —                                                                                                                       |
+| `core.api-client.revoked`        | apiClientId: string                                                                                                                                       | —                                                                                                                       |
+| `core.db-connection.created`     | connectionId: string                                                                                                                                      | —                                                                                                                       |
+| `core.db-connection.updated`     | connectionId: string                                                                                                                                      | Settings or credentials changed: modules drop cached state for it                                                       |
+| `core.db-connection.deleted`     | connectionId: string, key: string                                                                                                                         | —                                                                                                                       |
+| `core.directory.synced`          | idpId: string, created: number, updated: number, suspended: number                                                                                        | —                                                                                                                       |
 
 ### Events consumed
 
-`core.notification.created`, `core.role.updated`, `core.role.deleted`
+`core.notification.created`, `core.role.updated`, `core.role.deleted`, `core.process-action.queued`
+
+### Record types
+
+| Type           | Name    | Permission        | Facts                                                                                    |
+| -------------- | ------- | ----------------- | ---------------------------------------------------------------------------------------- |
+| `core.request` | Request | `core.forms.read` | formKey: string, status: string, requesterId: string\|null, departmentCode: string\|null |
+
+### Task types (Scheduled jobs)
+
+| Type               | Name          | Permission          | Config                                                                                             |
+| ------------------ | ------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
+| `core.assign-form` | Assign a form | `core.forms.manage` | formKey: string, assignee: object, period: string, due: object, title: string, note?: string\|null |
 
 ### Workflow triggers
 
-| Trigger                | Subject         | Required | Facts                         |
-| ---------------------- | --------------- | -------- | ----------------------------- |
-| `core.access-request`  | access-request  | yes      | role: object, request: object |
-| `core.form-submission` | form-submission | —        | form: object, data: object    |
+| Trigger                | Subject         | Required | Facts                                       |
+| ---------------------- | --------------- | -------- | ------------------------------------------- |
+| `core.access-request`  | access-request  | yes      | role: object, request: object               |
+| `core.form-submission` | form-submission | —        | form: object, data: object, records: object |
 
 ### Notifications
 
@@ -306,6 +362,13 @@ Identity, access control, audit and the module system that every other module bu
 | `core.form-submission.approved` | inApp, email     | —         |
 | `core.form-submission.rejected` | inApp, email     | —         |
 | `core.access.granted`           | inApp, email     | —         |
+| `core.user.transferred`         | inApp, email     | —         |
+| `core.process-action.failed`    | inApp, email     | —         |
+| `core.process-action.message`   | inApp, email     | —         |
+| `core.reminder.due`             | inApp, email     | —         |
+| `core.form-assignment.assigned` | inApp, email     | —         |
+| `core.form-assignment.reminder` | inApp, email     | —         |
+| `core.form-assignment.overdue`  | inApp, email     | —         |
 
 ### AI tools
 
@@ -351,6 +414,7 @@ Identity, access control, audit and the module system that every other module bu
 | `notifications.retentionDays`  | number  | `90`                                                                                                                                                                       | Keep notifications for (days)                    |
 | `files.maxSizeMb`              | number  | `25`                                                                                                                                                                       | Largest attachment (MB, up to 50)                |
 | `files.blockedExtensions`      | string  | `"exe, dll, com, bat, cmd, msi, msp, scr, pif, cpl, ps1, psm1, vbs, vbe, js, jse, mjs, wsf, wsh, hta, jar, sh, app, lnk, reg, html, htm, xhtml, svg, php, asp, aspx, jsp"` | Blocked file types                               |
+| `processActions.webhookHosts`  | text    | `""`                                                                                                                                                                       | Webhook hosts for forms                          |
 
 ### Navigation
 
@@ -381,18 +445,21 @@ Identity, access control, audit and the module system that every other module bu
 
 ### Background jobs
 
-| Job                            | Schedule       | Description                                                                      |
-| ------------------------------ | -------------- | -------------------------------------------------------------------------------- |
-| `core:ai-reindex`              | every 600 s    | Re-embeds semantic-index documents left on an older embedding model              |
-| `core:check-databases`         | `*/30 * * * *` | Tests every enabled database connection and records its status                   |
-| `core:expire-role-assignments` | every 300 s    | Removes time-bound role assignments once they expire                             |
-| `core:notify-expiring-access`  | `7 * * * *`    | Tells people a few days before a time-bound role ends                            |
-| `core:purge-files`             | `23 * * * *`   | Deletes the stored bytes of attachments deleted more than an hour ago            |
-| `core:purge-notifications`     | `41 3 * * *`   | Deletes notifications and delivery records older than the retention period       |
-| `core:purge-sessions`          | `17 * * * *`   | Deletes sessions that ended more than 7 days ago                                 |
-| `core:refresh-sync-schedules`  | on demand      | Re-creates per-provider directory sync schedules after a provider changes        |
-| `core:sync-directory`          | on demand      | Synchronises users and mapped groups from an LDAP directory                      |
-| `core:workflow-timers`         | every 60 s     | Sends approval reminders and applies SLA breach policies (escalate, auto-decide) |
+| Job                            | Schedule       | Description                                                                                                               |
+| ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `core:ai-reindex`              | every 600 s    | Re-embeds semantic-index documents left on an older embedding model                                                       |
+| `core:check-databases`         | `*/30 * * * *` | Tests every enabled database connection and records its status                                                            |
+| `core:deliver-reminders`       | every 300 s    | Sends the reminders forms scheduled (core.remind) whose date has come                                                     |
+| `core:expire-role-assignments` | every 300 s    | Removes time-bound role assignments once they expire                                                                      |
+| `core:notify-expiring-access`  | `7 * * * *`    | Tells people a few days before a time-bound role ends                                                                     |
+| `core:process-actions-sweep`   | every 300 s    | Hands process action runs whose job was lost (a worker stopped) to the worker again                                       |
+| `core:purge-files`             | `23 * * * *`   | Deletes the stored bytes of attachments deleted more than an hour ago                                                     |
+| `core:purge-notifications`     | `41 3 * * *`   | Deletes notifications and delivery records older than the retention period                                                |
+| `core:purge-sessions`          | `17 * * * *`   | Deletes sessions that ended more than 7 days ago                                                                          |
+| `core:refresh-sync-schedules`  | on demand      | Re-creates per-provider directory sync schedules after a provider changes                                                 |
+| `core:remind-form-assignments` | `13 * * * *`   | Reminds people of assigned forms due within two days or overdue (at most daily) and tells form editors about overdue ones |
+| `core:sync-directory`          | on demand      | Synchronises users and mapped groups from an LDAP directory                                                               |
+| `core:workflow-timers`         | every 60 s     | Sends approval reminders and applies SLA breach policies (escalate, auto-decide)                                          |
 
 ## `alm` — Applications
 
@@ -421,20 +488,20 @@ Application inventory, environments, releases and deployments, linked to change 
 
 ### Events emitted
 
-| Event                              | Payload                                                                                                                                                                                 | Description                                                                                               |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `alm.application.created`          | applicationId: string, code: string, name: string, stage: string                                                                                                                        | An application was added to the inventory                                                                 |
-| `alm.application.updated`          | applicationId: string, code: string, name: string, changes: array                                                                                                                       | Fields of an application changed (names of the changed fields; `environments` / `repositories` for those) |
-| `alm.application.stage_changed`    | applicationId: string, code: string, name: string, from: string, to: string                                                                                                             | An application moved through its lifecycle (e.g. into production, or retired)                             |
-| `alm.repository.created`           | applicationId: string, code: string, name: string, repositoryId: string, repository: string                                                                                             | A repository was added to an application (by a person or a sync with the Git server)                      |
-| `alm.repository.updated`           | applicationId: string, code: string, name: string, repositoryId: string, repository: string, changes: array                                                                             | A repository changed, e.g. its Git status (names of the changed fields)                                   |
-| `alm.release.created`              | applicationId: string, code: string, name: string, releaseId: string, version: string, status: string                                                                                   | —                                                                                                         |
-| `alm.release.updated`              | applicationId: string, code: string, name: string, releaseId: string, version: string, changes: array                                                                                   | —                                                                                                         |
-| `alm.release.status_changed`       | applicationId: string, code: string, name: string, releaseId: string, version: string, from: string, to: string                                                                         | —                                                                                                         |
-| `alm.deployment.recorded`          | applicationId: string, code: string, name: string, deploymentId: string, environmentId: string, environment: string, kind: string, version: string, status: string, releaseId: string\\ | null, changeReference: string\\                                                                           | null, warning: string\\                      | null                                                                            | A deployment was recorded (by a person, a CI/CD pipeline or an AI agent) |
-| `alm.deployment.succeeded`         | applicationId: string, code: string, name: string, deploymentId: string, environmentId: string, environment: string, kind: string, version: string, status: string, releaseId: string\\ | null, changeReference: string\\                                                                           | null                                         | —                                                                               |
-| `alm.deployment.failed`            | applicationId: string, code: string, name: string, deploymentId: string, environmentId: string, environment: string, kind: string, version: string, status: string, releaseId: string\\ | null, changeReference: string\\                                                                           | null                                         | A deployment failed or was rolled back                                          |
-| `alm.deployment.policy_overridden` | applicationId: string, code: string, name: string, deploymentId: string, environmentId: string, environment: string, kind: string, version: string, status: string, releaseId: string\\ | null, changeReference: string\\                                                                           | null, reason: string, overrideReason: string | A production deployment the change policy refused was recorded with an override |
+| Event                              | Payload                                                                                                                                                                                                                                                            | Description                                                                                               |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `alm.application.created`          | applicationId: string, code: string, name: string, stage: string                                                                                                                                                                                                   | An application was added to the inventory                                                                 |
+| `alm.application.updated`          | applicationId: string, code: string, name: string, changes: array                                                                                                                                                                                                  | Fields of an application changed (names of the changed fields; `environments` / `repositories` for those) |
+| `alm.application.stage_changed`    | applicationId: string, code: string, name: string, from: string, to: string                                                                                                                                                                                        | An application moved through its lifecycle (e.g. into production, or retired)                             |
+| `alm.repository.created`           | applicationId: string, code: string, name: string, repositoryId: string, repository: string                                                                                                                                                                        | A repository was added to an application (by a person or a sync with the Git server)                      |
+| `alm.repository.updated`           | applicationId: string, code: string, name: string, repositoryId: string, repository: string, changes: array                                                                                                                                                        | A repository changed, e.g. its Git status (names of the changed fields)                                   |
+| `alm.release.created`              | applicationId: string, code: string, name: string, releaseId: string, version: string, status: string                                                                                                                                                              | —                                                                                                         |
+| `alm.release.updated`              | applicationId: string, code: string, name: string, releaseId: string, version: string, changes: array                                                                                                                                                              | —                                                                                                         |
+| `alm.release.status_changed`       | applicationId: string, code: string, name: string, releaseId: string, version: string, from: string, to: string                                                                                                                                                    | —                                                                                                         |
+| `alm.deployment.recorded`          | applicationId: string, code: string, name: string, deploymentId: string, environmentId: string, environment: string, kind: string, version: string, status: string, releaseId: string\|null, changeReference: string\|null, warning: string\|null                  | A deployment was recorded (by a person, a CI/CD pipeline or an AI agent)                                  |
+| `alm.deployment.succeeded`         | applicationId: string, code: string, name: string, deploymentId: string, environmentId: string, environment: string, kind: string, version: string, status: string, releaseId: string\|null, changeReference: string\|null                                         | —                                                                                                         |
+| `alm.deployment.failed`            | applicationId: string, code: string, name: string, deploymentId: string, environmentId: string, environment: string, kind: string, version: string, status: string, releaseId: string\|null, changeReference: string\|null                                         | A deployment failed or was rolled back                                                                    |
+| `alm.deployment.policy_overridden` | applicationId: string, code: string, name: string, deploymentId: string, environmentId: string, environment: string, kind: string, version: string, status: string, releaseId: string\|null, changeReference: string\|null, reason: string, overrideReason: string | A production deployment the change policy refused was recorded with an override                           |
 
 ### Events consumed
 
@@ -442,10 +509,10 @@ Application inventory, environments, releases and deployments, linked to change 
 
 ### Record types
 
-| Type              | Name        | Permission      |
-| ----------------- | ----------- | --------------- |
-| `alm.application` | Application | `alm.apps.read` |
-| `alm.release`     | Release     | `alm.apps.read` |
+| Type              | Name        | Permission      | Facts                                                                                                                                                                                                                                                             |
+| ----------------- | ----------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `alm.application` | Application | `alm.apps.read` | code: string, stage: string, criticality: string, hosting: string, dataClassification: string, disposition: string\|null, ownerId: string\|null, businessOwnerId: string\|null, teamGroup: string\|null, supportGroup: string\|null, departmentCode: string\|null |
+| `alm.release`     | Release     | `alm.apps.read` | —                                                                                                                                                                                                                                                                 |
 
 ### Sync entities (Integrations Hub)
 
@@ -724,9 +791,9 @@ Configuration items, how they relate and what an outage would impact
 
 ### Record types
 
-| Type      | Name               | Permission      |
-| --------- | ------------------ | --------------- |
-| `cmdb.ci` | Configuration item | `cmdb.cis.read` |
+| Type      | Name               | Permission      | Facts                                                                                                                                                                                              |
+| --------- | ------------------ | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cmdb.ci` | Configuration item | `cmdb.cis.read` | class: string, environment: string\|null, criticality: string, status: string, ownerId: string\|null, ownerGroup: string\|null, departmentCode: string\|null, businessServices: array, tags: array |
 
 ### AI tools
 
@@ -780,22 +847,22 @@ Request database roles on SQL Server, Oracle and PostgreSQL: approval, automated
 
 ### Events emitted
 
-| Event                        | Payload                                                                                   | Description                                                   |
-| ---------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `dbaccess.request.submitted` | requestId: string, reference: string, userId: string\\                                    | null, roleId: string, risk: string                            | —                                      |
-| `dbaccess.request.approved`  | requestId: string, reference: string, userId: string\\                                    | null, roleId: string                                          | —                                      |
-| `dbaccess.request.rejected`  | requestId: string, reference: string, userId: string\\                                    | null, roleId: string                                          | —                                      |
-| `dbaccess.request.cancelled` | requestId: string, reference: string, userId: string\\                                    | null, roleId: string                                          | —                                      |
-| `dbaccess.grant.provisioned` | grantId: string, userId: string\\                                                         | null, serverId: string, roleId: string, accountName: string\\ | null, expiresAt: string\\              | null                                                                                  | The account holds the role on the server (verified) |
-| `dbaccess.grant.extended`    | grantId: string, userId: string\\                                                         | null, serverId: string, roleId: string, accountName: string\\ | null, expiresAt: string\\              | null                                                                                  | —                                                   |
-| `dbaccess.grant.adopted`     | grantId: string, userId: string\\                                                         | null, serverId: string, roleId: string, accountName: string\\ | null                                   | —                                                                                     |
-| `dbaccess.grant.revoked`     | grantId: string, userId: string\\                                                         | null, serverId: string, roleId: string, accountName: string\\ | null, reason: string                   | The role was removed from the account (expiry, early revocation, review, offboarding) |
-| `dbaccess.grant.failed`      | grantId: string, userId: string\\                                                         | null, serverId: string, roleId: string, accountName: string\\ | null, operation: string, error: string | —                                                                                     |
-| `dbaccess.account.created`   | accountId: string, serverId: string, userId: string\\                                     | null, name: string                                            | —                                      |
-| `dbaccess.account.disabled`  | accountId: string, serverId: string, userId: string\\                                     | null, name: string                                            | —                                      |
-| `dbaccess.server.synced`     | serverId: string, accounts: number, roles: number, memberships: number, unmanaged: number | —                                                             |
-| `dbaccess.review.started`    | reviewId: string, items: number                                                           | —                                                             |
-| `dbaccess.review.closed`     | reviewId: string, kept: number, revoked: number                                           | —                                                             |
+| Event                        | Payload                                                                                                                              | Description                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `dbaccess.request.submitted` | requestId: string, reference: string, userId: string\|null, roleId: string, risk: string                                             | —                                                                                     |
+| `dbaccess.request.approved`  | requestId: string, reference: string, userId: string\|null, roleId: string                                                           | —                                                                                     |
+| `dbaccess.request.rejected`  | requestId: string, reference: string, userId: string\|null, roleId: string                                                           | —                                                                                     |
+| `dbaccess.request.cancelled` | requestId: string, reference: string, userId: string\|null, roleId: string                                                           | —                                                                                     |
+| `dbaccess.grant.provisioned` | grantId: string, userId: string\|null, serverId: string, roleId: string, accountName: string\|null, expiresAt: string\|null          | The account holds the role on the server (verified)                                   |
+| `dbaccess.grant.extended`    | grantId: string, userId: string\|null, serverId: string, roleId: string, accountName: string\|null, expiresAt: string\|null          | —                                                                                     |
+| `dbaccess.grant.adopted`     | grantId: string, userId: string\|null, serverId: string, roleId: string, accountName: string\|null                                   | —                                                                                     |
+| `dbaccess.grant.revoked`     | grantId: string, userId: string\|null, serverId: string, roleId: string, accountName: string\|null, reason: string                   | The role was removed from the account (expiry, early revocation, review, offboarding) |
+| `dbaccess.grant.failed`      | grantId: string, userId: string\|null, serverId: string, roleId: string, accountName: string\|null, operation: string, error: string | —                                                                                     |
+| `dbaccess.account.created`   | accountId: string, serverId: string, userId: string\|null, name: string                                                              | —                                                                                     |
+| `dbaccess.account.disabled`  | accountId: string, serverId: string, userId: string\|null, name: string                                                              | —                                                                                     |
+| `dbaccess.server.synced`     | serverId: string, accounts: number, roles: number, memberships: number, unmanaged: number                                            | —                                                                                     |
+| `dbaccess.review.started`    | reviewId: string, items: number                                                                                                      | —                                                                                     |
+| `dbaccess.review.closed`     | reviewId: string, kept: number, revoked: number                                                                                      | —                                                                                     |
 
 ### Events consumed
 
@@ -828,10 +895,10 @@ Request database roles on SQL Server, Oracle and PostgreSQL: approval, automated
 
 ### AI tools
 
-| Tool                      | Permission              | Kind        | Input                                               |
-| ------------------------- | ----------------------- | ----------- | --------------------------------------------------- |
-| `dbaccess.list_my_access` | `dbaccess.self.request` | read-only   | includeEnded: boolean                               |
-| `dbaccess.request_access` | `dbaccess.self.request` | destructive | role: string, server?: string, expiresOn?: string\\ | null, justification: string |
+| Tool                      | Permission              | Kind        | Input                                                                          |
+| ------------------------- | ----------------------- | ----------- | ------------------------------------------------------------------------------ |
+| `dbaccess.list_my_access` | `dbaccess.self.request` | read-only   | includeEnded: boolean                                                          |
+| `dbaccess.request_access` | `dbaccess.self.request` | destructive | role: string, server?: string, expiresOn?: string\|null, justification: string |
 
 ### Settings
 
@@ -932,10 +999,10 @@ REST endpoints from parameterized SQL and stored procedures, and ETL pipelines b
 
 ### Record types
 
-| Type           | Name         | Permission           |
-| -------------- | ------------ | -------------------- |
-| `etl.endpoint` | Data API     | `etl.endpoints.read` |
-| `etl.pipeline` | ETL pipeline | `etl.pipelines.read` |
+| Type           | Name         | Permission           | Facts |
+| -------------- | ------------ | -------------------- | ----- |
+| `etl.endpoint` | Data API     | `etl.endpoints.read` | —     |
+| `etl.pipeline` | ETL pipeline | `etl.pipelines.read` | —     |
 
 ### Task types (Scheduled jobs)
 
@@ -1151,6 +1218,144 @@ Integrations Hub: `*.*.sync`
 | `integrations:tick`              | every 60 s  | Every minute: starts due scheduled pulls, fails runs whose worker stopped, re-queues lost runs and stalled pushes |
 | `integrations:webhook-items`     | on demand   | Re-reads the records a webhook named (the body is never trusted for data)                                         |
 
+## `isms` — Information security
+
+Information asset register with C/I/A values, stocktakes, shared accounts and account reviews
+
+### Permissions
+
+| Key                       | Scopes | Description                                                                                           |
+| ------------------------- | ------ | ----------------------------------------------------------------------------------------------------- |
+| `isms.assets.read`        | global | View the information asset register                                                                   |
+| `isms.assets.manage`      | global | Register, change, import and delete information assets                                                |
+| `isms.config.manage`      | global | Configure asset classes, sites and classification labels                                              |
+| `isms.stocktakes.manage`  | global | Start, schedule and cancel stocktakes and record any item                                             |
+| `isms.stocktakes.signoff` | global | Sign off stocktakes                                                                                   |
+| `isms.accounts.read`      | global | View every shared account                                                                             |
+| `isms.accounts.manage`    | global | Register and change shared accounts and their members                                                 |
+| `isms.reviews.read`       | global | View every account review                                                                             |
+| `isms.reviews.manage`     | global | Start, schedule and cancel account reviews                                                            |
+| `isms.reviews.signoff`    | global | Sign off account reviews                                                                              |
+| `isms.self.use`           | global | Take part: record stocktake items, decide account reviews and look after shared accounts given to you |
+
+### Roles
+
+| Key                     | Name                               | Permissions                                                                                                                                                                                        | Everyone |
+| ----------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `isms-participant`      | Information security participant   | `isms.self.use`                                                                                                                                                                                    | yes      |
+| `isms-viewer`           | Information security viewer        | `isms.assets.read` `isms.accounts.read` `isms.reviews.read` `isms.self.use`                                                                                                                        | —        |
+| `isms-asset-manager`    | Information asset manager          | `isms.assets.read` `isms.assets.manage` `isms.stocktakes.manage` `isms.accounts.read` `isms.reviews.read` `isms.self.use`                                                                          | —        |
+| `isms-security-officer` | Information security officer       | `isms.assets.read` `isms.stocktakes.manage` `isms.stocktakes.signoff` `isms.accounts.read` `isms.accounts.manage` `isms.reviews.read` `isms.reviews.manage` `isms.reviews.signoff` `isms.self.use` | —        |
+| `isms-admin`            | Information security administrator | `isms.*`                                                                                                                                                                                           | —        |
+
+### Events emitted
+
+| Event                              | Payload                                                                                                      | Description                                                                       |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `isms.asset.created`               | assetId: string, number: string, name: string, classCode: string, value: integer                             | An information asset was registered (by hand, import or from another record)      |
+| `isms.asset.updated`               | assetId: string, number: string, name: string, changes: array                                                | Fields of an information asset changed (names of the changed fields)              |
+| `isms.asset.deleted`               | assetId: string, number: string, name: string                                                                | —                                                                                 |
+| `isms.taxonomy.changed`            | kind: string, id: string, code: string, op: string                                                           | A class, site or classification label was created, changed, archived or restored  |
+| `isms.stocktake.created`           | stocktakeId: string, reference: string, name: string, status: string, dueOn: string                          | —                                                                                 |
+| `isms.stocktake.started`           | stocktakeId: string, reference: string, name: string, items: integer, dueOn: string                          | In-scope assets were snapshotted as items for their managers                      |
+| `isms.stocktake.item_recorded`     | stocktakeId: string, reference: string, name: string, itemId: string, assetId: string\|null, result: string  | —                                                                                 |
+| `isms.stocktake.signed_off`        | stocktakeId: string, reference: string, name: string                                                         | —                                                                                 |
+| `isms.stocktake.cancelled`         | stocktakeId: string, reference: string, name: string                                                         | —                                                                                 |
+| `isms.account.created`             | accountId: string, reference: string, accountName: string                                                    | —                                                                                 |
+| `isms.account.updated`             | accountId: string, reference: string, accountName: string, changes: array                                    | —                                                                                 |
+| `isms.account.member_added`        | accountId: string, reference: string, accountName: string, userId: string                                    | —                                                                                 |
+| `isms.account.member_removed`      | accountId: string, reference: string, accountName: string, userId: string                                    | —                                                                                 |
+| `isms.account.password_change_due` | accountId: string, reference: string, accountName: string, reason: string, userId: string\|null              | A member left, moved or was removed: the custodian must change the password today |
+| `isms.account.password_changed`    | accountId: string, reference: string, accountName: string, changedOn: string                                 | —                                                                                 |
+| `isms.account.reviewed`            | accountId: string, reference: string, accountName: string, nextReviewOn: string                              | The yearly review confirmed the members                                           |
+| `isms.review.created`              | reviewId: string, reference: string, target: string, reviewerId: string\|null, dueOn: string, status: string | —                                                                                 |
+| `isms.review.started`              | reviewId: string, reference: string, target: string, reviewerId: string\|null, items: integer, dueOn: string | A review was opened (now, or on its start date) and its reviewer told             |
+| `isms.review.items_imported`       | reviewId: string, reference: string, target: string, added: integer, updated: integer                        | —                                                                                 |
+| `isms.review.item_decided`         | reviewId: string, reference: string, target: string, itemId: string, decision: string, accountStatus: string | —                                                                                 |
+| `isms.review.completed`            | reviewId: string, reference: string, target: string                                                          | —                                                                                 |
+| `isms.review.reopened`             | reviewId: string, reference: string, target: string                                                          | A completed review went back to its reviewer                                      |
+| `isms.review.signed_off`           | reviewId: string, reference: string, target: string                                                          | —                                                                                 |
+| `isms.review.cancelled`            | reviewId: string, reference: string, target: string                                                          | —                                                                                 |
+
+### Events consumed
+
+`core.user.offboarded`, `core.user.transferred`
+
+### Record types
+
+| Type           | Name              | Permission           | Facts                                                                                                                                                                                                                                               |
+| -------------- | ----------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isms.asset`   | Information asset | `isms.assets.read`   | classCode: string, subClass: string\|null, confidentiality: integer, integrity: integer, availability: integer, value: integer, classification: string\|null, managerId: string\|null, managerGroup: string\|null, siteCode: string, status: string |
+| `isms.account` | Shared account    | `isms.accounts.read` | —                                                                                                                                                                                                                                                   |
+
+### Notifications
+
+| Type                               | Default channels | Mandatory |
+| ---------------------------------- | ---------------- | --------- |
+| `isms.stocktake.assigned`          | inApp, email     | —         |
+| `isms.stocktake.reminder`          | inApp, email     | —         |
+| `isms.stocktake.overdue`           | inApp, email     | —         |
+| `isms.stocktake.ready`             | inApp            | —         |
+| `isms.account.password_change_due` | inApp, email     | yes       |
+| `isms.account.review_due`          | inApp, email     | —         |
+| `isms.review.assigned`             | inApp, email     | —         |
+| `isms.review.reminder`             | inApp, email     | —         |
+| `isms.review.overdue`              | inApp, email     | —         |
+| `isms.review.ready`                | inApp            | —         |
+
+### AI tools
+
+| Tool               | Permission         | Kind      | Input                                                                  |
+| ------------------ | ------------------ | --------- | ---------------------------------------------------------------------- |
+| `isms.find_assets` | `isms.assets.read` | read-only | query?: string, classCode?: string, minValue?: integer, limit: integer |
+
+### Settings
+
+| Key                     | Type   | Default | Label                                 |
+| ----------------------- | ------ | ------- | ------------------------------------- |
+| `reminders.daysBefore`  | number | `7`     | Reminder days before a due date       |
+| `accounts.reviewMonths` | number | `12`    | Months between shared account reviews |
+
+### Navigation
+
+| Label                | Path               | Section | Group                | Order | Permission           |
+| -------------------- | ------------------ | ------- | -------------------- | ----- | -------------------- |
+| Information assets   | `/isms`            | main    | Information security | 50    | `isms.assets.read`   |
+| Stocktakes           | `/isms/stocktakes` | main    | Information security | 50.1  | `isms.self.use`      |
+| Shared accounts      | `/isms/accounts`   | main    | Information security | 50.2  | `isms.self.use`      |
+| Account reviews      | `/isms/reviews`    | main    | Information security | 50.3  | `isms.self.use`      |
+| Information security | `/isms/settings`   | admin   | —                    | 62    | `isms.config.manage` |
+
+### Custom-field entities
+
+`isms.asset`
+
+### Web routes
+
+| Path                    | Permission           |
+| ----------------------- | -------------------- |
+| `/isms`                 | `isms.assets.read`   |
+| `/isms/assets/:ref`     | `isms.assets.read`   |
+| `/isms/stocktakes`      | `isms.self.use`      |
+| `/isms/stocktakes/:ref` | `isms.self.use`      |
+| `/isms/accounts`        | `isms.self.use`      |
+| `/isms/accounts/:ref`   | `isms.self.use`      |
+| `/isms/reviews`         | `isms.self.use`      |
+| `/isms/reviews/:ref`    | `isms.self.use`      |
+| `/isms/settings`        | `isms.config.manage` |
+
+### Slots contributed
+
+| Slot                  | Permission      |
+| --------------------- | --------------- |
+| `core.dashboard.work` | `isms.self.use` |
+
+### Background jobs
+
+| Job          | Schedule                | Description                                                                                                                                                         |
+| ------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isms:daily` | `0 8 * * * Asia/Taipei` | Daily: opens scheduled stocktakes and account reviews, reminds people before due dates and when they pass, and tells custodians when a shared account review is due |
+
 ## `itam` — Assets
 
 Hardware, software licences, contracts and vendors
@@ -1182,21 +1387,27 @@ Hardware, software licences, contracts and vendors
 
 ### Events emitted
 
-| Event                             | Payload                                                                              | Description                                              |
-| --------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------- |
-| `itam.asset.created`              | assetId: string, tag: string, name: string, category: string, status: string         | A hardware asset was registered                          |
-| `itam.asset.updated`              | assetId: string, tag: string, name: string, changes: array                           | Fields of an asset changed (names of the changed fields) |
-| `itam.asset.status_changed`       | assetId: string, tag: string, name: string, from: string, to: string                 | —                                                        |
-| `itam.asset.assigned`             | assetId: string, tag: string, name: string, userId: string, previousUserId: string\\ | null                                                     | An asset was handed to a person          |
-| `itam.asset.returned`             | assetId: string, tag: string, name: string, userId: string\\                         | null, toStatus: string                                   | —                                        |
-| `itam.asset.disposed`             | assetId: string, tag: string, name: string, instanceId: string\\                     | null                                                     | Disposal was approved; the asset is gone |
-| `itam.license.created`            | licenseId: string, reference: string, product: string                                | —                                                        |
-| `itam.license.updated`            | licenseId: string, reference: string, product: string, changes: array                | —                                                        |
-| `itam.license.compliance_changed` | licenseId: string, reference: string, product: string, from: string, to: string      | —                                                        |
-| `itam.contract.created`           | contractId: string, reference: string, title: string                                 | —                                                        |
-| `itam.contract.updated`           | contractId: string, reference: string, title: string, changes: array                 | —                                                        |
-| `itam.contract.renewed`           | contractId: string, reference: string, title: string, startDate: string\\            | null, endDate: string, automatic: boolean                | —                                        |
-| `itam.contract.expired`           | contractId: string, reference: string, title: string, endDate: string                | —                                                        |
+| Event                             | Payload                                                                                                            | Description                                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `itam.asset.created`              | assetId: string, tag: string, name: string, category: string, status: string                                       | A hardware asset was registered                                                             |
+| `itam.asset.updated`              | assetId: string, tag: string, name: string, changes: array                                                         | Fields of an asset changed (names of the changed fields)                                    |
+| `itam.asset.status_changed`       | assetId: string, tag: string, name: string, from: string, to: string                                               | —                                                                                           |
+| `itam.asset.assigned`             | assetId: string, tag: string, name: string, userId: string, previousUserId: string\|null                           | An asset was handed to a person                                                             |
+| `itam.asset.returned`             | assetId: string, tag: string, name: string, userId: string\|null, toStatus: string                                 | —                                                                                           |
+| `itam.asset.disposed`             | assetId: string, tag: string, name: string, instanceId: string\|null                                               | Disposal was approved; the asset is gone                                                    |
+| `itam.asset.data_wiped`           | assetId: string, tag: string, name: string, method: string, wipedAt: string                                        | A device's storage was wiped (Record data wipe); its pending wipe is cleared                |
+| `itam.license.created`            | licenseId: string, reference: string, product: string                                                              | —                                                                                           |
+| `itam.license.updated`            | licenseId: string, reference: string, product: string, changes: array                                              | —                                                                                           |
+| `itam.license.compliance_changed` | licenseId: string, reference: string, product: string, from: string, to: string                                    | —                                                                                           |
+| `itam.contract.created`           | contractId: string, reference: string, title: string                                                               | —                                                                                           |
+| `itam.contract.updated`           | contractId: string, reference: string, title: string, changes: array                                               | —                                                                                           |
+| `itam.contract.renewed`           | contractId: string, reference: string, title: string, startDate: string\|null, endDate: string, automatic: boolean | —                                                                                           |
+| `itam.contract.expired`           | contractId: string, reference: string, title: string, endDate: string                                              | —                                                                                           |
+| `itam.title-rule.created`         | ruleId: string, title: string, licenseId: string\|null                                                             | A discovered software title was mapped to a licence (licenseId) or ignored (licenseId null) |
+| `itam.title-rule.deleted`         | ruleId: string, title: string, licenseId: string\|null                                                             | A title rule was removed: the title is matched by name again                                |
+| `itam.approved-software.created`  | entryId: string, title: string, status: string                                                                     | A title was added to the approved-software list (allowed or blocked)                        |
+| `itam.approved-software.updated`  | entryId: string, title: string, status: string                                                                     | An approved-software entry changed (scope, validity, status…)                               |
+| `itam.approved-software.deleted`  | entryId: string, title: string, status: string                                                                     | —                                                                                           |
 
 ### Events consumed
 
@@ -1204,11 +1415,11 @@ Hardware, software licences, contracts and vendors
 
 ### Record types
 
-| Type            | Name             | Permission            |
-| --------------- | ---------------- | --------------------- |
-| `itam.asset`    | Hardware asset   | `itam.hardware.read`  |
-| `itam.license`  | Software licence | `itam.software.read`  |
-| `itam.contract` | Contract         | `itam.contracts.read` |
+| Type            | Name             | Permission            | Facts                                                                                                                                                                                    |
+| --------------- | ---------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `itam.asset`    | Hardware asset   | `itam.hardware.read`  | category: string, status: string, dataBearing: boolean, assigneeId: string\|null, departmentCode: string\|null, location: string\|null, warrantyEnd: string\|null, wipeDue: string\|null |
+| `itam.license`  | Software licence | `itam.software.read`  | product: string, publisher: string\|null, licenseType: string, billing: string, complianceState: string, quantity: integer\|null, cost: number\|null, endDate: string\|null              |
+| `itam.contract` | Contract         | `itam.contracts.read` | —                                                                                                                                                                                        |
 
 ### Sync entities (Integrations Hub)
 
@@ -1224,13 +1435,15 @@ Hardware, software licences, contracts and vendors
 
 ### Notifications
 
-| Type                         | Default channels | Mandatory |
-| ---------------------------- | ---------------- | --------- |
-| `itam.asset.assigned`        | inApp, email     | —         |
-| `itam.license.non_compliant` | inApp, email     | —         |
-| `itam.contract.renewal_due`  | inApp, email     | —         |
-| `itam.warranty.expiring`     | inApp            | —         |
-| `itam.offboarding.return`    | inApp, email     | —         |
+| Type                              | Default channels | Mandatory |
+| --------------------------------- | ---------------- | --------- |
+| `itam.asset.assigned`             | inApp, email     | —         |
+| `itam.license.non_compliant`      | inApp, email     | —         |
+| `itam.contract.renewal_due`       | inApp, email     | —         |
+| `itam.warranty.expiring`          | inApp            | —         |
+| `itam.offboarding.return`         | inApp, email     | —         |
+| `itam.wipe.due`                   | inApp, email     | —         |
+| `itam.approved-software.expiring` | inApp            | —         |
 
 ### AI tools
 
@@ -1244,22 +1457,26 @@ Hardware, software licences, contracts and vendors
 
 ### Settings
 
-| Key                           | Type   | Default | Label                           |
-| ----------------------------- | ------ | ------- | ------------------------------- |
-| `currency`                    | string | `"TWD"` | Default currency                |
-| `reminders.warrantyDays`      | number | `30`    | Warranty reminder window (days) |
-| `compliance.underUsedPercent` | number | `60`    | Under-used threshold (%)        |
+| Key                           | Type   | Default | Label                              |
+| ----------------------------- | ------ | ------- | ---------------------------------- |
+| `currency`                    | string | `"TWD"` | Default currency                   |
+| `reminders.warrantyDays`      | number | `30`    | Warranty reminder window (days)    |
+| `wipe.months`                 | number | `2`     | Data wipe after retention (months) |
+| `wipe.remindDays`             | number | `7`     | Data wipe reminder window (days)   |
+| `compliance.underUsedPercent` | number | `60`    | Under-used threshold (%)           |
 
 ### Navigation
 
-| Label          | Path              | Section | Group  | Order | Permission            |
-| -------------- | ----------------- | ------- | ------ | ----- | --------------------- |
-| Asset overview | `/itam`           | main    | Assets | 42    | `itam.hardware.read`  |
-| Hardware       | `/itam/hardware`  | main    | Assets | 43    | `itam.hardware.read`  |
-| Software       | `/itam/software`  | main    | Assets | 44    | `itam.software.read`  |
-| Contracts      | `/itam/contracts` | main    | Assets | 45    | `itam.contracts.read` |
-| Vendors        | `/itam/vendors`   | main    | Assets | 46    | `itam.contracts.read` |
-| Assets         | `/itam/settings`  | admin   | —      | 61    | `itam.config.manage`  |
+| Label             | Path                      | Section | Group  | Order | Permission             |
+| ----------------- | ------------------------- | ------- | ------ | ----- | ---------------------- |
+| Asset overview    | `/itam`                   | main    | Assets | 42    | `itam.hardware.read`   |
+| Hardware          | `/itam/hardware`          | main    | Assets | 43    | `itam.hardware.read`   |
+| Software          | `/itam/software`          | main    | Assets | 44    | `itam.software.read`   |
+| Approved software | `/itam/approved-software` | main    | Assets | 44.2  | `itam.software.read`   |
+| Discovery         | `/itam/discovery`         | main    | Assets | 44.5  | `itam.hardware.manage` |
+| Contracts         | `/itam/contracts`         | main    | Assets | 45    | `itam.contracts.read`  |
+| Vendors           | `/itam/vendors`           | main    | Assets | 46    | `itam.contracts.read`  |
+| Assets            | `/itam/settings`          | admin   | —      | 61    | `itam.config.manage`   |
 
 ### Portal entries
 
@@ -1273,18 +1490,20 @@ Hardware, software licences, contracts and vendors
 
 ### Web routes
 
-| Path                   | Permission            |
-| ---------------------- | --------------------- |
-| `/itam`                | `itam.hardware.read`  |
-| `/itam/hardware`       | `itam.hardware.read`  |
-| `/itam/hardware/:ref`  | `itam.hardware.read`  |
-| `/itam/software`       | `itam.software.read`  |
-| `/itam/software/:ref`  | `itam.software.read`  |
-| `/itam/contracts`      | `itam.contracts.read` |
-| `/itam/contracts/:ref` | `itam.contracts.read` |
-| `/itam/vendors`        | —                     |
-| `/itam/mine`           | `itam.self.read`      |
-| `/itam/settings`       | `itam.config.manage`  |
+| Path                      | Permission             |
+| ------------------------- | ---------------------- |
+| `/itam`                   | `itam.hardware.read`   |
+| `/itam/hardware`          | `itam.hardware.read`   |
+| `/itam/hardware/:ref`     | `itam.hardware.read`   |
+| `/itam/software`          | `itam.software.read`   |
+| `/itam/software/:ref`     | `itam.software.read`   |
+| `/itam/approved-software` | `itam.software.read`   |
+| `/itam/discovery`         | `itam.hardware.manage` |
+| `/itam/contracts`         | `itam.contracts.read`  |
+| `/itam/contracts/:ref`    | `itam.contracts.read`  |
+| `/itam/vendors`           | —                      |
+| `/itam/mine`              | `itam.self.read`       |
+| `/itam/settings`          | `itam.config.manage`   |
 
 ### Slots contributed
 
@@ -1300,6 +1519,7 @@ Hardware, software licences, contracts and vendors
 | --------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
 | `itam:compliance-recompute` | `30 2 * * * Asia/Taipei` | Nightly: recomputes licence compliance (expiry dates move on even when nothing else changes)                                      |
 | `itam:renewal-reminders`    | `0 8 * * * Asia/Taipei`  | Daily: keeps contract statuses current (auto-renewals, expiring, expired), sends renewal reminders and the warranty-expiry digest |
+| `itam:wipe-reminders`       | `15 8 * * * Asia/Taipei` | Daily: reminds asset managers of returned devices whose data wipe is due soon or overdue (once per stage)                         |
 
 ## `itsm` — Service desk
 
@@ -1334,23 +1554,25 @@ Incidents, service requests, problems and changes with SLAs
 
 ### Events emitted
 
-| Event                        | Payload                                                                                         | Description             |
-| ---------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------- |
-| `itsm.ticket.created`        | ticketId: string, reference: string, type: string, title: string, channel: string               | A ticket was raised     |
-| `itsm.ticket.updated`        | ticketId: string, reference: string, type: string, title: string, changes: array                | —                       |
-| `itsm.ticket.assigned`       | ticketId: string, reference: string, type: string, title: string, assigneeId: string\\          | null, groupId: string\\ | null | —   |
-| `itsm.ticket.status_changed` | ticketId: string, reference: string, type: string, title: string, from: string, to: string      | —                       |
-| `itsm.ticket.resolved`       | ticketId: string, reference: string, type: string, title: string, resolutionCode: string\\      | null                    | —    |
-| `itsm.ticket.closed`         | ticketId: string, reference: string, type: string, title: string                                | —                       |
-| `itsm.ticket.reopened`       | ticketId: string, reference: string, type: string, title: string                                | —                       |
-| `itsm.ticket.commented`      | ticketId: string, reference: string, type: string, title: string, public: boolean               | —                       |
-| `itsm.ticket.triaged`        | ticketId: string, reference: string, type: string, title: string, by: string, fields: array     | —                       |
-| `itsm.sla.warning`           | ticketId: string, reference: string, type: string, title: string, metric: string, dueAt: string | —                       |
-| `itsm.sla.breached`          | ticketId: string, reference: string, type: string, title: string, metric: string, dueAt: string | —                       |
-| `itsm.change.submitted`      | ticketId: string, reference: string, type: string, title: string, instanceId: string\\          | null                    | —    |
-| `itsm.change.approved`       | ticketId: string, reference: string, type: string, title: string                                | —                       |
-| `itsm.change.rejected`       | ticketId: string, reference: string, type: string, title: string, comment: string\\             | null                    | —    |
-| `itsm.problem.known_error`   | ticketId: string, reference: string, type: string, title: string                                | —                       |
+| Event                             | Payload                                                                                                           | Description                                                                                  |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `itsm.ticket.created`             | ticketId: string, reference: string, type: string, title: string, channel: string                                 | A ticket was raised                                                                          |
+| `itsm.ticket.updated`             | ticketId: string, reference: string, type: string, title: string, changes: array                                  | —                                                                                            |
+| `itsm.ticket.assigned`            | ticketId: string, reference: string, type: string, title: string, assigneeId: string\|null, groupId: string\|null | —                                                                                            |
+| `itsm.ticket.status_changed`      | ticketId: string, reference: string, type: string, title: string, from: string, to: string                        | —                                                                                            |
+| `itsm.ticket.resolved`            | ticketId: string, reference: string, type: string, title: string, resolutionCode: string\|null                    | —                                                                                            |
+| `itsm.ticket.closed`              | ticketId: string, reference: string, type: string, title: string                                                  | —                                                                                            |
+| `itsm.ticket.reopened`            | ticketId: string, reference: string, type: string, title: string                                                  | —                                                                                            |
+| `itsm.ticket.commented`           | ticketId: string, reference: string, type: string, title: string, public: boolean                                 | —                                                                                            |
+| `itsm.ticket.triaged`             | ticketId: string, reference: string, type: string, title: string, by: string, fields: array                       | —                                                                                            |
+| `itsm.sla.warning`                | ticketId: string, reference: string, type: string, title: string, metric: string, dueAt: string                   | —                                                                                            |
+| `itsm.sla.breached`               | ticketId: string, reference: string, type: string, title: string, metric: string, dueAt: string                   | —                                                                                            |
+| `itsm.change.submitted`           | ticketId: string, reference: string, type: string, title: string, instanceId: string\|null                        | —                                                                                            |
+| `itsm.change.approved`            | ticketId: string, reference: string, type: string, title: string                                                  | —                                                                                            |
+| `itsm.change.rejected`            | ticketId: string, reference: string, type: string, title: string, comment: string\|null                           | —                                                                                            |
+| `itsm.change.acceptance_recorded` | ticketId: string, reference: string, type: string, title: string, accepted: boolean                               | The change's requester accepted it, or reported a problem, in the post-implementation review |
+| `itsm.ticket.sign_off_requested`  | ticketId: string, reference: string, type: string, title: string, instanceId: string, to: string                  | Resolving the ticket started its resolution sign-off (itsm.resolution)                       |
+| `itsm.problem.known_error`        | ticketId: string, reference: string, type: string, title: string                                                  | —                                                                                            |
 
 ### Events consumed
 
@@ -1358,10 +1580,10 @@ Incidents, service requests, problems and changes with SLAs
 
 ### Record types
 
-| Type          | Name   | Permission          |
-| ------------- | ------ | ------------------- |
-| `itsm.ticket` | Ticket | `itsm.tickets.read` |
-| `itsm.change` | Change | `itsm.changes.read` |
+| Type          | Name   | Permission          | Facts                                                                                                                                                                                                                                                                                                                         |
+| ------------- | ------ | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `itsm.ticket` | Ticket | `itsm.tickets.read` | type: string, status: string, priority: integer, impact: integer, urgency: integer, major: boolean, category: string\|null, groupKey: string\|null, assigneeId: string\|null, requesterId: string\|null, departmentCode: string\|null                                                                                         |
+| `itsm.change` | Change | `itsm.changes.read` | type: string, status: string, priority: integer, impact: integer, urgency: integer, major: boolean, category: string\|null, groupKey: string\|null, assigneeId: string\|null, requesterId: string\|null, departmentCode: string\|null, changeType: string, risk: string, plannedStart: string\|null, plannedEnd: string\|null |
 
 ### Sync entities (Integrations Hub)
 
@@ -1372,24 +1594,29 @@ Incidents, service requests, problems and changes with SLAs
 
 ### Workflow triggers
 
-| Trigger       | Subject | Required | Facts          |
-| ------------- | ------- | -------- | -------------- |
-| `itsm.change` | change  | yes      | change: object |
+| Trigger           | Subject | Required | Facts          |
+| ----------------- | ------- | -------- | -------------- |
+| `itsm.change`     | change  | yes      | change: object |
+| `itsm.resolution` | ticket  | —        | ticket: object |
 
 ### Notifications
 
-| Type                           | Default channels | Mandatory |
-| ------------------------------ | ---------------- | --------- |
-| `itsm.ticket.created`          | inApp            | —         |
-| `itsm.ticket.assigned`         | inApp, email     | —         |
-| `itsm.ticket.commented`        | inApp, email     | —         |
-| `itsm.ticket.resolved`         | inApp, email     | —         |
-| `itsm.ticket.reopened`         | inApp, email     | —         |
-| `itsm.sla.warning`             | inApp            | —         |
-| `itsm.sla.breached`            | inApp, email     | —         |
-| `itsm.change.approved`         | inApp, email     | —         |
-| `itsm.change.rejected`         | inApp, email     | —         |
-| `itsm.major-incident.declared` | inApp            | —         |
+| Type                               | Default channels | Mandatory |
+| ---------------------------------- | ---------------- | --------- |
+| `itsm.ticket.created`              | inApp            | —         |
+| `itsm.ticket.assigned`             | inApp, email     | —         |
+| `itsm.ticket.commented`            | inApp, email     | —         |
+| `itsm.ticket.resolved`             | inApp, email     | —         |
+| `itsm.ticket.reopened`             | inApp, email     | —         |
+| `itsm.sla.warning`                 | inApp            | —         |
+| `itsm.sla.breached`                | inApp, email     | —         |
+| `itsm.change.approved`             | inApp, email     | —         |
+| `itsm.change.rejected`             | inApp, email     | —         |
+| `itsm.change.acceptance_requested` | inApp, email     | —         |
+| `itsm.change.accepted`             | inApp            | —         |
+| `itsm.change.problem_reported`     | inApp, email     | —         |
+| `itsm.ticket.sign_off_rejected`    | inApp, email     | —         |
+| `itsm.major-incident.declared`     | inApp            | —         |
 
 ### AI tools
 
@@ -1406,12 +1633,13 @@ Incidents, service requests, problems and changes with SLAs
 
 ### Settings
 
-| Key                      | Type    | Default          | Label                                                      |
-| ------------------------ | ------- | ---------------- | ---------------------------------------------------------- |
-| `autoCloseDays`          | number  | `5`              | Close resolved tickets automatically after (days)          |
-| `defaultGroupKey`        | string  | `"service-desk"` | Default assignment group (key)                             |
-| `csatEnabled`            | boolean | `true`           | Ask requesters to rate the service when they confirm a fix |
-| `majorIncidentBroadcast` | boolean | `true`           | Announce major incidents in team channels                  |
+| Key                         | Type    | Default          | Label                                                      |
+| --------------------------- | ------- | ---------------- | ---------------------------------------------------------- |
+| `autoCloseDays`             | number  | `5`              | Close resolved tickets automatically after (days)          |
+| `defaultGroupKey`           | string  | `"service-desk"` | Default assignment group (key)                             |
+| `csatEnabled`               | boolean | `true`           | Ask requesters to rate the service when they confirm a fix |
+| `changes.requireAcceptance` | boolean | `false`          | Require the requester's acceptance before closing a change |
+| `majorIncidentBroadcast`    | boolean | `true`           | Announce major incidents in team channels                  |
 
 ### Navigation
 
@@ -1484,14 +1712,14 @@ Answers and how-to guides for everyone, troubleshooting guides for the service d
 
 ### Events emitted
 
-| Event                         | Payload                                                                                                                                         | Description |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `knowledge.article.created`   | articleId: string, number: integer, reference: string, title: string, locale: string, audience: string, source: object\\                        | null        | A draft was written (by a person or generated, e.g. from a resolved ticket) |
-| `knowledge.article.updated`   | articleId: string, number: integer, reference: string, title: string, status: string, changes: array                                            | —           |
-| `knowledge.article.published` | articleId: string, number: integer, reference: string, title: string, version: integer, locale: string, audience: string, categoryKey: string\\ | null        | A version went live (first publish or an update of a published article)     |
-| `knowledge.article.retired`   | articleId: string, number: integer, reference: string, title: string                                                                            | —           |
-| `knowledge.article.deleted`   | articleId: string, number: integer, reference: string, title: string                                                                            | —           |
-| `knowledge.article.submitted` | articleId: string, number: integer, reference: string, title: string, instanceId: string\\                                                      | null        | Sent for review; `instanceId` is set when an approval workflow decides      |
+| Event                         | Payload                                                                                                                                             | Description                                                                 |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `knowledge.article.created`   | articleId: string, number: integer, reference: string, title: string, locale: string, audience: string, source: object\|null                        | A draft was written (by a person or generated, e.g. from a resolved ticket) |
+| `knowledge.article.updated`   | articleId: string, number: integer, reference: string, title: string, status: string, changes: array                                                | —                                                                           |
+| `knowledge.article.published` | articleId: string, number: integer, reference: string, title: string, version: integer, locale: string, audience: string, categoryKey: string\|null | A version went live (first publish or an update of a published article)     |
+| `knowledge.article.retired`   | articleId: string, number: integer, reference: string, title: string                                                                                | —                                                                           |
+| `knowledge.article.deleted`   | articleId: string, number: integer, reference: string, title: string                                                                                | —                                                                           |
+| `knowledge.article.submitted` | articleId: string, number: integer, reference: string, title: string, instanceId: string\|null                                                      | Sent for review; `instanceId` is set when an approval workflow decides      |
 
 ### Events consumed
 
@@ -1499,9 +1727,9 @@ Answers and how-to guides for everyone, troubleshooting guides for the service d
 
 ### Record types
 
-| Type                | Name              | Permission                |
-| ------------------- | ----------------- | ------------------------- |
-| `knowledge.article` | Knowledge article | `knowledge.articles.read` |
+| Type                | Name              | Permission                | Facts                                                                                                                                         |
+| ------------------- | ----------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `knowledge.article` | Knowledge article | `knowledge.articles.read` | audience: string, categoryKey: string\|null, status: string, locale: string, ownerId: string\|null, tags: array, classification: string\|null |
 
 ### Sync entities (Integrations Hub)
 
@@ -1534,11 +1762,12 @@ Answers and how-to guides for everyone, troubleshooting guides for the service d
 
 ### Settings
 
-| Key                  | Type    | Default | Label                                                                               |
-| -------------------- | ------- | ------- | ----------------------------------------------------------------------------------- |
-| `reviewIntervalDays` | number  | `180`   | Review an article this many days after it is published (0 = no default review date) |
-| `reminderRepeatDays` | number  | `7`     | Repeat overdue-review reminders every N days                                        |
-| `guide.publish`      | boolean | `true`  | Publish the user guide                                                              |
+| Key                     | Type    | Default                                                                           | Label                                                                               |
+| ----------------------- | ------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `reviewIntervalDays`    | number  | `180`                                                                             | Review an article this many days after it is published (0 = no default review date) |
+| `reminderRepeatDays`    | number  | `7`                                                                               | Repeat overdue-review reminders every N days                                        |
+| `classification.levels` | text    | `"strictly-confidential\ncustomer-confidential\nconfidential\ninternal-use-only"` | Classification labels                                                               |
+| `guide.publish`         | boolean | `true`                                                                            | Publish the user guide                                                              |
 
 ### Navigation
 
@@ -1598,22 +1827,22 @@ Projects, tasks, milestones, boards, timelines and workload
 
 ### Events emitted
 
-| Event                             | Payload                                                                                       | Description                |
-| --------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------- |
-| `projects.project.created`        | projectId: string, key: string, name: string, ownerId: string\\                               | null                       | —    |
-| `projects.project.updated`        | projectId: string, key: string, name: string, changes: array                                  | —                          |
-| `projects.project.status_changed` | projectId: string, key: string, name: string, from: string, to: string                        | —                          |
-| `projects.project.health_changed` | projectId: string, key: string, name: string, from: string, to: string, note: string\\        | null                       | —    |
-| `projects.project.deleted`        | projectId: string, key: string, name: string                                                  | —                          |
-| `projects.member.added`           | projectId: string, key: string, name: string, userId: string, role: string                    | —                          |
-| `projects.member.removed`         | projectId: string, key: string, name: string, userId: string                                  | —                          |
-| `projects.milestone.completed`    | projectId: string, key: string, name: string, milestoneId: string, milestone: string          | —                          |
-| `projects.task.created`           | taskId: string, projectId: string, reference: string, title: string, assigneeId: string\\     | null                       | —    |
-| `projects.task.updated`           | taskId: string, projectId: string, reference: string, title: string, changes: array           | —                          |
-| `projects.task.status_changed`    | taskId: string, projectId: string, reference: string, title: string, from: string, to: string | —                          |
-| `projects.task.assigned`          | taskId: string, projectId: string, reference: string, title: string, assigneeId: string\\     | null, previousId: string\\ | null | —   |
-| `projects.task.commented`         | taskId: string, projectId: string, reference: string, title: string, commentId: string        | —                          |
-| `projects.task.deleted`           | taskId: string, projectId: string, reference: string, title: string                           | —                          |
+| Event                             | Payload                                                                                                                 | Description |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `projects.project.created`        | projectId: string, key: string, name: string, ownerId: string\|null                                                     | —           |
+| `projects.project.updated`        | projectId: string, key: string, name: string, changes: array                                                            | —           |
+| `projects.project.status_changed` | projectId: string, key: string, name: string, from: string, to: string                                                  | —           |
+| `projects.project.health_changed` | projectId: string, key: string, name: string, from: string, to: string, note: string\|null                              | —           |
+| `projects.project.deleted`        | projectId: string, key: string, name: string                                                                            | —           |
+| `projects.member.added`           | projectId: string, key: string, name: string, userId: string, role: string                                              | —           |
+| `projects.member.removed`         | projectId: string, key: string, name: string, userId: string                                                            | —           |
+| `projects.milestone.completed`    | projectId: string, key: string, name: string, milestoneId: string, milestone: string                                    | —           |
+| `projects.task.created`           | taskId: string, projectId: string, reference: string, title: string, assigneeId: string\|null                           | —           |
+| `projects.task.updated`           | taskId: string, projectId: string, reference: string, title: string, changes: array                                     | —           |
+| `projects.task.status_changed`    | taskId: string, projectId: string, reference: string, title: string, from: string, to: string                           | —           |
+| `projects.task.assigned`          | taskId: string, projectId: string, reference: string, title: string, assigneeId: string\|null, previousId: string\|null | —           |
+| `projects.task.commented`         | taskId: string, projectId: string, reference: string, title: string, commentId: string                                  | —           |
+| `projects.task.deleted`           | taskId: string, projectId: string, reference: string, title: string                                                     | —           |
 
 ### Events consumed
 
@@ -1621,10 +1850,10 @@ Projects, tasks, milestones, boards, timelines and workload
 
 ### Record types
 
-| Type               | Name    | Permission              |
-| ------------------ | ------- | ----------------------- |
-| `projects.project` | Project | `projects.projects.use` |
-| `projects.task`    | Task    | `projects.projects.use` |
+| Type               | Name    | Permission              | Facts                                                                                                                                                                                                                 |
+| ------------------ | ------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `projects.project` | Project | `projects.projects.use` | key: string, status: string, priority: string, health: string, visibility: string, ownerId: string\|null, departmentCode: string\|null, budgetHours: integer\|null, startDate: string\|null, targetDate: string\|null |
+| `projects.task`    | Task    | `projects.projects.use` | —                                                                                                                                                                                                                     |
 
 ### Sync entities (Integrations Hub)
 
@@ -1655,7 +1884,7 @@ Projects, tasks, milestones, boards, timelines and workload
 | Tool                          | Permission              | Kind      | Input                                                                                                             |
 | ----------------------------- | ----------------------- | --------- | ----------------------------------------------------------------------------------------------------------------- |
 | `projects.my_tasks`           | `projects.projects.use` | read-only | status: string                                                                                                    |
-| `projects.find_tasks`         | `projects.projects.use` | read-only | query?: string, project?: string, assignee?: string, status?: string\\                                            | string, limit: integer |
+| `projects.find_tasks`         | `projects.projects.use` | read-only | query?: string, project?: string, assignee?: string, status?: string\|string, limit: integer                      |
 | `projects.create_task`        | `projects.projects.use` | —         | project: string, title: string, description?: string, assigneeEmail?: string, dueDate?: string, priority?: string |
 | `projects.update_task_status` | `projects.projects.use` | —         | task: string, status: string, comment?: string                                                                    |
 | `projects.project_status`     | `projects.projects.use` | read-only | project: string                                                                                                   |
@@ -1724,17 +1953,17 @@ HTTP calls, SQL tasks, sandboxed scripts and module tasks on a schedule, with re
 
 ### Events emitted
 
-| Event                     | Payload                                                                     | Description                                                                   |
-| ------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `scheduler.job.created`   | jobId: string, name: string, type: string, trigger: string                  | —                                                                             |
-| `scheduler.job.updated`   | jobId: string, name: string, type: string, changes: array                   | —                                                                             |
-| `scheduler.job.deleted`   | jobId: string, name: string, type: string                                   | —                                                                             |
-| `scheduler.job.enabled`   | jobId: string, name: string, type: string                                   | —                                                                             |
-| `scheduler.job.disabled`  | jobId: string, name: string, type: string, automatic: boolean               | A job was switched off (by a person, or automatically after a failure streak) |
-| `scheduler.run.requested` | runId: string, jobId: string, name: string, trigger: string                 | Someone ran a job now (or retried a run)                                      |
-| `scheduler.run.cancelled` | runId: string, jobId: string, name: string                                  | —                                                                             |
-| `scheduler.run.succeeded` | runId: string, jobId: string, name: string, durationMs: integer\\           | null, summary: string\\                                                       | null                                | —   |
-| `scheduler.run.failed`    | runId: string, jobId: string, name: string, status: string, error: string\\ | null, streak: integer                                                         | A run failed after its last attempt |
+| Event                     | Payload                                                                                          | Description                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `scheduler.job.created`   | jobId: string, name: string, type: string, trigger: string                                       | —                                                                             |
+| `scheduler.job.updated`   | jobId: string, name: string, type: string, changes: array                                        | —                                                                             |
+| `scheduler.job.deleted`   | jobId: string, name: string, type: string                                                        | —                                                                             |
+| `scheduler.job.enabled`   | jobId: string, name: string, type: string                                                        | —                                                                             |
+| `scheduler.job.disabled`  | jobId: string, name: string, type: string, automatic: boolean                                    | A job was switched off (by a person, or automatically after a failure streak) |
+| `scheduler.run.requested` | runId: string, jobId: string, name: string, trigger: string                                      | Someone ran a job now (or retried a run)                                      |
+| `scheduler.run.cancelled` | runId: string, jobId: string, name: string                                                       | —                                                                             |
+| `scheduler.run.succeeded` | runId: string, jobId: string, name: string, durationMs: integer\|null, summary: string\|null     | —                                                                             |
+| `scheduler.run.failed`    | runId: string, jobId: string, name: string, status: string, error: string\|null, streak: integer | A run failed after its last attempt                                           |
 
 ### Events consumed
 
@@ -1742,9 +1971,9 @@ HTTP calls, SQL tasks, sandboxed scripts and module tasks on a schedule, with re
 
 ### Record types
 
-| Type            | Name          | Permission            |
-| --------------- | ------------- | --------------------- |
-| `scheduler.job` | Scheduled job | `scheduler.jobs.read` |
+| Type            | Name          | Permission            | Facts |
+| --------------- | ------------- | --------------------- | ----- |
+| `scheduler.job` | Scheduled job | `scheduler.jobs.read` | —     |
 
 ### Task types (Scheduled jobs)
 

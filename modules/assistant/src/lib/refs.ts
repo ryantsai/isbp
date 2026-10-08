@@ -47,6 +47,31 @@ export function resolveRefs(
   return { value: walk(value), missing };
 }
 
+/** The value with `"$ref:<old>"` written as `"$ref:<new>"` for every renamed reference (others unchanged). */
+export function renameRefs(value: unknown, names: ReadonlyMap<string, string>): unknown {
+  const walk = (v: unknown): unknown => {
+    if (typeof v === 'string') {
+      const r = refOf(v);
+      return r !== null && names.has(r) ? `${REF_PREFIX}${names.get(r)}` : v;
+    }
+    if (Array.isArray(v)) return v.map(walk);
+    if (v && typeof v === 'object')
+      return Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, x]) => [k, walk(x)]));
+    return v;
+  };
+  return walk(value);
+}
+
+/** `base`, or `base-2`, `base-3`… — the first name not in `taken` (at most 40 characters, like every ref). */
+export function uniqueRef(base: string, taken: ReadonlySet<string>): string {
+  if (!taken.has(base)) return base;
+  for (let n = 2; ; n++) {
+    const suffix = `-${n}`;
+    const name = `${base.slice(0, 40 - suffix.length)}${suffix}`;
+    if (!taken.has(name)) return name;
+  }
+}
+
 /** A readable name for an object value: `name` (plain or per locale), `label`, `title` or `key`. */
 export function labelOf(value: unknown, locale = 'en'): string | null {
   if (!value || typeof value !== 'object') return null;

@@ -24,7 +24,11 @@
     "email": "Enter a valid email address",
     "url": "Enter a web address starting with https://",
     "date": "Enter a valid date",
-    "user": "Choose a person"
+    "user": "Choose a person",
+    "record": "Choose a record you can see that this field accepts",
+    "minRows": "Add at least {min} rows",
+    "maxRows": "Enter at most {max} rows",
+    "rule": "These answers don't meet the form's rules"
   },
   "localized": {
     "languages": "Languages",
@@ -77,7 +81,26 @@
     "and": "and",
     "or": "or",
     "always": "always",
-    "not": "not ({condition})"
+    "not": "not ({condition})",
+    "compareWithField": "Compare with another field",
+    "otherField": "Other field",
+    "offsetDays": "Days to add to the date (negative: before)",
+    "days": "days",
+    "offsetText": "{offset} days",
+    "today": "Today"
+  },
+  "rows": {
+    "row": "Row {n}",
+    "rows": "Rows of {field}",
+    "add": "Add row",
+    "empty": "No rows yet.",
+    "count": "{count, plural, one {# row} other {# rows}} of at most {max}",
+    "added": "Row {n} added",
+    "removed": "Row {n} removed",
+    "moved": "Row {n} moved to position {position}",
+    "moveUp": "Move row {n} up",
+    "moveDown": "Move row {n} down",
+    "remove": "Remove row {n}"
   },
   "workflow": {
     "start": "Request submitted",
@@ -91,7 +114,9 @@
       "approved": "Approved",
       "rejected": "Rejected",
       "skipped": "Skipped",
-      "waiting": "Not reached yet"
+      "waiting": "Not reached yet",
+      "delegated": "Handed over",
+      "cancelled": "Closed"
     },
     "types": {
       "approval": "Approval",
@@ -113,7 +138,8 @@
       "department-head": "Department head",
       "fact": "Person in “{fact}”",
       "requester": "The requester",
-      "fallback": "{rule}, otherwise {fallback}"
+      "fallback": "{rule}, otherwise {fallback}",
+      "factGroup": "Members of the group in “{fact}”"
     },
     "when": "Only if {condition}",
     "skipped": {
@@ -125,5 +151,21 @@
     "decided": "{name}",
     "branches": "{count, plural, one {# branch} other {# branches}}",
     "steps": "{count, plural, one {# step} other {# steps}}"
+  },
+  "record": {
+    "placeholder": "Choose a record",
+    "placeholderMany": "Add records",
+    "search": "Search by reference or title…",
+    "loading": "Searching…",
+    "noResults": "No matching records",
+    "clear": "Clear selection",
+    "remove": "Remove {name}",
+    "hidden": "{count, plural, one {# record you can’t see} other {# records you can’t see}}",
+    "picked": "{count, plural, =0 {No records chosen} one {# record chosen} other {# records chosen}}",
+    "max": "At most {max} records",
+    "chosen": "(chosen)"
+  },
+  "formErrors": {
+    "title": "Please check the form"
   }
 }

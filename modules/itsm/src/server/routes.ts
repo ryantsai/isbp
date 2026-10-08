@@ -2,6 +2,7 @@ import { localizedTextSchema } from '@isbp/sdk';
 import { type ModuleContext, type ModuleRouter, httpErrors, pageSchema } from '@isbp/sdk/server';
 import { z } from 'zod';
 import {
+  acceptanceSchema,
   activityQuerySchema,
   activitySchema,
   assignmentGroupSchema,
@@ -259,6 +260,25 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
     },
     async (req) => {
       const row = await svc.confirm(req.params.ref, req.body, req.auth);
+      return svc.detailOf(row.id, req.auth);
+    },
+  );
+
+  app.post(
+    '/tickets/:ref/acceptance',
+    {
+      config: ANY,
+      schema: {
+        tags,
+        summary:
+          'Change requester, in the post-implementation review: accept the change, or report a problem (with the reason)',
+        params: refParams,
+        body: acceptanceSchema,
+        response: { 200: ticketDetailSchema },
+      },
+    },
+    async (req) => {
+      const row = await svc.accept(req.params.ref, req.body, req.auth);
       return svc.detailOf(row.id, req.auth);
     },
   );

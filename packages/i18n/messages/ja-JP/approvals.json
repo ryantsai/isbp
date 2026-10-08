@@ -33,7 +33,10 @@
     "reject": "却下",
     "cancel": "キャンセル",
     "approvedToast": "承認しました",
-    "rejectedToast": "却下し、理由を申請者に通知しました"
+    "rejectedToast": "却下し、理由を申請者に通知しました",
+    "fieldsTitle": "入力項目",
+    "fieldsHint": "決定とともに保存され、申請に表示されます。* の付いた項目は承認に必要です。",
+    "fieldsOptionalHint": "却下する場合は省略できます。入力した内容は決定とともに保存され、申請に表示されます。"
   },
   "delegate": {
     "title": "この承認を他の人に委任",

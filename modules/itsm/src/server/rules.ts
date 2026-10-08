@@ -6,6 +6,7 @@ import {
   DONE_STATUSES,
   formatTicketRef,
   type LinkType,
+  SIGN_OFF_TRANSITIONS,
   type TicketStatus,
   TRANSITIONS,
   type TicketType,
@@ -37,13 +38,22 @@ export const FINAL_STATUSES: readonly TicketStatus[] = ['closed', 'cancelled', '
 /** Moving to these needs a resolution code and notes. */
 export const RESOLVING_STATUSES: readonly TicketStatus[] = ['resolved', 'fulfilled', 'cancelled'];
 
-/** Statuses an agent may move a ticket to from its current one. */
-export function allowedTransitions(type: TicketType, status: TicketStatus): TicketStatus[] {
+/**
+ * Statuses an agent may move a ticket to from its current one. While a resolution waits for its sign-off
+ * (`signOff`) it can only go back to work (withdrawing the resolution) or be cancelled.
+ */
+export function allowedTransitions(type: TicketType, status: TicketStatus, signOff = false): TicketStatus[] {
+  if (signOff && status === 'pending_approval') return [...SIGN_OFF_TRANSITIONS];
   return [...(TRANSITIONS[type][status] ?? [])];
 }
 
-export function canTransition(type: TicketType, from: TicketStatus, to: TicketStatus): boolean {
-  return allowedTransitions(type, from).includes(to);
+export function canTransition(
+  type: TicketType,
+  from: TicketStatus,
+  to: TicketStatus,
+  signOff = false,
+): boolean {
+  return allowedTransitions(type, from, signOff).includes(to);
 }
 
 /** Colour family for a status (always shown with its label — never colour alone). */
@@ -71,6 +81,10 @@ export function statusTone(status: TicketStatus): StatusTone {
       return 'neutral';
   }
 }
+
+/** The status label key, "Waiting for sign-off" while a resolution waits for its sign-off. */
+export const statusLabelKey = (t: { status: TicketStatus; signOffInstanceId?: string | null }) =>
+  t.signOffInstanceId && t.status === 'pending_approval' ? 'itsm.signOff.status' : `itsm.status.${t.status}`;
 
 /** Where a ticket stands for the request portal ("My requests"). */
 export function portalState(status: TicketStatus): 'open' | 'closed' {

@@ -45,10 +45,10 @@
       "log": "傳送紀錄"
     },
     "channels": {
-      "intro": "將選定的通知張貼到團隊頻道或其他系統，例如將轉呈的簽核傳送到 IT 值班頻道。訊息會以通道設定的語言撰寫。",
+      "intro": "將選定的通知張貼到團隊通道或其他系統，例如將轉呈的簽核傳送到 IT 值班通道。訊息會以通道設定的語言撰寫。",
       "add": "新增通道",
       "emptyTitle": "尚未設定任何通道",
-      "emptyBody": "連接 Microsoft Teams 或 Slack 頻道，或任何 HTTPS 端點，以接收選定的通知。",
+      "emptyBody": "連接 Microsoft Teams 或 Slack 通道，或任何 HTTPS 端點，以接收選定的通知。",
       "deleteTitle": "要刪除 {name} 嗎？",
       "deleteBody": "通知會立即停止傳送到此通道，其傳送歷程仍會保留在紀錄中。",
       "delete": "刪除通道",
@@ -68,7 +68,7 @@
       "test": {
         "button": "傳送測試",
         "hint": "立即張貼一則測試訊息，即使通道已關閉也可以",
-        "sent": "測試訊息已送達，請到頻道查看。",
+        "sent": "測試訊息已送達，請到通道查看。",
         "failed": "通道未接受測試訊息。",
         "sentToast": "已傳送測試訊息到 {name}",
         "failedToast": "傳送測試訊息到 {name} 失敗"
@@ -81,8 +81,8 @@
         "type": "類型",
         "typeLocked": "無法變更",
         "guide": {
-          "teams": "在 Microsoft Teams 中開啟頻道，選擇 ••• › 工作流程 ›「收到 Webhook 要求時張貼到頻道」，完成步驟後複製顯示的網址。",
-          "slack": "在 Slack 中，到 api.slack.com/apps 建立應用程式，開啟 Incoming Webhooks，選擇「Add New Webhook to Workspace」並挑選頻道，然後複製網址（https://hooks.slack.com/services/…）。",
+          "teams": "在 Microsoft Teams 中開啟通道，選擇 ••• › 工作流程 ›「收到 Webhook 要求時張貼到頻道」，完成步驟後複製顯示的網址。",
+          "slack": "在 Slack 中，到 api.slack.com/apps 建立應用程式，開啟 Incoming Webhooks，選擇「Add New Webhook to Workspace」並挑選通道，然後複製網址（https://hooks.slack.com/services/…）。",
           "webhook": "您自己維運的任何 HTTPS 端點。我們會以 POST 傳送包含標題、內文、連結及類型的 JSON，並以儲存後顯示一次的密鑰簽章，讓您確認每個要求確實來自本平台。"
         },
         "name": "名稱",

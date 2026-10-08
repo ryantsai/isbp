@@ -39,7 +39,7 @@ stands.
 | A request form              | You need equipment, software or something else IT provides, for example **Laptop request** in the demo ([details](#request-equipment-or-software-with-a-form)) |
 
 Cards marked **Needs approval** go to an approver before IT acts on them. Request forms are grouped by category
-(**Hardware**, **Software**, **Security**, **Access**, **Other**). Above the cards, **Ask IT** offers to answer your
+(**Hardware**, **Software**, **Security**, **Access**, **Changes**, **Other**). Above the cards, **Ask IT** offers to answer your
 question straight away ([details](#ask-it-before-you-raise-a-ticket)).
 
 ![The Requests page with the Ask IT card, the request cards and My requests](../../../apps/web/public/help/en/employees-portal.jpg)
@@ -52,16 +52,32 @@ question straight away ([details](#ask-it-before-you-raise-a-ticket)).
 Use a request form when you need a new laptop, a monitor, a software licence or another item IT provides. The form
 asks exactly what IT needs to know, and the approvals it needs are attached to it.
 
-1. Go to **Requests** and select the form under **What do you need?**.
+1. Go to **Requests** and select the form under **What do you need?**, or open the link to the form you were given.
 2. Fill in the fields. Some questions appear only when they apply: for example, in **Request a laptop or equipment**,
    **Laptop model** appears only after you choose **Laptop** as the **Item**.
-3. Select **Submit**. If a required field is empty, the form shows **This field is required** next to it.
+3. Some forms ask you to pick something ISBP already knows, such as the configuration items a change touches. Select
+   **Choose a record** (or **Add records** when you can pick several), type part of its reference or title under
+   **Search by reference or title…** and pick it. You only see records you're allowed to see, and a form may offer
+   only some of them, for example production systems only.
+4. If the form needs approval, check **Who will approve this?** below the questions: each approval step with the
+   people it would ask, based on your answers so far. It updates as you fill in the form, for example when the
+   system you picked needs an extra approval. Steps that don't apply to your answers are marked **Skipped for this
+   request** or left out.
+5. Select **Submit**. If a required field is empty, the form shows **This field is required** next to it. Forms can
+   also check answers together, for example that the end date isn't before the start date: the form's own message
+   then appears on the field to fix, or above the form under **Please check the form**.
 
 **What happens next:** the request gets a reference such as `REQ-01042` and opens on its own page with its
 **Approval path**. If the form needs approval (the page says **This request goes through an approval. You'll be
 notified at each step.**), it goes to the first approver. When everyone has approved, IT fulfils it: many forms
 become a service desk ticket, and the request page shows the ticket's progress (**Being fulfilled**, then
-**Fulfilled**) and a link to it (**Open SR-…**). You're notified when the request is approved or rejected.
+**Fulfilled**) and a link to it (**Open SR-…**). Some forms also start the work themselves once the request is sent
+or approved, such as raising a change or granting a role: the request page lists each step under **What happens
+next**, with its status (**Waiting**, **Running**, **Done**) and a link to what it created. You're notified when the
+request is approved or rejected.
+
+> **Important:** If **Who will approve this?** says **Nobody can approve this step — the request would be
+> rejected**, nobody is set up to approve that step for your answers. Don't send it: ask the service desk first.
 
 > **Tip:** In the demo, the **Laptop request** form asks for the **Estimated cost (TWD)**. The department head
 > approves every laptop request, and IT asset management approves too when the cost is above 60 000 TWD. Approved
@@ -159,17 +175,21 @@ requests, tickets you reported and database access requests.
    says **Waiting for …** with the step name and the approvers' pictures.
 4. Select a row to open the request.
 
-| Status you see                                                                 | Meaning                                                                      |
-| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| **Waiting for approval**                                                       | An approver hasn't decided yet; the request page shows who (**Waiting for**) |
-| **Approved** / **Rejected**                                                    | Decided. A rejection shows the approver's reason under **Rejected:**         |
-| **Withdrawn**                                                                  | You (or the person who asked for you) withdrew it                            |
-| **Couldn't be granted**                                                        | Approved, but the role no longer exists or the person is no longer active    |
-| **New**, **In progress**, **On hold**, **Resolved**, **Fulfilled**, **Closed** | A ticket, or a form request being fulfilled through a ticket                 |
-| **Being set up**, **Access granted**, **Ended**, **Removed**                   | Database access ([details](#request-database-access))                        |
+| Status you see                                                                 | Meaning                                                                         |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| **Waiting for approval**                                                       | An approver hasn't decided yet; the request page shows who (**Waiting for**)    |
+| **Approved** / **Rejected**                                                    | Decided. A rejection shows the approver's reason under **Rejected:**            |
+| **Withdrawn**                                                                  | You (or the person who asked for you) withdrew it                               |
+| **Couldn't be granted**                                                        | Approved, but the role no longer exists or the person is no longer active       |
+| **New**, **In progress**, **On hold**, **Resolved**, **Fulfilled**, **Closed** | A ticket, or a form request being fulfilled through a ticket                    |
+| **Being set up**, **Access granted**, **Ended**, **Removed**                   | Database access ([details](#request-database-access))                           |
+| **Done**                                                                       | Approved, and the form's own steps created what it set out to, such as a change |
 
 The request page shows the **Approval path** (each step, who decided and when) and the **History**. For access
-requests it also shows the role, **For**, **Duration** and **Justification**; for forms, your **Answers**.
+requests it also shows the role, **For**, **Duration** and **Justification**; for forms, your **Answers** (records you
+picked are links) and, once the form has started work on its own, **What happens next**: each step, its status
+(**Waiting**, **Running**, **Done**, **Failed** or **Skipped**) and a link to what it created, such as **Open CHG-…**.
+If a step failed, the people who maintain the form are told and can run it again.
 
 > **Tip:** The **Dashboard** also shows **Your open requests** and, for approvers, **Waiting for your approval**.
 
@@ -195,6 +215,25 @@ Withdraw an access or form request you no longer need, as long as it's still wai
 
 **What happens next:** the request shows **Withdrawn** and approvers don't see it any more. You can send a new
 request later.
+
+## Fill in forms you've been asked to
+
+Some checks are due by a date, often every month or quarter: the server room inspection, a backup check, a firewall
+rule review. When someone asks you (or a group you're in) to fill in such a form, it appears under **To do** at the
+top of the **Requests** page and on the **Dashboard**, and you get a notification **To do: …**.
+
+1. Go to **Requests**. **To do** lists your open to-dos, the soonest due first, each with its form and its due date:
+   **Due soon** (within two days) or **Overdue** when it's late. A to-do for a group says **For …**: anyone in the
+   group can do it.
+2. Select a to-do. The form opens with the to-do above it (for example, **Server room inspection 2026-10 — Due Oct
+   31**), any note from the person who asked, and **Sending the form completes this to-do.**
+3. Fill in the form and select **Submit**.
+
+**What happens next:** you see **Done: …** with the request number, and the to-do leaves your list (for a group, it
+leaves everyone's list). The request appears under **My requests** like any other; if the form needs approval, it
+goes through it as usual. Until you do it, you're reminded once a day from two days before the due date and after it,
+and once it's overdue the people who maintain the form are told. In the demo, **Server room inspection** for this
+month is waiting for the IT Administrators group.
 
 ## See your devices and report a problem with one
 
@@ -232,11 +271,19 @@ decision. Decide promptly: approval steps have deadlines, with reminders before 
    lists them, the most urgent first; each shows the workflow, the step, the requester and a deadline badge such as
    **Due in 5 hours** or **Overdue by 2 days**.
 2. To see the details first, select the request. The panel shows **What is requested**, the **Approval path**, the
-   **History** and a link to **Open the request**.
+   **History** and a link to **Open the request**. Records the requester picked on a form, such as configuration
+   items, are links you can open (those you aren't allowed to see are only counted).
 3. Select **Approve** or **Reject**.
 4. In the dialog, add a comment: optional when you approve (**Comment (optional)**), required when you reject (**Why
    are you rejecting it?**). The requester sees it.
-5. Select **Approve** or **Reject** in the dialog.
+5. Some steps ask you to fill in fields with your decision, under **To fill in** — for example an evaluation result,
+   handling notes or the date a device was wiped. Fields marked \* are needed to approve; when you reject they are
+   optional unless the step says otherwise. What you enter is kept with your decision and shown on the request.
+6. Select **Approve** or **Reject** in the dialog.
+
+To add evidence, such as a screenshot or a signed form, open the request (**Open the request**) and add it under
+**Attachments**; you can also link related records there. Requesters and approvers can add them until the request is
+withdrawn.
 
 ![The approvals inbox with requests waiting for a decision](../../../apps/web/public/help/en/employees-approvals.jpg)
 
@@ -317,6 +364,7 @@ Your preferences follow you to every device you sign in on.
 - Laptops and other devices are managed by asset managers: [Assets](assets.md).
 - Database roles, accounts and access reviews: [Data and automation](data-and-automation.md).
 - How Ask IT and the assistant use AI, and what they do with your data: [Assistant and AI](assistant-and-ai.md).
-- Administrators design the forms and approval workflows you see here: [Administrators](administrators.md).
+- Administrators design the forms and approval workflows you see here: [Administrators](administrators.md) and
+  [Build your own process](processes.md).
 - End-to-end examples, such as a new joiner's first week: [How ISBP fits our work](how-it-fits-our-work.md).
 - Something not working as described? [FAQ and troubleshooting](faq.md).

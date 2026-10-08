@@ -18,6 +18,19 @@ feedback, and hybrid semantic search through the shared AI index (`ctx.ai.index`
 | `src/server/seed*.ts`      | Demo categories and ~30 real help-desk articles, indexed directly                   |
 | `src/web/pages/*`          | Home (search + `knowledge.home.assist` slot), article, manage, editor, categories   |
 
+**Classification (Phase 8).** Articles carry an optional classification label (`articles.classification`): one of
+the labels in the module setting `classification.levels` (one per line, most restrictive first; default the built-in
+`strictly-confidential`, `customer-confidential`, `confidential`, `internal-use-only`, translated in the catalog under
+`classificationLevel`; any other line is a custom label shown as written). `GET /classifications` lists them; create
+and update refuse other values (400). The label shows as a badge (tone by rank) and a handling banner on the article,
+in lists and search results and in the editor, filters lists (`?classification=<key>|none`) and is the record fact
+`classification` of `knowledge.article`. It doesn't change who may read the article (that is the audience).
+
+**Attachments (Phase 8).** The article page hosts the core files panel (`core.record.files`) for people who may edit
+the article, and for readers when the article has attachments (`attachments` on the DTO). The record resolver's
+`editable` follows `canEdit`, so editors (and authors of their drafts) add and remove files, and links, while
+everyone who can read the article downloads them; files of drafts and internal articles stay hidden from readers.
+
 **Sync (Phase 5).** `src/server/sync.ts` adapts `knowledge.article` for the Integrations Hub (matched on title;
 permission `knowledge.articles.sync`). The hub's agent acts as the author of what it syncs: it creates and edits
 drafts and submits or withdraws them. Publishing (a new version), retiring, restoring and editing a live article

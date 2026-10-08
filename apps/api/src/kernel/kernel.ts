@@ -28,11 +28,13 @@ import { createFormsService, createPortalService } from './portal';
 import { QueueFactory } from './queues';
 import { RbacService } from './rbac';
 import { RecordRegistry } from './records';
+import { ReminderService } from './reminders';
 import { Sandbox } from './sandbox';
 import { SessionService, toSessionUser } from './sessions';
 import { SettingsService } from './settings';
 import { CustomizationRegistry } from './customizations';
 import { ConnectorRegistry, SyncRegistry } from './integrations';
+import { ProcessActionRegistry } from './process-actions';
 import { TaskTypeRegistry } from './task-types';
 import { installDefaultWorkflows } from './workflow/defaults';
 import { WorkflowEngine } from './workflow/engine';
@@ -86,7 +88,7 @@ export async function createKernel(
   });
   const hub = new NotificationHub(redis, logger);
   const fields = new CustomFieldRegistry(db, registry);
-  const workflows = new WorkflowEngine({ db, registry, notifications, logger, core });
+  const workflows = new WorkflowEngine({ db, registry, notifications, logger, core, fields });
   const apiClients = new ApiClientAuth(db, redis, config.OAUTH_TOKEN_TTL_SECONDS);
   const ai = new AiGateway({
     db,
@@ -123,6 +125,8 @@ export async function createKernel(
     core,
     forgetFiles: (ref, tx) => files.forgetRecord(ref, tx),
   });
+  fields.recordFacts = (refs) => records.facts(refs);
+  fields.readableRecords = (refs, auth) => records.readable(refs, auth);
   const secrets = {
     seal: (plain: string) => box.encrypt(plain),
     open: (sealed: string) => box.decrypt(sealed),
@@ -131,6 +135,22 @@ export async function createKernel(
   const databasesService = databases.service();
   const taskTypes = new TaskTypeRegistry(registry);
   const taskTypesService = taskTypes.service();
+  const processActions = new ProcessActionRegistry({
+    db,
+    registry,
+    queues,
+    records,
+    box,
+    logger: logger.child({ component: 'process-actions' }),
+    publicUrl: config.PUBLIC_URL,
+    core,
+  });
+  const reminders = new ReminderService({
+    db,
+    registry,
+    notifications,
+    logger: logger.child({ component: 'reminders' }),
+  });
   const outbound = new OutboundHttp(config.allowPrivateWebhooks);
   const httpClient = outbound.client();
   const sandbox = Sandbox.fromConfig(config);
@@ -274,6 +294,8 @@ export async function createKernel(
     sandbox,
     sync,
     customizations,
+    processActions,
+    reminders,
     mcp,
     migrate,
     ready,

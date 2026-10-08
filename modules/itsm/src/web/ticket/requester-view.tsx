@@ -14,6 +14,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { TicketDetail, TicketStatus } from '../../contracts';
 import { TicketStatusBadge, TypeIcon } from '../components/badges';
 import { recordRef, useCategoryLabel } from '../lib';
+import { AcceptancePanel } from './acceptance-panel';
 import { Composer, type ComposerState, type ComposerTab } from './composer';
 import { ConfirmPanel } from './confirm-panel';
 import { ResolutionCard, SourceChip } from './parts';
@@ -123,7 +124,7 @@ export function RequesterView({ ticket }: { ticket: TicketDetail }) {
             <TypeIcon type={ticket.type} />
             {ticket.reference}
           </span>
-          <TicketStatusBadge status={ticket.status} />
+          <TicketStatusBadge status={ticket.status} signOff={Boolean(ticket.signOff)} />
           <SourceChip ticket={ticket} />
         </div>
         <h1 className="text-2xl font-semibold tracking-tight text-balance break-words">{ticket.title}</h1>
@@ -148,6 +149,7 @@ export function RequesterView({ ticket }: { ticket: TicketDetail }) {
       </Card>
 
       <ConfirmPanel ticket={ticket} />
+      <AcceptancePanel ticket={ticket} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <section aria-labelledby="itsm-conversation" className="grid min-w-0 content-start gap-4">

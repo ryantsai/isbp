@@ -12,7 +12,13 @@ import {
 } from '@isbp/db/schema';
 import { services } from '@isbp/module-scheduler/server';
 import { jobs, runLogs, runs } from '@isbp/module-scheduler/schema';
-import { defineManifest, defineServerModule, httpErrors, type ModuleContext } from '@isbp/sdk/server';
+import {
+  defineManifest,
+  defineServerModule,
+  httpErrors,
+  type ModuleContext,
+  type TaskContext,
+} from '@isbp/sdk/server';
 import { and, asc, eq } from 'drizzle-orm';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -24,6 +30,9 @@ import { createHarness, type Harness, type LooseJson, PASSWORD, type Session } f
 /** Only Scheduled jobs (other Phase 4 modules may be mid-change); restored after setup. */
 const MODULES = process.env.ISBP_TEST_MODULES;
 const API = '/api/v1/scheduler';
+
+/** What the scheduler last handed the echo task. */
+let lastTask: TaskContext | null = null;
 
 /** A module contributing a task type, like ETL's `etl.pipeline`. */
 const echoModule = defineServerModule(
@@ -52,6 +61,7 @@ const echoModule = defineServerModule(
           href: '/echo',
         }),
         run: async (config: { message: string }, task) => {
+          lastTask = task;
           task.log(`echo ${config.message} (attempt ${task.attempt})`);
           return {
             summary: `said ${config.message}`,
@@ -644,6 +654,27 @@ describe('module task types', () => {
       href: '/echo/1',
       metrics: { words: 2 },
     });
+    // The task learns whether it is the last attempt and who the job alerts itself, so a task type that sends
+    // its own failure notice (ETL's) leaves those people out.
+    expect(lastTask).toMatchObject({ attempt: 1, maxAttempts: 1, failureRecipients: [h.ids.admin] });
+    const quiet = await createJob('admin', {
+      name: 'Quiet echo',
+      type: 'sched-itest.echo',
+      config: { message: 'shh' },
+      ownerId: ids.operator,
+      ownerGroupId: ids.opsTeam,
+      retries: { maxAttempts: 2, backoff: 'fixed', delaySeconds: 1 },
+      alerts: { onFailure: false, channels: false, autoDisableAfter: 0 },
+    });
+    expect(quiet.status, JSON.stringify(quiet.body)).toBe(201);
+    await waitRun(await runNow(quiet.body.id), finished);
+    expect(lastTask).toMatchObject({ maxAttempts: 2, failureRecipients: [] });
+    const alerting = await h.call(s.admin!, 'PATCH', `${API}/jobs/${quiet.body.id}`, {
+      alerts: { onFailure: true, channels: false, autoDisableAfter: 0 },
+    });
+    expect(alerting.status, JSON.stringify(alerting.body)).toBe(200);
+    await waitRun(await runNow(quiet.body.id), finished);
+    expect([...(lastTask?.failureRecipients ?? [])].sort()).toEqual([ids.operator, ids.operator2].sort());
     const refused = await createJob('admin', {
       name: 'Refused echo',
       type: 'sched-itest.echo',

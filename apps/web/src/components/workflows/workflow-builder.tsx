@@ -65,6 +65,9 @@ import { BuilderContext, type BuilderContextValue } from './builder-context';
 import { cloneStep, getSequence, insertStep, moveStep, newStep, removeStep, replaceStep } from './graph-ops';
 import { type SimulationView, Simulator } from './simulator';
 import { StepEditor } from './step-editor';
+import { useTodayFact } from '../fields/field-utils';
+import { useCustomFieldFacts, useFieldFacts } from './field-facts';
+import { useStepFacts } from './step-facts';
 import { useFactOptions } from './use-fact-label';
 
 const STEP_TYPES: { type: StepType; icon: React.ReactNode }[] = [
@@ -99,33 +102,17 @@ function draftIssues(graph: WorkflowGraph) {
   return issues;
 }
 
-/** Fields of the forms that use a form-submission workflow, as `data.<key>` facts. */
+/**
+ * Fields of the form chosen in "Use the fields of", as `data.<key>` facts, plus `records.<key>.<fact>` for the records
+ * its record fields pick.
+ */
 function useFormFacts(def: WorkflowDefinition | undefined, formId: string | null): FactOption[] {
-  const locale = useLocale();
   const { data } = useApiQuery<FormDetail>(formId ? `/forms/${formId}` : null);
-  return useMemo(() => {
-    if (!def || def.triggerKey !== 'core.form-submission' || !data) return [];
-    return formFields(data.draft).map((f) => ({
-      path: `data.${f.key}`,
-      label: (f.label[locale as 'en'] ?? f.label.en ?? Object.values(f.label)[0] ?? f.key) as string,
-      type:
-        f.type === 'number'
-          ? 'number'
-          : f.type === 'boolean'
-            ? 'boolean'
-            : f.type === 'date'
-              ? 'date'
-              : f.type === 'user'
-                ? 'id'
-                : f.type === 'multiselect'
-                  ? 'list'
-                  : 'string',
-      options: f.options?.map((o) => ({
-        value: o.value,
-        label: (o.label[locale as 'en'] ?? o.label.en ?? o.value) as string,
-      })),
-    }));
-  }, [data, def, locale]);
+  const fields = useMemo(
+    () => (def?.triggerKey === 'core.form-submission' && data ? formFields(data.draft) : []),
+    [data, def?.triggerKey],
+  );
+  return useFieldFacts(fields, 'data');
 }
 
 function InsertMenu({ onInsert }: { onInsert: (type: StepType) => void }) {
@@ -239,10 +226,24 @@ function Editor({ def, trigger }: { def: WorkflowDefinition; trigger: WorkflowTr
   );
   const triggerFacts = useFactOptions(trigger?.facts ?? []);
   const formFacts = useFormFacts(def, formId);
+  // Triggers whose subject has custom fields (`customFieldEntity`) pass them as `attributes.*` and `records.*`.
+  const customFacts = useCustomFieldFacts(trigger?.customFieldEntity);
+  // `today` (YYYY-MM-DD, UTC) is there for every trigger: "the planned start is within 3 days".
+  const today = useTodayFact();
   const facts = useMemo(
-    () => [...triggerFacts.filter((f) => f.path !== 'data'), ...formFacts],
-    [triggerFacts, formFacts],
+    () => [
+      ...triggerFacts.filter(
+        (f) => !['data', 'records', 'attributes'].includes(f.path) && !f.path.startsWith('attributes.'),
+      ),
+      ...formFacts,
+      ...customFacts,
+      today,
+    ],
+    [triggerFacts, formFacts, customFacts, today],
   );
+  // What approvers fill in (`steps.<id>.<key>`): a step sees the fields of the approval steps before it.
+  const stepFacts = useStepFacts(draft);
+  const allFacts = useMemo(() => [...facts, ...stepFacts.all], [facts, stepFacts.all]);
 
   const originalName = tr.has(def.name) ? tr(def.name) : def.name;
   const dirty =
@@ -507,7 +508,7 @@ function Editor({ def, trigger }: { def: WorkflowDefinition; trigger: WorkflowTr
               <div style={{ zoom }}>
                 <WorkflowDiagram
                   graph={draft}
-                  names={{ ...names, facts }}
+                  names={{ ...names, facts: allFacts }}
                   issues={panel === 'test' ? undefined : byStep}
                   runtime={runtime}
                   chosen={panel === 'test' ? simulation?.chosen : undefined}
@@ -573,12 +574,16 @@ function Editor({ def, trigger }: { def: WorkflowDefinition; trigger: WorkflowTr
               <div className="max-h-[75vh] overflow-y-auto p-4">
                 <TabsContent value="step">
                   {selectedStep ? (
-                    <StepEditor
-                      key={selectedStep.id}
-                      step={selectedStep}
-                      issues={byStep[selectedStep.id] ?? []}
-                      onChange={(s: WorkflowStep) => edit(replaceStep(draft, s))}
-                    />
+                    <BuilderContext
+                      value={{ ...ctx, facts: [...facts, ...stepFacts.before(selectedStep.id)] }}
+                    >
+                      <StepEditor
+                        key={selectedStep.id}
+                        step={selectedStep}
+                        issues={byStep[selectedStep.id] ?? []}
+                        onChange={(s: WorkflowStep) => edit(replaceStep(draft, s))}
+                      />
+                    </BuilderContext>
                   ) : (
                     <p className="text-sm text-muted-foreground">{t('selectStep')}</p>
                   )}
@@ -682,7 +687,7 @@ function Editor({ def, trigger }: { def: WorkflowDefinition; trigger: WorkflowTr
                   </div>
                 </TabsContent>
                 <TabsContent value="test">
-                  <Simulator graph={draft} facts={facts} onResult={setSimulation} />
+                  <Simulator graph={draft} facts={allFacts} onResult={setSimulation} />
                 </TabsContent>
               </div>
             </Tabs>

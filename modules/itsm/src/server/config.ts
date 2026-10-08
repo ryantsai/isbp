@@ -404,7 +404,14 @@ export class ConfigService {
       this.ctx.db
         .select({ key: sql<string>`${tickets.source}->>'formKey'`, n: count() })
         .from(tickets)
-        .where(and(eq(tickets.channel, 'form'), isNotNull(tickets.source)))
+        .where(
+          and(
+            eq(tickets.channel, 'form'),
+            isNotNull(tickets.source),
+            // Catalog fulfilment only (process actions raise tickets of their own).
+            sql`${tickets.source}->>'type' = 'form-submission'`,
+          ),
+        )
         .groupBy(sql`${tickets.source}->>'formKey'`),
     ]);
     const byKey = new Map(mappings.map((m) => [m.formKey, m]));

@@ -48,7 +48,7 @@
     "saving": "正在儲存…",
     "saved": "已儲存",
     "emailUnavailable": "本平台尚未設定電子郵件通知，因此您只會在應用程式內收到通知。系統管理員可開啟電子郵件功能。",
-    "tableCaption": "通知類型及其傳送管道",
+    "tableCaption": "通知類型及其傳送通道",
     "columns": {
       "type": "通知",
       "inApp": "應用程式內",

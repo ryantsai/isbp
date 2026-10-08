@@ -377,6 +377,8 @@ export class Engine {
 
   /** Runs the task once, with heartbeat, timeout and cancel wired to an AbortSignal. */
   private async attempt(run: RunRow, job: JobRow): Promise<AttemptResult> {
+    // Who `finishAttempt` alerts after the last attempt: task types that notify on their own leave them out.
+    const failureRecipients = job.notifyOnFailure ? await this.recipients(this.ctx.db, job) : [];
     const controller = new AbortController();
     active.set(run.id, controller);
     const state: { reason: 'timeout' | 'cancelled' | 'lost' | null } = { reason: null };
@@ -419,7 +421,10 @@ export class Engine {
       runId: run.id,
       jobId: job.id,
       attempt: run.attempt,
+      maxAttempts: run.maxAttempts,
+      failureRecipients,
       scheduledFor: run.scheduledFor,
+      timeZone: job.timezone,
       lastSuccessAt: job.lastSuccessAt,
       timeoutMs: job.timeoutSeconds * 1_000,
       signal: controller.signal,

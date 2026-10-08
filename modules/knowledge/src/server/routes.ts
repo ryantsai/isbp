@@ -7,6 +7,7 @@ import {
   articleQuerySchema,
   articleSchema,
   categorySchema,
+  classificationsSchema,
   createArticleSchema,
   createCategorySchema,
   feedbackInputSchema,
@@ -19,7 +20,7 @@ import {
   versionSummarySchema,
 } from '../contracts';
 import { PERMISSIONS } from '../lifecycle';
-import { ArticleService } from './articles';
+import { ArticleService, classificationLevels } from './articles';
 import { CategoryService } from './categories';
 import { guideArticleRef } from './guide';
 
@@ -34,6 +35,22 @@ const { read: READ, write: WRITE, publish: PUBLISH, manageCategories: MANAGE_CAT
 export function routes(app: ModuleRouter, ctx: ModuleContext) {
   const svc = new ArticleService(ctx);
   const cats = new CategoryService(ctx);
+
+  /* ───────────── classification ───────────── */
+
+  app.get(
+    '/classifications',
+    {
+      config: { permission: READ },
+      schema: {
+        tags,
+        summary:
+          'The classification labels in use (module setting `classification.levels`), most restrictive first; built-in keys are translated by the client',
+        response: { 200: classificationsSchema },
+      },
+    },
+    async () => ({ items: await classificationLevels(ctx) }),
+  );
 
   /* ───────────── articles ───────────── */
 

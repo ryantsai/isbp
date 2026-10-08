@@ -144,7 +144,7 @@ export class ToolRegistry {
       });
 
     try {
-      const result = await runWithContext({ ...base, principal }, () =>
+      const result = await runWithContext({ ...base, principal, auth: opts.auth }, () =>
         handler(parsed.data, this.registry.context(module.manifest.id), opts.auth),
       );
       await record('success');

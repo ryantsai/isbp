@@ -1,39 +1,121 @@
 'use client';
 
-import type { FormSubmission, PublishedForm } from '@isbp/contracts';
-import { defaultFieldValues, formFields, localize } from '@isbp/sdk';
-import { ApiError } from '@isbp/sdk/web';
+import type { ApprovalPreview, FormAssignment, FormSubmission, PublishedForm } from '@isbp/contracts';
+import {
+  defaultFieldValues,
+  FORM_ERROR_KEY,
+  type FormSchema,
+  formFields,
+  type LocalizedText,
+  localize,
+} from '@isbp/sdk';
+import { ApiError, useApi } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Form } from '@isbp/ui/form';
-import { FormFields, useFieldErrorText, useFieldsResolver } from '@isbp/ui/form-renderer';
+import { FormErrorSummary, FormFields, useFieldErrorText, useFormResolver } from '@isbp/ui/form-renderer';
 import { PageHeader } from '@isbp/ui/page-header';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { toast } from '@isbp/ui/sonner';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ArrowLeftIcon, FileQuestionIcon, InfoIcon, SendIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useMemo } from 'react';
-import { type FieldValues, useForm } from 'react-hook-form';
-import { useApiMutation, useApiQuery } from '@/lib/api';
+import { useEffect, useId, useMemo, useState } from 'react';
+import { type FieldValues, type UseFormReturn, useForm, useWatch } from 'react-hook-form';
+import { useApiMutation, useApiQuery, useErrorText } from '@/lib/api';
+import { AssignmentBanner } from '../assignments/assignment-banner';
 import { NavIcon } from '../nav-icon';
+import { ApprovalPath } from './request-access-view';
 
-function FormBody({ form: published }: { form: PublishedForm }) {
+/**
+ * "Who will approve this?" for the answers so far: a dry run of the form's workflow on the server (the same facts a
+ * submission uses, records included), refreshed shortly after the answers change.
+ */
+function ApprovalPreviewPanel({
+  formKey,
+  form,
+  assignmentId,
+}: {
+  formKey: string;
+  form: UseFormReturn<FieldValues>;
+  /** The to-do the form is filled in for (opens the form whatever its audience). */
+  assignmentId?: string;
+}) {
+  const t = useTranslations('requests.form.approval');
+  const errorText = useErrorText();
+  const api = useApi();
+  const uid = useId();
+  const values = useWatch({ control: form.control });
+  const answers = JSON.stringify(values ?? {});
+  const [debounced, setDebounced] = useState(answers);
+  useEffect(() => {
+    const h = setTimeout(() => setDebounced(answers), 600);
+    return () => clearTimeout(h);
+  }, [answers]);
+  const preview = useQuery({
+    queryKey: ['/forms/by-key/preview', formKey, assignmentId, debounced],
+    queryFn: () =>
+      api.post<ApprovalPreview>(
+        `/forms/by-key/${encodeURIComponent(formKey)}/preview${assignmentId ? `?assignment=${assignmentId}` : ''}`,
+        {
+          data: JSON.parse(debounced) as Record<string, unknown>,
+        },
+      ),
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+  return (
+    <section aria-labelledby={uid} className="grid gap-3 rounded-xl border bg-muted/30 p-5">
+      <div className="grid gap-0.5">
+        <h2 id={uid} className="text-base font-semibold">
+          {t('title')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t('description')}</p>
+      </div>
+      <div aria-live="polite" aria-busy={preview.isFetching || answers !== debounced}>
+        {preview.isError ? (
+          <p className="text-sm text-destructive">{errorText(preview.error)}</p>
+        ) : (
+          <ApprovalPath preview={preview.data} />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function FormBody({
+  form: published,
+  assignment,
+}: {
+  form: PublishedForm;
+  /** The person's open to-do this submission completes. */
+  assignment?: FormAssignment | null;
+}) {
   const t = useTranslations('requests.form');
+  const ta = useTranslations('assignments');
   const router = useRouter();
   const fieldError = useFieldErrorText();
-  const fields = useMemo(() => formFields(published.schema), [published.schema]);
-  const resolver = useFieldsResolver(fields);
+  const schema = published.schema as FormSchema;
+  const fields = useMemo(() => formFields(schema), [schema]);
+  const resolver = useFormResolver(schema);
   const form = useForm<FieldValues>({ resolver, defaultValues: defaultFieldValues(fields) });
   const submit = useApiMutation(
     (api, data: Record<string, unknown>) =>
-      api.post<FormSubmission>(`/forms/by-key/${published.key}/submissions`, { data }),
+      api.post<FormSubmission>(
+        `/forms/by-key/${published.key}/submissions${assignment ? `?assignment=${assignment.id}` : ''}`,
+        { data },
+      ),
     {
       silent: true,
-      invalidate: ['/me/requests', '/me/badges'],
+      invalidate: ['/me/requests', '/me/badges', '/me/form-assignments'],
       onSuccess: (s) => {
-        toast.success(t('submitted', { reference: s.reference }));
+        toast.success(
+          assignment
+            ? ta('submitted', { title: assignment.title, reference: s.reference })
+            : t('submitted', { reference: s.reference }),
+        );
         router.push(`/requests/${s.reference}`);
       },
     },
@@ -41,11 +123,14 @@ function FormBody({ form: published }: { form: PublishedForm }) {
   const onError = (err: unknown) => {
     if (err instanceof ApiError && err.code === 'VALIDATION_FAILED') {
       const issues =
-        (err.details as { issues?: { path: string; code?: string; params?: Record<string, number> }[] })
-          ?.issues ?? [];
+        (
+          err.details as {
+            issues?: { path: string; code?: string; params?: Record<string, number>; text?: LocalizedText }[];
+          }
+        )?.issues ?? [];
       for (const i of issues)
-        form.setError(i.path.replace(/^data\./, ''), {
-          message: i.code ? fieldError({ code: i.code as never, params: i.params }) : i.path,
+        form.setError(i.path.replace(/^data\./, '') || FORM_ERROR_KEY, {
+          message: i.code ? fieldError({ code: i.code as never, params: i.params, message: i.text }) : i.path,
         });
       return;
     }
@@ -65,7 +150,11 @@ function FormBody({ form: published }: { form: PublishedForm }) {
             <p>{t('needsApproval')}</p>
           </div>
         )}
+        <FormErrorSummary schema={schema} form={form} className="mb-4" />
         <FormFields elements={published.schema.elements} form={form} />
+        {published.hasApproval && (
+          <ApprovalPreviewPanel formKey={published.key} form={form} assignmentId={assignment?.id} />
+        )}
         <div className="flex items-center justify-end gap-2 border-t pt-4">
           <Button asChild variant="ghost">
             <Link href="/requests">{t('cancel')}</Link>
@@ -80,15 +169,23 @@ function FormBody({ form: published }: { form: PublishedForm }) {
   );
 }
 
-/** A published form, filled in by anyone in its audience; validated exactly like the API does. */
-export function FormFillView({ formKey }: { formKey: string }) {
+/**
+ * A published form, filled in by anyone in its audience; validated exactly like the API does. With `assignmentId`
+ * (`?assignment=` — a to-do), the to-do is shown above the form and sending the form completes it.
+ */
+export function FormFillView({ formKey, assignmentId }: { formKey: string; assignmentId?: string }) {
   const t = useTranslations('requests.form');
   const locale = useLocale();
+  const todo = useApiQuery<FormAssignment>(assignmentId ? `/me/form-assignments/${assignmentId}` : null);
   const { data, error, isLoading } = useApiQuery<PublishedForm>(
     `/forms/by-key/${encodeURIComponent(formKey)}`,
+    assignmentId ? { assignment: assignmentId } : undefined,
   );
+  // Only the person's open to-do for this form is completed by sending it.
+  const assignment =
+    todo.data && todo.data.status === 'open' && todo.data.form.key === formKey ? todo.data : null;
   return (
-    <div className="mx-auto grid max-w-3xl gap-2">
+    <div className="mx-auto grid max-w-3xl grid-cols-1 gap-2">
       <PageHeader
         eyebrow={
           <Link href="/requests" className="inline-flex items-center gap-1 hover:text-foreground">
@@ -99,10 +196,10 @@ export function FormFillView({ formKey }: { formKey: string }) {
         title={
           data ? (
             <span className="flex items-center gap-3">
-              <span className="grid size-9 place-items-center rounded-xl bg-primary/10 text-primary [&_svg]:size-5">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary [&_svg]:size-5">
                 <NavIcon name={data.icon} />
               </span>
-              {localize(data.name, locale)}
+              <span className="min-w-0 truncate">{localize(data.name, locale)}</span>
             </span>
           ) : (
             <Skeleton className="h-8 w-72" />
@@ -110,7 +207,13 @@ export function FormFillView({ formKey }: { formKey: string }) {
         }
         description={data ? localize(data.description, locale) : undefined}
       />
-      {isLoading ? (
+      {assignmentId && (
+        <AssignmentBanner
+          assignment={todo.data?.form.key === formKey ? todo.data : undefined}
+          notFound={Boolean(todo.error) || Boolean(todo.data && todo.data.form.key !== formKey)}
+        />
+      )}
+      {isLoading || (assignmentId && todo.isLoading) ? (
         <Skeleton className="h-96 w-full rounded-xl" />
       ) : error || !data ? (
         <EmptyState
@@ -125,7 +228,7 @@ export function FormFillView({ formKey }: { formKey: string }) {
           className="rounded-xl border border-dashed"
         />
       ) : (
-        <FormBody key={`${data.key}-${data.version}`} form={data} />
+        <FormBody key={`${data.key}-${data.version}`} form={data} assignment={assignment} />
       )}
     </div>
   );

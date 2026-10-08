@@ -34,7 +34,9 @@
     "reviewIntervalDays": "文章發佈後幾天需要重新審閱（0 = 不設定預設審閱日期）",
     "reminderRepeatDays": "逾期審閱提醒每隔 N 天重複一次",
     "guidePublish": "發佈使用指南",
-    "guidePublishHelp": "在知識庫中保留「使用 IS Big Platform」（平台的使用指南，含所有語言），並隨每個新版本更新。關閉後會停止發佈與更新；如要移除，請將其文章停用。"
+    "guidePublishHelp": "在知識庫中保留「使用 IS Big Platform」（平台的使用指南，含所有語言），並隨每個新版本更新。關閉後會停止發佈與更新；如要移除，請將其文章停用。",
+    "classificationLevels": "機密等級標籤",
+    "classificationLevelsHelp": "每行一個標籤，由最高機密等級開始。使用 strictly-confidential、customer-confidential、confidential 或 internal-use-only 表示內建（已翻譯）的標籤，或自行輸入。"
   },
   "portal": {
     "browse": {
@@ -231,7 +233,10 @@
     "audienceFilter": "對象",
     "awaitingApproval": "待簽核",
     "noOwner": "無擁有者",
-    "due": "已到期"
+    "due": "已到期",
+    "classificationFilter": "機密等級",
+    "allClassifications": "任何機密等級",
+    "unclassified": "未分級"
   },
   "editor": {
     "newTitle": "新增文章",
@@ -279,7 +284,10 @@
       "tooLong": "最多 {max} 個字元",
       "date": "請輸入有效的日期",
       "localeTaken": "{reference} 已是此語言的翻譯"
-    }
+    },
+    "classification": "機密等級",
+    "noClassification": "未分級",
+    "classificationHint": "顯示於文章、清單與搜尋結果中。標籤於模組設定中設定。"
   },
   "categoriesAdmin": {
     "title": "知識庫分類",
@@ -343,5 +351,24 @@
     "notFound": "無法開啟這份指南。",
     "notFoundHint": "指南可能尚未發佈，請稍候幾分鐘再試，或直接瀏覽知識庫。",
     "opening": "正在開啟指南…"
+  },
+  "recordFacts": {
+    "audience": "對象",
+    "categoryKey": "分類代碼",
+    "status": "狀態",
+    "locale": "語言",
+    "ownerId": "擁有者",
+    "tags": "標籤",
+    "classification": "機密等級"
+  },
+  "classificationLevel": {
+    "strictly-confidential": "極機密",
+    "customer-confidential": "客戶機密",
+    "confidential": "機密",
+    "internal-use-only": "限內部使用"
+  },
+  "classification": {
+    "label": "機密等級",
+    "banner": "機密等級：{label}。請依資訊分級規範處理本文章及其附件。"
   }
 }

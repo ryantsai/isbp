@@ -1,6 +1,7 @@
 import type { CustomizationHandler } from '@isbp/sdk/server';
 import { customFieldKind } from './custom-field';
 import { formKind } from './form';
+import { groupKind } from './group';
 import { moduleSettingsKind } from './module-settings';
 import { notificationChannelKind } from './notification-channel';
 import { roleKind } from './role';
@@ -16,6 +17,7 @@ export const customizations: Record<string, CustomizationHandler<any>> = {
   form: formKind,
   'custom-field': customFieldKind,
   role: roleKind,
+  group: groupKind,
   'notification-channel': notificationChannelKind,
   'module-settings': moduleSettingsKind,
 };

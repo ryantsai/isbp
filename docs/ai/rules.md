@@ -220,3 +220,42 @@ to confirm, and MCP never offers them).
 **R49. A kind's guide MUST point at live data, in English for models.** Give the ids, keys, facts and schemas a value
 refers to (or the tools that find them) in `guide().reference`, never rely on the model's training data. Template
 questions are `FieldDef`s with labels in en, zh-TW and ja-JP.
+
+## Process builder (Phase 8)
+
+**R50. Record facts MUST stay server-side.** A resolver's `facts(ids, ctx)` is not permission-filtered: it routes
+approvals and filters record fields, so it MUST NOT be returned by a route, an AI tool or a DTO. Return only what the
+caller may read (`resolve`), and use facts for decisions. _Check:_ `facts` is only called by the platform
+(`ctx.records.facts` in your own approval logic is fine); facts carry ids and keys (user ids, group keys), never names
+or personal data beyond them. Record pickers filter by facts (`where`), so a fact SHOULD be something everyone who can
+read the record also sees on its page (state, criticality, owner, group) — not costs or other restricted fields.
+
+**R51. Values picked in `record` fields MUST be checked on the server, like any other field.** Forms do it for you;
+for your own entity's custom fields call `ctx.fields.validate(entityType, input, existing, auth?)` (it verifies that
+every newly picked record exists, is readable by the person — the caller of the request by default — and matches the
+field's `where`). Never trust a ref because the picker offered it.
+
+**R52. A process action's `run` MUST be idempotent on `input.runId` and act only through its module's own rules.**
+It runs after commit, retried, as a system principal holding only `<module>.*` (decision 71): store the run id on
+what you create (ITSM puts it in the ticket's unique `source`) and return the existing record when it is there; write
+through your services so audit, events and state machines apply. Throw `HttpError` for a permanent refusal (no
+retry) and plain errors for transient ones (network, a busy job). _Check:_ an integration test that runs the action
+twice and finds one record.
+
+**R53. A process action MUST NOT skip another approval.** If what it creates has its own required workflow (a change
+and its CAB), start it exactly as a person submitting it would — never create the record in a post-approval state
+(decision 72).
+
+**R54. A process action's configuration MUST be checked like an admin form, and its secrets sealed.** Describe it
+with `fields()` (the shared `FieldDef` model, options from live data and the form's fields), refuse what an admin
+couldn't do in `validate()` (e.g. hand out a role they couldn't assign), and list secret config keys in `secrets`:
+the platform seals them on save and never returns them (`{ set: true }`). Never accept a URL host, a role or a
+group from a template: templates are for text only.
+
+**R55. A built-in package MUST be configuration only, installable on a fresh platform.** Its items create (no
+`targetId`: ids belong to one environment), name earlier items with `"$ref:<ref>"` where an id goes and keys where a
+key goes (the group before the workflow naming it), carry no people (members, user ids) and no secrets, and give
+text in en, zh-TW and ja-JP (what a kind keeps as plain text, in the installer's `locale` it is built for). A process administrators adopt ships as a package, not from `onEnable`: a package goes
+through the kinds' checks, a person's apply and a rollback (decision 89). _Check:_
+`apps/api/test/unit/packages.test.ts` passes, and an integration test installs it, finds `ready: true`, applies it
+and rolls it back.

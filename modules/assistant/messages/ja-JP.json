@@ -13,7 +13,7 @@
     },
     "assistant-admin": {
       "name": "アシスタント管理者",
-      "description": "すべての変更セットを表示し、だれの変更セットでも編集、破棄、取り下げができます"
+      "description": "すべての変更セットを表示し、誰の変更セットでも編集、破棄、取り下げができます"
     }
   },
   "permissions": {
@@ -68,7 +68,10 @@
     "declinedBy": "拒否: {label}",
     "confirmDone": "完了しました: {label}。",
     "confirmFailed": "{label} は完了しませんでした: {message}",
-    "declined": "わかりました。実行しません: {label}。"
+    "declined": "わかりました。実行しません: {label}。",
+    "linksIntro": "すぐに使えます:",
+    "link": "{object}: [{label}]({href})",
+    "reviewApplied": "{reference} は {by} によって承認され、適用されました。"
   },
   "status": {
     "draft": "下書き",
@@ -188,7 +191,7 @@
   },
   "list": {
     "title": "変更セット",
-    "description": "アシスタントで準備した構成の変更です。だれかが適用するまで反映されず、適用済みの変更セットはロールバックできます。",
+    "description": "アシスタントで準備した構成の変更です。誰かが適用するまで反映されず、適用済みの変更セットはロールバックできます。",
     "tabs": {
       "label": "変更セットの所有者",
       "mine": "自分",
@@ -214,7 +217,52 @@
     "emptyHint": "ヘッダーのきらめきボタンでアシスタントを開き、変更セットを準備してください。",
     "emptyFiltered": "一致する変更セットはありません",
     "emptyFilteredHint": "別の状態または検索語句をお試しください。",
-    "liveCount": "{count, plural, other {# 件の変更セット}}"
+    "liveCount": "{count, plural, other {# 件の変更セット}}",
+    "fromPackage": "パッケージから作成"
+  },
+  "packages": {
+    "title": "パッケージから変更セットを作成",
+    "description": "モジュールに付属する組み込みパッケージをインストールするか、別の環境からエクスポートしたパッケージ ファイルをインポートします。どちらも下書きの変更セットになり、誰かが適用するまで反映されません。",
+    "tabsLabel": "パッケージの取得元",
+    "builtin": {
+      "tab": "組み込みパッケージ",
+      "listLabel": "組み込みパッケージ",
+      "meta": "{count, plural, other {# 件の変更}} · {module}",
+      "kinds": "変更対象: {kinds}",
+      "install": "インストール",
+      "installed": "パッケージから {reference} を作成しました",
+      "needsReviewer": "準備はできますが、適用するには追加のアクセス許可を持つユーザー (またはレビュー) が必要です。",
+      "missingModules": "有効になっていないモジュールが必要です: {modules}",
+      "unknownKinds": "このプラットフォームにない構成の種類が必要です: {kinds}",
+      "unreadable": "準備するには、お持ちでないアクセス許可が必要です: {permissions}",
+      "unsupported": "一部の変更は、ここではサポートされていません。",
+      "empty": "組み込みパッケージはありません",
+      "emptyHint": "有効なモジュールはパッケージを提供していません。パッケージ ファイルはインポートできます。"
+    },
+    "file": {
+      "tab": "ファイルのインポート",
+      "hint": "変更セット パッケージ (.json) を選択します (別の環境の変更セットからエクスポートしたファイルなど)。各変更は通常の提案と同様にチェックされ、1 つでも失敗すると何も作成されません。",
+      "label": "パッケージ ファイル",
+      "fileHint": "isbp.change-set-package ファイル (最大 4 MB)。",
+      "parsed": "「{title}」、{count, plural, other {# 件の変更}}",
+      "parsedUntitled": "変更セット パッケージ",
+      "problems": {
+        "unreadable": "このファイルは有効な JSON ではありません。",
+        "notPackage": "このファイルは変更セット パッケージではありません (format は isbp.change-set-package である必要があります)。",
+        "tooLarge": "このファイルは 4 MB を超えています。"
+      },
+      "import": "インポート",
+      "imported": "ファイルから {reference} を作成しました"
+    },
+    "errors": {
+      "invalid": "パッケージに問題があります。何も作成されていません:",
+      "unsupported": "このパッケージはこのプラットフォームに対応していません。何も作成されていません:",
+      "missingModules": "有効になっていないモジュール: {modules}",
+      "unknownKinds": "このプラットフォームにない構成の種類: {kinds}",
+      "forbidden": "これらの変更を準備するには、お持ちでないアクセス許可が必要です: {permissions}。",
+      "tooLarge": "パッケージが 4 MB を超えています。",
+      "more": "{count, plural, other {ほか # 件}}"
+    }
   },
   "detail": {
     "back": "変更セット",
@@ -242,7 +290,8 @@
       "discard": "破棄",
       "check": "再確認",
       "refresh": "更新",
-      "more": "その他の操作"
+      "more": "その他の操作",
+      "export": "エクスポート"
     },
     "missing": {
       "title": "この変更セットを自分で適用することはできません",
@@ -259,6 +308,11 @@
     "summaryTitle": "概要",
     "noSummary": "概要はまだありません。",
     "destructiveNote": "この変更セットは何かをアーカイブまたは削除します。適用には明示的な確認が必要です。",
+    "live": {
+      "title": "すぐに使えます",
+      "body": "この変更セットで作成したものは有効になりました。使う人にこれらのリンクを共有してください。",
+      "link": "{label}: {object}"
+    },
     "stats": {
       "items": "変更数",
       "kinds": "変更対象",

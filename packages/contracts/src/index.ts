@@ -7,6 +7,7 @@ export * from './platform';
 export * from './workflows';
 export * from './requests';
 export * from './forms';
+export * from './form-assignments';
 export * from './notifications';
 export * from './applications';
 export * from './ai';

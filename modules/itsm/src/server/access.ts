@@ -21,6 +21,8 @@ export interface TicketScope {
   departmentId: string | null;
   requesterId: string | null;
   requestedForId: string | null;
+  /** A resolution waiting for its sign-off. */
+  signOffInstanceId?: string | null;
 }
 
 export interface Viewer {
@@ -31,6 +33,8 @@ export interface Viewer {
   transitions: TicketStatus[];
   canReopen: boolean;
   canConfirm: boolean;
+  /** The change's requester, in its post-implementation review. */
+  canAccept: boolean;
 }
 
 const scopeOf = (t: TicketScope) => ({ departmentId: t.departmentId });
@@ -72,9 +76,10 @@ export function viewerOf(t: TicketScope, auth: AuthContext): Viewer {
     canEdit: work,
     canComment: work || (requester && !FINAL_STATUSES.includes(t.status)),
     canWorkNote: work,
-    transitions: work ? allowedTransitions(t.type, t.status) : [],
+    transitions: work ? allowedTransitions(t.type, t.status, Boolean(t.signOffInstanceId)) : [],
     canReopen: requester && solved,
     canConfirm: requester && solved,
+    canAccept: requester && t.type === 'change' && t.status === 'review',
   };
 }
 

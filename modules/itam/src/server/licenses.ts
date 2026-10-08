@@ -1,7 +1,7 @@
 /**
  * Software licence rules: entitlements versus seats in use, unlicensed installs, the stored compliance
  * state (recomputed in the same transaction as every assignment or quantity change, and nightly),
- * sealed licence keys and the discovery API that inventory tools report to.
+ * sealed licence keys and the coverage of discovered installs (reports themselves: `discovery.ts`).
  */
 import { users } from '@isbp/db/schema';
 import { type AuthContext, type Db, httpErrors, likePattern, type ModuleContext } from '@isbp/sdk/server';
@@ -12,7 +12,6 @@ import type {
   assignmentQuerySchema,
   createAssignmentSchema,
   createLicenseSchema,
-  discoverySchema,
   licenseQuerySchema,
   updateLicenseSchema,
 } from '../contracts';
@@ -29,15 +28,10 @@ import {
   parseRef,
   termMonths,
 } from '../model';
+import { all, canManageSoftware, canReadContracts, LICENSES_REVEAL, SOFTWARE_MANAGE } from './access';
+import { approvalSql } from './approved-software';
 import {
-  all,
-  canManageSoftware,
-  canReadContracts,
-  LICENSES_REVEAL,
-  SOFTWARE_MANAGE,
-  HARDWARE_MANAGE,
-} from './access';
-import {
+  approvedSoftware,
   assets,
   contracts,
   type LicenseRow,
@@ -62,7 +56,6 @@ export type CreateLicenseData = z.output<typeof createLicenseSchema>;
 export type UpdateLicenseData = z.output<typeof updateLicenseSchema>;
 export type LicenseQueryData = z.output<typeof licenseQuerySchema>;
 type AssignmentData = z.output<typeof createAssignmentSchema>;
-type DiscoveryData = z.output<typeof discoverySchema>;
 
 export const LICENSE_ENTITY = 'itam.license';
 export const licenseHref = (reference: string) => `/itam/software/${reference}`;
@@ -131,7 +124,7 @@ export function licenseSearchCondition(term: string): SQL {
   return text;
 }
 
-const lower = (s: string) => s.trim().toLowerCase();
+export const lower = (s: string) => s.trim().toLowerCase();
 
 export function toLicenseItem(r: LicenseListRow, assigned: number, unlicensed: number) {
   const l = r.license;
@@ -515,6 +508,11 @@ export class LicenseService {
           )
         : undefined,
     );
+    const [allowList] = await this.ctx.db
+      .select({ id: approvedSoftware.id })
+      .from(approvedSoftware)
+      .where(eq(approvedSoftware.status, 'allowed'))
+      .limit(1);
     const [rows, [total]] = await Promise.all([
       this.ctx.db
         .select({
@@ -526,6 +524,7 @@ export class LicenseService {
           assignedTo: assets.assignedTo,
           licensed: licensedExpr,
           managed: managedExpr,
+          approval: approvalSql(companyToday(), Boolean(allowList)),
         })
         .from(softwareInstallations)
         .innerJoin(assets, eq(assets.id, softwareInstallations.assetId))
@@ -555,6 +554,7 @@ export class LicenseService {
           assignee: personRef(r.assignedTo ? people.get(r.assignedTo) : null),
         },
         product: r.i.product,
+        reportedAs: r.i.reportedAs,
         publisher: r.i.publisher,
         version: r.i.version,
         source: r.i.source,
@@ -562,6 +562,7 @@ export class LicenseService {
         lastSeenAt: r.i.lastSeenAt,
         licensed: Boolean(r.licensed),
         managed: Boolean(r.managed),
+        approval: r.approval,
       })),
       total: total!.n,
       page: q.page,
@@ -893,102 +894,5 @@ export class LicenseService {
       assignedAt: r.assignedAt,
       endDate: r.endDate,
     }));
-  }
-
-  /* ───────────── discovery ───────────── */
-
-  /**
-   * An inventory tool reports the **complete** list of products on one device. Reported products are
-   * upserted (`last_seen_at` = now); products of an earlier report that are missing now were uninstalled
-   * and are deleted. Manually recorded installs are kept. Compliance of the affected products follows.
-   */
-  async discover(input: DiscoveryData, auth: AuthContext) {
-    auth.require(HARDWARE_MANAGE);
-    const [asset] = await this.ctx.db
-      .select()
-      .from(assets)
-      .where(
-        input.assetId
-          ? eq(assets.id, input.assetId)
-          : eq(sql`lower(${assets.serialNumber})`, input.assetSerial!.toLowerCase()),
-      );
-    if (!asset) throw httpErrors.notFound('Asset not found');
-    const reported = new Map<string, (typeof input.products)[number]>();
-    for (const p of input.products) reported.set(lower(p.product), p);
-    const now = new Date();
-    const result = await this.ctx.transaction(async (tx) => {
-      const existing = await tx
-        .select()
-        .from(softwareInstallations)
-        .where(eq(softwareInstallations.assetId, asset.id))
-        .for('update');
-      const byProduct = new Map(existing.map((e) => [lower(e.product), e]));
-      let added = 0;
-      let updated = 0;
-      const touched = new Set<string>();
-      for (const [key, p] of reported) {
-        const row = byProduct.get(key);
-        if (row) {
-          await tx
-            .update(softwareInstallations)
-            .set({
-              publisher: p.publisher ?? row.publisher,
-              version: p.version ?? row.version,
-              lastSeenAt: now,
-              source: row.source === 'manual' ? 'manual' : input.source,
-            })
-            .where(eq(softwareInstallations.id, row.id));
-          updated++;
-        } else {
-          await tx.insert(softwareInstallations).values({
-            assetId: asset.id,
-            product: p.product,
-            publisher: p.publisher,
-            version: p.version,
-            firstSeenAt: now,
-            lastSeenAt: now,
-            source: input.source,
-          });
-          added++;
-          touched.add(p.product);
-        }
-      }
-      const gone = existing.filter((e) => !reported.has(lower(e.product)) && e.source !== 'manual');
-      if (gone.length)
-        await tx.delete(softwareInstallations).where(
-          inArray(
-            softwareInstallations.id,
-            gone.map((g) => g.id),
-          ),
-        );
-      for (const g of gone) touched.add(g.product);
-      await this.ctx.audit.record(
-        {
-          action: 'itam.discovery.reported',
-          entityType: 'itam.asset',
-          entityId: asset.id,
-          entityLabel: `${formatAssetTag(asset.number)} ${asset.name}`,
-          metadata: { source: input.source, reported: reported.size, added, updated, removed: gone.length },
-        },
-        { tx },
-      );
-      await this.recomputeProducts(tx, [...touched]);
-      return { added, updated, removed: gone.length };
-    });
-    const coverage = await this.installations(
-      { assetId: asset.id },
-      { page: 1, pageSize: 2000, unlicensed: true },
-    );
-    return {
-      asset: {
-        id: asset.id,
-        tag: formatAssetTag(asset.number),
-        name: asset.name,
-        category: asset.category,
-        status: asset.status,
-      },
-      ...result,
-      unlicensed: coverage.items.filter((i) => i.managed).map((i) => i.product),
-    };
   }
 }

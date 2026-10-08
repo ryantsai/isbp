@@ -33,6 +33,7 @@
   "ALREADY_GRANTED": "This person already has this access.",
   "DURATION_TOO_LONG": "That's longer than this access can be granted for.",
   "FORM_NOT_AVAILABLE": "This form isn't available right now.",
+  "ASSIGNMENT_CLOSED": "This to-do was already done or cancelled.",
   "INVALID_CLIENT": "The client ID or secret is incorrect, or the client was revoked.",
   "WEBHOOK_TARGET_INVALID": "The webhook URL must use HTTPS and can't point at a private network.",
   "EMAIL_NOT_CONFIGURED": "Email isn't set up yet.",
@@ -73,5 +74,8 @@
   "SYNC_RUNNING": "A sync for this profile is already running.",
   "CONFLICT_RESOLVED": "Someone has already resolved this conflict.",
   "INSECURE_HTTP": "This connection uses plain HTTP, which isn't encrypted. Use HTTPS, or turn on “Allow insecure HTTP” for the connection.",
-  "CHANGE_SET_STALE": "Someone changed this configuration after the change set was prepared. Refresh the change set, review it again, then retry."
+  "CHANGE_SET_STALE": "Someone changed this configuration after the change set was prepared. Refresh the change set, review it again, then retry.",
+  "PACKAGE_UNSUPPORTED": "This package needs modules that aren't enabled or kinds of configuration this platform doesn't have.",
+  "PROCESS_ACTION_FORBIDDEN": "You can't add or change this action: it needs a permission you don't have.",
+  "PROCESS_ACTION_UNAVAILABLE": "This action isn't available. Its module may be disabled."
 }

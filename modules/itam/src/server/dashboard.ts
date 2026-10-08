@@ -7,8 +7,9 @@ import type { AuthContext, ModuleContext } from '@isbp/sdk/server';
 import { and, asc, eq, gte, inArray, isNotNull, lte, ne, notInArray, sql } from 'drizzle-orm';
 import { addDays, addMonths, type AssetCategory, type AssetStatus, DEFAULT_LIFESPAN_MONTHS } from '../model';
 import { all, canReadContracts, canReadSoftware, hardwareFilter } from './access';
-import { type AssetItemRow, selectAssetItems, toAssetItem } from './assets';
+import { type AssetItemRow, selectAssetItems, toAssetItem, wipeCondition } from './assets';
 import { annualSpendSql } from './catalog';
+import type { ApprovedSoftwareService } from './approved-software';
 import type { ContractService } from './contract-service';
 import type { LicenseService } from './licenses';
 import { assets, contracts, licenses, models, vendors } from './schema';
@@ -40,7 +41,11 @@ const IN_ESTATE: AssetStatus[] = ['ordered', 'in_stock', 'deployed', 'in_repair'
 export class DashboardService {
   constructor(
     private readonly ctx: ModuleContext,
-    private readonly deps: { contracts: ContractService; licenses: LicenseService },
+    private readonly deps: {
+      contracts: ContractService;
+      licenses: LicenseService;
+      approvedSoftware: ApprovedSoftwareService;
+    },
   ) {}
 
   async overview(auth: AuthContext) {
@@ -245,7 +250,7 @@ export class DashboardService {
     const today = companyToday();
     const cfg = await itamConfig(this.ctx);
     const hardware = auth.permissions.hasAny('itam.hardware.read');
-    const [lic, con, war] = await Promise.all([
+    const [lic, con, war, wipes, software] = await Promise.all([
       canReadSoftware(auth)
         ? db
             .select({ n: sql<number>`count(*)`.mapWith(Number) })
@@ -277,11 +282,21 @@ export class DashboardService {
               ),
             )
         : Promise.resolve(null),
+      hardware
+        ? db
+            .select({ n: sql<number>`count(*)`.mapWith(Number) })
+            .from(assets)
+            .where(all(hardwareFilter(auth), wipeCondition('due', today, cfg.wipeRemindDays)))
+        : Promise.resolve(null),
+      // Same audience as the Discovery page (asset managers).
+      auth.can('itam.hardware.manage') ? this.deps.approvedSoftware.counts() : Promise.resolve(null),
     ]);
     return {
       nonCompliantLicenses: lic?.[0]?.n ?? null,
       contractsRenewing30: con?.[0]?.n ?? null,
       warrantiesExpiring30: war?.[0]?.n ?? null,
+      wipesDue: wipes?.[0]?.n ?? null,
+      unapprovedSoftware: software ? software.unapproved + software.blocked : null,
     };
   }
 }

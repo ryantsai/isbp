@@ -47,7 +47,7 @@ async function findField(db: Db, id: string): Promise<FieldRow | null> {
 const entityTypes = () => getKernel().fields.entityTypes();
 
 const INSTRUCTIONS = `A custom field adds a value to every record of an entity type — people, groups, departments and module records that support them (reference.entities) — shown and validated on their edit pages. Value: entityType and field.
-field: { key, type, label, help?, placeholder?, required?, options?, validation?, defaultValue?, visibleWhen?, width? ("full" | "half") }. Types: ${FIELD_TYPES.join(', ')}. select and multiselect need options [{ "value", "label" }] with unique values. validation: min/max (numbers; choices for multiselect), minLength/maxLength (text), pattern (text, a simple regular expression). visibleWhen shows the field only when a condition on the record's other custom fields holds.
+field: { key, type, label, help?, placeholder?, required?, options?, validation?, defaultValue?, visibleWhen?, width? ("full" | "half") }. Types: ${FIELD_TYPES.join(', ')}. select and multiselect need options [{ "value", "label" }] with unique values. validation: min/max (numbers; choices for multiselect), minLength/maxLength (text), pattern (text, a simple regular expression). A rows field is a table: rows: { "fields": [<columns: fields of the other types except rows, without visibleWhen>], "min"?, "max"? (at most 50 rows) }; its value is a list of row objects. visibleWhen shows the field only when a condition on the record's other custom fields holds.
 key starts with a lowercase letter (letters, digits and _), is unique per entity type (reference.entities[].keys, archived fields included) and, like type and entityType, is fixed after creation because stored values depend on it. label, help, placeholder and option labels are LocalizedText: give "en", "zh-TW" and "ja-JP".
 Making an existing field required affects every later edit of those records. Archiving hides the field and keeps the stored values.`;
 
@@ -186,7 +186,7 @@ export const customFieldKind: CustomizationHandler<CustomFieldValue> = {
       case 'update': {
         const row = (await findField(ctx.db, change.id!))!;
         if (canonicalJson(row.field) !== canonicalJson(v!.field))
-          await svc.update(row.id, { field: v!.field });
+          await svc.update(row.id, { field: v!.field }, auth);
         return { id: row.id };
       }
       case 'archive':
@@ -206,9 +206,11 @@ export const customFieldKind: CustomizationHandler<CustomFieldValue> = {
       async fields() {
         const t = await templateTexts('field', TEMPLATE_TEXTS);
         const entities = entityTypes();
+        // Record fields and tables need more than a quick question (record types, columns): the full value has them.
+        const types = FIELD_TYPES.filter((type) => type !== 'record' && type !== 'rows');
         const [entityNames, typeNames] = await Promise.all([
           Promise.all(entities.map((e) => catalogLocalized(e.name))),
-          Promise.all(FIELD_TYPES.map((type) => coreLocalized(`fields.types.${type}.name`))),
+          Promise.all(types.map((type) => coreLocalized(`fields.types.${type}.name`))),
         ]);
         return [
           {
@@ -231,7 +233,7 @@ export const customFieldKind: CustomizationHandler<CustomFieldValue> = {
             label: t('type'),
             required: true,
             defaultValue: 'text',
-            options: FIELD_TYPES.map((type, i) => ({ value: type, label: typeNames[i]! })),
+            options: types.map((type, i) => ({ value: type, label: typeNames[i]! })),
           },
           { key: 'required', type: 'boolean', label: t('required') },
           {

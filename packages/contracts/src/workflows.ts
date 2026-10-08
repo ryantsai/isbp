@@ -1,4 +1,10 @@
-import { listQuerySchema, localizedTextSchema, workflowGraphSchema } from '@isbp/sdk';
+import {
+  listQuerySchema,
+  localizedTextSchema,
+  STEP_FIELDS_REQUIRED_ON,
+  stepFieldsSchema,
+  workflowGraphSchema,
+} from '@isbp/sdk';
 import { z } from 'zod';
 import { dateTime, id, keySchema } from './common';
 
@@ -15,6 +21,12 @@ export const factDefSchema = z.object({
   type: z.enum(['string', 'number', 'boolean', 'date', 'id', 'list']),
   options: z.array(z.string()).optional(),
   description: z.string().optional(),
+  /** i18n key of the fact's name (module catalogs), when the schema names one. */
+  label: z.string().optional(),
+  /** i18n key prefix of its values: `<valueLabels>.<value>`. */
+  valueLabels: z.string().optional(),
+  /** People (user ids) or groups (group keys): approver rules "a person / a group from a fact" pick these. */
+  ref: z.enum(['user', 'group']).optional(),
 });
 export type FactDefInfo = z.input<typeof factDefSchema>;
 
@@ -26,6 +38,11 @@ export const workflowTriggerSchema = z.object({
   subject: z.string(),
   required: z.boolean(),
   facts: z.array(factDefSchema),
+  /**
+   * The entity whose custom fields the module passes as facts (`attributes.<key>`, `records.<key>.<fact>`), e.g.
+   * `itsm.ticket` — builders list them from its custom fields.
+   */
+  customFieldEntity: z.string().nullable(),
   defaultDefinition: z.object({ id, name: z.string() }).nullable(),
 });
 export type WorkflowTrigger = z.input<typeof workflowTriggerSchema>;
@@ -112,6 +129,8 @@ export const approvalTaskSchema = z.object({
   delegatedFrom: personRefSchema.nullable(),
   isEscalation: z.boolean(),
   comment: z.string().nullable(),
+  /** Values of the step's `fields` the approver filled in with the decision (by field key). */
+  data: z.record(z.string(), z.unknown()).nullable(),
   decidedAt: dateTime.nullable(),
   decidedBy: personRefSchema.nullable(),
   dueAt: dateTime.nullable(),
@@ -193,6 +212,10 @@ export const approvalItemSchema = z.object({
     instructions: localizedTextSchema.nullable(),
     mode: z.enum(['any', 'all', 'quorum']),
     allowDelegation: z.boolean(),
+    /** Fields the approver fills in with the decision (`ApprovalStep.fields`). */
+    fields: stepFieldsSchema,
+    /** When required fields must be filled in: to approve only, or to reject too. */
+    fieldsRequiredOn: z.enum(STEP_FIELDS_REQUIRED_ON),
   }),
   trigger: z.object({ key: z.string(), name: z.string(), moduleId: z.string() }),
 });
@@ -202,7 +225,12 @@ export const approvalQuerySchema = listQuerySchema.extend({
   status: z.enum(['pending', 'done']).default('pending'),
 });
 
-export const decisionSchema = z.object({ comment: z.string().trim().max(2000).nullish() });
+export const decisionSchema = z.object({
+  comment: z.string().trim().max(2000).nullish(),
+  /** Values of the step's `fields`, by field key (validated like form answers). */
+  data: z.record(z.string().max(64), z.unknown()).nullish(),
+});
+export type DecisionInput = z.input<typeof decisionSchema>;
 export const delegateTaskSchema = z.object({ userId: id, comment: z.string().trim().max(2000).nullish() });
 
 export const delegationSchema = z.object({

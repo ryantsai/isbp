@@ -6,6 +6,7 @@ import {
   formatRecordRef,
   HttpError,
   type ModuleContext,
+  PermissionSet,
   type Principal,
   type RecordLinkInfo,
   type RecordRef,
@@ -32,6 +33,17 @@ export interface RecordTypeEntry {
 
 const timeout = <T>(p: Promise<T>, fallback: T) =>
   Promise.race([p, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), RESOLVE_TIMEOUT_MS))]);
+
+/** Sees every record (existence checks without a person, e.g. sync writes): never used to return data. */
+const SYSTEM_READER: AuthContext = {
+  principal: { type: 'system', id: null, name: 'system' },
+  user: null,
+  sessionId: null,
+  permissions: new PermissionSet([{ p: '*', s: 'g' }]),
+  can: () => true,
+  require: () => undefined,
+  reach: () => ({ global: true, departmentIds: [], records: [] }),
+};
 
 /** The user behind a principal (a person, or the person an agent acts for). */
 const actingUser = (p: Principal) => (p.type === 'user' ? p.id : (p.onBehalfOf?.id ?? null));
@@ -123,6 +135,43 @@ export class RecordRegistry {
       }),
     );
     return out;
+  }
+
+  /** Approval facts of records whose type's resolver provides them (see `RecordResolver.facts`). */
+  async facts(refs: readonly RecordRef[]): Promise<Map<string, Record<string, unknown>>> {
+    const byType = new Map<string, Set<string>>();
+    for (const r of refs) byType.set(r.type, (byType.get(r.type) ?? new Set<string>()).add(r.id));
+    const out = new Map<string, Record<string, unknown>>();
+    await Promise.all(
+      [...byType].map(async ([type, idSet]) => {
+        const e = this.usable(type);
+        const resolver = e?.module.records?.[e.def.type];
+        if (!e || !resolver?.facts) return;
+        try {
+          const facts = await timeout(
+            resolver.facts([...idSet], this.deps.registry.context(e.moduleId)),
+            new Map<string, Record<string, unknown>>(),
+          );
+          for (const [id, f] of facts) if (idSet.has(id)) out.set(formatRecordRef({ type, id }), f);
+        } catch (err) {
+          this.deps.logger.warn({ err, type }, 'record facts failed');
+        }
+      }),
+    );
+    return out;
+  }
+
+  /**
+   * Which of `refs` the person may read (`auth`), or — without `auth` (system work, sync) — which exist: known
+   * through the type's facts, or resolved with the module's own full view. Keys are `type:id`.
+   */
+  async readable(refs: readonly RecordRef[], auth: AuthContext | null): Promise<Set<string>> {
+    if (!refs.length) return new Set();
+    if (auth) return new Set((await this.resolve(refs, auth)).keys());
+    const found = new Set((await this.facts(refs)).keys());
+    const rest = refs.filter((r) => !found.has(formatRecordRef(r)));
+    if (rest.length) for (const key of (await this.resolve(rest, SYSTEM_READER)).keys()) found.add(key);
+    return found;
   }
 
   async get(ref: RecordRef, auth: AuthContext): Promise<ResolvedRecord | null> {
@@ -365,6 +414,7 @@ export class RecordRegistry {
       linked: (ref, opts) => this.linked(ref, opts),
       counts: (refs) => this.counts(refs),
       forget: (ref, opts) => this.forget(ref, opts),
+      facts: (refs) => this.facts(refs),
     };
   }
 }

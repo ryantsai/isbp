@@ -104,7 +104,12 @@ toSessionUser(user), null, await h.kernel.rbac.permissionsFor(user.id))`.
   streams tool calls). Reviews complete through the worker: start it with `startWorker(h.kernel)` and poll.
 - `tooling/integration-mocks` also serves a **scripted chat model** at `/llm/v1` (OpenAI-compatible, streaming):
   a user message with a ```json block of proposals makes it describe the kind, propose each change, name the change
-  set and summarise it. The e2e suite points Administration → AI at it to drive the assistant panel.
+  set and summarise it. The e2e suite points Administration → AI at it to drive the assistant panel, and
+  `apps/api/test/integration/assistant-process.test.ts` starts it in-process (`createMockServer()`, then the
+  `openai-compatible` chat settings at `<url>/llm/v1`) for the Phase 8 links and the review note.
+- Demo data that spans modules is tested through its seed function with a small fixture (groups, users, CIs) instead
+  of the whole demo: `process-builder-seed.test.ts` runs `seedPhase8Links` twice and checks routing and the change
+  its action raised.
 
 ## External engines and sandboxes
 

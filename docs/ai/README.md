@@ -45,7 +45,9 @@ change.
 - React to something another module does → **consume its event** (`manifest.events.consumes` + handler). Names
   are in [reference.md](reference.md).
 - Show your data on another module's page → **contribute to its slot** (`defineWebModule({ slots })`).
-- Let other modules link to, attach files to or pick your records → declare a **record type** + resolver.
+- Let other modules link to, attach files to or pick your records → declare a **record type** + resolver. Let request
+  forms filter on them and approvals route on them ("the CI's support group approves") → add record **facts**
+  (recipe 24).
 - Something must be approved → declare a **workflow trigger** and start it with `ctx.workflows.start`.
 - Work that should run on a schedule chosen by an admin → a **task type** (Scheduled jobs runs it). Work that
   your module runs on a fixed schedule → a module **job** with `schedule`.

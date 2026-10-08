@@ -3,6 +3,7 @@ import migrations from '../../migrations';
 import { manifest } from '../manifest';
 import { aiTools } from './ai-tools';
 import { catalogItemCustomization, categoryCustomization, slaPolicyCustomization } from './customizations';
+import { processActions } from './process-actions';
 import { records } from './records';
 import { routes } from './routes';
 import { seed } from './seed';
@@ -20,6 +21,9 @@ export default defineServerModule(manifest, {
   workflows: {
     'itsm.change': {
       onCompleted: (result, ctx) => services(ctx).tickets.onChangeCompleted(result),
+    },
+    'itsm.resolution': {
+      onCompleted: (result, ctx) => services(ctx).tickets.onResolutionCompleted(result),
     },
   },
 
@@ -83,6 +87,8 @@ export default defineServerModule(manifest, {
   search: (query, ctx, auth, limit) => services(ctx).tickets.search(query, auth, limit),
 
   records,
+
+  processActions,
 
   sync,
 

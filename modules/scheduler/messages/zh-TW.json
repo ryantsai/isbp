@@ -3,6 +3,15 @@
     "name": "排程作業",
     "description": "依排程執行 HTTP 呼叫、SQL 工作、沙箱指令碼與模組工作，提供重試、執行紀錄、即時記錄檔與警示"
   },
+  "processActions": {
+    "runJob": {
+      "name": "執行排程作業",
+      "description": "立即執行您的某個排程作業，如同按下「立即執行」；申請會連結到該次執行。",
+      "job": "作業",
+      "jobHelp": "依作業本身的設定、重試與警示執行。",
+      "started": "已開始執行"
+    }
+  },
   "nav": { "group": "排程作業", "overview": "總覽", "jobs": "作業", "runs": "執行紀錄" },
   "entities": { "job": "排程作業" },
   "systemRoles": {
@@ -258,7 +267,7 @@
     "noRetries": "不重試",
     "alertsOn": "失敗時通知擁有者及擁有群組",
     "alertsOff": "不傳送失敗通知",
-    "alertsChannels": "失敗也會張貼至組織的頻道",
+    "alertsChannels": "失敗也會張貼至組織的通道",
     "autoDisableValue": "連續失敗 {count} 次後停用",
     "runsOf": "{job} 的執行紀錄"
   },
@@ -504,7 +513,7 @@
     "alertsHint": "失敗時要通知誰。",
     "onFailure": "執行失敗時通知擁有者及擁有群組",
     "onFailureHint": "在最後一次嘗試後，以應用程式內通知及電子郵件傳送；恢復時另行通知。",
-    "channels": "同時將失敗張貼至組織的頻道",
+    "channels": "同時將失敗張貼至組織的通道",
     "channelsHint": "由系統管理員設定的 Teams、Slack 或 Webhook。",
     "autoDisable": "連續失敗後停用",
     "autoDisableHint": "0 表示無論失敗多少次都維持啟用。",

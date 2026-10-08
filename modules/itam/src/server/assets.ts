@@ -40,6 +40,7 @@ import type {
   assignAssetSchema,
   createAssetSchema,
   disposeAssetSchema,
+  recordWipeSchema,
   returnAssetSchema,
   updateAssetSchema,
 } from '../contracts';
@@ -52,14 +53,18 @@ import {
   canTransition,
   defaultRetireOn,
   DEFAULT_LIFESPAN_MONTHS,
+  DEFAULT_WIPE_REMIND_DAYS,
   depreciation,
   disposalFacts,
   formatAssetTag,
   HARDWARE_VIEWS,
+  isDataBearing,
   manualTransitions,
-  needsSecuritySignOff,
   parseRef,
+  SECURITY_SIGN_OFF_STEP,
   warrantyState,
+  wipeDueDate,
+  wipeState,
 } from '../model';
 import {
   all,
@@ -74,6 +79,7 @@ import {
 import {
   assetEvents,
   type AssetEventKind,
+  type AssetEventRequest,
   type AssetRow,
   assets,
   licenseAssignments,
@@ -105,6 +111,20 @@ type AssignData = z.output<typeof assignAssetSchema>;
 type ReturnData = z.output<typeof returnAssetSchema>;
 type StatusData = z.output<typeof assetStatusChangeSchema>;
 type DisposeData = z.output<typeof disposeAssetSchema>;
+type WipeData = z.output<typeof recordWipeSchema>;
+
+/** Options of a lifecycle step a request form's process action makes (`itam.assign-asset`, `itam.return-asset`). */
+export interface StepOptions {
+  /** The request behind it: recorded on the history; a step of the same run is made once (idempotent). */
+  request?: AssetEventRequest;
+  /** Who the step is attributed to on the history (e.g. the approver who received a returned device). */
+  actor?: Actor;
+  /** Returns: months from the retention date to the wipe (default: the module setting). */
+  wipeMonths?: number;
+}
+
+/** The request link of a history entry. */
+export const requestHref = (reference: string) => `/requests/${reference}`;
 
 export const ASSET_ENTITY = 'itam.asset';
 export const assetHref = (tag: string) => `/itam/hardware/${tag}`;
@@ -159,7 +179,12 @@ const formatCi = (n: number) => `CI-${String(n).padStart(5, '0')}`;
 export const lifespanOf = (r: { modelLifespan: number | null; asset: { category: AssetCategory } }) =>
   r.modelLifespan ?? DEFAULT_LIFESPAN_MONTHS[r.asset.category];
 
-export function toAssetItem(r: AssetItemRow, today: string, warrantyDays: number) {
+export function toAssetItem(
+  r: AssetItemRow,
+  today: string,
+  warrantyDays: number,
+  wipeRemindDays: number = DEFAULT_WIPE_REMIND_DAYS,
+) {
   const a = r.asset;
   const dep = depreciation(
     {
@@ -207,10 +232,20 @@ export function toAssetItem(r: AssetItemRow, today: string, warrantyDays: number
       a.ciId && r.ciNumber !== null
         ? { id: a.ciId, reference: formatCi(r.ciNumber), name: r.ciName ?? '' }
         : null,
+    wipeDue: a.wipeDue,
+    wipeState: a.status === 'disposed' ? ('none' as const) : wipeState(a.wipeDue, today, wipeRemindDays),
     updatedAt: a.updatedAt,
   };
 }
 export type AssetItem = ReturnType<typeof toAssetItem>;
+
+/** Assets with a pending data wipe (`pending`), due within the reminder window or overdue (`due`), or overdue. */
+export function wipeCondition(kind: 'pending' | 'due' | 'overdue', today: string, remindDays: number): SQL {
+  const pending = and(isNotNull(assets.wipeDue), ne(assets.status, 'disposed'))!;
+  if (kind === 'pending') return pending;
+  if (kind === 'overdue') return and(pending, lt(assets.wipeDue, today))!;
+  return and(pending, lte(assets.wipeDue, addDays(today, remindDays)))!;
+}
 
 const STATUS_RANK = sql`case ${assets.status} when 'deployed' then 0 when 'in_stock' then 1 when 'in_repair' then 2 when 'ordered' then 3 when 'lost' then 4 when 'retired' then 5 else 6 end`;
 
@@ -289,6 +324,7 @@ export class AssetService {
               ne(assets.status, 'disposed'),
             )
           : undefined,
+      q.wipe ? wipeCondition(q.wipe, today, cfg.wipeRemindDays) : undefined,
       q.q ? assetSearchCondition(q.q) : undefined,
     );
     const key = q.sort?.replace(/^-/, '') ?? 'number';
@@ -304,7 +340,7 @@ export class AssetService {
       this.ctx.db.select({ n: count() }).from(assets).where(where),
     ]);
     return {
-      items: (rows as AssetItemRow[]).map((r) => toAssetItem(r, today, cfg.warrantyDays)),
+      items: (rows as AssetItemRow[]).map((r) => toAssetItem(r, today, cfg.warrantyDays, cfg.wipeRemindDays)),
       total: total!.n,
       page: q.page,
       pageSize: q.pageSize,
@@ -319,6 +355,7 @@ export class AssetService {
       canAssign: manage && canAssign(row.status) && !row.disposalInstanceId,
       canReturn: manage && Boolean(row.assignedTo),
       canDispose: manage && row.status === 'retired' && !row.disposalInstanceId,
+      canRecordWipe: manage && isDataBearing(row.category) && row.status !== 'disposed',
       canReadContracts: canReadContracts(auth),
       canReadSoftware: canReadSoftware(auth) || manage,
     };
@@ -333,7 +370,7 @@ export class AssetService {
     const a = row.asset;
     const today = companyToday();
     const cfg = await itamConfig(this.ctx);
-    const [[vendor], [ci]] = await Promise.all([
+    const [[vendor], [ci], wipers] = await Promise.all([
       a.vendorId
         ? this.ctx.db
             .select({ id: vendors.id, name: vendors.name })
@@ -353,9 +390,11 @@ export class AssetService {
             .innerJoin(ciClasses, eq(ciClasses.key, cis.classKey))
             .where(eq(cis.id, a.ciId))
         : Promise.resolve([]),
+      peopleByIds(this.ctx.db, [a.wipedBy]),
     ]);
+    const wiper = a.wipedBy ? wipers.get(a.wipedBy) : undefined;
     return {
-      ...toAssetItem(row, today, cfg.warrantyDays),
+      ...toAssetItem(row, today, cfg.warrantyDays, cfg.wipeRemindDays),
       vendor: vendor ?? null,
       purchaseDate: a.purchaseDate,
       invoiceNumber: a.invoiceNumber,
@@ -383,18 +422,15 @@ export class AssetService {
       disposedAt: a.disposedAt,
       disposalNote: a.disposalNote,
       disposalInstanceId: a.disposalInstanceId,
-      // The same facts and condition "Request disposal" starts the workflow with.
-      disposalSecuritySignOff: needsSecuritySignOff(
-        disposalFacts(
-          {
-            category: a.category,
-            purchaseCost: a.purchaseCost,
-            purchaseDate: a.purchaseDate,
-            lifespanMonths: lifespanOf(row),
-          },
-          today,
-        ),
-      ),
+      dataBearing: isDataBearing(a.category),
+      dataRetainUntil: a.dataRetainUntil,
+      lastWipe: a.wipedAt
+        ? {
+            at: a.wipedAt,
+            by: wiper ? { id: wiper.id, displayName: wiper.displayName } : null,
+            method: a.wipeMethod,
+          }
+        : null,
       viewer: this.viewer(a, auth),
       createdAt: a.createdAt,
     };
@@ -440,6 +476,9 @@ export class AssetService {
               : null,
           note: e.note,
           via: e.via ? { connection: e.via.connection, ref: e.via.ref, url: e.via.url } : null,
+          request: e.request
+            ? { reference: e.request.reference, href: requestHref(e.request.reference) }
+            : null,
           createdAt: e.createdAt,
         };
       }),
@@ -525,6 +564,7 @@ export class AssetService {
       userId?: string | null;
       note?: string | null;
       at?: Date;
+      request?: AssetEventRequest | null;
     } = {},
   ) {
     await tx.insert(assetEvents).values({
@@ -537,8 +577,20 @@ export class AssetService {
       actorName: actor.actorName,
       note: data.note ?? null,
       via: viaOf(this.ctx),
+      request: data.request ?? null,
       ...(data.at ? { createdAt: data.at } : {}),
     });
+  }
+
+  /** A process action's run already made a step on this asset (retries and duplicate deliveries do nothing). */
+  private async ranAlready(tx: Db, assetId: string, request: AssetEventRequest | undefined) {
+    if (!request) return false;
+    const [hit] = await tx
+      .select({ id: assetEvents.id })
+      .from(assetEvents)
+      .where(and(eq(assetEvents.assetId, assetId), sql`${assetEvents.request}->>'runId' = ${request.runId}`))
+      .limit(1);
+    return Boolean(hit);
   }
 
   private ref(a: AssetRow) {
@@ -723,18 +775,31 @@ export class AssetService {
     );
   }
 
-  /** Hands the asset to a person: it becomes `deployed` (in stock, in repair or reassigned). */
-  async assign(ref: string, input: AssignData, auth: AuthContext) {
+  /**
+   * Hands the asset to a person: it becomes `deployed` (in stock, in repair or reassigned). From a process action
+   * (`opts.request`) the request is recorded on the history, and a retry of the same run changes nothing.
+   */
+  async assign(ref: string, input: AssignData, auth: AuthContext, opts: StepOptions = {}) {
     auth.require(HARDWARE_MANAGE);
     const target = await this.resolve(ref);
     const person = await this.activePerson(input.userId);
-    const actor = actorOf(auth);
+    const actor = opts.actor ?? actorOf(auth);
     return this.ctx.transaction(async (tx) => {
       const a = await this.lock(tx, target.id);
+      if (await this.ranAlready(tx, a.id, opts.request)) return a;
       if (a.disposalInstanceId)
         throw new HttpError(409, ErrorCodes.INVALID_STATE, 'A disposal request is pending for this asset');
       if (!canAssign(a.status)) throw this.transitionError(a.status, 'deployed');
-      if (a.assignedTo === person.id && a.status === 'deployed') return a;
+      if (a.assignedTo === person.id && a.status === 'deployed') {
+        // Already theirs: the request (e.g. the signed agreement) still goes on the history.
+        if (opts.request)
+          await this.event(tx, a.id, 'note', actor, {
+            userId: person.id,
+            note: input.note,
+            request: opts.request,
+          });
+        return a;
+      }
       const previous = a.assignedTo ? (await peopleByIds(tx, [a.assignedTo])).get(a.assignedTo) : undefined;
       const now = new Date();
       const [row] = await tx
@@ -748,12 +813,14 @@ export class AssetService {
           userId: previous.id,
           from: previous.displayName,
           to: a.status,
+          request: opts.request,
         });
       await this.event(tx, a.id, 'assigned', actor, {
         userId: person.id,
         from: a.status === 'deployed' ? null : a.status,
         to: person.displayName,
         note: input.note,
+        request: opts.request,
       });
       await this.ctx.audit.record(
         {
@@ -765,7 +832,7 @@ export class AssetService {
             assignedTo: [a.assignedTo, person.id],
             ...(a.status !== 'deployed' ? { status: [a.status, 'deployed'] } : {}),
           },
-          metadata: { note: input.note },
+          metadata: { note: input.note, request: opts.request?.reference ?? null },
         },
         { tx },
       );
@@ -780,35 +847,68 @@ export class AssetService {
     });
   }
 
-  /** Takes the asset back from its assignee: `in_stock` (default) or `in_repair`. */
-  async returnAsset(ref: string, input: ReturnData, auth: AuthContext) {
+  /**
+   * Takes the asset back from its assignee: `in_stock` (default) or `in_repair`. A data-bearing device (or any, with
+   * `scheduleWipe`) gets a data wipe due the configured months after `dataRetainUntil` (else after today). From a
+   * process action (`opts.request`) the request goes on the history; a device that was already handed back only gets
+   * the wipe scheduled and the request recorded, and a retry of the same run changes nothing.
+   */
+  async returnAsset(ref: string, input: ReturnData, auth: AuthContext, opts: StepOptions = {}) {
     auth.require(HARDWARE_MANAGE);
     const target = await this.resolve(ref);
-    const actor = actorOf(auth);
+    const actor = opts.actor ?? actorOf(auth);
+    const cfg = await itamConfig(this.ctx);
+    const today = companyToday();
     return this.ctx.transaction(async (tx) => {
       const a = await this.lock(tx, target.id);
-      if (!a.assignedTo)
-        throw new HttpError(409, ErrorCodes.INVALID_STATE, 'The asset is not assigned to anyone');
+      if (await this.ranAlready(tx, a.id, opts.request)) return a;
       const to = input.toStatus;
+      const holderId = a.assignedTo;
+      if (!holderId && !opts.request)
+        throw new HttpError(409, ErrorCodes.INVALID_STATE, 'The asset is not assigned to anyone');
       if (a.status !== to && !canTransition(a.status, to))
         throw this.transitionError(
           a.status,
           to,
           (['in_stock', 'in_repair'] as AssetStatus[]).filter((s) => canTransition(a.status, s)),
         );
-      const holder = (await peopleByIds(tx, [a.assignedTo])).get(a.assignedTo);
+      const wipe = input.scheduleWipe ?? isDataBearing(a.category);
+      const retainUntil = wipe ? (input.dataRetainUntil ?? null) : null;
+      const wipeDue = wipe ? wipeDueDate(retainUntil, today, opts.wipeMonths ?? cfg.wipeMonths) : null;
+      const holder = holderId ? (await peopleByIds(tx, [holderId])).get(holderId) : undefined;
       const [row] = await tx
         .update(assets)
-        .set({ status: to, assignedTo: null, assignedAt: null })
+        .set({
+          status: to,
+          assignedTo: null,
+          assignedAt: null,
+          ...(wipe ? { dataRetainUntil: retainUntil, wipeDue, wipeReminders: 0 } : {}),
+        })
         .where(eq(assets.id, a.id))
         .returning();
       const updated = row!;
-      await this.event(tx, a.id, 'returned', actor, {
-        userId: a.assignedTo,
-        from: holder?.displayName ?? null,
-        to,
-        note: input.note,
-      });
+      if (holderId)
+        await this.event(tx, a.id, 'returned', actor, {
+          userId: holderId,
+          from: holder?.displayName ?? null,
+          to,
+          note: input.note,
+          request: opts.request,
+        });
+      else if (a.status !== to)
+        await this.event(tx, a.id, 'status_changed', actor, {
+          from: a.status,
+          to,
+          note: input.note,
+          request: opts.request,
+        });
+      else await this.event(tx, a.id, 'note', actor, { note: input.note, request: opts.request });
+      if (wipe)
+        await this.event(tx, a.id, 'wipe_scheduled', actor, {
+          from: retainUntil,
+          to: wipeDue,
+          request: opts.request,
+        });
       await this.ctx.audit.record(
         {
           action: 'itam.asset.returned',
@@ -816,24 +916,95 @@ export class AssetService {
           entityId: a.id,
           entityLabel: auditLabel(a),
           changes: {
-            assignedTo: [a.assignedTo, null],
+            ...(holderId ? { assignedTo: [holderId, null] } : {}),
             ...(a.status !== to ? { status: [a.status, to] } : {}),
+            ...(wipe && a.wipeDue !== wipeDue ? { wipeDue: [a.wipeDue, wipeDue] } : {}),
           },
-          metadata: { note: input.note },
+          metadata: {
+            note: input.note,
+            dataRetainUntil: retainUntil,
+            request: opts.request?.reference ?? null,
+          },
         },
         { tx },
       );
-      await this.ctx.events.publish(
-        'itam.asset.returned',
-        { ...this.ref(updated), userId: a.assignedTo, toStatus: to },
-        { tx },
-      );
+      if (holderId)
+        await this.ctx.events.publish(
+          'itam.asset.returned',
+          { ...this.ref(updated), userId: holderId, toStatus: to },
+          { tx },
+        );
       if (a.status !== to)
         await this.ctx.events.publish(
           'itam.asset.status_changed',
           { ...this.ref(updated), from: a.status, to },
           { tx },
         );
+      return updated;
+    });
+  }
+
+  /**
+   * "Record data wipe": who wiped the device's storage, when and how. Clears the pending wipe (and its reminders);
+   * audited and on the history.
+   */
+  async recordWipe(ref: string, input: WipeData, auth: AuthContext) {
+    auth.require(HARDWARE_MANAGE);
+    const target = await this.resolve(ref);
+    const by = input.wipedById
+      ? await this.activePerson(input.wipedById, 'wipedById')
+      : actingUserId(auth)
+        ? { id: actingUserId(auth)!, displayName: '' }
+        : null;
+    const at = input.wipedAt ?? new Date();
+    if (at.getTime() > Date.now() + 5 * 60_000)
+      throw invalidField('wipedAt', 'The wipe can’t be in the future');
+    const actor = actorOf(auth);
+    return this.ctx.transaction(async (tx) => {
+      const a = await this.lock(tx, target.id);
+      if (a.status === 'disposed')
+        throw new HttpError(409, ErrorCodes.INVALID_STATE, 'The asset was disposed of');
+      if (!isDataBearing(a.category))
+        throw new HttpError(409, ErrorCodes.INVALID_STATE, 'This kind of device stores no data');
+      const [row] = await tx
+        .update(assets)
+        .set({
+          wipedAt: at,
+          wipedBy: by?.id ?? null,
+          wipeMethod: input.method,
+          wipeDue: null,
+          wipeReminders: 0,
+        })
+        .where(eq(assets.id, a.id))
+        .returning();
+      const updated = row!;
+      await this.event(tx, a.id, 'data_wiped', actor, {
+        userId: by?.id ?? null,
+        to: input.method,
+        from: a.wipeDue,
+        note: input.note,
+      });
+      await this.ctx.audit.record(
+        {
+          action: 'itam.asset.data_wiped',
+          entityType: ASSET_ENTITY,
+          entityId: a.id,
+          entityLabel: auditLabel(a),
+          changes: { wipeDue: [a.wipeDue, null] },
+          metadata: {
+            method: input.method,
+            wipedAt: at.toISOString(),
+            wipedBy: by?.id ?? null,
+            note: input.note,
+          },
+        },
+        { tx },
+      );
+      await this.ctx.events.publish(
+        'itam.asset.data_wiped',
+        { ...this.ref(updated), method: input.method, wipedAt: at.toISOString() },
+        { tx },
+      );
       return updated;
     });
   }
@@ -899,6 +1070,52 @@ export class AssetService {
     });
   }
 
+  /**
+   * The facts `itam.disposal` decides on: the asset's disposal facts plus its custom fields (`attributes.<key>`,
+   * `records.<key>.<fact>`). "Request disposal" starts the workflow with them; the dialog previews it with them.
+   */
+  private async disposalStartFacts(a: AssetRow, lifespanMonths: number | null, today: string) {
+    return {
+      ...(await this.ctx.fields.facts(ASSET_ENTITY, a.attributes)),
+      ...disposalFacts(
+        {
+          category: a.category,
+          purchaseCost: a.purchaseCost,
+          purchaseDate: a.purchaseDate,
+          lifespanMonths,
+        },
+        today,
+      ),
+    };
+  }
+
+  /**
+   * "Who will approve this?" for the disposal dialog: a dry run of whichever workflow is bound to
+   * `itam.disposal`, with the facts a request would start it with. The information-security notice follows the
+   * admin's workflow (a step with the default graph's `security` id that would ask someone), not a copy of a rule.
+   */
+  async disposalPreview(ref: string, auth: AuthContext) {
+    auth.require(HARDWARE_MANAGE);
+    const target = await this.resolve(ref);
+    const row = await this.itemRow(target.id);
+    if (!row) throw httpErrors.notFound('Asset not found');
+    const facts = await this.disposalStartFacts(row.asset, lifespanOf(row), companyToday());
+    const preview = await this.ctx.workflows.preview('itam.disposal', {
+      facts,
+      requesterId: actingUserId(auth),
+    });
+    const steps = (preview?.steps ?? []).flatMap((s) =>
+      s.type === 'approval' && s.outcome !== 'skipped'
+        ? [{ id: s.id, name: s.name, outcome: s.outcome, people: s.people }]
+        : [],
+    );
+    return {
+      workflow: preview?.definition ?? null,
+      steps,
+      securitySignOff: steps.some((s) => s.id === SECURITY_SIGN_OFF_STEP && s.outcome === 'ask'),
+    };
+  }
+
   /** "Request disposal": starts the required `itam.disposal` approval for a retired asset. */
   async requestDisposal(ref: string, input: DisposeData, auth: AuthContext) {
     auth.require(HARDWARE_MANAGE);
@@ -917,20 +1134,12 @@ export class AssetService {
       if (a.disposalInstanceId)
         throw new HttpError(409, ErrorCodes.INVALID_STATE, 'A disposal request is already pending');
       const tag = formatAssetTag(a.number);
-      const facts = disposalFacts(
-        {
-          category: a.category,
-          purchaseCost: a.purchaseCost,
-          purchaseDate: a.purchaseDate,
-          lifespanMonths: row ? lifespanOf(row) : null,
-        },
-        today,
-      );
+      const facts = await this.disposalStartFacts(a, row ? lifespanOf(row) : null, today);
       const started = await this.ctx.workflows.start(
         'itam.disposal',
         {
           subject: { type: 'asset', id: a.id, label: `${tag} ${a.name}`, href: assetHref(tag) },
-          facts: facts as unknown as Record<string, unknown>,
+          facts,
           requesterId: actingUserId(auth),
         },
         { tx },
@@ -1183,6 +1392,67 @@ export class AssetService {
       );
     });
     return due.length;
+  }
+
+  /**
+   * Daily: one digest to the asset managers about data wipes coming due (within the reminder window) and overdue —
+   * once per asset for each stage, again only when the due date changes.
+   */
+  async wipeDigest(today: string = companyToday()): Promise<{ due: number; overdue: number }> {
+    const cfg = await itamConfig(this.ctx);
+    const rows = await this.ctx.db
+      .select({ id: assets.id, number: assets.number, wipeDue: assets.wipeDue, sent: assets.wipeReminders })
+      .from(assets)
+      .where(
+        and(
+          wipeCondition('due', today, cfg.wipeRemindDays),
+          or(eq(assets.wipeReminders, 0), and(lt(assets.wipeDue, today), lt(assets.wipeReminders, 2))),
+        ),
+      )
+      .orderBy(asc(assets.wipeDue))
+      .limit(500);
+    if (!rows.length) return { due: 0, overdue: 0 };
+    const overdue = rows.filter((r) => r.wipeDue! < today);
+    const due = rows.filter((r) => r.wipeDue! >= today);
+    await this.ctx.transaction(async (tx) => {
+      if (overdue.length)
+        await tx
+          .update(assets)
+          .set({ wipeReminders: 2 })
+          .where(
+            inArray(
+              assets.id,
+              overdue.map((r) => r.id),
+            ),
+          );
+      if (due.length)
+        await tx
+          .update(assets)
+          .set({ wipeReminders: 1 })
+          .where(
+            inArray(
+              assets.id,
+              due.map((r) => r.id),
+            ),
+          );
+      await this.ctx.notifications.notify(
+        {
+          type: 'itam.wipe.due',
+          recipients: await roleHolders(tx, 'itam-asset-manager'),
+          params: {
+            due: due.length,
+            overdue: overdue.length,
+            tags: rows
+              .slice(0, 8)
+              .map((r) => formatAssetTag(r.number))
+              .join(', '),
+          },
+          href: '/itam/hardware?wipe=due',
+        },
+        { tx },
+      );
+    });
+    return { due: due.length, overdue: overdue.length };
   }
 
   /** The asset's scope for permission checks. */

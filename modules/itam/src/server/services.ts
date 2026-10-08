@@ -1,13 +1,17 @@
 import type { ModuleContext } from '@isbp/sdk/server';
+import { ApprovedSoftwareService } from './approved-software';
 import { AssetService } from './assets';
 import { CatalogService } from './catalog';
 import { ContractService } from './contract-service';
 import { DashboardService } from './dashboard';
+import { DiscoveryService } from './discovery';
 import { LicenseService } from './licenses';
 
 export interface Services {
   assets: AssetService;
   licenses: LicenseService;
+  discovery: DiscoveryService;
+  approvedSoftware: ApprovedSoftwareService;
   contracts: ContractService;
   catalog: CatalogService;
   dashboard: DashboardService;
@@ -22,6 +26,7 @@ export function services(ctx: ModuleContext): Services {
     const assets = new AssetService(ctx);
     const licenses = new LicenseService(ctx);
     const contracts = new ContractService(ctx);
+    const approvedSoftware = new ApprovedSoftwareService(ctx);
     // Disposing of a device frees its seats: compliance follows in the same transaction.
     assets.onSeatsChanged = async (tx, licenseIds) => {
       await licenses.recomputeLicenses(tx, licenseIds);
@@ -29,9 +34,11 @@ export function services(ctx: ModuleContext): Services {
     s = {
       assets,
       licenses,
+      discovery: new DiscoveryService(ctx, licenses),
+      approvedSoftware,
       contracts,
       catalog: new CatalogService(ctx, { contracts, licenses }),
-      dashboard: new DashboardService(ctx, { contracts, licenses }),
+      dashboard: new DashboardService(ctx, { contracts, licenses, approvedSoftware }),
     };
     cache.set(ctx, s);
   }

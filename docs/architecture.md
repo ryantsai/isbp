@@ -1,6 +1,6 @@
 # IS Big Platform — Architecture
 
-> Status: Phase 7 (Documentation) in progress; Phase 8 (Process builder) planned. Phase 6 (AI Agent) done, on top
+> Status: Phase 8 (Process builder) in progress; Phase 7 (Documentation) done. Phase 6 (AI Agent) done, on top
 > of Phase 5 (Integrations Hub), Phase 4 (Data APIs and ETL, Scheduled Jobs, Database access), Phase 3 (Asset
 > Management, Project Management, Application Lifecycle, record links and attachments), Phase 2 (ITSM, CMDB, Knowledge
 > Base, Helpdesk AI and the AI gateway), Phase 1 (workflows, forms, notifications, access requests, Role Query API)
@@ -26,7 +26,8 @@ flowchart LR
 
   subgraph API["api (Fastify 5) — stateless, N replicas"]
     direction TB
-    K["Kernel<br/>auth · sessions · CSRF · rate-limit<br/>RBAC engine · audit · settings<br/>module registry · search · OpenAPI"]
+      K["Kernel<br/>auth · sessions · CSRF · rate-limit<br/>RBAC engine · audit · settings<br/>module registry ·
+  search · OpenAPI"]
     subgraph Mods["Modules (same SDK)"]
       CORE["core (system)<br/>identity · RBAC · audit · admin"]
       M1["announcements<br/>(sample, via create-module)"]
@@ -408,21 +409,25 @@ labels for its audit actions. See [module-development.md](module-development.md)
 - Secrets at rest: AES-256-GCM with a versioned master key (`ISBP_MASTER_KEY`), never returned by the API.
 - Headers: helmet on the API; strict CSP with per-request nonce, HSTS, frame-ancestors none on the web app.
 - Least privilege: system roles are narrow (`platform-admin` is the only `*`), assignments can expire, and expiry is enforced by a scheduled job **and** at check time.
+  Three days before a time-bound assignment ends, "Access ending soon" (`core.access.expiring`, once per assignment)
+  reminds the person it was granted to or, for a grant to a group, the group's active members who lose the role with
+  it (not those who keep it through another assignment, their own or another group's, that is permanent or ends
+  later). Groups have no owners, so nobody else is reminded.
 - Audit: logins (success/failure), permission denials, every admin mutation, module toggles and IdP changes.
 
 ## 7. Delivery phases
 
-| Phase                     | Scope                                                                                                                                                                                                                                                             |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0 – Foundation** (done) | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI                         |
-| **1** (done)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                                        |
-| **2** (done)              | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                                             |
-| **3** (done)              | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                                                                                                        |
-| **4** (done)              | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                                                      |
-| **5** (done)              | Integrations Hub: two-way sync with on-premises ManageEngine ServiceDesk Plus and Azure DevOps Server (§12)                                                                                                                                                       |
-| **6** (done)              | AI Agent: a built-in agent on every page that works through the platform's own MCP tools as the person, customisation kinds in 13 surfaces, change sets (dry run, apply on confirmation or review, rollback), and the MCP server for outside agents (§13)         |
-| 7 – Documentation         | User guides for every role in en, zh-TW and ja-JP: how to use the main features and how they map to our IT work, with screenshots, a glossary and FAQ; published in the platform's knowledge base, where Ask IT and the assistant can cite them (§14)             |
-| 8 – Process builder       | Any IT process as a form + approval + follow-up actions, described to the assistant: record fields (pick a CI, application, asset…), approval rules on linked records' data, cross-field rules, actions after approval, custom fields in built-in approvals (§15) |
+| Phase                     | Scope                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0 – Foundation** (done) | Monorepo, app shell (animated nav, light/dark, command palette, en/zh-TW/ja-JP), auth (local, OIDC, SAML, LDAP), users/groups/departments, RBAC, module system + `create-module`, audit log, event bus, docker-compose, Helm skeleton, CI                                                                                               |
+| **1** (done)              | Workflow/approvals engine, custom fields, form builder, notifications, role request portal, Role Query API                                                                                                                                                                                                                              |
+| **2** (done)              | ITSM core, Knowledge Base, Helpdesk AI (pgvector RAG)                                                                                                                                                                                                                                                                                   |
+| **3** (done)              | Asset Management, Project Management, Application Lifecycle; record links and attachments for every module                                                                                                                                                                                                                              |
+| **4** (done)              | ETL/API Builder, Scheduled Jobs, Database Account Management                                                                                                                                                                                                                                                                            |
+| **5** (done)              | Integrations Hub: two-way sync with on-premises ManageEngine ServiceDesk Plus and Azure DevOps Server (§12)                                                                                                                                                                                                                             |
+| **6** (done)              | AI Agent: a built-in agent on every page that works through the platform's own MCP tools as the person, customisation kinds in 13 surfaces, change sets (dry run, apply on confirmation or review, rollback), and the MCP server for outside agents (§13)                                                                               |
+| **7** (done)              | User guides for every role in en, zh-TW and ja-JP: how to use the main features and how they map to our IT work, with screenshots, a glossary and FAQ; published in the platform's knowledge base, where Ask IT and the assistant can cite them (§14)                                                                                   |
+| **8** (done)              | Any IT process as a form + approval + follow-up actions, described to the assistant: record and table fields, approval rules on linked records' data, cross-field rules, approvers' step fields, actions after approval, recurring checklists, custom fields in built-in approvals, change-set packages and the ISMS process pack (§15) |
 
 ## 8. Phase 1 design: workflows, forms, notifications, access requests, Role Query API
 
@@ -703,7 +708,8 @@ flowchart LR
   - Every chunk carries an **ACL**: a permission and an optional scope, or a list of user ids. Results are
     filtered with the caller's `AuthContext`, so retrieval can never leak what the UI would hide.
   - The embedding column is `vector` with an HNSW index when the `pgvector` extension is available at
-    migration time. Production images (`pgvector/pgvector:0.8.7-pg18-trixie`) always have it. The Docker-free embedded
+    migration time. Production images (`pgvector/pgvector:0.8.7-pg18-trixie`) always have it. The Docker-free
+    embedded
     dev Postgres has no pgvector, so there the column is `real[]` with a SQL cosine function. The schema
     and API are the same, it is slower, and Admin → AI shows which mode is active. Changing the embedding
     model re-embeds everything in a background job.
@@ -711,10 +717,11 @@ flowchart LR
   - `ctx.ai.tools.invoke(name, input, { auth, confirmed })` validates the input, requires the tool's
     permission for that principal, and refuses `destructive` tools unless `confirmed` is set
     (`CONFIRMATION_REQUIRED` + preview). It also audits `core.ai.tool_invoked`.
-  - Helpdesk AI reaches ITSM and the knowledge base **only** through these tools. It acts either as the signed-in user
-    (interactive features) or as its **agent identity**: an `ai_agent` principal whose permissions the
-    manifest declares up front (`ai.agent.permissions`) and which Admin → Modules shows. Phase 5 exposes
-    the same registry over MCP.
+    - Helpdesk AI reaches ITSM and the knowledge base **only** through these tools. It acts either as the signed-in
+      user
+      (interactive features) or as its **agent identity**: an `ai_agent` principal whose permissions the
+      manifest declares up front (`ai.agent.permissions`) and which Admin → Modules shows. Phase 5 exposes
+      the same registry over MCP.
 
 ### 9.2 Platform additions for modules
 
@@ -972,13 +979,24 @@ reuse it.
   `asset_events` (the asset's timeline). An asset links to its **CMDB CI** (`ci_id`), and the CI page shows
   the asset through the `cmdb.ci.related` slot.
 - **Disposal** is a required approval (`itam.disposal`): the asset manager, plus information security for
-  data-bearing devices that still have book value or are under five years old (`SECURITY_SIGN_OFF_WHEN`, the
-  default graph's condition, which the asset DTO also evaluates for the disposal dialog's notice).
+  data-bearing devices that still have book value or are under five years old (the default graph's condition). The
+  disposal dialog asks `GET /assets/:ref/disposal-preview` — `ctx.workflows.preview` of the bound workflow with the
+  facts "Request disposal" starts it with, custom fields included — so its approver list and security notice (a step
+  with the default's `security` id that would ask someone) follow whatever workflow the admin configured.
 - **Book value** is straight-line depreciation over the model's lifespan, computed and never stored.
 - **Licences.** Entitlement (`quantity`) is compared with usage (assignments to people or devices). Software
   installs reported by discovery tools (`POST /discovery/software`) reveal unlicensed installs. A stored
   `compliance_state` (`compliant | over_deployed | under_used | expiring | expired`) is recomputed in the same
   transaction as any change and nightly, and notifies on a transition to non-compliance.
+- **Discovery** (Assets → Discovery, `itam.hardware.manage` like the API). Every report is a row in
+  `discovery_reports`. An asset manager imports an inventory tool's CSV export: the browser parses it
+  (`parseDiscoveryCsv`: `serial_number` or `asset_tag`, `product`, `publisher`, `version`) and sends whole devices
+  in
+  batches to `POST /discovery/import`, which runs each through the same `discover` service; files are never
+  uploaded. Discovered titles that match no licence's product are reviewed: a **title rule**
+  (`software_title_rules`, `itam.software.manage`) maps a title to a licence, so its installs are stored as that
+  licence's product with `reported_as` keeping the title (now and in later reports), or ignores it. Removing a
+  rule restores the reported titles; compliance follows in the same transaction.
 - **Contracts.**
   - They cover assets and licences. The renewal reminder goes out at `end − notice_days` and again 7 days
     before the end (idempotent via `last_reminder_for`).
@@ -1114,7 +1132,8 @@ flowchart LR
     relies on the login's permissions, so the UI asks for a least-privilege login.
   - Writes through a read-only connection are refused.
   - Timeouts cancel the statement on the server. Results are capped at `maxRows` and say so (`truncated`).
-  - Values are normalised for JSON: dates become ISO strings, `bigint` and decimals become strings, binary becomes base64.
+    - Values are normalised for JSON: dates become ISO strings, `bigint` and decimals become strings, binary becomes
+      base64.
   - Pools are per connection and process. They are rebuilt when the connection changes and closed when idle.
 
 ### 11.2 Task types (kernel registry, `ctx.taskTypes`)
@@ -1162,7 +1181,8 @@ A module declares **task types** that Scheduled Jobs can run, just as it declare
   - **Publish** needs a successful test of the current draft, which captures the result columns for the docs.
     It freezes an immutable version `vN` with a change note.
   - Older versions can be deprecated (they answer with a `Deprecation` header) or retired (`410`).
-  - Callers use `/api/v1/etl/data/<slug>` (the latest published version) or pin one with `/api/v1/etl/data/<slug>/v<N>`.
+    - Callers use `/api/v1/etl/data/<slug>` (the latest published version) or pin one with
+      `/api/v1/etl/data/<slug>/v<N>`.
 - **Access.**
   - An API client needs the `etl.endpoints.invoke` permission **and** must be on the endpoint's client
     allow-list.
@@ -1186,8 +1206,9 @@ A module declares **task types** that Scheduled Jobs can run, just as it declare
   - A pipeline runs from a source (connection + SQL with `:params`, optionally incremental through a
     `:watermark` parameter fed from the last successful run) to a target (connection + catalog table, mode
     `insert | upsert | replace`, key columns).
-  - **Column mapping** sets source → target per column, with a transform: `none | trim | upper | lower | cast | default | constant`.
-    There are no user-written functions or code.
+    - **Column mapping** sets source → target per column, with a transform: `none | trim | upper | lower | cast |
+default | constant`.
+      There are no user-written functions or code.
   - Rows stream in batches and are written in one transaction.
   - A run records rows read, written and rejected, the duration, the new watermark and a log. "Run now"
     queues a run.
@@ -1671,7 +1692,8 @@ flowchart LR
   end
   subgraph M["Owning modules"]
     CO["core: workflow · form · custom field<br/>role · notification channel · settings"]
-    MO["scheduler.job · etl.pipeline · etl.endpoint<br/>integrations.profile · itsm.category<br/>itsm.sla-policy · itsm.catalog-item"]
+      MO["scheduler.job · etl.pipeline · etl.endpoint<br/>integrations.profile · itsm.category<br/>itsm.sla-policy ·
+  itsm.catalog-item"]
   end
   U --> C -- "ctx.ai.mcp (in-process)" --> T
   X -- "MCP over HTTP (2026-07-28, legacy initialize)" --> T
@@ -1686,7 +1708,8 @@ flowchart LR
 
 - **Declaration.** `manifest.customizations: [{ kind, label, description, icon?, readPermission, applyPermission,
 operations? }]`; the full kind is `<module>.<kind>` (`core.workflow`). `operations` is a subset of `create`,
-  `update`, `archive`, `delete` (default `update`). A kind that can create must also archive or delete, so a rollback
+  `update`, `archive`, `delete` (default `update`). A kind that can create must also archive or delete, so a
+  rollback
   can always undo a create. `archive` means whatever the surface calls disabling (archived, inactive, disabled); the
   flag is never part of the value.
 - **Handler.** `defineServerModule({ customizations: { [kind]: CustomizationHandler } })`:
@@ -1715,6 +1738,7 @@ operations? }]`; the full kind is `<module>.<kind>` (`core.workflow`). `operatio
 | `core.form`                 | key, name, description, icon, category, form schema, workflow, audience | create, update, archive         | save the draft and publish                                             |
 | `core.custom-field`         | entity type, field definition                                           | create, update, archive         | live on save (key and type are fixed after creation)                   |
 | `core.role`                 | key, name, description, permission patterns                             | create, update, delete          | live; escalation guard: only permissions the applying person holds     |
+| `core.group`                | key, name, description, custom fields (never members)                   | create, update, delete          | live; system groups can't be deleted (Phase 8)                         |
 | `core.notification-channel` | name, notification type patterns, locale (never the webhook URL)        | update                          | live                                                                   |
 | `core.module-settings`      | a module's setting values (no secrets, no AI provider settings)         | update                          | live                                                                   |
 | `scheduler.job`             | the job form: type, config, trigger, retries, alerts                    | create, update, archive, delete | live; archive disables                                                 |
@@ -1745,7 +1769,8 @@ stateDiagram-v2
   workflow instance, applied/rolled-back by and when, last error) and `change_set_items` (position, `ref`, kind, op,
   target id, label, value, base version, dry-run result, applied id, before/after snapshots and the after version).
 - **Proposing.** People add items from the panel or a template; agents through `assistant.propose_change`. An item
-  with the same `ref` replaces the earlier one. Proposing needs `assistant.agent.use` and the kind's `readPermission`. The
+  with the same `ref` replaces the earlier one. Proposing needs `assistant.agent.use` and the kind's
+  `readPermission`. The
   base version of the target is captured when it is proposed.
 - **References.** An item may name a `ref`, and later items may use the string `"$ref:<ref>"` wherever an id goes (a
   form's workflow, a catalog item's form key). At dry run and apply time it becomes the referenced item's id.
@@ -1762,7 +1787,8 @@ stateDiagram-v2
   `assistant.change-set` (facts: kinds, modules, item count, destructive) starts, by default one approval by a
   platform administrator. Admins can bind their own workflow, e.g. role changes to identity administrators. When the
   instance is approved, the change set is applied **as the approver** (`ctx.rbac.authFor`, their own permissions,
-  checked at that moment); if that fails, or the decision was automatic, it goes back to draft with the error and the
+  checked at that moment); if that fails, or the decision was automatic, it goes back to draft with the error and
+  the
   requester is notified. Approvers can open the change set from their inbox (`ctx.workflows.isApprover`).
 - **Rollback** is one transaction too, in reverse order: an update goes back to its before value, an archive is
   restored, a create is deleted (or archived when the kind cannot delete). Every object must still be at the version
@@ -1796,14 +1822,17 @@ includeDestructive: true })` lists and calls exactly the tools an outside agent 
 
 - **Protocol.** Streamable HTTP, JSON responses, no sessions. **Dual-era**: requests carrying
   `_meta["io.modelcontextprotocol/protocolVersion"]` are served statelessly per revision `2026-07-28`
-  (`server/discover`; `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers validated against the body, `-32020`
+  (`server/discover`; `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers validated against the body,
+  `-32020`
   on mismatch, `-32022` with the supported versions, `resultType`, `ttlMs`/`cacheScope`); an `initialize` request
-  selects legacy semantics (`2025-11-25`, `2025-06-18`, `2025-03-26`) without minting a session id. `GET` and `DELETE`
+  selects legacy semantics (`2025-11-25`, `2025-06-18`, `2025-03-26`) without minting a session id. `GET` and
+  `DELETE`
   answer `405`. A present `Origin` other than the web app's is refused with `403`.
 - **Authentication.** API clients only (API key or OAuth client-credentials token), holding `core.mcp.use`. Every
   call runs with the client's own grants and is audited as `core.ai.tool_invoked` with `via: mcp`.
 - **Tools.** Every non-destructive registry tool the client may use, named `<module>__<tool>`, in a deterministic
-  order, with `readOnlyHint`/`destructiveHint` annotations. Destructive tools (applying a change set among them) need
+  order, with `readOnlyHint`/`destructiveHint` annotations. Destructive tools (applying a change set among them)
+  need
   a person's confirmation in ISBP and are not offered: an outside agent proposes and requests reviews. Tool errors
   come back as results with `isError` and the platform error code.
 - **One implementation.** The HTTP endpoint and `ctx.ai.mcp` sessions share the same code (`McpServer.session`), so
@@ -1828,10 +1857,12 @@ includeDestructive: true })` lists and calls exactly the tools an outside agent 
 - The seed grants `assistant-user` to the IT groups, `assistant-admin` to IT administrators and the core
   `configuration-viewer` role to the service desk (who can then propose changes they can't apply). It leaves three
   change sets: one applied (the laptop-request workflow, form and catalog item), one in review (a custom field on
-  tickets, waiting in the admin's approval inbox) and one draft (an approval workflow for knowledge articles). A demo
+  tickets, waiting in the admin's approval inbox) and one draft (an approval workflow for knowledge articles). A
+  demo
   API client may use MCP; its key is printed once by the seed.
 - Tests: kernel kinds and MCP protocol (unit); every kind applied, rolled back and refused when stale, change sets
-  with references, reviews applied as the approver, MCP over HTTP with an API key (integration); the panel in builtin
+  with references, reviews applied as the approver, MCP over HTTP with an API key (integration); the panel in
+  builtin
   mode and with a scripted model from `tooling/integration-mocks` (e2e).
 
 ### 13.7 Phase 6 decisions
@@ -1882,12 +1913,14 @@ feature is for in our IT work, how to do the everyday tasks, and how the pieces 
 ### 14.2 In-app help
 
 - The guides are embedded into a workspace package (`@isbp/guide`, generated by `pnpm docs:guide`, checked by
-  `pnpm docs:check`). The generator turns links between guides into in-app links (`/knowledge/guide/<slug>#section`),
+  `pnpm docs:check`). The generator turns links between guides into in-app links
+  (`/knowledge/guide/<slug>#section`),
   screenshot paths into web paths (`/help/<locale>/…`), and other repository links into plain text. Translations may
   keep the English anchors in their links; the generator rewrites them to the translated heading at the same
   position (every translation keeps the English section structure, which the guide test enforces).
 - The **knowledge base** publishes them in a "Using IS Big Platform" category (`importGuide`): one article per guide,
-  its zh-TW and ja-JP versions as translations of the English one, audience everyone (staff guides serve roles such as
+  its zh-TW and ja-JP versions as translations of the English one, audience everyone (staff guides serve roles
+  such as
   asset managers and engineers that don't read the service desk's internal articles), tag `isbp-guide`, source
   `{ type: 'guide' }`. `knowledge.guide_articles` maps each guide and
   language to its article with a content hash; only guides whose hash changed are republished (as a new version,
@@ -1914,47 +1947,384 @@ feature is for in our IT work, how to do the everyday tasks, and how the pieces 
 | 67  | Guides in all three UI languages, with each language's UI labels  | Readers follow steps on a screen in their own language                                              | English only; machine translation at read time     |
 | 68  | Screenshots captured by a script from the demo                    | Images stay current with the UI and exist for every language                                        | Manual screenshots (stale quickly); no screenshots |
 
-## 15. Phase 8 outline: Process builder (any IT process, described to the assistant)
+## 15. Phase 8 design: Process builder (any IT process, described to the assistant)
 
 Asked for during Phase 7: _"I want a process to approve configuration changes: define the data I want (built-in or
 custom), constraints and approval rules, just ask the built-in assistant to create it, then get a URL for that
-form."_ Phases 1 and 6 already cover most of it: forms with typed fields, conditional fields and per-field
-validation; approval workflows (sequences, parallel branches, any/all/quorum, people/group/role/manager/department
-head/a person named in the form, conditions on answers, SLAs with escalation); the assistant creating a form and its
-workflow as one change set; the form at `/requests/forms/<key>`. Phase 8 closes the gaps that stop it from fitting
-**any** IT process. The detailed design is written at the start of the phase.
+form."_ Phases 1 and 6 already gave forms with typed and conditional fields, approval workflows (sequences, parallel
+branches, any/all/quorum, people/group/role/manager/department head/a person named in the form, conditions on
+answers, SLAs with escalation), the assistant creating both as one change set, and the form at
+`/requests/forms/<key>`. Phase 8 closes the gaps that stopped it from fitting **any** IT process.
 
-### 15.1 Scope
+### 15.1 Record fields (built-in data in forms and custom fields)
 
-1. **Record fields.** A `record` field type for forms and custom fields: pick a configuration item, application,
-   asset, licence, project, group, person or any `manifest.records.types` type, through the existing record
-   resolvers (only what the person may read; stored as a record reference, shown as a link). Options: allowed
-   types, one or many, filters (e.g. CI class, environment).
-2. **Approval rules on linked data.** Workflow facts include the chosen records' approval-relevant attributes,
-   declared by each record type (e.g. `ci.criticality`, `ci.environment`, `ci.ownerGroup`, `application.owner`), so
-   rules can say "critical CI → CAB" and approvers can be "the CI's owner group" or "the application's owner". Facts
-   are captured when the workflow starts (auditable, stable while it runs).
-3. **Custom fields in built-in approvals.** Module triggers (ITSM changes, access requests, disposals, database
-   access…) expose the entity's custom fields as facts, so admins can route built-in processes on their own data.
-4. **Form-level rules.** Constraints across fields (end after start, "a rollback plan is required when risk is high",
-   at least one of…), using the same condition model as visibility and approvals; checked in the browser and the
-   API like field validation. Optionally, blocked windows (change freezes) from a business calendar.
-5. **Actions after approval (and rejection).** A form's outcome can do more than open a service request: create an
-   ITSM change or ticket from the answers (with linked records), run a scheduled job or task type, call a webhook
-   through `ctx.http`, update a record's custom fields, grant a role for a time. Actions are module-provided (a new
-   `manifest.processActions` + handlers, like task types), run in the worker after commit, are retried and shown on
-   the request's timeline and in "My requests".
-6. **The assistant.** The form, workflow and action kinds learn the new pieces, so one sentence produces the whole
-   process as one change set; after applying, the assistant answers with the form's own link
-   (`/requests/forms/<key>`), not only the admin page. Builtin-mode templates gain "approval process for a change".
-7. **Documentation.** The user guide (Phase 7) gets a "Build your own process" chapter in all three languages, and
-   the demo gets a configuration-change request process built this way.
+- `FieldDef.type = 'record'` with `record: { types: ['cmdb.ci', …], multiple?, where? }` (`@isbp/sdk` fields). Values
+  are record refs `<type>:<id>` (a list when `multiple`, at most 20). `validateFields` checks the shape and the
+  allowed types; the API then checks every picked record exists **and is readable by the person** through the
+  record resolvers (`ctx.records.resolve` with their `auth`), and that it matches `where` (evaluated on the record's
+  facts) — a hand-made request can't pick a record the picker wouldn't offer.
+- Works for form fields and custom fields alike (one model). The renderer shows a record picker (the record search
+  behind "Link record", filtered to the field's types) and, read-only, the resolved records as links.
 
-### 15.2 Questions to settle when the phase starts
+### 15.2 Record facts: approval rules on what was picked
 
-- Which record attributes each module exposes as facts (and how they stay within the requester's and approver's
-  visibility).
-- Whether actions may run as the requester, the last approver or the module's agent identity (default: the
-  module's `ai.agent` identity, recorded with the approver).
-- How a form-built "configuration change" relates to ITSM changes: build on the change record (recommended when
-  CAB scheduling and the change calendar matter) or stay a standalone request.
+- `RecordTypeDef.facts` (a Zod object) declares a record type's approval-relevant attributes, served by the resolver's
+  `facts(ids, ctx)` without permission filtering (facts route approvals and are never shown to the requester), so
+  they hold only what the record's own readers may see (decision 74).
+  People are user ids, groups are group keys. First types: `cmdb.ci` (class, environment, criticality, status,
+  ownerGroup, ownerId), `alm.application` (criticality, ownerId, businessOwnerId, …), `itam.asset` (category,
+  status,
+  assigneeId, …), `itam.license`, `projects.project`, `knowledge.article` (audience, categoryKey), `itsm.ticket`
+  (type,
+  priority, category, groupKey).
+- Form workflows get `records.<fieldKey>.<fact>` next to `data.<fieldKey>` (`recordFieldFacts` in the kernel; for a
+  multi-pick field each fact is a list, and `eq`/`in` match any element). The workflow builder lists them as facts
+  when a form is chosen ("Use the fields of"). Facts are captured when the workflow starts.
+- Approver rules: `{ type: 'fact', fact, kind?: 'user' | 'group' }` — a fact holding a user id (or list), or with
+  `kind: 'group'` a group key (or list) whose members approve: "the CI's owner group approves"; `each: true` asks
+  every value
+  separately (one slot per group or person), so with mode `all` the owner group of **each** picked CI must approve.
+
+### 15.3 Custom fields in built-in approvals
+
+`WorkflowTriggerDef.customFieldEntity` names the entity whose custom fields a module passes as facts
+(`ctx.fields.facts(entityType, attributes)` → `{ attributes, records }`, spread into `start({ facts })`). The builder
+lists `attributes.<key>` (and `records.<key>.<fact>` for record custom fields). Wired for the triggers whose subject
+has custom fields: ITSM changes (`itsm.ticket`), asset disposals (`itam.asset`), project proposals
+(`projects.project`), and the ALM deployment approval if it has one.
+
+### 15.4 Form rules
+
+`FormSchema.rules: [{ id, when?, require, message, fields? }]`: when `when` holds (always without it), `require` must
+hold, else `message` (three languages) shows on `fields` or above the form. Conditions read answers by key and can
+compare two answers (`valueFact`: "end `gte` start"). `validateForm` runs field validation then rules — the same code
+in the browser and the API (decision 70). The form builder gets a Rules tab using the condition editor.
+
+### 15.5 Process actions (what happens after)
+
+- `manifest.processActions: [{ action, name, description, icon, permission }]` + `defineServerModule({
+processActions: { [action]: { fields(ctx, { form, locale }), run(input, ctx) } } })`. `fields` describe the
+  configuration with the shared FieldDef model (options may depend on live data and on the form's own fields); `run`
+  does the work and returns `{ reference, href, summary, record }`.
+- A form lists actions in its schema (`FormSchema.actions: [{ id, on: 'submitted' | 'approved' | 'rejected', type,
+name, config }]`), so they are versioned with the form: a submission runs the actions of the version it was made
+  with. Saving checks each config against the action's fields and the editor's permission for the action.
+- Templates: text config values may use `{{data.<key>}}`, `{{records.<key>.<fact>}}`, `{{requester.displayName}}`,
+  `{{request.reference}}`, `{{request.href}}`, `{{decidedBy.displayName}}` (rendered by a small, non-evaluating
+  `renderTemplate`; unknown paths render empty).
+- Execution: on the outcome, rows in `core.process_action_runs` (submission, action id, type, status, attempts,
+  result, error) are created in the same transaction and an outbox event queues them; the worker runs each with
+  retries (3 attempts, exponential backoff; `HttpError` = permanent failure). A request's actions for one outcome
+  run
+  one after another in the form's order (each starts when the previous one ended; a failure doesn't stop the
+  rest). An action runs as a system principal
+  holding only **its module's** permissions, named after the form, with the request and decider in audit metadata
+  (decision 71) — a module writes only its own data, as everywhere else. Failures notify the form's editors
+  (`core.process-action.failed`) and can be retried from the request page by an admin.
+- The request page shows each action with status and its result (link to the change it created); the first result
+  with a link becomes the request's fulfilment in "My requests" unless a module already set one.
+- First actions: `itsm.create-change` (from answers, linked to the picked CIs and to the request; optionally submits
+  it to its own CAB authorization — never bypassed, decision 72), `itsm.create-ticket`, `scheduler.run-job`,
+  `core.grant-role` (role, person from a user field, duration), `core.notify` (people, groups or the requester, with
+  a templated message), `core.webhook` (POST JSON through `ctx.http`, allow-listed hosts, sealed secret header),
+  `cmdb.update-ci` (set fields of the picked CIs).
+- Implementation notes: the registry and runner are `apps/api/src/kernel/process-actions.ts`; runs execute on their
+  own BullMQ queue (`isbp-process-actions`) so a long core job never delays them, each job claims its run atomically
+  (`queued` → `running`, so a duplicate job does nothing), and the `process-actions-sweep` job re-queues runs whose
+  worker died. A form without an approval workflow runs its `approved` actions on submission. Changed or new actions
+  need their type's permission on save; on publish, actions new since the live version are checked again. Secret
+  config keys (`ProcessActionHandler.secrets`) are stored as `{ sealed }`, sent as `{ set: true }` (which keeps
+  them on
+  save) and opened only for `run`; requesters never see a form's actions. Webhooks are HTTPS only, to hosts in the
+  core
+  setting `processActions.webhookHosts` (which may be internal). The ITSM actions put the run in the ticket's unique
+  `source` (`type: 'process-action'`), which makes them idempotent; `core.grant-role` grants through
+  `AccessService.grantForRequest` (requestable roles, or roles the configuring admin could assign; an existing grant
+  is kept or extended, never shortened).
+
+### 15.6 Approval preview for requesters
+
+`ctx.workflows.preview(trigger, input)` (the engine's dry run, already used by database access) is available to every
+module. Forms use it for "Who will approve this?" on the request form (`POST /requests/forms/:key/preview` with the
+current answers, debounced) and asset disposal uses it so its security notice follows the bound workflow, not a
+copy of the default rule.
+
+### 15.7 The assistant and documentation
+
+- **`core.form` kind.** The guide describes record fields (`record: { types, multiple?, where? }`), rules (with
+  `valueFact`) and actions, with live reference data: `recordTypes` the person may offer, with their facts (type,
+  label, values; facts holding group keys or user ids are marked for approver rules), and `processActions` the person
+  may add with their configuration fields, described against a probe form that has one field of each type, so
+  fields that only exist when the form has such a field (`ciField`, the planned window) are listed with `formField:
+{ types, recordTypes?, value }` ("the key of one of this form's fields"). A worked example is the demo's
+  configuration change form. `check` refuses what the form builder refuses beyond the shared schema: conditions on
+  unknown fields or a field's own answer, headings without text, invalid defaults, unknown record types, rules that
+  require nothing or read `data.<key>` instead of a field key. Permission problems are left to `apply` as a 403 with
+  the permission (record types the person can't offer, actions they may not add), so a dry run marks the item for a
+  reviewer who holds it instead of failing it.
+- **`core.workflow` kind.** The instructions explain `records.<field>.<fact>`, `attributes.<key>` (triggers with
+  `customFieldEntity`) and `{ type: 'fact', fact, kind: 'group' }` approvers with a fallback; the reference adds
+  every enabled record type with its facts, the published forms with their field keys and record types, and per
+  trigger the custom fields that come along as facts (`customFieldFacts`). A worked example is the demo's approval.
+- **Links.** A kind's `get` may return `links` (`{ href, label }`, per locale, not part of the version): `core.form`
+  returns "Open the form" (`/requests/forms/<key>`) while the form is published, active and not archived. Snapshots
+  of applied items keep them. The change set page shows a **Ready to use** banner with them and each item its own
+  link; the panel's change set card too. The assistant's tool results for an applied set carry `links` (English
+  labels) and a note to pass them on. After the person confirms `assistant.apply_change_set`, the reply adds
+  "Ready to use:" with a Markdown link per object, and the stored tool result becomes the real result (links
+  included), so the model sees them on its next turn. When a review applies a change set that came from a
+  conversation, the conversation gets "CS-… was approved and applied by …" with the same links.
+- **Template "Approval process"** (`core.form`, builtin mode): form name and category, an optional record field
+  (type, question, several), up to three questions, then who approves — the requester's manager (skipped without
+  one), the group from a group fact of the picked records (per type), a chosen group — and, with ITSM, "raise a
+  change when approved" (linked to the picked CIs, its planned window from the first two date questions, submitted
+  when there is one). It builds two changes: the workflow (`ref: approval`) and the form with `workflowId:
+"$ref:approval"`. Templates may now return `before` changes of other kinds and a `ref`
+  (`buildTemplate(…).items`); the assistant proposes them in order into one change set, renaming refs the set
+  already uses, after checking every kind can be proposed.
+- **`itsm.create-change` window and type.** Date-only answers are days in the requester's time zone (their profile's,
+  else UTC): the start of the start day to the start of the day after the end day. A window that already began
+  starts at the next quarter hour (a change for today can still be submitted); one that has ended is raised but not
+  submitted (`windowPassed`). The change type is normal or emergency, from the configuration or an answer
+  (`changeTypeField`); a form never raises a pre-approved standard change (decision 72).
+- **Demo** (`apps/api/src/seed-phase8.ts`, after every other seed so numbered records keep their numbers): the
+  **Configuration change request** (`config-change`, category `changes`, offered to the IT groups that can read the
+  CMDB: IT administrators, service desk, network, security and DBA teams) — CIs from the CMDB (several, not retired),
+  summary, change type, risk, planned start and end, what will change, rollback plan; rules "The end date can't be
+  before the start date" and "A high-risk change needs a rollback plan"; **Configuration change approval**: the
+  manager (skipped without one), the CIs' support groups (`records.cis.ownerGroup`, IT administrators when a CI has
+  none), and when a CI is critical or the risk is high the Change Advisory Board; on approval **Raise the change**
+  (`itsm.create-change`, submitted to its CAB authorization). Built as the applied change set **Configuration change
+  requests** (CS-00004 on a fresh demo) through the kinds, so the admin pages' checks apply; the same values are the
+  kinds' worked examples (`core/customizations/examples.ts`). Two requests by `helpdesk`: "Patch erp-db-01 to
+  PostgreSQL 16.6" waits for the admin (manager), then the DBA team and the CAB; "Raise the department share quota
+  on fs-01" was approved by the manager and IT administrators, and its action ran in the seed (synchronously, so the
+  demo is the same on every reset), raising a change linked to fs-01 and waiting for its CAB authorization.
+- The user guide gets "Build your own process" in all three languages, with screenshots.
+
+### 15.8a Process plumbing for ISMS-style processes
+
+Mapping a real ISMS process set (network security, IT operations, information assets, mobile devices, access control;
+about 20 record forms) onto the platform showed what a "process builder" still lacked. Phase 8 adds:
+
+- **Table fields** (`type: 'rows'`, sub-fields of the simple types, min/max rows): firewall rule lines, user lists,
+  backup items, account lists. Templates render a table as one line per row.
+- **Step fields**: an approval step can ask its approver to fill in fields (the "filled in by IT" part of a paper
+  form: evaluation result, handling notes, completion date, wipe time, review checklist). Values are validated like
+  form answers, stored with the decision (`approval_tasks.data`), shown on the request, and become facts
+  `steps.<stepId>.<key>` for later conditions and action templates.
+- **Conditional actions** (`FormAction.when`, evaluated on `data`, `records`, `steps`, `requester`).
+- **Reminders** (`core.remind`): a notification on a date taken from an answer or step field, plus/minus days
+  (`core.scheduled_reminders`, delivered by a job) — rule expiries, short-term use ending, planned account deletion,
+  data wipe due.
+- **Assigned and recurring forms** (`core.form_assignments`): a form someone must fill in by a date — opened by a
+  scheduled job (`core.assign-form` task type: monthly inspections, yearly reviews) or by hand; "To do" in the
+  request portal and on the dashboard; overdue reminders; per-form compliance (done / overdue / missed periods).
+- **Requests as records** (`core.request`): attachments (evidence) and record links on the request page.
+- **Print view** of a request (answers, every decision with its step fields, actions and attachments) as audit
+  evidence.
+- **Application roles** in `core.grant-role` (VPN, AD, server access registered as applications), and a
+  `core.user.transferred` event with an access check sent to the old and new manager on a department change.
+
+Implementation notes (step fields, requests as records, transfers):
+
+- **Step fields.** `ApprovalStep.fields` (the shared `FieldDef` model, any type, ≤ 20, unique keys) and
+  `fieldsRequiredOn` (`approve` by default; `both` makes required fields required to reject too). The inbox, the
+  instance sheet and the API use the same `validateStepFields`; the engine then checks people (exist) and records
+  (readable by the approver, matching `where`) as for form answers, stores the values on the task, puts them in the
+  audit entry and the timeline event (`fields`), and merges them into the instance's facts under
+  `steps.<stepId>` (several approvers on a step: the latest decision's value). Only steps after it can read them
+  (`stepsBefore`: earlier in the sequence or an enclosing one, never a parallel branch beside it);
+  `validateWorkflowGraph` reports `stepFact` otherwise and `stepFields` for fields the form builder would refuse, and
+  publishing reports `unknownRecordType`. Process actions get `request.steps` and `{{steps.<id>.<key>}}`. The builder
+  edits them with the form builder's field editor ("Fields the approver fills in"); a step's condition editors offer
+  the fields of the steps before it, the simulator all of them. The request lists every decision with its values
+  (`FormSubmission.decisions`, rendered in the reader's language).
+- **Requests as records.** `core.request` (form submissions; the access-request page is unchanged). One rule
+  (`core/services/request-access.ts`) serves the request page, `/requests/:reference` and the resolver: the requester,
+  everyone asked to approve it (also through delegation) and form administrators may add evidence and links until the
+  request is withdrawn (form administrators always); workflow readers only see it. Pickers list the type for form
+  readers (`core.forms.read`); everyone else reaches their requests from the request page. A process action's result
+  `record` is linked to the request.
+- **Transfers.** `UserService.update` publishes `core.user.transferred` in the update's transaction when the
+  department changes and notifies the person's previous manager (else the old department's head) and the new one (a
+  manager set in the same change, else the new department's head) with the person's direct role assignments; those
+  scoped to the old department (or one below it) are listed as to review. Nothing is revoked (decision 80).
+
+Implementation notes (assigned and recurring forms):
+
+- **Assignments.** A row of `core.form_assignments` is a form (published, not archived), a person **or** a group
+  (any member may fill it in; group members are resolved when they act, so joiners see it and leavers don't), a title,
+  a due instant, an optional period key and note, and its source (`manual`, or `job` with the job id). States shown:
+  open, overdue (open past `dueAt`), done (completed by `dueAt`), late, cancelled — only `open`/`done`/`cancelled`
+  are stored. Form administrators (`core.forms.manage`) assign by hand (`POST /forms/:id/assignments`), list and
+  cancel them (`FormAssignmentService`, `core/services/form-assignments.ts`); `GET /forms/:id/assignments/compliance`
+  counts per period (the latest 12).
+- **Completing one.** The submission route takes `?assignment=<id>` (and `POST /me/form-assignments/:id/submissions`
+  does the same): the assignment must be the person's or their group's (403), still open (409 `ASSIGNMENT_CLOSED`)
+  and for this form; it opens the form to them whatever its audience (decision 81), and is marked done in the
+  submission's transaction with a conditional update, so there is one submission per assignment. The form's own
+  workflow and actions run as for any submission.
+- **Recurrence.** `core.assign-form` is a core task type (`manifest.taskTypes`, editor in the slot
+  `scheduler.task-config.core.assign-form`). A run computes the period of its **slot** (`task.scheduledFor`, not the
+  clock) in the job's time zone (`TaskContext.timeZone`, new in the SDK) — day `2026-10-08`, ISO week `2026-W41`,
+  month `2026-10`, quarter `2026-Q4`, year `2026` — and the due date (the end of the period's last day, or of the day
+  N days after the run, 23:59:59 local), renders `{{period}}` in the title and inserts with
+  `dedupeKey = form:<id>:<user|group>:<id>:<period>` (`ON CONFLICT DO NOTHING`): retries, "Run now" and a second job
+  for the same form, assignee and period open nothing new. The helpers are pure (`@isbp/contracts`), shared with the
+  job editor's example. The `scheduler.job` kind's guide lists the type with its schema and a worked example.
+- **Reminders.** The hourly core job `remind-form-assignments` reminds the assignee (or the group's members) of open
+  assignments due within two days and of overdue ones, at most once every 23 hours and never on the day they were
+  assigned (`coalesce(lastRemindedAt, createdAt)`), weekly after a week overdue; the first reminder after the due
+  date (`lastRemindedAt` before `dueAt`) also notifies the form's editors (author, last editor, publisher of the live
+  version and whoever assigned it; else platform administrators), audits and publishes `core.form-assignment.overdue`
+  — no extra column needed. Each reminder claims the row by moving `lastRemindedAt` conditionally, so concurrent runs
+  send it once. Assignments of paused or archived forms wait.
+- **Web.** "To do" on the Requests page (open to-dos, overdue first, count) and core's card in `core.dashboard.work`;
+  the form page shows the to-do ("Monthly server room inspection — due 31 Oct", the note) and whether sending
+  completes it; the form's admin page has an **Assignments** tab (compliance table, the list with filters in the URL,
+  "Assign", "Schedule recurring" into Scheduled Jobs, cancel).
+
+Domain support that the same processes needed:
+
+- **Information security** module (`isms`): the information asset register (classes and sub-classes configurable,
+  default people / hardware / software / information / services; numbering `<site><class><seq>`; C/I/A 1–4 with the
+  value = max; classification label; manager, users, location; links to CMDB CIs, ITAM assets, licences,
+  contracts, knowledge articles); yearly **stocktakes**; **shared accounts** (custodian, members, target; a member
+  leaving or moving asks the custodian to change the password that day); **account reviews** of any system from an
+  imported account list (keep / disable / delete, sign-off). Record type `isms.asset` with facts (class, C/I/A,
+  value, classification) so processes can route on asset value.
+
+  As built: the taxonomy (classes with C/I/A guidance per score and language, sub-classes, sites, labels) is created
+  on first use from the module catalogs and edited in Administration → Information security, and is also the
+  customisation kind `isms.asset-class`. Numbers come from a counter per `<site><class>` (decision 86); value =
+  max(C, I, A) is stored and checked by a constraint. The register exports CSV in the paper register's column order
+  (UTF-8 with BOM, headers in the reader's language) and imports the same columns in any of the three languages
+  (dry run with a line-by-line report; known numbers update). "Create from…" registers CMDB CIs, ITAM assets,
+  licences, contracts, applications or articles the person can read, through the record registry, linked to them
+  (decision 88). Stocktakes snapshot in-scope assets as items for their manager or managing group (confirmed /
+  changed — applied to the asset at once — / missing / disposed); sign-off by `isms.stocktakes.signoff` applies the
+  statuses; quarterly or yearly campaigns schedule their successor. Shared accounts react to `core.user.offboarded`
+  (member taken off) and `core.user.transferred` (member kept), and to removals by hand or in the yearly review: the
+  password is due and the custodian notified (mandatory), until they record the change (decision 87). Account reviews
+  take items from a CSV, from the role holders of a core application (for people who may read them), or by hand;
+  complete when every item is decided (disable and delete with the date done), sign-off by `isms.reviews.signoff`,
+  optional recurrence, ITSM tickets for disable/delete through `itsm.create_ticket` as the person. The process action
+  `isms.register-shared-account` registers the approved account from a request (members from person fields or a
+  person column of a table field), idempotent on the run.
+
+- **ITAM**: an approved-software list (allow / block, licence type free / open source / shareware / paid /
+  subscription, scope company or departments, until a date; CSV export in the whitelist layout) checked against
+  discovered installs on devices in use ("Not on the approved list", "Blocked"; Discovery → Not approved, the asset's
+  Software tab, an attention count, a reminder for entries ending). Entries match the title the tool reported and
+  the licence product a title rule counts it as. Process actions `itam.approve-software` (add or extend an entry from a
+  software install request), `itam.assign-asset` and `itam.return-asset` (the device from an asset field of the form
+  or a step field IT fills in; the request on the asset's history, attributed to the approver; data retention date
+  from an answer or step field, wipe due = retention + `wipe.months`, default 2), "Record data wipe" (who, when,
+  method), the `wipe-reminders` job, the hardware filter `wipe=due` and the fact `itam.asset.wipeDue`. `lost` reads
+  "Lost or stolen".
+- **Knowledge**: attachments on articles through the core files panel (editors change them, readers download them
+  as far as they may read the article) and a classification label from the module setting `classification.levels`
+  (default Strictly Confidential, Customer Confidential, Confidential, Internal Use Only; custom labels allowed): badge
+  and banner, in lists, search results and the editor, a list filter and the fact `knowledge.article.classification`.
+- **ITSM**: requester acceptance in a change's post-implementation review ("Accept the change" / "Report a problem",
+  recorded, notified, required before closing with `changes.requireAcceptance`); an optional `itsm.resolution`
+  workflow for a manager's sign-off before a ticket is resolved (scoped by conditions; the ticket waits in
+  `pending_approval`, "Waiting for sign-off"; a rejection sends it back to in progress with the reason).
+
+### 15.8b Change-set packages (a whole process as one change set)
+
+A process set such as the ISMS one is ~20 forms with their approval workflows, groups, scheduled jobs and service desk
+categories. Building it item by item is slow, and moving it from a test environment to production meant doing it
+twice. A **change-set package** is a change set as a file (decision 89):
+
+```json
+{
+  "format": "isbp.change-set-package",
+  "version": 1,
+  "key": "it-processes",
+  "title": { "en": "IT processes", "zh-TW": "IT 流程", "ja-JP": "IT プロセス" },
+  "requires": { "modules": ["itsm"] },
+  "items": [
+    {
+      "ref": "cab",
+      "kind": "core.group",
+      "op": "create",
+      "value": { "key": "cab", "name": "Change Advisory Board" }
+    },
+    {
+      "ref": "approval",
+      "kind": "core.workflow",
+      "op": "create",
+      "value": { "…": "groupKey cab in a step" }
+    },
+    {
+      "ref": "form",
+      "kind": "core.form",
+      "op": "create",
+      "value": { "…": "…", "workflowId": "$ref:approval" }
+    }
+  ]
+}
+```
+
+- **Format.** `ChangeSetPackage` (`@isbp/sdk`) and its zod schema (`modules/assistant/src/contracts.ts`): `title` and
+  `summary` in en / zh-TW / ja-JP (the change set takes the installer's language, then English, then any), `requires`
+  for modules beyond the items' kinds, at most 300 items (`MAX_PACKAGE_ITEMS`, also the change set limit now). Items
+  are proposals, as `POST /change-sets/:id/items` takes them; unknown fields are refused, so typos in hand-written
+  packages fail loudly. `"$ref:<ref>"` names an earlier item wherever an id goes; keys (a workflow's `groupKey`) are
+  written as keys, after the item that creates them.
+- **Export** (`GET /assistant/change-sets/:id/export`, anyone who may see the set, "More actions → Export") writes the
+  items in order with their refs as proposed, the title and summary in every locale, `<reference>.json`. Targets of
+  updates, archives and deletes stay ids of that environment: a file of creates moves anywhere, updates only between
+  environments that share ids (an import reports a missing target).
+- **Import** (`POST /assistant/change-sets/import`, body ≤ 4 MB) and **install** (`POST
+/assistant/packages/:module/:key/install`) share `ChangeSetService.importPackage`: `ctx.customizations.requirements`
+  (modules not enabled or kinds unknown → 400 `PACKAGE_UNSUPPORTED`; kinds the person can't read → 403), the proposal
+  checks of every item (`proposalProblems` — the same function `propose` uses — and `packageIssues`: operations,
+  targets, values, references to earlier items, names used twice, two changes to one object; targets must exist and
+  their versions become the base) → 422 with `items.<index>.<field>` issues. Nothing is created unless every item
+  passes; then the draft and its items are written in one transaction, audited as `assistant.change-set.created` with
+  `metadata.from` (`file`, or the package), and dry-run once. From there it is an ordinary change set: items a person
+  can't apply need an approver, review, apply and rollback are unchanged.
+- **Built-in packages.** `manifest.customizationPackages: [{ key, name, description, icon? }]` + `defineServerModule({
+customizationPackages: { [key]: ({ locale }) => ChangeSetPackage } })` (validated both ways at start-up). The kernel loads
+  each once per locale (`ctx.customizations.packages(auth)` with item count, kinds, requirements and whether the person
+  may propose / apply all of it; `loadPackage(moduleId, key, { locale })`), only for enabled modules. The content is
+  built for the installer's language (`auth.user?.locale ?? 'en'`, as the title): values a kind keeps as plain text
+  (group and job names, reminder and ticket texts, workflow descriptions, item labels) come in it; files carry
+  whatever text they have. `apps/api/test/unit/packages.test.ts` checks
+  every installed module's packages; `docs/ai/reference.md` lists them.
+- **`core.group` kind** (decision 90): key, name, description and custom-field values of a group; create, update,
+  delete (rollback deletes what a set created; system groups can't be deleted). Members are never part of it: people
+  are added on the group's page or by directory sync. A package creates the groups its workflows name by key.
+- **Web.** Change sets → **From a package**: a dialog with the built-in packages (name, description, module, number of
+  changes, kinds, why the person can't install one, or that applying needs someone else) and **Import a file** (read
+  in the browser, sent as is; the API's problems are listed). Either opens the new draft with its dry run.
+
+### 15.8 Phase 8 decisions
+
+| #   | Decision                                                                                                      | Why                                                                                                                            | Alternatives considered                                                                |
+| --- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| 69  | Record fields store refs and are checked against the person's read access                                     | Built-in data in any form without leaking records; one model for forms and custom fields                                       | Free-text names; per-module pickers                                                    |
+| 70  | Form rules use the condition model, in the browser and the API                                                | One declarative language (visibility, rules, approvals); no code from admins or the AI                                         | Scripted validation; server-only checks                                                |
+| 71  | Process actions run as a system principal with only their module's rights                                     | A form can't make a module do what it wouldn't; every write stays in its module, audited                                       | Running as the requester (often lacks rights); as the approver                         |
+| 72  | Actions never skip another approval (a change still goes through the CAB)                                     | A form designer can't bypass required governance by composing processes                                                        | "Pre-approved" changes created by forms                                                |
+| 73  | Actions are versioned with the form                                                                           | A request runs what it was submitted under, even after the form changes                                                        | Live actions on the form (changes affect pending requests)                             |
+| 74  | Record facts hold only what the record's readers may see                                                      | The picker's `where` filter must not let anyone probe values a record's own users can't read                                   | Separate "routing-only" facts (leak through filtering)                                 |
+| 75  | Record custom fields are checked as the caller of the current request                                         | Modules keep calling `ctx.fields.validate` unchanged; system work (sync, jobs) checks existence                                | Passing `auth` through every module's call site                                        |
+| 76  | Kinds return `links` to where people use an object; change sets keep them                                     | The person asked for "a URL for that form": the agent and the change set give it without knowing any kind                      | A form-specific case in the assistant; the admin link only                             |
+| 77  | Kind checks mirror the admin page; permissions are left to `apply` (403)                                      | An agent can't publish what the builder wouldn't, and a proposer can still send it to a reviewer who holds the permission      | Only the API's checks; permission problems as value issues                             |
+| 78  | Step field values are facts of the instance, readable only by later steps                                     | One condition model for answers and approvers' input; a step can't depend on its own or a parallel branch's decision           | A separate "decision data" model; letting any step read any step                       |
+| 79  | Approvers may add evidence to the requests they were asked to approve                                         | The "filled in by IT" part of a process often comes with a file; one access rule for the page, API and record resolver         | Requester and admins only (approvers mail files around)                                |
+| 80  | A department change asks managers to review access; nothing is revoked                                        | Roles often stay valid after a move; managers know the job, an automatic revoke would break work and hide the review           | Revoking department-scoped roles automatically                                         |
+| 81  | An assignment opens its form to the assignee                                                                  | Recurring checklists are for a few people; a form admin asked them, so the audience need not list them                         | Adding assignees to the audience; failing                                              |
+| 82  | Recurring assignments key off the run's slot, per period                                                      | A retry or "Run now" never opens a second one; the period follows the job's time zone, not UTC                                 | Counting runs; one per run; the clock time                                             |
+| 83  | The allow list is in use from its first allowed entry                                                         | A site without a whitelist isn't flooded with "not approved" installs; blocked titles are flagged either way                   | An on/off setting; flagging every install                                              |
+| 84  | Resolution sign-off waits in `pending_approval` with the instance on it                                       | No new status for sync mappings, SLA pause rules and reports; the UI says "Waiting for sign-off"                               | A new `pending_sign_off` status                                                        |
+| 85  | A classification label informs handling; the audience decides who reads                                       | One rule for visibility; labels are a site's own vocabulary (a settings list), custom ones shown as written                    | Access rules per label; a label table with its own admin page                          |
+| 86  | Information asset numbers come from a counter per site and class, never change                                | The number is on labels and paper records; moving an asset keeps it, imports keep given numbers and move the counter           | Renumbering on a class or site change; one global sequence                             |
+| 87  | Shared-account passwords are never stored; the platform tracks when they must change                          | The custodian keeps the secret; the register is the evidence (who, when, why due), not a vault                                 | A sealed password field revealed to members                                            |
+| 88  | "Create from…" goes through the record registry with the person's access, no `dependsOn`                      | ISMS works without CMDB or ITAM; the owning module's permissions decide what can be registered                                 | Reading the CMDB and ITAM tables (both required)                                       |
+| 89  | A package is a change set as a file; installing one makes a draft through the proposal checks, all or nothing | One review, dry run, apply and rollback path for hand-made, exported and built-in configuration; nothing is left half-imported | An installer writing configuration directly; importing what fits and skipping the rest |
+| 90  | Groups are configuration (`core.group`), their members are not                                                | Workflows name groups by key, so a process must be able to create them; who is in a group is each site's people data           | Members in the value; requiring the groups before installing a package                 |

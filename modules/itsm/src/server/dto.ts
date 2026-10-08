@@ -102,6 +102,7 @@ export class TicketReader {
         sla: await this.badge(t, slaBy.get(t.id) ?? [], now),
         plannedStart: plannedStart,
         plannedEnd: plannedEnd,
+        awaitingSignOff: Boolean(t.signOffInstanceId) && t.status === 'pending_approval',
         createdAt: t.createdAt,
         updatedAt: t.updatedAt,
         resolvedAt: t.resolvedAt,
@@ -286,6 +287,20 @@ export class TicketReader {
         : Promise.resolve(null),
     ]);
     if (!agent) item.sla = null;
+    const acceptance =
+      t.type === 'change' &&
+      (t.status === 'review' || t.status === 'closed') &&
+      (t.requesterId || t.requestedForId)
+        ? {
+            state: change?.acceptance ?? ('pending' as const),
+            note: change?.acceptanceNote ?? null,
+            by: change?.acceptanceBy
+              ? personRef((await peopleByIds(this.ctx.db, [change.acceptanceBy])).get(change.acceptanceBy))
+              : null,
+            at: change?.acceptanceAt ?? null,
+            required: Boolean(await this.ctx.settings.get<boolean>('changes.requireAcceptance')),
+          }
+        : null;
     const conflicts =
       change?.plannedStart && change.plannedEnd
         ? await this.conflicts(
@@ -327,6 +342,14 @@ export class TicketReader {
                 title: c.title,
                 status: c.status,
               })),
+            }
+          : null,
+      acceptance,
+      signOff:
+        t.signOffInstanceId && t.status === 'pending_approval'
+          ? {
+              instanceId: t.signOffInstanceId,
+              to: t.type === 'service_request' ? ('fulfilled' as const) : ('resolved' as const),
             }
           : null,
       problem:

@@ -1,17 +1,20 @@
 import { fieldDefSchema } from '@isbp/sdk';
-import { type ModuleContext, type ModuleRouter, pageSchema } from '@isbp/sdk/server';
+import { ErrorCodes, HttpError, type ModuleContext, type ModuleRouter, pageSchema } from '@isbp/sdk/server';
 import { z } from 'zod';
 import {
   applySchema,
   assistantStatusSchema,
   buildTemplateSchema,
   changeSetDetailSchema,
+  changeSetPackageSchema,
   changeSetQuerySchema,
   changeSetSummarySchema,
   conversationDetailSchema,
   confirmSchema,
   conversationSchema,
   createChangeSetSchema,
+  packageFileName,
+  packageListSchema,
   proposeItemSchema,
   rollbackSchema,
   sendMessageSchema,
@@ -25,6 +28,8 @@ import { ChatService } from './chat';
 const idParams = z.object({ id: z.uuid() });
 const HEARTBEAT_MS = 15_000;
 const USE = 'assistant.agent.use';
+/** A package of 300 items with full forms and workflows fits; the default body limit is 1 MB. */
+const PACKAGE_BODY_LIMIT = 4 * 1024 * 1024;
 
 /** REST API mounted at /api/v1/assistant. */
 export function routes(app: ModuleRouter, ctx: ModuleContext) {
@@ -185,6 +190,49 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
     async (req, reply) => {
       const row = await sets.create(req.body, req.auth);
       return reply.status(201).send(await sets.detail(row.id, req.auth));
+    },
+  );
+
+  app.post(
+    '/change-sets/import',
+    {
+      // Each import dry-runs up to 300 changes.
+      config: { permission: USE, rateLimit: { max: 20, timeWindow: '1 minute' } },
+      bodyLimit: PACKAGE_BODY_LIMIT,
+      schema: {
+        tags,
+        summary: 'Import a change-set package: a new draft change set with its items, dry-run',
+        description:
+          'The body is an `isbp.change-set-package` (version 1, at most 300 items). Every item is checked like a ' +
+          'proposal (`/change-sets/{id}/items`); nothing is created when one fails: 400 `PACKAGE_UNSUPPORTED` ' +
+          '(`missingModules`, `unknownKinds`), 403 (kinds you cannot read), 422 `VALIDATION_FAILED` (`issues`).',
+        body: changeSetPackageSchema,
+        response: { 201: changeSetDetailSchema },
+      },
+    },
+    async (req, reply) => {
+      const id = await sets.importPackage(req.body, req.auth, { type: 'file' });
+      return reply.status(201).send(await sets.detail(id, req.auth));
+    },
+  );
+
+  app.get(
+    '/change-sets/:id/export',
+    {
+      config: { permission: USE },
+      schema: {
+        tags,
+        summary: 'The change set as a package (`isbp.change-set-package`), as a file download',
+        params: idParams,
+        response: { 200: changeSetPackageSchema },
+      },
+    },
+    async (req, reply) => {
+      const { reference, pkg } = await sets.exportPackage(req.params.id, req.auth);
+      return reply
+        .header('content-disposition', `attachment; filename="${packageFileName(reference)}"`)
+        .header('cache-control', 'no-store')
+        .send(pkg);
     },
   );
 
@@ -357,6 +405,58 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
     },
   );
 
+  /* ───────────── built-in packages ───────────── */
+
+  app.get(
+    '/packages',
+    {
+      config: { permission: USE },
+      schema: {
+        tags,
+        summary: 'Built-in packages of enabled modules, with what installing each needs and whether you may',
+        response: { 200: packageListSchema },
+      },
+    },
+    async (req) => ({ items: await ctx.customizations.packages(req.auth) }),
+  );
+
+  app.post(
+    '/packages/:module/:key/install',
+    {
+      config: { permission: USE, rateLimit: { max: 20, timeWindow: '1 minute' } },
+      schema: {
+        tags,
+        summary: 'Install a built-in package: a new draft change set with its items, dry-run (as an import)',
+        params: z.object({ module: z.string().max(40), key: z.string().max(60) }),
+        response: { 201: changeSetDetailSchema },
+      },
+    },
+    async (req, reply) => {
+      const { module, key } = req.params;
+      // Built in the installer's language, as the change set's title is (plain-text names and messages).
+      const locale = req.auth.user?.locale ?? 'en';
+      const parsed = changeSetPackageSchema.safeParse(
+        await ctx.customizations.loadPackage(module, key, { locale }),
+      );
+      // A module's own package that doesn't parse is a bug in that module: say where.
+      if (!parsed.success)
+        throw new HttpError(
+          422,
+          ErrorCodes.VALIDATION_FAILED,
+          `The built-in package ${module}/${key} is invalid`,
+          {
+            issues: parsed.error.issues.slice(0, 50).map((i) => ({
+              path: i.path.join('.'),
+              message: i.message,
+              code: i.code,
+            })),
+          },
+        );
+      const id = await sets.importPackage(parsed.data, req.auth, { type: 'package', moduleId: module, key });
+      return reply.status(201).send(await sets.detail(id, req.auth));
+    },
+  );
+
   /* ───────────── guided templates (builtin mode) ───────────── */
 
   app.get(
@@ -381,7 +481,8 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       config: { permission: USE },
       schema: {
         tags,
-        summary: 'Answer a guided template: its change is added to a change set (a new one unless given)',
+        summary:
+          'Answer a guided template: its changes (one, or several that refer to each other) are added to a change set (a new one unless given)',
         body: buildTemplateSchema,
         response: detail,
       },
@@ -389,18 +490,9 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
     async (req) => {
       const { kind, templateId, answers, changeSetId } = req.body;
       const built = await ctx.customizations.buildTemplate(kind, templateId, answers, req.auth);
-      const { changeSet } = await sets.propose(
-        changeSetId ?? null,
-        {
-          kind,
-          op: built.op,
-          targetId: built.id,
-          label: built.label ?? undefined,
-          value: built.value,
-        },
-        req.auth,
-      );
-      return sets.detail(changeSet.id, req.auth);
+      // One change, or several referring to each other (the approval process: a workflow, then its form).
+      const id = await sets.proposeTemplate(changeSetId ?? null, built, req.auth);
+      return sets.detail(id, req.auth);
     },
   );
 }

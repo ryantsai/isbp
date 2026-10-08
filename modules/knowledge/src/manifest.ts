@@ -8,7 +8,35 @@ import {
   articleLocaleSchema,
   articleSourceSchema,
   articleStatusSchema,
+  DEFAULT_CLASSIFICATION_LEVELS,
 } from './contracts';
+
+const fact = (key: string) => `knowledge.recordFacts.${key}`;
+
+/**
+ * Approval facts of an article (`knowledge.article` picked in a record field), for workflows
+ * (`records.<field>.<fact>`) and record-field filters.
+ */
+export const articleFactsSchema = z.object({
+  audience: articleAudienceSchema.meta({ label: fact('audience'), valueLabels: 'knowledge.audience' }),
+  categoryKey: z
+    .string()
+    .nullable()
+    .meta({ label: fact('categoryKey') }),
+  status: articleStatusSchema.meta({ label: fact('status'), valueLabels: 'knowledge.status' }),
+  locale: articleLocaleSchema.meta({ label: fact('locale') }),
+  ownerId: z
+    .uuid()
+    .nullable()
+    .meta({ label: fact('ownerId'), ref: 'user' }),
+  tags: z.array(z.string()).meta({ label: fact('tags') }),
+  /** A key of `classification.levels` (built-in keys have labels under `knowledge.classificationLevel`). */
+  classification: z
+    .string()
+    .nullable()
+    .meta({ label: fact('classification'), valueLabels: 'knowledge.classificationLevel' }),
+});
+export type ArticleFacts = z.infer<typeof articleFactsSchema>;
 
 const articleRef = z.object({
   articleId: z.uuid(),
@@ -145,6 +173,13 @@ export const manifest = defineManifest({
       advanced: true,
     },
     {
+      key: 'classification.levels',
+      label: 'knowledge.settings.classificationLevels',
+      description: 'knowledge.settings.classificationLevelsHelp',
+      type: 'text',
+      default: DEFAULT_CLASSIFICATION_LEVELS,
+    },
+    {
       key: 'guide.publish',
       label: 'knowledge.settings.guidePublish',
       description: 'knowledge.settings.guidePublishHelp',
@@ -241,6 +276,7 @@ export const manifest = defineManifest({
         name: 'knowledge.entities.article',
         icon: 'book-open',
         permission: 'knowledge.articles.read',
+        facts: articleFactsSchema,
       },
     ],
   },

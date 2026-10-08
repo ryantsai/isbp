@@ -1,0 +1,1 @@
+CREATE INDEX "scheduled_reminders_source_idx" ON "core"."scheduled_reminders" USING gin ("source" jsonb_path_ops);

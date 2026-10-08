@@ -32,6 +32,7 @@ import {
   FileQuestionIcon,
   KeyRoundIcon,
   LoaderCircleIcon,
+  PrinterIcon,
   UndoIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -40,6 +41,8 @@ import type { ReactNode } from 'react';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { NavIcon } from '../nav-icon';
 import { useRoleText } from '../roles/role-utils';
+import { RequestActions, RequestReminders } from './request-actions';
+import { RequestDecisions, RequestEvidence } from './request-evidence';
 import { InstanceProgress } from '../workflows/instance-progress';
 import { InstanceTimeline } from '../workflows/instance-timeline';
 import { StatusBadge } from '../workflows/status-badges';
@@ -296,7 +299,24 @@ export function RequestDetailView({ reference }: { reference: string }) {
             </span>
           </span>
         }
-        actions={item.canCancel ? <WithdrawButton path={cancelPath} /> : undefined}
+        actions={
+          isAccess ? (
+            item.canCancel ? (
+              <WithdrawButton path={cancelPath} />
+            ) : undefined
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {/* A print-friendly page of the request (audit evidence): answers, decisions, actions, attachments. */}
+              <Button asChild variant="outline">
+                <Link href={`/requests/${encodeURIComponent(item.reference)}/print`}>
+                  <PrinterIcon aria-hidden />
+                  {t('print')}
+                </Link>
+              </Button>
+              {item.canCancel && <WithdrawButton path={cancelPath} />}
+            </div>
+          )
+        }
       />
       {!isAccess && data.submission.fulfilment && <FulfilmentCard f={data.submission.fulfilment} />}
       {isAccess ? (
@@ -315,6 +335,10 @@ export function RequestDetailView({ reference }: { reference: string }) {
           </CardContent>
         </Card>
       )}
+      {!isAccess && <RequestDecisions submission={data.submission} />}
+      {!isAccess && <RequestActions submission={data.submission} />}
+      {!isAccess && <RequestReminders submission={data.submission} />}
+      {!isAccess && <RequestEvidence submissionId={data.submission.id} />}
       {instanceId ? (
         <WorkflowSection instanceId={instanceId} />
       ) : (

@@ -21,8 +21,8 @@
   "INVALID_PARENT": "部門無法移到自身之下。",
   "INVALID_STATE": "目前的狀態無法執行此操作。",
   "PASSWORD_MANAGED_EXTERNALLY": "此密碼由身分識別提供者管理。",
-  "WORKFLOW_NOT_CONFIGURED": "尚未設定此項目的簽核流程，請洽系統管理員發布。",
-  "WORKFLOW_INVALID": "流程有問題需要修正，才能發布。",
+  "WORKFLOW_NOT_CONFIGURED": "尚未設定此項目的簽核流程，請洽系統管理員發佈。",
+  "WORKFLOW_INVALID": "流程有問題需要修正，才能發佈。",
   "TASK_NOT_PENDING": "此簽核已經處理過了。",
   "DELEGATION_NOT_ALLOWED": "此簽核無法委派。",
   "INVALID_DELEGATE": "此人員無法處理這項簽核，請選擇其他人員。",
@@ -33,6 +33,7 @@
   "ALREADY_GRANTED": "此人員已具有此存取權限。",
   "DURATION_TOO_LONG": "超過此存取權限可授予的期限。",
   "FORM_NOT_AVAILABLE": "此表單目前無法使用。",
+  "ASSIGNMENT_CLOSED": "此待辦事項已完成或已取消。",
   "INVALID_CLIENT": "用戶端識別碼或密碼不正確，或用戶端已被撤銷。",
   "WEBHOOK_TARGET_INVALID": "Webhook URL 必須使用 HTTPS，且不可指向私人網路。",
   "EMAIL_NOT_CONFIGURED": "尚未設定電子郵件。",
@@ -73,5 +74,8 @@
   "SYNC_RUNNING": "此設定檔的同步正在執行中。",
   "CONFLICT_RESOLVED": "已有人解決了此衝突。",
   "INSECURE_HTTP": "此連線使用未加密的 HTTP。請改用 HTTPS，或為此連線開啟「允許不安全的 HTTP」。",
-  "CHANGE_SET_STALE": "變更集準備完成後，有人修改了此設定。請重新整理變更集並再次檢閱後重試。"
+  "CHANGE_SET_STALE": "變更集準備完成後，有人修改了此設定。請重新整理變更集並再次檢閱後重試。",
+  "PACKAGE_UNSUPPORTED": "此套件需要尚未啟用的模組，或本平台沒有的設定類型。",
+  "PROCESS_ACTION_FORBIDDEN": "您無法新增或變更此動作：需要您沒有的權限。",
+  "PROCESS_ACTION_UNAVAILABLE": "此動作無法使用，其模組可能已停用。"
 }

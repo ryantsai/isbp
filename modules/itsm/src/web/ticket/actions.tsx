@@ -53,7 +53,7 @@ export function useTransition(ticket: TicketDetail, onDone?: () => void) {
     (api, body: TransitionInput) => api.post<TicketDetail>(`${ticketApi(ticket.reference)}/transition`, body),
     {
       invalidate: INVALIDATE,
-      success: (r) => t('statusChanged', { status: ts(r.status) }),
+      success: (r) => (r.signOff ? t('sentForSignOff') : t('statusChanged', { status: ts(r.status) })),
       onSuccess: () => onDone?.(),
     },
   );
@@ -292,7 +292,7 @@ export function ActionBar({ ticket }: { ticket: TicketDetail }) {
         variant={s === 'cancelled' || s === 'rejected' ? 'destructive' : 'default'}
       >
         <Icon aria-hidden />
-        {ts(s)}
+        {ticket.signOff && s === 'in_progress' ? t('withdrawResolution') : ts(s)}
       </DropdownMenuItem>
     );
   };

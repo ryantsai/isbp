@@ -1,5 +1,21 @@
-import { departments, groupMembers, groups, roleAssignments, sessions, users } from '@isbp/db/schema';
-import { type AuthContext, ErrorCodes, HttpError, httpErrors, type ModuleContext } from '@isbp/sdk/server';
+import {
+  applications,
+  departments,
+  groupMembers,
+  groups,
+  roleAssignments,
+  roles,
+  sessions,
+  users,
+} from '@isbp/db/schema';
+import {
+  type AuthContext,
+  type Db,
+  ErrorCodes,
+  HttpError,
+  httpErrors,
+  type ModuleContext,
+} from '@isbp/sdk/server';
 import { and, count, eq, gt, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { z } from 'zod';
@@ -11,6 +27,7 @@ import type {
   userListQuerySchema,
 } from '@isbp/contracts';
 import { hashPassword } from '../../kernel/passwords';
+import { PLATFORM_APP_KEY } from '../../kernel/rbac';
 import { getKernel } from '../kernel-ref';
 import { likePattern, orderBy, pageOffset, reachFilter } from '../util';
 
@@ -260,8 +277,92 @@ export class UserService {
         { userId: id, email: updated!.email, changes: Object.keys(changes) },
         { tx },
       );
+      if ((before.departmentId ?? null) !== (updated!.departmentId ?? null))
+        await this.transferred(tx, before, updated!);
       return updated!;
     });
+  }
+
+  /**
+   * A department change: publishes `core.user.transferred` and asks the old and the new manager to review the
+   * person's access — their role assignments, with the ones scoped to the old department (or below it) "to review".
+   * Nothing is revoked: access follows the people who know the job, not the move.
+   */
+  private async transferred(tx: Db, before: UserRow, after: UserRow) {
+    const fromId = before.departmentId ?? null;
+    const toId = after.departmentId ?? null;
+    const ids = [fromId, toId].filter((x): x is string => Boolean(x));
+    const depts = ids.length
+      ? await tx
+          .select({
+            id: departments.id,
+            name: departments.name,
+            path: departments.path,
+            managerId: departments.managerId,
+          })
+          .from(departments)
+          .where(inArray(departments.id, ids))
+      : [];
+    const from = depts.find((d) => d.id === fromId) ?? null;
+    const to = depts.find((d) => d.id === toId) ?? null;
+    await this.ctx.events.publish(
+      'core.user.transferred',
+      { userId: after.id, fromDepartmentId: fromId, toDepartmentId: toId },
+      { tx },
+    );
+    const scope = alias(departments, 'scope_department');
+    const assignments = await tx
+      .select({
+        role: roles.name,
+        application: applications.name,
+        isPlatform: sql<boolean>`${applications.key} = ${PLATFORM_APP_KEY}`,
+        scopeType: roleAssignments.scopeType,
+        scopeName: scope.name,
+        scopePath: scope.path,
+      })
+      .from(roleAssignments)
+      .innerJoin(roles, eq(roles.id, roleAssignments.roleId))
+      .innerJoin(applications, eq(applications.id, roles.applicationId))
+      .leftJoin(scope, eq(scope.id, roleAssignments.scopeDepartmentId))
+      .where(
+        and(
+          eq(roleAssignments.userId, after.id),
+          or(isNull(roleAssignments.expiresAt), gt(roleAssignments.expiresAt, new Date())),
+        ),
+      )
+      .orderBy(roles.name);
+    const label = (a: (typeof assignments)[number]) =>
+      [a.role, a.isPlatform ? null : a.application, a.scopeName].filter(Boolean).join(' · ');
+    // Scoped to the old department or a department below it: probably for the old job.
+    const review = assignments.filter(
+      (a) => a.scopeType === 'department' && from && a.scopePath?.startsWith(from.path),
+    );
+    const oldManager = before.managerId ?? from?.managerId ?? null;
+    const newManager =
+      (after.managerId !== before.managerId ? after.managerId : null) ?? to?.managerId ?? null;
+    const recipients = [...new Set([oldManager, newManager])].filter(
+      (x): x is string => Boolean(x) && x !== after.id,
+    );
+    if (!recipients.length) return;
+    await this.ctx.notifications.notify(
+      {
+        type: 'core.user.transferred',
+        recipients,
+        params: {
+          name: after.displayName,
+          hasFrom: from ? 'yes' : 'no',
+          from: from?.name ?? '',
+          hasTo: to ? 'yes' : 'no',
+          to: to?.name ?? '',
+          count: assignments.length,
+          roles: assignments.map(label).join(', '),
+          reviewCount: review.length,
+          review: review.map(label).join(', '),
+        },
+        data: { userId: after.id, fromDepartmentId: fromId, toDepartmentId: toId },
+      },
+      { tx },
+    );
   }
 
   async onboard(id: string, auth: AuthContext) {

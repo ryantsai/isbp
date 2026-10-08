@@ -32,8 +32,18 @@
       "description": "形式をチェックするメール アドレス",
       "defaultLabel": "メール アドレス"
     },
-    "url": { "name": "リンク", "description": "Web アドレス（https://…）", "defaultLabel": "リンク" },
-    "user": { "name": "ユーザー", "description": "ディレクトリのユーザー", "defaultLabel": "ユーザー" }
+    "url": { "name": "リンク", "description": "Web アドレス (https://…)", "defaultLabel": "リンク" },
+    "user": { "name": "ユーザー", "description": "ディレクトリのユーザー", "defaultLabel": "ユーザー" },
+    "record": {
+      "name": "レコード",
+      "description": "構成アイテム、アプリケーション、資産、チケットなど",
+      "defaultLabel": "レコード"
+    },
+    "rows": {
+      "name": "表",
+      "description": "同じ列を持つ複数の行 (ルールの明細、アカウント、項目など)",
+      "defaultLabel": "項目"
+    }
   },
   "display": {
     "heading": {
@@ -63,7 +73,9 @@
       "validation": "検証",
       "default": "既定値",
       "logic": "条件ロジック",
-      "content": "内容"
+      "content": "内容",
+      "record": "レコード",
+      "rows": "表"
     },
     "label": "ラベル",
     "labelPlaceholder": "何を回答してもらいますか?",
@@ -76,7 +88,7 @@
     "placeholder": "プレースホルダー",
     "required": "必須",
     "requiredHint": "回答しないと送信できません。",
-    "requiredHintBoolean": "チェックしないと送信できません（利用規約への同意など）。",
+    "requiredHintBoolean": "チェックしないと送信できません (利用規約への同意など)。",
     "width": "幅",
     "widthFull": "全幅",
     "widthHalf": "半幅",
@@ -115,7 +127,33 @@
     "visibleWhenHint": "非表示のフィールドはスキップされ、保存されません。",
     "noOtherFields": "先に別のフィールドを追加してください。条件では、このフィールドと他のフィールドの回答を比較します。",
     "text": "テキスト",
-    "dividerHint": "区切り線に編集できる内容はありませんが、表示条件は設定できます。"
+    "dividerHint": "区切り線に編集できる内容はありませんが、表示条件は設定できます。",
+    "record": {
+      "types": "レコードの種類",
+      "typesHint": "ユーザーは、表示権限のあるこれらの種類のレコードを選択できます。",
+      "noTypes": "使用できるレコードの種類はありません。",
+      "multiple": "複数選択を許可",
+      "multipleHint": "最大 20 件のレコードを選択できます。",
+      "where": "次の条件に一致するレコードのみ…",
+      "whereHint": "レコード自身のデータで選択肢を絞り込みます (例: 本番環境の構成アイテムのみ)。サーバーでも確認されます。",
+      "chooseTypeFirst": "先にレコードの種類を選択してください。",
+      "noFacts": "これらの種類には絞り込みに使えるデータがありません。"
+    },
+    "rows": {
+      "min": "最小行数",
+      "max": "最大行数",
+      "maxHint": "最大 {max} 行です。",
+      "columns": "列",
+      "columnsHint": "各行にこれらのフィールドがあります。空の行は無視されます。必須の場合は 1 行以上が必要です。",
+      "addColumn": "列を追加",
+      "needsAttention": "要確認",
+      "moveUp": "{name} を上へ移動",
+      "moveDown": "{name} を下へ移動",
+      "remove": "{name} を削除",
+      "added": "{name} を追加しました",
+      "removed": "{name} を削除しました",
+      "moved": "{name} を {total} 個中 {position} 番目に移動しました"
+    }
   },
   "issues": {
     "labelRequired": "ラベルを入力してください",
@@ -131,7 +169,11 @@
     "defaultInvalid": "既定値がこのフィールドのルールを満たしていません",
     "conditionSelf": "フィールドを自分自身の条件にすることはできません",
     "conditionUnknown": "条件が存在しないフィールドを参照しています",
-    "textRequired": "テキストを入力してください"
+    "textRequired": "テキストを入力してください",
+    "recordTypesRequired": "レコードの種類を 1 つ以上選択してください",
+    "columnsRequired": "列を 1 つ以上追加してください",
+    "columnInvalid": "列「{column}」を確認してください",
+    "rowsRangeInvalid": "最大行数が最小行数より小さくなっています"
   },
   "dnd": {
     "roleDescription": "並べ替え可能な項目",

@@ -539,6 +539,113 @@ export class AccessService {
     return assignment;
   }
 
+  /** Whether `auth` could assign a role with these permissions itself (`core.roles.assign` + the escalation guard). */
+  canGrant(patterns: string[], auth: AuthContext): boolean {
+    if (!auth.can('core.roles.assign')) return false;
+    const held = auth.permissions.grants.filter((g) => g.s === 'g').map((g) => g.p);
+    return patterns.every((p) => held.some((h) => patternCovers(h, p)));
+  }
+
+  /**
+   * A role — of the platform or of a registered application (VPN, AD, server access) — granted to a person because a
+   * request said so (a form's `core.grant-role` action): globally, until `expiresAt` (null: permanent), like an
+   * approved access request. Who may hand out the role was checked when the action was configured, so this needs
+   * only `core.roles.assign`. Idempotent: an existing grant is kept, and extended when it would end sooner (a
+   * permanent one stays permanent). Audited and notified like any assignment.
+   */
+  async grantForRequest(
+    input: { roleId: string; userId: string; expiresAt: Date | null; reason: string },
+    auth: AuthContext,
+  ): Promise<{ assignmentId: string; expiresAt: Date | null; outcome: 'granted' | 'extended' | 'kept' }> {
+    auth.require('core.roles.assign');
+    const role = await this.getRole(input.roleId);
+    const [person] = await this.db
+      .select({ id: users.id, name: users.displayName, status: users.status })
+      .from(users)
+      .where(eq(users.id, input.userId));
+    if (!person) throw httpErrors.notFound('User not found');
+    if (person.status === 'offboarded')
+      throw new HttpError(409, ErrorCodes.PRINCIPAL_OFFBOARDED, 'Cannot assign roles to an offboarded user');
+    if (person.status === 'suspended')
+      throw new HttpError(409, ErrorCodes.PRINCIPAL_SUSPENDED, 'The person is suspended');
+    const result = await this.ctx.transaction(async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(roleAssignments)
+        .where(
+          and(
+            eq(roleAssignments.roleId, role.id),
+            eq(roleAssignments.userId, person.id),
+            eq(roleAssignments.scopeType, 'global'),
+          ),
+        );
+      const live = existing && (!existing.expiresAt || existing.expiresAt > new Date());
+      if (live && (!existing.expiresAt || (input.expiresAt && existing.expiresAt >= input.expiresAt)))
+        return { assignmentId: existing.id, expiresAt: existing.expiresAt, outcome: 'kept' as const };
+      const [a] = existing
+        ? await tx
+            .update(roleAssignments)
+            .set({
+              expiresAt: input.expiresAt,
+              source: 'request',
+              reason: input.reason.slice(0, 1000),
+              grantedAt: new Date(),
+              expiryNotifiedAt: null,
+            })
+            .where(eq(roleAssignments.id, existing.id))
+            .returning()
+        : await tx
+            .insert(roleAssignments)
+            .values({
+              roleId: role.id,
+              userId: person.id,
+              scopeType: 'global',
+              expiresAt: input.expiresAt,
+              reason: input.reason.slice(0, 1000),
+              source: 'request',
+            })
+            .returning();
+      await this.ctx.audit.record(
+        {
+          action: 'core.role-assignment.granted',
+          category: 'security',
+          entityType: 'user',
+          entityId: person.id,
+          entityLabel: person.name,
+          metadata: {
+            assignmentId: a!.id,
+            role: role.key,
+            scopeType: 'global',
+            expiresAt: input.expiresAt?.toISOString() ?? null,
+            reason: input.reason,
+          },
+        },
+        { tx },
+      );
+      await this.ctx.events.publish(
+        'core.role-assignment.granted',
+        { assignmentId: a!.id, roleId: role.id },
+        { tx },
+      );
+      await this.ctx.notifications.notify(
+        {
+          type: 'core.access.granted',
+          recipients: [person.id],
+          params: { role: role.name, actor: auth.principal.name },
+          href: '/settings#access',
+        },
+        { tx },
+      );
+      return {
+        assignmentId: a!.id,
+        expiresAt: input.expiresAt,
+        outcome: live ? ('extended' as const) : ('granted' as const),
+      };
+    });
+    if (result.outcome !== 'kept') await getKernel().rbac.bump();
+    return result;
+  }
+
   async revoke(id: string, auth: AuthContext, opts: { applicationId?: string } = {}) {
     const [a] = await this.db.select().from(roleAssignments).where(eq(roleAssignments.id, id));
     if (!a) throw httpErrors.notFound('Assignment not found');

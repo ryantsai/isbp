@@ -2,7 +2,7 @@
  * Record resolvers (`projects.project`, `projects.task`) and the global search provider. They apply the
  * same visibility rules as the module's pages (`access.ts`), in one indexed query per call.
  */
-import { users } from '@isbp/db/schema';
+import { departments, users } from '@isbp/db/schema';
 import {
   type AuthContext,
   likePattern,
@@ -21,6 +21,7 @@ import {
   TASK_STATUS_TONE,
   type TaskStatus,
 } from '../model';
+import type { ProjectFacts } from '../manifest';
 import { accessFor, myRoleColumn, visibleProjects } from './access';
 import { type ProjectRow, projects, tasks } from './schema';
 import { services } from './services';
@@ -75,6 +76,33 @@ async function selectProjects(
 }
 
 export const projectRecords: RecordResolver = {
+  /** Approval facts (`projectFactsSchema`), not permission-filtered: they route approvals. */
+  async facts(ids, ctx) {
+    const wanted = [...new Set(ids.filter(isUuid))];
+    if (!wanted.length) return new Map();
+    const rows = await ctx.db
+      .select({ project: projects, departmentCode: departments.code })
+      .from(projects)
+      .leftJoin(departments, eq(departments.id, projects.departmentId))
+      .where(inArray(projects.id, wanted));
+    return new Map(
+      rows.map(({ project: p, departmentCode }): [string, ProjectFacts] => [
+        p.id,
+        {
+          key: p.key,
+          status: p.status,
+          priority: p.priority,
+          health: p.health,
+          visibility: p.visibility,
+          ownerId: p.ownerId,
+          departmentCode,
+          budgetHours: p.budgetHours,
+          startDate: p.startDate,
+          targetDate: p.targetDate,
+        },
+      ]),
+    );
+  },
   async resolve(ids, ctx, auth) {
     const wanted = ids.filter(isUuid);
     if (!wanted.length) return [];

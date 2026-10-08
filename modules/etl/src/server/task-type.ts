@@ -8,7 +8,8 @@ import { services } from './services';
 /**
  * `etl.pipeline`: Scheduled Jobs runs a pipeline with the same runner as "Run now" (trigger `schedule`),
  * mirroring progress into the job's live log and honouring its timeout/cancel signal. A failed load fails
- * the job run (so the scheduler retries and alerts per its policy).
+ * the job run (so the scheduler retries and alerts per its policy). After the last attempt the pipeline's owner
+ * is told too, unless the job's own alert reaches them (`task.failureRecipients`).
  */
 export const pipelineTask: TaskTypeHandler<PipelineTaskConfig> = {
   async validate(config, ctx, auth) {
@@ -34,6 +35,8 @@ export const pipelineTask: TaskTypeHandler<PipelineTaskConfig> = {
     const run = await executeRun(ctx, queued.id, {
       signal: task.signal,
       log: (m, level) => task.log(m, level),
+      // The pipeline's owner hears about the attempt the job gives up on, unless the job alerts them anyway.
+      notify: task.attempt < (task.maxAttempts ?? 1) ? false : { except: task.failureRecipients ?? [] },
     });
     const metrics = { rowsRead: run.rowsRead, rowsWritten: run.rowsWritten, rowsRejected: run.rowsRejected };
     if (run.status !== 'succeeded')

@@ -1,0 +1,2 @@
+ALTER TABLE "knowledge"."articles" ADD COLUMN "classification" varchar(100);--> statement-breakpoint
+CREATE INDEX "articles_classification_idx" ON "knowledge"."articles" USING btree ("classification") WHERE "knowledge"."articles"."classification" is not null;

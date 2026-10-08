@@ -191,6 +191,15 @@ export const manifest = defineManifest({
       operations: ['create', 'update', 'archive', 'delete'],
     },
   ],
+  processActions: [
+    {
+      action: 'run-job',
+      name: 'scheduler.processActions.runJob.name',
+      description: 'scheduler.processActions.runJob.description',
+      icon: 'play',
+      permission: 'scheduler.jobs.run',
+    },
+  ],
   taskTypes: [
     {
       type: 'http',

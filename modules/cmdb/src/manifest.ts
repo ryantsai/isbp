@@ -1,6 +1,12 @@
 import { defineManifest } from '@isbp/sdk';
 import { z } from 'zod';
-import { MAX_IMPACT_DEPTH, RELATIONSHIP_TYPES } from './model';
+import {
+  CI_CRITICALITIES,
+  CI_ENVIRONMENTS,
+  CI_STATUSES,
+  MAX_IMPACT_DEPTH,
+  RELATIONSHIP_TYPES,
+} from './model';
 
 const ciRef = z.object({ ciId: z.uuid(), number: z.number().int(), name: z.string() });
 const relationshipRef = z.object({
@@ -9,6 +15,37 @@ const relationshipRef = z.object({
   targetId: z.uuid(),
   type: z.enum(RELATIONSHIP_TYPES),
 });
+
+const fact = (key: string) => `cmdb.recordFacts.${key}`;
+
+/**
+ * Approval facts of a CI (`cmdb.ci` picked in a record field): what workflows route on (`records.<field>.<fact>`) and
+ * record fields filter by. People are user ids, groups are group keys.
+ */
+export const ciFactsSchema = z.object({
+  class: z.string().meta({ label: fact('class') }),
+  environment: z
+    .enum(CI_ENVIRONMENTS)
+    .nullable()
+    .meta({ label: fact('environment'), valueLabels: 'cmdb.environment' }),
+  criticality: z.enum(CI_CRITICALITIES).meta({ label: fact('criticality'), valueLabels: 'cmdb.criticality' }),
+  status: z.enum(CI_STATUSES).meta({ label: fact('status'), valueLabels: 'cmdb.status' }),
+  ownerId: z
+    .uuid()
+    .nullable()
+    .meta({ label: fact('ownerId'), ref: 'user' }),
+  ownerGroup: z
+    .string()
+    .nullable()
+    .meta({ label: fact('ownerGroup'), ref: 'group' }),
+  departmentCode: z
+    .string()
+    .nullable()
+    .meta({ label: fact('departmentCode') }),
+  businessServices: z.array(z.string()).meta({ label: fact('businessServices') }),
+  tags: z.array(z.string()).meta({ label: fact('tags') }),
+});
+export type CiFacts = z.infer<typeof ciFactsSchema>;
 
 /**
  * Configuration Management Database: configuration items (CIs) of typed classes, directional
@@ -122,6 +159,24 @@ export const manifest = defineManifest({
   search: { entities: ['ci'] },
   customFields: { entities: [{ type: 'ci', name: 'cmdb.entities.ci' }] },
   records: {
-    types: [{ type: 'ci', name: 'cmdb.entities.ci', icon: 'network', permission: 'cmdb.cis.read' }],
+    types: [
+      {
+        type: 'ci',
+        name: 'cmdb.entities.ci',
+        icon: 'network',
+        permission: 'cmdb.cis.read',
+        facts: ciFactsSchema,
+      },
+    ],
   },
+  /** What request forms can do to CIs after they are sent or decided (`server/process-actions.ts`). */
+  processActions: [
+    {
+      action: 'update-ci',
+      name: 'cmdb.processActions.updateCi.name',
+      description: 'cmdb.processActions.updateCi.description',
+      icon: 'server-cog',
+      permission: 'cmdb.cis.manage',
+    },
+  ],
 });

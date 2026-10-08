@@ -88,7 +88,7 @@
       "unarchive": "プロジェクトを復元",
       "unarchiveHint": "ポートフォリオに戻し、再び編集できるようにします。",
       "archiveTitle": "{name} をアーカイブしますか?",
-      "archiveBody": "アーカイブ中はだれも変更できません。",
+      "archiveBody": "アーカイブ中は誰も変更できません。",
       "archived": "プロジェクトをアーカイブしました",
       "unarchived": "プロジェクトを復元しました",
       "delete": "プロジェクトを削除",
@@ -301,7 +301,7 @@
   },
   "activity": {
     "system": "システム",
-    "someone": "だれか",
+    "someone": "誰か",
     "empty": "なし",
     "deletedTask": "削除されたタスク",
     "hours": "{hours} 時間",
@@ -712,5 +712,17 @@
     },
     "via": "{system} {reference} 経由",
     "addedVia": "{system} {reference} 経由で追加"
+  },
+  "recordFacts": {
+    "key": "プロジェクト キー",
+    "status": "状態",
+    "priority": "優先度",
+    "health": "健全性",
+    "visibility": "公開範囲",
+    "ownerId": "プロジェクト マネージャー",
+    "departmentCode": "部署コード",
+    "budgetHours": "予定工数 (時間)",
+    "startDate": "開始日",
+    "targetDate": "目標日"
   }
 }

@@ -10,6 +10,7 @@ import { Hint } from '@isbp/ui/tooltip';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  BoxesIcon,
   CalendarDaysIcon,
   ChevronDownIcon,
   CopyPlusIcon,
@@ -132,6 +133,38 @@ function ControlMock({ field }: { field: FieldDef }) {
           <span className="truncate">{tu('person.placeholder')}</span>
         </Box>
       );
+    case 'record':
+      return (
+        <Box>
+          <BoxesIcon className="size-4 shrink-0 opacity-60" aria-hidden />
+          <span className="truncate">
+            {placeholder || tu(field.record?.multiple ? 'record.placeholderMany' : 'record.placeholder')}
+          </span>
+        </Box>
+      );
+    case 'rows': {
+      // The table's column headers over two empty rows.
+      const columns = field.rows?.fields ?? [];
+      return (
+        <div className="grid gap-1 overflow-hidden rounded-md border p-2">
+          <div className="flex gap-2 text-xs font-medium text-muted-foreground">
+            {columns.slice(0, 4).map((c) => (
+              <span key={c.key} className="min-w-0 flex-1 truncate">
+                {localize(c.label, locale) || c.key}
+              </span>
+            ))}
+            {columns.length > 4 && <span className="shrink-0">+{columns.length - 4}</span>}
+          </div>
+          {[0, 1].map((n) => (
+            <div key={n} className="flex gap-2">
+              {columns.slice(0, 4).map((c) => (
+                <span key={c.key} className="h-6 min-w-0 flex-1 rounded border border-input bg-background" />
+              ))}
+            </div>
+          ))}
+        </div>
+      );
+    }
     default:
       return <Box>{shown(dv !== undefined && dv !== null && dv !== '' ? String(dv) : undefined)}</Box>;
   }

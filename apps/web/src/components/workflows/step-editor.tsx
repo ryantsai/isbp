@@ -22,6 +22,7 @@ import { ArrowDownIcon, ArrowUpIcon, PlusIcon, Trash2Icon, XIcon } from 'lucide-
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useId } from 'react';
 import { ApproverList } from './approver-editor';
+import { StepFieldsEditor } from './step-fields-editor';
 import { useBuilder } from './builder-context';
 import { newBranch } from './graph-ops';
 
@@ -186,6 +187,8 @@ function ApprovalEditor({ step, onChange }: { step: ApprovalStep; onChange: (s: 
         </div>
         <p className="text-xs text-muted-foreground">{t(`modeHints.${step.mode}`)}</p>
       </Group>
+      <Separator />
+      <StepFieldsEditor step={step} onChange={onChange} />
       <Separator />
       <Group title={t('deadline')} description={t('deadlineHint')}>
         <ToggleRow label={t('useDeadline')} checked={Boolean(sla)} onChange={(v) => setSla(v ? {} : null)} />

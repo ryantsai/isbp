@@ -1,5 +1,7 @@
+import { conditionSchema } from '@isbp/sdk';
 import { z } from 'zod';
 import { dateTime } from './common';
+import { factDefSchema } from './workflows';
 
 /** `itsm.ticket:<id>` — a record of any module (see `formatRecordRef` in `@isbp/sdk`). */
 export const recordRefString = z
@@ -23,8 +25,51 @@ export const recordTypeSchema = z.object({
   /** i18n key of the singular noun. */
   name: z.string(),
   icon: z.string().nullable(),
+  /**
+   * Approval facts of the type (`RecordTypeDef.facts`), for builders: `where` filters of record fields and
+   * `records.<field>.<fact>` in workflows.
+   */
+  facts: z.array(factDefSchema),
 });
 export type RecordTypeInfo = z.infer<typeof recordTypeSchema>;
+
+export const recordSearchQuerySchema = z.object({
+  q: z.string().max(200).default(''),
+  types: z
+    .string()
+    .max(500)
+    .optional()
+    .transform((v) => (v ? v.split(',').filter(Boolean) : undefined)),
+  limit: z.coerce.number().int().min(1).max(25).default(10),
+  /**
+   * A record field's filter (JSON of a condition on the type's facts): only records matching it are returned, as
+   * the field would accept them.
+   */
+  where: z
+    .string()
+    .max(4000)
+    .optional()
+    .transform((v, ctx) => {
+      if (!v) return undefined;
+      try {
+        const parsed = conditionSchema.safeParse(JSON.parse(v));
+        if (parsed.success) return parsed.data;
+      } catch {
+        // reported below
+      }
+      ctx.addIssue({ code: 'custom', message: 'Expected a condition (JSON)' });
+      return z.NEVER;
+    }),
+});
+
+/** Several records at once, as the caller sees them (`refs`: comma-separated `type:id`, at most 50). */
+export const recordResolveQuerySchema = z.object({
+  refs: z
+    .string()
+    .max(5000)
+    .transform((v) => [...new Set(v.split(',').filter(Boolean))])
+    .pipe(z.array(recordRefString).max(50)),
+});
 
 export const resolvedRecordSchema = z.object({
   type: z.string(),
@@ -60,6 +105,13 @@ export const recordLinksResponseSchema = z.object({
 });
 
 export const createRecordLinkSchema = z.object({ to: recordRefSchema });
+
+/** Records found for `refs`; the rest are hidden from the caller (or gone) and only counted. */
+export const recordResolveResponseSchema = z.object({
+  items: z.array(resolvedRecordSchema),
+  hidden: z.number().int(),
+});
+export type RecordResolveResponse = z.input<typeof recordResolveResponseSchema>;
 
 export const fileInfoSchema = z.object({
   id: z.uuid(),

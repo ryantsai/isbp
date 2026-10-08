@@ -1,11 +1,14 @@
+import { users } from '@isbp/db/schema';
 import {
   type AuthContext,
+  type BuiltTemplateItem,
   type CustomizationKindInfo,
   type Db,
   ErrorCodes,
   HttpError,
   httpErrors,
   likePattern,
+  localize,
   type ModuleContext,
   type Page,
   type VersionedObject,
@@ -15,26 +18,35 @@ import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import {
   type ChangeSetDetail,
   type ChangeSetItem,
+  type ChangeSetPackage,
   type ChangeSetQuery,
   type ChangeSetSummary,
   changeSetHref,
   changeSetReference,
   type CheckResult,
   DESTRUCTIVE_OPS,
+  MAX_PACKAGE_ITEMS,
   type ObjectSnapshot,
   type ProposeItemInput,
+  REF_PREFIX,
 } from '../contracts';
-import { labelOf, refsIn, resolveRefs } from '../lib/refs';
+import { type AppliedLink, appliedLinks } from '../lib/links';
+import { type PackageIssue, packageIssues, packageOf, proposalProblems } from '../lib/packages';
+import { labelOf, refsIn, renameRefs, resolveRefs, uniqueRef } from '../lib/refs';
 import {
   type ChangeSetItemRow,
   changeSetItems,
   type ChangeSetRow,
   changeSets,
+  conversations,
   type LastError,
 } from './schema';
+import { linkLines, text } from './text';
+import { appendTurns } from './turns';
 
 export const REVIEW_TRIGGER = 'assistant.change-set';
-export const MAX_ITEMS = 50;
+/** As many as a package may hold, so every package fits one change set. */
+export const MAX_ITEMS = MAX_PACKAGE_ITEMS;
 
 const READ_ALL = 'assistant.change-sets.read';
 const MANAGE = 'assistant.change-sets.manage';
@@ -43,6 +55,9 @@ const MANAGE = 'assistant.change-sets.manage';
 class DryRunRollback extends Error {}
 
 type Creator = { type: 'user' | 'service'; id: string | null; name: string };
+
+/** Where an imported change set came from (audited with its creation). */
+export type PackageSource = { type: 'file' } | { type: 'package'; moduleId: string; key: string };
 
 function creatorOf(auth: AuthContext): Creator {
   if (auth.user) return { type: 'user', id: auth.user.id, name: auth.user.displayName };
@@ -60,6 +75,7 @@ const snapshot = (o: VersionedObject | null): ObjectSnapshot | null =>
         label: o.label,
         archived: !!o.archived,
         href: o.href ?? null,
+        ...(o.links?.length ? { links: o.links } : {}),
         version: o.version,
         value: o.value,
       }
@@ -239,21 +255,12 @@ export class ChangeSetService {
       throw new HttpError(404, ErrorCodes.NOT_FOUND, `Unknown or unavailable kind ${input.kind}`, {
         kind: input.kind,
       });
-    if (!kind.operations.includes(input.op))
-      throw new HttpError(422, ErrorCodes.VALIDATION_FAILED, `${input.kind} does not support "${input.op}"`, {
-        issues: [{ path: 'op', message: `use one of: ${kind.operations.join(', ')}`, code: 'operation' }],
-      });
+    const [problem] = proposalProblems(input, kind.operations);
+    if (problem)
+      throw new HttpError(422, ErrorCodes.VALIDATION_FAILED, problem.summary, { issues: [problem.issue] });
     const creating = input.op === 'create';
     const targetId = creating ? null : (input.targetId ?? null);
-    if (!creating && !targetId)
-      throw new HttpError(422, ErrorCodes.VALIDATION_FAILED, 'targetId is required', {
-        issues: [{ path: 'targetId', message: 'required for update, archive and delete', code: 'required' }],
-      });
     const needsValue = input.op === 'create' || input.op === 'update';
-    if (needsValue && (!input.value || typeof input.value !== 'object' || Array.isArray(input.value)))
-      throw new HttpError(422, ErrorCodes.VALIDATION_FAILED, 'value must be an object', {
-        issues: [{ path: 'value', message: 'the full value in the kind’s schema', code: 'required' }],
-      });
 
     // A target may itself be a reference to an object created earlier in the set: no version then.
     const current =
@@ -328,6 +335,175 @@ export class ChangeSetService {
     const [fresh] = await this.ctx.db.select().from(changeSets).where(eq(changeSets.id, row.id));
     const [freshItem] = await this.ctx.db.select().from(changeSetItems).where(eq(changeSetItems.id, item.id));
     return { changeSet: fresh!, item: freshItem! };
+  }
+
+  /**
+   * Proposes what a guided template built — one change, or several referring to each other (a workflow and the form
+   * that uses it) — in order, into one change set (a new one unless given). Names the change set already uses are
+   * renamed, references included. Every kind is checked first, so nothing is added when one can't be proposed.
+   */
+  async proposeTemplate(
+    changeSetId: string | null,
+    built: { label: string | null; items: readonly BuiltTemplateItem[] },
+    auth: AuthContext,
+  ): Promise<string> {
+    const kinds = this.kindsFor(auth);
+    for (const item of built.items) {
+      const kind = kinds.get(item.kind);
+      if (!kind || !kind.operations.includes(item.op))
+        throw new HttpError(404, ErrorCodes.NOT_FOUND, `Unknown or unavailable kind ${item.kind}`, {
+          kind: item.kind,
+        });
+    }
+    if (changeSetId) await this.editable(changeSetId, auth);
+    const taken = new Set(
+      changeSetId ? (await this.itemsOf(changeSetId)).flatMap((i) => (i.ref ? [i.ref] : [])) : [],
+    );
+    const names = new Map<string, string>();
+    for (const item of built.items)
+      if (item.ref) {
+        const name = uniqueRef(item.ref, taken);
+        taken.add(name);
+        names.set(item.ref, name);
+      }
+    let id = changeSetId;
+    for (const item of built.items) {
+      const { changeSet } = await this.propose(
+        id,
+        {
+          kind: item.kind,
+          op: item.op,
+          targetId: item.id,
+          label: item.label ?? undefined,
+          value: renameRefs(item.value, names),
+          ...(item.ref ? { ref: names.get(item.ref) } : {}),
+        },
+        auth,
+      );
+      id = changeSet.id;
+    }
+    // A new change set from several changes is named after the template's own one (the form, not its workflow).
+    if (!changeSetId && built.items.length > 1 && built.label)
+      await this.ctx.db
+        .update(changeSets)
+        .set({ title: built.label.slice(0, 200) })
+        .where(eq(changeSets.id, id!));
+    return id!;
+  }
+
+  /**
+   * A new draft change set from a package (an exported change set, a file, a module's built-in package), named after
+   * it in the person's language. Every item is checked as a proposal is (`propose`): kinds the person may read and
+   * their operations, targets that exist here (their versions become the base), references to earlier items. When
+   * anything fails nothing is created: 400 `PACKAGE_UNSUPPORTED` (modules not enabled, unknown kinds), 403 (kinds the
+   * person can't read), 422 `VALIDATION_FAILED` (`issues` at `items.<index>.<field>`). Then the set is dry-run once.
+   */
+  async importPackage(pkg: ChangeSetPackage, auth: AuthContext, from: PackageSource): Promise<string> {
+    const needs = this.ctx.customizations.requirements(pkg, auth);
+    if (needs.missingModules.length || needs.unknownKinds.length)
+      throw new HttpError(
+        400,
+        ErrorCodes.PACKAGE_UNSUPPORTED,
+        'The package needs modules or kinds this platform does not have',
+        { missingModules: needs.missingModules, unknownKinds: needs.unknownKinds },
+      );
+    if (needs.unreadableKinds.length)
+      throw new HttpError(403, ErrorCodes.FORBIDDEN, 'Proposing these changes needs more permissions', {
+        permissions: [...new Set(needs.unreadableKinds.map((k) => k.permission))],
+        kinds: needs.unreadableKinds.map((k) => k.kind),
+      });
+    const kinds = this.kindsFor(auth);
+    const issues: PackageIssue[] = packageIssues(pkg, (k) => kinds.get(k)?.operations);
+    // Targets are ids of this environment: each must exist (and its version is the base, as when proposing).
+    const current = new Map<number, VersionedObject>();
+    for (const [index, item] of pkg.items.entries()) {
+      if (item.op === 'create' || !item.targetId || item.targetId.startsWith(REF_PREFIX)) continue;
+      const obj = await this.ctx.customizations.get(item.kind, item.targetId, auth).catch(() => null);
+      if (obj) current.set(index, obj);
+      else
+        issues.push({
+          path: `items.${index}.targetId`,
+          message: `${item.kind} ${item.targetId} was not found here`,
+          code: 'not_found',
+        });
+    }
+    if (issues.length) {
+      const indexOf = (path: string) => Number(path.split('.')[1]);
+      throw new HttpError(422, ErrorCodes.VALIDATION_FAILED, 'The package has problems', {
+        issues: issues.sort((a, b) => indexOf(a.path) - indexOf(b.path)).slice(0, 100),
+      });
+    }
+
+    const locale = auth.user?.locale ?? 'en';
+    const creator = creatorOf(auth);
+    const id = await this.ctx.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(changeSets)
+        .values({
+          title: localize(pkg.title, locale).slice(0, 200),
+          summary: localize(pkg.summary, locale).slice(0, 4000),
+          createdByType: creator.type,
+          createdById: creator.id,
+          createdByName: creator.name.slice(0, 200),
+        })
+        .returning();
+      await tx.insert(changeSetItems).values(
+        pkg.items.map((item, position) => {
+          const targetId = item.op === 'create' ? null : (item.targetId ?? null);
+          const label =
+            item.label?.trim() ||
+            labelOf(item.value, locale) ||
+            current.get(position)?.label ||
+            `${item.kind} ${targetId ?? ''}`.trim();
+          return {
+            changeSetId: row!.id,
+            position,
+            ref: item.ref ?? null,
+            kind: item.kind,
+            op: item.op,
+            targetId,
+            label: label.slice(0, 200),
+            value: item.op === 'create' || item.op === 'update' ? item.value : null,
+            note: item.note?.trim() || null,
+            baseVersion: current.get(position)?.version ?? null,
+            check: null,
+          };
+        }),
+      );
+      const reference = changeSetReference(row!.number);
+      const kindList = [...new Set(pkg.items.map((i) => i.kind))];
+      await this.ctx.audit.record(
+        {
+          action: 'assistant.change-set.created',
+          entityType: 'assistant.change-set',
+          entityId: row!.id,
+          entityLabel: reference,
+          metadata: {
+            from: { ...from, ...(pkg.key ? { packageKey: pkg.key } : {}) },
+            items: pkg.items.length,
+            kinds: kindList,
+          },
+        },
+        { tx },
+      );
+      await this.ctx.events.publish(
+        'assistant.change-set.created',
+        { changeSetId: row!.id, reference, title: row!.title, kinds: kindList },
+        { tx },
+      );
+      return row!.id;
+    });
+    await this.dryRun(id, auth);
+    return id;
+  }
+
+  /** The change set as a package (`isbp.change-set-package`), for whoever may see it. */
+  async exportPackage(id: string, auth: AuthContext): Promise<{ reference: string; pkg: ChangeSetPackage }> {
+    const row = await this.load(id, auth);
+    const reference = changeSetReference(row.number);
+    const items = await this.itemsOf(id);
+    if (!items.length) throw new HttpError(422, ErrorCodes.VALIDATION_FAILED, 'The change set is empty');
+    return { reference, pkg: packageOf({ ...row, reference }, items) };
   }
 
   /** Removes an item by id or `ref` (later items referring to it fail their dry run until fixed). */
@@ -678,10 +854,11 @@ export class ChangeSetService {
       if (approver) {
         try {
           await this.apply(row.id, { confirm: true }, approver, { viaReview: result });
-          return;
         } catch (err) {
           return this.returnToDraft(row, reference, err);
         }
+        await this.tellConversation(row, reference, approver.principal.name);
+        return;
       }
       return this.returnToDraft(
         row,
@@ -701,6 +878,43 @@ export class ChangeSetService {
       .update(changeSets)
       .set({ status: 'draft' })
       .where(and(eq(changeSets.id, row.id), eq(changeSets.status, 'in_review')));
+  }
+
+  /**
+   * The conversation that built a change set hears that its review applied it, with the links of what it made (a
+   * form's own page), so the person finds them where they asked for the change. Best effort: never undoes the apply.
+   */
+  private async tellConversation(row: ChangeSetRow, reference: string, by: string) {
+    if (!row.conversationId) return;
+    try {
+      const [conv] = await this.ctx.db
+        .select({ locale: users.locale })
+        .from(conversations)
+        .innerJoin(users, eq(users.id, conversations.userId))
+        .where(eq(conversations.id, row.conversationId));
+      if (!conv) return;
+      const links = await this.appliedLinksOf(row.id);
+      const content = [
+        text(conv.locale, 'reviewApplied', { reference, by }),
+        ...(links.length ? [linkLines(links, conv.locale)] : []),
+      ].join('\n\n');
+      await appendTurns(this.ctx, row.conversationId, [{ role: 'assistant', content, mode: 'builtin' }]);
+    } catch (err) {
+      this.ctx.logger.warn(
+        { err, changeSetId: row.id },
+        'could not note the applied review in its conversation',
+      );
+    }
+  }
+
+  /** Where people use what an applied change set made or changed (e.g. a form's own page), in item order. */
+  async appliedLinksOf(id: string): Promise<AppliedLink[]> {
+    const [row] = await this.ctx.db
+      .select({ status: changeSets.status })
+      .from(changeSets)
+      .where(eq(changeSets.id, id));
+    if (row?.status !== 'applied') return [];
+    return appliedLinks(await this.itemsOf(id));
   }
 
   private async returnToDraft(row: ChangeSetRow, reference: string, err: unknown) {

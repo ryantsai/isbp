@@ -1,28 +1,37 @@
 import { createWorkflowSchema } from '@isbp/contracts';
 import { loadCoreMessages } from '@isbp/i18n/messages';
-import { applications, groups, roles, workflowDefinitions, workflowVersions } from '@isbp/db/schema';
+import { applications, forms, groups, roles, workflowDefinitions, workflowVersions } from '@isbp/db/schema';
 import {
   type ApproverRule,
+  type AuthContext,
   conditionFacts,
   type CustomizationHandler,
   type CustomizationIssue,
   type Db,
+  ErrorCodes,
   FACT_PATH_RE,
   type FieldDef,
+  formFields,
+  HttpError,
+  localize,
   type ModuleContext,
+  RESERVED_FACTS,
+  STEP_FACTS_ROOT,
   walkSteps,
   type WorkflowGraph,
   workflowGraphSchema,
   type WorkflowIssue,
   type WorkflowStep,
 } from '@isbp/sdk/server';
-import { and, asc, eq, ilike, isNull, ne, or } from 'drizzle-orm';
+import { and, asc, eq, ilike, isNotNull, isNull, ne, or } from 'drizzle-orm';
 import { z } from 'zod';
 import { canonicalJson } from '../../kernel/crypto';
 import { PLATFORM_APP_KEY } from '../../kernel/rbac';
 import { getKernel } from '../kernel-ref';
 import { likePattern } from '../util';
-import { WorkflowAdminService } from '../services/workflows';
+import { stepFieldsOf, WorkflowAdminService } from '../services/workflows';
+import { configChangeWorkflow } from './examples';
+import { enabledRecordTypes, recordTypeReference } from './record-reference';
 import { catalogLocalized, catalogText, isUuid, templateTexts } from './shared';
 
 const schema = z.object({
@@ -92,6 +101,20 @@ const GRAPH_ISSUES: Record<string, { field?: string; message: string }> = {
     message: 'A parallel step needs at least two branches, a condition step at least one',
   },
   noRecipients: { field: 'recipients', message: 'A notify step needs at least one recipient' },
+  stepFact: {
+    message:
+      'Reads steps.<stepId>.<key> of a step that does not come before it, or a key that step has no field for (a step sees the fields of the approval steps before it)',
+  },
+  stepFields: {
+    field: 'fields',
+    message:
+      'A step field shows depending on an unknown field or on its own answer (visibleWhen reads the other fields of the step by key), or its defaultValue is not a valid answer',
+  },
+  unknownRecordType: {
+    field: 'fields',
+    message:
+      'A record step field offers a record type that does not exist: use a type from reference.recordTypes',
+  },
   duplicateId: { message: 'Step and branch ids must be unique' },
   tooDeep: { message: 'Steps are nested too deeply (at most 5 levels)' },
   tooManySteps: { message: 'Too many steps (at most 100)' },
@@ -145,8 +168,24 @@ async function factLabels() {
   };
 }
 
+/** A custom field as a workflow fact: `attributes.<key>`, and for record fields `records.<key>.<fact>`. */
+function customFieldFacts(f: FieldDef) {
+  return {
+    path: `attributes.${f.key}`,
+    type: f.type,
+    label: localize(f.label, 'en') || f.key,
+    ...(f.options ? { options: f.options.map((o) => o.value) } : {}),
+    ...(f.type === 'record'
+      ? {
+          records: `records.${f.key}.<fact> with the facts of ${f.record?.types.join(', ')} (reference.recordTypes)`,
+        }
+      : {}),
+  };
+}
+
 async function triggerReference(ctx: ModuleContext) {
   const label = await factLabels();
+  const fields = getKernel().fields;
   return Promise.all(
     (await new WorkflowAdminService(ctx).triggers()).map(async (t) => ({
       key: t.key,
@@ -163,8 +202,41 @@ async function triggerReference(ctx: ModuleContext) {
         ...(f.options ? { options: f.options } : {}),
         ...(f.description ? { description: f.description } : {}),
       })),
+      // The subject's custom fields come along as facts (`ctx.fields.facts`): the ones defined today.
+      ...(t.customFieldEntity
+        ? {
+            customFieldEntity: t.customFieldEntity,
+            customFieldFacts: (await fields.definitions(t.customFieldEntity)).map(customFieldFacts),
+          }
+        : {}),
     })),
   );
+}
+
+/**
+ * Published request forms with their field keys, so a form-submission workflow can name data.<key> and
+ * records.<key>.<fact> of the form it will be attached to.
+ */
+async function formReference(db: Db) {
+  const rows = await db
+    .select({ key: forms.key, name: forms.name, workflowId: forms.workflowDefinitionId, draft: forms.draft })
+    .from(forms)
+    .where(and(isNull(forms.archivedAt), isNotNull(forms.publishedVersion)))
+    .orderBy(asc(forms.key))
+    .limit(REFERENCE_LIMIT);
+  return rows.map((f) => ({
+    key: f.key,
+    name: localize(f.name, 'en'),
+    workflowId: f.workflowId,
+    fields: formFields(f.draft)
+      .slice(0, 50)
+      .map((x) => ({
+        key: x.key,
+        type: x.type,
+        ...(x.options ? { options: x.options.map((o) => o.value) } : {}),
+        ...(x.record ? { recordTypes: x.record.types, multiple: Boolean(x.record.multiple) } : {}),
+      })),
+  }));
 }
 
 async function platformRoles(db: Db) {
@@ -192,8 +264,9 @@ graph.steps run in order. Step types:
 - parallel: branches [{ id, name, steps }] (two or more) that run at the same time; every branch must approve.
 - condition: branches [{ id, name, when, steps }] (the first whose condition holds runs) and otherwise { id, name, steps }.
 - notify: recipients (rules) and an optional message; FYI only, no decision.
-Approver rules: { "type": "manager", "level"?: 1-5 } (the requester's manager; 2 = the manager's manager), { "type": "department-head" }, { "type": "group", "groupKey" }, { "type": "role", "roleKey" }, { "type": "user", "userId" }, { "type": "fact", "fact": "<path to a user id>" }, { "type": "requester" } (notify steps only). Any rule may carry a "fallback" rule used when it resolves to nobody.
-Conditions: { "fact", "op", "value" } with op eq | neq | gt | gte | lt | lte | in | nin (value is a list) | contains | empty | notEmpty (no value); combine with { "all": [...] }, { "any": [...] }, { "not": {...} }. Facts are the trigger's facts (reference.triggers[].facts, e.g. role.riskLevel, requester.departmentCode); a form's answers are data.<fieldKey> (data.amount).
+Approver rules: { "type": "manager", "level"?: 1-5 } (the requester's manager; 2 = the manager's manager), { "type": "department-head" }, { "type": "group", "groupKey" }, { "type": "role", "roleKey" }, { "type": "user", "userId" }, { "type": "fact", "fact": "<path to a user id or a list of them>" }, { "type": "fact", "fact": "<path to a group key or list>", "kind": "group" } (the members of that group or groups, e.g. records.cis.ownerGroup = the support groups of the CIs picked in a form's record field "cis"; reference.recordTypes marks the facts that hold group keys or user ids), { "type": "requester" } (notify steps only). Any rule may carry a "fallback" rule used when it resolves to nobody (a CI without a support group).
+Conditions: { "fact", "op", "value" } with op eq | neq | gt | gte | lt | lte | in | nin (value is a list) | contains | empty | notEmpty (no value); combine with { "all": [...] }, { "any": [...] }, { "not": {...} }. Facts are the trigger's facts (reference.triggers[].facts, e.g. role.riskLevel, requester.departmentCode); for core.form-submission, a form's answers are data.<fieldKey> (data.amount) and the facts of the records picked in its record fields are records.<fieldKey>.<fact> (records.cis.criticality eq "critical": a list per fact for multiple fields, matched by eq/in on any element). reference.forms lists the published forms with their field keys (and record types), reference.recordTypes every record type's facts with their values. { "fact", "op", "valueFact" } compares with another fact instead of a value. Triggers with customFieldEntity also get the subject's custom fields: attributes.<key>, and records.<key>.<fact> for record custom fields (reference.triggers[].customFieldFacts).
+Step fields (approval steps): fields [...] are what the approver fills in with the decision — the "filled in by IT" part of a paper form (evaluation result, handling notes, completion date, wipe time, review checklist). The same field model as a form's fields (core.form: { key, type, label, help?, required?, options?, validation?, defaultValue?, visibleWhen?, record? }; visibleWhen reads the step's other fields by key), at most 20, unique keys. fieldsRequiredOn: "approve" (default: required fields are needed to approve, optional when rejecting) | "both". Values are validated like form answers, stored with the decision, shown on the request, and become facts steps.<stepId>.<key> for the steps AFTER that step (conditions and approver rules, e.g. { "fact": "steps.it-review.result", "op": "eq", "value": "needs-cab" } or { "type": "fact", "fact": "steps.it-review.handler" } for a user field) — never for the step itself, earlier steps or parallel branches beside it; a step id used this way must start with a letter. Forms' process actions see them too: {{steps.<stepId>.<key>}} in text templates. With several approvers on a step, the latest decision's value counts.
 Every name, instructions and message is LocalizedText: give "en", "zh-TW" and "ja-JP". Step and branch ids are short unique slugs (letters, digits, - and _), e.g. "manager", "it-assets".
 Use only group and role keys from reference.groups and reference.roles; find people with core.find_users.
 isDefault: the default workflow decides every request of its trigger that does not name a workflow; a required trigger always keeps exactly one. Forms name their workflow themselves (core.form's workflowId), so form-submission workflows rarely need to be the default.
@@ -285,6 +358,80 @@ const riskExample: WorkflowValue = {
   },
 };
 
+/**
+ * Record step fields may only newly offer record types the person may pick from (the admin API refuses others). A
+ * permission matter, refused with 403 and the permission (decision 77), so a dry run marks the item for a reviewer.
+ */
+function assertStepRecordTypes(graph: WorkflowGraph, before: WorkflowGraph | null, auth: AuthContext) {
+  const records = getKernel().records;
+  const pickable = new Set(records.types(auth).map((t) => t.type));
+  const had = before ? stepFieldsOf(before) : new Map<string, FieldDef[]>();
+  for (const [stepId, fields] of stepFieldsOf(graph))
+    for (const f of fields) {
+      if (f.type !== 'record') continue;
+      const kept = new Set(
+        had.get(stepId)?.find((b) => b.key === f.key && b.type === 'record')?.record?.types ?? [],
+      );
+      for (const type of f.record?.types ?? []) {
+        const entry = records.entry(type);
+        if (!entry || kept.has(type) || pickable.has(type)) continue;
+        throw new HttpError(
+          403,
+          ErrorCodes.FORBIDDEN,
+          `Offering ${type} records needs ${entry.def.permission}`,
+          {
+            permission: entry.def.permission,
+            path: `graph.steps.${stepId}.fields`,
+          },
+        );
+      }
+    }
+}
+
+const deviceReturnExample: WorkflowValue = {
+  name: 'Device return',
+  description: 'IT records how the device was handled; security checks it when data had to be kept',
+  triggerKey: 'core.form-submission',
+  isDefault: false,
+  graph: {
+    steps: [
+      {
+        id: 'it-handling',
+        type: 'approval',
+        name: { en: 'IT handling', 'zh-TW': 'IT 處理', 'ja-JP': 'IT による処理' },
+        approvers: [{ type: 'group', groupKey: 'it-admins' }],
+        mode: 'any',
+        fields: [
+          {
+            key: 'wipedOn',
+            type: 'date',
+            label: { en: 'Data wiped on', 'zh-TW': '資料清除日期', 'ja-JP': 'データ消去日' },
+            required: true,
+          },
+          {
+            key: 'keepData',
+            type: 'boolean',
+            label: { en: 'Data had to be kept', 'zh-TW': '需保留資料', 'ja-JP': 'データの保持が必要' },
+          },
+          {
+            key: 'notes',
+            type: 'textarea',
+            label: { en: 'Handling notes', 'zh-TW': '處理說明', 'ja-JP': '処理メモ' },
+          },
+        ],
+      },
+      {
+        id: 'security',
+        type: 'approval',
+        name: { en: 'Security check', 'zh-TW': '資安檢查', 'ja-JP': 'セキュリティ確認' },
+        when: { fact: 'steps.it-handling.keepData', op: 'eq', value: true },
+        approvers: [{ type: 'group', groupKey: 'security-team' }],
+        mode: 'any',
+      },
+    ],
+  },
+};
+
 /** Default binding as the value asks; a required trigger keeps its only default (check() refuses that). */
 async function bindDefault(svc: WorkflowAdminService, ctx: ModuleContext, id: string, wanted: boolean) {
   const d = (await findDefinition(ctx.db, id))!;
@@ -322,14 +469,16 @@ export const workflowKind: CustomizationHandler<WorkflowValue> = {
   schema,
 
   async guide(ctx) {
-    const [triggers, groupRows, roleRows] = await Promise.all([
+    const [triggers, groupRows, roleRows, recordTypes, formRows] = await Promise.all([
       triggerReference(ctx),
       groupList(ctx.db),
       platformRoles(ctx.db),
+      recordTypeReference(enabledRecordTypes()),
+      formReference(ctx.db),
     ]);
     return {
       instructions: INSTRUCTIONS,
-      reference: { triggers, groups: groupRows, roles: roleRows },
+      reference: { triggers, groups: groupRows, roles: roleRows, recordTypes, forms: formRows },
       examples: [
         {
           description:
@@ -340,6 +489,16 @@ export const workflowKind: CustomizationHandler<WorkflowValue> = {
           description:
             'Access requests: the manager (skipped when there is none), then for high-risk roles a platform administrator and the role owner both approve; otherwise the owner is told.',
           value: riskExample,
+        },
+        {
+          description:
+            'Configuration change requests (a form whose multiple record field "cis" picks cmdb.ci records, and a select "risk"): the manager, then the support groups of the picked CIs (a group fact, IT administrators when a CI has none), then the Change Advisory Board when a picked CI is critical or the risk is high. Replace the group keys with ones from reference.groups.',
+          value: configChangeWorkflow,
+        },
+        {
+          description:
+            'Step fields: IT fills in the wipe date (required to approve), whether data had to be kept and notes; a later step runs only when IT ticked "keep data" (steps.it-handling.keepData). Replace the group keys with ones from reference.groups.',
+          value: deviceReturnExample,
         },
       ],
     };
@@ -424,7 +583,15 @@ export const workflowKind: CustomizationHandler<WorkflowValue> = {
         issues.push(graphIssue(paths, issue));
       if (trigger?.def.facts) {
         const t = (await new WorkflowAdminService(ctx).triggers()).find((x) => x.key === v.triggerKey);
-        const roots = new Set(t?.facts.map((f) => f.path.split('.')[0]) ?? []);
+        const roots = new Set([
+          ...(t?.facts.map((f) => f.path.split('.')[0]) ?? []),
+          // Custom fields of the trigger's subject come along (`ctx.fields.facts`).
+          ...(trigger.def.customFieldEntity ? ['attributes', 'records'] : []),
+          // What approvers fill in (`fields`): checked against the graph by the `stepFact` issue above.
+          STEP_FACTS_ROOT,
+          // Reserved facts every condition may read (`today`).
+          ...RESERVED_FACTS,
+        ]);
         for (const fact of new Set(factsRead(v.graph)))
           if (!FACT_PATH_RE.test(fact) || !roots.has(fact.split('.')[0]!))
             issues.push({
@@ -462,6 +629,7 @@ export const workflowKind: CustomizationHandler<WorkflowValue> = {
     const v = change.value;
     switch (change.op) {
       case 'create': {
+        assertStepRecordTypes(v!.graph, null, auth);
         const created = await svc.create(
           { name: v!.name, description: v!.description ?? null, triggerKey: v!.triggerKey },
           auth,
@@ -481,6 +649,7 @@ export const workflowKind: CustomizationHandler<WorkflowValue> = {
         const live = await liveGraph(ctx.db, d);
         // An unchanged graph keeps the draft as it is (someone may be editing it in the builder).
         const publish = !live.published || canonicalJson(live.graph) !== canonicalJson(v!.graph);
+        if (publish) assertStepRecordTypes(v!.graph, d.draft, auth);
         await svc.update(
           id,
           { name: v!.name, description: v!.description ?? null, draft: publish ? v!.graph : undefined },

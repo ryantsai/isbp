@@ -16,6 +16,7 @@ import { z } from 'zod';
  *   GET    /articles/:ref/related          → { items: articleCardSchema[] }
  *   GET    /search?q=&limit=&locale=       → searchResultSchema (also used for ticket deflection)
  *   GET/POST/PATCH/DELETE /categories
+ *   GET    /classifications                → classificationsSchema (the configured labels, most restrictive first)
  */
 
 const id = z.uuid();
@@ -39,6 +40,54 @@ export const articleSourceSchema = z.object({
   reference: z.string().trim().max(100).optional(),
 });
 export type ArticleSource = z.infer<typeof articleSourceSchema>;
+
+/* ───────────────────────────── classification ───────────────────────────── */
+
+/**
+ * The classification labels shipped with the module (translated in the catalog under `classificationLevel.<key>`). The
+ * module setting `classification.levels` lists the labels in use, one per line, most restrictive first: a line is
+ * one of these keys, or any other text (a custom label, shown as written).
+ */
+export const BUILT_IN_CLASSIFICATIONS = [
+  'strictly-confidential',
+  'customer-confidential',
+  'confidential',
+  'internal-use-only',
+] as const;
+export type BuiltInClassification = (typeof BUILT_IN_CLASSIFICATIONS)[number];
+export const DEFAULT_CLASSIFICATION_LEVELS = BUILT_IN_CLASSIFICATIONS.join('\n');
+export const CLASSIFICATION_MAX = 100;
+
+export interface ClassificationLevel {
+  /** Stored on the article: a built-in key or the custom label itself. */
+  key: string;
+  builtIn: boolean;
+  /** 0 = most restrictive. */
+  rank: number;
+}
+
+/** The labels of the `classification.levels` setting, in order (blank lines and duplicates ignored). */
+export function parseClassificationLevels(text: unknown): ClassificationLevel[] {
+  const lines = (typeof text === 'string' ? text : DEFAULT_CLASSIFICATION_LEVELS)
+    .split(/\r?\n/)
+    .map((l) => l.trim().slice(0, CLASSIFICATION_MAX))
+    .filter(Boolean);
+  const keys = [...new Set(lines)].slice(0, 20);
+  return keys.map((key, rank) => ({
+    key,
+    builtIn: (BUILT_IN_CLASSIFICATIONS as readonly string[]).includes(key),
+    rank,
+  }));
+}
+
+export const classificationLevelSchema = z.object({
+  key: z.string(),
+  builtIn: z.boolean(),
+  rank: z.number().int(),
+});
+
+export const classificationsSchema = z.object({ items: z.array(classificationLevelSchema) });
+export type Classifications = z.input<typeof classificationsSchema>;
 
 /* ───────────────────────────── references ───────────────────────────── */
 
@@ -111,6 +160,8 @@ export const articleListItemSchema = z.object({
   notHelpfulCount: z.number().int(),
   /** A review workflow is running (in review, waiting for approval). */
   awaitingApproval: z.boolean(),
+  /** Classification label (a key of `classification.levels`), or none. */
+  classification: z.string().nullable(),
   createdAt: dateTime,
   updatedAt: dateTime,
 });
@@ -140,6 +191,8 @@ export const articleSchema = articleListItemSchema.extend({
   /** Transitions the caller may trigger now. */
   actions: z.array(z.enum(['submit', 'withdraw', 'publish', 'retire', 'restore'])),
   myFeedback: z.object({ helpful: z.boolean(), comment: z.string().nullable() }).nullable(),
+  /** Files attached to the article (the core attachments panel; readers download, editors change them). */
+  attachments: z.number().int(),
 });
 export type Article = z.input<typeof articleSchema>;
 export type ArticleAction = Article['actions'][number];
@@ -168,6 +221,8 @@ export const articleQuerySchema = listQuerySchema.extend({
   owner: z.enum(['me']).optional(),
   reviewDue: z.stringbool().optional(),
   tag: tagSchema.optional(),
+  /** A classification label key, or `none` for unclassified articles. */
+  classification: z.string().trim().min(1).max(CLASSIFICATION_MAX).optional(),
   collapse: z.stringbool().optional(),
 });
 export type ArticleQuery = z.input<typeof articleQuerySchema>;
@@ -184,6 +239,8 @@ export const createArticleSchema = z.object({
   translationOf: id.nullish(),
   reviewAt: reviewDateSchema.nullish(),
   source: articleSourceSchema.nullish(),
+  /** A label of `classification.levels`, or none. */
+  classification: z.string().trim().min(1).max(CLASSIFICATION_MAX).nullish(),
 });
 export type CreateArticleInput = z.input<typeof createArticleSchema>;
 
@@ -199,6 +256,7 @@ export const updateArticleSchema = z
     /** `null` detaches the article from its translation group. */
     translationOf: id.nullable(),
     reviewAt: reviewDateSchema.nullable(),
+    classification: z.string().trim().min(1).max(CLASSIFICATION_MAX).nullable(),
   })
   .partial();
 export type UpdateArticleInput = z.input<typeof updateArticleSchema>;
@@ -248,6 +306,7 @@ export const articleCardSchema = z.object({
   locale: articleLocaleSchema,
   audience: articleAudienceSchema,
   category: categoryRefSchema.nullable(),
+  classification: z.string().nullable(),
 });
 export type ArticleCard = z.input<typeof articleCardSchema>;
 

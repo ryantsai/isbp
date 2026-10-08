@@ -262,6 +262,69 @@ describe('projects', () => {
     });
   });
 
+  it('routes proposals on the project custom fields (attributes.<key>)', async () => {
+    const admin = s.admin!;
+    const field = await h.call(admin, 'POST', '/api/v1/custom-fields', {
+      entityType: 'projects.project',
+      field: { key: 'regulated', type: 'boolean', label: { en: 'Regulated (SOX)' } },
+    });
+    expect(field.status, JSON.stringify(field.body)).toBe(201);
+    const previous = (
+      await h.call(admin, 'GET', '/api/v1/workflows?triggerKey=projects.proposal')
+    ).body.items.find((w: LooseJson) => w.isDefault);
+    const wf = await h.call(admin, 'POST', '/api/v1/workflows', {
+      name: 'Compliance review',
+      triggerKey: 'projects.proposal',
+    });
+    await h.call(admin, 'PATCH', `/api/v1/workflows/${wf.body.id}`, {
+      draft: {
+        steps: [
+          {
+            id: 'compliance',
+            type: 'approval',
+            name: { en: 'Compliance review' },
+            when: { fact: 'attributes.regulated', op: 'eq', value: true },
+            approvers: [{ type: 'user', userId: ids.pmo }],
+            mode: 'any',
+          },
+        ],
+      },
+    });
+    expect((await h.call(admin, 'POST', `/api/v1/workflows/${wf.body.id}/publish`)).status).toBe(200);
+    expect((await h.call(admin, 'POST', `/api/v1/workflows/${wf.body.id}/default`)).status).toBe(200);
+    try {
+      await newProject('pm', {
+        name: 'SOX controls',
+        key: 'SOX',
+        budgetHours: 40,
+        attributes: { regulated: true },
+      });
+      const regulated = await h.call(s.pm!, 'POST', `${API}/projects/SOX/start`);
+      expect(regulated.body).toMatchObject({ status: 'proposed', approval: { status: 'pending' } });
+      const [task] = await h.kernel.db
+        .select()
+        .from(approvalTasks)
+        .where(
+          and(
+            eq(approvalTasks.instanceId, regulated.body.approval.instanceId),
+            eq(approvalTasks.status, 'pending'),
+          ),
+        );
+      expect(task?.assigneeId).toBe(ids.pmo);
+      await newProject('pm', {
+        name: 'Team offsite',
+        key: 'OFS',
+        budgetHours: 40,
+        attributes: { regulated: false },
+      });
+      const plain = await h.call(s.pm!, 'POST', `${API}/projects/OFS/start`);
+      expect(plain.body).toMatchObject({ status: 'active', approval: { status: 'approved' } });
+    } finally {
+      await h.call(admin, 'POST', `/api/v1/workflows/${previous.id}/default`);
+      await h.call(admin, 'POST', `/api/v1/custom-fields/${field.body.id}/archive`);
+    }
+  });
+
   it('moves through the status flow and completes only when tasks are closed (or forced)', async () => {
     await activeProject('FLOW');
     const hold = await h.call(s.pm!, 'POST', `${API}/projects/FLOW/status`, { status: 'on_hold' });

@@ -33,7 +33,10 @@
     "reject": "駁回",
     "cancel": "取消",
     "approvedToast": "已核准",
-    "rejectedToast": "已駁回，並已通知申請人原因"
+    "rejectedToast": "已駁回，並已通知申請人原因",
+    "fieldsTitle": "需填寫的欄位",
+    "fieldsHint": "會與您的決定一併保存，並顯示在申請上。標示 * 的欄位為核准時必填。",
+    "fieldsOptionalHint": "駁回時可不填；填寫的內容會與您的決定一併保存，並顯示在申請上。"
   },
   "delegate": {
     "title": "將此簽核交給其他人",

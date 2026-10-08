@@ -712,5 +712,17 @@
     },
     "via": "經由 {system} {reference}",
     "addedVia": "經由 {system} {reference} 加入"
+  },
+  "recordFacts": {
+    "key": "專案代碼",
+    "status": "狀態",
+    "priority": "優先順序",
+    "health": "健康狀態",
+    "visibility": "可見性",
+    "ownerId": "專案經理",
+    "departmentCode": "部門代碼",
+    "budgetHours": "預估投入（小時）",
+    "startDate": "開始日",
+    "targetDate": "目標完成日"
   }
 }

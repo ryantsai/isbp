@@ -10,6 +10,7 @@ import {
 import { and, asc, count, desc, eq, ilike, inArray, ne, or, type SQL, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import type { ciQuerySchema, createCiSchema, createRelationshipSchema, updateCiSchema } from '../contracts';
+import type { CiFacts } from '../manifest';
 import {
   BUSINESS_SERVICE_CLASS,
   CI_VIEWS,
@@ -642,6 +643,51 @@ export class CiService {
       .orderBy(asc(cis.name))
       .limit(limit);
     return rows.map((r) => ({ ...r, reference: formatCiNumber(r.number) }));
+  }
+
+  /**
+   * Approval facts of CIs (`cmdb.ci` record facts) by id, without permission filtering: workflows route on them,
+   * nobody reads them. `businessServices` are the business services the CI supports (impact upwards, itself included
+   * when it is one), by reference.
+   */
+  async facts(ids: readonly string[]): Promise<Map<string, CiFacts>> {
+    const valid = [...new Set(ids.filter((id) => /^[0-9a-f-]{36}$/i.test(id)))];
+    const out = new Map<string, CiFacts>();
+    if (!valid.length) return out;
+    const rows = await this.ctx.db
+      .select({ ci: cis, groupKey: groups.key, departmentCode: departments.code })
+      .from(cis)
+      .leftJoin(groups, eq(groups.id, cis.supportGroupId))
+      .leftJoin(departments, eq(departments.id, cis.departmentId))
+      .where(inArray(cis.id, valid));
+    const impacted = new Map(
+      await Promise.all(
+        rows.map(
+          async (r) =>
+            [r.ci.id, (await this.walk(r.ci.id, 'impacted', MAX_IMPACT_DEPTH)).map((n) => n.id)] as const,
+        ),
+      ),
+    );
+    const refs = await refsById(this.ctx.db, [...impacted.values()].flat());
+    for (const { ci, groupKey, departmentCode } of rows) {
+      const services = (impacted.get(ci.id) ?? [])
+        .map((id) => refs.get(id))
+        .filter((r) => r?.class.key === BUSINESS_SERVICE_CLASS)
+        .map((r) => r!.reference);
+      if (ci.classKey === BUSINESS_SERVICE_CLASS) services.unshift(formatCiNumber(ci.number));
+      out.set(ci.id, {
+        class: ci.classKey,
+        environment: ci.environment ?? null,
+        criticality: ci.criticality,
+        status: ci.status,
+        ownerId: ci.ownerId,
+        ownerGroup: groupKey,
+        departmentCode,
+        businessServices: [...new Set(services)],
+        tags: ci.tags,
+      });
+    }
+    return out;
   }
 
   async ref(id: string) {

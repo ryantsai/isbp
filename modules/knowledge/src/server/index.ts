@@ -11,11 +11,12 @@ import {
   articleReference,
   parseArticleRef,
 } from '../contracts';
-import { manifest } from '../manifest';
+import { type ArticleFacts, manifest } from '../manifest';
+import { canEdit } from '../lifecycle';
 import { ArticleService, INDEX_TYPE, viewerOf, visibleWhere } from './articles';
 import { importGuide } from './guide';
 import { routes } from './routes';
-import { articles } from './schema';
+import { articles, categories } from './schema';
 import { seedKnowledge } from './seed';
 import { sync } from './sync';
 
@@ -143,7 +144,10 @@ export default defineServerModule(manifest, {
     return new ArticleService(ctx).quickFind(query, auth, limit);
   },
 
-  /** Articles as linkable records (e.g. a problem ↔ its known-error article), visible as on the site. */
+  /**
+   * Articles as linkable records (e.g. a problem ↔ its known-error article), visible as on the site. `editable` (links
+   * and attachments, through the core panels) follows who may edit the article; readers download its attachments.
+   */
   records: {
     article: {
       async resolve(ids, ctx, auth) {
@@ -154,7 +158,7 @@ export default defineServerModule(manifest, {
           .select()
           .from(articles)
           .where(and(inArray(articles.id, valid), visibleWhere(v)));
-        return rows.map((a) => articleRecord(a, v.write));
+        return rows.map((a) => articleRecord(a, canEdit(a, v)));
       },
       async search(query, ctx, auth, limit) {
         const v = viewerOf(auth);
@@ -176,7 +180,31 @@ export default defineServerModule(manifest, {
           )
           .orderBy(desc(articles.updatedAt))
           .limit(limit);
-        return rows.map((a) => articleRecord(a, v.write));
+        return rows.map((a) => articleRecord(a, canEdit(a, v)));
+      },
+      /** Approval facts (`articleFactsSchema`), not permission-filtered: they route approvals. */
+      async facts(ids, ctx) {
+        const valid = [...new Set(ids.filter((id) => /^[0-9a-f-]{36}$/i.test(id)))];
+        if (!valid.length) return new Map();
+        const rows = await ctx.db
+          .select({ article: articles, categoryKey: categories.key })
+          .from(articles)
+          .leftJoin(categories, eq(categories.id, articles.categoryId))
+          .where(inArray(articles.id, valid));
+        return new Map(
+          rows.map(({ article: a, categoryKey }): [string, ArticleFacts] => [
+            a.id,
+            {
+              audience: a.audience,
+              categoryKey,
+              status: a.status,
+              locale: a.locale,
+              ownerId: a.ownerId,
+              tags: a.tags,
+              classification: a.classification,
+            },
+          ]),
+        );
       },
     },
   },

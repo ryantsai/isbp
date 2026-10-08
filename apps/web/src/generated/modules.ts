@@ -10,6 +10,7 @@ import dbaccess from '@isbp/module-dbaccess/web';
 import etl from '@isbp/module-etl/web';
 import helpdeskAi from '@isbp/module-helpdesk-ai/web';
 import integrations from '@isbp/module-integrations/web';
+import isms from '@isbp/module-isms/web';
 import itam from '@isbp/module-itam/web';
 import itsm from '@isbp/module-itsm/web';
 import knowledge from '@isbp/module-knowledge/web';
@@ -27,6 +28,7 @@ export const webModules: Record<string, WebModule> = {
   'etl': etl,
   'helpdesk-ai': helpdeskAi,
   'integrations': integrations,
+  'isms': isms,
   'itam': itam,
   'itsm': itsm,
   'knowledge': knowledge,

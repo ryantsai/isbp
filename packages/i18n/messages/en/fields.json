@@ -25,7 +25,17 @@
     },
     "email": { "name": "Email", "description": "A checked email address", "defaultLabel": "Email address" },
     "url": { "name": "Link", "description": "A web address (https://…)", "defaultLabel": "Link" },
-    "user": { "name": "Person", "description": "Someone from the directory", "defaultLabel": "Person" }
+    "user": { "name": "Person", "description": "Someone from the directory", "defaultLabel": "Person" },
+    "record": {
+      "name": "Record",
+      "description": "Configuration items, applications, assets, tickets…",
+      "defaultLabel": "Record"
+    },
+    "rows": {
+      "name": "Table",
+      "description": "Rows with the same columns: rule lines, accounts, items",
+      "defaultLabel": "Items"
+    }
   },
   "display": {
     "heading": { "name": "Heading", "description": "Starts a new section", "defaultText": "New section" },
@@ -51,7 +61,9 @@
       "validation": "Validation",
       "default": "Default value",
       "logic": "Conditional logic",
-      "content": "Content"
+      "content": "Content",
+      "record": "Records",
+      "rows": "Table"
     },
     "label": "Label",
     "labelPlaceholder": "What should people answer?",
@@ -103,7 +115,33 @@
     "visibleWhenHint": "Hidden fields are skipped and never stored.",
     "noOtherFields": "Add another field first; conditions compare this one with the answers to other fields.",
     "text": "Text",
-    "dividerHint": "A divider has nothing to edit, but it can be shown conditionally."
+    "dividerHint": "A divider has nothing to edit, but it can be shown conditionally.",
+    "record": {
+      "types": "Record types",
+      "typesHint": "People can pick records of these types that they are allowed to see.",
+      "noTypes": "No record types are available to you.",
+      "multiple": "Allow several",
+      "multipleHint": "People can pick up to 20 records.",
+      "where": "Only records where…",
+      "whereHint": "Filters what can be picked by the records’ own data, e.g. only production CIs. The server checks it too.",
+      "chooseTypeFirst": "Choose a record type first.",
+      "noFacts": "These record types have no data to filter by."
+    },
+    "rows": {
+      "min": "Fewest rows",
+      "max": "Most rows",
+      "maxHint": "At most {max}.",
+      "columns": "Columns",
+      "columnsHint": "Each row has these fields. Rows left empty are ignored; required means at least one row.",
+      "addColumn": "Add column",
+      "needsAttention": "Needs attention",
+      "moveUp": "Move {name} up",
+      "moveDown": "Move {name} down",
+      "remove": "Remove {name}",
+      "added": "{name} added",
+      "removed": "{name} removed",
+      "moved": "{name} moved to position {position} of {total}"
+    }
   },
   "issues": {
     "labelRequired": "Add a label",
@@ -119,7 +157,11 @@
     "defaultInvalid": "The default value doesn't pass this field's own rules",
     "conditionSelf": "A field can't depend on itself",
     "conditionUnknown": "The condition refers to a field that no longer exists",
-    "textRequired": "Add some text"
+    "textRequired": "Add some text",
+    "recordTypesRequired": "Choose at least one record type",
+    "columnsRequired": "Add at least one column",
+    "columnInvalid": "The column “{column}” needs attention",
+    "rowsRangeInvalid": "The most rows is below the fewest"
   },
   "dnd": {
     "roleDescription": "sortable item",

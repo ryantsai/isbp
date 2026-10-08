@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "統合",
-    "description": "外部システムへの接続、フィールド マッピング付きの同期プロファイル、双方向同期、実行履歴、リンクされたレコード、競合"
+    "description": "外部システムへの接続、フィールド マッピング付きの同期プロファイル、双方向同期、実行履歴、関連レコード、競合"
   },
   "nav": {
     "group": "統合",
@@ -11,7 +11,7 @@
   "systemRoles": {
     "integrations-viewer": {
       "name": "統合閲覧者",
-      "description": "接続、同期プロファイル、実行、リンクされたレコード、競合を表示します"
+      "description": "接続、同期プロファイル、実行履歴、関連レコード、競合を表示します"
     },
     "integrations-admin": {
       "name": "統合管理者",
@@ -19,7 +19,7 @@
     }
   },
   "permissions": {
-    "connectionsRead": "接続、同期プロファイル、実行、リンクされたレコード、競合を表示する",
+    "connectionsRead": "接続、同期プロファイル、実行履歴、関連レコード、競合を表示する",
     "connectionsManage": "接続を追加、編集、テストし、同期プロファイルを設定して同期を実行する",
     "conflictsResolve": "同期の競合を解決する"
   },
@@ -160,7 +160,7 @@
     "empty": "接続はまだありません",
     "emptyHint": "外部システムへの接続を追加してから、同期する内容を設定します。",
     "profiles": "プロファイル",
-    "linked": "リンクされたレコード",
+    "linked": "関連レコード",
     "conflicts": "未解決の競合",
     "errors": "エラー",
     "lastSync": "前回の同期:",
@@ -228,8 +228,8 @@
     "tabs": {
       "overview": "概要",
       "profiles": "同期プロファイル",
-      "runs": "実行",
-      "links": "リンクされたレコード",
+      "runs": "実行履歴",
+      "links": "関連レコード",
       "conflicts": "競合"
     },
     "health": "状態",
@@ -252,7 +252,7 @@
     "runNamed": "{name} を今すぐ実行",
     "runStarted": "同期を開始しました",
     "disabled": "無効",
-    "linked": "{count, plural, other {リンクされたレコード {n} 件}}",
+    "linked": "{count, plural, other {関連レコード {n} 件}}",
     "conflicts": "{count, plural, other {競合 # 件}}",
     "errors": "{count, plural, other {エラー # 件}}",
     "lastRun": "前回の実行:",
@@ -444,13 +444,13 @@
     }
   },
   "runs": {
-    "title": "実行",
+    "title": "実行履歴",
     "run": "プロファイル",
     "changes": "変更",
     "countsLine": "読み取り {read} · 書き込み {written} · 競合 {conflicts} · エラー {errors}",
     "started": "開始",
     "allStatuses": "すべての状態",
-    "empty": "実行はまだありません",
+    "empty": "実行履歴はまだありません",
     "emptyFiltered": "一致する実行はありません",
     "emptyHint": "プロファイルが同期すると実行が表示されます: スケジュール、Webhook、ISBP での変更、または [今すぐ実行] によって。"
   },
@@ -483,7 +483,7 @@
     }
   },
   "links": {
-    "title": "リンクされたレコード",
+    "title": "関連レコード",
     "filter": "状態で絞り込む",
     "search": "参照番号またはタイトルで検索",
     "local": "ISBP 側",
@@ -506,8 +506,8 @@
     "unlinkTitle": "{ref} のリンクを解除しますか?",
     "unlinkDescription": "どちらのレコードも保持されます。次回の同期で再びリンクされる (照合がオンの場合) か、新しいレコードが作成される場合があります。",
     "unlinked": "リンクを解除しました",
-    "empty": "リンクされたレコードはまだありません",
-    "emptyFiltered": "一致するリンクされたレコードはありません",
+    "empty": "関連レコードはまだありません",
+    "emptyFiltered": "一致する関連レコードはありません",
     "emptyHint": "プロファイルがレコードを同期すると、レコードがリンクされます。"
   },
   "conflicts": {

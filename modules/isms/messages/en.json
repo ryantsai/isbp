@@ -1,0 +1,1107 @@
+{
+  "meta": {
+    "name": "Information security",
+    "description": "Information asset register with C/I/A values, stocktakes, shared accounts and account reviews"
+  },
+  "nav": {
+    "group": "Information security",
+    "register": "Information assets",
+    "stocktakes": "Stocktakes",
+    "accounts": "Shared accounts",
+    "reviews": "Account reviews",
+    "settings": "Information security"
+  },
+  "systemRoles": {
+    "isms-participant": {
+      "name": "Information security participant",
+      "description": "Check the assets you manage in stocktakes, decide account reviews given to you and look after the shared accounts you are custodian of (granted to everyone by default)"
+    },
+    "isms-viewer": {
+      "name": "Information security viewer",
+      "description": "Read the information asset register, stocktakes, shared accounts and account reviews"
+    },
+    "isms-asset-manager": {
+      "name": "Information asset manager",
+      "description": "Maintain the information asset register, import and export it, and run stocktakes"
+    },
+    "isms-security-officer": {
+      "name": "Information security officer",
+      "description": "Sign off stocktakes and account reviews, manage shared accounts and account reviews, and read the register"
+    },
+    "isms-admin": {
+      "name": "Information security administrator",
+      "description": "Everything in information security, including classes, sites and classification labels"
+    }
+  },
+  "permissions": {
+    "assetsRead": "View the information asset register",
+    "assetsManage": "Register, change, import and delete information assets",
+    "configManage": "Configure asset classes, sites and classification labels",
+    "stocktakesManage": "Start, schedule and cancel stocktakes and record any item",
+    "stocktakesSignoff": "Sign off stocktakes",
+    "accountsRead": "View every shared account",
+    "accountsManage": "Register and change shared accounts and their members",
+    "reviewsRead": "View every account review",
+    "reviewsManage": "Start, schedule and cancel account reviews",
+    "reviewsSignoff": "Sign off account reviews",
+    "selfUse": "Take part: record stocktake items, decide account reviews and look after shared accounts given to you"
+  },
+  "entities": {
+    "asset": "Information asset",
+    "account": "Shared account"
+  },
+  "kinds": {
+    "assetClass": "Information asset class"
+  },
+  "settings": {
+    "reminderDays": "Reminder days before a due date",
+    "reminderDaysHelp": "Managers and reviewers are reminded this many days before a stocktake or account review is due.",
+    "reviewMonths": "Months between shared account reviews",
+    "reviewMonthsHelp": "When a shared account’s members are confirmed, the next review is set this many months later.",
+    "title": "Information security settings",
+    "description": "Asset classes with their C/I/A scoring guidance, sites for asset numbers, and classification labels.",
+    "tabs": {
+      "classes": "Classes",
+      "sites": "Sites",
+      "labels": "Classification labels"
+    },
+    "saved": "Saved",
+    "archived": "Archived",
+    "inUse": "In use",
+    "archive": "Archive",
+    "restore": "Restore",
+    "archiveItem": "Archive {name}",
+    "restoreItem": "Restore {name}",
+    "classes": {
+      "new": "New class",
+      "newTitle": "New asset class",
+      "editTitle": "Class {code}",
+      "hint": "The class code starts every asset number of the class, after the site code.",
+      "counts": "{subclasses, plural, one {# sub-class} other {# sub-classes}} · {assets, plural, one {# asset} other {# assets}}",
+      "code": "Code",
+      "codeHint": "2–4 capital letters, such as HW. It can’t change later.",
+      "codeFixed": "The code can’t change: asset numbers carry it.",
+      "order": "Order",
+      "subclasses": "Sub-classes",
+      "addSubclass": "Add a sub-class",
+      "removeSubclass": "Remove this sub-class",
+      "guidance": "Scoring guidance",
+      "guidanceHint": "What each score means for assets of this class. People see it while they score an asset. Leave a level empty when it doesn’t apply.",
+      "dimension": {
+        "c": "Confidentiality",
+        "i": "Integrity",
+        "a": "Availability"
+      }
+    },
+    "sites": {
+      "new": "New site",
+      "newTitle": "New site",
+      "editTitle": "Site {code}",
+      "hint": "The site code starts every asset number, such as HQ01 in HQ01HW0001.",
+      "code": "Code",
+      "assets": "Assets"
+    },
+    "labels": {
+      "new": "New label",
+      "newTitle": "New classification label",
+      "editTitle": "Classification label",
+      "editItem": "Edit {name}",
+      "hint": "Labels say how information must be handled. The most sensitive come first.",
+      "rank": "Rank",
+      "rankHint": "A higher rank means more sensitive; lists show the highest first."
+    }
+  },
+  "recordFacts": {
+    "classCode": "Asset class code",
+    "subClass": "Asset sub-class",
+    "confidentiality": "Confidentiality",
+    "integrity": "Integrity",
+    "availability": "Availability",
+    "value": "Asset value",
+    "classification": "Classification label",
+    "managerId": "Asset manager",
+    "managerGroup": "Managing group",
+    "siteCode": "Site code",
+    "status": "Asset status"
+  },
+  "assetStatus": {
+    "active": "In use",
+    "missing": "Missing",
+    "disposed": "Disposed"
+  },
+  "accountStatus": {
+    "active": "Active",
+    "retired": "Retired"
+  },
+  "stocktakeStatus": {
+    "scheduled": "Scheduled",
+    "open": "In progress",
+    "signed_off": "Signed off",
+    "cancelled": "Cancelled"
+  },
+  "stocktakeResult": {
+    "pending": "To check",
+    "confirmed": "Confirmed",
+    "changed": "Changed",
+    "missing": "Missing",
+    "disposed": "Disposed"
+  },
+  "reviewStatus": {
+    "scheduled": "Scheduled",
+    "open": "In progress",
+    "completed": "Waiting for sign-off",
+    "signed_off": "Signed off",
+    "cancelled": "Cancelled"
+  },
+  "reviewDecision": {
+    "undecided": "Not decided",
+    "keep": "Keep",
+    "disable": "Disable",
+    "delete": "Delete"
+  },
+  "privilege": {
+    "admin": "Administrator",
+    "user": "User"
+  },
+  "accountState": {
+    "enabled": "Enabled",
+    "disabled": "Disabled"
+  },
+  "recurrence": {
+    "none": "Once",
+    "quarterly": "Every quarter",
+    "yearly": "Every year"
+  },
+  "overdue": "Overdue",
+  "value": {
+    "badge": "Value {value}"
+  },
+  "fields": {
+    "number": "Asset number",
+    "name": "Asset name",
+    "class": "Class",
+    "subclass": "Sub-class",
+    "site": "Site",
+    "manager": "Asset manager",
+    "managerGroup": "Managing group",
+    "users": "Asset users",
+    "usersText": "Users (departments or people, as text)",
+    "location": "Location",
+    "brand": "Brand",
+    "model": "Model",
+    "version": "Version",
+    "quantity": "Quantity",
+    "confidentiality": "Confidentiality",
+    "integrity": "Integrity",
+    "availability": "Availability",
+    "cia": "C/I/A",
+    "value": "Asset value",
+    "classification": "Classification",
+    "status": "Status",
+    "notes": "Notes",
+    "source": "Registered from",
+    "lastVerifiedOn": "Last verified",
+    "reference": "Reference",
+    "stocktakeName": "Name",
+    "startOn": "Start date",
+    "dueOn": "Due date",
+    "recurrence": "Repeats",
+    "progress": "Progress",
+    "result": "Result",
+    "accountName": "Account name",
+    "targetSystem": "Target system or device",
+    "targetRecord": "Linked application or configuration item",
+    "custodian": "Primary custodian",
+    "members": "People using the account",
+    "department": "Requesting department",
+    "purpose": "Purpose",
+    "project": "Project",
+    "requestReference": "Request reference",
+    "lastPasswordChangeOn": "Password last changed",
+    "nextReviewOn": "Next review",
+    "lastReviewedOn": "Last reviewed",
+    "target": "System, device or IP",
+    "reviewer": "Reviewer",
+    "account": "Account",
+    "userName": "User name",
+    "person": "Person",
+    "privilege": "Privilege",
+    "accountState": "Current state",
+    "decision": "Decision",
+    "doneOn": "Date done",
+    "note": "Note"
+  },
+  "csvColumns": {
+    "number": "Asset number",
+    "name": "Asset name",
+    "class": "Class",
+    "subclass": "Sub-class",
+    "manager": "Asset manager",
+    "users": "Asset users",
+    "location": "Location",
+    "brand": "Brand",
+    "model": "Model",
+    "version": "Version",
+    "quantity": "Quantity",
+    "confidentiality": "Confidentiality",
+    "integrity": "Integrity",
+    "availability": "Availability",
+    "value": "Asset value",
+    "classification": "Classification",
+    "site": "Site",
+    "status": "Status",
+    "notes": "Notes"
+  },
+  "reviewColumns": {
+    "account": "Account",
+    "user": "User name",
+    "privilege": "Privilege",
+    "status": "Current state",
+    "decision": "Decision",
+    "doneOn": "Date done",
+    "note": "Note"
+  },
+  "csv": {
+    "columns": {
+      "number": "Asset number",
+      "name": "Asset name",
+      "class": "Class",
+      "subclass": "Sub-class",
+      "manager": "Asset manager",
+      "users": "Asset users",
+      "location": "Location",
+      "brand": "Brand",
+      "model": "Model",
+      "version": "Version",
+      "quantity": "Quantity",
+      "confidentiality": "Confidentiality",
+      "integrity": "Integrity",
+      "availability": "Availability",
+      "value": "Asset value",
+      "classification": "Classification",
+      "site": "Site",
+      "status": "Status",
+      "notes": "Notes"
+    },
+    "stocktake": {
+      "number": "Asset number",
+      "name": "Asset name",
+      "class": "Class",
+      "site": "Site",
+      "location": "Location",
+      "value": "Asset value",
+      "assignee": "Asset manager",
+      "result": "Result",
+      "changes": "Changes",
+      "note": "Note",
+      "decidedBy": "Recorded by",
+      "decidedAt": "Recorded at"
+    },
+    "review": {
+      "account": "Account",
+      "user": "User name",
+      "privilege": "Privilege",
+      "status": "Current state",
+      "decision": "Decision",
+      "doneOn": "Date done",
+      "note": "Note"
+    },
+    "reviewTarget": "Reviewed system (name / device / IP)",
+    "reviewDate": "Review date",
+    "reviewReference": "Reference"
+  },
+  "register": {
+    "title": "Information assets",
+    "description": "The information asset register: every asset with its class, manager, confidentiality, integrity, availability and value.",
+    "new": "Register an asset",
+    "more": "More",
+    "import": "Import from CSV",
+    "createFrom": "Create from other records",
+    "export": "Export CSV",
+    "search": "Search by number or name",
+    "allClasses": "All classes",
+    "minValue": "Minimum value",
+    "anyValue": "Any value",
+    "valueAtLeast": "Value {value} or more",
+    "allClassifications": "All classifications",
+    "allSites": "All sites",
+    "anyGroup": "Any group",
+    "anyManager": "Any manager",
+    "ciaLabel": "Confidentiality {confidentiality}, integrity {integrity}, availability {availability}",
+    "liveCount": "{count, plural, one {# asset} other {# assets}}",
+    "views": {
+      "active": "In use",
+      "missing": "Missing",
+      "disposed": "Disposed",
+      "all": "All"
+    },
+    "empty": {
+      "title": "No information assets",
+      "none": "Register the people, hardware, software, information and services your organisation depends on.",
+      "filtered": "No asset matches these filters."
+    }
+  },
+  "assetForm": {
+    "createTitle": "Register an information asset",
+    "editTitle": "Edit {number}",
+    "hint": "Score confidentiality, integrity and availability with the class’s guidance: the asset value is the highest of the three.",
+    "identity": "Asset",
+    "responsibility": "Responsibility and location",
+    "details": "Details",
+    "cia": "Confidentiality, integrity and availability",
+    "ciaHint": "Choose the highest score whose description fits, so the value isn’t underestimated.",
+    "ciaPickClass": "Choose a class to see what each score means for it.",
+    "confidentialityHint": "Impact if it is disclosed to people who shouldn’t see it.",
+    "integrityHint": "Impact if it is wrong, incomplete or changed without permission.",
+    "availabilityHint": "Impact if it can’t be used.",
+    "level": "Score {level}",
+    "noGuidance": "No guidance for this score",
+    "nameHint": "Describe what it does, simply and clearly.",
+    "nameRequired": "Enter a name",
+    "classRequired": "Choose a class",
+    "siteRequired": "Choose a site",
+    "quantityInvalid": "Enter a whole number, 0 or more",
+    "choose": "Choose…",
+    "noSubclass": "No sub-class",
+    "noClassification": "No classification",
+    "noGroup": "No group",
+    "numberHint": "The asset number is made from the site and class codes and the next number, such as HQ01HW0001.",
+    "numberKept": "The asset number stays the same if the site or class changes.",
+    "managerPlaceholder": "Choose a person",
+    "addUser": "Add a person",
+    "usersTextPlaceholder": "For example: Finance department, all staff",
+    "register": "Register",
+    "created": "Registered {number}",
+    "saved": "Asset saved"
+  },
+  "asset": {
+    "notFound": "This asset doesn’t exist or you can’t see it",
+    "about": "About this asset",
+    "cia": "Value",
+    "ciaDescription": "The asset value is {value}: the highest of confidentiality, integrity and availability.",
+    "deleteTitle": "Delete {number}?",
+    "deleteDescription": "{name} is removed from the register with its links and attachments. Its history stays in the audit log.",
+    "deleted": "Asset deleted"
+  },
+  "history": {
+    "title": "History",
+    "none": "Nothing has happened yet.",
+    "system": "System",
+    "more": "Show more",
+    "changed": "changed",
+    "customFields": "Additional information",
+    "kinds": {
+      "created": "Registered",
+      "updated": "Updated",
+      "imported": "Imported",
+      "stocktake": "Updated in a stocktake",
+      "status_changed": "Status changed"
+    }
+  },
+  "links": {
+    "title": "Links and files",
+    "unavailable": "Links and attachments aren’t available",
+    "unavailableHint": "The platform’s record panels are switched off."
+  },
+  "people": {
+    "selected": "Chosen people",
+    "remove": "Remove {name}"
+  },
+  "import": {
+    "file": "CSV file",
+    "check": "Check the file",
+    "import": "Import",
+    "checked": "Checked: {summary}. Nothing has been changed yet.",
+    "imported": "Imported: {summary}.",
+    "skipped": "{count, plural, one {# row is left out} other {# rows are left out}}:",
+    "missingColumns": "The file has no column for: {columns}.",
+    "issueLine": "Line {line}, {column}: {problem} {value}",
+    "errors": {
+      "empty": "The file has no rows.",
+      "tooManyRows": "The file has too many rows. Split it into smaller files."
+    },
+    "issues": {
+      "required": "is required.",
+      "unknownClass": "is not a class.",
+      "unknownSubclass": "is not a sub-class of the class.",
+      "unknownSite": "is not a site.",
+      "unknownLabel": "is not a classification label.",
+      "unknownManager": "matches no person or group.",
+      "badLevel": "must be 1, 2, 3 or 4.",
+      "badQuantity": "must be a whole number.",
+      "badNumber": "doesn’t start with the site and class codes.",
+      "badStatus": "is not a status.",
+      "duplicate": "appears twice in the file.",
+      "tooLong": "is too long.",
+      "notFound": "doesn’t exist.",
+      "badPrivilege": "is neither administrator nor user.",
+      "badDecision": "is not a decision."
+    },
+    "assetsTitle": "Import the register",
+    "assetsDescription": "Check the file first: nothing changes until you import.",
+    "assetsHelp": "Use the columns of the export, in any order, with headers in English, Chinese or Japanese. Rows with a known asset number update that asset (empty cells keep the current value); other rows register new assets. The asset value is worked out.",
+    "assetsSummary": "{created} to register, {updated} to update, {unchanged} unchanged",
+    "accountsTitle": "Import an account list",
+    "accountsDescription": "Load the accounts exported from the system. Accounts already listed are updated.",
+    "accountsHelp": "Columns, in any order: account (required), user name, privilege (administrator or user), state (enabled or disabled), and optionally decision, date done and note. People are matched by user name.",
+    "accountsSummary": "{added} to add, {updated} to update, {matched} matched to people"
+  },
+  "createFrom": {
+    "title": "Create from other records",
+    "description": "Register configuration items, IT assets, licences, contracts, applications or articles as information assets. Each new asset is linked to its record.",
+    "type": "Record type",
+    "search": "Search records",
+    "records": "Records ({count} chosen)",
+    "none": "No records found.",
+    "noSources": "You can’t see any record types to register from.",
+    "registered": "Registered as {number}",
+    "defaults": "The new assets",
+    "needClassSite": "Choose a class and a site.",
+    "submit": "{count, plural, =0 {Register assets} one {Register # asset} other {Register # assets}}",
+    "done": "{created, plural, one {# asset registered} other {# assets registered}}, {skipped} left out.",
+    "types": {
+      "cmdb_ci": "Configuration items",
+      "itam_asset": "Hardware assets",
+      "itam_license": "Software licences",
+      "itam_contract": "Contracts",
+      "alm_application": "Applications",
+      "knowledge_article": "Knowledge articles"
+    }
+  },
+  "stocktakes": {
+    "title": "Stocktakes",
+    "description": "Check that the register is right: each asset’s manager confirms it, corrects it, or reports it missing or disposed.",
+    "new": "New stocktake",
+    "all": "All",
+    "search": "Search stocktakes",
+    "mine": "Waiting for you",
+    "mineDescription": "{count, plural, one {# asset you manage needs checking} other {# assets you manage need checking}}",
+    "dueOn": "Due {date}",
+    "forYou": "For you",
+    "pendingForMe": "{count, plural, one {# to check} other {# to check}}",
+    "progressLabel": "Progress of {name}",
+    "empty": {
+      "title": "No stocktakes",
+      "description": "Start a stocktake to have asset managers check their assets."
+    }
+  },
+  "stocktake": {
+    "notFound": "This stocktake doesn’t exist or you can’t see it",
+    "items": "Assets in the stocktake",
+    "search": "Search by number or name",
+    "onlyMine": "Only mine",
+    "noItems": "No assets here",
+    "export": "Export results",
+    "cancel": "Cancel stocktake",
+    "cancelTitle": "Cancel {reference}?",
+    "cancelDescription": "Results recorded so far are kept, but the stocktake can’t be signed off.",
+    "cancelled": "Stocktake cancelled",
+    "signOff": "Sign off",
+    "signOffTitle": "Sign off {reference}",
+    "signOffDescription": "Missing and disposed assets change status, and the others are marked as verified today.",
+    "signOffWhenDone": "You can sign off once every asset is recorded.",
+    "signedOff": "Stocktake signed off",
+    "signedOffBy": "Signed off by {name}",
+    "scheduled": "This stocktake starts on {date}.",
+    "summary": "{confirmed} confirmed, {changed} changed, {missing} missing, {disposed} disposed, {pending} to check",
+    "views": {
+      "all": "All",
+      "pending": "To check",
+      "done": "Recorded",
+      "confirmed": "Confirmed",
+      "changed": "Changed",
+      "missing": "Missing",
+      "disposed": "Disposed"
+    }
+  },
+  "newStocktake": {
+    "title": "New stocktake",
+    "description": "In-scope assets become items for their managers to check by the due date.",
+    "defaultName": "Asset stocktake {year}",
+    "scopeHint": "Leave a list empty to include everything. Assets in use and missing assets are included.",
+    "managers": "Asset managers",
+    "addManager": "Add a manager",
+    "required": "Enter a name and a due date.",
+    "start": "Start",
+    "schedule": "Schedule",
+    "created": "Stocktake {reference} created"
+  },
+  "record": {
+    "title": "Check {number}",
+    "open": "Check",
+    "change": "Change",
+    "openFor": "Check {number}",
+    "result": "Result",
+    "corrections": "What is right now",
+    "note": "Note",
+    "submit": "Record",
+    "saved": "Recorded",
+    "changesRequired": "Change at least one value.",
+    "noteRequired": "Add a note: what happened to it?",
+    "hints": {
+      "confirmed": "The register is right.",
+      "changed": "Correct the register now.",
+      "missing": "It can’t be found.",
+      "disposed": "It was disposed of."
+    }
+  },
+  "signOff": {
+    "note": "Note (optional)",
+    "confirm": "Sign off"
+  },
+  "accounts": {
+    "title": "Shared accounts",
+    "description": "Accounts several people use, with a custodian who keeps the password. When someone leaves or moves, the password must be changed that day.",
+    "new": "Register a shared account",
+    "search": "Search by account, system or project",
+    "onlyMine": "Only mine",
+    "passwordDue": "Password change due",
+    "views": {
+      "active": "Active",
+      "password": "Password change due",
+      "review": "Review due",
+      "retired": "Retired",
+      "all": "All"
+    },
+    "empty": {
+      "title": "No shared accounts",
+      "active": "Register the shared accounts approved for use.",
+      "password": "No password needs changing.",
+      "review": "No review is due.",
+      "retired": "No retired accounts.",
+      "all": "Register the shared accounts approved for use."
+    }
+  },
+  "account": {
+    "notFound": "This shared account doesn’t exist or you can’t see it",
+    "about": "About this account",
+    "passwordChanged": "Password changed",
+    "review": "Review members",
+    "dueTitle": "Change the password today",
+    "dueBody": "{reason, select, member_left {{member} left the organisation} member_moved {{member} moved to another department} custodian_left {The custodian {member} left: appoint a new custodian} other {{member} was taken off the list}}.",
+    "reviewDue": "The yearly review was due on {date}: confirm who still needs the account.",
+    "membersDescription": "{count, plural, one {# person} other {# people}} may use this account.",
+    "noMembers": "Nobody is on the list.",
+    "inactive": "no longer active",
+    "since": "Since {date}",
+    "removeMember": "Take {name} off the list",
+    "removeTitle": "Take {name} off the list?",
+    "removeDescription": "The password of {account} must then be changed today.",
+    "memberRemoved": "Taken off the list: change the password today"
+  },
+  "accountForm": {
+    "createTitle": "Register a shared account",
+    "editTitle": "Edit {reference}",
+    "hint": "The custodian keeps the password, encrypted, and changes it when someone leaves the list.",
+    "targetHint": "Optional: the application or configuration item the account belongs to.",
+    "addMember": "Add a person",
+    "removeHint": "Taking someone off the list makes the password change due.",
+    "noDepartment": "No department",
+    "required": "Enter the account name and choose a custodian.",
+    "register": "Register",
+    "created": "Registered {reference}",
+    "saved": "Shared account saved"
+  },
+  "password": {
+    "title": "Password of {account} changed",
+    "description": "Record when the password was changed. Don’t write the password anywhere here.",
+    "changedOn": "Changed on",
+    "note": "Note (optional)",
+    "submit": "Record",
+    "saved": "Password change recorded"
+  },
+  "accountReview": {
+    "title": "Review {account}",
+    "description": "Keep the people who still need the account. Anyone you untick is taken off the list and the password must be changed.",
+    "members": "People on the list",
+    "inactive": "no longer active",
+    "note": "Note (optional)",
+    "removing": "{count, plural, one {# person will be taken off: change the password afterwards.} other {# people will be taken off: change the password afterwards.}}",
+    "keepingAll": "Everyone stays on the list.",
+    "submit": "Confirm the review",
+    "saved": "Review recorded"
+  },
+  "accountHistory": {
+    "created": "Registered",
+    "updated": "Updated",
+    "member_added": "{user} added",
+    "member_removed": "{user} taken off the list",
+    "password_change_due": "Password change due: {reason, select, member_left {{user} left} member_moved {{user} moved department} custodian_left {custodian {user} left} other {{user} taken off the list}}",
+    "password_changed": "Password changed on {date}",
+    "reviewed": "Members confirmed; next review {date}",
+    "retired": "Retired",
+    "restored": "Back in use",
+    "registered": "Updated from a request"
+  },
+  "reviews": {
+    "title": "Account reviews",
+    "description": "Go through the accounts of a system and decide which to keep, disable or delete; a security officer signs off the result.",
+    "new": "New account review",
+    "all": "All",
+    "search": "Search by system",
+    "onlyMine": "Only mine to review",
+    "progressLabel": "Progress of the review of {target}",
+    "empty": {
+      "title": "No account reviews",
+      "description": "Start a review for a system, device or application."
+    }
+  },
+  "review": {
+    "notFound": "This account review doesn’t exist or you can’t see it",
+    "items": "Accounts",
+    "search": "Search accounts or users",
+    "reviewer": "Reviewer: {name}",
+    "accounts": "Accounts",
+    "import": "Import an account list",
+    "add": "Add an account",
+    "export": "Export",
+    "raiseTickets": "Raise tickets",
+    "ticketsRaised": "{raised, plural, one {# ticket raised} other {# tickets raised}}{failed, plural, =0 {} other {, # failed}}",
+    "complete": "Complete",
+    "completed": "Review completed: waiting for sign-off",
+    "completeWhenDone": "Complete the review once every account has a decision, and disable or delete has the date it was done.",
+    "reopen": "Send back",
+    "reopened": "Sent back to the reviewer",
+    "signOff": "Sign off",
+    "signOffTitle": "Sign off {reference}",
+    "signOffDescription": "Confirm the decisions. Recurring reviews schedule the next one.",
+    "signedOff": "Review signed off",
+    "signedOffBy": "Signed off by {name}",
+    "waitingSignOff": "Completed: waiting for a security officer to sign it off.",
+    "cancel": "Cancel review",
+    "cancelTitle": "Cancel {reference}?",
+    "cancelDescription": "Decisions recorded so far are kept, but the review can’t be signed off.",
+    "cancelled": "Review cancelled",
+    "scheduled": "This review starts on {date}.",
+    "noItems": "No accounts",
+    "noItemsHint": "Import the system’s account list or add accounts by hand.",
+    "doneOn": "Done {date}",
+    "notDoneYet": "Date done missing",
+    "summary": "{keep} keep, {disable} disable, {delete} delete, {undecided} still to decide",
+    "views": {
+      "all": "All",
+      "undecided": "To decide",
+      "keep": "Keep",
+      "disable": "Disable",
+      "delete": "Delete",
+      "admin": "Administrators"
+    }
+  },
+  "newReview": {
+    "title": "New account review",
+    "description": "The reviewer decides keep, disable or delete for every account of the system.",
+    "targetPlaceholder": "For example: Core firewall, 10.0.0.1",
+    "source": "Accounts",
+    "sourceCsv": "Imported from the system’s account list",
+    "sourceApp": "Role holders of {name}",
+    "sourceHint": "For an application registered in the platform, the review starts with everyone holding one of its roles.",
+    "required": "Enter the system, choose a reviewer and a due date.",
+    "start": "Start",
+    "schedule": "Schedule",
+    "created": "Review {reference} created"
+  },
+  "decide": {
+    "open": "Decide",
+    "openFor": "Decide {account}",
+    "title": "Decide {account}",
+    "titleMany": "Decide {count} accounts",
+    "description": "Keep, disable or delete the account.",
+    "doneHint": "When the account was disabled or deleted. You can add it later.",
+    "selected": "Decide {count} selected",
+    "saved": "{count, plural, one {Decision saved} other {Decisions saved}}"
+  },
+  "addAccount": {
+    "title": "Add an account",
+    "description": "An account the list is missing.",
+    "saved": "Account added"
+  },
+  "tickets": {
+    "disableTitle": "Disable account",
+    "deleteTitle": "Delete account",
+    "review": "Account review",
+    "account": "Account",
+    "decision": "Decision",
+    "note": "Note",
+    "link": "Review"
+  },
+  "dashboard": {
+    "title": "Information security",
+    "description": "Assets, stocktakes, shared accounts and account reviews",
+    "myItems": "{count, plural, one {# asset you manage needs checking} other {# assets you manage need checking}}",
+    "open": "Open",
+    "passwordDue": "{count, plural, one {# shared account password to change} other {# shared account passwords to change}}",
+    "byValue": "Assets by value ({total})",
+    "byValueCaption": "Assets in use by asset value",
+    "value": "Value {value}",
+    "stocktakes": "Stocktakes in progress",
+    "reviews": "Account reviews in progress",
+    "percent": "{percent}%"
+  },
+  "errors": {
+    "stocktakeClosed": "The stocktake is closed.",
+    "itemsPending": "Some items aren’t recorded yet.",
+    "assetDeleted": "The asset was deleted.",
+    "reviewClosed": "The review is closed.",
+    "reviewEmpty": "The review has no accounts.",
+    "reviewNotCompleted": "The review isn’t completed.",
+    "accountRetired": "The account is retired.",
+    "ticketsUnavailable": "Raising tickets needs the service desk."
+  },
+  "processActions": {
+    "registerSharedAccount": {
+      "name": "Register a shared account",
+      "description": "Registers the approved shared account (or adds the new members to it) with its custodian and the people using it.",
+      "accountName": "Account name",
+      "accountNameHelp": "Text, or a template that takes an answer of the form.",
+      "targetSystem": "Target system or device",
+      "templateHelp": "Text, or a template that takes an answer of the form.",
+      "targetField": "Application or CI field",
+      "targetFieldHelp": "A record field of this form that names the system.",
+      "custodian": "Primary custodian",
+      "requester": "The requester",
+      "members": "People using the account",
+      "membersHelp": "Person fields of the form, or the person column of a table.",
+      "purpose": "Purpose",
+      "project": "Project",
+      "created": "Shared account registered",
+      "updated": "Shared account updated"
+    }
+  },
+  "audit": {
+    "asset_created": "Registered an information asset",
+    "asset_updated": "Changed an information asset",
+    "asset_deleted": "Deleted an information asset",
+    "asset_exported": "Exported the information asset register",
+    "asset_imported": "Imported the information asset register",
+    "taxonomy_changed": "Changed the asset classes, sites or labels",
+    "taxonomy_defaults_created": "Created the default asset classes, labels and site",
+    "class_created": "Created an asset class",
+    "class_updated": "Changed an asset class",
+    "class_archived": "Archived an asset class",
+    "class_restored": "Restored an asset class",
+    "site_created": "Created a site",
+    "site_updated": "Changed a site",
+    "site_archived": "Archived a site",
+    "site_restored": "Restored a site",
+    "label_created": "Created a classification label",
+    "label_updated": "Changed a classification label",
+    "label_archived": "Archived a classification label",
+    "label_restored": "Restored a classification label",
+    "stocktake_created": "Created a stocktake",
+    "stocktake_started": "Started a stocktake",
+    "stocktake_item_recorded": "Recorded a stocktake item",
+    "stocktake_signed_off": "Signed off a stocktake",
+    "stocktake_cancelled": "Cancelled a stocktake",
+    "stocktake_exported": "Exported stocktake results",
+    "account_created": "Registered a shared account",
+    "account_updated": "Changed a shared account",
+    "account_member_added": "Added a shared account member",
+    "account_member_removed": "Took someone off a shared account",
+    "account_password_change_due": "Made a shared account password change due",
+    "account_password_changed": "Recorded a shared account password change",
+    "account_reviewed": "Reviewed a shared account’s members",
+    "review_created": "Created an account review",
+    "review_started": "Started an account review",
+    "review_items_imported": "Imported accounts into a review",
+    "review_item_decided": "Decided an account in a review",
+    "review_completed": "Completed an account review",
+    "review_reopened": "Sent an account review back",
+    "review_signed_off": "Signed off an account review",
+    "review_cancelled": "Cancelled an account review",
+    "review_exported": "Exported an account review",
+    "review_ticket_raised": "Raised a ticket from an account review"
+  },
+  "notifications": {
+    "stocktake_assigned": {
+      "label": "Stocktakes of assets I manage",
+      "title": "Stocktake {name}: {count, plural, one {# asset to check} other {# assets to check}}",
+      "body": "Confirm, correct or report each asset you manage by {due}."
+    },
+    "stocktake_reminder": {
+      "label": "Stocktake reminders",
+      "title": "Stocktake {name} is due {due}",
+      "body": "{count, plural, one {# asset is} other {# assets are}} still waiting for you."
+    },
+    "stocktake_overdue": {
+      "label": "Overdue stocktakes",
+      "title": "Stocktake {name} is overdue",
+      "body": "It was due {due}; {count, plural, one {# asset is} other {# assets are}} still waiting."
+    },
+    "stocktake_ready": {
+      "label": "Stocktakes ready to sign off",
+      "title": "{reference} is ready to sign off",
+      "body": "Every asset of {name} is recorded."
+    },
+    "account_password_change_due": {
+      "label": "Shared account passwords to change",
+      "title": "Change the password of {account} today",
+      "body": "{reason, select, member_left {{member} left the organisation} member_moved {{member} moved to another department} custodian_left {The custodian {member} left: appoint a new custodian and change the password} other {{member} was taken off the list}}. Record the change once it’s done."
+    },
+    "account_review_due": {
+      "label": "Shared account reviews",
+      "title": "Review who uses {account}",
+      "body": "The yearly review was due {due}: confirm the people who still need the account."
+    },
+    "review_assigned": {
+      "label": "Account reviews given to me",
+      "title": "Review the accounts of {target}",
+      "body": "{reference}: decide keep, disable or delete for {count, plural, =0 {each account} one {# account} other {# accounts}} by {due}."
+    },
+    "review_reminder": {
+      "label": "Account review reminders",
+      "title": "Account review {reference} is due {due}",
+      "body": "Finish the review of {target} and complete it."
+    },
+    "review_overdue": {
+      "label": "Overdue account reviews",
+      "title": "Account review {reference} is overdue",
+      "body": "The review of {target} was due {due}."
+    },
+    "review_ready": {
+      "label": "Account reviews ready to sign off",
+      "title": "{reference} is ready to sign off",
+      "body": "The review of {target} is complete."
+    }
+  },
+  "defaults": {
+    "classes": {
+      "PE": {
+        "name": "People",
+        "description": "People the organisation depends on.",
+        "subclasses": {
+          "internal-people": {
+            "name": "Internal people",
+            "description": "Managers, IT operations staff and users."
+          },
+          "external-people": {
+            "name": "External people",
+            "description": "Suppliers, on-site contractors and temporary staff."
+          }
+        },
+        "guidance": {
+          "c": {
+            "1": "Handles general information; disclosure would have negligible impact.",
+            "2": "Handles confidential information; disclosure would affect the organisation.",
+            "3": "Handles customer-confidential information; disclosure would affect customers.",
+            "4": "Handles strictly confidential information; disclosure would cause serious harm."
+          },
+          "i": {
+            "1": "Integrity is scored 1 for every person.",
+            "2": "",
+            "3": "",
+            "4": ""
+          },
+          "a": {
+            "1": "If unavailable, a few colleagues are affected.",
+            "2": "If unavailable, work within the department is affected.",
+            "3": "If unavailable, several departments are affected.",
+            "4": "If unavailable, the organisation’s services to others are affected."
+          }
+        }
+      },
+      "HW": {
+        "name": "Hardware",
+        "description": "Servers, network devices, storage media, mobile and connected devices.",
+        "subclasses": {
+          "servers": {
+            "name": "Servers",
+            "description": "Application, database, web and backup servers."
+          },
+          "network-devices": {
+            "name": "Network devices",
+            "description": "Switches, routers, firewalls and wireless equipment."
+          },
+          "portable-media": {
+            "name": "Portable storage media",
+            "description": "External drives, USB sticks, memory cards, tapes and security keys."
+          },
+          "mobile-devices": {
+            "name": "Mobile devices",
+            "description": "Phones, laptops, tablets and handheld scanners."
+          },
+          "iot-devices": {
+            "name": "IoT devices",
+            "description": "Connected printers, cameras, access control and video conferencing equipment."
+          }
+        },
+        "guidance": {
+          "c": {
+            "1": "Details of its set-up getting out would hardly affect security controls.",
+            "2": "Details of its set-up getting out would affect the security of one site.",
+            "3": "Details of its set-up getting out would affect the security of several sites.",
+            "4": "Details of its set-up getting out would seriously affect security controls."
+          },
+          "i": {
+            "1": "Integrity is scored 1 for hardware.",
+            "2": "",
+            "3": "",
+            "4": ""
+          },
+          "a": {
+            "1": "It may be unavailable for more than 48 hours.",
+            "2": "It may be unavailable for 24 to 48 hours.",
+            "3": "It may be unavailable for 8 to 24 hours.",
+            "4": "It may be unavailable for 8 hours at most."
+          }
+        }
+      },
+      "SW": {
+        "name": "Software",
+        "description": "Operating systems and packaged software.",
+        "subclasses": {
+          "operating-systems": {
+            "name": "Operating systems",
+            "description": "Server, desktop and mobile operating systems."
+          },
+          "packaged-software": {
+            "name": "Packaged software",
+            "description": "Office, communication, security and other applications."
+          }
+        },
+        "guidance": {
+          "c": {
+            "1": "Its logic getting out would hardly matter.",
+            "2": "Its logic getting out would affect the security of one site.",
+            "3": "Its logic getting out would affect the security of several sites.",
+            "4": "Its logic getting out would seriously affect the organisation."
+          },
+          "i": {
+            "1": "Wrong or incomplete results would hardly affect work.",
+            "2": "Wrong or incomplete results would affect one site’s work.",
+            "3": "Wrong or incomplete results would affect several sites’ work.",
+            "4": "Wrong or incomplete results would seriously affect the organisation’s work."
+          },
+          "a": {
+            "1": "It may be unavailable for more than 24 hours.",
+            "2": "It may be unavailable for 16 to 24 hours.",
+            "3": "It may be unavailable for 8 to 16 hours.",
+            "4": "It may be unavailable for 8 hours at most."
+          }
+        }
+      },
+      "DA": {
+        "name": "Information",
+        "description": "Documents, records and contracts, on paper or electronic.",
+        "subclasses": {
+          "operational-documents": {
+            "name": "Operational documents",
+            "description": "Procedures, lists, reports, guides and work records."
+          },
+          "system-documents": {
+            "name": "System documents",
+            "description": "System documentation and manuals."
+          },
+          "electronic-records": {
+            "name": "Electronic records",
+            "description": "Databases, e-mail, configuration files, source code and logs."
+          },
+          "contracts": {
+            "name": "Contracts",
+            "description": "Contracts, legal documents, licences and non-disclosure agreements."
+          }
+        },
+        "guidance": {
+          "c": {
+            "1": "Internal information to keep within the organisation.",
+            "2": "Confidential: disclosure beyond a team would affect the organisation.",
+            "3": "Customer-confidential: disclosure would affect customers.",
+            "4": "Strictly confidential: disclosure beyond named people would cause serious harm."
+          },
+          "i": {
+            "1": "Wrong or incomplete content would affect a few people.",
+            "2": "Wrong or incomplete content would affect the organisation.",
+            "3": "Wrong or incomplete content would affect customers.",
+            "4": "Wrong or incomplete content would seriously harm the organisation."
+          },
+          "a": {
+            "1": "Losing it would slightly affect internal work.",
+            "2": "Losing it would affect daily operations.",
+            "3": "Losing it would affect services to customers.",
+            "4": "Work depends on it completely; losing it would stop operations."
+          }
+        }
+      },
+      "SV": {
+        "name": "Services",
+        "description": "Services the organisation provides or relies on.",
+        "subclasses": {
+          "internal-services": {
+            "name": "Internal services",
+            "description": "Access control, power, air conditioning and internal networks."
+          },
+          "external-services": {
+            "name": "External services",
+            "description": "Internet connectivity and other services from providers."
+          }
+        },
+        "guidance": {
+          "c": {
+            "1": "Details of how it works getting out would hardly affect security.",
+            "2": "Details of how it works getting out would affect the security of one site.",
+            "3": "Details of how it works getting out would affect the security of several sites.",
+            "4": "Details of how it works getting out would seriously affect security controls."
+          },
+          "i": {
+            "1": "Integrity is scored 1 for services.",
+            "2": "",
+            "3": "",
+            "4": ""
+          },
+          "a": {
+            "1": "It may be unavailable for more than 24 hours.",
+            "2": "It may be unavailable for 16 to 24 hours.",
+            "3": "It may be unavailable for 8 to 16 hours.",
+            "4": "It may be unavailable for 8 hours at most."
+          }
+        }
+      }
+    },
+    "labels": {
+      "strictly-confidential": {
+        "name": "Strictly Confidential",
+        "description": "Only named people or roles may see it; disclosure would cause serious harm."
+      },
+      "customer-confidential": {
+        "name": "Customer Confidential",
+        "description": "Information customers entrusted to the organisation, handled as they require."
+      },
+      "confidential": {
+        "name": "Confidential",
+        "description": "Only a named team or organisation unit may see it."
+      },
+      "internal-use-only": {
+        "name": "Internal Use Only",
+        "description": "Keep within the organisation."
+      }
+    }
+  },
+  "packages": {
+    "processes": {
+      "name": "ISMS process pack",
+      "description": "Request forms, approval workflows and recurring checklists for an ISO 27001-style IT security process set: accounts and access, firewall rules, server room and backup inspections, devices, software, exceptions and incident reports. Creates the groups, service desk categories and scheduled jobs they need.",
+      "workflows": {
+        "accountRequest": "Account and access request approval",
+        "accountRetention": "Account disable and delayed deletion approval",
+        "sharedAccount": "Shared account approval",
+        "firewallRule": "Firewall rule change approval",
+        "networkDeviceCheck": "Network device check review",
+        "externalNetwork": "Visitor network access approval",
+        "serverRoomInspection": "Server room inspection review",
+        "systemBackupInspection": "System and backup inspection review",
+        "backupPlan": "Backup plan approval",
+        "restoreTest": "Restore test review",
+        "maintenance": "Equipment maintenance review",
+        "patchException": "Patch exception approval",
+        "devicePassword": "Device password change review",
+        "assetChange": "Information asset change approval",
+        "deviceCheckout": "Device checkout approval",
+        "deviceReturn": "Device return handling",
+        "softwareInstall": "Software installation approval",
+        "mediaException": "Portable media exception approval",
+        "imException": "Instant messaging exception approval",
+        "threatIntel": "Threat intelligence review",
+        "resolutionSignOff": "Equipment anomaly resolution sign-off"
+      }
+    }
+  }
+}

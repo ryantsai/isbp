@@ -16,12 +16,13 @@ import {
   CircleCheckIcon,
   CircleDashedIcon,
   GitPullRequestArrowIcon,
+  PackageIcon,
   SearchXIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useId, useMemo } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { CHANGE_SET_STATUSES, type ChangeSetStatus, changeSetHref } from '../../contracts';
 import { StatusBadge, ToneText } from '../badges';
 import {
@@ -32,6 +33,7 @@ import {
   STATUS_PATH,
   useKindLabel,
 } from '../lib';
+import { PackageDialog } from '../package-dialog';
 
 const ALL = '__all__';
 const SCOPES = ['mine', 'all'] as const;
@@ -59,6 +61,7 @@ export default function ChangeSetsPage() {
   const id = useId();
   const canReadAll = useCan('assistant.change-sets.read');
   const [state, set] = useListState({ pageSize: 25 });
+  const [packages, setPackages] = useState(false);
   const scope: Scope = canReadAll && state.scope === 'all' ? 'all' : 'mine';
   const status = CHANGE_SET_STATUSES.includes(state.status as ChangeSetStatus)
     ? (state.status as ChangeSetStatus)
@@ -210,7 +213,16 @@ export default function ChangeSetsPage() {
 
   return (
     <>
-      <PageHeader title={t('title')} description={t('description')} />
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        actions={
+          <Button variant="outline" onClick={() => setPackages(true)}>
+            <PackageIcon /> {t('fromPackage')}
+          </Button>
+        }
+      />
+      <PackageDialog open={packages} onOpenChange={setPackages} />
       <div className="grid min-w-0 grid-cols-1 gap-6">
         {canReadAll ? (
           <Tabs value={scope} onValueChange={(v) => set({ scope: v === 'mine' ? undefined : v })}>

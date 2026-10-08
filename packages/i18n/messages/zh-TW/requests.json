@@ -22,6 +22,7 @@
     "software": "軟體",
     "security": "資訊安全",
     "access": "權限",
+    "changes": "變更",
     "other": "其他"
   },
   "risk": {
@@ -91,7 +92,11 @@
     "submitted": "已送出申請 {reference}",
     "failed": "無法送出申請。",
     "unavailable": "此表單目前無法使用",
-    "unavailableHint": "表單可能已暫停或未開放給您，請選擇其他申請類型。"
+    "unavailableHint": "表單可能已暫停或未開放給您，請選擇其他申請類型。",
+    "approval": {
+      "title": "誰會核准此申請？",
+      "description": "依據您目前的答案與表單的簽核流程，會隨著您填寫而更新。"
+    }
   },
   "detail": {
     "back": "所有申請",
@@ -126,12 +131,90 @@
     "withdrawBody": "簽核者將不再看到此申請，您之後可以重新申請。",
     "keep": "保留",
     "withdrawn": "已撤回申請",
+    "decisions": {
+      "title": "簽核人員填寫的內容",
+      "description": "簽核人員在做出決定時記錄的內容。",
+      "decidedBy": "{name}",
+      "decidedAutomatically": "逾期後由系統自動決定"
+    },
     "fulfilment": {
       "open": "處理中",
       "done": "已完成",
       "cancelled": "已取消處理",
       "updated": "更新於",
       "openRef": "開啟 {reference}"
+    },
+    "actions": {
+      "title": "後續動作",
+      "description": "此申請觸發的動作。每個動作各自執行，失敗時會自動重試。",
+      "on": {
+        "submitted": "送出時",
+        "approved": "核准後",
+        "rejected": "駁回後"
+      },
+      "status": {
+        "queued": "等待中",
+        "running": "執行中",
+        "succeeded": "已完成",
+        "failed": "失敗",
+        "skipped": "已略過"
+      },
+      "retrying": "重試中（第 {attempt} 次）",
+      "open": "開啟 {reference}",
+      "error": "錯誤：",
+      "retry": "重試",
+      "retryNamed": "重試 {name}",
+      "retried": "{name} 將重新執行。",
+      "fulfilled": "已完成",
+      "reason": {
+        "condition": "此申請不需要：條件不成立。",
+        "unavailable": "此動作已無法使用。"
+      }
+    },
+    "print": "列印",
+    "reminders": {
+      "title": "提醒",
+      "description": "此申請的動作排定於日後傳送的通知。",
+      "untitled": "提醒",
+      "dueAt": "預定傳送",
+      "sentAt": "已傳送",
+      "status": {
+        "pending": "已排程",
+        "sent": "已傳送",
+        "cancelled": "已取消"
+      }
     }
+  },
+  "print": {
+    "pageTitle": "{reference}（列印）",
+    "back": "返回申請",
+    "print": "列印",
+    "formsOnly": "只有表單申請可以列印",
+    "version": "第 {version} 版",
+    "summary": "摘要",
+    "requester": "申請人",
+    "submitted": "送出時間",
+    "completed": "完成時間",
+    "form": "表單",
+    "formVersion": "表單版本",
+    "status": "狀態",
+    "decisions": "簽核紀錄",
+    "noDecisions": "尚無簽核決定。",
+    "approver": "簽核人",
+    "decidedAutomatically": "逾期後由系統自動決定",
+    "decidedAt": "決定時間",
+    "comment": "意見",
+    "noComment": "無意見",
+    "outcomeComment": "結果：",
+    "actions": "動作",
+    "action": "動作",
+    "result": "結果",
+    "attachments": "附件",
+    "noAttachments": "沒有附件。",
+    "fileName": "檔案",
+    "fileSize": "大小",
+    "fileAdded": "新增時間",
+    "kilobytes": "{size} KB",
+    "printedAt": "列印時間"
   }
 }

@@ -20,6 +20,44 @@ import {
  */
 export const PROPOSAL_THRESHOLD_HOURS = 400;
 
+const fact = (key: string) => `projects.recordFacts.${key}`;
+
+/**
+ * Approval facts of a project (`projects.project` picked in a record field), for workflows
+ * (`records.<field>.<fact>`) and record-field filters. People are user ids.
+ */
+export const projectFactsSchema = z.object({
+  key: z.string().meta({ label: fact('key') }),
+  status: projectStatusSchema.meta({ label: fact('status'), valueLabels: 'projects.projectStatus' }),
+  priority: projectPrioritySchema.meta({ label: fact('priority'), valueLabels: 'projects.projectPriority' }),
+  health: projectHealthSchema.meta({ label: fact('health'), valueLabels: 'projects.health' }),
+  visibility: z
+    .enum(['internal', 'private'])
+    .meta({ label: fact('visibility'), valueLabels: 'projects.visibility' }),
+  ownerId: z
+    .uuid()
+    .nullable()
+    .meta({ label: fact('ownerId'), ref: 'user' }),
+  departmentCode: z
+    .string()
+    .nullable()
+    .meta({ label: fact('departmentCode') }),
+  budgetHours: z
+    .number()
+    .int()
+    .nullable()
+    .meta({ label: fact('budgetHours') }),
+  startDate: z.iso
+    .date()
+    .nullable()
+    .meta({ label: fact('startDate') }),
+  targetDate: z.iso
+    .date()
+    .nullable()
+    .meta({ label: fact('targetDate') }),
+});
+export type ProjectFacts = z.infer<typeof projectFactsSchema>;
+
 const projectRef = z.object({ projectId: z.uuid(), key: z.string(), name: z.string() });
 const taskRef = z.object({
   taskId: z.uuid(),
@@ -28,15 +66,20 @@ const taskRef = z.object({
   title: z.string(),
 });
 
-/** Facts the proposal workflow decides on. */
-export const proposalFacts = z.object({
-  project: z.object({
-    budgetHours: z.number().describe('Planned effort in hours (0 when not estimated)'),
-    priority: projectPrioritySchema,
-    departmentId: z.uuid().nullable(),
-    memberCount: z.number().int(),
-  }),
-});
+/**
+ * Facts the proposal workflow decides on. The project's custom fields come along as `attributes.<key>` and
+ * `records.<key>.<fact>` (`customFieldEntity` on the trigger), hence `loose()`.
+ */
+export const proposalFacts = z
+  .object({
+    project: z.object({
+      budgetHours: z.number().describe('Planned effort in hours (0 when not estimated)'),
+      priority: projectPrioritySchema,
+      departmentId: z.uuid().nullable(),
+      memberCount: z.number().int(),
+    }),
+  })
+  .loose();
 
 /**
  * Proposal approval: projects over the threshold need the owner's manager (or, when the owner has no
@@ -264,6 +307,7 @@ export const manifest = defineManifest({
       description: 'projects.workflows.proposal.description',
       subject: 'project',
       facts: proposalFacts,
+      customFieldEntity: 'projects.project',
       required: true,
       defaultGraph: proposalGraph,
     },
@@ -317,6 +361,7 @@ export const manifest = defineManifest({
         name: 'projects.entities.project',
         icon: 'folder-kanban',
         permission: PERMISSIONS.use,
+        facts: projectFactsSchema,
       },
       { type: 'task', name: 'projects.entities.task', icon: 'list-todo', permission: PERMISSIONS.use },
     ],

@@ -4,11 +4,16 @@
  * timestamps use the `dateTime` codec. Money is a number in the record's `currency`.
  *
  * Endpoints:
- * - Hardware: `GET|POST /assets`, `GET|PATCH /assets/:ref`, `POST /assets/:ref/{assign,return,status,dispose}`,
- *   `GET /assets/:ref/{events,software,contracts}`
+ * - Hardware: `GET|POST /assets`, `GET|PATCH /assets/:ref`, `POST /assets/:ref/{assign,return,status,dispose,wipe}`,
+ *   `GET /assets/:ref/{events,software,contracts,disposal-preview}`
  * - Software: `GET|POST /licenses`, `GET|PATCH /licenses/:ref`, `GET|POST /licenses/:ref/assignments`,
  *   `DELETE /licenses/:ref/assignments/:id`, `GET /licenses/:ref/installations`, `POST /licenses/:ref/reveal-key`
- * - Discovery: `POST /discovery/software`
+ * - Discovery: `POST /discovery/software`, `POST /discovery/import` (CSV parsed in the browser),
+ *   `GET /discovery/{reports,titles}`, `GET|POST /discovery/rules`, `DELETE /discovery/rules/:id`,
+ *   `GET /discovery/compliance`, `GET /discovery/compliance/summary` (installs against the approved list)
+ * - Approved software (allow / block list): `GET|POST /approved-software`, `GET|PATCH|DELETE /approved-software/:id`,
+ *   `GET /approved-software/export` (CSV, UTF-8 with BOM)
+ * - Data wipes: `POST /assets/:ref/wipe` ("Record data wipe")
  * - Contracts: `GET|POST /contracts`, `GET|PATCH /contracts/:ref`, `POST /contracts/:ref/{renew,cancel}`,
  *   `PUT /contracts/:ref/items`, `GET /contracts/:ref/history`
  * - Catalogue: `GET|POST /vendors`, `GET|PATCH /vendors/:id`, `GET|POST /models`, `PATCH /models/:id`
@@ -16,9 +21,11 @@
  * - Overview: `GET /dashboard`, `GET /attention`, `GET /settings`, `GET /lookups/{cis,locations}`
  */
 import { dateTime } from '@isbp/contracts';
-import { listQuerySchema } from '@isbp/sdk';
+import { listQuerySchema, localizedTextSchema } from '@isbp/sdk';
 import { z } from 'zod';
 import {
+  APPROVAL_SCOPES,
+  APPROVAL_STATUSES,
   ASSET_CATEGORIES,
   ASSET_STATUSES,
   COMPLIANCE_STATES,
@@ -27,12 +34,17 @@ import {
   CONTRACT_STATUSES,
   CONTRACT_VIEWS,
   HARDWARE_VIEWS,
+  INSTALL_APPROVALS,
   INSTALL_SOURCES,
   LICENSE_BILLING,
+  LICENSE_MODELS,
   LICENSE_TYPES,
   RETURN_STATUSES,
+  WIPE_METHODS,
 } from './model';
+import { DISCOVERY_IMPORT_BATCH, DISCOVERY_MAX_PRODUCTS } from './discovery-csv';
 
+export * from './discovery-csv';
 export * from './model';
 
 /* ───────────────────────────── primitives ───────────────────────────── */
@@ -71,6 +83,12 @@ export const contractKindSchema = z.enum(CONTRACT_KINDS);
 export const contractStatusSchema = z.enum(CONTRACT_STATUSES);
 export const contractBillingSchema = z.enum(CONTRACT_BILLING);
 export const warrantyStateSchema = z.enum(['none', 'active', 'expiring', 'expired']);
+export const licenseModelSchema = z.enum(LICENSE_MODELS);
+export const approvalStatusSchema = z.enum(APPROVAL_STATUSES);
+export const approvalScopeSchema = z.enum(APPROVAL_SCOPES);
+export const installApprovalSchema = z.enum(INSTALL_APPROVALS);
+export const wipeMethodSchema = z.enum(WIPE_METHODS);
+export const wipeStateSchema = z.enum(['none', 'scheduled', 'due', 'overdue']);
 
 export const personRefSchema = z.object({
   id,
@@ -158,6 +176,9 @@ export const assetListItemSchema = z.object({
   currency: z.string(),
   bookValue: z.number().nullable(),
   ci: z.object({ id, reference: z.string(), name: z.string() }).nullable(),
+  /** A returned device whose storage must be wiped by this date (cleared by "Record data wipe"). */
+  wipeDue: dateOnly.nullable(),
+  wipeState: wipeStateSchema,
   updatedAt: dateTime,
 });
 export type AssetListItem = z.input<typeof assetListItemSchema>;
@@ -169,6 +190,8 @@ export const assetViewerSchema = z.object({
   canAssign: z.boolean(),
   canReturn: z.boolean(),
   canDispose: z.boolean(),
+  /** "Record data wipe" (data-bearing devices that are not gone). */
+  canRecordWipe: z.boolean(),
   canReadContracts: z.boolean(),
   canReadSoftware: z.boolean(),
 });
@@ -186,11 +209,18 @@ export const assetDetailSchema = assetListItemSchema.extend({
   disposalNote: z.string().nullable(),
   /** The running disposal approval, if any. */
   disposalInstanceId: z.uuid().nullable(),
-  /**
-   * Whether a disposal request today would ask information security to sign off (`needsSecuritySignOff` on the
-   * workflow's facts: data-bearing, with book value or under five years old).
-   */
-  disposalSecuritySignOff: z.boolean(),
+  /** Stores company data (laptops, phones, servers…): returns schedule a data wipe. */
+  dataBearing: z.boolean(),
+  /** Returned device: its data must be kept until this date, then wiped by `wipeDue`. */
+  dataRetainUntil: dateOnly.nullable(),
+  /** The last recorded wipe. */
+  lastWipe: z
+    .object({
+      at: dateTime,
+      by: z.object({ id, displayName: z.string() }).nullable(),
+      method: wipeMethodSchema.nullable(),
+    })
+    .nullable(),
   viewer: assetViewerSchema,
   createdAt: dateTime,
 });
@@ -207,6 +237,8 @@ export const assetQuerySchema = listQuerySchema.extend({
   vendor: id.optional(),
   ci: id.optional(),
   warranty: z.enum(['expiring', 'expired']).optional(),
+  /** Devices with a pending data wipe: any (`pending`), due within the reminder window or overdue (`due`), overdue. */
+  wipe: z.enum(['pending', 'due', 'overdue']).optional(),
 });
 export type AssetQuery = z.input<typeof assetQuerySchema>;
 
@@ -246,9 +278,46 @@ export const assignAssetSchema = z.object({ userId: id, note: optionalText(2000)
 export const returnAssetSchema = z.object({
   note: optionalText(2000),
   toStatus: z.enum(RETURN_STATUSES).default('in_stock'),
+  /** Keep the device's data until this date; the wipe is due the configured months later. */
+  dataRetainUntil: dateOnly.nullish(),
+  /** Schedule a data wipe (default: yes for data-bearing devices). */
+  scheduleWipe: z.boolean().optional(),
 });
+export type ReturnAssetInput = z.input<typeof returnAssetSchema>;
+
+/** "Record data wipe": who wiped the storage, when and how (audited). Clears the pending wipe. */
+export const recordWipeSchema = z.object({
+  /** When it was wiped (default: now; never in the future). */
+  wipedAt: dateTime.optional(),
+  /** Who wiped it (default: you). */
+  wipedById: id.optional(),
+  method: wipeMethodSchema,
+  note: optionalText(2000),
+});
+export type RecordWipeInput = z.input<typeof recordWipeSchema>;
 export const assetStatusChangeSchema = z.object({ status: assetStatusSchema, note: optionalText(2000) });
 export const disposeAssetSchema = z.object({ note: text(2000).min(1) });
+
+/**
+ * "Who will approve this?" for the disposal dialog: a dry run of the bound `itam.disposal` workflow
+ * (`ctx.workflows.preview`) with the facts "Request disposal" would start it with. Lists the approval steps that
+ * would run, in order.
+ */
+export const disposalPreviewSchema = z.object({
+  workflow: z.object({ id, name: z.string() }).nullable(),
+  steps: z.array(
+    z.object({
+      id: z.string(),
+      name: localizedTextSchema,
+      /** `ask` the people; nobody matched and the step is skipped (`no-approver`) or declines the request. */
+      outcome: z.enum(['ask', 'no-approver', 'reject']),
+      people: z.array(z.object({ id, displayName: z.string() })),
+    }),
+  ),
+  /** A step that would ask someone is the information-security sign-off (`SECURITY_SIGN_OFF_STEP`). */
+  securitySignOff: z.boolean(),
+});
+export type DisposalPreview = z.input<typeof disposalPreviewSchema>;
 
 export const assetEventSchema = z.object({
   id,
@@ -262,6 +331,8 @@ export const assetEventSchema = z.object({
     'return_requested',
     'disposal_requested',
     'disposed',
+    'wipe_scheduled',
+    'data_wiped',
   ]),
   fromValue: z.string().nullable(),
   toValue: z.string().nullable(),
@@ -272,6 +343,8 @@ export const assetEventSchema = z.object({
   note: z.string().nullable(),
   /** Made by a sync with another system ("via ServiceDesk Plus #1234"). */
   via: z.object({ connection: z.string(), ref: z.string(), url: z.string().nullable() }).nullable(),
+  /** Made by a request form's process action: the request (e.g. the signed agreement), linked. */
+  request: z.object({ reference: z.string(), href: z.string() }).nullable(),
   createdAt: dateTime,
 });
 export type AssetEvent = z.input<typeof assetEventSchema>;
@@ -280,6 +353,8 @@ export const installationSchema = z.object({
   id,
   asset: assetRefSchema.extend({ assignee: personRefSchema.nullable() }),
   product: z.string(),
+  /** The title the inventory tool reported, when a title rule counts it as `product` (a licence's product). */
+  reportedAs: z.string().nullable(),
   publisher: z.string().nullable(),
   version: z.string().nullable(),
   source: z.enum(INSTALL_SOURCES),
@@ -289,6 +364,8 @@ export const installationSchema = z.object({
   licensed: z.boolean(),
   /** A licence of the same product exists (otherwise the product is simply not managed). */
   managed: z.boolean(),
+  /** Against the approved-software list (`allowed` also when the allow list is not in use). */
+  approval: installApprovalSchema,
 });
 export type Installation = z.input<typeof installationSchema>;
 
@@ -408,22 +485,30 @@ export const revealKeySchema = z.object({ key: z.string() });
 
 /* ───────────────────────────── discovery ───────────────────────────── */
 
+const discoveredProducts = z
+  .array(
+    z.object({
+      product: text(200).min(1),
+      publisher: optionalText(200),
+      version: optionalText(64),
+    }),
+  )
+  .max(DISCOVERY_MAX_PRODUCTS);
+const assetSerial = z.string().trim().min(1).max(100);
+/** `AST-00042`. */
+const assetTag = z.string().trim().min(1).max(30);
+const oneDevice = (v: { assetId?: string; assetSerial?: string; assetTag?: string }) =>
+  [v.assetId, v.assetSerial, v.assetTag].filter(Boolean).length === 1;
+
 export const discoverySchema = z
   .object({
     assetId: id.optional(),
-    assetSerial: z.string().trim().min(1).max(100).optional(),
-    products: z
-      .array(
-        z.object({
-          product: text(200).min(1),
-          publisher: optionalText(200),
-          version: optionalText(64),
-        }),
-      )
-      .max(2000),
+    assetSerial: assetSerial.optional(),
+    assetTag: assetTag.optional(),
+    products: discoveredProducts,
     source: z.enum(['api', 'import']).default('api'),
   })
-  .refine((v) => Boolean(v.assetId) !== Boolean(v.assetSerial), 'Give either assetId or assetSerial');
+  .refine(oneDevice, 'Give one of assetId, assetSerial or assetTag');
 export type DiscoveryInput = z.input<typeof discoverySchema>;
 
 export const discoveryResultSchema = z.object({
@@ -434,6 +519,189 @@ export const discoveryResultSchema = z.object({
   /** Products installed without a seat, after this report. */
   unlicensed: z.array(z.string()),
 });
+
+/**
+ * A CSV export of an inventory tool, parsed in the browser (`parseDiscoveryCsv`) and sent in batches of whole
+ * devices: each device is a complete report through the same discovery service as `POST /discovery/software`.
+ */
+export const discoveryImportSchema = z.object({
+  fileName: optionalText(255),
+  devices: z
+    .array(
+      z
+        .object({
+          assetSerial: assetSerial.optional(),
+          assetTag: assetTag.optional(),
+          products: discoveredProducts,
+        })
+        .refine(oneDevice, 'Give assetSerial or assetTag'),
+    )
+    .min(1)
+    .max(DISCOVERY_IMPORT_BATCH),
+});
+export type DiscoveryImportInput = z.input<typeof discoveryImportSchema>;
+
+export const discoveryImportResultSchema = z.object({
+  results: z.array(
+    z.object({
+      /** The serial number or asset tag as sent. */
+      device: z.string(),
+      status: z.enum(['imported', 'not_found']),
+      asset: assetRefSchema.nullable(),
+      added: z.number().int(),
+      updated: z.number().int(),
+      removed: z.number().int(),
+    }),
+  ),
+});
+export type DiscoveryImportResult = z.input<typeof discoveryImportResultSchema>;
+
+/** One device report (API or CSV import), newest first on the Discovery page. */
+export const discoveryReportSchema = z.object({
+  id,
+  asset: assetRefSchema,
+  source: z.enum(['api', 'import']),
+  fileName: z.string().nullable(),
+  reported: z.number().int(),
+  added: z.number().int(),
+  updated: z.number().int(),
+  removed: z.number().int(),
+  /** The person, or the API client or agent, that reported it. */
+  by: z.object({ id: id.nullable(), displayName: z.string() }).nullable(),
+  createdAt: dateTime,
+});
+export type DiscoveryReport = z.input<typeof discoveryReportSchema>;
+
+/** A discovered title (on active devices) that matches no licence's product and has no rule yet. */
+export const discoveredTitleSchema = z.object({
+  title: z.string(),
+  publisher: z.string().nullable(),
+  /** Active devices it is installed on. */
+  devices: z.number().int(),
+  lastSeenAt: dateTime,
+});
+export type DiscoveredTitle = z.input<typeof discoveredTitleSchema>;
+
+export const titleRuleSchema = z.object({
+  id,
+  title: z.string(),
+  /** Counted as this licence's product; null = ignored. */
+  license: z.object({ id, reference: z.string(), product: z.string() }).nullable(),
+  createdBy: z.object({ id, displayName: z.string() }).nullable(),
+  createdAt: dateTime,
+});
+export type TitleRule = z.input<typeof titleRuleSchema>;
+
+/** Map a discovered title to a licence (`licenseId`), or ignore it (`licenseId: null`). */
+export const createTitleRuleSchema = z.object({ title: text(200).min(1), licenseId: id.nullable() });
+export type CreateTitleRuleInput = z.input<typeof createTitleRuleSchema>;
+
+export const titleRuleQuerySchema = listQuerySchema.extend({
+  kind: z.enum(['mapped', 'ignored']).optional(),
+});
+
+/* ───────────────────────────── approved software ───────────────────────────── */
+
+export const APPROVED_SOFTWARE_SORT_KEYS = ['title', 'status', 'validUntil', 'updatedAt'] as const;
+
+export const approvedSoftwareSchema = z.object({
+  id,
+  title: z.string(),
+  publisher: z.string().nullable(),
+  /** `null` = any version. */
+  version: z.string().nullable(),
+  licenseModel: licenseModelSchema,
+  license: licenseRefSchema.nullable(),
+  contract: z.object({ id, reference: z.string(), title: z.string() }).nullable(),
+  scope: approvalScopeSchema,
+  departments: z.array(z.object({ id, name: z.string(), code: z.string() })),
+  status: approvalStatusSchema,
+  validUntil: dateOnly.nullable(),
+  /** `expiring` within 14 days, `expired` after the valid-until day. */
+  state: z.enum(['active', 'expiring', 'expired']),
+  notes: z.string().nullable(),
+  /** The request it was approved with, e.g. `REQ-01042`, linked when it is one of ours. */
+  requestReference: z.string().nullable(),
+  createdBy: z.object({ id, displayName: z.string() }).nullable(),
+  createdAt: dateTime,
+  updatedAt: dateTime,
+});
+export type ApprovedSoftware = z.input<typeof approvedSoftwareSchema>;
+
+export const approvedSoftwareQuerySchema = listQuerySchema.extend({
+  status: approvalStatusSchema.optional(),
+  licenseModel: licenseModelSchema.optional(),
+  /** Entries that apply to this department (company-wide ones included). */
+  department: id.optional(),
+  state: z.enum(['active', 'expiring', 'expired']).optional(),
+});
+export type ApprovedSoftwareQuery = z.input<typeof approvedSoftwareQuerySchema>;
+
+export const approvedSoftwareExportSchema = approvedSoftwareQuerySchema
+  .omit({ page: true, pageSize: true })
+  .extend({ locale: z.enum(['en', 'zh-TW', 'ja-JP']).optional() });
+
+const approvedSoftwareFields = {
+  title: text(200).min(1),
+  publisher: optionalText(200),
+  /** Empty = any version. */
+  version: optionalText(64),
+  licenseModel: licenseModelSchema,
+  licenseId: id.nullish(),
+  contractId: id.nullish(),
+  scope: approvalScopeSchema,
+  /** Required (1–200) with scope `departments`. */
+  departmentIds: z.array(id).max(200),
+  status: approvalStatusSchema,
+  /** Short-term approvals (allowed entries only). */
+  validUntil: dateOnly.nullish(),
+  notes: optionalText(5000),
+  requestReference: optionalText(40),
+};
+
+export const createApprovedSoftwareSchema = z.object({
+  ...approvedSoftwareFields,
+  scope: approvalScopeSchema.optional(),
+  departmentIds: approvedSoftwareFields.departmentIds.optional(),
+  status: approvalStatusSchema.optional(),
+});
+export type CreateApprovedSoftwareInput = z.input<typeof createApprovedSoftwareSchema>;
+
+/** Every field optional, none defaulted (absent = unchanged). */
+export const updateApprovedSoftwareSchema = z.object(approvedSoftwareFields).partial();
+export type UpdateApprovedSoftwareInput = z.input<typeof updateApprovedSoftwareSchema>;
+
+/** An install on a device in use that the approved-software list doesn't cover (or blocks). */
+export const complianceItemSchema = z.object({
+  id,
+  asset: assetRefSchema.extend({
+    assignee: personRefSchema.nullable(),
+    department: namedRefSchema.nullable(),
+  }),
+  product: z.string(),
+  reportedAs: z.string().nullable(),
+  publisher: z.string().nullable(),
+  version: z.string().nullable(),
+  source: z.enum(INSTALL_SOURCES),
+  approval: z.enum(['unapproved', 'blocked']),
+  lastSeenAt: dateTime,
+});
+export type ComplianceItem = z.input<typeof complianceItemSchema>;
+
+export const complianceQuerySchema = listQuerySchema.extend({
+  approval: z.enum(['unapproved', 'blocked']).optional(),
+  department: id.optional(),
+});
+
+export const complianceSummarySchema = z.object({
+  /** At least one allowed entry exists: installs not covered are "Not on the approved list". */
+  allowListInUse: z.boolean(),
+  unapproved: z.number().int(),
+  blocked: z.number().int(),
+  /** Devices with at least one flagged install. */
+  devices: z.number().int(),
+});
+export type ComplianceSummary = z.input<typeof complianceSummarySchema>;
 
 /* ───────────────────────────── contracts ───────────────────────────── */
 
@@ -713,6 +981,10 @@ export const attentionSchema = z.object({
   nonCompliantLicenses: z.number().int().nullable(),
   contractsRenewing30: z.number().int().nullable(),
   warrantiesExpiring30: z.number().int().nullable(),
+  /** Data wipes due within the reminder window or overdue (hardware readers). */
+  wipesDue: z.number().int().nullable(),
+  /** Installs not on the approved list or blocked, on devices in use (asset managers). */
+  unapprovedSoftware: z.number().int().nullable(),
 });
 export type Attention = z.input<typeof attentionSchema>;
 
@@ -720,6 +992,10 @@ export const itamSettingsSchema = z.object({
   currency: z.string(),
   warrantyDays: z.number().int(),
   underUsedPercent: z.number().int(),
+  /** Months after the data retention date by which a returned device must be wiped. */
+  wipeMonths: z.number().int(),
+  /** Wipes due within this many days are flagged and reminded. */
+  wipeRemindDays: z.number().int(),
   canEditSettings: z.boolean(),
 });
 export type ItamSettings = z.input<typeof itamSettingsSchema>;

@@ -3,6 +3,20 @@
     "name": "CMDB",
     "description": "構成アイテム、その関係、障害時に影響を受ける範囲"
   },
+  "processActions": {
+    "updateCi": {
+      "name": "構成アイテムを更新",
+      "description": "申請で選択された CI の状態、環境、重要度、サポート グループ、カスタム フィールドを設定します。",
+      "ciField": "CI の取得元",
+      "ciFieldHelp": "このフォームの構成アイテム フィールドです。",
+      "status": "状態",
+      "environment": "環境",
+      "criticality": "重要度",
+      "supportGroup": "サポート グループ",
+      "updated": "構成アイテムを更新しました",
+      "none": "申請で構成アイテムが選択されていません"
+    }
+  },
   "nav": { "cis": "構成アイテム" },
   "entities": { "ci": "構成アイテム" },
   "systemRoles": {
@@ -254,5 +268,16 @@
     "layers": "レイヤー",
     "building": "建物",
     "box": "ボックス"
+  },
+  "recordFacts": {
+    "class": "クラス",
+    "environment": "環境",
+    "criticality": "重要度",
+    "status": "状態",
+    "ownerId": "所有者",
+    "ownerGroup": "サポート グループ",
+    "departmentCode": "部署コード",
+    "businessServices": "ビジネス サービス (CI 番号)",
+    "tags": "タグ"
   }
 }

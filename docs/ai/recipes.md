@@ -62,6 +62,8 @@ Put the rule in `access.ts` and use it from routes, resolvers and AI tools (R17)
 4. On delete: `await ctx.records.forget({ type: 'things.item', id }, { tx })`.
 5. To create something in another module already linked, link to its form with `?link=things.item:<id>` (ITSM's
    report and change forms support it).
+6. So request forms and workflows can route on your records (a form's record field, "the item's owner group
+   approves"), declare approval **facts** and serve them — see recipe 24.
 
 _See:_ `modules/alm/src/server/records.ts`, `modules/itam/src/web/record-panels.tsx`.
 
@@ -96,6 +98,12 @@ workflows: { 'things.publish': { onCompleted: (r, ctx) => services(ctx).items.on
 
 `onCompleted` receives `outcome: 'approved' | 'rejected' | 'cancelled'` through the outbox. It must be
 idempotent. Approvers act in the platform's Approvals inbox; you build no approval UI.
+
+An approval step can ask its approver to fill in fields with the decision (`fields: FieldDef[]`, at most 20, and
+`fieldsRequiredOn: 'approve' | 'both'`): an evaluation result, a completion date, who handled it. The inbox shows
+them next to Approve and Reject, the engine validates them like form answers, and later steps read them as facts
+`steps.<stepId>.<key>` — e.g. `when: { fact: 'steps.review.result', op: 'eq', value: 'cab' }`. Administrators add
+them in the workflow builder ("Fields the approver fills in"); your trigger needs nothing for it.
 
 _See:_ `modules/itam/src/manifest.ts` (`itam.disposal`), `modules/projects` (`projects.proposal`).
 
@@ -198,7 +206,13 @@ The config editor receives `TaskConfigSlotProps` (`{ type, value, onChange, erro
 "Schedule this", link to `/scheduler/jobs/new?type=things.refresh&name=…&config=${encodeURIComponent(JSON.stringify({ itemId }))}`
 (show it only when `usePlatform().enabledModules.includes('scheduler')`).
 
-_See:_ `modules/etl/src/server/task-type.ts`, `modules/etl/src/web/slots/task-config.tsx`.
+Work that belongs to a period ("this month's inspection") keys off the run's slot, not the clock:
+`task.scheduledFor` in `task.timeZone` (the job's time zone). `periodKey(at, 'month', tz)` and `assignmentDueAt` in
+`@isbp/contracts` do the calendar arithmetic; make the run idempotent per period (a retry or "Run now" in the same
+period changes nothing).
+
+_See:_ `modules/etl/src/server/task-type.ts`, `modules/etl/src/web/slots/task-config.tsx`,
+`apps/api/src/core/task-types.ts` (`core.assign-form`, one assignment per period).
 
 ## 10. An AI tool
 
@@ -225,7 +239,12 @@ Manifest: `customFields: { entities: [{ type: 'item', name: 'things.entities.ite
 column. Validate on create and update with
 `attributes = await ctx.fields.validate('things.item', input.attributes ?? {}, before?.attributes)`. Render the form
 with `FormRenderer` from `@isbp/ui/form-renderer` using `ctx.fields.definitions('things.item')` (expose them
-through a route).
+through a route). Admins may add `record` fields (pick CIs, applications, …): `validate` checks the picked records are
+readable by the caller of the current request (pass `auth` explicitly from jobs that act for someone) and match the
+field's filter; read-only views show them with `FormAnswers` / `RecordValues`. When your workflow trigger's subject has
+custom fields, set `customFieldEntity: 'things.item'` on the trigger and spread
+`...(await ctx.fields.facts('things.item', row.attributes))` into `start({ facts })`, so workflows can use
+`attributes.<key>` and `records.<key>.<fact>`.
 
 _See:_ `modules/alm` (`custom-fields.tsx`).
 
@@ -239,6 +258,10 @@ links there is fine.
 
 Host `core.record.files` (recipe 3). Never accept uploads in your routes (`ctx.files.attach` is for server-side
 generated files, such as an export saved on a record).
+
+Form requests are records too (`core.request`, the request page hosts both panels): evidence for a process goes
+there, and a process action can link what it created (`record` in its result is linked to the request for you) or
+attach a generated file with `ctx.files.attach({ type: 'core.request', id: input.request.id }, …)`.
 
 ## 15. Query an external database
 
@@ -425,10 +448,271 @@ defineServerModule(manifest, { …, customizations });
 ```
 
 3. Optional: a guided template for builtin mode (`templates: [{ id, label, description, fields, build }]`), and a
-   preview on the change set page: web slot `assistant.preview.<module>.<kind>` (`AssistantPreviewProps`).
-4. Test through `h.kernel.customizations`: every operation applied in a transaction, a dry run that leaves nothing
+   preview on the change set page: web slot `assistant.preview.<module>.<kind>` (`AssistantPreviewProps`). A template
+   that needs objects of other kinds returns them in `before` with a `ref`, and refers to them as `"$ref:<ref>"`
+   (core's "Approval process" proposes a workflow, then the form using it). When people use your objects somewhere
+   else than their admin page, return `links: [{ href, label }]` from `get` (labels from your catalog in three
+   languages, only while the object is usable): the applied change set and the agent's reply show them.
+4. Hold `check` to what your admin page refuses, not only what the API refuses, and leave permission problems to
+   `apply` (a 403 with `details.permission`): a dry run then marks the item as needing a reviewer who holds it.
+5. Test through `h.kernel.customizations`: every operation applied in a transaction, a dry run that leaves nothing
    behind, `CHANGE_SET_STALE` on a moved `baseVersion`, `check` issues, refusal without the apply permission, and
    that `get().value` applied as an update keeps the version.
 
 _See:_ `apps/api/src/core/customizations` (workflows, forms, custom fields, roles), `modules/scheduler` (jobs),
 `modules/itsm` (categories, SLA policies, catalog items), `modules/integrations` (sync profiles).
+
+## 24. Let approvals route on your records (record facts)
+
+A request form can hold a **record field** (`type: 'record'`, e.g. "the CIs this change touches"); its workflow then
+reads `records.<field>.<fact>` and can ask "the CI's support group" to approve. Your record type provides the facts:
+
+```ts
+// manifest.ts
+const fact = (key: string) => `things.recordFacts.${key}`;
+export const itemFactsSchema = z.object({
+  risk: z.enum(RISKS).meta({ label: fact('risk'), valueLabels: 'things.risk' }), // labels: things.risk.<value>
+  ownerId: z.uuid().nullable().meta({ label: fact('ownerId'), ref: 'user' }),      // a person (user id)
+  ownerGroup: z.string().nullable().meta({ label: fact('ownerGroup'), ref: 'group' }), // a group KEY
+});
+records: { types: [{ type: 'item', name: 'things.entities.item', icon: 'box', permission: 'things.items.read',
+  facts: itemFactsSchema }] },
+
+// server: the resolver's facts, by id, in one query — NOT permission-filtered (they route approvals, nobody sees them)
+records: { item: { resolve, search,
+  async facts(ids, ctx) {
+    const rows = await ctx.db.select({ i: items, group: groups.key }).from(items)
+      .leftJoin(groups, eq(groups.id, items.ownerGroupId)).where(inArray(items.id, ids.filter(isUuid)));
+    return new Map(rows.map(({ i, group }) => [i.id, { risk: i.risk, ownerId: i.ownerId, ownerGroup: group }]));
+  } } },
+```
+
+- Add every `label` key (and the `valueLabels.<value>` keys) to the three catalogs; `apps/api/test/unit/phase8.test.ts`
+  fails otherwise. Keep facts approval-relevant and cheap (≤ 20 records per field, one query).
+- People are user ids, groups are group keys (approver rules `{ type: 'fact', fact, kind: 'group' }` resolve the
+  group's members). Facts are captured when the workflow starts.
+- Record fields filter the picker with `where` on these facts, and the API re-checks every picked record (exists,
+  readable by the person through your resolver, matches `where`), so your `resolve` must apply the same visibility
+  as your pages (R18).
+- Form rules (`FormSchema.rules`) and the request form's "Who will approve this?" (`POST /forms/by-key/:key/preview`)
+  need nothing from you. Your own requests can show the same preview with `ctx.workflows.preview(trigger, input)`.
+
+_See:_ `modules/cmdb` (`ciFactsSchema`, `CiService.facts`), `modules/itsm/src/server/records.ts`,
+`apps/api/test/integration/process-builder.test.ts`.
+
+## 25. Add a process action (what a request form does next)
+
+A request form can run **process actions** after it is sent, approved or rejected ("on approval, raise a change for
+the picked CIs"). Administrators add them in the form builder's Actions tab; your module provides the type:
+
+```ts
+// manifest.ts — `permission` is what an admin needs to add the action to a form
+processActions: [{ action: 'create-item', name: 'things.processActions.createItem.name',
+  description: 'things.processActions.createItem.description', icon: 'box', permission: 'things.items.manage' }],
+
+// server/process-actions.ts
+export const createItemAction: ProcessActionHandler = {
+  // The configuration, as FieldDefs (labels in three languages). Options may come from live data and from the
+  // form's own fields (`form`); text fields accept templates such as {{data.title}} or {{request.reference}}.
+  async fields(ctx, { form }) {
+    return [
+      { key: 'title', type: 'text', label: text((c) => c.processActions.createItem.title), required: true,
+        defaultValue: '{{request.form}} ({{request.reference}})', validation: { maxLength: 400 } },
+      { key: 'ownerField', type: 'select', label: text((c) => c.processActions.createItem.owner),
+        options: formFields(form).filter((f) => f.type === 'user').map((f) => ({ value: f.key, label: f.label })) },
+    ];
+  },
+  // Checks for the admin who adds or changes it (optional): throw HttpError (400 with issues, or 403).
+  async validate(config, ctx, { auth }) { /* e.g. may this admin hand this out? */ },
+  // In the worker, after commit, as a system principal holding only `things.*`. Idempotent on runId (R52).
+  async run({ config, request, runId, auth }, ctx) {
+    const existing = await services(ctx).items.bySource(runId);
+    const item = existing ?? (await services(ctx).items.create({
+      title: String(config.title), ownerId: request.data[String(config.ownerField)] as string | undefined,
+      source: { runId, submissionId: request.id, reference: request.reference },
+    }, auth));
+    return { reference: item.reference, href: `/things/${item.reference}`, summary: 'things.processActions.createItem.created',
+      record: { type: 'things.item', id: item.id } };
+  },
+};
+// server/index.ts
+defineServerModule(manifest, { …, processActions: { 'create-item': createItemAction } });
+```
+
+- `config` arrives validated against `fields()` with templates rendered in `text`/`textarea` fields only
+  (`renderTemplate`: plain paths, unknown ones empty; URLs, choices and people are used as configured). Values available: `data.<key>`, `answers.<key>` (as shown), `records.<key>.<fact>`, `requester.*`,
+  `request.{reference,href,url,form,formKey,outcome}`, `decidedBy.*`, `steps.<stepId>.<key>` (what approvers filled
+  in; also `input.request.steps`). Keys in `jsonTemplates` are rendered with JSON
+  escaping; keys in `secrets` are sealed on save, never returned, and arrive opened in `run`.
+- A thrown `HttpError` fails the run at once; other errors are retried (3 attempts, exponential backoff). Failed runs
+  notify the form's editors (`core.process-action.failed`), show the error to form admins on the request page, and
+  can be retried there. The first result with an `href` becomes the request's fulfilment unless a module set one.
+- Audit entries written during the run carry `metadata.processAction` (request, form, requester, approver); the actor
+  is `form:<key>`.
+- Never skip an approval your record needs (R53): start its own workflow as a person submitting it would.
+- Choices need no option in your action: the form gives the action a condition (`FormAction.when`, "Only when…" in the
+  builder) on the answers, records, step fields, requester or `today`; when it doesn't hold the run is recorded as
+  skipped and your `run` is never called. A table answer (`type: 'rows'`) arrives as a list of row objects in
+  `request.data`; in text templates it renders one line per row.
+- A summary can carry arguments: return `summary: '<id>.processActions.x.done'` with `summaryParams: { date:
+dueAt.toISOString() }` and write the catalog text as `"Due {date, date, long}"` (ISO dates become dates).
+- A value that is a date or a record (not text) comes from a field the action names, not a template: offer the form's
+  fields of that type as `field:<key>` options plus `step` with a `<step>.<key>` text field (`visibleWhen` the select is
+  `step`), and read `request.data[key]` or `request.steps[step][key]`. So "the device IT picks at the approval step" or
+  "the retention date IT enters" work as well as answers (`core.remind`, `itam.return-asset`).
+- Something that happens to an existing record (assign, return) is idempotent through the record's own history: store
+  the run on the entry it writes (`asset_events.request.runId`) and do nothing when it is there, under the record's
+  row lock (`itam.assign-asset`).
+- Test it through a form: create the form with `actions` via `PATCH /forms/:id`, publish, submit, poll the runs
+  (`core.process_action_runs`) with the worker started, then check the record and that a second `execute` changes
+  nothing.
+
+_See:_ `modules/itsm/src/server/process-actions.ts` (create a change and submit it to CAB), `modules/itam` (approve software, assign and return a device), `modules/cmdb`
+(`update-ci`), `modules/scheduler` (`run-job`), `apps/api/src/core/process-actions.ts` (grant a platform or application
+role, notify, webhook with a sealed header, `remind` on a date), `apps/api/test/integration/process-actions*.test.ts`,
+`process-plumbing.test.ts` (tables, conditional actions, reminders).
+
+## 26. A recurring checklist (assigned and recurring forms)
+
+"Every month IT operations fill in the server room inspection" needs no module code: it is a **form** plus a
+**`core.assign-form` scheduled job**.
+
+1. The form: a request form (`core.form` kind or the form builder) with the checklist's fields. Its audience may be
+   narrow: an assignee fills it in through the assignment whatever the audience.
+2. The schedule: a `scheduler.job` (kind or Scheduled jobs) of type `core.assign-form`:
+
+```ts
+{
+  type: 'core.assign-form',
+  config: {
+    formKey: 'server-room-inspection',
+    assignee: { type: 'group', groupKey: 'it-ops' }, // or { type: 'user', userId }
+    period: 'month', // day | week | month | quarter | year — the run's period, in the trigger's time zone
+    due: { type: 'end-of-period' }, // or { type: 'days', days: 7 }
+    title: 'Server room inspection {{period}}', // 2026-10, 2026-Q4, 2026-W41, …
+  },
+  trigger: { kind: 'cron', cron: '0 9 1 * *', timezone: 'Asia/Taipei' }, // at the start of each period
+}
+```
+
+Each run opens one assignment for the period (idempotent per form, assignee and period). People see it under **To
+do** (request portal, dashboard) and complete it by submitting the form from it
+(`/requests/forms/<key>?assignment=<id>`); reminders, the editors' overdue notice and the per-period compliance on the
+form's **Assignments** tab come with it. Form administrators can also assign by hand
+(`POST /forms/:id/assignments`). React to `core.form-assignment.completed` / `.overdue` (payload: `assignmentId`,
+`formId`, `periodKey`, …) when your module needs to know — e.g. to record that a stocktake was done.
+
+_See:_ `apps/api/src/core/services/form-assignments.ts`, `apps/api/test/integration/form-assignments.test.ts`,
+`docs/architecture.md` §15.8a.
+
+## 27. Import and export a register as CSV (spreadsheets people already keep)
+
+Many processes start from a spreadsheet (an asset register, a system's account list). Keep it round-trippable:
+
+- **Export** from a route returning `text/csv; charset=utf-8` with `Content-Disposition: attachment`. Write it with a
+  BOM (Excel shows CJK text correctly only with one), CRLF lines and formula hardening (cells starting with `=`, `+`,
+  `-`, `@` get an apostrophe), in a fixed column order, with headers in the reader's language (`?locale=`, default the
+  person's). Audit the export. The page links to the route with the list's filters (`<a href download>`), so the file
+  is exactly what the list shows.
+- **Import** with a JSON body `{ csv, dryRun }` (route `bodyLimit` raised, rate-limited); the browser only reads the
+  file (UTF-8, or Big5/UTF-16 by BOM). Parse on the server with a pure, unit-tested reader: RFC 4180 records, comma /
+  semicolon / tab, a title line above the header skipped, columns found by key **or** by their label in any of the
+  three languages. Validate every row against live data (codes, names in any language, people by e-mail, username or
+  a unique display name) and return a report — counts and `{ line, column, code, value }` issues the page translates
+  by code. Apply the valid rows in one transaction through your service (audit and events per record); a dry run only
+  reports. Rows naming an existing record update it, and empty cells keep the current value.
+
+_See:_ `modules/isms/src/model.ts` (`csvRecords`, `readCsvTable`, `toCsv`), `modules/isms/src/server/assets.ts`
+(`exportCsv`, `importCsv`), `modules/isms/src/web/import-dialog.tsx`, `modules/itam/src/discovery-csv.ts`.
+
+## 28. Ship a ready-made process (a built-in change-set package)
+
+When your module comes with a whole process to set up — its request forms, approval workflows, groups, scheduled
+jobs, service desk categories — ship it as a **built-in package**. An administrator installs it from **Change sets →
+From a package**: it becomes one draft change set, dry-run like any other, applied (or sent for review) by a person
+and rolled back in one step. Nothing you ship is live until then, and every item goes through its kind's checks.
+
+1. Declare it (name and description in your three catalogs):
+
+```ts
+customizationPackages: [
+  {
+    key: 'processes', // kebab-case; installed as POST /assistant/packages/things/processes/install
+    name: 'things.packages.processes.name',
+    description: 'things.packages.processes.description',
+    icon: 'package',
+  },
+],
+```
+
+2. Write the package as data, typed by `ChangeSetPackage` from `@isbp/sdk` (one file per process keeps it readable),
+   and return it from `defineServerModule`:
+
+```ts
+// server/packages/processes.ts
+import type { ChangeSetPackage, Locale } from '@isbp/sdk';
+const t = (en: string, zh: string, ja: string) => ({ en, 'zh-TW': zh, 'ja-JP': ja });
+
+// Built for the installer's language: what a kind keeps as plain text (a group's name) is written in it.
+export const processes = (locale: Locale): ChangeSetPackage => {
+  const say = (en: string, zh: string, ja: string) => t(en, zh, ja)[locale];
+  return {
+    format: 'isbp.change-set-package',
+    version: 1,
+    key: 'things-processes',
+    title: t('Thing processes', '物品流程', '物品のプロセス'), // the change set's title, in the installer's language
+    summary: t('…', '…', '…'),
+    requires: { modules: ['itsm'] }, // besides the modules owning the items' kinds (an action's, a record type's)
+    items: [
+      // Referred to by key below: write the key. Its id is "$ref:reviewers" (e.g. a job's ownerGroupId).
+      {
+        ref: 'reviewers',
+        kind: 'core.group',
+        op: 'create',
+        value: { key: 'thing-reviewers', name: say('Thing reviewers', '物品審核人員', '物品のレビュー担当') },
+      },
+      {
+        ref: 'approval',
+        kind: 'core.workflow',
+        op: 'create',
+        value: {
+          name: say('Thing request approval', '物品申請簽核', '物品申請の承認'),
+          description: null,
+          triggerKey: 'core.form-submission',
+          isDefault: false,
+          graph: { steps: [{ id: 'review', type: 'approval', name: t('Review', '審核', 'レビュー'), approvers: [{ type: 'group', groupKey: 'thing-reviewers' }], mode: 'any' }] },
+        },
+      },
+      { ref: 'form', kind: 'core.form', op: 'create', value: { key: 'thing-request', /* … */ workflowId: '$ref:approval' } },
+    ],
+  };
+};
+
+// server/index.ts
+defineServerModule(manifest, { …, customizationPackages: { processes: ({ locale }) => processes(locale) } });
+```
+
+3. Rules of the format (`isbp.change-set-package`, version 1; schema `changeSetPackageSchema` in
+   `@isbp/module-assistant/contracts`, extra checks `packageIssues` in `@isbp/module-assistant/packages`):
+   - Items are proposals, exactly what `POST /assistant/change-sets/:id/items` takes: `kind`, `op`, `value` in the
+     kind's schema (`assistant.describe_kind` shows the schema, the guide and worked examples; kinds are listed in
+     [reference.md](reference.md)), optional `ref`, `label`, `note`. Unknown fields are refused.
+   - A package that sets something up uses `create`. `update`, `archive` and `delete` need a `targetId`, which is an
+     id of one environment — fine for a file moved between environments that share it, wrong for a built-in package.
+   - Order matters: an item may only refer to earlier ones. Wherever an **id** goes, write `"$ref:<ref>"` (a form's
+     `workflowId`, a job's `ownerGroupId`); things named by **key** are written as keys (`groupKey`, `formKey`) and
+     must come later in the list than the item creating them.
+   - At most 300 items. Text people read in three languages. No secrets and no people (group members, assignees by
+     user id): they are per site, and group members are never configuration.
+   - The content function gets the installer's `locale` (`en` for API clients; built once per locale): `LocalizedText`
+     fields carry all three languages, values a kind keeps as plain text (group and job names, reminder, notification
+     and ticket texts, workflow descriptions, item labels) are written in `locale`, with the same keys, refs and
+     `{{…}}` placeholders in each (the ISMS pack's `plain()` in `modules/isms/src/server/packages/isms-processes`).
+   - Installing twice fails the dry run with duplicate keys: change sets don't merge, a person reviews each one.
+4. Test: `apps/api/test/unit/packages.test.ts` checks every installed module's packages, built in each language
+   (format, kinds and operations, references, required modules, catalog keys). Add an integration test that installs yours on a fresh
+   platform as an administrator (`POST /api/v1/assistant/packages/<module>/<key>/install`), expects `ready: true`
+   (every item passed its kind's checks in the dry run), applies it and rolls it back.
+
+_See:_ `apps/api/test/integration/assistant-packages.test.ts` (a test module with packages),
+`modules/assistant/src/lib/packages.ts`, `docs/architecture.md` §15.8b, `docs/api.md` ("Change-set packages").

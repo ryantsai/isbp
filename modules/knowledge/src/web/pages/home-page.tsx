@@ -33,6 +33,7 @@ import {
   ArticleHit,
   ArticleStats,
   CategoryIcon,
+  ClassificationBadge,
   InternalBadge,
   LocaleChip,
   LOCALE_LANG,
@@ -284,6 +285,7 @@ function ArticleRow({ a, rank }: { a: ArticleListItem; rank?: number }) {
               {a.title}
             </span>
             {a.audience === 'agents' && <InternalBadge className="shrink-0" />}
+            {a.classification && <ClassificationBadge value={a.classification} className="shrink-0" />}
           </span>
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {a.category && <span>{categoryName(a.category)}</span>}

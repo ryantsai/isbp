@@ -12,6 +12,8 @@ import {
   jsonb,
   numeric,
   pgSchema,
+  primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -19,6 +21,8 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import type {
+  ApprovalScope,
+  ApprovalStatus,
   AssetCategory,
   AssetStatus,
   ComplianceState,
@@ -27,7 +31,9 @@ import type {
   ContractStatus,
   InstallSource,
   LicenseBilling,
+  LicenseModel,
   LicenseType,
+  WipeMethod,
 } from '../model';
 
 /**
@@ -123,6 +129,16 @@ export const assets = itamSchema.table(
     disposalInstanceId: uuid('disposal_instance_id'),
     /** The warranty end date the expiry digest already covered (once per asset and date). */
     warrantyNotifiedFor: day('warranty_notified_for'),
+    /** Returned device: the date its data must be kept until (from the return, e.g. a request's answer). */
+    dataRetainUntil: day('data_retain_until'),
+    /** The date its storage must be wiped by (retention + the configured months); cleared by "Record data wipe". */
+    wipeDue: day('wipe_due'),
+    /** Reminders sent for the pending wipe: 0 none, 1 "due soon", 2 "overdue" (reset when `wipe_due` changes). */
+    wipeReminders: smallint('wipe_reminders').notNull().default(0),
+    /** The last recorded wipe. */
+    wipedAt: timestamp('wiped_at', { withTimezone: true }),
+    wipedBy: uuid('wiped_by').references(() => users.id, { onDelete: 'set null' }),
+    wipeMethod: varchar('wipe_method', { length: 30 }).$type<WipeMethod>(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -144,6 +160,9 @@ export const assets = itamSchema.table(
     index('assets_serial_trgm').using('gin', t.serialNumber.op('gin_trgm_ops')),
     index('assets_location_idx').on(t.location),
     index('assets_attributes_gin').using('gin', t.attributes.op('jsonb_path_ops')),
+    index('assets_wipe_due_idx')
+      .on(t.wipeDue)
+      .where(sql`${t.wipeDue} is not null`),
   ],
 );
 
@@ -156,7 +175,19 @@ export type AssetEventKind =
   | 'note'
   | 'return_requested'
   | 'disposal_requested'
-  | 'disposed';
+  | 'disposed'
+  | 'wipe_scheduled'
+  | 'data_wiped';
+
+/** The request (form submission) behind a lifecycle step a process action made, e.g. the signed agreement. */
+export interface AssetEventRequest {
+  /** The process action run (idempotency: one run makes its steps once). */
+  runId: string;
+  submissionId: string;
+  /** `REQ-01042`. */
+  reference: string;
+  formKey: string;
+}
 
 /** The lifecycle timeline of an asset. */
 export const assetEvents = itamSchema.table(
@@ -183,9 +214,16 @@ export const assetEvents = itamSchema.table(
       ref: string;
       url: string | null;
     }>(),
+    /** Made by a request form's process action: the request (shown as a link on the history). */
+    request: jsonb('request').$type<AssetEventRequest>(),
     createdAt: createdAt(),
   },
-  (t) => [index('asset_events_asset_idx').on(t.assetId, t.createdAt)],
+  (t) => [
+    index('asset_events_asset_idx').on(t.assetId, t.createdAt),
+    index('asset_events_run_idx')
+      .on(sql`(${t.request}->>'runId')`)
+      .where(sql`${t.request} is not null`),
+  ],
 );
 
 export const contracts = itamSchema.table(
@@ -315,6 +353,11 @@ export const softwareInstallations = itamSchema.table(
       .notNull()
       .references(() => assets.id, { onDelete: 'cascade' }),
     product: varchar('product', { length: 200 }).notNull(),
+    /**
+     * The title the inventory tool reported, when a title rule counts it as a licence's product (`product` then
+     * holds the licence's product). Removing the rule restores it.
+     */
+    reportedAs: varchar('reported_as', { length: 200 }),
     publisher: varchar('publisher', { length: 200 }),
     version: varchar('version', { length: 64 }),
     firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
@@ -325,6 +368,125 @@ export const softwareInstallations = itamSchema.table(
   (t) => [
     uniqueIndex('software_installations_asset_product_uq').on(t.assetId, sql`lower(${t.product})`),
     index('software_installations_product_idx').on(sql`lower(${t.product})`),
+    index('software_installations_reported_as_idx')
+      .on(sql`lower(${t.reportedAs})`)
+      .where(sql`${t.reportedAs} is not null`),
+    index('software_installations_seen_idx').on(t.lastSeenAt.desc()),
+  ],
+);
+
+/**
+ * One software report for one device: from an inventory tool (`POST /discovery/software`) or a CSV import, which
+ * goes through the same discovery service. The Discovery page lists them, newest first.
+ */
+export const discoveryReports = itamSchema.table(
+  'discovery_reports',
+  {
+    id: id(),
+    assetId: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'cascade' }),
+    source: varchar('source', { length: 10 }).$type<'api' | 'import'>().notNull(),
+    /** The CSV file a person imported (source `import`). */
+    fileName: varchar('file_name', { length: 255 }),
+    reported: integer('reported').notNull(),
+    added: integer('added').notNull(),
+    updated: integer('updated').notNull(),
+    removed: integer('removed').notNull(),
+    actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    /** API clients and agents (no person). */
+    actorName: varchar('actor_name', { length: 200 }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('discovery_reports_created_idx').on(t.createdAt.desc()),
+    index('discovery_reports_asset_idx').on(t.assetId),
+  ],
+);
+
+/**
+ * A decision about a discovered title that matches no licence's product: count it as that licence's product
+ * (`licenseId`), or ignore it (`licenseId` null: needs no licence, e.g. a free tool). One rule per title.
+ */
+export const softwareTitleRules = itamSchema.table(
+  'software_title_rules',
+  {
+    id: id(),
+    title: varchar('title', { length: 200 }).notNull(),
+    licenseId: uuid('license_id').references(() => licenses.id, { onDelete: 'cascade' }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('software_title_rules_title_uq').on(sql`lower(${t.title})`),
+    index('software_title_rules_license_idx').on(t.licenseId),
+    index('software_title_rules_created_idx').on(t.createdAt.desc()),
+  ],
+);
+
+/**
+ * The approved-software list (allow list / block list, "software whitelist"): a title (optionally one version) that
+ * may or must not be installed, company-wide or for some departments, optionally until a date (short-term use).
+ * Discovered installs are checked against it (`server/approved-software.ts`).
+ */
+export const approvedSoftware = itamSchema.table(
+  'approved_software',
+  {
+    id: id(),
+    title: varchar('title', { length: 200 }).notNull(),
+    publisher: varchar('publisher', { length: 200 }),
+    /** `null` = any version; otherwise this version and more precise ones (`23` covers `23.01`). */
+    version: varchar('version', { length: 64 }),
+    licenseModel: varchar('license_model', { length: 20 }).$type<LicenseModel>().notNull(),
+    /** The licence record holding the serial number or seats (paid software). */
+    licenseId: uuid('license_id').references(() => licenses.id, { onDelete: 'set null' }),
+    /** The contract (subscription, purchase) it is used under. */
+    contractId: uuid('contract_id').references(() => contracts.id, { onDelete: 'set null' }),
+    scope: varchar('scope', { length: 12 }).$type<ApprovalScope>().notNull().default('company'),
+    status: varchar('status', { length: 10 }).$type<ApprovalStatus>().notNull().default('allowed'),
+    /** Short-term approvals end on this day (inclusive); `null` = permanent. */
+    validUntil: day('valid_until'),
+    notes: text('notes'),
+    /** The request it was approved with, e.g. `REQ-01042` (a software install request). */
+    requestReference: varchar('request_reference', { length: 40 }),
+    /** Added or extended by a request form's process action (`itam.approve-software`): the last run. */
+    source: jsonb('source').$type<AssetEventRequest>(),
+    /** The valid-until date the expiry digest already covered (once per entry and date). */
+    expiryNotifiedFor: day('expiry_notified_for'),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('approved_software_title_idx').on(sql`lower(${t.title})`),
+    index('approved_software_title_trgm').using('gin', t.title.op('gin_trgm_ops')),
+    index('approved_software_status_idx').on(t.status, t.validUntil),
+    index('approved_software_valid_until_idx')
+      .on(t.validUntil)
+      .where(sql`${t.validUntil} is not null`),
+    index('approved_software_license_idx').on(t.licenseId),
+    index('approved_software_contract_idx').on(t.contractId),
+    index('approved_software_updated_idx').on(t.updatedAt.desc()),
+    index('approved_software_run_idx')
+      .on(sql`(${t.source}->>'runId')`)
+      .where(sql`${t.source} is not null`),
+  ],
+);
+
+/** The departments an entry with scope `departments` applies to. */
+export const approvedSoftwareDepartments = itamSchema.table(
+  'approved_software_departments',
+  {
+    entryId: uuid('entry_id')
+      .notNull()
+      .references(() => approvedSoftware.id, { onDelete: 'cascade' }),
+    departmentId: uuid('department_id')
+      .notNull()
+      .references(() => departments.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.entryId, t.departmentId] }),
+    index('approved_software_departments_dept_idx').on(t.departmentId),
   ],
 );
 
@@ -360,5 +522,8 @@ export type AssetEventRow = typeof assetEvents.$inferSelect;
 export type LicenseRow = typeof licenses.$inferSelect;
 export type AssignmentRow = typeof licenseAssignments.$inferSelect;
 export type InstallationRow = typeof softwareInstallations.$inferSelect;
+export type DiscoveryReportRow = typeof discoveryReports.$inferSelect;
+export type TitleRuleRow = typeof softwareTitleRules.$inferSelect;
 export type ContractRow = typeof contracts.$inferSelect;
 export type ContractItemRow = typeof contractItems.$inferSelect;
+export type ApprovedSoftwareRow = typeof approvedSoftware.$inferSelect;

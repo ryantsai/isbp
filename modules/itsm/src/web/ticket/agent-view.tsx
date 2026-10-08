@@ -15,6 +15,7 @@ import { MajorBadge, PriorityBadge, TicketStatusBadge, TypeIcon } from '../compo
 import { ActionBar } from './actions';
 import { recordRef } from '../lib';
 import { CisCard, DetailsCard, LinksCard, SlasCard } from './aside-cards';
+import { AcceptancePanel } from './acceptance-panel';
 import { ChangeCard } from './change-card';
 import { Composer, type ComposerState, type ComposerTab } from './composer';
 import { ConfirmPanel } from './confirm-panel';
@@ -80,7 +81,7 @@ export function AgentView({ ticket, refetch }: { ticket: TicketDetail; refetch: 
         </div>
         <h1 className="text-2xl font-semibold tracking-tight text-balance break-words">{ticket.title}</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <TicketStatusBadge status={ticket.status} />
+          <TicketStatusBadge status={ticket.status} signOff={Boolean(ticket.signOff)} />
           <PriorityBadge priority={ticket.priority} long />
           {ticket.major && <MajorBadge />}
         </div>
@@ -108,6 +109,7 @@ export function AgentView({ ticket, refetch }: { ticket: TicketDetail; refetch: 
           <AnswersCard ticket={ticket} />
           {ticket.type === 'problem' && <ProblemCard ticket={ticket} />}
           {ticket.type === 'change' && <ChangeCard ticket={ticket} />}
+          {ticket.type === 'change' && <AcceptancePanel ticket={ticket} />}
           <section aria-labelledby="itsm-activity" className="grid gap-4">
             <h2 id="itsm-activity" className="text-base font-semibold">
               {t('activity')}

@@ -534,5 +534,18 @@
     "draft": "下書き",
     "mergeInto": "{source} から {target} へ",
     "synced": "最終同期:"
+  },
+  "recordFacts": {
+    "code": "アプリケーション コード",
+    "stage": "ステージ",
+    "criticality": "重要度",
+    "hosting": "ホスティング",
+    "dataClassification": "データ分類",
+    "disposition": "方針 (TIME)",
+    "ownerId": "技術オーナー",
+    "businessOwnerId": "ビジネス オーナー",
+    "teamGroup": "デリバリー チーム",
+    "supportGroup": "サポート グループ",
+    "departmentCode": "部署コード"
   }
 }

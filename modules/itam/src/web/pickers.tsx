@@ -17,8 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckIcon, ChevronsUpDownIcon, NetworkIcon, XIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useEffect, useState } from 'react';
-import type { AssetListItem, CiRef, LicenseListItem, Model } from '../contracts';
-import { AssetStatusBadge, CategoryIcon, ComplianceBadge } from './badges';
+import type { AssetListItem, CiRef, ContractListItem, LicenseListItem, Model } from '../contracts';
+import { AssetStatusBadge, CategoryIcon, ComplianceBadge, ContractStatusBadge } from './badges';
 import { modelLabel, useDepartments, useModels, useVendors } from './lib';
 
 export const NONE = '__none__';
@@ -232,6 +232,47 @@ export function LicensePicker({
         </>
       )}
       onSelect={(l) => onChange({ id: l.id, reference: l.reference, product: l.product })}
+      onClear={() => onChange(null)}
+    />
+  );
+}
+
+export type PickedContract = Pick<ContractListItem, 'id' | 'reference' | 'title'>;
+
+export function ContractPicker({
+  value,
+  onChange,
+  id,
+}: {
+  value: PickedContract | null;
+  onChange: (contract: PickedContract | null) => void;
+  id?: string;
+}) {
+  const t = useTranslations('itam.pickers');
+  return (
+    <SearchCombobox<ContractListItem>
+      id={id}
+      placeholder={t('contract')}
+      value={value}
+      renderValue={() => (
+        <>
+          <span className="font-mono text-xs text-muted-foreground">{value!.reference}</span>
+          <span className="truncate">{value!.title}</span>
+        </>
+      )}
+      path="/itam/contracts"
+      query={(q) => ({ q: q || undefined, pageSize: 12 })}
+      items={(d) => (d as Page<ContractListItem>).items}
+      renderItem={(c) => (
+        <>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate">{c.title}</span>
+            <span className="font-mono text-xs text-muted-foreground">{c.reference}</span>
+          </div>
+          <ContractStatusBadge status={c.status} />
+        </>
+      )}
+      onSelect={(c) => onChange({ id: c.id, reference: c.reference, title: c.title })}
       onClear={() => onChange(null)}
     />
   );

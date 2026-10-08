@@ -24,12 +24,16 @@
     "email": "有効なメール アドレスを入力してください",
     "url": "https:// で始まる URL を入力してください",
     "date": "有効な日付を入力してください",
-    "user": "ユーザーを選択してください"
+    "user": "ユーザーを選択してください",
+    "record": "このフィールドで選択でき、表示権限のあるレコードを選んでください",
+    "minRows": "{min} 行以上を追加してください",
+    "maxRows": "{max} 行以内で入力してください",
+    "rule": "回答がフォームのルールを満たしていません"
   },
   "localized": {
     "languages": "言語",
-    "filled": "{language}（入力済み）",
-    "missing": "{language}（未入力 — 英語または他の言語で表示）"
+    "filled": "{language} (入力済み)",
+    "missing": "{language} (未入力 — 英語または他の言語で表示)"
   },
   "person": {
     "search": "ユーザーを検索…",
@@ -77,7 +81,26 @@
     "and": "かつ",
     "or": "または",
     "always": "常に",
-    "not": "（{condition}）ではない"
+    "not": "({condition}) ではない",
+    "compareWithField": "別のフィールドと比較",
+    "otherField": "比較するフィールド",
+    "offsetDays": "日付に加える日数 (負の数は前)",
+    "days": "日",
+    "offsetText": "{offset} 日",
+    "today": "今日"
+  },
+  "rows": {
+    "row": "{n} 行目",
+    "rows": "{field} の行",
+    "add": "行を追加",
+    "empty": "行はまだありません。",
+    "count": "{count} 行 (最大 {max} 行)",
+    "added": "{n} 行目を追加しました",
+    "removed": "{n} 行目を削除しました",
+    "moved": "{n} 行目を {position} 番目に移動しました",
+    "moveUp": "{n} 行目を上へ移動",
+    "moveDown": "{n} 行目を下へ移動",
+    "remove": "{n} 行目を削除"
   },
   "workflow": {
     "start": "申請の送信",
@@ -85,13 +108,15 @@
     "rejected": "却下",
     "cancelled": "取り下げ",
     "otherwise": "それ以外",
-    "noSteps": "ステップなし（そのまま通過）",
+    "noSteps": "ステップなし (そのまま通過)",
     "status": {
       "active": "進行中",
       "approved": "承認済み",
       "rejected": "却下",
       "skipped": "スキップ",
-      "waiting": "未到達"
+      "waiting": "未到達",
+      "delegated": "委任済み",
+      "cancelled": "終了"
     },
     "types": {
       "approval": "承認",
@@ -113,7 +138,8 @@
       "department-head": "部門長",
       "fact": "「{fact}」のユーザー",
       "requester": "申請者",
-      "fallback": "{rule}、いない場合は {fallback}"
+      "fallback": "{rule}、いない場合は {fallback}",
+      "factGroup": "「{fact}」のグループのメンバー"
     },
     "when": "{condition} の場合のみ",
     "skipped": {
@@ -125,5 +151,21 @@
     "decided": "{name}",
     "branches": "{count} 分岐",
     "steps": "{count} ステップ"
+  },
+  "record": {
+    "placeholder": "レコードを選択",
+    "placeholderMany": "レコードを追加",
+    "search": "番号またはタイトルで検索…",
+    "loading": "検索中…",
+    "noResults": "一致するレコードはありません",
+    "clear": "選択を解除",
+    "remove": "{name} を削除",
+    "hidden": "{count, plural, other {表示権限のないレコード # 件}}",
+    "picked": "{count, plural, =0 {レコードは選択されていません} other {# 件のレコードを選択済み}}",
+    "max": "最大 {max} 件",
+    "chosen": "(選択済み)"
+  },
+  "formErrors": {
+    "title": "フォームの内容を確認してください"
   }
 }

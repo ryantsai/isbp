@@ -3,6 +3,43 @@
     "name": "Service desk",
     "description": "Incidents, service requests, problems and changes with SLAs"
   },
+  "processActions": {
+    "createChange": {
+      "name": "Raise a change",
+      "description": "Raises a change from the request, linked to the CIs it picked, and can submit it to its CAB authorization.",
+      "title": "Title",
+      "descriptionField": "Description",
+      "changeType": "Change type",
+      "risk": "Risk",
+      "changeTypeField": "Take the change type from this answer",
+      "changeTypeFieldHelp": "Used when the answer is normal or emergency; otherwise the change type above. A form never raises a pre-approved standard change.",
+      "riskField": "Take the risk from this answer",
+      "riskFieldHelp": "Used when the answer is low, medium or high; otherwise the risk above.",
+      "category": "Category",
+      "group": "Assignment group",
+      "ciField": "Affected CIs from",
+      "ciFieldHelp": "A configuration-item field of this form. The change is linked to the CIs picked in it.",
+      "plannedStart": "Planned start from",
+      "plannedEnd": "Planned end from",
+      "backoutPlan": "Back-out plan",
+      "submit": "Submit for authorization",
+      "submitHelp": "Starts the change's own approval (the CAB when its risk or CIs need it). It is never skipped.",
+      "created": "Change raised",
+      "submitted": "Change raised and submitted for authorization",
+      "windowPassed": "Change raised; its planned window had already passed, so it wasn’t submitted for authorization"
+    },
+    "createTicket": {
+      "name": "Raise a ticket",
+      "description": "Raises an incident or a service request for the requester, with your title, description, category and group.",
+      "type": "Type",
+      "priority": "Priority",
+      "title": "Title",
+      "descriptionField": "Description",
+      "category": "Category",
+      "group": "Assignment group",
+      "created": "Ticket raised"
+    }
+  },
   "nav": {
     "group": "Service desk",
     "desk": "Tickets",
@@ -62,6 +99,10 @@
     "change": {
       "name": "Change authorization",
       "description": "Approves changes before they are scheduled (CAB)"
+    },
+    "resolution": {
+      "name": "Resolution sign-off",
+      "description": "Optional: a manager signs off a resolution before the ticket is resolved (scope it with conditions, e.g. a category)"
     }
   },
   "types": {
@@ -196,7 +237,9 @@
     "defaultGroupKeyHelp": "New tickets whose category has no group go to this group, for example service-desk.",
     "csatEnabled": "Ask requesters to rate the service when they confirm a fix",
     "majorIncidentBroadcast": "Announce major incidents in team channels",
-    "majorIncidentBroadcastHelp": "Posts to the organisation’s subscribed Teams, Slack and webhook channels when an incident is declared major."
+    "majorIncidentBroadcastHelp": "Posts to the organisation’s subscribed Teams, Slack and webhook channels when an incident is declared major.",
+    "requireAcceptance": "Require the requester's acceptance before closing a change",
+    "requireAcceptanceHelp": "A change that has a requester closes from its post-implementation review only after the requester accepted it."
   },
   "notifications": {
     "ticket_created": {
@@ -248,6 +291,26 @@
       "label": "Major incidents (channels)",
       "title": "Major incident: {reference} {title}",
       "body": "{description}"
+    },
+    "change_acceptance_requested": {
+      "label": "Changes to accept",
+      "title": "Please check your change: {reference} {title}",
+      "body": "The change was implemented. Accept it if it works as you expected, or report a problem."
+    },
+    "change_accepted": {
+      "label": "Changes accepted by their requester",
+      "title": "Accepted: {reference} {title}",
+      "body": "{name} accepted the change."
+    },
+    "change_problem_reported": {
+      "label": "Problems reported on changes",
+      "title": "Problem reported: {reference} {title}",
+      "body": "{name} reported a problem with the change: {reason}"
+    },
+    "ticket_sign_off_rejected": {
+      "label": "Resolutions not signed off",
+      "title": "Resolution not signed off: {reference} {title}",
+      "body": "{name} did not sign off the resolution: {reason} The ticket is back in progress."
     }
   },
   "audit": {
@@ -272,7 +335,9 @@
     "sla_policy_updated": "Updated SLA policy",
     "sla_policy_deleted": "Deleted SLA policy",
     "catalog_item_updated": "Changed catalog fulfilment",
-    "catalog_item_deleted": "Removed form from the service catalog"
+    "catalog_item_deleted": "Removed form from the service catalog",
+    "change_accepted": "Requester accepted the change",
+    "change_problem_reported": "Requester reported a problem with the change"
   },
   "common": {
     "major": "Major incident",
@@ -471,7 +536,9 @@
       "titleTooShort": "Enter at least 3 characters",
       "descriptionLabel": "Description",
       "markdownHint": "Markdown is supported."
-    }
+    },
+    "withdrawResolution": "Withdraw the resolution",
+    "sentForSignOff": "Resolution sent for sign-off"
   },
   "details": {
     "title": "Details",
@@ -601,7 +668,25 @@
     "autoClosed": "Closed automatically: the requester didn’t respond",
     "assignmentChanged": "{name} changed the assignment",
     "offboarded": "The previous assignee left the organisation.",
-    "via": "via {system} {reference}"
+    "via": "via {system} {reference}",
+    "acceptance": {
+      "accepted": "{name} accepted the change",
+      "problem": "{name} reported a problem with the change",
+      "acceptedLabel": "Accepted the change",
+      "problemLabel": "Reported a problem",
+      "closedAccepted": "Accepted by the requester",
+      "closedProblem": "The requester reported a problem",
+      "closedPending": "Not accepted by the requester"
+    },
+    "signOff": {
+      "requested": "{name} resolved it: waiting for sign-off",
+      "withdrawn": "{name} withdrew the resolution",
+      "started": "Resolution sign-off started",
+      "approved": "Resolution signed off",
+      "rejected": "Resolution not signed off",
+      "cancelled": "Resolution sign-off withdrawn",
+      "updated": "Resolution sign-off updated"
+    }
   },
   "composer": {
     "label": "Add to the conversation",
@@ -1076,5 +1161,47 @@
         "resolution": "{priority}: resolution time (minutes)"
       }
     }
+  },
+  "recordFacts": {
+    "type": "Ticket type",
+    "status": "Status",
+    "priority": "Priority (1 = highest)",
+    "impact": "Impact (1 = high)",
+    "urgency": "Urgency (1 = high)",
+    "major": "Major incident",
+    "category": "Category key",
+    "groupKey": "Assignment group",
+    "assigneeId": "Assigned to",
+    "requesterId": "Requester",
+    "departmentCode": "Department code",
+    "changeType": "Change type",
+    "risk": "Risk",
+    "plannedStart": "Planned start",
+    "plannedEnd": "Planned end"
+  },
+  "signOff": {
+    "status": "Waiting for sign-off",
+    "resolutionTitle": "Resolution waiting for sign-off",
+    "resolutionHint": "The ticket is resolved once the sign-off is approved; if it is rejected, it goes back to in progress."
+  },
+  "acceptance": {
+    "title": "Requester acceptance",
+    "state": {
+      "pending": "Waiting for acceptance",
+      "accepted": "Accepted",
+      "problem": "Problem reported"
+    },
+    "askRequester": "The change was implemented. Does it work as you expected?",
+    "waiting": "Waiting for the requester to accept the change.",
+    "waitingRequired": "Waiting for the requester to accept the change: it closes only once they have.",
+    "acceptedBy": "{name} accepted the change.",
+    "problemBy": "{name} reported a problem.",
+    "accept": "Accept the change",
+    "reportProblem": "Report a problem",
+    "problemLabel": "What is wrong?",
+    "problemRequired": "Say what is wrong (at least 3 characters).",
+    "sendProblem": "Report the problem",
+    "acceptedToast": "Change accepted",
+    "problemToast": "Problem reported"
   }
 }

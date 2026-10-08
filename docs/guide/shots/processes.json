@@ -1,0 +1,211 @@
+[
+  {
+    "name": "processes-form-builder",
+    "as": "admin",
+    "path": "/admin/forms?q=config-change",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "role": "link",
+          "name": {
+            "en": "Configuration change request",
+            "zh-TW": "組態變更申請",
+            "ja-JP": "構成変更の申請"
+          }
+        }
+      },
+      {
+        "wait": 1500
+      },
+      {
+        "click": {
+          "role": "button",
+          "name": {
+            "en": "Edit Configuration items (Record)",
+            "zh-TW": "編輯「組態項目」（紀錄）",
+            "ja-JP": "「構成アイテム」を編集 (レコード)"
+          }
+        }
+      },
+      {
+        "wait": 1000
+      },
+      {
+        "click": {
+          "role": "heading",
+          "name": {
+            "en": "Records",
+            "zh-TW": "紀錄",
+            "ja-JP": "レコード"
+          }
+        }
+      }
+    ],
+    "clip": null
+  },
+  {
+    "name": "processes-rules",
+    "as": "admin",
+    "path": "/admin/forms?q=config-change",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "role": "link",
+          "name": {
+            "en": "Configuration change request",
+            "zh-TW": "組態變更申請",
+            "ja-JP": "構成変更の申請"
+          }
+        }
+      },
+      {
+        "wait": 1500
+      },
+      {
+        "click": {
+          "role": "tab",
+          "name": {
+            "en": "Rules",
+            "zh-TW": "規則",
+            "ja-JP": "ルール"
+          }
+        }
+      },
+      {
+        "wait": 1000
+      }
+    ],
+    "clip": null
+  },
+  {
+    "name": "processes-actions",
+    "as": "admin",
+    "path": "/admin/forms?q=config-change",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "role": "link",
+          "name": {
+            "en": "Configuration change request",
+            "zh-TW": "組態變更申請",
+            "ja-JP": "構成変更の申請"
+          }
+        }
+      },
+      {
+        "wait": 1500
+      },
+      {
+        "click": {
+          "role": "tab",
+          "name": {
+            "en": "Actions",
+            "zh-TW": "動作",
+            "ja-JP": "アクション"
+          }
+        }
+      },
+      {
+        "wait": 1500
+      }
+    ],
+    "clip": null
+  },
+  {
+    "name": "processes-workflow",
+    "as": "admin",
+    "path": "/admin/workflows",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "role": "link",
+          "name": {
+            "en": "Configuration change approval",
+            "zh-TW": "Configuration change approval",
+            "ja-JP": "Configuration change approval"
+          }
+        }
+      },
+      {
+        "wait": 2000
+      },
+      {
+        "click": {
+          "role": "button",
+          "name": {
+            "en": "CI support group",
+            "zh-TW": "組態項目支援群組",
+            "ja-JP": "構成アイテムのサポート グループ"
+          }
+        }
+      },
+      {
+        "wait": 1000
+      }
+    ],
+    "clip": null
+  },
+  {
+    "name": "processes-request-form",
+    "as": "helpdesk",
+    "path": "/requests/forms/config-change",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "role": "combobox",
+          "name": {
+            "en": "Risk",
+            "zh-TW": "風險",
+            "ja-JP": "リスク"
+          }
+        }
+      },
+      {
+        "click": {
+          "role": "option",
+          "name": {
+            "en": "High",
+            "zh-TW": "高",
+            "ja-JP": "高"
+          }
+        }
+      },
+      {
+        "wait": 2000
+      },
+      {
+        "click": {
+          "role": "heading",
+          "name": {
+            "en": "Who will approve this?",
+            "zh-TW": "誰會核准此申請？",
+            "ja-JP": "この申請の承認者"
+          }
+        }
+      }
+    ],
+    "clip": null
+  },
+  {
+    "name": "processes-request-actions",
+    "as": "helpdesk",
+    "path": "/requests?show=closed",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "css": "main a[href^=\"/requests/REQ-\"]"
+        }
+      },
+      {
+        "wait": 2000
+      }
+    ],
+    "clip": "main [data-slot=\"card\"]:has(> [data-slot=\"card-content\"] > ol)"
+  }
+]

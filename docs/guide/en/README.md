@@ -21,7 +21,8 @@ Every request, ticket, approval and configuration change in ISBP follows the sam
 - **One permission model.** What you see depends on your roles. Pages and buttons you don't have access to are
   hidden, and every role you hold is listed under **Profile & preferences → My access**.
 - **Approvals built in.** Access requests, purchase forms, changes, asset disposals and project proposals go
-  through approval workflows, and approvers decide in one inbox.
+  through approval workflows, and approvers decide in one inbox. Administrators can turn any IT process into a form
+  with its own approvals and follow-up actions.
 - **Everything is recorded.** Changes are written to the audit log, so IT can always show who did what and when.
 - **Three languages.** The whole platform, its emails and this guide are available in English, 繁體中文 and 日本語.
 
@@ -111,11 +112,13 @@ IT services, use **Ask IT** instead: it's available to everyone. See [Assistant 
 | Work on the service desk (tickets, SLAs, knowledge, CMDB)               | [Service desk](service-desk.md)                   |
 | Manage changes, sit on the CAB or own an application                    | [Changes and releases](changes-and-releases.md)   |
 | Manage hardware, licences, contracts and vendors                        | [Assets](assets.md)                               |
+| Keep the ISMS asset register, stocktakes, shared accounts and reviews   | [Information security](information-security.md)   |
 | Run or work on projects                                                 | [Projects](projects.md)                           |
 | Build data feeds, scheduled jobs or look after databases                | [Data and automation](data-and-automation.md)     |
 | Connect ISBP to ServiceDesk Plus or Azure DevOps Server                 | [Integrations](integrations.md)                   |
 | Want to know what the AI does, or customise the platform with the agent | [Assistant and AI](assistant-and-ai.md)           |
 | Administer people, access, sign-in, workflows, forms or modules         | [Administrators](administrators.md)               |
+| Turn an IT process into a request form with approvals and actions       | [Build your own process](processes.md)            |
 | Need a term in English, 繁體中文 or 日本語                              | [Glossary](glossary.md)                           |
 | Have a problem or a quick question                                      | [FAQ and troubleshooting](faq.md)                 |
 

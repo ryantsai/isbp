@@ -13,6 +13,8 @@ import {
   ArrowRightLeftIcon,
   BotIcon,
   CirclePlusIcon,
+  CircleAlertIcon,
+  CircleCheckIcon,
   ClockAlertIcon,
   GavelIcon,
   InfoIcon,
@@ -21,6 +23,7 @@ import {
   type LucideIcon,
   PencilIcon,
   RotateCcwIcon,
+  StampIcon,
   SparklesIcon,
   UserRoundCogIcon,
 } from 'lucide-react';
@@ -246,7 +249,20 @@ export function ActivityItem({
     [...new Set(list.map((f) => (tl.has(`fields.${f}`) ? tl(`fields.${f}`) : f)))].join(', ');
 
   switch (a.kind) {
-    case 'comment':
+    case 'comment': {
+      // A change's requester accepted it or reported a problem (post-implementation review).
+      const verdict =
+        data.acceptance === 'accepted' || data.acceptance === 'problem' ? data.acceptance : null;
+      if (verdict && !a.body)
+        return (
+          <SystemLine
+            icon={verdict === 'accepted' ? CircleCheckIcon : CircleAlertIcon}
+            tone={verdict === 'problem' ? 'warning' : undefined}
+            activity={a}
+          >
+            {tl(`acceptance.${verdict}`, { name: who })}
+          </SystemLine>
+        );
       return (
         <Bubble
           activity={a}
@@ -257,10 +273,16 @@ export function ActivityItem({
                 <RotateCcwIcon aria-hidden />
                 {tl('reopened')}
               </Badge>
+            ) : verdict ? (
+              <Badge variant={verdict === 'accepted' ? 'success' : 'warning'} className="gap-1">
+                {verdict === 'accepted' ? <CircleCheckIcon aria-hidden /> : <CircleAlertIcon aria-hidden />}
+                {tl(`acceptance.${verdict}Label`)}
+              </Badge>
             ) : undefined
           }
         />
       );
+    }
     case 'work_note':
       return <WorkNote activity={a} />;
     case 'status': {
@@ -281,19 +303,34 @@ export function ActivityItem({
                   {[code, rating ? tl('rated', { rating }) : null].filter(Boolean).join(' · ')}
                 </p>
               )}
+              {'accepted' in data && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {tl(
+                    data.accepted === true
+                      ? 'acceptance.closedAccepted'
+                      : data.accepted === false
+                        ? 'acceptance.closedProblem'
+                        : 'acceptance.closedPending',
+                  )}
+                </p>
+              )}
               <Quote>{a.body}</Quote>
             </>
           }
         >
-          {data.confirmed === true
-            ? tl('confirmed', { name: who })
-            : data.reopened === true
-              ? tl('reopenedStatus', { name: who })
-              : data.auto === true
-                ? tl('autoClosed')
-                : data.from
-                  ? tl('status', { name: who, from: statusText(data.from), to: statusText(data.to) })
-                  : tl('statusSet', { name: who, to: statusText(data.to) })}
+          {data.signOff === 'requested'
+            ? tl('signOff.requested', { name: who })
+            : data.signOff === 'withdrawn'
+              ? tl('signOff.withdrawn', { name: who })
+              : data.confirmed === true
+                ? tl('confirmed', { name: who })
+                : data.reopened === true
+                  ? tl('reopenedStatus', { name: who })
+                  : data.auto === true
+                    ? tl('autoClosed')
+                    : data.from
+                      ? tl('status', { name: who, from: statusText(data.from), to: statusText(data.to) })
+                      : tl('statusSet', { name: who, to: statusText(data.to) })}
         </SystemLine>
       );
     }
@@ -373,14 +410,15 @@ export function ActivityItem({
     case 'approval': {
       const outcome = String(data.outcome ?? data.event ?? data.status ?? '');
       const key = ['started', 'approved', 'rejected', 'cancelled'].includes(outcome) ? outcome : 'updated';
+      const signOff = data.signOff === true;
       return (
         <SystemLine
-          icon={GavelIcon}
+          icon={signOff ? StampIcon : GavelIcon}
           tone={key === 'rejected' ? 'destructive' : undefined}
           activity={a}
           note={<Quote>{a.body}</Quote>}
         >
-          {tl(`approval.${key}`)}
+          {tl(signOff ? `signOff.${key}` : `approval.${key}`)}
         </SystemLine>
       );
     }

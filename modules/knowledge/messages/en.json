@@ -34,7 +34,9 @@
     "reviewIntervalDays": "Review an article this many days after it is published (0 = no default review date)",
     "reminderRepeatDays": "Repeat overdue-review reminders every N days",
     "guidePublish": "Publish the user guide",
-    "guidePublishHelp": "Keeps \"Using IS Big Platform\" (the platform's user guide, in every language) in the knowledge base, updated with each new version. Turning it off stops publishing and updating; retire its articles to remove them."
+    "guidePublishHelp": "Keeps \"Using IS Big Platform\" (the platform's user guide, in every language) in the knowledge base, updated with each new version. Turning it off stops publishing and updating; retire its articles to remove them.",
+    "classificationLevels": "Classification labels",
+    "classificationLevelsHelp": "One label per line, most restrictive first. Use strictly-confidential, customer-confidential, confidential or internal-use-only for the built-in (translated) labels, or write your own."
   },
   "portal": {
     "browse": {
@@ -231,7 +233,10 @@
     "audienceFilter": "Audience",
     "awaitingApproval": "Awaiting approval",
     "noOwner": "No owner",
-    "due": "Due"
+    "due": "Due",
+    "classificationFilter": "Classification",
+    "allClassifications": "Any classification",
+    "unclassified": "Not classified"
   },
   "editor": {
     "newTitle": "New article",
@@ -279,7 +284,10 @@
       "tooLong": "Use at most {max} characters",
       "date": "Enter a valid date",
       "localeTaken": "{reference} is already the translation in this language"
-    }
+    },
+    "classification": "Classification",
+    "noClassification": "Not classified",
+    "classificationHint": "Shown on the article, in lists and search results. The labels are set in the module settings."
   },
   "categoriesAdmin": {
     "title": "Knowledge categories",
@@ -343,5 +351,24 @@
     "notFound": "This guide isn't available.",
     "notFoundHint": "It may not be published yet. Try again in a few minutes, or browse the knowledge base.",
     "opening": "Opening the guide…"
+  },
+  "recordFacts": {
+    "audience": "Audience",
+    "categoryKey": "Category key",
+    "status": "Status",
+    "locale": "Language",
+    "ownerId": "Owner",
+    "tags": "Tags",
+    "classification": "Classification"
+  },
+  "classificationLevel": {
+    "strictly-confidential": "Strictly Confidential",
+    "customer-confidential": "Customer Confidential",
+    "confidential": "Confidential",
+    "internal-use-only": "Internal Use Only"
+  },
+  "classification": {
+    "label": "Classification",
+    "banner": "Classified {label}: handle this article and its attachments according to the information classification policy."
   }
 }

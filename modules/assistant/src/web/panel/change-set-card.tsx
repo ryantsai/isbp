@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { changeSetHref } from '../../contracts';
 import { CHECK, StatusBadge, ToneText } from '../badges';
+import { LiveLinks, liveLinksOf } from '../change-set/live-links';
 import {
   type ChangeSetDetailDto,
   type ChangeSetSummaryDto,
@@ -36,6 +37,7 @@ export function ChangeSetCard({
   if (!cs) return null;
   const counts = detail ? checkCounts(detail.items) : null;
   const open = isOpenStatus(cs.status);
+  const live = detail ? liveLinksOf(detail.status, detail.items) : [];
 
   let readiness: ReactNode = null;
   if (open && cs.itemCount > 0) {
@@ -87,6 +89,7 @@ export function ChangeSetCard({
           </>
         )}
       </div>
+      {live.length > 0 && <LiveLinks links={live} className="text-sm" />}
       <Link
         href={changeSetHref(id)}
         onClick={onNavigate}

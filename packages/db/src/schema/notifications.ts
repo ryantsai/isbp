@@ -92,3 +92,39 @@ export const notificationDeliveries = core.table(
     index('notification_deliveries_channel_idx').on(t.channelId),
   ],
 );
+
+export type ScheduledReminderStatus = 'pending' | 'sent' | 'cancelled';
+
+/**
+ * A notification to send on a later date (Phase 8 `core.remind`, e.g. 30 days before a firewall rule expires). The
+ * `deliver-reminders` job sends due ones through the notification centre (recipients resolved at send time).
+ */
+export const scheduledReminders = core.table(
+  'scheduled_reminders',
+  {
+    id: id(),
+    /** A notification type of the module that scheduled it. */
+    moduleId: varchar('module_id', { length: 64 }).notNull(),
+    type: varchar('type', { length: 128 }).notNull(),
+    /** `{ userIds?, groupKeys?, roleKeys? }`. */
+    recipients: jsonb('recipients')
+      .$type<{ userIds?: string[]; groupKeys?: string[]; roleKeys?: string[] }>()
+      .notNull(),
+    params: jsonb('params').$type<Record<string, unknown>>().notNull().default({}),
+    href: text('href'),
+    dueAt: timestamp('due_at', { withTimezone: true }).notNull(),
+    status: varchar('status', { length: 16 }).$type<ScheduledReminderStatus>().notNull().default('pending'),
+    /**
+     * What scheduled it, to cancel or show it: `{ type: 'form-submission', id: <submission>, runId }` for a request's
+     * `core.remind` action (the run id makes the action idempotent).
+     */
+    source: jsonb('source').$type<{ type: string; id: string; runId?: string }>(),
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('scheduled_reminders_due_idx').on(t.status, t.dueAt),
+    // A request's reminders are found with `source @> {type, id}`.
+    index('scheduled_reminders_source_idx').using('gin', t.source.op('jsonb_path_ops')),
+  ],
+);

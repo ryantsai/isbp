@@ -17,6 +17,7 @@ function formOf(value: unknown) {
   const description = localizedTextSchema.safeParse(v.description);
   return {
     elements: schema.data.elements,
+    rules: schema.data.rules,
     name: name.data,
     description: (description.success ? description.data : {}) as LocalizedText,
     icon: typeof v.icon === 'string' && v.icon ? v.icon : 'file-text',
@@ -38,6 +39,12 @@ export default function FormChangePreview({ value }: AssistantPreviewProps) {
       </p>
     );
   return (
-    <FormPreview elements={form.elements} name={form.name} description={form.description} icon={form.icon} />
+    <FormPreview
+      elements={form.elements}
+      rules={form.rules}
+      name={form.name}
+      description={form.description}
+      icon={form.icon}
+    />
   );
 }

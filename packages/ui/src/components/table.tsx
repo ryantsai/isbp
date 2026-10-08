@@ -1,9 +1,33 @@
 import type * as React from 'react';
 import { cn } from '../lib/utils';
 
-export function Table({ className, ...props }: React.ComponentProps<'table'>) {
+export function Table({
+  className,
+  scrollable,
+  ...props
+}: React.ComponentProps<'table'> & {
+  /**
+   * For a table without links or buttons that may scroll sideways on a narrow screen: its scroll container becomes a
+   * focusable region named like the table, so keyboard users can scroll it (WCAG 2.1.1).
+   */
+  scrollable?: boolean;
+}) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <div
+      data-slot="table-container"
+      className={cn(
+        'relative w-full overflow-x-auto',
+        scrollable && 'rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+      )}
+      {...(scrollable
+        ? {
+            role: 'region',
+            tabIndex: 0,
+            'aria-label': props['aria-label'],
+            'aria-labelledby': props['aria-labelledby'],
+          }
+        : {})}
+    >
       <table data-slot="table" className={cn('w-full caption-bottom text-sm', className)} {...props} />
     </div>
   );

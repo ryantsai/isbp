@@ -416,7 +416,11 @@ export function platformRoutes(app: ModuleRouter, ctx: ModuleContext, idps: IdpS
         if (i.group && !rank.has(`${i.section}:${i.group}`)) rank.set(`${i.section}:${i.group}`, i.order);
       const rankOf = (i: (typeof items)[number]) =>
         i.group ? rank.get(`${i.section}:${i.group}`)! : i.order;
-      items.sort((a, b) => rankOf(a) - rankOf(b) || a.order - b.order);
+      // Two groups starting at the same order stay apart too (ties go by group key, ungrouped entries first).
+      const groupOf = (i: (typeof items)[number]) => i.group ?? '';
+      items.sort(
+        (a, b) => rankOf(a) - rankOf(b) || groupOf(a).localeCompare(groupOf(b)) || a.order - b.order,
+      );
       return { items };
     },
   );

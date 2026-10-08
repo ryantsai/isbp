@@ -41,6 +41,7 @@
     "@isbp/module-etl": "workspace:*",
     "@isbp/module-helpdesk-ai": "workspace:*",
     "@isbp/module-integrations": "workspace:*",
+    "@isbp/module-isms": "workspace:*",
     "@isbp/module-itam": "workspace:*",
     "@isbp/module-itsm": "workspace:*",
     "@isbp/module-knowledge": "workspace:*",

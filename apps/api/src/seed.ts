@@ -29,6 +29,9 @@ import { seedPhase3, seedPhase3Links } from './seed-phase3';
 import { seedPhase4, seedPhase4Links } from './seed-phase4';
 import { seedPhase5, seedPhase5Links } from './seed-phase5';
 import { seedPhase6, seedPhase6Links } from './seed-phase6';
+import { seedPhase8Links } from './seed-phase8';
+import { seedFormAssignments } from './seed-assignments';
+import { seedIsmsAccess } from './seed-isms';
 
 const { config, kernel } = await bootstrap('isbp-seed');
 const db = kernel.db;
@@ -785,6 +788,7 @@ try {
       biKey = await seedPhase4(kernel);
       await seedPhase5(kernel);
       await seedPhase6(kernel);
+      await seedIsmsAccess(kernel);
     }
     for (const m of kernel.registry.modules) {
       if (m.seed && modules) {
@@ -798,6 +802,10 @@ try {
       await seedPhase4Links(kernel);
       await seedPhase5Links(kernel);
       mcpKey = await seedPhase6Links(kernel);
+      // Last: it raises a change and requests, so the numbered records above keep their numbers.
+      await seedPhase8Links(kernel);
+      // The recurring server room inspection (assigned forms); it adds requests, so it comes after the above.
+      await seedFormAssignments(kernel);
     }
   });
   await kernel.rbac.bump();

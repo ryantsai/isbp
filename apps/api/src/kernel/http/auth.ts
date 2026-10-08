@@ -106,7 +106,7 @@ export function registerAuth(app: FastifyInstance, kernel: Kernel) {
       };
       req.auth = buildAuthContext(principal, null, null, result.permissions, (p, r) => denied(req, p, r));
       req.auth.client = { id: result.client.id, clientId: result.client.clientId, name: result.client.name };
-      setPrincipal(principal);
+      setPrincipal(principal, req.auth);
     } else if (token) {
       const valid = await kernel.sessions.validate(token);
       if (valid) {
@@ -118,7 +118,7 @@ export function registerAuth(app: FastifyInstance, kernel: Kernel) {
         req.auth = buildAuthContext(principal, user, valid.session.id, permissions, (p, r) =>
           denied(req, p, r),
         );
-        setPrincipal(principal);
+        setPrincipal(principal, req.auth);
       } else {
         reply.clearCookie(SESSION_COOKIE, { path: '/' });
       }

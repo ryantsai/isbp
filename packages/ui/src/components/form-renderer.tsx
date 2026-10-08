@@ -3,29 +3,91 @@
 import {
   type FieldDef,
   type FieldError,
+  FORM_ERROR_KEY,
   type FormElement,
+  type FormSchema,
   isField,
   localize,
   validateFields,
+  validateForm,
   visibleElements,
 } from '@isbp/sdk';
+import { CircleAlertIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useMemo } from 'react';
-import { type FieldValues, type Resolver, type UseFormReturn, useWatch } from 'react-hook-form';
+import {
+  type FieldErrors,
+  type FieldValues,
+  type Resolver,
+  type UseFormReturn,
+  useFormState,
+  useWatch,
+} from 'react-hook-form';
 import { cn } from '../lib/utils';
 import { Checkbox } from './checkbox';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from './form';
 import { Input } from './input';
 import { type PersonOption, PersonPicker, usePeople } from './person-picker';
+import { RecordPicker, RecordValues, recordRefs } from './record-picker';
+import { RowsControl, RowsTable } from './rows-field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 import { Separator } from './separator';
 import { Textarea } from './textarea';
 
-/** Translates a field error code (`required`, `tooShort`, …) with its parameters. */
+/**
+ * Translates a field error code (`required`, `tooShort`, …) with its parameters; a form rule's error (`rule`) shows
+ * the rule's own message in the reader's language.
+ */
 export function useFieldErrorText() {
   const t = useTranslations('ui.fieldErrors');
-  return useCallback((e: FieldError) => t(e.code, e.params ?? {}), [t]);
+  const locale = useLocale();
+  return useCallback(
+    (e: FieldError) =>
+      e.code === 'rule' ? localize(e.message, locale) || t('rule') : t(e.code, e.params ?? {}),
+    [t, locale],
+  );
+}
+
+/**
+ * Field errors as React Hook Form keeps them: a table's cell errors (`rules.2.port`) nested under the table's key
+ * (`rules[2].port`), so revalidating the table clears them together.
+ */
+function rhfErrors(errors: Record<string, FieldError>, text: (e: FieldError) => string) {
+  const out: Record<string, unknown> = {};
+  for (const [key, e] of Object.entries(errors)) {
+    const entry = { type: e.code, message: text(e) };
+    const parts = key.split('.');
+    let cur = out;
+    parts.forEach((part, i) => {
+      if (i === parts.length - 1) {
+        cur[part] = entry;
+        return;
+      }
+      const next = cur[part];
+      if (!next || typeof next !== 'object' || 'message' in next)
+        cur[part] = /^\d+$/.test(parts[i + 1]!) ? [] : {};
+      cur = cur[part] as Record<string, unknown>;
+    });
+  }
+  return out;
+}
+
+/**
+ * The error message at a path (`attributes.rules.2.port`) whether React Hook Form keeps it nested (`rules[2].port`, from
+ * the resolvers and `setError`) or under a flat key (`attributes['rules.2.port']`, from custom-field refinements).
+ */
+function errorMessageAt(errors: unknown, path: readonly string[]): string | undefined {
+  if (!errors || typeof errors !== 'object') return undefined;
+  const here = errors as Record<string, unknown>;
+  if (!path.length) {
+    const m = (here as { message?: unknown }).message;
+    return typeof m === 'string' && m ? m : undefined;
+  }
+  const flat = here[path.join('.')];
+  if (flat && typeof flat === 'object' && typeof (flat as { message?: unknown }).message === 'string')
+    return (flat as { message: string }).message || undefined;
+  return errorMessageAt(here[path[0]!], path.slice(1));
 }
 
 /**
@@ -38,14 +100,62 @@ export function useFieldsResolver(fields: readonly FieldDef[]): Resolver<FieldVa
     async (values: FieldValues) => {
       const r = validateFields(fields, values);
       if (r.ok) return { values: r.values, errors: {} };
-      return {
-        values: {},
-        errors: Object.fromEntries(
-          Object.entries(r.errors).map(([k, e]) => [k, { type: e.code, message: text(e) }]),
-        ),
-      };
+      return { values: {}, errors: rhfErrors(r.errors, text) as FieldErrors };
     },
     [fields, text],
+  );
+}
+
+/**
+ * React Hook Form resolver for a whole form: `validateForm` (fields, then the form's rules), as the API runs it.
+ * Rules that name no visible field report under `_form`; show them with {@link FormErrorSummary}.
+ */
+export function useFormResolver(schema: FormSchema): Resolver<FieldValues> {
+  const text = useFieldErrorText();
+  return useCallback(
+    async (values: FieldValues) => {
+      const r = validateForm(schema, values);
+      if (r.ok) return { values: r.values, errors: {} };
+      return { values: {}, errors: rhfErrors(r.errors, text) as FieldErrors };
+    },
+    [schema, text],
+  );
+}
+
+/**
+ * Form-level errors (rules that name no field) above the form, as an alert. After a submit attempt it follows the
+ * answers live; before, it shows what the server reported (`form.setError('_form', …)`).
+ */
+export function FormErrorSummary({
+  schema,
+  form,
+  className,
+}: {
+  schema: FormSchema;
+  form: UseFormReturn<FieldValues>;
+  className?: string;
+}) {
+  const t = useTranslations('ui.formErrors');
+  const text = useFieldErrorText();
+  const values = useWatch({ control: form.control }) as Record<string, unknown> | undefined;
+  const { submitCount, errors } = useFormState({ control: form.control });
+  const live = submitCount > 0 ? validateForm(schema, values ?? {}).errors[FORM_ERROR_KEY] : undefined;
+  const message = live ? text(live) : (errors[FORM_ERROR_KEY]?.message as string | undefined);
+  if (!message) return null;
+  return (
+    <div
+      role="alert"
+      className={cn(
+        'flex gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm',
+        className,
+      )}
+    >
+      <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+      <div className="grid gap-0.5">
+        <p className="font-medium text-destructive">{t('title')}</p>
+        <p>{message}</p>
+      </div>
+    </div>
   );
 }
 
@@ -159,6 +269,7 @@ export function FieldControl({
   onChange,
   locale,
   disabled,
+  cellError,
   ...aria
 }: {
   field: FieldDef;
@@ -166,6 +277,8 @@ export function FieldControl({
   onChange: (value: unknown) => void;
   locale: string;
   disabled?: boolean;
+  /** A table field's cell errors (`row`, column key). */
+  cellError?: (row: number, key: string) => string | undefined;
   id?: string;
   'aria-invalid'?: boolean;
   'aria-describedby'?: string;
@@ -173,6 +286,29 @@ export function FieldControl({
   const placeholder = localize(field.placeholder, locale) || undefined;
   const str = value === null || value === undefined ? '' : String(value);
   switch (field.type) {
+    case 'rows':
+      return (
+        <RowsControl
+          field={field}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          id={aria.id}
+          invalid={aria['aria-invalid']}
+          describedBy={aria['aria-describedby']}
+          cellError={cellError}
+          renderCell={(column, cell, set, props) => (
+            <FieldControl
+              field={column}
+              value={cell}
+              onChange={set}
+              locale={locale}
+              disabled={disabled}
+              {...props}
+            />
+          )}
+        />
+      );
     case 'textarea':
       return (
         <Textarea
@@ -243,6 +379,23 @@ export function FieldControl({
           aria-describedby={aria['aria-describedby']}
         />
       );
+    case 'record': {
+      const multiple = Boolean(field.record?.multiple);
+      return (
+        <RecordPicker
+          value={recordRefs(value)}
+          onChange={(refs) => onChange(multiple ? refs : (refs[0] ?? ''))}
+          types={field.record?.types ?? []}
+          multiple={multiple}
+          where={field.record?.where}
+          placeholder={placeholder}
+          id={aria.id}
+          invalid={aria['aria-invalid']}
+          disabled={disabled}
+          aria-describedby={aria['aria-describedby']}
+        />
+      );
+    }
     default:
       return (
         <Input
@@ -284,6 +437,7 @@ export function FormFields({
 }) {
   const locale = useLocale();
   const all = useWatch({ control: form.control }) as Record<string, unknown> | undefined;
+  const { errors } = useFormState({ control: form.control });
   const watched = namePrefix ? all?.[namePrefix] : all;
   const values = useMemo(() => (watched ?? {}) as Record<string, unknown>, [watched]);
   const visible = visibleElements({ elements: [...elements] }, values);
@@ -318,6 +472,12 @@ export function FormFields({
                             onChange={field.onChange}
                             locale={locale}
                             disabled={disabled}
+                            cellError={
+                              el.type === 'rows'
+                                ? (row, key) =>
+                                    errorMessageAt(errors, [...name(el.key).split('.'), String(row), key])
+                                : undefined
+                            }
                           />
                         </FormControl>
                         {el.help && <FormDescription>{localize(el.help, locale)}</FormDescription>}
@@ -328,7 +488,9 @@ export function FormFields({
                 ) : el.type === 'heading' ? (
                   <h3 className="pt-2 text-base font-semibold">{localize(el.text, locale)}</h3>
                 ) : el.type === 'paragraph' ? (
-                  <p className="text-sm leading-relaxed text-muted-foreground">{localize(el.text, locale)}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
+                    {localize(el.text, locale)}
+                  </p>
                 ) : (
                   <Separator className="my-2" />
                 )}
@@ -351,46 +513,63 @@ export function useFieldValueText() {
       value: unknown,
       people?: ReadonlyMap<string, { displayName: string }> | Record<string, string>,
     ): ReactNode => {
-      if (value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length))
-        return null;
-      const label = (v: string) => localize(field.options?.find((o) => o.value === v)?.label, locale) || v;
-      switch (field.type) {
-        case 'boolean':
-          return value ? t('yes') : t('no');
-        case 'select':
-          return label(String(value));
-        case 'multiselect':
-          return (value as string[]).map(label).join(', ');
-        case 'user': {
-          const id = String(value);
-          if (!people) return id;
-          return people instanceof Map
-            ? (people.get(id)?.displayName ?? id)
-            : ((people as Record<string, string>)[id] ?? id);
-        }
-        case 'url':
-          return (
-            <a
-              href={String(value)}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-primary underline-offset-2 hover:underline"
-            >
-              {String(value)}
-            </a>
-          );
-        case 'date':
-          return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(
-            new Date(`${String(value)}T00:00:00Z`),
-          );
-        case 'number':
-          return new Intl.NumberFormat(locale).format(Number(value));
-        default:
-          return String(value);
-      }
+      // Tables show each cell with the same text as a field of its type.
+      const show = (f: FieldDef, v: unknown): ReactNode => valueText(f, v, people, locale, t, show);
+      return show(field, value);
     },
     [locale, t],
   );
+}
+
+function valueText(
+  field: FieldDef,
+  value: unknown,
+  people: ReadonlyMap<string, { displayName: string }> | Record<string, string> | undefined,
+  locale: string,
+  t: (key: 'yes' | 'no') => string,
+  show: (f: FieldDef, v: unknown) => ReactNode,
+): ReactNode {
+  if (value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length))
+    return null;
+  const label = (v: string) => localize(field.options?.find((o) => o.value === v)?.label, locale) || v;
+  switch (field.type) {
+    case 'rows':
+      return <RowsTable field={field} value={value} cellText={show} />;
+    case 'boolean':
+      return value ? t('yes') : t('no');
+    case 'select':
+      return label(String(value));
+    case 'multiselect':
+      return (value as string[]).map(label).join(', ');
+    case 'record':
+      return <RecordValues refs={recordRefs(value)} />;
+    case 'user': {
+      const id = String(value);
+      if (!people) return id;
+      return people instanceof Map
+        ? (people.get(id)?.displayName ?? id)
+        : ((people as Record<string, string>)[id] ?? id);
+    }
+    case 'url':
+      return (
+        <a
+          href={String(value)}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="text-primary underline-offset-2 hover:underline"
+        >
+          {String(value)}
+        </a>
+      );
+    case 'date':
+      return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(
+        new Date(`${String(value)}T00:00:00Z`),
+      );
+    case 'number':
+      return new Intl.NumberFormat(locale).format(Number(value));
+    default:
+      return String(value);
+  }
 }
 
 /** Read-only answers of a submission (or an entity's custom fields), visible fields only. */
@@ -415,7 +594,10 @@ export function FormAnswers({
       {visible.map((f) => {
         const value = text(f, data[f.key], people);
         return (
-          <div key={f.id} className={cn('min-w-0', f.type === 'textarea' && 'sm:col-span-2')}>
+          <div
+            key={f.id}
+            className={cn('min-w-0', (f.type === 'textarea' || f.type === 'rows') && 'sm:col-span-2')}
+          >
             <dt className="text-xs font-medium text-muted-foreground">{localize(f.label, locale)}</dt>
             <dd
               className={cn(

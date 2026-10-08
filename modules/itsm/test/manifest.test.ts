@@ -19,6 +19,25 @@ describe('itsm manifest', () => {
     for (const k of manifest.customizations ?? []) expect(catalog, k.label).toContain(k.label);
   });
 
+  it('passes the ticket custom fields of a change to its CAB workflow as facts', () => {
+    const trigger = manifest.workflows?.find((w) => w.key === 'itsm.change');
+    expect(trigger?.customFieldEntity).toBe('itsm.ticket');
+    expect(manifest.customFields?.entities.map((e) => `itsm.${e.type}`)).toContain(
+      trigger?.customFieldEntity,
+    );
+    const change = {
+      type: 'normal',
+      risk: 'low',
+      impact: 2,
+      ciCount: 0,
+      durationHours: 2,
+      criticalCis: false,
+    };
+    expect(trigger!.facts!.safeParse({ change, attributes: { outage: true }, records: {} }).success).toBe(
+      true,
+    );
+  });
+
   it('ships the same message keys in every locale', () => {
     expect(keys(zh).sort()).toEqual(keys(en).sort());
     expect(keys(ja).sort()).toEqual(keys(en).sort());

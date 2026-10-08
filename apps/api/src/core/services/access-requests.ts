@@ -11,6 +11,8 @@ import {
   departments,
   formSubmissions,
   forms,
+  groupMembers,
+  groups,
   roleAssignments,
   roles,
   users,
@@ -911,44 +913,103 @@ export class AccessRequestService {
     };
   }
 
-  /** Tells people a few days ahead that a time-bound grant is ending (once per assignment). */
+  /**
+   * Tells people a few days ahead that a time-bound grant is ending (once per assignment). A grant to a person
+   * reminds that person. A grant to a group reminds the group's members who will actually lose the role: members
+   * who keep it through another assignment that lasts longer (their own or another group's, with the same scope or
+   * a global one) are left out. Groups have no owners of their own, so nobody else is reminded.
+   */
   async notifyExpiring(withinDays = 3): Promise<number> {
     const soon = new Date(Date.now() + withinDays * DAY);
     const rows = await this.db
       .select({
         id: roleAssignments.id,
+        roleId: roleAssignments.roleId,
         userId: roleAssignments.userId,
+        groupId: roleAssignments.groupId,
+        groupName: groups.name,
+        scopeType: roleAssignments.scopeType,
+        scopeDepartmentId: roleAssignments.scopeDepartmentId,
+        scopeRecordType: roleAssignments.scopeRecordType,
+        scopeRecordId: roleAssignments.scopeRecordId,
         expiresAt: roleAssignments.expiresAt,
         roleName: roles.name,
       })
       .from(roleAssignments)
       .innerJoin(roles, eq(roles.id, roleAssignments.roleId))
+      .leftJoin(groups, eq(groups.id, roleAssignments.groupId))
       .where(
         and(
           sql`${roleAssignments.expiresAt} > now() and ${roleAssignments.expiresAt} <= ${soon}`,
           isNull(roleAssignments.expiryNotifiedAt),
-          sql`${roleAssignments.userId} is not null`,
         ),
       )
+      .orderBy(asc(roleAssignments.expiresAt))
       .limit(200);
     for (const r of rows) {
+      const recipients = r.userId ? [r.userId] : await this.membersLosing(r);
       await this.ctx.transaction(async (tx) => {
         await tx
           .update(roleAssignments)
           .set({ expiryNotifiedAt: new Date() })
           .where(eq(roleAssignments.id, r.id));
-        await this.ctx.notifications.notify(
-          {
-            type: 'core.access.expiring',
-            recipients: [r.userId],
-            params: { role: r.roleName, expiresAt: r.expiresAt },
-            href: '/requests/access',
-            data: { assignmentId: r.id },
-          },
-          { tx },
-        );
+        if (recipients.length)
+          await this.ctx.notifications.notify(
+            {
+              type: 'core.access.expiring',
+              recipients,
+              params: {
+                role: r.roleName,
+                expiresAt: r.expiresAt,
+                via: r.groupId ? 'group' : 'person',
+                group: r.groupName ?? '',
+              },
+              href: '/requests/access',
+              data: { assignmentId: r.id, groupId: r.groupId },
+            },
+            { tx },
+          );
       });
     }
     return rows.length;
+  }
+
+  /**
+   * Members of an expiring group grant who lose the role with it: not those who hold the same role, with the same
+   * scope or globally, through another assignment that is permanent or ends later.
+   */
+  private async membersLosing(g: {
+    id: string;
+    roleId: string;
+    groupId: string | null;
+    scopeType: string;
+    scopeDepartmentId: string | null;
+    scopeRecordType: string | null;
+    scopeRecordId: string | null;
+    expiresAt: Date | null;
+  }): Promise<string[]> {
+    if (!g.groupId) return [];
+    const o = roleAssignments;
+    const rows = await this.db
+      .select({ userId: groupMembers.userId })
+      .from(groupMembers)
+      .where(
+        and(
+          eq(groupMembers.groupId, g.groupId),
+          sql`not exists (
+            select 1 from ${o}
+             where ${o.roleId} = ${g.roleId}
+               and ${o.id} <> ${g.id}
+               and (${o.expiresAt} is null or ${o.expiresAt} > ${g.expiresAt})
+               and (${o.scopeType} = 'global'
+                    or (${o.scopeType} = ${g.scopeType}
+                        and ${o.scopeDepartmentId} is not distinct from ${g.scopeDepartmentId}
+                        and ${o.scopeRecordType} is not distinct from ${g.scopeRecordType}
+                        and ${o.scopeRecordId} is not distinct from ${g.scopeRecordId}))
+               and (${o.userId} = ${groupMembers.userId}
+                    or ${o.groupId} in (select m.group_id from ${groupMembers} m where m.user_id = ${groupMembers.userId})))`,
+        ),
+      );
+    return rows.map((r) => r.userId);
   }
 }

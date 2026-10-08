@@ -18,15 +18,19 @@ import {
   formatAssetTag,
 } from '../model';
 import {
+  approvedSoftware,
+  approvedSoftwareDepartments,
   assetEvents,
   type AssetEventKind,
   assets,
   contractItems,
   contracts,
+  discoveryReports,
   licenseAssignments,
   licenses,
   models,
   softwareInstallations,
+  softwareTitleRules,
   vendors,
 } from './schema';
 import {
@@ -751,8 +755,63 @@ export async function seedItam(ctx: ModuleContext) {
     install(s.number, 'Windows Server 2025 Datacenter', 'Microsoft', '10.0.26100');
     install(s.number, 'Veeam Backup', 'Veeam', '12.2.0.334');
   }
+  // Discovery review: a few devices still report Microsoft 365 under its old name (to map to the E3 licence), instead
+  // of the licence's product. Pushed (and their E3 entries dropped) directly so the random sequence of the rest of the
+  // seed stays the same.
+  const oldName = computers.filter((c) => c.status === 'deployed').slice(-3);
+  const renamed = new Set(oldName.map((a) => assetId.get(a.number)!));
+  for (let i = installs.length - 1; i >= 0; i--)
+    if (installs[i]!.product === 'Microsoft 365 E3' && renamed.has(installs[i]!.assetId))
+      installs.splice(i, 1);
+  for (const a of oldName)
+    installs.push({
+      assetId: assetId.get(a.number)!,
+      product: 'Microsoft Office 365 ProPlus',
+      publisher: 'Microsoft',
+      version: '16.0.17928',
+      source: 'api',
+      firstSeenAt: a.assignedAt ?? at(addDays(a.purchaseDate, 3)),
+      lastSeenAt: new Date(Date.now() - 5 * 3_600_000),
+    });
+  // Approved-software check: an unapproved shareware archiver on two laptops, a blocked torrent client on one.
+  const deployedComputers = computers.filter((c) => c.status === 'deployed');
+  for (const [k, a] of deployedComputers.slice(4, 7).entries())
+    installs.push({
+      assetId: assetId.get(a.number)!,
+      product: k < 2 ? 'WinRAR' : 'uTorrent',
+      publisher: k < 2 ? 'win.rar GmbH' : 'BitTorrent Inc.',
+      version: k < 2 ? '7.01' : '3.6.0',
+      source: 'api',
+      firstSeenAt: new Date(Date.now() - (10 + k) * 86_400_000),
+      lastSeenAt: new Date(Date.now() - (2 + k) * 3_600_000),
+    });
   for (let i = 0; i < installs.length; i += 500)
     await db.insert(softwareInstallations).values(installs.slice(i, i + 500));
+  // The latest report of each device from the inventory tool (the Discovery page's "Recent reports").
+  const lastSeen = new Map<string, { at: Date; n: number }>();
+  for (const i of installs) {
+    const r = lastSeen.get(i.assetId) ?? { at: i.lastSeenAt as Date, n: 0 };
+    lastSeen.set(i.assetId, {
+      at: r.at > (i.lastSeenAt as Date) ? r.at : (i.lastSeenAt as Date),
+      n: r.n + 1,
+    });
+  }
+  const reports = [...lastSeen].map(([assetId, r]) => ({
+    assetId,
+    source: 'api' as const,
+    reported: r.n,
+    added: 0,
+    updated: r.n,
+    removed: 0,
+    actorName: 'Microsoft Intune',
+    createdAt: r.at,
+  }));
+  for (let i = 0; i < reports.length; i += 500)
+    await db.insert(discoveryReports).values(reports.slice(i, i + 500));
+  // 7-Zip is free: it needs no licence, so it stays out of the review list.
+  await db
+    .insert(softwareTitleRules)
+    .values({ title: '7-Zip', licenseId: null, createdBy: admin?.id ?? null });
 
   /* ───────────── contract coverage ───────────── */
   const items: (typeof contractItems.$inferInsert)[] = [];
@@ -771,6 +830,151 @@ export async function seedItam(ctx: ModuleContext) {
       if (licenseId.has(product)) items.push({ contractId: id, licenseId: licenseId.get(product)! });
   }
   if (items.length) await db.insert(contractItems).values(items);
+
+  /* ───────────── the approved-software list ───────────── */
+  type Approval = {
+    title: string;
+    publisher: string;
+    licenseModel: (typeof approvedSoftware.$inferInsert)['licenseModel'];
+    license?: string;
+    contract?: string;
+    departments?: string[];
+    status?: 'allowed' | 'blocked';
+    version?: string;
+    validDays?: number;
+    request?: string;
+    notes?: string;
+  };
+  const APPROVED: Approval[] = [
+    {
+      title: 'Microsoft 365 E3',
+      publisher: 'Microsoft',
+      licenseModel: 'subscription',
+      license: 'Microsoft 365 E3',
+      contract: 'Microsoft Enterprise Agreement',
+    },
+    { title: 'Google Chrome', publisher: 'Google', licenseModel: 'free' },
+    { title: '7-Zip', publisher: 'Igor Pavlov', licenseModel: 'open_source' },
+    {
+      title: 'Notepad++',
+      publisher: 'Notepad++ Team',
+      licenseModel: 'open_source',
+      departments: ['IT', 'IT-INFRA', 'IT-SD', 'IT-APP', 'IT-SEC', 'IT-DATA'],
+    },
+    { title: 'Adobe Acrobat Pro', publisher: 'Adobe', licenseModel: 'paid', license: 'Adobe Acrobat Pro' },
+    {
+      title: 'Adobe Creative Cloud',
+      publisher: 'Adobe',
+      licenseModel: 'subscription',
+      license: 'Adobe Creative Cloud',
+    },
+    {
+      title: 'AutoCAD',
+      publisher: 'Autodesk',
+      licenseModel: 'subscription',
+      license: 'AutoCAD',
+      departments: ['RND', 'OPS'],
+    },
+    {
+      title: 'Zoom Workplace',
+      publisher: 'Zoom Video Communications',
+      licenseModel: 'subscription',
+      license: 'Zoom Workplace',
+    },
+    {
+      title: 'Visual Studio Enterprise',
+      publisher: 'Microsoft',
+      licenseModel: 'subscription',
+      license: 'Visual Studio Enterprise',
+      departments: ['RND', 'IT-APP'],
+    },
+    {
+      title: 'JetBrains All Products Pack',
+      publisher: 'JetBrains',
+      licenseModel: 'subscription',
+      license: 'JetBrains All Products Pack',
+      departments: ['RND', 'IT-APP'],
+    },
+    {
+      title: 'Microsoft Visio Plan 2',
+      publisher: 'Microsoft',
+      licenseModel: 'subscription',
+      license: 'Microsoft Visio Plan 2',
+    },
+    {
+      title: 'Microsoft Project Plan 3',
+      publisher: 'Microsoft',
+      licenseModel: 'subscription',
+      license: 'Microsoft Project Plan 3',
+    },
+    {
+      title: 'TeamViewer Business',
+      publisher: 'TeamViewer',
+      licenseModel: 'subscription',
+      license: 'TeamViewer Business',
+      validDays: 9,
+      notes: 'Short-term: remote support for the branch office move.',
+    },
+    {
+      title: 'Windows Server 2025 Datacenter',
+      publisher: 'Microsoft',
+      licenseModel: 'paid',
+      license: 'Windows Server 2025 Datacenter',
+    },
+    { title: 'Veeam Backup', publisher: 'Veeam', licenseModel: 'paid', license: 'Veeam Backup' },
+    {
+      title: 'uTorrent',
+      publisher: 'BitTorrent Inc.',
+      licenseModel: 'free',
+      status: 'blocked',
+      notes: 'Peer-to-peer file sharing is not allowed on company devices.',
+    },
+  ];
+  for (const e of APPROVED) {
+    const [row] = await db
+      .insert(approvedSoftware)
+      .values({
+        title: e.title,
+        publisher: e.publisher,
+        version: e.version ?? null,
+        licenseModel: e.licenseModel,
+        licenseId: (e.license && licenseId.get(e.license)) || null,
+        contractId: (e.contract && contractId.get(e.contract)) || null,
+        scope: e.departments ? 'departments' : 'company',
+        status: e.status ?? 'allowed',
+        validUntil: e.validDays !== undefined ? addDays(today, e.validDays) : null,
+        notes: e.notes ?? null,
+        requestReference: e.request ?? null,
+        createdBy: admin?.id ?? null,
+      })
+      .returning({ id: approvedSoftware.id });
+    const depts = (e.departments ?? [])
+      .map((code) => deptId.get(code))
+      .filter((x): x is string => Boolean(x));
+    if (depts.length)
+      await db
+        .insert(approvedSoftwareDepartments)
+        .values(depts.map((departmentId) => ({ entryId: row!.id, departmentId })));
+  }
+
+  /* ───────────── returned laptops waiting for their data wipe ───────────── */
+  const spares = computers.filter((c) => c.status === 'in_stock' && c.category === 'laptop').slice(0, 2);
+  for (const [k, a] of spares.entries()) {
+    const id = assetId.get(a.number)!;
+    // One was returned a while ago and its wipe is overdue; the other's data is kept for another month.
+    const retain = k === 0 ? addDays(today, -70) : addDays(today, 30);
+    const due = addMonths(retain, cfg.wipeMonths);
+    await db.update(assets).set({ dataRetainUntil: retain, wipeDue: due }).where(eq(assets.id, id));
+    await db.insert(assetEvents).values({
+      assetId: id,
+      kind: 'wipe_scheduled',
+      fromValue: retain,
+      toValue: due,
+      actorId: itOps?.id ?? null,
+      actorName: itOps ? null : 'Assets',
+      createdAt: at(addDays(today, k === 0 ? -95 : -3)),
+    });
+  }
 
   /* ───────────── compliance, a pending disposal, the signed contract ───────────── */
   const svc = services(ctx);

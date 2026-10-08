@@ -10,10 +10,13 @@ sets you review before anything goes live.
 - Know [which AI mode you're in](#builtin-mode-and-model-mode) and [what leaves the platform](#your-data-and-privacy)
 - Get answers from [Ask IT](#ask-it-for-help), and use [Helpdesk AI on tickets](#helpdesk-ai-for-agents)
 - [Open the assistant](#open-the-assistant) on any page and [do everyday work with it](#do-everyday-work-with-the-assistant)
-- [Change the platform's configuration with a change set](#change-configuration-with-a-change-set), or
-  [use a guided template](#use-a-guided-template) when no model is configured
+- [Change the platform's configuration with a change set](#change-configuration-with-a-change-set), including a
+  whole process (a form, its approval and its actions), or [use a guided template](#use-a-guided-template) when no
+  model is configured
 - [Review](#review-a-change-set), [apply](#apply-a-change-set), [request a review](#request-a-review) and
   [roll back](#roll-back-a-change-set) change sets
+- [Install a ready-made process from a package](#install-a-built-in-package), or
+  [move configuration to another environment](#move-configuration-to-another-environment) as a file
 - [Connect an outside agent such as Claude Code](#connect-an-outside-agent-over-mcp) over MCP
 
 ## How AI works in ISBP
@@ -156,26 +159,34 @@ In the demo, **CS-00001 Laptop requests over 60 000 TWD** is an applied change s
 department head approves every request; IT asset management also approves above 60 000 TWD), the laptop request form
 that uses it, and its service catalog item.
 
+A whole process fits in one change set: describe the form people fill in (including records they pick, such as
+CIs), the rules its answers must meet, who approves, and what happens once a request is approved. The assistant
+proposes the workflow and the form with its rules and actions together. Once the change set is applied, its page
+shows **Ready to use** with **Open the form**, the form's own link (`/requests/forms/<key>`), and the assistant posts
+the link in the conversation when the change set was applied from its card or by a reviewer. Step by step:
+[Build it with the assistant](processes.md#build-it-with-the-assistant).
+
 ### What the assistant can change
 
-Thirteen configuration surfaces can be changed through change sets. You can propose a change to anything you can
-read; applying it needs the permission shown.
+These configuration surfaces can be changed through change sets. You can propose a change to anything you can read;
+applying it needs the permission shown.
 
-| Surface              | What a change can do                                                                              | Applying needs, for example                              |
-| -------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Approval workflow    | Create, update or archive; applying publishes a new version for its trigger                       | **Workflow administrator**                               |
-| Request form         | Create, update or archive; applying saves and publishes it                                        | **Workflow administrator**                               |
-| Custom field         | Add a field to people, groups, departments or module records; key and type are fixed once created | **Workflow administrator** or **Identity administrator** |
-| Role                 | Create, update or delete; you can only grant permissions you hold yourself                        | **Platform administrator**                               |
-| Notification channel | Change an existing channel's name, notifications and language (never its webhook URL)             | **Workflow administrator**                               |
-| Module settings      | Change a module's settings (not secrets or AI provider settings)                                  | **Module administrator**                                 |
-| Scheduled job        | Create, update, disable or delete                                                                 | **Scheduled jobs administrator**                         |
-| ETL pipeline         | Create, update, disable or delete                                                                 | **Data APIs developer**                                  |
-| Data API             | Create or update a **draft** only; a person tests and publishes it in Data APIs                   | **Data APIs developer**                                  |
-| Sync profile         | Create, update, disable or delete an Integrations Hub profile                                     | **Integrations administrator**                           |
-| Ticket category      | Create, update or deactivate                                                                      | **Service desk administrator**                           |
-| SLA policy           | Create, update or deactivate                                                                      | **Service desk administrator**                           |
-| Service catalog item | Create, update or delete                                                                          | **Service desk administrator**                           |
+| Surface              | What a change can do                                                                                                                              | Applying needs, for example                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Approval workflow    | Create, update or archive, with conditions and approvers on a form's answers and picked records; applying publishes a new version for its trigger | **Workflow administrator**                                       |
+| Request form         | Create, update or archive, with record fields, rules and actions; applying saves and publishes it                                                 | **Workflow administrator**, plus the role of each action it adds |
+| Custom field         | Add a field to people, groups, departments or module records; key and type are fixed once created                                                 | **Workflow administrator** or **Identity administrator**         |
+| Role                 | Create, update or delete; you can only grant permissions you hold yourself                                                                        | **Platform administrator**                                       |
+| Group                | Create, update or delete a group: its key, name, description and custom fields. People are added on the group's page, never in a change set       | **Identity administrator**                                       |
+| Notification channel | Change an existing channel's name, notifications and language (never its webhook URL)                                                             | **Workflow administrator**                                       |
+| Module settings      | Change a module's settings (not secrets or AI provider settings)                                                                                  | **Module administrator**                                         |
+| Scheduled job        | Create, update, disable or delete                                                                                                                 | **Scheduled jobs administrator**                                 |
+| ETL pipeline         | Create, update, disable or delete                                                                                                                 | **Data APIs developer**                                          |
+| Data API             | Create or update a **draft** only; a person tests and publishes it in Data APIs                                                                   | **Data APIs developer**                                          |
+| Sync profile         | Create, update, disable or delete an Integrations Hub profile                                                                                     | **Integrations administrator**                                   |
+| Ticket category      | Create, update or deactivate                                                                                                                      | **Service desk administrator**                                   |
+| SLA policy           | Create, update or deactivate                                                                                                                      | **Service desk administrator**                                   |
+| Service catalog item | Create, update or delete                                                                                                                          | **Service desk administrator**                                   |
 
 ## Use a guided template
 
@@ -187,6 +198,9 @@ change in a change set. Use them in builtin mode, as in the demo.
    - **Approval chain**: one or two approval steps, the second only above an amount (for example `data.amount` above
      60 000).
    - **Request form**: a form in the request portal with up to three questions and an approval workflow.
+   - **Approval process**: a form and its own approval workflow together: the records people pick (for example
+     configuration items), up to three questions, the requester's manager, the group responsible for the picked
+     records and another group as approvers, and optionally a change raised once a request is approved.
    - **Custom field**: a field on people, groups, departments or module records.
    - **HTTP health check**: call a URL every few minutes and alert the owner when it fails.
    - **SLA targets**: response and resolution targets per priority for the ticket types you choose.
@@ -231,9 +245,9 @@ fails, nothing is applied.
 3. Select **Apply** in the dialog.
 
 **What happens next:** The status becomes **Applied** and the page shows **Applied by** you. The changes are live:
-a published workflow is used by new requests, a form appears in the portal. The person who prepared it gets a
-notification. If you can't apply it, the page says "You can't apply this change set yourself" and which permissions
-are missing.
+a published workflow is used by new requests, a form appears in the portal. **Ready to use** lists links to share,
+such as **Open the form** for a form people can now fill in. The person who prepared it gets a notification. If you
+can't apply it, the page says "You can't apply this change set yourself" and which permissions are missing.
 
 ## Request a review
 
@@ -274,6 +288,49 @@ applied, applying is refused: "Someone changed this configuration after the chan
 2. Review the differences, then select **Refresh**. The change set now uses the current versions as its base.
 3. Check the dry run and apply again.
 
+## Start from a package
+
+A package is a change set as a file. Use one to set up a whole process at once (the forms, approval workflows, groups
+and scheduled jobs a module ships), or to move configuration you built and tested in one environment to another. A
+package always becomes a new draft change set: you review its dry run, then apply it or request a review as usual,
+and you can roll it back like any other.
+
+### Install a built-in package
+
+1. Go to **Administration → Change sets** and select **From a package**.
+2. On **Built-in packages**, read what each package holds: its description, the module it comes from, the number of
+   changes and what they change.
+3. Select **Install** next to the package you want.
+
+**What happens next:** A new draft change set opens, named after the package, with the dry run of every change.
+The names and texts it creates in one language only, such as group names, scheduled jobs and reminders, are in your
+language. [Review it](#review-a-change-set), then [apply it](#apply-a-change-set) or [request a review](#request-a-review).
+Nothing is live until then. Installing a package twice gives a second change set whose changes fail their dry run
+(the keys are taken): discard it.
+
+If a package says "Needs modules that aren’t enabled", ask an administrator to enable them in **Administration →
+Modules**. If it says "Preparing it needs permissions you don’t hold", you can't prepare it; ask someone who can. "You
+can prepare it, but applying it needs someone with more permissions (or a review)" means you install it, then request
+a review.
+
+### Move configuration to another environment
+
+1. In the environment where you built and tested the configuration, open its change set, open **More actions** and
+   select **Export**. Your browser downloads the change set as a file named after its reference, such as
+   `CS-00012.json`.
+2. In the other environment, go to **Administration → Change sets**, select **From a package**, then **Import a
+   file**.
+3. Choose the file under **Package file**. The dialog shows its title and the number of changes.
+4. Select **Import**.
+
+**What happens next:** A new draft change set opens with its dry run, as when you install a package. If the file
+doesn't fit this environment, nothing is created and the dialog lists why, under "The package has problems. Nothing
+was created:" (for example a change that refers to a later one) or "This package doesn’t fit this platform" (modules
+that aren't enabled here).
+
+> **Tip:** Build what you want to move as new objects (a new form, a new workflow). Changes to existing objects refer
+> to them by their ID in the environment they were made in, so the import reports them as not found elsewhere.
+
 ## Write good requests
 
 The assistant works best when you say what should happen, to what, and when. Some examples:
@@ -281,6 +338,8 @@ The assistant works best when you say what should happen, to what, and when. Som
 - "Laptop requests over 60,000 TWD also need approval from IT asset management."
 - "Add a cost centre field to people."
 - "Create a request form for a second monitor, approved by the requester's manager."
+- "A configuration change request: people pick the CIs, the requester's manager and the CIs' support group approve,
+  the CAB too when a CI is critical, and an approved request raises a change for the CIs."
 - "On tickets, add a select field for the affected site: Taipei HQ, Hsinchu, Tokyo."
 - "Route SLA breaches to the IT Operations Teams channel too." (The channel must already exist.)
 - "Check https://intranet.example.com every 5 minutes and alert me when it fails."
@@ -355,6 +414,8 @@ see it in their approvals.
 
 - [Administrators](administrators.md#configure-ai): models, masking, budget and the index; who gets the assistant
   roles; the **Change set review** workflow.
+- [Build your own process](processes.md): forms with record fields, rules and actions, and their approvals, by hand
+  or with the assistant.
 - [Employees](employees.md): Ask IT, requests and approvals.
 - [Service desk guide](service-desk.md): Helpdesk AI on tickets, ticket categories, SLA policies and the service
   catalog.

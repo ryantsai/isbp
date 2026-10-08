@@ -769,13 +769,25 @@ describe('drift', () => {
         })
       ).status,
     ).toBe(403);
-    const adopted = await post('dba', '/unmanaged/adopt', {
+    // Only active people get adopted access: a suspended person is reactivated first, an offboarded one never.
+    const adoptBody = {
       serverId: fx.server,
       roleId: fx.reader,
       memberName: drift,
       userId: ids.drift,
       expiresOn: addDays(today(), 10),
-    });
+    };
+    for (const [status, code] of [
+      ['suspended', 'PRINCIPAL_SUSPENDED'],
+      ['offboarded', 'PRINCIPAL_OFFBOARDED'],
+    ] as const) {
+      await h.kernel.db.update(users).set({ status }).where(eq(users.id, ids.drift));
+      const refused = await post('dba', '/unmanaged/adopt', adoptBody);
+      expect(refused.status).toBe(409);
+      expect(refused.body.error.code).toBe(code);
+    }
+    await h.kernel.db.update(users).set({ status: 'active' }).where(eq(users.id, ids.drift));
+    const adopted = await post('dba', '/unmanaged/adopt', adoptBody);
     expect(adopted.status, JSON.stringify(adopted.body)).toBe(201);
     expect(adopted.body).toMatchObject({
       status: 'active',

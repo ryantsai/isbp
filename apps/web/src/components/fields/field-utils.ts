@@ -11,9 +11,13 @@ import {
   isSafePattern,
   type LocalizedText,
   localize,
+  RESERVED_FACTS,
+  TODAY_FACT,
   validateFields,
 } from '@isbp/sdk';
 import type { FactOption } from '@isbp/ui/condition-builder';
+import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
 /** Anything the field editor can edit: a field (custom field or form field) or a display element. */
 export type EditableElement = (FieldDef & { id?: string }) | DisplayElement;
@@ -75,7 +79,8 @@ export function uniqueName(base: string, taken: ReadonlySet<string>, sep = ''): 
   }
 }
 
-const DEFAULT_KEY_RE = /^(?:text|textarea|number|boolean|date|select|multiselect|email|url|user|field)\d*$/;
+const DEFAULT_KEY_RE =
+  /^(?:text|textarea|number|boolean|date|select|multiselect|email|url|user|record|rows|column|field)\d*$/;
 const DEFAULT_VALUE_RE = /^option-?\d+$/;
 
 /** Whether the key still follows the label (so editing the English label may rename it). */
@@ -90,6 +95,12 @@ export function isAutoValue(value: string, label: LocalizedText | undefined): bo
   if (!value || DEFAULT_VALUE_RE.test(value)) return true;
   const slug = slugValue(label?.en);
   return Boolean(slug) && (value === slug || value.replace(/-\d+$/, '') === slug);
+}
+
+/** A new column for a table field, with a key no other column has. */
+export function newRowColumn(type: FieldType, columns: readonly FieldDef[], label: LocalizedText): FieldDef {
+  const taken = new Set(columns.map((c) => c.key));
+  return { key: uniqueName(slugKey(label.en) || 'column', taken), type, label };
 }
 
 /** A short random id for new form elements (stable once created). */
@@ -120,6 +131,26 @@ export function cleanField<T extends FieldDef>(field: T): T {
   if (!hasText(out.placeholder) || !PLACEHOLDER_TYPES.includes(out.type)) delete out.placeholder;
   if (!out.required) delete out.required;
   if (!CHOICE_TYPES.includes(out.type)) delete out.options;
+  if (out.type !== 'rows') delete out.rows;
+  else {
+    // Columns are plain fields without conditions or layout.
+    const rows: NonNullable<FieldDef['rows']> = {
+      fields: (out.rows?.fields ?? []).map((c) => {
+        const { visibleWhen: _v, width: _w, rows: _r, ...col } = cleanField(c);
+        return col;
+      }),
+    };
+    if (out.rows?.min !== undefined) rows.min = out.rows.min;
+    if (out.rows?.max !== undefined) rows.max = out.rows.max;
+    out.rows = rows;
+  }
+  if (out.type !== 'record') delete out.record;
+  else {
+    const record: NonNullable<FieldDef['record']> = { types: out.record?.types ?? [] };
+    if (out.record?.multiple) record.multiple = true;
+    if (out.record?.where) record.where = out.record.where;
+    out.record = record;
+  }
   const validation = validationFor(out.type, out.validation);
   if (validation) out.validation = validation;
   else delete out.validation;
@@ -128,7 +159,9 @@ export function cleanField<T extends FieldDef>(field: T): T {
     out.defaultValue === null ||
     out.defaultValue === '' ||
     (Array.isArray(out.defaultValue) && !out.defaultValue.length) ||
-    out.type === 'user'
+    out.type === 'user' ||
+    out.type === 'record' ||
+    out.type === 'rows'
   )
     delete out.defaultValue;
   if (!out.visibleWhen) delete out.visibleWhen;
@@ -153,6 +186,9 @@ export function changeFieldType<T extends FieldDef>(
   const next = { ...field, type } as T;
   if (CHOICE_TYPES.includes(type)) next.options = field.options?.length ? field.options : defaultOptions();
   else delete next.options;
+  if (type === 'record') next.record = field.record ?? { types: [] };
+  if (type === 'rows')
+    next.rows = field.rows?.fields.length ? field.rows : { fields: [newRowColumn('text', [], field.label)] };
   next.validation = validationFor(type, field.validation);
   delete next.defaultValue;
   return cleanField(next);
@@ -174,10 +210,23 @@ export type FieldIssueCode =
   | 'defaultInvalid'
   | 'conditionSelf'
   | 'conditionUnknown'
-  | 'textRequired';
+  | 'textRequired'
+  | 'recordTypesRequired'
+  | 'columnsRequired'
+  | 'columnInvalid'
+  | 'rowsRangeInvalid';
 
 export type IssueTarget =
-  'label' | 'key' | 'options' | 'validation' | 'pattern' | 'defaultValue' | 'visibleWhen' | 'text';
+  | 'label'
+  | 'key'
+  | 'options'
+  | 'validation'
+  | 'pattern'
+  | 'defaultValue'
+  | 'visibleWhen'
+  | 'text'
+  | 'record'
+  | 'rows';
 
 export interface FieldIssue {
   code: FieldIssueCode;
@@ -197,7 +246,11 @@ export function elementIssues(el: EditableElement, siblings: readonly FieldDef[]
   if (!isFieldElement(el)) {
     if (TEXT_DISPLAY.includes(el.type) && !hasText(el.text))
       issues.push({ code: 'textRequired', target: 'text' });
-    if (conditionFacts(el.visibleWhen).some((k) => !siblingKeys.has(k.split('.')[0] ?? '')))
+    if (
+      conditionFacts(el.visibleWhen).some(
+        (k) => !RESERVED_FACTS.includes(k) && !siblingKeys.has(k.split('.')[0] ?? ''),
+      )
+    )
       issues.push({ code: 'conditionUnknown', target: 'visibleWhen' });
     return issues;
   }
@@ -215,6 +268,24 @@ export function elementIssues(el: EditableElement, siblings: readonly FieldDef[]
     if (options.some((o) => !hasText(o.label)))
       issues.push({ code: 'optionLabelRequired', target: 'options' });
   }
+  if (el.type === 'record' && !el.record?.types.length)
+    issues.push({ code: 'recordTypesRequired', target: 'record' });
+  if (el.type === 'rows') {
+    const columns = el.rows?.fields ?? [];
+    if (!columns.length) issues.push({ code: 'columnsRequired', target: 'rows' });
+    columns.forEach((c) => {
+      if (
+        elementIssues(
+          c,
+          columns.filter((o) => o !== c),
+        ).length
+      )
+        issues.push({ code: 'columnInvalid', target: 'rows', params: { column: c.key } });
+    });
+    const r = el.rows;
+    if (r?.min !== undefined && r.max !== undefined && r.min > r.max)
+      issues.push({ code: 'rowsRangeInvalid', target: 'rows' });
+  }
   const v = el.validation;
   if (v?.min !== undefined && v.max !== undefined && v.min > v.max)
     issues.push({ code: 'rangeInvalid', target: 'validation' });
@@ -224,6 +295,8 @@ export function elementIssues(el: EditableElement, siblings: readonly FieldDef[]
   const dv = el.defaultValue;
   if (
     el.type !== 'user' &&
+    el.type !== 'record' &&
+    el.type !== 'rows' &&
     dv !== undefined &&
     dv !== null &&
     dv !== '' &&
@@ -234,7 +307,9 @@ export function elementIssues(el: EditableElement, siblings: readonly FieldDef[]
     if (!validateFields([probe], { [el.key]: dv }).ok)
       issues.push({ code: 'defaultInvalid', target: 'defaultValue' });
   }
-  const facts = conditionFacts(el.visibleWhen).map((k) => k.split('.')[0] ?? '');
+  const facts = conditionFacts(el.visibleWhen)
+    .filter((k) => !RESERVED_FACTS.includes(k))
+    .map((k) => k.split('.')[0] ?? '');
   if (facts.includes(el.key)) issues.push({ code: 'conditionSelf', target: 'visibleWhen' });
   else if (facts.some((k) => !siblingKeys.has(k)))
     issues.push({ code: 'conditionUnknown', target: 'visibleWhen' });
@@ -259,6 +334,7 @@ export function formIssues(elements: readonly FormElement[]): Map<string, FieldI
 export function fieldFacts(fields: readonly FieldDef[], locale: string): FactOption[] {
   return fields
     .filter((f) => FIELD_KEY_RE.test(f.key))
+    .flatMap((f) => [f, ...tableColumnFacts(f, locale)])
     .map((f) => {
       const label = localize(f.label, locale) || f.key;
       const options = f.options?.map((o) => ({
@@ -278,10 +354,37 @@ export function fieldFacts(fields: readonly FieldDef[], locale: string): FactOpt
           return { path: f.key, label, type: 'string', options };
         case 'user':
           return { path: f.key, label, type: 'id' };
+        case 'record':
+          return { path: f.key, label, type: f.record?.multiple ? 'list' : 'string' };
+        case 'rows':
+          return { path: f.key, label, type: 'list' };
         default:
           return { path: f.key, label, type: 'string' };
       }
     });
+}
+
+/** The reserved `today` fact (`YYYY-MM-DD`, UTC) for date conditions: "the planned start is today or later". */
+export function useTodayFact(): FactOption {
+  const t = useTranslations('ui.conditions');
+  const label = t('today');
+  return useMemo(() => ({ path: TODAY_FACT, label, type: 'date' as const }), [label]);
+}
+
+/**
+ * A table's columns as facts `<table>.<column>` ("Firewall rules › Port"): a column read across all rows, so a
+ * condition matches when any row does.
+ */
+export function tableColumnFacts(field: FieldDef, locale: string): FieldDef[] {
+  if (field.type !== 'rows') return [];
+  const table = localize(field.label, locale) || field.key;
+  return (field.rows?.fields ?? [])
+    .filter((c) => FIELD_KEY_RE.test(c.key))
+    .map((c) => ({
+      ...c,
+      key: `${field.key}.${c.key}`,
+      label: { [locale]: `${table} › ${localize(c.label, locale) || c.key}` },
+    }));
 }
 
 /** Stable JSON (sorted keys) for dirty checks. */

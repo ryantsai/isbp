@@ -36,8 +36,10 @@ import {
   articleReference,
   type ArticleStatus,
   type createArticleSchema,
+  type ClassificationLevel,
   type feedbackInputSchema,
   parseArticleRef,
+  parseClassificationLevels,
   type updateArticleSchema,
 } from '../contracts';
 import {
@@ -57,6 +59,11 @@ import { articles, articleVersions, categories, feedback } from './schema';
 import { viaOf } from './sync-support';
 
 export type ArticleRow = typeof articles.$inferSelect;
+
+/** The classification labels in use (`classification.levels`), most restrictive first. */
+export async function classificationLevels(ctx: ModuleContext): Promise<ClassificationLevel[]> {
+  return parseClassificationLevels(await ctx.settings.get<string>('classification.levels'));
+}
 type CategoryRow = typeof categories.$inferSelect;
 
 /** Document type of articles in the shared semantic index. */
@@ -136,6 +143,7 @@ export function toListItem({ a, c, ownerName, ownerAvatar, reviewDue }: ListRow)
     helpfulCount: a.helpfulCount,
     notHelpfulCount: a.notHelpfulCount,
     awaitingApproval: a.status === 'in_review' && Boolean(a.reviewInstanceId),
+    classification: a.classification,
     createdAt: a.createdAt,
     updatedAt: a.updatedAt,
   };
@@ -260,6 +268,11 @@ export class ArticleService {
       q.owner === 'me' ? eq(articles.ownerId, v.userId!) : undefined,
       q.reviewDue === true ? reviewDueSql : undefined,
       q.tag ? sql`${articles.tags} @> array[${q.tag}]::text[]` : undefined,
+      q.classification === 'none'
+        ? sql`${articles.classification} is null`
+        : q.classification
+          ? eq(articles.classification, q.classification)
+          : undefined,
       q.q
         ? ref && 'number' in ref
           ? eq(articles.number, ref.number)
@@ -326,7 +339,7 @@ export class ArticleService {
       .where(eq(articles.id, id));
     if (!r || !canView(r.a, v)) throw httpErrors.notFound('Article not found');
     const a = r.a;
-    const [siblings, mine] = await Promise.all([
+    const [siblings, mine, files] = await Promise.all([
       this.ctx.db
         .select()
         .from(articles)
@@ -338,6 +351,7 @@ export class ArticleService {
             .from(feedback)
             .where(and(eq(feedback.articleId, a.id), eq(feedback.userId, v.userId)))
         : Promise.resolve([]),
+      this.ctx.files.list({ type: INDEX_TYPE, id: a.id }),
     ]);
     return {
       ...toListItem(r),
@@ -361,7 +375,18 @@ export class ArticleService {
       canDelete: canDelete(a, v),
       actions: availableActions(a, v),
       myFeedback: mine[0] ?? null,
+      attachments: files.length,
     };
+  }
+
+  /** A classification must be one of the configured labels (400 otherwise); `null` clears it. */
+  private async assertClassification(value: string | null | undefined) {
+    if (!value) return;
+    const levels = await classificationLevels(this.ctx);
+    if (!levels.some((l) => l.key === value))
+      throw httpErrors.badRequest('Unknown classification', {
+        issues: [{ path: 'classification', message: 'Unknown classification' }],
+      });
   }
 
   private async recordView(articleId: string, userId: string) {
@@ -475,6 +500,7 @@ export class ArticleService {
   ): Promise<ArticleRow> {
     const id = uuidv7();
     await this.assertCategory(input.categoryId);
+    await this.assertClassification(input.classification);
     const group = await this.translationGroup(input.translationOf, id, input.locale, auth);
     if (group) await this.assertLocaleFree(group, input.locale, id);
     return this.ctx.transaction(async (tx) => {
@@ -494,6 +520,7 @@ export class ArticleService {
           ownerId,
           reviewAt: input.reviewAt ?? null,
           source: input.source ?? null,
+          classification: input.classification ?? null,
         })
         .returning();
       const a = row!;
@@ -503,7 +530,12 @@ export class ArticleService {
           entityType: 'knowledge.article',
           entityId: a.id,
           entityLabel: `${articleReference(a.number)} ${a.title}`,
-          metadata: { locale: a.locale, audience: a.audience, source: a.source },
+          metadata: {
+            locale: a.locale,
+            audience: a.audience,
+            source: a.source,
+            classification: a.classification,
+          },
         },
         { tx },
       );
@@ -593,6 +625,8 @@ export class ArticleService {
       throw httpErrors.forbidden();
     }
     await this.assertCategory(input.categoryId);
+    if (input.classification !== undefined && input.classification !== before.classification)
+      await this.assertClassification(input.classification);
 
     const patch: Partial<typeof articles.$inferInsert> = {};
     if (input.title !== undefined) patch.title = input.title;
@@ -603,6 +637,7 @@ export class ArticleService {
     if (input.audience !== undefined) patch.audience = input.audience;
     if (input.locale !== undefined) patch.locale = input.locale;
     if (input.reviewAt !== undefined) patch.reviewAt = input.reviewAt;
+    if (input.classification !== undefined) patch.classification = input.classification;
     if (input.translationOf !== undefined) {
       const group = await this.translationGroup(
         input.translationOf,
@@ -1106,6 +1141,7 @@ export class ArticleService {
         locale: a.locale,
         audience: a.audience,
         category: categoryRef(c),
+        classification: a.classification,
       };
     });
   }
@@ -1151,6 +1187,7 @@ export class ArticleService {
         locale: a.locale,
         audience: a.audience,
         category: categoryRef(c),
+        classification: a.classification,
       });
       if (out.length >= limit) break;
     }
@@ -1351,4 +1388,5 @@ export type ArticleCard = {
   locale: ArticleLocale;
   audience: 'everyone' | 'agents';
   category: { id: string; key: string; name: CategoryRow['name']; icon: string } | null;
+  classification: string | null;
 };

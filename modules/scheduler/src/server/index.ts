@@ -3,6 +3,7 @@ import migrations from '../../migrations';
 import { manifest } from '../manifest';
 import { aiTools } from './ai';
 import { jobCustomization } from './customizations';
+import { processActions } from './process-actions';
 import { records, search } from './records';
 import { routes } from './routes';
 import { seed } from './seed';
@@ -65,6 +66,7 @@ export default defineServerModule(manifest, {
 
   ai: aiTools,
   customizations: { job: jobCustomization },
+  processActions,
   records,
   search,
   seed,

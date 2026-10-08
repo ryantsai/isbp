@@ -68,7 +68,9 @@ export function useTicketColumns(columns: readonly TicketColumn[]) {
         id: 'status',
         header: t('status'),
         meta: { sortKey: 'status' },
-        cell: ({ row }) => <TicketStatusBadge status={row.original.status} />,
+        cell: ({ row }) => (
+          <TicketStatusBadge status={row.original.status} signOff={row.original.awaitingSignOff} />
+        ),
       },
       priority: {
         id: 'priority',

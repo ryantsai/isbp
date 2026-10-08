@@ -98,7 +98,9 @@
     "filesMaxSize": "Largest attachment (MB, up to 50)",
     "filesMaxSizeHelp": "Uploads larger than this are refused.",
     "filesBlocked": "Blocked file types",
-    "filesBlockedHelp": "File extensions that can't be uploaded, separated by commas. Executables and web pages are blocked by content too."
+    "filesBlockedHelp": "File extensions that can't be uploaded, separated by commas. Executables and web pages are blocked by content too.",
+    "webhookHosts": "Webhook hosts for forms",
+    "webhookHostsHelp": "Hosts a form's \"Call a webhook\" action may post to: one host or *.domain per line. Hosts on this list may be on the internal network. Empty: no webhooks."
   },
   "systemRoles": {
     "platform-admin": {
@@ -142,6 +144,15 @@
     "user": "People",
     "group": "Groups",
     "department": "Departments"
+  },
+  "recordTypes": {
+    "request": "Request"
+  },
+  "recordFacts": {
+    "formKey": "Form",
+    "status": "Status",
+    "requesterId": "Requester",
+    "departmentCode": "Requester's department"
   },
   "workflows": {
     "accessRequest": {
@@ -202,12 +213,17 @@
     "access_expiring": {
       "label": "Access ending soon",
       "title": "Your {role} access ends soon",
-      "body": "It ends on {expiresAt}. Request it again if you still need it."
+      "body": "{via, select, group {You have it as a member of {group}; that grant ends on {expiresAt}. Request the role yourself if you still need it.} other {It ends on {expiresAt}. Request it again if you still need it.}}"
     },
     "access_granted": {
       "label": "Roles given to me",
       "title": "You now have the role {role}",
       "body": "Granted by {actor}."
+    },
+    "user_transferred": {
+      "label": "People moving between my department and another",
+      "title": "{name} moved to {hasTo, select, yes {{to}} other {no department}}: please review their access",
+      "body": "{name} moved from {hasFrom, select, yes {{from}} other {no department}} to {hasTo, select, yes {{to}} other {no department}}. {count, plural, =0 {They have no roles assigned to them directly.} one {Their role: {roles}.} other {Their # roles: {roles}.}}{reviewCount, plural, =0 {} one { To review, scoped to the old department: {review}.} other { To review, # roles scoped to the old department: {review}.}} Nothing was revoked: ask an identity administrator to remove what they no longer need."
     },
     "form_submission_approved": {
       "label": "My form requests approved",
@@ -219,9 +235,97 @@
       "title": "Rejected: {form} ({reference})",
       "body": "{comment}"
     },
+    "form_assignment_assigned": {
+      "label": "Forms assigned to me",
+      "title": "To do: {title}",
+      "body": "Fill in \"{form}\" by {due}. {note}"
+    },
+    "form_assignment_reminder": {
+      "label": "Reminders of my to-dos",
+      "title": "{overdue, select, yes {Overdue: {title}} other {Due soon: {title}}}",
+      "body": "{overdue, select, yes {\"{form}\" was due on {due}. Please fill it in as soon as you can.} other {Fill in \"{form}\" by {due}.}}"
+    },
+    "form_assignment_overdue": {
+      "label": "Overdue to-dos of forms I maintain",
+      "title": "Overdue: {title}",
+      "body": "{assignee} has not filled in \"{form}\" (due {due})."
+    },
     "channel_test": {
       "title": "Test notification from IS Big Platform",
       "body": "If you can read this, the channel works."
+    },
+    "process_action_failed": {
+      "label": "Form actions that failed",
+      "title": "An action of {reference} failed: {action}",
+      "body": "The \"{form}\" form could not finish this step, even after retrying. Open the request to see the error and run it again."
+    },
+    "process_action_message": {
+      "label": "Messages sent by forms",
+      "title": "{title}",
+      "body": "{message}"
+    },
+    "reminder_due": {
+      "label": "Reminders set by forms",
+      "title": "{title}",
+      "body": "{message}"
+    }
+  },
+  "processActions": {
+    "grantRole": {
+      "name": "Grant a role",
+      "description": "Gives the requester, or a person picked in the form, a role of the platform or of a registered application (VPN, Active Directory, server access), for a number of days or for good.",
+      "role": "Role",
+      "person": "Grant it to",
+      "requester": "The requester",
+      "duration": "For how many days",
+      "durationHint": "Leave empty to grant it permanently.",
+      "reason": "Reason (shown on the assignment)",
+      "granted": "Role granted",
+      "extended": "Role extended",
+      "kept": "The person already had the role"
+    },
+    "notify": {
+      "name": "Notify people",
+      "description": "Sends a notification with your own title and message to the requester, people named in the form, a person or groups.",
+      "toRequester": "Notify the requester",
+      "userFields": "People named in these fields",
+      "person": "Also notify",
+      "groups": "Members of these groups",
+      "title": "Title",
+      "message": "Message",
+      "sent": "Notification sent"
+    },
+    "webhook": {
+      "name": "Call a webhook",
+      "description": "Posts JSON about the request to another system over HTTPS (allowed hosts only), with an optional secret header.",
+      "url": "URL",
+      "urlHint": "HTTPS, to a host listed in the core setting \"Webhook hosts for forms\".",
+      "headerName": "Header name",
+      "headerValue": "Header value (secret)",
+      "headerValueHint": "Stored encrypted and never shown again. Leave empty to keep it.",
+      "body": "JSON body"
+    },
+    "remind": {
+      "name": "Send a reminder",
+      "description": "Reminds people on a date taken from an answer or from a field an approver filled in, a number of days before or after: a rule that expires, short-term use ending, data to wipe.",
+      "dateFrom": "Date",
+      "fromStep": "A field an approver fills in",
+      "fromOutcome": "The day of the outcome",
+      "stepField": "Approver's field",
+      "stepFieldHint": "The step's id and the field's key, e.g. review.wipeDue.",
+      "offsetDays": "Days after the date",
+      "offsetDaysHint": "Negative for before the date (-30: thirty days before). Reminders for a date go out at 9:00 in the requester's time zone.",
+      "onlyFuture": "Only if that day is still to come",
+      "roles": "People with these roles",
+      "scheduled": "Reminder set for {date, date, long}",
+      "passed": "No reminder: {date, date, long} has already passed",
+      "noDate": "No reminder: the request has no date for it"
+    }
+  },
+  "taskTypes": {
+    "assignForm": {
+      "name": "Assign a form",
+      "description": "Asks a person or a group to fill in a form by a date, once per period (day, week, month, quarter or year): monthly inspections, yearly reviews."
     }
   },
   "customizations": {
@@ -229,6 +333,7 @@
     "form": "Request form",
     "customField": "Custom field",
     "role": "Role",
+    "group": "Group",
     "notificationChannel": "Notification channel",
     "moduleSettings": "Module settings",
     "approvalChain": {
@@ -278,6 +383,36 @@
       "required": "Required",
       "options": "Choices",
       "optionsHelp": "One choice per line."
+    },
+    "approvalProcess": {
+      "label": "Approval process",
+      "description": "A request form with its own approval: the questions (including records people pick, such as configuration items), who approves, and optionally a change raised once a request is approved.",
+      "name": "Form name",
+      "category": "Category",
+      "recordType": "Records people pick",
+      "recordTypeHelp": "Optional. For example the configuration items a change touches: approvals can then follow the records picked.",
+      "recordLabel": "Question for the records",
+      "recordMultiple": "People can pick several",
+      "question": "Question",
+      "type": "Answer type",
+      "options": "Choices",
+      "optionsHelp": "One choice per line.",
+      "required": "Required",
+      "managerApproves": "The requester's manager approves first",
+      "recordGroupApproves": "Then the group responsible for the picked records approves",
+      "recordGroupFact": "Group from the records",
+      "groupApproves": "Then a group approves",
+      "group": "Group",
+      "createChange": "When a request is approved, raise a change",
+      "createChangeHelp": "The change is linked to the configuration items picked. When the form asks for two dates (start and end), it is submitted to its own authorization, with the CAB when needed.",
+      "stepManager": "Manager approval",
+      "stepRecordGroup": "Support group approval",
+      "stepGroup": "Group approval",
+      "workflowSuffix": "approval",
+      "actionName": "Raise a change"
+    },
+    "links": {
+      "openForm": "Open the form"
     }
   }
 }

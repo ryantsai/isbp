@@ -13,7 +13,13 @@ import {
   PermissionSet,
 } from '@isbp/sdk/server';
 import { eq, inArray, sql } from 'drizzle-orm';
-import { COMPANY_TIME_ZONE, DEFAULT_UNDER_USED_PERCENT, todayIn } from '../model';
+import {
+  COMPANY_TIME_ZONE,
+  DEFAULT_UNDER_USED_PERCENT,
+  DEFAULT_WIPE_MONTHS,
+  DEFAULT_WIPE_REMIND_DAYS,
+  todayIn,
+} from '../model';
 
 /** Full access for the module's own background work (jobs, event handlers, workflow callbacks, seed). */
 export function systemAuth(name = 'Assets'): AuthContext {
@@ -115,7 +121,16 @@ export interface ItamConfig {
   currency: string;
   warrantyDays: number;
   underUsedPercent: number;
+  /** Months after the data retention date by which a returned device must be wiped. */
+  wipeMonths: number;
+  /** Wipes due within this many days are flagged and reminded. */
+  wipeRemindDays: number;
 }
+
+const wholeIn = (v: unknown, min: number, max: number, fallback: number) => {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= min && n <= max ? Math.round(n) : fallback;
+};
 
 export async function itamConfig(ctx: ModuleContext): Promise<ItamConfig> {
   const all = await ctx.settings.all();
@@ -129,6 +144,13 @@ export async function itamConfig(ctx: ModuleContext): Promise<ItamConfig> {
       Number.isFinite(underUsedPercent) && underUsedPercent >= 0 && underUsedPercent <= 100
         ? Math.round(underUsedPercent)
         : DEFAULT_UNDER_USED_PERCENT,
+    wipeMonths: wholeIn(all['wipe.months'] ?? DEFAULT_WIPE_MONTHS, 0, 60, DEFAULT_WIPE_MONTHS),
+    wipeRemindDays: wholeIn(
+      all['wipe.remindDays'] ?? DEFAULT_WIPE_REMIND_DAYS,
+      0,
+      90,
+      DEFAULT_WIPE_REMIND_DAYS,
+    ),
   };
 }
 

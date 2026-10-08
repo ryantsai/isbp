@@ -1,4 +1,4 @@
-import { auditLogs, dbConnections, roleAssignments, roles, users } from '@isbp/db/schema';
+import { auditLogs, dbConnections, notifications, roleAssignments, roles, users } from '@isbp/db/schema';
 import { calls, pipelineRuns, pipelines } from '@isbp/module-etl/schema';
 import type { TaskContext } from '@isbp/sdk/server';
 import { and, desc, eq, sql } from 'drizzle-orm';
@@ -838,6 +838,72 @@ describe('pipelines', () => {
         { ...task, runId: 'sched-run-2', signal: aborted.signal },
       ),
     ).rejects.toThrow(/Stopped by Scheduled Jobs/);
+  });
+
+  it('tells the owner about a failed scheduled run once, unless the job alerts them anyway', async () => {
+    await h.call(s.dev!, 'PATCH', `${API}/pipelines/${pipelineId}`, {
+      mappings: [
+        { source: 'code', target: 'customer_code', transform: 'lower' },
+        { source: 'name', target: 'name', transform: 'constant:x' },
+        { source: 'region', target: 'region', transform: 'constant:way-too-long-for-varchar-16' },
+      ],
+      resetWatermark: true,
+    });
+    const ctx = h.kernel.registry.context('etl');
+    const failures = async () =>
+      (
+        await h.kernel.db
+          .select({ id: notifications.id })
+          .from(notifications)
+          .where(and(eq(notifications.userId, ids.dev), eq(notifications.type, 'etl.pipeline.failed')))
+      ).length;
+    const run = (runId: string, extra: Partial<TaskContext>) =>
+      ctx.taskTypes.run(
+        'etl.pipeline',
+        { pipelineId },
+        {
+          runId,
+          jobId: 'job-2',
+          attempt: 1,
+          maxAttempts: 1,
+          failureRecipients: [],
+          scheduledFor: new Date(),
+          lastSuccessAt: null,
+          signal: new AbortController().signal,
+          log: () => undefined,
+          ...extra,
+        },
+      );
+    const before = await failures();
+    // An attempt the job will retry: nobody hears yet (the job's own alert also waits for the last attempt).
+    await expect(run('sched-fail-1', { attempt: 1, maxAttempts: 2 })).rejects.toThrow(/22001/);
+    expect(await failures()).toBe(before);
+    // The last attempt, and the owner gets the job's alert too: one notice is enough.
+    await expect(
+      run('sched-fail-2', { attempt: 2, maxAttempts: 2, failureRecipients: [ids.viewer, ids.dev] }),
+    ).rejects.toThrow(/22001/);
+    expect(await failures()).toBe(before);
+    // The last attempt of a job that alerts other people (or nobody): the pipeline's owner is told.
+    await expect(
+      run('sched-fail-3', { attempt: 2, maxAttempts: 2, failureRecipients: [ids.viewer] }),
+    ).rejects.toThrow(/22001/);
+    expect(await failures()).toBe(before + 1);
+    const [latest] = await h.kernel.db
+      .select()
+      .from(notifications)
+      .where(and(eq(notifications.userId, ids.dev), eq(notifications.type, 'etl.pipeline.failed')))
+      .orderBy(desc(notifications.createdAt))
+      .limit(1);
+    expect(latest!.href).toMatch(new RegExp(`^/etl/pipelines/${pipelineId}/runs/`));
+    const runs = await h.kernel.db
+      .select({ taskRunId: pipelineRuns.taskRunId, status: pipelineRuns.status })
+      .from(pipelineRuns)
+      .where(eq(pipelineRuns.pipelineId, pipelineId));
+    expect(runs.filter((r) => r.taskRunId?.startsWith('sched-fail-')).map((r) => r.status)).toEqual([
+      'failed',
+      'failed',
+      'failed',
+    ]);
   });
 
   it('flags endpoints and pipelines whose connection is deleted', async () => {

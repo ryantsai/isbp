@@ -98,7 +98,9 @@
     "filesMaxSize": "附件大小上限（MB，最多 50）",
     "filesMaxSizeHelp": "超過此大小的上傳會被拒絕。",
     "filesBlocked": "封鎖的檔案類型",
-    "filesBlockedHelp": "不允許上傳的副檔名，以逗號分隔。執行檔與網頁也會依內容判斷並封鎖。"
+    "filesBlockedHelp": "不允許上傳的副檔名，以逗號分隔。執行檔與網頁也會依內容判斷並封鎖。",
+    "webhookHosts": "表單的 Webhook 主機",
+    "webhookHostsHelp": "表單「呼叫 Webhook」動作可傳送的主機：每行一個主機或 *.網域。清單中的主機可位於內部網路。留空表示不允許 Webhook。"
   },
   "systemRoles": {
     "platform-admin": {
@@ -123,7 +125,7 @@
     },
     "workflow-admin": {
       "name": "工作流程管理員",
-      "description": "設計簽核流程、表單、自訂欄位與通知管道"
+      "description": "設計簽核流程、表單、自訂欄位與通知通道"
     },
     "application-manager": {
       "name": "應用程式存取管理員",
@@ -142,6 +144,15 @@
     "user": "人員",
     "group": "群組",
     "department": "部門"
+  },
+  "recordTypes": {
+    "request": "申請"
+  },
+  "recordFacts": {
+    "formKey": "表單",
+    "status": "狀態",
+    "requesterId": "申請人",
+    "departmentCode": "申請人的部門"
   },
   "workflows": {
     "accessRequest": {
@@ -202,12 +213,17 @@
     "access_expiring": {
       "label": "即將到期的權限",
       "title": "您的 {role} 權限即將到期",
-      "body": "將於 {expiresAt} 到期。若仍需要，請重新申請。"
+      "body": "{via, select, group {您是透過群組「{group}」取得此權限，該授權將於 {expiresAt} 到期。若仍需要，請自行申請此角色。} other {將於 {expiresAt} 到期。若仍需要，請重新申請。}}"
     },
     "access_granted": {
       "label": "授予給我的角色",
       "title": "您已獲得角色 {role}",
       "body": "由 {actor} 授予。"
+    },
+    "user_transferred": {
+      "label": "人員調入或調出我的部門",
+      "title": "{name} 已調至{hasTo, select, yes {{to}} other {無部門}}：請檢視其存取權限",
+      "body": "{name} 已從{hasFrom, select, yes {{from}} other {無部門}}調至{hasTo, select, yes {{to}} other {無部門}}。{count, plural, =0 {沒有直接指派給此人員的角色。} other {其角色（# 個）：{roles}。}}{reviewCount, plural, =0 {} other {待檢視：限定於原部門的角色（# 個）：{review}。}}系統未撤銷任何權限：不再需要的權限請洽身分識別管理員移除。"
     },
     "form_submission_approved": {
       "label": "我的表單申請已核准",
@@ -219,9 +235,97 @@
       "title": "已駁回：{form}（{reference}）",
       "body": "{comment}"
     },
+    "form_assignment_assigned": {
+      "label": "指派給我的表單",
+      "title": "待辦事項：{title}",
+      "body": "請於 {due} 前填寫「{form}」。{note}"
+    },
+    "form_assignment_reminder": {
+      "label": "我的待辦事項提醒",
+      "title": "{overdue, select, yes {已逾期：{title}} other {即將到期：{title}}}",
+      "body": "{overdue, select, yes {「{form}」已於 {due} 到期，請盡快填寫。} other {請於 {due} 前填寫「{form}」。}}"
+    },
+    "form_assignment_overdue": {
+      "label": "我維護之表單的逾期待辦事項",
+      "title": "已逾期：{title}",
+      "body": "{assignee} 尚未填寫「{form}」（期限 {due}）。"
+    },
     "channel_test": {
       "title": "IS Big Platform 測試通知",
-      "body": "若您看得到這則訊息，代表此管道運作正常。"
+      "body": "若您看得到這則訊息，代表此通道運作正常。"
+    },
+    "process_action_failed": {
+      "label": "執行失敗的表單動作",
+      "title": "{reference} 的動作失敗：{action}",
+      "body": "「{form}」表單在重試後仍無法完成此步驟。請開啟申請查看錯誤並重新執行。"
+    },
+    "process_action_message": {
+      "label": "表單發送的訊息",
+      "title": "{title}",
+      "body": "{message}"
+    },
+    "reminder_due": {
+      "label": "表單設定的提醒",
+      "title": "{title}",
+      "body": "{message}"
+    }
+  },
+  "processActions": {
+    "grantRole": {
+      "name": "授予角色",
+      "description": "將平台或已註冊應用程式（VPN、Active Directory、伺服器存取）的角色授予申請人或表單中選取的人員，可設定天數或永久授予。",
+      "role": "角色",
+      "person": "授予對象",
+      "requester": "申請人",
+      "duration": "授予天數",
+      "durationHint": "留空表示永久授予。",
+      "reason": "原因（顯示於角色指派）",
+      "granted": "已授予角色",
+      "extended": "已延長角色期限",
+      "kept": "此人員已擁有該角色"
+    },
+    "notify": {
+      "name": "通知人員",
+      "description": "以自訂的標題與內容通知申請人、表單中指定的人員、特定人員或群組。",
+      "toRequester": "通知申請人",
+      "userFields": "下列欄位中指定的人員",
+      "person": "另外通知",
+      "groups": "下列群組的成員",
+      "title": "標題",
+      "message": "內容",
+      "sent": "已發送通知"
+    },
+    "webhook": {
+      "name": "呼叫 Webhook",
+      "description": "透過 HTTPS 將申請的 JSON 資料傳送至其他系統（僅限允許的主機），可附加機密標頭。",
+      "url": "URL",
+      "urlHint": "必須為 HTTPS，且主機列於核心設定「表單的 Webhook 主機」中。",
+      "headerName": "標頭名稱",
+      "headerValue": "標頭值（機密）",
+      "headerValueHint": "以加密方式儲存，之後不會再顯示。留空表示保留原值。",
+      "body": "JSON 內容"
+    },
+    "remind": {
+      "name": "傳送提醒",
+      "description": "依據答案或簽核人填寫欄位中的日期，於該日期之前或之後的指定天數提醒相關人員：例如規則到期、短期使用結束、資料待清除。",
+      "dateFrom": "日期",
+      "fromStep": "簽核人填寫的欄位",
+      "fromOutcome": "結果產生當天",
+      "stepField": "簽核人的欄位",
+      "stepFieldHint": "步驟 ID 與欄位鍵值，例如 review.wipeDue。",
+      "offsetDays": "日期之後的天數",
+      "offsetDaysHint": "負數表示日期之前（-30：前三十天）。依日期設定的提醒會在申請人時區的 9:00 送出。",
+      "onlyFuture": "僅在該日尚未到來時",
+      "roles": "具有這些角色的人員",
+      "scheduled": "已設定於 {date, date, long} 提醒",
+      "passed": "未設定提醒：{date, date, long} 已過",
+      "noDate": "未設定提醒：此申請沒有可用的日期"
+    }
+  },
+  "taskTypes": {
+    "assignForm": {
+      "name": "指派表單",
+      "description": "每個週期（日、週、月、季或年）請一位人員或一個群組在期限前填寫表單，例如每月巡檢、年度審查。"
     }
   },
   "customizations": {
@@ -229,6 +333,7 @@
     "form": "申請表單",
     "customField": "自訂欄位",
     "role": "角色",
+    "group": "群組",
     "notificationChannel": "通知通道",
     "moduleSettings": "模組設定",
     "approvalChain": {
@@ -247,7 +352,7 @@
       "secondGroup": "第二次簽核的群組",
       "onlyAbove": "僅在金額超過上限時",
       "conditionFact": "要比較的金額",
-      "conditionFactHelp": "申請中的值，例如鍵值為 amount 的表單問題請填 data.amount。",
+      "conditionFactHelp": "申請中的值，例如代碼為 amount 的表單問題請填 data.amount。",
       "conditionAmount": "上限",
       "isDefault": "用於此類的所有申請",
       "isDefaultHelp": "設為預設工作流程。表單會自行選擇工作流程，因此表單簽核請勿開啟此選項。",
@@ -259,7 +364,7 @@
     },
     "requestForm": {
       "label": "申請表單",
-      "description": "申請入口中最多包含三個問題的表單。",
+      "description": "申請入口網站中最多包含三個問題的表單。",
       "name": "表單名稱",
       "category": "類別",
       "workflow": "簽核流程",
@@ -278,6 +383,36 @@
       "required": "必填",
       "options": "選項",
       "optionsHelp": "每行一個選項。"
+    },
+    "approvalProcess": {
+      "label": "申請與簽核流程",
+      "description": "附帶簽核的申請表單：問題（包含申請人選取的紀錄，例如組態項目）、簽核人員，並可選擇在申請核准後建立變更。",
+      "name": "表單名稱",
+      "category": "類別",
+      "recordType": "申請人選取的紀錄",
+      "recordTypeHelp": "選填。例如變更涉及的組態項目，簽核人員即可依所選的紀錄決定。",
+      "recordLabel": "紀錄的問題",
+      "recordMultiple": "可選取多筆",
+      "question": "問題",
+      "type": "答案類型",
+      "options": "選項",
+      "optionsHelp": "每行一個選項。",
+      "required": "必填",
+      "managerApproves": "先由申請人的主管簽核",
+      "recordGroupApproves": "再由負責所選紀錄的群組簽核",
+      "recordGroupFact": "紀錄中的群組",
+      "groupApproves": "再由一個群組簽核",
+      "group": "群組",
+      "createChange": "申請核准後建立變更",
+      "createChangeHelp": "變更會連結到所選的組態項目。表單包含兩個日期（開始與結束）時，變更會送出至其本身的簽核流程，必要時包含 CAB。",
+      "stepManager": "主管簽核",
+      "stepRecordGroup": "支援群組簽核",
+      "stepGroup": "群組簽核",
+      "workflowSuffix": "簽核",
+      "actionName": "建立變更"
+    },
+    "links": {
+      "openForm": "開啟表單"
     }
   }
 }

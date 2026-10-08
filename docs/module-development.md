@@ -405,6 +405,12 @@ async search(query, ctx, auth, limit) { /* by reference or title; empty query = 
 - **Create with a link.** To create a record in another module already linked to yours, link to its form with
   `?link=<type>:<id>`, e.g. `/itsm/report?link=asset-tracker.asset:<id>`. The person fills in that module's own
   form, with its own validation and audit.
+- **Pick records in forms and route approvals on them (Phase 8).** Admins can add a `record` field to a request
+  form or a custom field ("the CIs this change touches"): the picker offers only records the person may read, and
+  the API checks every pick again. Declare `facts` (a Zod object, labelled with `.meta({ label, valueLabels, ref })`)
+  on the record type and a resolver `facts(ids, ctx)`, and workflows can use `records.<field>.<fact>` — conditions
+  ("the asset is data-bearing") and approvers ("the owner group approves"). Facts are never shown to anyone; keep
+  them to ids, keys and states. See recipe 24 in `docs/ai/recipes.md`.
 - **Secrets.** Licence keys, passwords and tokens are sealed with `ctx.secrets.seal(plain)` and read with
   `ctx.secrets.open(sealed)` (the platform master key, rotation-aware). Never return them in lists, and audit
   reveals.
@@ -556,6 +562,11 @@ schema and service: `schema`, `guide` (instructions, live reference data, exampl
 your kind that a person reviews, applies in one transaction and can roll back. Add a guided template for platforms
 without a chat model, and optionally a preview slot `assistant.preview.<module>.<kind>`. See `docs/ai/recipes.md`
 §23 and rules R45–R49.
+
+A module that comes with a whole process to set up (forms, approval workflows, groups, scheduled jobs) can ship it
+as a **built-in package**: `manifest.customizationPackages` plus `defineServerModule({ customizationPackages })`
+returning an `isbp.change-set-package` built for the installer's language. Administrators install it from Change sets
+→ **From a package** as one draft change set. See `docs/ai/recipes.md` §28.
 
 ## 7. Checklist before shipping a module
 

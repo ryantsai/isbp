@@ -13,23 +13,38 @@ The platform's built-in AI agent and its **change sets**. Design: `docs/architec
   apply permission (on the change set page, or by confirming the agent's request); a review runs the
   `assistant.change-set` workflow and applies the set as the approver. Rollback is one transaction too.
 
+- **Links** (Phase 8): once a change set is applied, what it made shows where people use it (a form's own page,
+  "Open the form"), from the kinds' `links`: on the change set page (**Ready to use**), in the panel's card, in the
+  agent's reply after the person confirms, in the tools' results for the model, and in the conversation when a review
+  applies the set. A guided template may build several changes that refer to each other (core's "Approval process":
+  a workflow, then the form using it); they are proposed in order into one change set, refs renamed when taken.
+
+- **Packages** (Phase 8): a change set as a file (`isbp.change-set-package`, version 1). **Export** downloads one;
+  **import** (a file) and **install** (a module's built-in package, `manifest.customizationPackages`) create a draft
+  change set from one, checking every item as a proposal and creating nothing when one fails, then dry-run it once.
+  Change sets → **From a package** offers both.
+
 This module never writes another module's tables: every change goes through the owning module's kind.
 
 ## Files
 
-| File                        | What it does                                                                                                                              |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/manifest.ts`           | Permissions, roles, the `assistant.change-set` review trigger (default: a platform administrator), notifications, AI tools                |
-| `src/contracts.ts`          | DTOs and inputs (change sets, items, dry-run results, conversations, confirmations, stream events)                                        |
-| `src/tool-inputs.ts`        | Inputs of the AI tools (web-safe: the manifest imports them)                                                                              |
-| `src/lib/refs.ts`           | `"$ref:<name>"` references between items, labels (pure)                                                                                   |
-| `src/server/change-sets.ts` | `ChangeSetService`: propose, dry run, apply, review (`onReviewCompleted` applies as the approver), rollback, refresh, discard, visibility |
-| `src/server/chat.ts`        | `ChatService`: conversations, the streamed tool loop on `ctx.ai.mcp`, confirmations                                                       |
-| `src/server/tools.ts`       | The AI tools (`assistant.*`), shared by the agent and outside MCP clients                                                                 |
-| `src/server/routes.ts`      | REST API under `/api/v1/assistant` (status, conversations with SSE, change sets, templates)                                               |
-| `src/web/panel/*`           | The header button and side panel: thread, tool chips, change set card, confirmation cards, guided templates                               |
-| `src/web/pages/*`           | Change sets (`/assistant/change-sets`) and a change set's page with diffs, dry runs and previews                                          |
-| `src/web/change-set/*`      | Item cards, the structured JSON diff, action dialogs                                                                                      |
+| File                         | What it does                                                                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/manifest.ts`            | Permissions, roles, the `assistant.change-set` review trigger (default: a platform administrator), notifications, AI tools                                         |
+| `src/contracts.ts`           | DTOs and inputs (change sets, items, dry-run results, conversations, confirmations, stream events)                                                                 |
+| `src/tool-inputs.ts`         | Inputs of the AI tools (web-safe: the manifest imports them)                                                                                                       |
+| `src/lib/refs.ts`            | `"$ref:<name>"` references between items (resolving, renaming), labels (pure)                                                                                      |
+| `src/lib/links.ts`           | The links of what an applied change set made (pure; server and web)                                                                                                |
+| `src/lib/packages.ts`        | Packages: `packageOf` (export), `packageIssues` and `proposalProblems` (the checks an import shares with proposing); exported as `@isbp/module-assistant/packages` |
+| `src/server/turns.ts`        | Appending turns to a conversation (the chat, and a review's note)                                                                                                  |
+| `src/server/change-sets.ts`  | `ChangeSetService`: propose, dry run, apply, review (`onReviewCompleted` applies as the approver), rollback, refresh, discard, visibility                          |
+| `src/server/chat.ts`         | `ChatService`: conversations, the streamed tool loop on `ctx.ai.mcp`, confirmations                                                                                |
+| `src/server/tools.ts`        | The AI tools (`assistant.*`), shared by the agent and outside MCP clients                                                                                          |
+| `src/server/routes.ts`       | REST API under `/api/v1/assistant` (status, conversations with SSE, change sets, templates)                                                                        |
+| `src/web/panel/*`            | The header button and side panel: thread, tool chips, change set card, confirmation cards, guided templates                                                        |
+| `src/web/pages/*`            | Change sets (`/assistant/change-sets`) and a change set's page with diffs, dry runs and previews                                                                   |
+| `src/web/change-set/*`       | Item cards, the structured JSON diff, action dialogs                                                                                                               |
+| `src/web/package-dialog.tsx` | "From a package": built-in packages and "Import a file"                                                                                                            |
 
 ## Tables (schema `assistant`)
 
@@ -57,7 +72,8 @@ This module never writes another module's tables: every change goes through the 
 
 - Routes: `GET /status`, `/conversations` (+ `/{id}`, `/{id}/messages` SSE, `/{id}/confirmations/{toolCallId}`),
   `/change-sets` (+ `/{id}`, `/items`, `/check`, `/refresh`, `/apply`, `/submit`, `/withdraw`, `/rollback`,
-  `/discard`), `/templates/{kind}/{templateId}`, `/templates/build`.
+  `/discard`, `/export`; `/import`), `/packages` (+ `/{module}/{key}/install`), `/templates/{kind}/{templateId}`,
+  `/templates/build`.
 - Events: `assistant.change-set.created`, `.submitted`, `.applied`, `.returned`, `.rolled_back`, `.discarded`.
 - Tools: `list_kinds`, `describe_kind`, `list_objects`, `get_object`, `propose_change`, `remove_change`,
   `get_change_set`, `update_change_set`, `request_review`, and the destructive `apply_change_set` and

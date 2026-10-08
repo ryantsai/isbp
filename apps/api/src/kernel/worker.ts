@@ -5,6 +5,7 @@ import type { Kernel } from './kernel';
 import { eventsCounter, jobsCounter } from './metrics';
 import { WORKFLOW_COMPLETED_EVENT } from './modules';
 import { type EventJobData, OutboxRelay } from './outbox-relay';
+import { PROCESS_ACTIONS_QUEUE } from './process-actions';
 import { EVENTS_QUEUE, moduleQueueName } from './queues';
 
 function withTimeout<T>(promise: Promise<T>, ms: number | undefined, label: string): Promise<T> {
@@ -68,6 +69,20 @@ export async function startWorker(kernel: Kernel) {
         return { handled: true };
       },
       { connection, concurrency: config.WORKER_CONCURRENCY },
+    ),
+  );
+
+  // Process actions (what forms do after they are sent or decided) have their own queue, so a long core job
+  // (a directory sync) never holds them up. Each job claims its run, so a duplicate job does nothing.
+  workers.push(
+    new Worker<{ runId: string }>(
+      PROCESS_ACTIONS_QUEUE,
+      async (job) => {
+        const result = await kernel.processActions.execute(job.data.runId);
+        jobsCounter.inc({ queue: PROCESS_ACTIONS_QUEUE, name: job.name, status: result.status });
+        return result;
+      },
+      { connection, concurrency: Math.min(config.WORKER_CONCURRENCY, 5) },
     ),
   );
 

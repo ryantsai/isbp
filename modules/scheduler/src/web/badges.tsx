@@ -11,6 +11,7 @@ import {
   CirclePauseIcon,
   CirclePlayIcon,
   CircleXIcon,
+  ClipboardCheckIcon,
   ClockIcon,
   DatabaseIcon,
   GitMergeIcon,
@@ -185,6 +186,7 @@ const TASK_ICONS: Record<string, LucideIcon> = {
   'refresh-cw': RefreshCwIcon,
   'shield-check': ShieldCheckIcon,
   'git-merge': GitMergeIcon,
+  'clipboard-check': ClipboardCheckIcon,
 };
 
 /** A task type's icon (lucide name from its manifest), with a generic fallback. */

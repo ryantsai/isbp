@@ -56,6 +56,8 @@ const EMPTY_SETTINGS: ItamSettings = {
   currency: 'TWD',
   warrantyDays: 30,
   underUsedPercent: 60,
+  wipeMonths: 2,
+  wipeRemindDays: 7,
   canEditSettings: false,
 };
 

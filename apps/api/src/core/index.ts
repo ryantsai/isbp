@@ -5,6 +5,9 @@ import { z } from 'zod';
 import type { DeliveryEvent } from '../kernel/notifications/service';
 import { moduleQueueName } from '../kernel/queues';
 import { customizations } from './customizations';
+import { processActions } from './process-actions';
+import { taskTypes } from './task-types';
+import { requestRecords } from './records';
 import { catalogText } from './customizations/shared';
 import { getKernel } from './kernel-ref';
 import { coreManifest } from './manifest';
@@ -12,6 +15,7 @@ import { accessRoutes } from './routes/access';
 import { applicationRoutes } from './routes/applications';
 import { authRoutes } from './routes/auth';
 import { directoryRoutes } from './routes/directory';
+import { formAssignmentRoutes } from './routes/form-assignments';
 import { formRoutes } from './routes/forms';
 import { aiRoutes } from './routes/ai';
 import { notificationRoutes } from './routes/notifications';
@@ -26,6 +30,7 @@ import { AccessRequestService } from './services/access-requests';
 import { ApiClientService, ApplicationService, RoleQueryService } from './services/applications';
 import { DatabaseAdminService } from './services/databases';
 import { DirectoryService } from './services/directory';
+import { FormAssignmentService } from './services/form-assignments';
 import { CustomFieldAdminService, FormService } from './services/forms';
 import { IdpService } from './services/idp';
 import { AiAdminService } from './services/ai';
@@ -143,6 +148,7 @@ export const coreModule = defineServerModule(coreManifest, {
     workflowRoutes(app, new WorkflowAdminService(ctx), new ApprovalService(ctx));
     requestRoutes(app, new AccessRequestService(ctx), forms);
     formRoutes(app, forms, new CustomFieldAdminService(ctx));
+    formAssignmentRoutes(app, new FormAssignmentService(ctx), forms);
     notificationRoutes(app, new NotificationAdminService(ctx));
     aiRoutes(app, new AiAdminService(ctx));
     recordRoutes(app);
@@ -177,9 +183,20 @@ export const coreModule = defineServerModule(coreManifest, {
      */
     'core.role.updated': async () => getKernel().rbac.bump(),
     'core.role.deleted': async () => getKernel().rbac.bump(),
+    /** Process action runs created (or retried) with a submission's outcome go to the worker after commit. */
+    'core.process-action.queued': async (event) => {
+      const { runIds } = event.payload as { runIds: string[] };
+      await getKernel().processActions.enqueue(runIds);
+    },
   },
 
   customizations,
+
+  processActions,
+
+  taskTypes,
+
+  records: { request: requestRecords },
 
   jobs: {
     'workflow-timers': {
@@ -220,6 +237,22 @@ export const coreModule = defineServerModule(coreManifest, {
       schedule: { cron: '*/30 * * * *' },
       timeoutMs: 10 * 60_000,
       handler: async (_job, ctx) => new DatabaseAdminService(ctx).checkAll(),
+    },
+    'process-actions-sweep': {
+      description: 'Hands process action runs whose job was lost (a worker stopped) to the worker again',
+      schedule: { everyMs: 5 * 60_000 },
+      handler: async () => getKernel().processActions.sweep(),
+    },
+    'remind-form-assignments': {
+      description:
+        'Reminds people of assigned forms due within two days or overdue (at most daily) and tells form editors about overdue ones',
+      schedule: { cron: '13 * * * *' },
+      handler: async (_job, ctx) => new FormAssignmentService(ctx).remind(),
+    },
+    'deliver-reminders': {
+      description: 'Sends the reminders forms scheduled (core.remind) whose date has come',
+      schedule: { everyMs: 5 * 60_000 },
+      handler: async () => getKernel().reminders.deliverDue(),
     },
     'purge-sessions': {
       description: 'Deletes sessions that ended more than 7 days ago',

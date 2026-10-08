@@ -534,5 +534,18 @@
     "draft": "Draft",
     "mergeInto": "{source} into {target}",
     "synced": "Synced"
+  },
+  "recordFacts": {
+    "code": "Application code",
+    "stage": "Stage",
+    "criticality": "Criticality",
+    "hosting": "Hosting",
+    "dataClassification": "Data classification",
+    "disposition": "Disposition (TIME)",
+    "ownerId": "Technical owner",
+    "businessOwnerId": "Business owner",
+    "teamGroup": "Delivery team",
+    "supportGroup": "Support group",
+    "departmentCode": "Department code"
   }
 }

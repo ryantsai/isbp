@@ -156,7 +156,10 @@
     "incomplete": "Choose a person, group, role or field for every approver.",
     "unknownGroup": "A group in this step no longer exists.",
     "unknownRole": "A role in this step no longer exists.",
-    "unknownUser": "A person in this step is no longer active."
+    "unknownUser": "A person in this step is no longer active.",
+    "unknownRecordType": "A field the approver fills in offers a record type that doesn't exist.",
+    "stepFact": "This step uses a field of a step that doesn't come before it (or that the step no longer has).",
+    "stepFields": "A field the approver fills in depends on an unknown field or on itself, or has an invalid default."
   },
   "builder": {
     "title": "Workflow builder",
@@ -228,6 +231,7 @@
     "saved": "Draft saved",
     "published": "Published version {version} — new requests use it now",
     "fixIssues": "Fix the highlighted steps before publishing",
+    "stepFact": "{step}: {field}",
     "approvers": {
       "type": "Approver type",
       "types": {
@@ -237,7 +241,8 @@
         "manager": "Manager",
         "department-head": "Department head",
         "fact": "Person in a field",
-        "requester": "The requester"
+        "requester": "The requester",
+        "fact-group": "Group in a field"
       },
       "pickRole": "Choose a role",
       "level": "Manager level",
@@ -245,14 +250,36 @@
       "pickFact": "Choose a field",
       "hints": {
         "department-head": "The manager of the person's department.",
-        "requester": "The person who sent the request."
+        "requester": "The person who sent the request.",
+        "fact-group": "Any member of the group named in this field approves, e.g. the support group of the picked CI."
       },
       "remove": "Remove",
       "fallback": "If nobody is found, ask",
-      "addFallback": "Add a fallback"
+      "addFallback": "Add a fallback",
+      "pickGroupFact": "Choose a field that holds a group",
+      "noGroupFacts": "No field holds a group yet. Choose a form with a record field (for example a CI and its support group) under “Use the fields of”.",
+      "each": "Ask each one separately",
+      "eachHint": "One approval per group or person in the field. With “Every approver”, each of them must approve (for example the owner group of every picked CI)."
     },
     "editor": {
       "legend": "Step settings",
+      "stepFields": "Fields the approver fills in",
+      "stepFieldsHint": "Asked with the decision (for example an evaluation result or a completion date). Kept on the request; later steps can test them.",
+      "noStepFields": "None: approvers only approve or reject.",
+      "addField": "Add field",
+      "fieldType": "Field type",
+      "requiredField": "Required",
+      "moveFieldUp": "Move {label} up",
+      "moveFieldDown": "Move {label} down",
+      "editField": "Edit {label}",
+      "removeField": "Remove {label}",
+      "fieldsMax": "A step can ask for at most {max} fields.",
+      "requiredOn": "Required fields must be filled in",
+      "requiredOnApprove": "To approve",
+      "requiredOnBoth": "To approve and to reject",
+      "fieldSheetTitle": "Field the approver fills in",
+      "fieldSheetDescription": "Approvers of this step see it next to Approve and Reject.",
+      "saveField": "Save field",
       "name": "Step name",
       "when": "Condition",
       "whenHint": "Skip this step for requests that don't match.",
@@ -338,7 +365,8 @@
         "active": "waiting",
         "waiting": "not reached"
       }
-    }
+    },
+    "recordFact": "{field}: {fact}"
   },
   "changePreview": {
     "invalid": "This proposal can’t be drawn: its graph isn’t a valid workflow.",

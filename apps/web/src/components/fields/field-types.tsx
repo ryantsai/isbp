@@ -4,6 +4,7 @@ import type { DisplayType, FieldType } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
 import {
   AtSignIcon,
+  BoxesIcon,
   CalendarDaysIcon,
   HashIcon,
   HeadingIcon,
@@ -14,6 +15,7 @@ import {
   SeparatorHorizontalIcon,
   SquareCheckIcon,
   SquareChevronDownIcon,
+  Table2Icon,
   TextAlignStartIcon,
   TypeIcon,
   UserRoundIcon,
@@ -32,6 +34,8 @@ export const ELEMENT_ICONS: Record<ElementType, LucideIcon> = {
   email: AtSignIcon,
   url: Link2Icon,
   user: UserRoundIcon,
+  record: BoxesIcon,
+  rows: Table2Icon,
   heading: HeadingIcon,
   paragraph: PilcrowIcon,
   divider: SeparatorHorizontalIcon,
@@ -47,6 +51,8 @@ export const FIELD_TYPE_ORDER: readonly FieldType[] = [
   'date',
   'boolean',
   'user',
+  'record',
+  'rows',
   'email',
   'url',
 ];

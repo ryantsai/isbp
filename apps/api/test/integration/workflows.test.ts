@@ -15,6 +15,7 @@ import type { WorkflowGraph } from '@isbp/sdk';
 import { and, desc, eq } from 'drizzle-orm';
 import nodemailer from 'nodemailer';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AccessRequestService } from '../../src/core/services/access-requests';
 import { startWorker } from '../../src/kernel/worker';
 import { createHarness, type Harness, PASSWORD, type Session } from './harness';
 import { hashPassword } from '../../src/kernel/passwords';
@@ -634,6 +635,68 @@ describe('custom workflows: parallel, conditions, quorum and SLA timers', () => 
       .where(eq(workflowInstances.id, sub.body.workflow.id));
     expect(inst!.status).toBe('cancelled');
     expect(await pendingTask(sub.body.workflow.id)).toBeUndefined();
+  });
+});
+
+describe('access ending soon', () => {
+  it('reminds a person, and the group members who lose the role when a group grant ends', async () => {
+    const db = h.kernel.db;
+    const day = 86_400_000;
+    const role = await roleId('configuration-viewer');
+    const [team] = await db.insert(groups).values({ key: 'contractors', name: 'Contractors' }).returning();
+    const [other] = await db.insert(groups).values({ key: 'auditors', name: 'Auditors' }).returning();
+    const [alone, keeps, viaOther, both, gone] = await Promise.all(
+      ['exp-alone', 'exp-keeps', 'exp-via-other', 'exp-both', 'exp-gone'].map((u) => mkUser(u)),
+    );
+    await db.update(users).set({ status: 'offboarded' }).where(eq(users.id, gone!));
+    await db
+      .insert(groupMembers)
+      .values([alone, keeps, viaOther, both, gone].map((userId) => ({ groupId: team!.id, userId: userId! })));
+    await db.insert(groupMembers).values([
+      { groupId: other!.id, userId: viaOther! },
+      { groupId: other!.id, userId: both! },
+    ]);
+    const ends = new Date(Date.now() + 2 * day);
+    const [personal, teamGrant] = await db
+      .insert(roleAssignments)
+      .values([
+        { roleId: role, userId: ids.owner, expiresAt: ends, reason: 'Audit week' },
+        { roleId: role, groupId: team!.id, expiresAt: ends, reason: 'Contract' },
+        // These keep the role after the group grant ends: a permanent grant of their own, another group's
+        // grant that ends later. One that ends sooner doesn't count.
+        { roleId: role, userId: keeps!, reason: 'Staff' },
+        { roleId: role, groupId: other!.id, expiresAt: new Date(Date.now() + 30 * day), reason: 'Audit' },
+        { roleId: role, userId: alone!, expiresAt: new Date(Date.now() + day), reason: 'Sooner' },
+      ])
+      .returning();
+    // The other group's grant is not due; its members only hold it through that group.
+    const service = new AccessRequestService(h.kernel.registry.context('core'));
+    const reminded = async (userId: string) =>
+      db
+        .select()
+        .from(notifications)
+        .where(and(eq(notifications.userId, userId), eq(notifications.type, 'core.access.expiring')));
+
+    await service.notifyExpiring();
+    const [mine] = await reminded(ids.owner);
+    expect(mine).toMatchObject({ title: 'Your Configuration viewer access ends soon' });
+    expect(mine!.body).toMatch(/^It ends on /);
+    // `alone` gets two reminders: their own grant (ending sooner) and the group's.
+    const forAlone = await reminded(alone!);
+    expect(forAlone).toHaveLength(2);
+    const viaGroup = forAlone.find((n) => (n.data as { groupId?: string } | null)?.groupId === team!.id);
+    expect(viaGroup!.body).toContain('as a member of Contractors');
+    for (const u of [keeps, viaOther, both, gone]) expect(await reminded(u!), u).toHaveLength(0);
+
+    // Once per assignment.
+    await service.notifyExpiring();
+    expect(await reminded(ids.owner)).toHaveLength(1);
+    expect(await reminded(alone!)).toHaveLength(2);
+    const marked = await db
+      .select({ id: roleAssignments.id, at: roleAssignments.expiryNotifiedAt })
+      .from(roleAssignments)
+      .where(eq(roleAssignments.roleId, role));
+    for (const a of [personal, teamGrant]) expect(marked.find((m) => m.id === a!.id)?.at).toBeTruthy();
   });
 });
 

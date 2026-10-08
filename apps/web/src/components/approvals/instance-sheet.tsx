@@ -126,6 +126,7 @@ export function InstanceSheet({
             taskId={myTask.id}
             decision={decision}
             subject={subject}
+            step={step?.type === 'approval' ? step : undefined}
             open={Boolean(decision)}
             onOpenChange={(o) => !o && setDecision(null)}
             onDone={() => onOpenChange(false)}

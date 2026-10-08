@@ -21,6 +21,7 @@ import {
 import { motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import { DecisionValues } from './decision-values';
 
 const ICONS: Record<string, { icon: ReactNode; tone: string }> = {
   started: { icon: <PlayIcon />, tone: 'bg-primary/10 text-primary' },
@@ -74,6 +75,12 @@ export function InstanceTimeline({ instance }: { instance: Pick<WorkflowInstance
         const comment = typeof data.comment === 'string' && data.comment ? data.comment : null;
         const reason =
           e.type === 'cancelled' && typeof data.reason === 'string' && data.reason ? data.reason : null;
+        // What the approver filled in with the decision (the step's fields).
+        const decided = findStep(instance.graph, e.stepId ?? '');
+        const filled =
+          data.fields && typeof data.fields === 'object' && decided?.type === 'approval' && decided.fields
+            ? { fields: decided.fields, data: data.fields as Record<string, unknown> }
+            : null;
         return (
           <motion.li
             key={e.seq}
@@ -105,6 +112,7 @@ export function InstanceTimeline({ instance }: { instance: Pick<WorkflowInstance
                   {comment ?? reason}
                 </blockquote>
               )}
+              {filled && <DecisionValues fields={filled.fields} data={filled.data} className="mt-1.5" />}
               <RelativeTime date={e.createdAt} className="mt-0.5 block text-xs text-muted-foreground" />
             </div>
           </motion.li>

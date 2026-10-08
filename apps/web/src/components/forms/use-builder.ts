@@ -5,6 +5,8 @@ import {
   type DisplayType,
   type FieldType,
   type FormElement,
+  type FormAction,
+  type FormRule,
   type FormSchema,
   isField,
   type LocalizedText,
@@ -15,6 +17,7 @@ import {
   cleanElement,
   hasText,
   newElementId,
+  newRowColumn,
   slugKey,
   uniqueName,
 } from '@/components/fields/field-utils';
@@ -26,6 +29,10 @@ export interface BuilderState {
   icon: string;
   category: string;
   elements: FormElement[];
+  /** Rules across fields (the Rules tab). */
+  rules: FormRule[];
+  /** What happens after a request is sent or decided (the Actions tab); secrets arrive as `{ set: true }`. */
+  actions: FormAction[];
   workflowDefinitionId: string | null;
   audience: FormAudience;
   active: boolean;
@@ -38,14 +45,23 @@ export function fromDetail(form: FormDetail): BuilderState {
     icon: form.icon,
     category: form.category ?? '',
     elements: (form.draft as FormSchema).elements,
+    rules: (form.draft as FormSchema).rules ?? [],
+    actions: (form.draft as FormSchema).actions ?? [],
     workflowDefinitionId: form.workflow?.id ?? null,
     audience: form.audience,
     active: form.active,
   };
 }
 
-export function toDraft(elements: readonly FormElement[]): FormSchema {
-  return { elements: elements.map((el) => cleanElement(el)) };
+/** The schema the builder saves: cleaned elements, plus the other parts (rules, …) when there are any. */
+export function toDraft(
+  elements: readonly FormElement[],
+  rest: Omit<FormSchema, 'elements'> = {},
+): FormSchema {
+  const draft: FormSchema = { elements: elements.map((el) => cleanElement(el)) };
+  if (rest.rules?.length) draft.rules = rest.rules;
+  if (rest.actions?.length) draft.actions = rest.actions;
+  return draft;
 }
 
 export function toPatch(s: BuilderState): UpdateFormInput {
@@ -54,7 +70,7 @@ export function toPatch(s: BuilderState): UpdateFormInput {
     description: hasText(s.description) ? s.description : null,
     icon: s.icon,
     category: s.category.trim() || null,
-    draft: toDraft(s.elements),
+    draft: toDraft(s.elements, { rules: s.rules, actions: s.actions }),
     workflowDefinitionId: s.workflowDefinitionId,
     audience: s.audience,
     active: s.active,
@@ -164,6 +180,8 @@ export function createElement(
   };
   if (CHOICE_TYPES.includes(type))
     field.options = [1, 2, 3].map((n) => ({ value: `option${n}`, label: { [locale]: text.option(n) } }));
+  // A new table starts with one text column to rename.
+  if (type === 'rows') field.rows = { fields: [newRowColumn('text', [], { [locale]: text.label('text') })] };
   return field;
 }
 

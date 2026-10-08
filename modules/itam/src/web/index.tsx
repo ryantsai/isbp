@@ -9,6 +9,17 @@ export default defineWebModule(manifest, {
     { path: '/hardware/:ref', load: () => import('./pages/asset-page'), permission: 'itam.hardware.read' },
     { path: '/software', load: () => import('./pages/software-page'), permission: 'itam.software.read' },
     { path: '/software/:ref', load: () => import('./pages/license-page'), permission: 'itam.software.read' },
+    {
+      path: '/approved-software',
+      load: () => import('./pages/approved-software-page'),
+      permission: 'itam.software.read',
+    },
+    // Same permission as the discovery API; mapping or ignoring titles also needs itam.software.manage.
+    {
+      path: '/discovery',
+      load: () => import('./pages/discovery-page'),
+      permission: 'itam.hardware.manage',
+    },
     { path: '/contracts', load: () => import('./pages/contracts-page'), permission: 'itam.contracts.read' },
     {
       path: '/contracts/:ref',

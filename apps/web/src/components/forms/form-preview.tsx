@@ -5,6 +5,8 @@ import {
   defaultFieldValues,
   type FieldValue,
   type FormElement,
+  type FormRule,
+  type FormSchema,
   isField,
   type LocalizedText,
   localize,
@@ -13,7 +15,7 @@ import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Form } from '@isbp/ui/form';
-import { FormFields, useFieldsResolver } from '@isbp/ui/form-renderer';
+import { FormErrorSummary, FormFields, useFormResolver } from '@isbp/ui/form-renderer';
 import { CircleCheckIcon, LanguagesIcon, RotateCcwIcon, SendIcon, TriangleAlertIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
@@ -63,12 +65,14 @@ type Result = { ok: true; values: Record<string, FieldValue> } | { ok: false; co
 
 function PreviewForm({
   elements,
+  rules,
   name,
   description,
   icon,
   onResult,
 }: {
   elements: readonly FormElement[];
+  rules?: readonly FormRule[];
   name: LocalizedText;
   description: LocalizedText;
   icon: string;
@@ -77,7 +81,11 @@ function PreviewForm({
   const locale = useLocale();
   const t = useTranslations('forms.preview');
   const fields = useMemo(() => elements.filter(isField), [elements]);
-  const resolver = useFieldsResolver(fields);
+  const schema = useMemo<FormSchema>(
+    () => ({ elements: [...elements], rules: rules?.length ? [...rules] : undefined }),
+    [elements, rules],
+  );
+  const resolver = useFormResolver(schema);
   const form = useForm({ resolver, defaultValues: defaultFieldValues(fields) });
   const submit = form.handleSubmit(
     (values) => onResult({ ok: true, values: values as Record<string, FieldValue> }),
@@ -96,6 +104,7 @@ function PreviewForm({
       <CardContent>
         <Form {...form}>
           <form onSubmit={submit} noValidate>
+            <FormErrorSummary schema={schema} form={form} className="mb-4" />
             {elements.length ? (
               <FormFields elements={elements} form={form} />
             ) : (
@@ -123,14 +132,16 @@ function PreviewForm({
   );
 }
 
-/** The form exactly as people will see it, in any language, with a dry-run submit. */
+/** The form exactly as people will see it, in any language, with a dry-run submit (fields and rules). */
 export function FormPreview({
   elements,
+  rules,
   name,
   description,
   icon,
 }: {
   elements: readonly FormElement[];
+  rules?: readonly FormRule[];
   name: LocalizedText;
   description: LocalizedText;
   icon: string;
@@ -159,7 +170,11 @@ export function FormPreview({
     [previewLocale, current, catalogs, messages],
   );
   const ready = previewLocale === current || Boolean(catalogs);
-  const missing = missingTexts(elements, [name, description], previewLocale);
+  const missing = missingTexts(
+    elements,
+    [name, description, ...(rules ?? []).map((r) => r.message)],
+    previewLocale,
+  );
 
   // Laid out by the space it gets: the builder's preview tab, or a narrow card on a change set's page.
   return (
@@ -202,6 +217,7 @@ export function FormPreview({
               <PreviewForm
                 key={previewLocale}
                 elements={elements}
+                rules={rules}
                 name={name}
                 description={description}
                 icon={icon}

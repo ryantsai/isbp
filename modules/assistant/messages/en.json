@@ -68,7 +68,10 @@
     "declinedBy": "Declined: {label}",
     "confirmDone": "Done: {label}.",
     "confirmFailed": "{label} didn’t go through: {message}",
-    "declined": "OK, I won’t do that: {label}."
+    "declined": "OK, I won’t do that: {label}.",
+    "linksIntro": "Ready to use:",
+    "link": "{object}: [{label}]({href})",
+    "reviewApplied": "{reference} was approved and applied by {by}."
   },
   "status": {
     "draft": "Draft",
@@ -214,7 +217,52 @@
     "emptyHint": "Open the assistant with the sparkles button in the header to prepare one.",
     "emptyFiltered": "No change sets match",
     "emptyFilteredHint": "Try another status or search.",
-    "liveCount": "{count, plural, one {# change set} other {# change sets}}"
+    "liveCount": "{count, plural, one {# change set} other {# change sets}}",
+    "fromPackage": "From a package"
+  },
+  "packages": {
+    "title": "New change set from a package",
+    "description": "Install a built-in package that a module ships, or import a package file exported from another environment. Either becomes a draft change set: nothing is live until someone applies it.",
+    "tabsLabel": "Where the package comes from",
+    "builtin": {
+      "tab": "Built-in packages",
+      "listLabel": "Built-in packages",
+      "meta": "{count, plural, one {# change} other {# changes}} · {module}",
+      "kinds": "Changes to: {kinds}",
+      "install": "Install",
+      "installed": "{reference} created from the package",
+      "needsReviewer": "You can prepare it, but applying it needs someone with more permissions (or a review).",
+      "missingModules": "Needs modules that aren’t enabled: {modules}",
+      "unknownKinds": "Needs kinds of configuration this platform doesn’t have: {kinds}",
+      "unreadable": "Preparing it needs permissions you don’t hold: {permissions}",
+      "unsupported": "Some of its changes aren’t supported here.",
+      "empty": "No built-in packages",
+      "emptyHint": "None of the enabled modules ships one. You can still import a package file."
+    },
+    "file": {
+      "tab": "Import a file",
+      "hint": "Choose a change-set package (.json), for example one exported from a change set in another environment. Its changes are checked like any proposal; nothing is created if one fails.",
+      "label": "Package file",
+      "fileHint": "An isbp.change-set-package file, up to 4 MB.",
+      "parsed": "“{title}”, {count, plural, one {# change} other {# changes}}",
+      "parsedUntitled": "a change-set package",
+      "problems": {
+        "unreadable": "This file isn’t valid JSON.",
+        "notPackage": "This file isn’t a change-set package (its format must be isbp.change-set-package).",
+        "tooLarge": "This file is larger than 4 MB."
+      },
+      "import": "Import",
+      "imported": "{reference} created from the file"
+    },
+    "errors": {
+      "invalid": "The package has problems. Nothing was created:",
+      "unsupported": "This package doesn’t fit this platform. Nothing was created:",
+      "missingModules": "Modules that aren’t enabled: {modules}",
+      "unknownKinds": "Kinds of configuration this platform doesn’t have: {kinds}",
+      "forbidden": "Preparing these changes needs permissions you don’t hold: {permissions}.",
+      "tooLarge": "The package is larger than 4 MB.",
+      "more": "{count, plural, one {and # more} other {and # more}}"
+    }
   },
   "detail": {
     "back": "Change sets",
@@ -242,7 +290,8 @@
       "discard": "Discard",
       "check": "Check again",
       "refresh": "Refresh",
-      "more": "More actions"
+      "more": "More actions",
+      "export": "Export"
     },
     "missing": {
       "title": "You can’t apply this change set yourself",
@@ -259,6 +308,11 @@
     "summaryTitle": "Summary",
     "noSummary": "No summary yet.",
     "destructiveNote": "This change set archives or deletes something: applying it needs an explicit confirmation.",
+    "live": {
+      "title": "Ready to use",
+      "body": "What this change set made is live. Share these links with the people who use it.",
+      "link": "{label}: {object}"
+    },
     "stats": {
       "items": "Changes",
       "kinds": "Changes to",

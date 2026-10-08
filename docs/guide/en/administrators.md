@@ -3,7 +3,8 @@
 This guide is for IT and platform administrators. It covers who can do what (people, groups, departments, roles and
 access requests), how people sign in, the approval workflows and forms behind every request, notifications, modules,
 AI settings and the audit log. Many of these changes can also be prepared by the assistant as a change set; the
-[common admin tasks](#common-admin-tasks) at the end show both ways.
+[common admin tasks](#common-admin-tasks) at the end show both ways. To turn a whole IT process into a form with its
+approvals and follow-up actions, see [Build your own process](processes.md).
 
 ## What you can do here
 
@@ -15,7 +16,8 @@ AI settings and the audit log. Many of these changes can also be prepared by the
   access through [API clients and the Role Query API](#give-another-system-access-with-an-api-client)
 - [Connect a sign-in provider](#connect-a-sign-in-provider) (OIDC, SAML or LDAP)
 - [Design](#design-an-approval-workflow) and [publish](#test-and-publish-a-workflow) approval workflows, and
-  [build request forms](#build-a-request-form) and [custom fields](#add-custom-fields)
+  [build request forms](#build-a-request-form) (with record fields, rules and actions) and
+  [custom fields](#add-custom-fields)
 - [Send notifications to email, Teams, Slack or webhooks](#set-up-notification-channels-and-email)
 - [Turn modules on or off](#manage-modules-and-their-settings), [configure AI](#configure-ai) and
   [check the audit log](#check-the-audit-log)
@@ -102,6 +104,10 @@ manages people only in the Sales department and its sub-departments.
 Moving a department moves everything under it. Deleting one is refused while it has sub-departments, and revokes roles
 scoped to it.
 
+When you move a person to another department, their previous manager and their new one are notified (**People moving
+between my department and another**) with the person's roles; roles scoped to the old department are listed to review.
+Nothing is revoked: remove the roles they no longer need on their page.
+
 ## Create a role
 
 A role bundles permissions. Permissions are named `module.resource.action` (for example `core.users.read`), and `*`
@@ -129,7 +135,7 @@ a date. Prefer time-bound access for temporary needs.
    sub-departments) or a single record such as one group.
 5. Enter a **Reason** and select **Grant access**.
 
-**What happens next:** The grant works at once. Time-bound grants end by themselves; a person (not a group) gets an "Access ending soon" reminder first.
+**What happens next:** The grant works at once. Time-bound grants end by themselves. Three days before, an "Access ending soon" reminder goes to the person, or for a group to its members who lose the role with it (not those who keep it through another grant that lasts longer).
 The **Assignments** tab lists every grant with its scope, end date and who granted it; select **Revoke** to end one.
 
 In the demo, `helpdesk` manages the members of the VPN Users group only (a record scope), and a contractor holds
@@ -220,18 +226,29 @@ authorization**), asset disposal, project proposals, database access, publishing
    - **Notification**: let people know, no decision needed.
 4. Select a step and set it on the **Step** tab:
    - **Approvers**: **A person**, **A group**, **Holders of a role**, **Manager**, **Department head**, **Person in a
-     field** or **The requester**, each with an optional fallback (**If nobody is found, ask**).
+     field**, **Group in a field** or **The requester**, each with an optional fallback (**If nobody is found,
+     ask**). **Person in a field** and **Group in a field** take the approver from the request, for example the
+     support group of the CI picked on a form.
    - **How many must approve**: **The first answer decides**, **Every approver** or **A number of approvers**.
    - **Only run this step in some cases**: a condition, such as the amount being above a limit.
    - **Deadline**: **Due within**, **Remind after**, and **When the deadline passes** (notify, escalate, approve or
      reject automatically).
    - **Options**: delegation, self-approval (off by default), and **If no approver is found**.
    - **Instructions for approvers**.
-5. On the **Workflow** tab, choose **Use the fields of** a form so conditions can test its answers.
+5. On the **Workflow** tab, choose **Use the fields of** a form so conditions can test its answers and the data of
+   the records it picks, listed as "field: data" (for example **Configuration items: Criticality**). For a field that
+   picks several records, a condition is met when any of them matches.
 6. Select **Save draft**.
 
 In the demo, **Laptop request approval** asks the department head, then holders of the **Asset manager** role when
-the estimated cost is above 60 000 TWD.
+the estimated cost is above 60 000 TWD. **Configuration change approval** asks the requester's manager, then the
+support group of the picked CIs (**Group in a field**), then the Change Advisory Board when a CI is critical or the
+risk is high.
+
+The approvals that modules start themselves (**Change authorization**, **Asset disposal** and **Project proposal**)
+also see the [custom fields](#add-custom-fields) of the ticket, hardware asset or project they approve: a condition
+can test a custom field, or the data of a record picked in a record custom field. See
+[Use custom fields in built-in approvals](processes.md#use-custom-fields-in-built-in-approvals).
 
 ![The workflow builder with the demo's laptop request approval](../../../apps/web/public/help/en/administrators-workflow-builder.jpg)
 
@@ -257,15 +274,47 @@ Request forms are what people fill in from the portal: equipment, software, anyt
    **Category**, then select **Create and open builder**.
 2. On **Build**, drag fields from **Add elements** onto the form, or click one to add it. Select a field to set its
    **Label** (in English, 繁體中文 and 日本語), **Key**, **Help text**, **Required**, its options, and **Show this field
-   only when…** for conditional fields.
-3. On **Preview**, try the form in each language and submit it to check the answers.
-4. On **Settings**, choose who sees it under **Audience** (**Everyone** or **Specific groups**), whether it's
+   only when…** for conditional fields. A **Record** field lets people pick configuration items, applications,
+   assets, tickets and other records they're allowed to see; set its **Record types**, **Allow several** and **Only
+   records where…**.
+3. On **Rules**, add checks across fields, such as the end date not being before the start date (**Add rule**).
+4. On **Actions**, add what happens after a request is sent, approved or rejected, such as **Raise a change**,
+   **Grant a role** or **Notify people** (**Add action**). Each action needs its own permission.
+5. On **Preview**, try the form in each language and submit it to check the answers and rules.
+6. On **Settings**, choose who sees it under **Audience** (**Everyone** or **Specific groups**), whether it's
    **Accepting requests**, and its **Approval** workflow.
-5. Select **Save**, then **Publish**.
+7. Select **Save**, then **Publish**.
 
-**What happens next:** The form appears in the portal. Requests made with it are on its **Requests** tab. Publishing
-again creates a new version; requests already submitted keep theirs. To have the service desk fulfil approved
-requests, add the form to the service catalog (see [Service desk guide](service-desk.md)).
+**What happens next:** The form appears in the portal, and **More actions → Open in the portal** opens its own link
+(`/requests/forms/<key>`) to share. Requests made with it are on its **Requests** tab; each request page shows what
+the actions did under **What happens next**. Publishing again creates a new version; requests already submitted keep
+theirs, with their version's actions. To have the service desk fulfil approved requests, add the form to the service
+catalog (see [Service desk guide](service-desk.md)). Record fields, rules and actions step by step:
+[Build your own process](processes.md).
+
+## Ask people to fill in a form by a date
+
+Recurring checks (a monthly server room inspection, a quarterly firewall rule review, a yearly access review) are a
+published form that someone must fill in by a date. Assign it by hand, or let Scheduled jobs assign it every period.
+
+1. Go to **Administration → Forms**, open the form and select the **Assignments** tab.
+2. To assign it once, select **Assign**. In **Assign this form**, choose **Assign to** (**A person** or **A group**:
+   anyone in the group can do it), check the **Title**, pick a **Due date**, and optionally a **Period (optional)**
+   such as `2026-10` and a **Note (optional)**. Select **Assign**.
+3. To assign it every period, select **Schedule recurring**. A **New job** opens in Scheduled jobs with **Assign a
+   form**: choose **Assign to**, the **Period** (**Daily**, **Weekly**, **Monthly**, **Quarterly** or **Yearly**),
+   **Due** (**At the end of the period** or **A number of days after the run**) and the **Title** (`{{period}}`
+   becomes the period, such as `2026-10` or `2026-Q4`). Schedule the job at the start of each period, for example
+   on the 1st of every month at 09:00, and select **Create job**.
+
+**What happens next:** the person, or everyone in the group, is notified and sees the form under **To do**. Each run
+of the job opens one assignment for its period, so running it again in the same month changes nothing. The
+**Assignments** tab lists every assignment with its status (**Open**, **Overdue**, **Done**, **Done late**,
+**Cancelled**), who it's for, when it's due and the request that completed it; filter it by status and period. **Compliance
+by period** shows, per period, how many were done **On time**, **Late**, are still **Overdue**, **Open** or
+**Cancelled**. To cancel an open one, select its **Cancel assignment** button. You (and the form's other editors) are
+notified when one becomes overdue. Assigning needs the **Workflow administrator** role (`core.forms.manage`). In the
+demo, the **Monthly server room inspection** job assigns **Monthly server room inspection** to IT Administrators.
 
 ## Add custom fields
 
@@ -274,12 +323,14 @@ records (tickets, hardware assets, contracts, configuration items, projects, tas
 
 1. Go to **Administration → Custom fields** and choose the record type.
 2. Select **Add field**. Choose the **Field type**, enter the **Label** and **Key**, and set **Required**, options and
-   conditions as for forms.
+   conditions as for forms. A **Record** field links to another record, for example the business application a
+   ticket is about.
 3. Select **Add**.
 
 **What happens next:** The field appears in the **Additional information** section of the record's form and page,
 and in filters. The key and type can't change once the field exists. **Archive** hides a field and keeps its
-values.
+values. Custom fields of tickets, hardware assets and projects can also route the **Change authorization**, **Asset
+disposal** and **Project proposal** approvals.
 
 ## Set up notification channels and email
 
@@ -383,22 +434,24 @@ Assistant module's settings limits how much work the assistant does per answer.
 Most configuration can be changed on the admin pages or prepared by the assistant as a change set (free text needs a
 chat model; the guided templates work without one). Some tasks are admin pages only.
 
-| Task                                                     | On the admin pages                                                                                                    | Ask the assistant                                                                                                                                  |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Add an approval step for laptops over 60 000 TWD         | **Workflows** → the laptop workflow → **Add a step here** → **Approval** with a condition on the amount → **Publish** | "Laptop requests over 60,000 TWD also need approval from IT asset management", or the **Approval chain** template                                  |
-| Add a cost centre field to assets                        | **Custom fields** → **Hardware asset** → **Add field**                                                                | "Add a cost centre field to hardware assets", or the **Custom field** template                                                                     |
-| Route major incidents to a Teams channel                 | **Notifications** → **Channels** → **Add channel** (**Microsoft Teams**) with **Major incidents (channels)**          | Only for an existing channel: "Send major incidents to IT Operations (Microsoft Teams) too". A new channel and its URL are added on the admin page |
-| Create a request form for a second monitor               | **Forms** → **New form** → **Publish**                                                                                | "Create a request form for a second monitor", or the **Request form** template                                                                     |
-| Require a review before knowledge articles are published | **Workflows** → new workflow for **Publishing a knowledge article** → **Use for new requests**                        | "Knowledge articles need a service desk review before publishing" (the demo's draft change set does this)                                          |
-| Create a role for read-only asset auditors               | **Roles & access** → **New role**                                                                                     | "Create a role that can read assets and licences" (you can only grant what you hold)                                                               |
-| Change SLA targets for incidents                         | **Service desk** → **SLA policies**                                                                                   | The **SLA targets** template, or describe the targets                                                                                              |
-| Check an internal website every 5 minutes                | **Scheduled jobs** (see [Data and automation](data-and-automation.md))                                                | The **HTTP health check** template                                                                                                                 |
-| Turn on automatic triage                                 | **Modules** → **Helpdesk AI** → **Settings**                                                                          | "Turn on automatic triage for new tickets"                                                                                                         |
-| Give a contractor module access for 30 days              | **Roles & access** → **Grant role** → **30 days**                                                                     | Admin pages only (or the person requests it in the portal)                                                                                         |
-| Offboard a person                                        | **People** → the person → **More actions** → **Offboard**                                                             | "Offboard …" with a chat model; you confirm on the card before it runs                                                                             |
+| Task                                                     | On the admin pages                                                                                                        | Ask the assistant                                                                                                                                  |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add an approval step for laptops over 60 000 TWD         | **Workflows** → the laptop workflow → **Add a step here** → **Approval** with a condition on the amount → **Publish**     | "Laptop requests over 60,000 TWD also need approval from IT asset management", or the **Approval chain** template                                  |
+| Add a cost centre field to assets                        | **Custom fields** → **Hardware asset** → **Add field**                                                                    | "Add a cost centre field to hardware assets", or the **Custom field** template                                                                     |
+| Route major incidents to a Teams channel                 | **Notifications** → **Channels** → **Add channel** (**Microsoft Teams**) with **Major incidents (channels)**              | Only for an existing channel: "Send major incidents to IT Operations (Microsoft Teams) too". A new channel and its URL are added on the admin page |
+| Create a request form for a second monitor               | **Forms** → **New form** → **Publish**                                                                                    | "Create a request form for a second monitor", or the **Request form** template                                                                     |
+| Build a configuration change process                     | **Forms** (record field, rules, **Raise a change** action) and **Workflows** (see [Build your own process](processes.md)) | Describe the form, the approvers and the action in one request, or the **Approval process** template                                               |
+| Require a review before knowledge articles are published | **Workflows** → new workflow for **Publishing a knowledge article** → **Use for new requests**                            | "Knowledge articles need a service desk review before publishing" (the demo's draft change set does this)                                          |
+| Create a role for read-only asset auditors               | **Roles & access** → **New role**                                                                                         | "Create a role that can read assets and licences" (you can only grant what you hold)                                                               |
+| Change SLA targets for incidents                         | **Service desk** → **SLA policies**                                                                                       | The **SLA targets** template, or describe the targets                                                                                              |
+| Check an internal website every 5 minutes                | **Scheduled jobs** (see [Data and automation](data-and-automation.md))                                                    | The **HTTP health check** template                                                                                                                 |
+| Turn on automatic triage                                 | **Modules** → **Helpdesk AI** → **Settings**                                                                              | "Turn on automatic triage for new tickets"                                                                                                         |
+| Give a contractor module access for 30 days              | **Roles & access** → **Grant role** → **30 days**                                                                         | Admin pages only (or the person requests it in the portal)                                                                                         |
+| Offboard a person                                        | **People** → the person → **More actions** → **Offboard**                                                                 | "Offboard …" with a chat model; you confirm on the card before it runs                                                                             |
 
 ## How it connects
 
+- [Build your own process](processes.md): forms with record fields, rules and actions, and the workflows behind them.
 - [Employees](employees.md): what people see when they request access, fill in forms and approve.
 - [Assistant and AI](assistant-and-ai.md): change sets, reviews and outside agents.
 - [Service desk guide](service-desk.md): categories, SLA policies and the service catalog.

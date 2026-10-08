@@ -1,3 +1,4 @@
+import { assignFormTaskConfigSchema } from '@isbp/contracts';
 import { defineManifest, type WorkflowGraph } from '@isbp/sdk';
 import { z } from 'zod';
 import { DEFAULT_BLOCKED_EXTENSIONS } from '../kernel/files/policy';
@@ -11,6 +12,17 @@ const requestRef = z.object({
   beneficiaryId: z.uuid(),
 });
 const submissionRef = z.object({ submissionId: z.uuid(), number: z.number(), formId: z.uuid() });
+const assignmentRef = z.object({
+  assignmentId: z.uuid(),
+  formId: z.uuid(),
+  periodKey: z.string().nullable().describe('The period it covers, e.g. 2026-10'),
+});
+const processActionRunRef = z.object({
+  runId: z.uuid(),
+  submissionId: z.uuid(),
+  type: z.string(),
+  actionId: z.string(),
+});
 
 /** Facts every access-request workflow can use in conditions and "approver from fact" rules. */
 export const accessRequestFacts = z.object({
@@ -33,7 +45,34 @@ export const accessRequestFacts = z.object({
 export const formSubmissionFacts = z.object({
   form: z.object({ key: z.string(), category: z.string().nullable() }),
   data: z.record(z.string(), z.unknown()).describe('Submitted values by field key, e.g. data.amount'),
+  records: z
+    .record(z.string(), z.record(z.string(), z.unknown()))
+    .describe(
+      'Facts of the records picked in record fields, by field key, e.g. records.ci.criticality (a list per fact for multi-pick fields)',
+    ),
 });
+
+const requestFact = (key: string) => `core.recordFacts.${key}`;
+
+/**
+ * Approval facts of a request (`core.request`), when a record field picks one (e.g. "the request this follows up").
+ * Statuses read `workflows.status.request.<status>`; the department is the requester's current one.
+ */
+export const requestFactsSchema = z.object({
+  formKey: z.string().meta({ label: requestFact('formKey') }),
+  status: z
+    .enum(['submitted', 'pending', 'approved', 'rejected', 'cancelled'])
+    .meta({ label: requestFact('status'), valueLabels: 'workflows.status.request' }),
+  requesterId: z
+    .uuid()
+    .nullable()
+    .meta({ label: requestFact('requesterId'), ref: 'user' }),
+  departmentCode: z
+    .string()
+    .nullable()
+    .meta({ label: requestFact('departmentCode') }),
+});
+export type RequestFacts = z.output<typeof requestFactsSchema>;
 
 /**
  * Manager → (high-risk only) security review → access owner (or IAM, or platform admins). Installed
@@ -434,7 +473,12 @@ export const coreManifest = defineManifest({
   ],
   events: {
     // Role changes also refresh cached permissions after commit (change sets apply them in a longer transaction).
-    consumes: ['core.notification.created', 'core.role.updated', 'core.role.deleted'],
+    consumes: [
+      'core.notification.created',
+      'core.role.updated',
+      'core.role.deleted',
+      'core.process-action.queued',
+    ],
     emits: [
       { name: 'core.user.created', schema: userRef.extend({ status: z.string() }) },
       { name: 'core.user.updated', schema: userRef.extend({ changes: z.array(z.string()) }) },
@@ -446,6 +490,16 @@ export const coreManifest = defineManifest({
       },
       { name: 'core.user.suspended', schema: userRef },
       { name: 'core.user.reactivated', schema: userRef },
+      {
+        name: 'core.user.transferred',
+        description:
+          'A person moved to another department: the old and the new manager are asked to review their access (nothing is revoked)',
+        schema: z.object({
+          userId: z.uuid(),
+          fromDepartmentId: z.uuid().nullable(),
+          toDepartmentId: z.uuid().nullable(),
+        }),
+      },
       { name: 'core.group.created', schema: z.object({ groupId: z.uuid() }) },
       { name: 'core.group.updated', schema: z.object({ groupId: z.uuid() }) },
       { name: 'core.group.deleted', schema: z.object({ groupId: z.uuid() }) },
@@ -515,6 +569,44 @@ export const coreManifest = defineManifest({
       {
         name: 'core.form-submission.completed',
         schema: submissionRef.extend({ status: z.enum(['approved', 'rejected', 'cancelled']) }),
+      },
+      {
+        name: 'core.process-action.queued',
+        description: 'Internal: hands new (or retried) process action runs of a submission to the worker',
+        schema: z.object({ submissionId: z.uuid(), runIds: z.array(z.uuid()).min(1) }),
+      },
+      {
+        name: 'core.process-action.succeeded',
+        description: 'A form’s process action did its work (e.g. created a change)',
+        schema: processActionRunRef,
+      },
+      {
+        name: 'core.process-action.failed',
+        description: 'A form’s process action failed for good (after its retries, or at once for a refusal)',
+        schema: processActionRunRef.extend({ code: z.string() }),
+      },
+      {
+        name: 'core.form-assignment.created',
+        description:
+          'A form was assigned to a person or group, due by a date (by hand or a core.assign-form job)',
+        schema: assignmentRef.extend({
+          assigneeUserId: z.uuid().nullable(),
+          assigneeGroupId: z.uuid().nullable(),
+          dueAt: z.iso.datetime(),
+          source: z.string().describe('job or manual'),
+        }),
+      },
+      {
+        name: 'core.form-assignment.completed',
+        description: 'The assignee submitted the assigned form (`late`: after the due date)',
+        schema: assignmentRef.extend({ submissionId: z.uuid(), late: z.boolean() }),
+      },
+      { name: 'core.form-assignment.cancelled', schema: assignmentRef },
+      {
+        name: 'core.form-assignment.overdue',
+        description:
+          'An assignment passed its due date without being done (published once, by the reminder job)',
+        schema: assignmentRef.extend({ dueAt: z.iso.datetime() }),
       },
       { name: 'core.application.created', schema: z.object({ applicationId: z.uuid() }) },
       { name: 'core.application.updated', schema: z.object({ applicationId: z.uuid() }) },
@@ -744,6 +836,53 @@ export const coreManifest = defineManifest({
       default: DEFAULT_BLOCKED_EXTENSIONS.join(', '),
       advanced: true,
     },
+    {
+      key: 'processActions.webhookHosts',
+      label: 'core.settings.webhookHosts',
+      description: 'core.settings.webhookHostsHelp',
+      type: 'text',
+      default: '',
+    },
+  ],
+  processActions: [
+    {
+      action: 'grant-role',
+      name: 'core.processActions.grantRole.name',
+      description: 'core.processActions.grantRole.description',
+      icon: 'key-round',
+      permission: 'core.roles.assign',
+    },
+    {
+      action: 'notify',
+      name: 'core.processActions.notify.name',
+      description: 'core.processActions.notify.description',
+      icon: 'bell',
+      permission: 'core.forms.manage',
+    },
+    {
+      action: 'webhook',
+      name: 'core.processActions.webhook.name',
+      description: 'core.processActions.webhook.description',
+      icon: 'webhook',
+      permission: 'core.notifications.manage',
+    },
+    {
+      action: 'remind',
+      name: 'core.processActions.remind.name',
+      description: 'core.processActions.remind.description',
+      icon: 'alarm-clock',
+      permission: 'core.forms.manage',
+    },
+  ],
+  taskTypes: [
+    {
+      type: 'assign-form',
+      name: 'core.taskTypes.assignForm.name',
+      description: 'core.taskTypes.assignForm.description',
+      icon: 'clipboard-check',
+      permission: 'core.forms.manage',
+      config: assignFormTaskConfigSchema,
+    },
   ],
   ai: {
     tools: [
@@ -805,6 +944,19 @@ export const coreManifest = defineManifest({
     ],
   },
   search: { entities: ['user', 'group', 'role', 'department', 'request'] },
+  records: {
+    types: [
+      {
+        // Form submissions (REQ-…): evidence and links on the request page. Pickers list them for form readers;
+        // the resolver shows each person only their own requests and those they were asked to approve.
+        type: 'request',
+        name: 'core.recordTypes.request',
+        icon: 'file-text',
+        permission: 'core.forms.read',
+        facts: requestFactsSchema,
+      },
+    ],
+  },
   workflows: [
     {
       key: 'core.access-request',
@@ -837,6 +989,19 @@ export const coreManifest = defineManifest({
     { type: 'core.form-submission.approved', defaultChannels: ['inApp', 'email'] },
     { type: 'core.form-submission.rejected', defaultChannels: ['inApp', 'email'] },
     { type: 'core.access.granted', defaultChannels: ['inApp', 'email'] },
+    /** To the old and the new manager when a person changes department: review their access. */
+    { type: 'core.user.transferred', defaultChannels: ['inApp', 'email'] },
+    { type: 'core.process-action.failed', defaultChannels: ['inApp', 'email'] },
+    /** Sent by a form's `core.notify` action (title and message come from the form). */
+    { type: 'core.process-action.message', defaultChannels: ['inApp', 'email'] },
+    /** Sent on its date by a form's `core.remind` action (title and message come from the form). */
+    { type: 'core.reminder.due', defaultChannels: ['inApp', 'email'] },
+    /** To the assignee (or the assigned group's members) of a form someone must fill in by a date. */
+    { type: 'core.form-assignment.assigned', defaultChannels: ['inApp', 'email'] },
+    /** Due within two days, or overdue (at most once a day). */
+    { type: 'core.form-assignment.reminder', defaultChannels: ['inApp', 'email'] },
+    /** To the form's editors when an assignment passes its due date undone. */
+    { type: 'core.form-assignment.overdue', defaultChannels: ['inApp', 'email'] },
   ],
   customFields: {
     entities: [
@@ -884,6 +1049,16 @@ export const coreManifest = defineManifest({
       icon: 'shield-check',
       readPermission: 'core.roles.read',
       applyPermission: 'core.roles.manage',
+      operations: ['create', 'update', 'delete'],
+    },
+    {
+      kind: 'group',
+      label: 'core.customizations.group',
+      description:
+        'A group of people (an approval team, a committee): its key, name, description and custom fields. Workflows and forms name it by key; its members are people, added on the group’s page, never part of the change.',
+      icon: 'users-round',
+      readPermission: 'core.groups.read',
+      applyPermission: 'core.groups.manage',
       operations: ['create', 'update', 'delete'],
     },
     {

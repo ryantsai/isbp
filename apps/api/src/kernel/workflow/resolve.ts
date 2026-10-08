@@ -32,8 +32,20 @@ export class ApproverResolver {
         return ctx.requesterId ? [ctx.requesterId] : [];
       case 'fact': {
         const v = getFact(ctx.facts, rule.fact);
-        const list = Array.isArray(v) ? v : [v];
-        return list.filter((x): x is string => typeof x === 'string' && UUID_RE.test(x));
+        const list = (Array.isArray(v) ? v : [v]).filter((x): x is string => typeof x === 'string');
+        if (rule.kind === 'group') {
+          // Group keys (e.g. a CI's owner group): any member approves.
+          const keys = [...new Set(list.filter((k) => k && k.length <= 64))].slice(0, 20);
+          if (!keys.length) return [];
+          const rows = await tx
+            .select({ id: groupMembers.userId })
+            .from(groupMembers)
+            .innerJoin(groups, eq(groups.id, groupMembers.groupId))
+            .where(inArray(groups.key, keys))
+            .limit(MAX_SLOT_ASSIGNEES * 2);
+          return rows.map((r) => r.id);
+        }
+        return list.filter((x) => UUID_RE.test(x));
       }
       case 'group': {
         const rows = await tx

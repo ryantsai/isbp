@@ -530,7 +530,7 @@
     "noMappings": "Map at least one column. Preview the source, then use Auto-map.",
     "addMapping": "Add column",
     "autoMap": "Auto-map same names",
-    "ownerHint": "Told when a run started with Run now fails.",
+    "ownerHint": "Told when a run fails, however it was started (once, if a scheduled job already alerts them).",
     "target": "Target",
     "targetHint": "A table from the target connection’s catalog. Everything is written in one transaction.",
     "pickTable": "Pick a table…",

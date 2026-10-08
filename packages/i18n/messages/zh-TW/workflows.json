@@ -156,7 +156,10 @@
     "incomplete": "請為每位簽核者選擇人員、群組、角色或欄位。",
     "unknownGroup": "此步驟中的群組已不存在。",
     "unknownRole": "此步驟中的角色已不存在。",
-    "unknownUser": "此步驟中的人員已非啟用狀態。"
+    "unknownUser": "此步驟中的人員已非啟用狀態。",
+    "unknownRecordType": "簽核人員需填寫的欄位提供了不存在的紀錄類型。",
+    "stepFact": "此步驟使用了不在其之前的步驟欄位（或該步驟已沒有此欄位）。",
+    "stepFields": "簽核人員需填寫的欄位依賴未知的欄位或自身，或預設值無效。"
   },
   "builder": {
     "title": "工作流程設計工具",
@@ -228,6 +231,7 @@
     "saved": "已儲存草稿",
     "published": "已發佈第 {version} 版，新的申請會立即使用",
     "fixIssues": "請先修正標示的步驟再發佈",
+    "stepFact": "{step}：{field}",
     "approvers": {
       "type": "簽核者類型",
       "types": {
@@ -237,7 +241,8 @@
         "manager": "主管",
         "department-head": "部門主管",
         "fact": "欄位中的人員",
-        "requester": "申請人"
+        "requester": "申請人",
+        "fact-group": "欄位中的群組"
       },
       "pickRole": "選擇角色",
       "level": "主管層級",
@@ -245,14 +250,36 @@
       "pickFact": "選擇欄位",
       "hints": {
         "department-head": "該人員所屬部門的主管。",
-        "requester": "送出申請的人。"
+        "requester": "送出申請的人。",
+        "fact-group": "由此欄位所指群組中的任一成員核准，例如所選組態項目的支援群組。"
       },
       "remove": "移除",
       "fallback": "若找不到人，改請",
-      "addFallback": "新增備援簽核者"
+      "addFallback": "新增備援簽核者",
+      "pickGroupFact": "選擇紀錄群組的欄位",
+      "noGroupFacts": "目前沒有紀錄群組的欄位。請在「使用表單欄位」選擇含紀錄欄位的表單（例如組態項目及其支援群組）。",
+      "each": "分別詢問每一個",
+      "eachHint": "欄位中的每個群組或人員各自簽核。搭配「所有簽核者」時，每一個都必須核准（例如每個選取 CI 的負責群組）。"
     },
     "editor": {
       "legend": "步驟設定",
+      "stepFields": "簽核人員需填寫的欄位",
+      "stepFieldsHint": "於做出決定時填寫（例如評估結果或完成日期）。內容會保存在申請上，後續步驟可依此判斷。",
+      "noStepFields": "無：簽核人員只需核准或駁回。",
+      "addField": "新增欄位",
+      "fieldType": "欄位類型",
+      "requiredField": "必填",
+      "moveFieldUp": "將 {label} 上移",
+      "moveFieldDown": "將 {label} 下移",
+      "editField": "編輯 {label}",
+      "removeField": "移除 {label}",
+      "fieldsMax": "每個步驟最多可要求 {max} 個欄位。",
+      "requiredOn": "必填欄位需在何時填寫",
+      "requiredOnApprove": "核准時",
+      "requiredOnBoth": "核准及駁回時",
+      "fieldSheetTitle": "簽核人員需填寫的欄位",
+      "fieldSheetDescription": "此步驟的簽核人員會在「核准」與「駁回」旁看到此欄位。",
+      "saveField": "儲存欄位",
       "name": "步驟名稱",
       "when": "條件",
       "whenHint": "不符合條件的申請會略過此步驟。",
@@ -338,7 +365,8 @@
         "active": "等待中",
         "waiting": "未到達"
       }
-    }
+    },
+    "recordFact": "{field}：{fact}"
   },
   "changePreview": {
     "invalid": "無法繪製此提議：其流程圖不是有效的工作流程。",

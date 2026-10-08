@@ -134,6 +134,55 @@ test('My devices lists the admin’s MacBook with a way to report a problem', as
   await expect(report).toHaveAttribute('href', /\/itsm\/report\?link=itam\.asset%3A/);
 });
 
+test('Discovery: map a discovered title to a licence, undo it, and import an inventory CSV', async ({
+  page,
+}) => {
+  await page.goto('/itam/discovery');
+  await expect(page.getByRole('heading', { name: 'Software discovery', level: 1 })).toBeVisible();
+  // The seed leaves an old Microsoft 365 title on a few devices; 7-Zip is ignored (free).
+  const title = 'Microsoft Office 365 ProPlus';
+  await expect(page.getByRole('row').filter({ hasText: title })).toBeVisible();
+  await expect(page.getByRole('row').filter({ hasText: '7-Zip' })).toHaveCount(0);
+  await page.getByRole('button', { name: `Actions for ${title}` }).click();
+  await page.getByRole('menuitem', { name: 'Map to licence' }).click();
+  const dialog = page.getByRole('dialog', { name: `Map “${title}” to a licence` });
+  await dialog.getByRole('combobox', { name: 'Licence' }).click();
+  await page.keyboard.type('Microsoft 365 E3');
+  await page.getByRole('option', { name: /Microsoft 365 E3/ }).click();
+  await dialog.getByRole('button', { name: 'Map', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole('row').filter({ hasText: title })).toHaveCount(0);
+
+  await page.getByRole('tab', { name: 'Mapped & ignored' }).click();
+  const rule = page.getByRole('row').filter({ hasText: title });
+  await expect(rule).toContainText('Microsoft 365 E3');
+  await expect(page.getByRole('row').filter({ hasText: '7-Zip' })).toContainText('Ignored');
+  await page.getByRole('button', { name: `Remove the rule for ${title}` }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Remove' }).click();
+  await expect(rule).toHaveCount(0);
+  await page.getByRole('tab', { name: 'To review' }).click();
+  await expect(page.getByRole('row').filter({ hasText: title })).toBeVisible();
+
+  // A device the platform doesn't know changes nothing and is listed as not registered.
+  await page.getByRole('button', { name: 'Import CSV' }).click();
+  const importer = page.getByRole('dialog', { name: 'Import an inventory CSV' });
+  await expect(importer.getByRole('cell', { name: 'serial_number' })).toBeVisible();
+  await importer.getByLabel('CSV file').setInputFiles({
+    name: 'e2e-inventory.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Serial Number,Product,Publisher\nE2E-UNKNOWN-1,Google Chrome,Google\n,Orphan,\n'),
+  });
+  await expect(importer.getByRole('status')).toContainText('2 rows for 1 device');
+  await expect(importer.getByRole('status')).toContainText('Line 3: no serial number or asset tag');
+  await importer.getByRole('button', { name: 'Import 1 device' }).click();
+  // The button (and its "Loading" status) goes once the import is done.
+  await expect(importer.getByRole('button', { name: /Import 1 device/ })).toBeHidden();
+  await expect(importer.getByRole('status')).toContainText('1 device is not registered in Assets');
+  await expect(importer.getByRole('status')).toContainText('E2E-UNKNOWN-1');
+  await importer.getByRole('button', { name: 'Close' }).first().click();
+  await expect(importer).toBeHidden();
+});
+
 test('Assets pages have no accessibility violations (light and dark)', async ({ page, request }) => {
   test.setTimeout(240_000);
   const [lic, contract, laptop] = await Promise.all([
@@ -153,6 +202,9 @@ test('Assets pages have no accessibility violations (light and dark)', async ({ 
     '/itam/vendors',
     '/itam/mine',
     '/itam/settings',
+    '/itam/discovery',
+    '/itam/discovery?tab=reports',
+    '/itam/discovery?tab=rules',
   ];
   for (const scheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
@@ -172,6 +224,19 @@ test('Assets pages have no accessibility violations (light and dark)', async ({ 
     await page.getByRole('button', { name: 'Dell Technologies' }).click();
     await expect(page.getByRole('dialog')).toContainText('Contracts');
     await expectAccessible(page, `${scheme} vendor sheet`);
+    await page.goto('/itam/discovery');
+    await page.getByRole('button', { name: 'Import CSV' }).click();
+    await expect(page.getByRole('dialog', { name: 'Import an inventory CSV' })).toBeVisible();
+    await expectAccessible(page, `${scheme} discovery import dialog`);
+    await page.keyboard.press('Escape');
+    await page
+      .getByRole('button', { name: /^Actions for / })
+      .first()
+      .click();
+    await page.getByRole('menuitem', { name: 'Map to licence' }).click();
+    await expect(page.getByRole('dialog', { name: /to a licence$/ })).toBeVisible();
+    await expectAccessible(page, `${scheme} discovery map dialog`);
+    await page.keyboard.press('Escape');
   }
 });
 
@@ -194,6 +259,8 @@ test('Assets pages fit a 375px screen', async ({ page, request }) => {
     '/itam/vendors',
     '/itam/mine',
     '/itam/settings',
+    '/itam/discovery',
+    '/itam/discovery?tab=reports',
   ]) {
     await page.goto(path);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();

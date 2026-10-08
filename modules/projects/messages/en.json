@@ -712,5 +712,17 @@
     },
     "via": "via {system} {reference}",
     "addedVia": "Added via {system} {reference}"
+  },
+  "recordFacts": {
+    "key": "Project key",
+    "status": "Status",
+    "priority": "Priority",
+    "health": "Health",
+    "visibility": "Visibility",
+    "ownerId": "Project manager",
+    "departmentCode": "Department code",
+    "budgetHours": "Planned effort (hours)",
+    "startDate": "Start date",
+    "targetDate": "Target date"
   }
 }

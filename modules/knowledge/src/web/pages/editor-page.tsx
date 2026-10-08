@@ -50,7 +50,7 @@ import {
   type UpdateArticleInput,
 } from '../../contracts';
 import { ArticlePicker, TagsInput } from '../inputs';
-import { LOCALE_LABEL, LOCALE_LANG } from '../parts';
+import { LOCALE_LABEL, LOCALE_LANG, useClassifications } from '../parts';
 
 const NONE = '__none';
 const AUDIENCES: { value: ArticleAudience; icon: typeof UsersIcon }[] = [
@@ -74,6 +74,7 @@ function useFormSchema() {
           .max(500, t('tooLong', { max: 500 })),
         body: z.string().max(50_000, t('tooLong', { max: 50_000 })),
         categoryId: z.string(),
+        classification: z.string(),
         tags: z.array(z.string()).max(10),
         audience: z.enum(['everyone', 'agents']),
         locale: z.enum(ARTICLE_LOCALES),
@@ -90,6 +91,7 @@ const EMPTY: Values = {
   summary: '',
   body: '',
   categoryId: NONE,
+  classification: NONE,
   tags: [],
   audience: 'everyone',
   locale: 'en',
@@ -103,6 +105,7 @@ function toValues(a: Article): Values {
     summary: a.summary,
     body: a.body,
     categoryId: a.category?.id ?? NONE,
+    classification: a.classification ?? NONE,
     tags: a.tags,
     audience: a.audience,
     locale: a.locale,
@@ -129,6 +132,7 @@ export default function EditorPage({ params }: WebPageProps) {
     translationOfParam ? `/knowledge/articles/${translationOfParam}` : null,
   );
   const categories = useApiQuery<{ items: Category[] }>('/knowledge/categories');
+  const classifications = useClassifications();
   const schema = useFormSchema();
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: EMPTY });
   const [tab, setTab] = useState<'write' | 'preview'>('write');
@@ -149,6 +153,7 @@ export default function EditorPage({ params }: WebPageProps) {
     form.reset({
       ...EMPTY,
       categoryId: o.category?.id ?? NONE,
+      classification: o.classification ?? NONE,
       tags: o.tags,
       audience: o.audience,
       locale: ARTICLE_LOCALES.find((l) => !taken.has(l)) ?? 'en',
@@ -169,6 +174,7 @@ export default function EditorPage({ params }: WebPageProps) {
         summary: values.summary,
         body: values.body,
         categoryId: values.categoryId === NONE ? null : values.categoryId,
+        classification: values.classification === NONE ? null : values.classification,
         tags: values.tags,
         audience: values.audience,
         locale: values.locale,
@@ -358,6 +364,38 @@ export default function EditorPage({ params }: WebPageProps) {
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="classification"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('classification')}</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={NONE}>{t('noClassification')}</SelectItem>
+                          {classifications.levels.map((l) => (
+                            <SelectItem key={l.key} value={l.key}>
+                              {classifications.label(l.key)}
+                            </SelectItem>
+                          ))}
+                          {field.value !== NONE &&
+                            !classifications.levels.some((l) => l.key === field.value) && (
+                              <SelectItem value={field.value}>
+                                {classifications.label(field.value)}
+                              </SelectItem>
+                            )}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>{t('classificationHint')}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

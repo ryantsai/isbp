@@ -40,13 +40,19 @@ export const changeNumberSeq = itsmSchema.sequence('change_number_seq');
 export type Channel = 'portal' | 'agent' | 'chat' | 'email' | 'phone' | 'form' | 'ai' | 'integration';
 export type ChangeType = 'standard' | 'normal' | 'emergency';
 export type Risk = 'low' | 'medium' | 'high';
+export type ChangeAcceptance = 'accepted' | 'problem';
 export type SlaMetric = 'response' | 'resolution';
 export type SlaStatus = 'running' | 'paused' | 'met' | 'breached' | 'cancelled';
 
-/** The form submission a service request fulfils (`source->>'id'` is unique: idempotent fulfilment). */
+/**
+ * The request behind a ticket: the form submission a catalog service request fulfils (`id` = the submission), or
+ * the process action run that raised it (`id` = the run, `submissionId` = the submission). `source->>'id'` is
+ * unique, so fulfilment and process actions are idempotent.
+ */
 export interface TicketSource {
-  type: 'form-submission';
+  type: 'form-submission' | 'process-action';
   id: string;
+  submissionId?: string;
   reference: string;
   formKey: string;
   formName: LocalizedText;
@@ -120,6 +126,11 @@ export const tickets = itsmSchema.table(
     resolutionNotes: text('resolution_notes'),
     satisfaction: smallint('satisfaction'),
     satisfactionComment: text('satisfaction_comment'),
+    /**
+     * The running `itsm.resolution` sign-off (status `pending_approval`): the resolution code and notes are kept on the
+     * ticket until it is approved (resolved / fulfilled) or rejected (back to in progress).
+     */
+    signOffInstanceId: uuid('sign_off_instance_id'),
     /** Custom fields (`itsm.ticket`). */
     attributes: jsonb('attributes').$type<Record<string, unknown>>().notNull().default({}),
     manualFields: text('manual_fields')
@@ -157,6 +168,9 @@ export const tickets = itsmSchema.table(
     index('tickets_major_idx')
       .on(t.status)
       .where(sql`${t.major}`),
+    index('tickets_sign_off_idx')
+      .on(t.signOffInstanceId)
+      .where(sql`${t.signOffInstanceId} is not null`),
     // Idempotent catalog fulfilment: one ticket per form submission.
     uniqueIndex('tickets_source_uq')
       .on(sql`(${t.source}->>'id')`)
@@ -237,6 +251,14 @@ export const changes = itsmSchema.table(
     testPlan: text('test_plan').notNull().default(''),
     /** The CAB workflow instance (`itsm.change`). */
     approvalInstanceId: uuid('approval_instance_id'),
+    /**
+     * The requester's verdict in the post-implementation review: `accepted`, or `problem` (with the reason in
+     * `acceptance_note`). The latest one counts; each is also on the timeline.
+     */
+    acceptance: varchar('acceptance', { length: 12 }).$type<ChangeAcceptance>(),
+    acceptanceNote: text('acceptance_note'),
+    acceptanceAt: timestamp('acceptance_at', { withTimezone: true }),
+    acceptanceBy: uuid('acceptance_by').references(() => users.id, { onDelete: 'set null' }),
   },
   (t) => [
     index('changes_window_idx')

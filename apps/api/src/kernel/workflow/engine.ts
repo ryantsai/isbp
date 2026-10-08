@@ -16,6 +16,7 @@ import {
   emptyWorkflowState,
   ErrorCodes,
   findStep,
+  getFact,
   HttpError,
   httpErrors,
   type ModuleContext,
@@ -30,14 +31,42 @@ import {
   type WorkflowStep,
   type WorkflowTriggerDef,
   localize,
+  STEP_FACTS_ROOT,
+  validateStepFields,
+  withToday,
 } from '@isbp/sdk/server';
 import { and, eq, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
+import {
+  type CustomFieldRegistry,
+  fieldValidationError,
+  verifyRecordFields,
+  verifyUserFields,
+} from '../fields';
 import type { ModuleRegistry } from '../modules';
 import type { NotificationCenter } from '../notifications/service';
 import { ApproverResolver, type Assignee, type ResolveContext } from './resolve';
 
 export const WORKFLOW_COMPLETED = 'core.workflow.completed';
+
+/** Step field values by step id, as stored in an instance's facts (`steps.<stepId>.<key>`). */
+export type StepValues = Record<string, Record<string, unknown>>;
+
+/** The step field values of an instance's facts (`facts.steps`), or `{}`. */
+export function stepValuesOf(facts: unknown): StepValues {
+  const steps = (facts as Record<string, unknown> | null | undefined)?.[STEP_FACTS_ROOT];
+  return steps && typeof steps === 'object' && !Array.isArray(steps) ? (steps as StepValues) : {};
+}
+
+/** What approvers filled in on a workflow instance, by step id (empty without an instance). */
+export async function instanceStepValues(db: Db, instanceId: string | null | undefined): Promise<StepValues> {
+  if (!instanceId) return {};
+  const [row] = await db
+    .select({ facts: workflowInstances.facts })
+    .from(workflowInstances)
+    .where(eq(workflowInstances.id, instanceId));
+  return stepValuesOf(row?.facts);
+}
 
 type InstanceRow = typeof workflowInstances.$inferSelect;
 type TaskRow = typeof approvalTasks.$inferSelect;
@@ -62,6 +91,8 @@ interface EngineDeps {
   logger: FastifyBaseLogger;
   /** Core module context (audit + events), bound after contexts are created. */
   core: () => ModuleContext;
+  /** Checks of `record` step fields (readable by the approver, matching `where`), wired to the record registry. */
+  fields?: Pick<CustomFieldRegistry, 'readableRecords' | 'recordFacts'>;
 }
 
 /**
@@ -69,6 +100,20 @@ interface EngineDeps {
  * transaction with the instance row locked (`FOR UPDATE`), so concurrent approvers on parallel steps
  * and the SLA timer can never interleave.
  */
+/** `each` fact approvers: one slot per value, numbered from here (plain slots are rule indexes). */
+const EACH_SLOT_BASE = 1000;
+const MAX_EACH_VALUES = 20;
+const EACH_FACT = '__each';
+
+/** The distinct, non-empty values of a fact (a list or a single value), at most `MAX_EACH_VALUES`. */
+function factValues(v: unknown): unknown[] {
+  const list = Array.isArray(v) ? v : v === undefined || v === null || v === '' ? [] : [v];
+  return [...new Set(list.filter((x) => x !== undefined && x !== null && x !== ''))].slice(
+    0,
+    MAX_EACH_VALUES,
+  );
+}
+
 export class WorkflowEngine {
   readonly resolver: ApproverResolver;
   private readonly graphs = new Map<string, WorkflowGraph>();
@@ -114,6 +159,22 @@ export class WorkflowEngine {
   forModule(moduleId: string): WorkflowService {
     return {
       start: (key, input, opts) => this.start(moduleId, key, input, opts?.tx),
+      preview: async (key, input) => {
+        if (!key.startsWith(`${moduleId}.`))
+          throw new Error(`Module "${moduleId}" cannot preview another module's trigger`);
+        const p = await this.preview(key, input);
+        if (!p) return null;
+        const ids = [...new Set(p.steps.flatMap((s) => s.people))];
+        const names = new Map<string, string>();
+        for (const id of ids) names.set(id, await this.userName(this.db, id));
+        return {
+          definition: p.definition,
+          steps: p.steps.map(({ people, ...s }) => ({
+            ...s,
+            people: people.map((id) => ({ id, displayName: names.get(id) ?? id })),
+          })),
+        };
+      },
       cancel: async (instanceId, reason, opts) => {
         const run = async (tx: Db) => {
           const [inst] = await tx
@@ -328,7 +389,8 @@ export class WorkflowEngine {
     const steps: NonNullable<Awaited<ReturnType<WorkflowEngine['preview']>>>['steps'] = [];
     let state = emptyWorkflowState();
     for (let pass = 0; pass < 100; pass++) {
-      const r = advanceWorkflow(graph, state, facts);
+      // `today` is read when conditions are evaluated ("the planned start is within a week").
+      const r = advanceWorkflow(graph, state, withToday(facts));
       state = r.state;
       for (const s of r.skipped)
         if (s.type === 'approval' || s.type === 'notify')
@@ -375,7 +437,8 @@ export class WorkflowEngine {
   ): Promise<Outcome> {
     let state = initial;
     for (let pass = 0; pass < 100; pass++) {
-      const r = advanceWorkflow(graph, state, inst.facts);
+      // `today` is the day each step is reached, not the day the request was sent.
+      const r = advanceWorkflow(graph, state, withToday(inst.facts));
       state = r.state;
       for (const s of r.skipped)
         await this.event(tx, inst.id, { type: 'step_skipped', stepId: s.id, data: { reason: 'condition' } });
@@ -430,11 +493,23 @@ export class WorkflowEngine {
 
   private async resolveSlots(tx: Db, inst: InstanceRow, step: ApprovalStep) {
     const excluded = this.excluded(inst, step);
+    const ctx = this.resolveContext(inst);
     const slots: { slot: number; assignees: Assignee[] }[] = [];
     for (const [slot, rule] of step.approvers.entries()) {
-      const ids = await this.resolver.resolve(rule, this.resolveContext(inst), excluded, tx);
-      if (!ids.length) continue;
-      slots.push({ slot, assignees: await this.resolver.applyDelegations(tx, ids, excluded) });
+      // `each`: one slot per value of the fact (e.g. per picked CI's owner group), numbered apart from plain slots.
+      const parts =
+        rule.type === 'fact' && rule.each
+          ? factValues(getFact(ctx.facts, rule.fact)).map((value, i) => ({
+              slot: EACH_SLOT_BASE + slot * MAX_EACH_VALUES + i,
+              rule: { ...rule, fact: EACH_FACT, each: false },
+              ctx: { ...ctx, facts: { ...(ctx.facts as object), [EACH_FACT]: value } },
+            }))
+          : [{ slot, rule, ctx }];
+      for (const part of parts) {
+        const ids = await this.resolver.resolve(part.rule, part.ctx, excluded, tx);
+        if (!ids.length) continue;
+        slots.push({ slot: part.slot, assignees: await this.resolver.applyDelegations(tx, ids, excluded) });
+      }
     }
     return slots;
   }
@@ -591,27 +666,88 @@ export class WorkflowEngine {
       throw new HttpError(409, ErrorCodes.TASK_NOT_PENDING, 'This approval is no longer pending');
   }
 
-  async decide(taskId: string, decision: 'approve' | 'reject', comment: string | null, auth: AuthContext) {
+  /**
+   * Validates what the approver filled in for the step's `fields` (as form answers are: the shared validator, then
+   * people that must exist and records the approver may read that match `where`). Returns the cleaned values, or
+   * throws 400 `VALIDATION_FAILED` with issues under `data.<key>`.
+   */
+  private async stepFieldValues(
+    tx: Db,
+    step: ApprovalStep,
+    decision: 'approve' | 'reject',
+    input: Record<string, unknown> | null | undefined,
+    auth: AuthContext,
+  ): Promise<Record<string, unknown>> {
+    if (!step.fields?.length) return {};
+    const result = validateStepFields(step, decision, input);
+    const checks = this.deps.fields;
+    const errors = {
+      ...result.errors,
+      ...(result.ok
+        ? {
+            ...(await verifyUserFields(tx, step.fields, result.values)),
+            ...(checks
+              ? await verifyRecordFields(
+                  { readable: checks.readableRecords, facts: checks.recordFacts },
+                  step.fields,
+                  result.values,
+                  auth,
+                )
+              : {}),
+          }
+        : {}),
+    };
+    if (Object.keys(errors).length) throw fieldValidationError(errors, 'data');
+    return result.values;
+  }
+
+  async decide(
+    taskId: string,
+    decision: 'approve' | 'reject',
+    comment: string | null,
+    auth: AuthContext,
+    data?: Record<string, unknown> | null,
+  ) {
     const note = comment?.trim() || null;
     if (decision === 'reject' && !note)
       throw new HttpError(400, ErrorCodes.COMMENT_REQUIRED, 'Tell the requester why you reject it');
     return this.db.transaction(async (tx) => {
-      const { inst, task, graph, step } = await this.lock(tx, taskId);
+      const { inst: locked, task, graph, step } = await this.lock(tx, taskId);
       if (task.assigneeId !== auth.user?.id)
         throw httpErrors.forbidden('This approval is assigned to someone else');
-      this.assertPending(inst, task);
+      this.assertPending(locked, task);
+      const values = await this.stepFieldValues(tx, step, decision, data, auth);
+      const filled = Object.keys(values).length > 0;
       const status = decision === 'approve' ? 'approved' : 'rejected';
       await tx
         .update(approvalTasks)
-        .set({ status, comment: note, decidedAt: new Date(), decidedById: auth.user.id })
+        .set({
+          status,
+          comment: note,
+          data: filled ? values : null,
+          decidedAt: new Date(),
+          decidedById: auth.user.id,
+        })
         .where(eq(approvalTasks.id, task.id));
+      // Later steps, conditions and process actions read the values as facts `steps.<stepId>.<key>` (with several
+      // approvers on a step, the latest decision's value of each field).
+      let inst = locked;
+      if (filled) {
+        const steps = stepValuesOf(locked.facts);
+        const facts = {
+          ...locked.facts,
+          [STEP_FACTS_ROOT]: { ...steps, [step.id]: { ...steps[step.id], ...values } },
+        };
+        await tx.update(workflowInstances).set({ facts }).where(eq(workflowInstances.id, locked.id));
+        inst = { ...locked, facts };
+      }
       const actor = actorOf(auth);
       await this.event(tx, inst.id, {
         type: `task_${status}`,
         taskId: task.id,
         stepId: step.id,
         actor,
-        data: { comment: note, delegatedFromId: task.delegatedFromId },
+        data: { comment: note, delegatedFromId: task.delegatedFromId, ...(filled ? { fields: values } : {}) },
       });
       await this.deps.core().audit.record(
         {
@@ -619,7 +755,13 @@ export class WorkflowEngine {
           entityType: 'workflow_instance',
           entityId: inst.id,
           entityLabel: localize(inst.subjectLabel, 'en'),
-          metadata: { taskId: task.id, stepId: step.id, triggerKey: inst.triggerKey, comment: note },
+          metadata: {
+            taskId: task.id,
+            stepId: step.id,
+            triggerKey: inst.triggerKey,
+            comment: note,
+            ...(filled ? { fields: values } : {}),
+          },
         },
         { tx },
       );

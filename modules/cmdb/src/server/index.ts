@@ -5,6 +5,7 @@ import { manifest } from '../manifest';
 import type { CiStatus } from '../contracts';
 import { formatCiNumber } from '../model';
 import { aiTools } from './ai';
+import { processActions } from './process-actions';
 import { type RefRow, selectRefs } from './refs';
 import { routes } from './routes';
 import { cis } from './schema';
@@ -46,6 +47,8 @@ export default defineServerModule(manifest, {
 
   ai: aiTools,
 
+  processActions,
+
   /** Command palette: CIs by name or number, for people who can browse the CMDB. */
   search: async (query, ctx, auth, limit) => {
     if (!auth.can('cmdb.cis.read')) return [];
@@ -80,6 +83,8 @@ export default defineServerModule(manifest, {
           .limit(limit);
         return rows.map((r) => ciRecord(r, auth.user?.locale ?? 'en', auth.can('cmdb.cis.manage')));
       },
+      /** Approval facts (`ciFactsSchema`): class, environment, criticality, owner, owner group, services… */
+      facts: (ids, ctx) => new CiService(ctx).facts(ids),
     },
   },
 

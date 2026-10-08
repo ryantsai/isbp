@@ -125,6 +125,8 @@ export const approvalTasks = core.table(
     isEscalation: boolean('is_escalation').notNull().default(false),
     status: varchar('status', { length: 20 }).$type<ApprovalTaskStatus>().notNull().default('pending'),
     comment: text('comment'),
+    /** Values of the step's `fields` the approver filled in with the decision (Phase 8). */
+    data: jsonb('data').$type<Record<string, unknown>>(),
     decidedAt: timestamp('decided_at', { withTimezone: true }),
     /** Who decided: the assignee, or null for the system (SLA auto-decision). */
     decidedById: uuid('decided_by_id').references(() => users.id, { onDelete: 'set null' }),

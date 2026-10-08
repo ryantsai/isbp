@@ -68,7 +68,7 @@ export function createAuditService(db: Db, defaultModuleId?: string): AuditServi
         entityId: entry.entityId == null ? null : String(entry.entityId),
         entityLabel: entry.entityLabel?.slice(0, 300) ?? null,
         changes: redact(entry.changes) ?? null,
-        metadata: entry.metadata ?? null,
+        metadata: ctx?.auditMetadata ? { ...ctx.auditMetadata, ...entry.metadata } : (entry.metadata ?? null),
         outcome: entry.outcome ?? 'success',
         ip: ctx?.ip ?? null,
         userAgent: ctx?.userAgent?.slice(0, 500) ?? null,

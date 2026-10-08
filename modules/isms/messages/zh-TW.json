@@ -1,0 +1,1107 @@
+{
+  "meta": {
+    "name": "資訊安全",
+    "description": "資訊資產清冊（含機密性/完整性/可用性與資產價值）、盤點、共用帳號與帳號清查"
+  },
+  "nav": {
+    "group": "資訊安全",
+    "register": "資訊資產",
+    "stocktakes": "資產盤點",
+    "accounts": "共用帳號",
+    "reviews": "帳號清查",
+    "settings": "資訊安全"
+  },
+  "systemRoles": {
+    "isms-participant": {
+      "name": "資訊安全參與者",
+      "description": "盤點自己管理的資產、處理指派給自己的帳號清查，並管理自己保管的共用帳號（預設授予所有人）"
+    },
+    "isms-viewer": {
+      "name": "資訊安全檢視者",
+      "description": "檢視資訊資產清冊、盤點、共用帳號與帳號清查"
+    },
+    "isms-asset-manager": {
+      "name": "資訊資產管理員",
+      "description": "維護資訊資產清冊、匯入與匯出，並執行盤點"
+    },
+    "isms-security-officer": {
+      "name": "資訊安全主管",
+      "description": "核定盤點與帳號清查、管理共用帳號與帳號清查，並檢視資產清冊"
+    },
+    "isms-admin": {
+      "name": "資訊安全管理者",
+      "description": "資訊安全的所有功能，包含資產類別、據點與機密等級"
+    }
+  },
+  "permissions": {
+    "assetsRead": "檢視資訊資產清冊",
+    "assetsManage": "登錄、變更、匯入與刪除資訊資產",
+    "configManage": "設定資產類別、據點與機密等級",
+    "stocktakesManage": "開始、排程與取消盤點，並記錄任何項目",
+    "stocktakesSignoff": "核定盤點",
+    "accountsRead": "檢視所有共用帳號",
+    "accountsManage": "登錄與變更共用帳號及其使用人員",
+    "reviewsRead": "檢視所有帳號清查",
+    "reviewsManage": "開始、排程與取消帳號清查",
+    "reviewsSignoff": "核定帳號清查",
+    "selfUse": "參與作業：記錄盤點項目、處理帳號清查，並管理指派給自己的共用帳號"
+  },
+  "entities": {
+    "asset": "資訊資產",
+    "account": "共用帳號"
+  },
+  "kinds": {
+    "assetClass": "資訊資產類別"
+  },
+  "settings": {
+    "reminderDays": "到期前提醒天數",
+    "reminderDaysHelp": "盤點或帳號清查到期前幾天提醒資產管理者與清查人員。",
+    "reviewMonths": "共用帳號清查間隔（月）",
+    "reviewMonthsHelp": "確認共用帳號的使用人員後，下次清查設在幾個月後。",
+    "title": "資訊安全設定",
+    "description": "資產類別與機密性/完整性/可用性評分說明、資產編號使用的據點，以及機密等級。",
+    "tabs": {
+      "classes": "類別",
+      "sites": "據點",
+      "labels": "機密等級"
+    },
+    "saved": "已儲存",
+    "archived": "已封存",
+    "inUse": "使用中",
+    "archive": "封存",
+    "restore": "還原",
+    "archiveItem": "封存 {name}",
+    "restoreItem": "還原 {name}",
+    "classes": {
+      "new": "新增類別",
+      "newTitle": "新增資產類別",
+      "editTitle": "類別 {code}",
+      "hint": "類別代碼接在據點代碼之後，組成該類別每項資產的編號。",
+      "counts": "{subclasses, plural, other {# 個小類}} · {assets, plural, other {# 項資產}}",
+      "code": "代碼",
+      "codeHint": "2 到 4 個大寫英文字母，例如 HW。建立後無法變更。",
+      "codeFixed": "代碼無法變更：資產編號包含此代碼。",
+      "order": "順序",
+      "subclasses": "小類",
+      "addSubclass": "新增小類",
+      "removeSubclass": "移除此小類",
+      "guidance": "評分說明",
+      "guidanceHint": "說明此類別資產每個評分的意義，人員評分時會看到。不適用的等級請留白。",
+      "dimension": {
+        "c": "機密性",
+        "i": "完整性",
+        "a": "可用性"
+      }
+    },
+    "sites": {
+      "new": "新增據點",
+      "newTitle": "新增據點",
+      "editTitle": "據點 {code}",
+      "hint": "據點代碼是每項資產編號的開頭，例如 HQ01HW0001 中的 HQ01。",
+      "code": "代碼",
+      "assets": "資產"
+    },
+    "labels": {
+      "new": "新增機密等級",
+      "newTitle": "新增機密等級",
+      "editTitle": "機密等級",
+      "editItem": "編輯 {name}",
+      "hint": "機密等級說明資訊應如何處理，最機密的排在最前面。",
+      "rank": "等級順位",
+      "rankHint": "順位越高越機密，清單由最高者開始顯示。"
+    }
+  },
+  "recordFacts": {
+    "classCode": "資產類別代碼",
+    "subClass": "資產小類",
+    "confidentiality": "機密性",
+    "integrity": "完整性",
+    "availability": "可用性",
+    "value": "資產價值",
+    "classification": "機密等級",
+    "managerId": "資產管理者",
+    "managerGroup": "管理群組",
+    "siteCode": "據點代碼",
+    "status": "資產狀態"
+  },
+  "assetStatus": {
+    "active": "使用中",
+    "missing": "遺失",
+    "disposed": "已報廢"
+  },
+  "accountStatus": {
+    "active": "啟用中",
+    "retired": "已停用"
+  },
+  "stocktakeStatus": {
+    "scheduled": "已排程",
+    "open": "進行中",
+    "signed_off": "已核定",
+    "cancelled": "已取消"
+  },
+  "stocktakeResult": {
+    "pending": "待盤點",
+    "confirmed": "相符",
+    "changed": "已更正",
+    "missing": "遺失",
+    "disposed": "已報廢"
+  },
+  "reviewStatus": {
+    "scheduled": "已排程",
+    "open": "進行中",
+    "completed": "待核定",
+    "signed_off": "已核定",
+    "cancelled": "已取消"
+  },
+  "reviewDecision": {
+    "undecided": "尚未決定",
+    "keep": "帳號續用",
+    "disable": "停用帳號",
+    "delete": "刪除帳號"
+  },
+  "privilege": {
+    "admin": "管理者",
+    "user": "使用者"
+  },
+  "accountState": {
+    "enabled": "啟用",
+    "disabled": "停用"
+  },
+  "recurrence": {
+    "none": "一次",
+    "quarterly": "每季",
+    "yearly": "每年"
+  },
+  "overdue": "已逾期",
+  "value": {
+    "badge": "價值 {value}"
+  },
+  "fields": {
+    "number": "資產編號",
+    "name": "資產名稱",
+    "class": "大類",
+    "subclass": "小類",
+    "site": "據點",
+    "manager": "資產管理者",
+    "managerGroup": "管理群組",
+    "users": "資產使用者",
+    "usersText": "使用者（部門或人員，文字）",
+    "location": "存放位置",
+    "brand": "廠牌",
+    "model": "型號",
+    "version": "版本",
+    "quantity": "數量",
+    "confidentiality": "機密性",
+    "integrity": "完整性",
+    "availability": "可用性",
+    "cia": "C/I/A",
+    "value": "資產價值",
+    "classification": "機密等級",
+    "status": "狀態",
+    "notes": "備註",
+    "source": "登錄來源",
+    "lastVerifiedOn": "最近盤點",
+    "reference": "編號",
+    "stocktakeName": "名稱",
+    "startOn": "開始日期",
+    "dueOn": "到期日",
+    "recurrence": "重複",
+    "progress": "進度",
+    "result": "盤點結果",
+    "accountName": "帳號名稱",
+    "targetSystem": "目標系統/設備",
+    "targetRecord": "連結的應用系統或組態項目",
+    "custodian": "主要保管者",
+    "members": "使用人員",
+    "department": "申請部門",
+    "purpose": "使用目的",
+    "project": "專案名稱",
+    "requestReference": "申請單號",
+    "lastPasswordChangeOn": "最近變更密碼",
+    "nextReviewOn": "下次清查",
+    "lastReviewedOn": "最近清查",
+    "target": "清查標的（系統/設備名稱/IP）",
+    "reviewer": "清查人員",
+    "account": "帳號名稱",
+    "userName": "使用者姓名",
+    "person": "人員",
+    "privilege": "權限",
+    "accountState": "目前狀態",
+    "decision": "清查結果",
+    "doneOn": "完成日期",
+    "note": "備註說明"
+  },
+  "csvColumns": {
+    "number": "資產編號",
+    "name": "資產名稱",
+    "class": "大類",
+    "subclass": "小類",
+    "manager": "資產管理者",
+    "users": "資產使用者",
+    "location": "存放位置",
+    "brand": "廠牌",
+    "model": "型號",
+    "version": "版本",
+    "quantity": "數量",
+    "confidentiality": "機密性",
+    "integrity": "完整性",
+    "availability": "可用性",
+    "value": "資產價值",
+    "classification": "機密等級",
+    "site": "據點",
+    "status": "狀態",
+    "notes": "備註"
+  },
+  "reviewColumns": {
+    "account": "帳號名稱",
+    "user": "使用者姓名",
+    "privilege": "權限",
+    "status": "目前狀態",
+    "decision": "清查結果",
+    "doneOn": "完成日期",
+    "note": "備註說明"
+  },
+  "csv": {
+    "columns": {
+      "number": "資產編號",
+      "name": "資產名稱",
+      "class": "大類",
+      "subclass": "小類",
+      "manager": "資產管理者",
+      "users": "資產使用者",
+      "location": "存放位置",
+      "brand": "廠牌",
+      "model": "型號",
+      "version": "版本",
+      "quantity": "數量",
+      "confidentiality": "機密性",
+      "integrity": "完整性",
+      "availability": "可用性",
+      "value": "資產價值",
+      "classification": "機密等級",
+      "site": "據點",
+      "status": "狀態",
+      "notes": "備註"
+    },
+    "stocktake": {
+      "number": "資產編號",
+      "name": "資產名稱",
+      "class": "大類",
+      "site": "據點",
+      "location": "存放位置",
+      "value": "資產價值",
+      "assignee": "資產管理者",
+      "result": "盤點結果",
+      "changes": "更正內容",
+      "note": "備註",
+      "decidedBy": "記錄人員",
+      "decidedAt": "記錄時間"
+    },
+    "review": {
+      "account": "帳號名稱",
+      "user": "使用者姓名",
+      "privilege": "權限",
+      "status": "目前狀態",
+      "decision": "清查結果",
+      "doneOn": "完成日期",
+      "note": "備註說明"
+    },
+    "reviewTarget": "清查標的（系統/設備名稱/IP）",
+    "reviewDate": "清查日期",
+    "reviewReference": "編號"
+  },
+  "register": {
+    "title": "資訊資產",
+    "description": "資訊資產清冊：每項資產的類別、管理者、機密性、完整性、可用性與資產價值。",
+    "new": "登錄資產",
+    "more": "更多",
+    "import": "從 CSV 匯入",
+    "createFrom": "從其他紀錄建立",
+    "export": "匯出 CSV",
+    "search": "依編號或名稱搜尋",
+    "allClasses": "所有類別",
+    "minValue": "最低資產價值",
+    "anyValue": "任何價值",
+    "valueAtLeast": "價值 {value} 以上",
+    "allClassifications": "所有機密等級",
+    "allSites": "所有據點",
+    "anyGroup": "任何群組",
+    "anyManager": "任何管理者",
+    "ciaLabel": "機密性 {confidentiality}、完整性 {integrity}、可用性 {availability}",
+    "liveCount": "{count, plural, other {# 項資產}}",
+    "views": {
+      "active": "使用中",
+      "missing": "遺失",
+      "disposed": "已報廢",
+      "all": "全部"
+    },
+    "empty": {
+      "title": "沒有資訊資產",
+      "none": "登錄組織所依賴的人員、硬體、軟體、資訊與服務。",
+      "filtered": "沒有符合篩選條件的資產。"
+    }
+  },
+  "assetForm": {
+    "createTitle": "登錄資訊資產",
+    "editTitle": "編輯 {number}",
+    "hint": "依類別的評分說明評估機密性、完整性與可用性：資產價值取三者的最大值。",
+    "identity": "資產",
+    "responsibility": "權責與存放位置",
+    "details": "詳細資料",
+    "cia": "機密性、完整性與可用性",
+    "ciaHint": "只要符合其中一項評估條件，就選用該評分，避免低估資產價值。",
+    "ciaPickClass": "選擇類別後即可看到各評分的意義。",
+    "confidentialityHint": "資訊遭不當存取或洩漏時的影響。",
+    "integrityHint": "內容錯誤、不完整或遭竄改時的影響。",
+    "availabilityHint": "無法使用時的影響。",
+    "level": "評分 {level}",
+    "noGuidance": "此評分沒有說明",
+    "nameHint": "以功能面敘述為原則，簡單清楚。",
+    "nameRequired": "請輸入名稱",
+    "classRequired": "請選擇類別",
+    "siteRequired": "請選擇據點",
+    "quantityInvalid": "請輸入 0 以上的整數",
+    "choose": "請選擇…",
+    "noSubclass": "無小類",
+    "noClassification": "無機密等級",
+    "noGroup": "無群組",
+    "numberHint": "資產編號由據點代碼、類別代碼與流水號組成，例如 HQ01HW0001。",
+    "numberKept": "變更據點或類別時，資產編號維持不變。",
+    "managerPlaceholder": "選擇人員",
+    "addUser": "新增人員",
+    "usersTextPlaceholder": "例如：財務部、全體同仁",
+    "register": "登錄",
+    "created": "已登錄 {number}",
+    "saved": "資產已儲存"
+  },
+  "asset": {
+    "notFound": "此資產不存在，或您沒有檢視權限",
+    "about": "資產資料",
+    "cia": "資產價值",
+    "ciaDescription": "資產價值為 {value}：取機密性、完整性與可用性的最大值。",
+    "deleteTitle": "刪除 {number}？",
+    "deleteDescription": "{name} 與其連結及附件將從清冊移除，稽核日誌仍保留其歷程。",
+    "deleted": "資產已刪除"
+  },
+  "history": {
+    "title": "歷程",
+    "none": "尚無紀錄。",
+    "system": "系統",
+    "more": "顯示更多",
+    "changed": "已變更",
+    "customFields": "其他資訊",
+    "kinds": {
+      "created": "已登錄",
+      "updated": "已更新",
+      "imported": "已匯入",
+      "stocktake": "盤點時更新",
+      "status_changed": "狀態已變更"
+    }
+  },
+  "links": {
+    "title": "連結與附件",
+    "unavailable": "無法使用連結與附件",
+    "unavailableHint": "平台的紀錄面板已關閉。"
+  },
+  "people": {
+    "selected": "已選擇的人員",
+    "remove": "移除 {name}"
+  },
+  "import": {
+    "file": "CSV 檔案",
+    "check": "檢查檔案",
+    "import": "匯入",
+    "checked": "檢查結果：{summary}。目前尚未變更任何資料。",
+    "imported": "已匯入：{summary}。",
+    "skipped": "{count, plural, other {以下 # 列未處理}}：",
+    "missingColumns": "檔案缺少以下欄位：{columns}。",
+    "issueLine": "第 {line} 列，{column}：{value} {problem}",
+    "errors": {
+      "empty": "檔案沒有資料列。",
+      "tooManyRows": "檔案的資料列太多，請分成較小的檔案。"
+    },
+    "issues": {
+      "required": "為必填。",
+      "unknownClass": "不是有效的類別。",
+      "unknownSubclass": "不是此類別的小類。",
+      "unknownSite": "不是有效的據點。",
+      "unknownLabel": "不是有效的機密等級。",
+      "unknownManager": "找不到相符的人員或群組。",
+      "badLevel": "必須是 1、2、3 或 4。",
+      "badQuantity": "必須是整數。",
+      "badNumber": "開頭不是據點代碼與類別代碼。",
+      "badStatus": "不是有效的狀態。",
+      "duplicate": "在檔案中重複出現。",
+      "tooLong": "太長。",
+      "notFound": "不存在。",
+      "badPrivilege": "不是管理者或使用者。",
+      "badDecision": "不是有效的清查結果。"
+    },
+    "assetsTitle": "匯入資產清冊",
+    "assetsDescription": "請先檢查檔案：按下匯入前不會變更任何資料。",
+    "assetsHelp": "使用匯出檔的欄位，順序不拘，欄位名稱可用英文、中文或日文。資產編號已存在的列會更新該資產（空白儲存格保留原值）；其他列登錄為新資產。資產價值會自動計算。",
+    "assetsSummary": "登錄 {created} 項、更新 {updated} 項、{unchanged} 項無變更",
+    "accountsTitle": "匯入帳號清單",
+    "accountsDescription": "載入從系統匯出的帳號。已列出的帳號會更新。",
+    "accountsHelp": "欄位順序不拘：帳號名稱（必填）、使用者姓名、權限（管理者或使用者）、目前狀態（啟用或停用），以及選填的清查結果、完成日期與備註說明。會依使用者名稱比對人員。",
+    "accountsSummary": "新增 {added} 個、更新 {updated} 個、{matched} 個比對到人員"
+  },
+  "createFrom": {
+    "title": "從其他紀錄建立",
+    "description": "將組態項目、IT 資產、軟體授權、合約、應用系統或知識文章登錄為資訊資產，並與原紀錄建立連結。",
+    "type": "紀錄類型",
+    "search": "搜尋紀錄",
+    "records": "紀錄（已選 {count} 筆）",
+    "none": "找不到紀錄。",
+    "noSources": "您沒有可用來登錄的紀錄類型。",
+    "registered": "已登錄為 {number}",
+    "defaults": "新資產的設定",
+    "needClassSite": "請選擇類別與據點。",
+    "submit": "{count, plural, =0 {登錄} other {登錄 # 項資產}}",
+    "done": "{created, plural, other {已登錄 # 項資產}}，{skipped} 筆未處理。",
+    "types": {
+      "cmdb_ci": "組態項目",
+      "itam_asset": "硬體資產",
+      "itam_license": "軟體授權",
+      "itam_contract": "合約",
+      "alm_application": "應用系統",
+      "knowledge_article": "知識文章"
+    }
+  },
+  "stocktakes": {
+    "title": "資產盤點",
+    "description": "確認清冊正確：由各資產的管理者確認、更正，或回報遺失與報廢。",
+    "new": "新增盤點",
+    "all": "全部",
+    "search": "搜尋盤點",
+    "mine": "等待您處理",
+    "mineDescription": "{count, plural, other {您管理的 # 項資產需要盤點}}",
+    "dueOn": "{date} 到期",
+    "forYou": "您的項目",
+    "pendingForMe": "{count, plural, other {# 項待盤點}}",
+    "progressLabel": "{name} 的進度",
+    "empty": {
+      "title": "沒有盤點",
+      "description": "開始盤點，請資產管理者確認其管理的資產。"
+    }
+  },
+  "stocktake": {
+    "notFound": "此盤點不存在，或您沒有檢視權限",
+    "items": "盤點資產",
+    "search": "依編號或名稱搜尋",
+    "onlyMine": "只顯示我的",
+    "noItems": "沒有資產",
+    "export": "匯出盤點結果",
+    "cancel": "取消盤點",
+    "cancelTitle": "取消 {reference}？",
+    "cancelDescription": "已記錄的結果會保留，但此盤點將無法核定。",
+    "cancelled": "盤點已取消",
+    "signOff": "核定",
+    "signOffTitle": "核定 {reference}",
+    "signOffDescription": "遺失與報廢的資產會變更狀態，其餘資產標示為今天已盤點。",
+    "signOffWhenDone": "所有資產記錄完成後即可核定。",
+    "signedOff": "盤點已核定",
+    "signedOffBy": "由 {name} 核定",
+    "scheduled": "此盤點將於 {date} 開始。",
+    "summary": "相符 {confirmed} 項、已更正 {changed} 項、遺失 {missing} 項、已報廢 {disposed} 項、待盤點 {pending} 項",
+    "views": {
+      "all": "全部",
+      "pending": "待盤點",
+      "done": "已記錄",
+      "confirmed": "相符",
+      "changed": "已更正",
+      "missing": "遺失",
+      "disposed": "已報廢"
+    }
+  },
+  "newStocktake": {
+    "title": "新增盤點",
+    "description": "範圍內的資產會成為盤點項目，由各資產管理者在到期日前確認。",
+    "defaultName": "{year} 年資產盤點",
+    "scopeHint": "清單留白表示全部納入。包含使用中與遺失的資產。",
+    "managers": "資產管理者",
+    "addManager": "新增管理者",
+    "required": "請輸入名稱與到期日。",
+    "start": "開始",
+    "schedule": "排程",
+    "created": "已建立盤點 {reference}"
+  },
+  "record": {
+    "title": "盤點 {number}",
+    "open": "盤點",
+    "change": "變更",
+    "openFor": "盤點 {number}",
+    "result": "盤點結果",
+    "corrections": "目前正確的資料",
+    "note": "備註",
+    "submit": "記錄",
+    "saved": "已記錄",
+    "changesRequired": "請至少修改一個欄位。",
+    "noteRequired": "請填寫備註：資產發生了什麼事？",
+    "hints": {
+      "confirmed": "清冊資料正確。",
+      "changed": "立即更正清冊資料。",
+      "missing": "找不到資產。",
+      "disposed": "資產已報廢。"
+    }
+  },
+  "signOff": {
+    "note": "備註（選填）",
+    "confirm": "核定"
+  },
+  "accounts": {
+    "title": "共用帳號",
+    "description": "由多人使用、由主要保管者保管密碼的帳號。使用人員離職或調職時，應於當天變更密碼。",
+    "new": "登錄共用帳號",
+    "search": "依帳號、系統或專案搜尋",
+    "onlyMine": "只顯示我的",
+    "passwordDue": "應變更密碼",
+    "views": {
+      "active": "啟用中",
+      "password": "應變更密碼",
+      "review": "應清查",
+      "retired": "已停用",
+      "all": "全部"
+    },
+    "empty": {
+      "title": "沒有共用帳號",
+      "active": "登錄核准使用的共用帳號。",
+      "password": "沒有需要變更的密碼。",
+      "review": "沒有到期的清查。",
+      "retired": "沒有已停用的帳號。",
+      "all": "登錄核准使用的共用帳號。"
+    }
+  },
+  "account": {
+    "notFound": "此共用帳號不存在，或您沒有檢視權限",
+    "about": "帳號資料",
+    "passwordChanged": "已變更密碼",
+    "review": "清查使用人員",
+    "dueTitle": "請於今天變更密碼",
+    "dueBody": "{reason, select, member_left {{member} 已離職} member_moved {{member} 已調至其他部門} custodian_left {主要保管者 {member} 已離職：請指定新的保管者} other {{member} 已從使用人員清單移除}}。",
+    "reviewDue": "年度清查已於 {date} 到期：請確認仍需要使用此帳號的人員。",
+    "membersDescription": "{count, plural, other {共 # 位人員}}可使用此帳號。",
+    "noMembers": "清單中沒有人員。",
+    "inactive": "已非在職",
+    "since": "自 {date} 起",
+    "removeMember": "將 {name} 從清單移除",
+    "removeTitle": "將 {name} 從清單移除？",
+    "removeDescription": "移除後須於今天變更 {account} 的密碼。",
+    "memberRemoved": "已從清單移除：請於今天變更密碼"
+  },
+  "accountForm": {
+    "createTitle": "登錄共用帳號",
+    "editTitle": "編輯 {reference}",
+    "hint": "主要保管者以加密方式保管密碼，並在人員離開清單時變更密碼。",
+    "targetHint": "選填：此帳號所屬的應用系統或組態項目。",
+    "addMember": "新增人員",
+    "removeHint": "將人員從清單移除後，須變更密碼。",
+    "noDepartment": "無部門",
+    "required": "請輸入帳號名稱並選擇主要保管者。",
+    "register": "登錄",
+    "created": "已登錄 {reference}",
+    "saved": "共用帳號已儲存"
+  },
+  "password": {
+    "title": "{account} 的密碼已變更",
+    "description": "記錄密碼變更的日期。請勿在此填寫密碼。",
+    "changedOn": "變更日期",
+    "note": "備註（選填）",
+    "submit": "記錄",
+    "saved": "已記錄密碼變更"
+  },
+  "accountReview": {
+    "title": "清查 {account}",
+    "description": "保留仍需要此帳號的人員。取消勾選的人員會從清單移除，並須變更密碼。",
+    "members": "清單中的人員",
+    "inactive": "已非在職",
+    "note": "備註（選填）",
+    "removing": "{count, plural, other {將移除 # 位人員：之後請變更密碼。}}",
+    "keepingAll": "所有人員都保留在清單中。",
+    "submit": "確認清查",
+    "saved": "已記錄清查"
+  },
+  "accountHistory": {
+    "created": "已登錄",
+    "updated": "已更新",
+    "member_added": "已新增 {user}",
+    "member_removed": "已將 {user} 從清單移除",
+    "password_change_due": "應變更密碼：{reason, select, member_left {{user} 離職} member_moved {{user} 調職} custodian_left {主要保管者 {user} 離職} other {{user} 已從清單移除}}",
+    "password_changed": "已於 {date} 變更密碼",
+    "reviewed": "已確認使用人員；下次清查 {date}",
+    "retired": "已停用",
+    "restored": "已重新啟用",
+    "registered": "已依申請單更新"
+  },
+  "reviews": {
+    "title": "帳號清查",
+    "description": "逐一檢查系統帳號，決定續用、停用或刪除，再由資訊安全主管核定結果。",
+    "new": "新增帳號清查",
+    "all": "全部",
+    "search": "依系統搜尋",
+    "onlyMine": "只顯示由我清查的",
+    "progressLabel": "{target} 帳號清查的進度",
+    "empty": {
+      "title": "沒有帳號清查",
+      "description": "為系統、設備或應用系統開始帳號清查。"
+    }
+  },
+  "review": {
+    "notFound": "此帳號清查不存在，或您沒有檢視權限",
+    "items": "帳號",
+    "search": "搜尋帳號或使用者",
+    "reviewer": "清查人員：{name}",
+    "accounts": "帳號",
+    "import": "匯入帳號清單",
+    "add": "新增帳號",
+    "export": "匯出",
+    "raiseTickets": "建立工單",
+    "ticketsRaised": "{raised, plural, other {已建立 # 張工單}}{failed, plural, =0 {} other {，# 張失敗}}",
+    "complete": "完成清查",
+    "completed": "清查已完成：等待核定",
+    "completeWhenDone": "每個帳號都有清查結果，且停用或刪除都填寫完成日期後，即可完成清查。",
+    "reopen": "退回",
+    "reopened": "已退回給清查人員",
+    "signOff": "核定",
+    "signOffTitle": "核定 {reference}",
+    "signOffDescription": "確認清查結果。週期性清查會排程下一次。",
+    "signedOff": "帳號清查已核定",
+    "signedOffBy": "由 {name} 核定",
+    "waitingSignOff": "已完成：等待資訊安全主管核定。",
+    "cancel": "取消清查",
+    "cancelTitle": "取消 {reference}？",
+    "cancelDescription": "已記錄的結果會保留，但此清查將無法核定。",
+    "cancelled": "帳號清查已取消",
+    "scheduled": "此清查將於 {date} 開始。",
+    "noItems": "沒有帳號",
+    "noItemsHint": "匯入系統的帳號清單，或手動新增帳號。",
+    "doneOn": "{date} 完成",
+    "notDoneYet": "缺少完成日期",
+    "summary": "續用 {keep} 個、停用 {disable} 個、刪除 {delete} 個、尚未決定 {undecided} 個",
+    "views": {
+      "all": "全部",
+      "undecided": "尚未決定",
+      "keep": "帳號續用",
+      "disable": "停用帳號",
+      "delete": "刪除帳號",
+      "admin": "管理者"
+    }
+  },
+  "newReview": {
+    "title": "新增帳號清查",
+    "description": "清查人員為系統的每個帳號決定續用、停用或刪除。",
+    "targetPlaceholder": "例如：核心防火牆、10.0.0.1",
+    "source": "帳號來源",
+    "sourceCsv": "從系統匯出的帳號清單匯入",
+    "sourceApp": "{name} 的角色持有人",
+    "sourceHint": "平台中登錄的應用系統，清查會從持有其角色的所有人員開始。",
+    "required": "請輸入清查標的，並選擇清查人員與到期日。",
+    "start": "開始",
+    "schedule": "排程",
+    "created": "已建立帳號清查 {reference}"
+  },
+  "decide": {
+    "open": "決定",
+    "openFor": "決定 {account}",
+    "title": "決定 {account}",
+    "titleMany": "決定 {count} 個帳號",
+    "description": "續用、停用或刪除帳號。",
+    "doneHint": "帳號停用或刪除的日期，可稍後再填寫。",
+    "selected": "決定已選的 {count} 個",
+    "saved": "{count, plural, other {已儲存清查結果}}"
+  },
+  "addAccount": {
+    "title": "新增帳號",
+    "description": "清單中缺少的帳號。",
+    "saved": "已新增帳號"
+  },
+  "tickets": {
+    "disableTitle": "停用帳號",
+    "deleteTitle": "刪除帳號",
+    "review": "帳號清查",
+    "account": "帳號",
+    "decision": "清查結果",
+    "note": "備註",
+    "link": "清查"
+  },
+  "dashboard": {
+    "title": "資訊安全",
+    "description": "資產、盤點、共用帳號與帳號清查",
+    "myItems": "{count, plural, other {您管理的 # 項資產需要盤點}}",
+    "open": "開啟",
+    "passwordDue": "{count, plural, other {# 個共用帳號應變更密碼}}",
+    "byValue": "依資產價值統計（{total}）",
+    "byValueCaption": "使用中資產依資產價值統計",
+    "value": "價值 {value}",
+    "stocktakes": "進行中的盤點",
+    "reviews": "進行中的帳號清查",
+    "percent": "{percent}%"
+  },
+  "errors": {
+    "stocktakeClosed": "盤點已結束。",
+    "itemsPending": "仍有項目尚未記錄。",
+    "assetDeleted": "資產已刪除。",
+    "reviewClosed": "清查已結束。",
+    "reviewEmpty": "清查中沒有帳號。",
+    "reviewNotCompleted": "清查尚未完成。",
+    "accountRetired": "帳號已停用。",
+    "ticketsUnavailable": "建立工單需要服務台模組。"
+  },
+  "processActions": {
+    "registerSharedAccount": {
+      "name": "登錄共用帳號",
+      "description": "登錄核准的共用帳號（或將新的使用人員加入），並記錄主要保管者與使用人員。",
+      "accountName": "帳號名稱",
+      "accountNameHelp": "文字，或取用表單答案的範本。",
+      "targetSystem": "目標系統/設備",
+      "templateHelp": "文字，或取用表單答案的範本。",
+      "targetField": "應用系統或組態項目欄位",
+      "targetFieldHelp": "此表單中指出系統的紀錄欄位。",
+      "custodian": "主要保管者",
+      "requester": "申請人",
+      "members": "使用人員",
+      "membersHelp": "表單中的人員欄位，或表格中的人員欄。",
+      "purpose": "使用目的",
+      "project": "專案名稱",
+      "created": "已登錄共用帳號",
+      "updated": "已更新共用帳號"
+    }
+  },
+  "audit": {
+    "asset_created": "登錄了資訊資產",
+    "asset_updated": "變更了資訊資產",
+    "asset_deleted": "刪除了資訊資產",
+    "asset_exported": "匯出了資訊資產清冊",
+    "asset_imported": "匯入了資訊資產清冊",
+    "taxonomy_changed": "變更了資產類別、據點或機密等級",
+    "taxonomy_defaults_created": "建立了預設的資產類別、機密等級與據點",
+    "class_created": "建立了資產類別",
+    "class_updated": "變更了資產類別",
+    "class_archived": "封存了資產類別",
+    "class_restored": "還原了資產類別",
+    "site_created": "建立了據點",
+    "site_updated": "變更了據點",
+    "site_archived": "封存了據點",
+    "site_restored": "還原了據點",
+    "label_created": "建立了機密等級",
+    "label_updated": "變更了機密等級",
+    "label_archived": "封存了機密等級",
+    "label_restored": "還原了機密等級",
+    "stocktake_created": "建立了盤點",
+    "stocktake_started": "開始了盤點",
+    "stocktake_item_recorded": "記錄了盤點項目",
+    "stocktake_signed_off": "核定了盤點",
+    "stocktake_cancelled": "取消了盤點",
+    "stocktake_exported": "匯出了盤點結果",
+    "account_created": "登錄了共用帳號",
+    "account_updated": "變更了共用帳號",
+    "account_member_added": "新增了共用帳號使用人員",
+    "account_member_removed": "將人員從共用帳號移除",
+    "account_password_change_due": "標示共用帳號應變更密碼",
+    "account_password_changed": "記錄了共用帳號密碼變更",
+    "account_reviewed": "清查了共用帳號使用人員",
+    "review_created": "建立了帳號清查",
+    "review_started": "開始了帳號清查",
+    "review_items_imported": "匯入了清查帳號",
+    "review_item_decided": "決定了清查帳號",
+    "review_completed": "完成了帳號清查",
+    "review_reopened": "退回了帳號清查",
+    "review_signed_off": "核定了帳號清查",
+    "review_cancelled": "取消了帳號清查",
+    "review_exported": "匯出了帳號清查",
+    "review_ticket_raised": "從帳號清查建立了工單"
+  },
+  "notifications": {
+    "stocktake_assigned": {
+      "label": "我管理的資產盤點",
+      "title": "盤點 {name}：{count, plural, other {# 項資產待盤點}}",
+      "body": "請在 {due} 前確認、更正或回報您管理的每項資產。"
+    },
+    "stocktake_reminder": {
+      "label": "盤點提醒",
+      "title": "盤點 {name} 將於 {due} 到期",
+      "body": "{count, plural, other {仍有 # 項資產等待您處理}}。"
+    },
+    "stocktake_overdue": {
+      "label": "逾期的盤點",
+      "title": "盤點 {name} 已逾期",
+      "body": "已於 {due} 到期；{count, plural, other {仍有 # 項資產等待處理}}。"
+    },
+    "stocktake_ready": {
+      "label": "可核定的盤點",
+      "title": "{reference} 可以核定了",
+      "body": "{name} 的所有資產都已記錄。"
+    },
+    "account_password_change_due": {
+      "label": "應變更的共用帳號密碼",
+      "title": "請於今天變更 {account} 的密碼",
+      "body": "{reason, select, member_left {{member} 已離職} member_moved {{member} 已調至其他部門} custodian_left {主要保管者 {member} 已離職：請指定新的保管者並變更密碼} other {{member} 已從使用人員清單移除}}。完成後請記錄密碼變更。"
+    },
+    "account_review_due": {
+      "label": "共用帳號清查",
+      "title": "請清查 {account} 的使用人員",
+      "body": "年度清查已於 {due} 到期：請確認仍需要使用此帳號的人員。"
+    },
+    "review_assigned": {
+      "label": "指派給我的帳號清查",
+      "title": "請清查 {target} 的帳號",
+      "body": "{reference}：請在 {due} 前為{count, plural, =0 {每個帳號} other { # 個帳號}}決定續用、停用或刪除。"
+    },
+    "review_reminder": {
+      "label": "帳號清查提醒",
+      "title": "帳號清查 {reference} 將於 {due} 到期",
+      "body": "請完成 {target} 的清查。"
+    },
+    "review_overdue": {
+      "label": "逾期的帳號清查",
+      "title": "帳號清查 {reference} 已逾期",
+      "body": "{target} 的清查已於 {due} 到期。"
+    },
+    "review_ready": {
+      "label": "可核定的帳號清查",
+      "title": "{reference} 可以核定了",
+      "body": "{target} 的帳號清查已完成。"
+    }
+  },
+  "defaults": {
+    "classes": {
+      "PE": {
+        "name": "人員",
+        "description": "組織所依賴的人員。",
+        "subclasses": {
+          "internal-people": {
+            "name": "內部人員",
+            "description": "主管、資訊維運人員與使用者。"
+          },
+          "external-people": {
+            "name": "外部人員",
+            "description": "外部廠商、駐點廠商與派遣人力。"
+          }
+        },
+        "guidance": {
+          "c": {
+            "1": "處理一般資訊，洩漏後影響可忽略。",
+            "2": "處理機密資訊，洩漏後會影響組織。",
+            "3": "處理客戶機密資訊，洩漏後會影響客戶。",
+            "4": "處理極機密資訊，洩漏後會造成重大損害。"
+          },
+          "i": {
+            "1": "人員類資產的完整性皆評為 1。",
+            "2": "",
+            "3": "",
+            "4": ""
+          },
+          "a": {
+            "1": "無法作業時，會影響少數同仁。",
+            "2": "無法作業時，會影響部門內部作業。",
+            "3": "無法作業時，會影響數個部門的作業。",
+            "4": "無法作業時，會影響組織對外提供的服務。"
+          }
+        }
+      },
+      "HW": {
+        "name": "硬體",
+        "description": "伺服器、網通設備、儲存媒體、行動裝置與物聯網設備。",
+        "subclasses": {
+          "servers": {
+            "name": "伺服器",
+            "description": "應用系統、資料庫、網頁與備份伺服器。"
+          },
+          "network-devices": {
+            "name": "網通設備",
+            "description": "交換器、路由器、防火牆與無線網路設備。"
+          },
+          "portable-media": {
+            "name": "可攜式儲存媒體",
+            "description": "外接硬碟、隨身碟、記憶卡、磁帶與安全金鑰。"
+          },
+          "mobile-devices": {
+            "name": "行動裝置",
+            "description": "智慧型手機、筆記型電腦、平板電腦與手持掃描器。"
+          },
+          "iot-devices": {
+            "name": "物聯網設備",
+            "description": "聯網的事務機、監視、門禁與視訊設備。"
+          }
+        },
+        "guidance": {
+          "c": {
+            "1": "架構或運作方式外流，幾乎不影響資訊安全控管。",
+            "2": "架構或運作方式外流，會影響單一據點的資訊安全控管。",
+            "3": "架構或運作方式外流，會影響數個據點的資訊安全控管。",
+            "4": "架構或運作方式外流，會嚴重影響資訊安全控管。"
+          },
+          "i": {
+            "1": "硬體類資產的完整性皆評為 1。",
+            "2": "",
+            "3": "",
+            "4": ""
+          },
+          "a": {
+            "1": "可容許超過 48 小時無法使用。",
+            "2": "可容許 24 至 48 小時無法使用。",
+            "3": "可容許 8 至 24 小時無法使用。",
+            "4": "最多只能容許 8 小時無法使用。"
+          }
+        }
+      },
+      "SW": {
+        "name": "軟體",
+        "description": "作業系統與套裝軟體。",
+        "subclasses": {
+          "operating-systems": {
+            "name": "作業系統",
+            "description": "伺服器、桌機與行動裝置的作業系統。"
+          },
+          "packaged-software": {
+            "name": "套裝軟體",
+            "description": "辦公室、通訊、資安與其他應用軟體。"
+          }
+        },
+        "guidance": {
+          "c": {
+            "1": "程式邏輯外流，幾乎不會造成影響。",
+            "2": "程式邏輯外流，會影響單一據點的資訊安全控管。",
+            "3": "程式邏輯外流，會影響數個據點的資訊安全控管。",
+            "4": "程式邏輯外流，會嚴重影響組織。"
+          },
+          "i": {
+            "1": "結果不正確或不完整，幾乎不影響作業。",
+            "2": "結果不正確或不完整，會影響單一據點的作業。",
+            "3": "結果不正確或不完整，會影響數個據點的作業。",
+            "4": "結果不正確或不完整，會嚴重影響組織作業。"
+          },
+          "a": {
+            "1": "可容許超過 24 小時無法使用。",
+            "2": "可容許 16 至 24 小時無法使用。",
+            "3": "可容許 8 至 16 小時無法使用。",
+            "4": "最多只能容許 8 小時無法使用。"
+          }
+        }
+      },
+      "DA": {
+        "name": "資訊",
+        "description": "紙本或電子的文件、紀錄與合約。",
+        "subclasses": {
+          "operational-documents": {
+            "name": "作業文件",
+            "description": "程序、清單、報告、指引與作業紀錄。"
+          },
+          "system-documents": {
+            "name": "系統文件",
+            "description": "系統文件與操作手冊。"
+          },
+          "electronic-records": {
+            "name": "電子資料紀錄",
+            "description": "資料庫、電子郵件、組態檔、原始程式碼與日誌。"
+          },
+          "contracts": {
+            "name": "合約",
+            "description": "合約、法律文件、軟體授權與保密協議。"
+          }
+        },
+        "guidance": {
+          "c": {
+            "1": "應在組織內部保密的資訊。",
+            "2": "機密：揭露超出特定團隊會影響組織。",
+            "3": "客戶機密：揭露會影響客戶。",
+            "4": "極機密：揭露超出特定人員會造成重大損害。"
+          },
+          "i": {
+            "1": "內容不正確或不完整，會影響少數人。",
+            "2": "內容不正確或不完整，會影響組織。",
+            "3": "內容不正確或不完整，會影響客戶。",
+            "4": "內容不正確或不完整，會對組織造成重大衝擊。"
+          },
+          "a": {
+            "1": "遺失時，對內部運作影響輕微。",
+            "2": "遺失時，會影響日常作業。",
+            "3": "遺失時，會影響客戶服務。",
+            "4": "作業完全依賴此資訊；遺失時會中斷營運。"
+          }
+        }
+      },
+      "SV": {
+        "name": "服務",
+        "description": "組織提供或依賴的服務。",
+        "subclasses": {
+          "internal-services": {
+            "name": "對內服務",
+            "description": "門禁、電力、空調與內部網路服務。"
+          },
+          "external-services": {
+            "name": "對外服務",
+            "description": "網際網路連線與其他供應商服務。"
+          }
+        },
+        "guidance": {
+          "c": {
+            "1": "運作方式外流，幾乎不影響資訊安全。",
+            "2": "運作方式外流，會影響單一據點的資訊安全控管。",
+            "3": "運作方式外流，會影響數個據點的資訊安全控管。",
+            "4": "運作方式外流，會嚴重影響資訊安全控管。"
+          },
+          "i": {
+            "1": "服務類資產的完整性皆評為 1。",
+            "2": "",
+            "3": "",
+            "4": ""
+          },
+          "a": {
+            "1": "可容許超過 24 小時無法使用。",
+            "2": "可容許 16 至 24 小時無法使用。",
+            "3": "可容許 8 至 16 小時無法使用。",
+            "4": "最多只能容許 8 小時無法使用。"
+          }
+        }
+      }
+    },
+    "labels": {
+      "strictly-confidential": {
+        "name": "極機密",
+        "description": "僅限指定人員或職位存取；揭露會造成重大損害。"
+      },
+      "customer-confidential": {
+        "name": "客戶機密",
+        "description": "客戶委託的資訊，依客戶要求處理。"
+      },
+      "confidential": {
+        "name": "機密",
+        "description": "僅限指定團隊或單位存取。"
+      },
+      "internal-use-only": {
+        "name": "限內部使用",
+        "description": "僅限組織內部使用。"
+      }
+    }
+  },
+  "packages": {
+    "processes": {
+      "name": "ISMS 流程範本套件",
+      "description": "ISO 27001 架構的資訊安全申請表單、簽核流程與定期檢核表：帳號與權限、防火牆規則、機房與備份巡檢、資訊資產、軟體、例外申請及資安通報，並建立所需的群組、服務台類別與排程作業。",
+      "workflows": {
+        "accountRequest": "帳號權限申請簽核",
+        "accountRetention": "系統帳號停用／延遲刪除簽核",
+        "sharedAccount": "共用帳號申請簽核",
+        "firewallRule": "防火牆規則異動簽核",
+        "networkDeviceCheck": "網路設備檢核覆核",
+        "externalNetwork": "外部人員網路使用簽核",
+        "serverRoomInspection": "機房巡檢覆核",
+        "systemBackupInspection": "系統及備份巡檢覆核",
+        "backupPlan": "備份計畫簽核",
+        "restoreTest": "備份資料回存測試覆核",
+        "maintenance": "年度設備保養維護覆核",
+        "patchException": "修補程式例外簽核",
+        "devicePassword": "重要設備密碼變更覆核",
+        "assetChange": "資訊資產變更作業簽核",
+        "deviceCheckout": "資訊資產領用簽核",
+        "deviceReturn": "資訊資產歸還簽核",
+        "softwareInstall": "軟體安裝與使用簽核",
+        "mediaException": "可攜式媒體與機敏資料攜出例外簽核",
+        "imException": "即時通訊軟體例外使用簽核",
+        "threatIntel": "威脅情資處理覆核",
+        "resolutionSignOff": "設備資源異常結案簽核"
+      }
+    }
+  }
+}

@@ -117,6 +117,17 @@ API reference, recipes, generated extension-point reference, testing, UI, defini
   Screenshots: `pnpm docs:screenshots` against a freshly reset demo → `apps/web/public/help/<locale>/`. When a change
   alters what people see or do, update the guide in all three languages.
 
+- Process builder (Phase 8, design §15): forms take `record` and `rows` (table) fields, form rules (`validateForm`;
+  conditions read table columns across rows, `today` and `valueOffsetDays`) and actions (`FormAction`, optional
+  `when`). What a request does after it's sent/approved/rejected is a module's **process action**
+  (`manifest.processActions` + `defineServerModule({ processActions })`; runs as the module, in form order, retried).
+  Approval steps can ask the approver for `fields`; values become facts `steps.<stepId>.<key>`. Records expose
+  `facts` (only what readers may see) for record-field filters and routing. Requests are records (`core.request`:
+  files and links). Recurring checklists are form assignments (task type `core.assign-form`, To do); dated reminders
+  are the `core.remind` action. Ready-made process sets are built-in **change-set packages**
+  (`manifest.customizationPackages`, content built per installer locale; installed as a draft change set, all or
+  nothing). The `isms` module ships the ISMS process pack.
+
 ## Gotchas
 
 - pnpm 12: install scripts must be listed under `allowBuilds` in `pnpm-workspace.yaml`.
@@ -136,6 +147,8 @@ API reference, recipes, generated extension-point reference, testing, UI, defini
   has no pgvector). The mode is chosen at migration time. The column is not in the Drizzle schema, so use raw SQL.
 - Integration tests reset every module schema in their database. Parallel runs need their own
   `DATABASE_URL` (`*_test`) and `REDIS_URL` db index.
+- E2E runs 2 workers (`e2e/playwright.config.ts`): every test signs in as the same admin, and more workers exceed the
+  API's per-user rate limit (`RATE_LIMIT_MAX`), so random specs fail with 429.
 - `assets` (and other static paths) are reserved module ids: Asset Management is `itam`.
 - The web proxy buffers request bodies (`experimental.proxyClientMaxBodySize` in `next.config.ts`, 52 MB) and
   truncates beyond it. Uploads stream through `/tmp` in the API, so the Helm `api.tmpSizeLimit` must fit

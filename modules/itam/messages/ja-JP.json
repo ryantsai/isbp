@@ -8,9 +8,11 @@
     "overview": "資産の概要",
     "hardware": "ハードウェア",
     "software": "ソフトウェア",
+    "discovery": "ソフトウェアの検出",
     "contracts": "契約",
     "vendors": "ベンダー",
-    "settings": "資産"
+    "settings": "資産",
+    "approvedSoftware": "承認済みソフトウェア"
   },
   "portal": {
     "myDevices": "マイ デバイス",
@@ -61,7 +63,11 @@
     "warrantyDays": "保証期限の通知期間 (日)",
     "warrantyDaysHelp": "保証がこの日数以内に終了する使用中の資産をマークし、毎日のダイジェストで通知します。",
     "underUsedPercent": "低使用率のしきい値 (%)",
-    "underUsedPercentHelp": "ライセンス数が 10 以上で、使用率がこの値を下回るライセンスを低使用率とします。"
+    "underUsedPercentHelp": "ライセンス数が 10 以上で、使用率がこの値を下回るライセンスを低使用率とします。",
+    "wipeMonths": "保存期限後のデータ消去期限 (月)",
+    "wipeMonthsHelp": "返却されたデバイスは、データの保存期限からこの月数以内にデータを消去する必要があります (保存期限がない場合は返却日から)。",
+    "wipeRemindDays": "データ消去のリマインダー期間 (日)",
+    "wipeRemindDaysHelp": "この日数以内に期限を迎えるデータ消去はフラグが付き、毎日のリマインダーで資産マネージャーに通知されます。"
   },
   "workflows": {
     "disposal": {
@@ -94,6 +100,16 @@
       "label": "退職者から回収するデバイス",
       "title": "{name} から {count, plural, other {# 台のデバイス}}を回収してください",
       "body": "{name} は退職しました。ライセンス シートは回収済みです。次のデバイスを回収してください: {tags}"
+    },
+    "wipe_due": {
+      "label": "期限を迎えるデータ消去",
+      "title": "{overdue, plural, =0 {} other {# 台のデータ消去が期限切れです。}}{due, plural, =0 {} other {# 台がまもなく期限です。}}",
+      "body": "返却されたデバイスのデータを消去し、各資産に記録してください: {tags}"
+    },
+    "approved_software_expiring": {
+      "label": "まもなく終了するソフトウェアの承認",
+      "title": "{count, plural, other {# 件のソフトウェアの承認}}が {days} 日以内に終了します",
+      "body": "延長するか、終了させてください: {titles}"
     }
   },
   "audit": {
@@ -114,6 +130,8 @@
     "license_compliance_changed": "ライセンスのコンプライアンス状態が変化",
     "license_key_revealed": "ライセンス キーを表示",
     "discovery_reported": "ソフトウェア インベントリを報告",
+    "title-rule_created": "検出されたタイトルをマッピングまたは無視",
+    "title-rule_deleted": "検出されたタイトルのルールを削除",
     "contract_created": "契約を追加",
     "contract_updated": "契約を更新",
     "contract_renewed": "契約を更新 (期間延長)",
@@ -125,7 +143,11 @@
     "vendor_created": "ベンダーを追加",
     "vendor_updated": "ベンダーを更新",
     "model_created": "ハードウェア モデルを追加",
-    "model_updated": "ハードウェア モデルを更新"
+    "model_updated": "ハードウェア モデルを更新",
+    "asset_data_wiped": "データ消去を記録",
+    "approved-software_created": "承認済みソフトウェア一覧に追加",
+    "approved-software_updated": "承認済みソフトウェアの項目を変更",
+    "approved-software_deleted": "承認済みソフトウェア一覧から削除"
   },
   "category": {
     "laptop": "ノート PC",
@@ -147,7 +169,7 @@
     "in_repair": "修理中",
     "retired": "廃止済み",
     "disposed": "廃棄済み",
-    "lost": "紛失"
+    "lost": "紛失または盗難"
   },
   "compliance": {
     "compliant": "準拠",
@@ -283,7 +305,8 @@
     "typeToSearch": "入力して検索",
     "searching": "検索しています…",
     "noMatches": "一致する項目はありません",
-    "clear": "クリア"
+    "clear": "クリア",
+    "contract": "契約を検索…"
   },
   "overview": {
     "title": "資産",
@@ -345,7 +368,12 @@
       "allLocations": "すべての場所",
       "allModels": "すべてのモデル",
       "allVendors": "すべてのベンダー",
-      "anyone": "すべてのユーザー"
+      "anyone": "すべてのユーザー",
+      "wipe": "データ消去",
+      "anyWipe": "すべてのデータ消去状態",
+      "wipePending": "消去保留中",
+      "wipeDue": "消去期限",
+      "wipeOverdue": "消去期限切れ"
     },
     "empty": {
       "title": "資産はありません",
@@ -405,11 +433,21 @@
     "disposalViaRequest": "廃止済みの資産を廃棄するには [廃棄を申請] を使用します (承認が必要です)。",
     "statusChanged": "{tag} は「{status}」になりました",
     "disposeTitle": "{tag} の廃棄を申請",
-    "disposeHint": "資産マネージャーが申請を承認すると、資産は廃棄済みになります。",
+    "disposeHint": "申請は下記の承認者に送られます。承認されると、資産は廃棄済みになります。",
     "securitySignOff": "このデバイスには会社のデータが保存されている可能性があるため、ストレージの消去または破壊について情報セキュリティの承認も必要です。",
+    "approvers": "承認者",
+    "approversMore": "他 {count} 人",
+    "approversAnyOf": "いずれか 1 人",
+    "approversNone": "承認は不要です。資産はすぐに廃棄済みになります。",
+    "approverNoApprover": "スキップ — 承認者がいません",
+    "approverReject": "このステップを承認できる人がいないため、申請は却下されます",
     "disposalNote": "どのように廃棄しますか?",
     "disposalNoteHint": "例: SSD を消去して認定リサイクル業者に引き渡す",
-    "disposalRequested": "{tag} の廃棄を承認に回しました"
+    "disposalRequested": "{tag} の廃棄を承認に回しました",
+    "scheduleWipe": "データ消去を予定する",
+    "scheduleWipeHint": "デバイスのストレージは、データ保存期限から設定された月数以内に消去する必要があります。",
+    "retainUntil": "データの保存期限",
+    "retainUntilHint": "空欄: 保存しません。消去期限は今日から数えます。"
   },
   "asset": {
     "notFound": "資産が見つかりません",
@@ -441,6 +479,7 @@
     "lostBanner": "この資産は紛失が報告されています。",
     "installed": "インストール済みソフトウェア",
     "installedHint": "インベントリ ツールの最新の報告に基づきます。",
+    "reportedAs": "報告された名前: {title}",
     "unlicensedCount": "{count, plural, other {# 件の製品}}がライセンスなしでインストールされています。",
     "noInstalls": "このデバイスのソフトウェアは報告されていません。",
     "licensed": "ライセンスあり",
@@ -469,7 +508,11 @@
     "note": "メモ",
     "system": "システム",
     "more": "さらに表示",
-    "via": "{system} {reference} 経由"
+    "via": "{system} {reference} 経由",
+    "wipeScheduled": "{due} までにデータ消去",
+    "wipeScheduledRetained": "データ保存期限 {retain}、{due} までに消去",
+    "dataWiped": "データ消去: {method}、実施者 {name}",
+    "viaRequest": "申請 {reference}"
   },
   "links": {
     "unavailable": "リンクとファイルは使用できません",
@@ -494,6 +537,147 @@
       "none": "最初のソフトウェア ライセンスを追加しましょう。"
     },
     "liveCount": "{count, plural, other {# 件のライセンス}}"
+  },
+  "discovery": {
+    "title": "ソフトウェアの検出",
+    "description": "インベントリ ツールが報告したインストール済みソフトウェア、どのライセンスにも一致しないタイトル、CSV のインポートです。",
+    "import": "CSV をインポート",
+    "liveCount": "{count, plural, other {# 件}}",
+    "tabs": {
+      "titles": "確認待ち",
+      "reports": "最近の報告",
+      "rules": "マッピング済み・無視",
+      "compliance": "未承認"
+    },
+    "titles": {
+      "search": "タイトルを検索",
+      "title": "タイトル",
+      "publisher": "発行元",
+      "devices": "デバイス数",
+      "lastSeen": "最終検出",
+      "map": "ライセンスにマッピング",
+      "ignore": "無視",
+      "actionsFor": "{title} の操作",
+      "hint": "使用中のデバイスで検出され、どのライセンスの製品名にも一致しないタイトルです。タイトルを該当するライセンスにマッピングするか、ライセンスが不要なソフトウェアは無視します。",
+      "emptyTitle": "確認待ちの項目はありません",
+      "empty": "検出されたすべてのタイトルがライセンスに一致しているか、マッピング済みまたは無視されています。",
+      "emptyFiltered": "検索に一致するタイトルはありません。",
+      "allow": "承認済み一覧に追加",
+      "block": "禁止"
+    },
+    "reports": {
+      "search": "デバイスまたはファイルを検索",
+      "device": "デバイス",
+      "source": "ソース",
+      "changes": "変更",
+      "changesValue": "{reported} 件を報告: 追加 {added}、更新 {updated}、削除 {removed}",
+      "by": "報告元",
+      "when": "日時",
+      "allSources": "すべてのソース",
+      "sources": {
+        "api": "インベントリ ツール",
+        "import": "CSV インポート"
+      },
+      "emptyTitle": "報告はまだありません",
+      "empty": "インベントリ ツールは POST /api/v1/itam/discovery/software で報告します。ここで CSV エクスポートをインポートすることもできます。",
+      "emptyFiltered": "フィルターに一致する報告はありません。"
+    },
+    "rules": {
+      "search": "タイトルまたはライセンスを検索",
+      "title": "検出されたタイトル",
+      "outcome": "扱い",
+      "ignored": "無視: ライセンス不要",
+      "by": "追加したユーザー",
+      "when": "追加日時",
+      "remove": "削除",
+      "removeFor": "{title} のルールを削除",
+      "removeTitle": "「{title}」のルールを削除しますか?",
+      "removeHint": "インストールは再び名前で照合されます。マッピングされたタイトルは、ツールが報告した名前に戻ります。",
+      "removed": "「{title}」のルールを削除しました",
+      "all": "すべてのルール",
+      "kinds": {
+        "mapped": "マッピング済み",
+        "ignored": "無視"
+      },
+      "emptyTitle": "ルールはまだありません",
+      "empty": "[確認待ち] タブでタイトルをマッピングまたは無視します。",
+      "emptyFiltered": "フィルターに一致するルールはありません。"
+    },
+    "map": {
+      "title": "「{title}」をライセンスにマッピング",
+      "description": "このタイトルで報告されたインストールは、すべてのデバイスで (今後の報告でも) このライセンスの製品として扱われます。",
+      "license": "ライセンス",
+      "submit": "マッピング",
+      "done": "「{title}」は {product} として扱われます"
+    },
+    "ignore": {
+      "title": "「{title}」を無視しますか?",
+      "description": "ライセンスが不要なソフトウェアに使用します。インストールはデバイスに残り、タイトルは確認待ちの一覧から外れます。",
+      "submit": "無視",
+      "done": "「{title}」を無視しました"
+    },
+    "importDialog": {
+      "title": "インベントリ CSV をインポート",
+      "description": "ファイル内の各デバイスは完全な報告として扱われます。一覧にない製品はそのデバイスから削除されます (手動で記録した項目は保持されます)。",
+      "columns": "列",
+      "column": "列",
+      "required": "必須",
+      "meaning": "内容",
+      "requiredDevice": "どちらか一方",
+      "requiredAlways": "はい",
+      "requiredNo": "いいえ",
+      "col": {
+        "serial_number": "デバイスのシリアル番号 (大文字と小文字は区別しません)",
+        "asset_tag": "資産タグ (例: AST-00042)",
+        "product": "ツールが報告したソフトウェアのタイトル",
+        "publisher": "発行元またはベンダー",
+        "version": "インストールされているバージョン"
+      },
+      "format": "ヘッダー行の後に、インストールされている製品ごとに 1 行です。ヘッダー名では大文字と小文字、スペース、アンダースコアは区別されません。列はコンマ、セミコロン、タブのいずれかで区切ります。ファイルは UTF-8 で保存してください。",
+      "example": "例",
+      "file": "CSV ファイル",
+      "parsed": "{devices, plural, other {# 台のデバイス}}、{rows, plural, other {# 行}}",
+      "skipped": "{count, plural, other {# 行はスキップされます:}}",
+      "issues": {
+        "noDevice": "{line} 行目: シリアル番号も資産タグもありません",
+        "noProduct": "{line} 行目: 製品がありません",
+        "tooLong": "{line} 行目: 長すぎる値があります",
+        "tooManyProducts": "{line} 行目: このデバイスの製品が 2,000 件を超えています"
+      },
+      "moreIssues": "…ほか {count} 行",
+      "errors": {
+        "empty": "ヘッダーの下に行がありません。",
+        "tooManyRows": "ファイルが 100,000 行を超えています。小さなファイルに分割してください。",
+        "missingColumns": "列がありません: {columns}",
+        "unreadable": "ファイルを読み取れませんでした。"
+      },
+      "submit": "{count, plural, other {# 台のデバイスをインポート}}",
+      "progress": "{total} 台中 {done} 台のデバイスをインポートしました…",
+      "done": "{count, plural, other {# 台のデバイスを更新しました}}: 製品の追加 {added} 件、更新 {updated} 件、削除 {removed} 件。",
+      "notFound": "{count, plural, other {# 台のデバイスが資産に登録されていません:}}",
+      "failed": "インポートが停止しました: {error}"
+    },
+    "compliance": {
+      "label": "承認済み一覧にないインストール",
+      "hint": "使用中のデバイス上で、デバイスの部署 (またはユーザーの部署) を対象とする許可項目がないソフトウェアと、禁止されたソフトウェアです。",
+      "notInUse": "承認済み一覧に許可項目がまだないため、禁止されたソフトウェアのみフラグが付きます。",
+      "openList": "承認済みソフトウェア一覧を開く",
+      "summary": "{unapproved, plural, other {# 件のインストール}}が一覧になく、{blocked} 件が禁止、{devices, plural, other {# 台のデバイス}}",
+      "search": "ソフトウェアまたはデバイスを検索",
+      "title": "ソフトウェア",
+      "state": "承認",
+      "device": "デバイス",
+      "department": "部署",
+      "lastSeen": "最終検出",
+      "allStates": "未承認または禁止",
+      "unapproved": "承認済み一覧にない",
+      "blocked": "禁止",
+      "allDepartments": "すべての部署",
+      "allowFor": "{title} を承認済み一覧に追加",
+      "emptyTitle": "すべて承認済みです",
+      "empty": "使用中のデバイス上のすべてのインストールが承認済み一覧にあります。",
+      "emptyFiltered": "フィルターに一致するインストールはありません。"
+    }
   },
   "licenseForm": {
     "createTitle": "新しいライセンス",
@@ -745,7 +929,7 @@
     "lifespanMonths": "耐用年数 (か月)",
     "lifespanHint": "空欄の場合はカテゴリの既定値を使用します。",
     "lifespanInvalid": "1 から 600 か月を入力してください",
-    "months": "{months} か月",
+    "months": "{months, plural, other {# か月}}",
     "assets": "資産",
     "activeModel": "新しい資産に使用可能",
     "noModels": "モデルはありません",
@@ -764,7 +948,11 @@
     "underUsedHint": "ライセンス数が 10 以上で、使用率がこの値を下回るライセンスを低使用率としてマークします。",
     "days": "{days, plural, other {# 日}}",
     "editInAdmin": "[管理] → [モジュール] で編集",
-    "askAdmin": "これらの設定はプラットフォーム管理者が [管理] → [モジュール] で変更します。"
+    "askAdmin": "これらの設定はプラットフォーム管理者が [管理] → [モジュール] で変更します。",
+    "wipeMonths": "保存期限後のデータ消去期限",
+    "wipeMonthsHint": "返却されたデバイスは、データ保存期限からこの期間内に消去する必要があります。",
+    "wipeRemindDays": "データ消去のリマインダー期間",
+    "wipeRemindDaysHint": "この期間内に期限を迎える消去はフラグが付き、通知されます。"
   },
   "ciSlot": {
     "title": "資産レコード",
@@ -788,7 +976,9 @@
     "open": "開く",
     "nonCompliantLicenses": "コンプライアンス違反のライセンス",
     "contractsRenewing30": "30 日以内に更新の契約",
-    "warrantiesExpiring30": "30 日以内に保証終了"
+    "warrantiesExpiring30": "30 日以内に保証終了",
+    "wipesDue": "期限を迎えるデータ消去",
+    "unapprovedSoftware": "承認済み一覧にないソフトウェア"
   },
   "sync": {
     "entities": {
@@ -809,6 +999,208 @@
       "warrantyEnd": "保証終了日",
       "notes": "メモ",
       "ref": "資産タグ"
+    }
+  },
+  "recordFacts": {
+    "category": "カテゴリ",
+    "status": "状態",
+    "dataBearing": "データを保存する",
+    "assigneeId": "割り当て先",
+    "departmentCode": "部署コード",
+    "location": "場所",
+    "warrantyEnd": "保証終了日",
+    "product": "製品",
+    "publisher": "発行元",
+    "licenseType": "ライセンスの種類",
+    "billing": "請求サイクル",
+    "complianceState": "コンプライアンス",
+    "quantity": "ライセンス数",
+    "cost": "費用",
+    "endDate": "終了日",
+    "wipeDue": "データ消去期限"
+  },
+  "licenseModel": {
+    "free": "フリーウェア",
+    "open_source": "オープン ソース",
+    "shareware": "シェアウェア / 試用版",
+    "paid": "有償ライセンス",
+    "subscription": "サブスクリプション"
+  },
+  "approvalStatus": {
+    "allowed": "許可",
+    "blocked": "禁止"
+  },
+  "approval": {
+    "allowed": "承認済み",
+    "unapproved": "承認済み一覧にない",
+    "blocked": "禁止"
+  },
+  "wipeMethod": {
+    "factory_reset": "工場出荷時の設定にリセット",
+    "secure_erase": "セキュア消去 (上書き)",
+    "crypto_erase": "暗号化消去",
+    "physical_destruction": "物理的破壊",
+    "other": "その他"
+  },
+  "wipe": {
+    "badge": {
+      "scheduled": "{date} までに消去",
+      "due": "{date} に消去期限",
+      "overdue": "{date} から消去期限切れ"
+    },
+    "action": "データ消去を記録",
+    "title": "{tag} のデータ消去を記録",
+    "hint": "デバイスのストレージを誰が、いつ、どの方法で消去したか。記録すると保留中の消去がクリアされ、履歴と監査ログに残ります。",
+    "method": "方法",
+    "methodPlaceholder": "消去方法を選択",
+    "when": "消去日時",
+    "whenHint": "空欄の場合は現在の日時です。",
+    "who": "実施者",
+    "note": "メモ",
+    "noteHint": "使用したツールや、廃棄業者の証明書番号など。",
+    "submit": "消去を記録",
+    "recorded": "{tag} のデータ消去を記録しました",
+    "cardTitle": "データ消去",
+    "cardHint": "返却されたデバイスは保存期限までデータを保持し、その後消去する必要があります。",
+    "retainUntil": "データ保存期限",
+    "due": "消去",
+    "nonePending": "保留中の消去はありません。",
+    "last": "前回の消去: {date} ({method})、実施者 {name}"
+  },
+  "approvedSoftware": {
+    "title": "承認済みソフトウェア",
+    "description": "ソフトウェアのホワイトリスト: 会社全体または一部の部署でインストールが許可されたソフトウェアと、禁止されたソフトウェアです。",
+    "export": {
+      "number": "項番",
+      "title": "ソフトウェア",
+      "version": "バージョン",
+      "publisher": "発行元",
+      "licenseModel": "ライセンスの種類",
+      "reference": "シリアル番号 / 契約番号",
+      "scope": "適用範囲",
+      "status": "状態",
+      "validUntil": "有効期限",
+      "request": "申請",
+      "notes": "メモ",
+      "anyVersion": "すべて",
+      "company": "会社全体",
+      "permanent": "無期限"
+    },
+    "exportCsv": "CSV をエクスポート",
+    "add": "ソフトウェアを追加",
+    "search": "ソフトウェア、発行元、申請を検索",
+    "allModels": "すべてのライセンスの種類",
+    "allDepartments": "すべての部署",
+    "anyVersion": "すべてのバージョン",
+    "permanent": "無期限",
+    "liveCount": "{count, plural, other {# 件}}",
+    "emptyTitle": "一覧にソフトウェアがありません",
+    "empty": "インストールを許可するソフトウェアを追加してください。許可項目ができるまでは、禁止されたソフトウェアのみフラグが付きます。",
+    "emptyFiltered": "フィルターに一致する項目はありません。",
+    "views": {
+      "allowed": "許可",
+      "blocked": "禁止",
+      "expiring": "まもなく終了",
+      "all": "すべて"
+    },
+    "state": {
+      "expiring": "{date} に終了",
+      "expired": "{date} に終了済み"
+    },
+    "scope": {
+      "company": "会社全体",
+      "departments": "部署"
+    },
+    "fields": {
+      "title": "ソフトウェア",
+      "publisher": "発行元",
+      "version": "バージョン",
+      "status": "状態",
+      "licenseModel": "ライセンスの種類",
+      "license": "ライセンス (シリアル番号)",
+      "contract": "契約",
+      "scope": "適用範囲",
+      "departments": "部署",
+      "department": "部署",
+      "validUntil": "有効期限",
+      "request": "申請",
+      "notes": "メモ"
+    },
+    "form": {
+      "createTitle": "ソフトウェアを一覧に追加",
+      "editTitle": "承認済みソフトウェアを編集",
+      "hint": "インストールは名前で照合されます (大文字と小文字は区別しません)。バージョンはより詳細なバージョンも対象にします (23 は 23.01 を含みます)。",
+      "versionHint": "空欄の場合はすべてのバージョンです。",
+      "licenseHint": "有償ソフトウェアの場合、シリアル番号やシート数を保持するライセンスの記録です。",
+      "validUntilHint": "短期間の利用の場合です。空欄の場合は無期限です。",
+      "requestHint": "承認の根拠となったソフトウェアのインストール申請です。",
+      "titleRequired": "ソフトウェア名を入力してください",
+      "departmentsRequired": "部署を 1 つ以上選択してください",
+      "add": "追加",
+      "saved": "{title} を保存しました",
+      "created": "{title} を一覧に追加しました",
+      "deleted": "{title} を一覧から削除しました",
+      "deleteTitle": "{title} を一覧から削除しますか?",
+      "deleteDescription": "そのインストールは対象外になり、承認済み一覧にないものとして表示されます (禁止項目の場合は再び許可されます)。"
+    }
+  },
+  "processActions": {
+    "common": {
+      "fromStep": "承認ステップで入力されたフィールド",
+      "stepField": "ステップのフィールド",
+      "stepFieldHint": "ステップの ID とフィールドのキー (例: receive.retainUntil)。",
+      "assetField": "デバイスのフィールド",
+      "assetFieldHelp": "デバイス (資産) を選択する場所: このフォームの質問、または IT が承認ステップで入力するデバイスのフィールドです。",
+      "noAsset": "デバイスが選択されていません: 処理はありません",
+      "assetStepFieldHint": "ステップの ID とフィールドのキー (例: issue.device。その承認ステップのデバイスのフィールド)。"
+    },
+    "approveSoftware": {
+      "name": "ソフトウェアを承認",
+      "description": "申請されたソフトウェアを承認済みソフトウェア一覧に追加するか、対象の項目を延長します。",
+      "title": "ソフトウェア名",
+      "titleHelp": "通常は回答から取得します: [値の挿入] でフォームから取り込みます。",
+      "publisher": "発行元",
+      "version": "バージョン",
+      "versionHelp": "空欄: すべてのバージョン。",
+      "licenseModel": "ライセンスの種類",
+      "licenseModelField": "ライセンスの種類を取得する質問",
+      "licenseModelFieldHelp": "回答が free、open_source、shareware、paid、subscription のいずれかの場合は、その回答を使用します。",
+      "scope": "承認の範囲",
+      "scopeDepartment": "申請者の部署",
+      "scopeCompany": "会社全体",
+      "validUntil": "有効期限",
+      "validUntilHelp": "短期間の利用の場合、回答またはステップのフィールドの日付です。",
+      "permanent": "無期限",
+      "notes": "メモ",
+      "added": "承認済みソフトウェア一覧に追加しました",
+      "addedUntil": "承認済みソフトウェア一覧に {until, date, medium} まで追加しました",
+      "extended": "承認済みソフトウェアの項目を延長しました",
+      "extendedUntil": "承認済みソフトウェアの項目は {until, date, medium} まで有効になりました",
+      "unchanged": "すでに承認済みソフトウェア一覧にあります"
+    },
+    "assignAsset": {
+      "name": "デバイスを貸与",
+      "description": "フォームで選択したデバイスを申請者またはフォームで選択したユーザーに割り当てます。申請はデバイスの履歴に記録されます。",
+      "assignTo": "割り当て先",
+      "requester": "申請者",
+      "note": "履歴のメモ",
+      "assigned": "デバイスを割り当てました"
+    },
+    "returnAsset": {
+      "name": "デバイスを返却",
+      "description": "フォームで選択したデバイスを在庫または修理に戻し、状態、データ保存期限、データ消去期限を記録します。",
+      "toStatus": "返却先",
+      "condition": "状態",
+      "conditionHelp": "履歴に記録されます。デバイスの外観などの回答は [値の挿入] で取り込みます。",
+      "retention": "データの保存期限",
+      "retentionHelp": "回答またはステップのフィールドの日付です。空欄の場合は返却日から数えます。",
+      "noRetention": "保存期限なし",
+      "wipeMonths": "消去期限 (保存期限後の月数)",
+      "wipeMonthsHelp": "既定値はモジュールの設定です。",
+      "scheduleWipe": "データ消去を予定する",
+      "scheduleWipeHelp": "データを保存するデバイス (ノート PC、スマートフォン、サーバーなど) が対象です。",
+      "returned": "デバイスを返却しました",
+      "returnedWipe": "デバイスを返却しました。{date, date, medium} までにデータを消去してください"
     }
   }
 }

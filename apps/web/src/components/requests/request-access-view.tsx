@@ -135,7 +135,8 @@ function RoleCard({
   );
 }
 
-function ApprovalPath({ preview }: { preview: ApprovalPreview | undefined }) {
+/** "Who will approve it": the approval steps of a dry run with the people each would ask (also on request forms). */
+export function ApprovalPath({ preview }: { preview: ApprovalPreview | undefined }) {
   const t = useTranslations('requests.access.path');
   const locale = useLocale();
   if (!preview) return <Skeleton className="h-32 w-full rounded-xl" />;

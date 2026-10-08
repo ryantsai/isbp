@@ -13,6 +13,7 @@ import type {
   conversationSchema,
   kindInfoSchema,
   messageSchema,
+  packageInfoSchema,
 } from '../contracts';
 
 /* What the browser receives (dates as ISO strings). */
@@ -24,11 +25,21 @@ export type MessageDto = z.input<typeof messageSchema>;
 export type AssistantStatusDto = z.input<typeof assistantStatusSchema>;
 export type KindInfoDto = z.input<typeof kindInfoSchema>;
 export type ConfirmationDto = z.input<typeof confirmationSchema>;
+export type PackageInfoDto = z.input<typeof packageInfoSchema>;
 
 export const STATUS_PATH = '/assistant/status';
 export const CONVERSATIONS_PATH = '/assistant/conversations';
 export const CHANGE_SETS_PATH = '/assistant/change-sets';
 export const changeSetApiPath = (id: string) => `${CHANGE_SETS_PATH}/${id}`;
+/** Built-in packages; `installPackagePath` makes a change set from one, `IMPORT_PATH` from a file. */
+export const PACKAGES_PATH = '/assistant/packages';
+export const installPackagePath = (moduleId: string, key: string) =>
+  `${PACKAGES_PATH}/${encodeURIComponent(moduleId)}/${encodeURIComponent(key)}/install`;
+export const IMPORT_PATH = `${CHANGE_SETS_PATH}/import`;
+/** The change set as a package file (a plain link: the browser downloads `<reference>.json`). */
+export const exportHref = (id: string) => `/api/v1${changeSetApiPath(id)}/export`;
+/** The API takes packages up to 4 MB. */
+export const MAX_PACKAGE_BYTES = 4 * 1024 * 1024;
 /** Confirm or decline a destructive call the agent made (`{ approve }`); answers with the conversation. */
 export const confirmationApiPath = (conversationId: string, toolCallId: string) =>
   `${CONVERSATIONS_PATH}/${conversationId}/confirmations/${encodeURIComponent(toolCallId)}`;

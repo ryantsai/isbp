@@ -1,20 +1,26 @@
 import { createHash } from 'node:crypto';
+import { isLocale, type Locale } from '@isbp/i18n';
 import {
   type AppliedCustomization,
   type ApplyOptions,
   type AuthContext,
+  type BuiltTemplateItem,
+  type ChangeSetPackage,
   type CustomizationChange,
   type CustomizationHandler,
   type CustomizationIssue,
   type CustomizationKindDef,
   type CustomizationKindInfo,
   type CustomizationOp,
+  type CustomizationPackageDef,
+  type CustomizationPackageInfo,
   type CustomizationsService,
   type CustomizationValidation,
   type Db,
   ErrorCodes,
   HttpError,
   type ModuleContext,
+  type PackageRequirements,
   type Principal,
   PermissionSet,
   type ProposableOp,
@@ -30,6 +36,12 @@ interface KindEntry {
   moduleId: string;
   def: CustomizationKindDef;
   handler: CustomizationHandler;
+}
+
+interface PackageEntry {
+  moduleId: string;
+  def: CustomizationPackageDef;
+  load: (opts: { locale: Locale }) => ChangeSetPackage | Promise<ChangeSetPackage>;
 }
 
 /** Without `operations`: update only — creating needs a declared way back (archive or delete). */
@@ -112,6 +124,10 @@ function issuesOf(error: z.ZodError): CustomizationIssue[] {
  */
 export class CustomizationRegistry {
   private readonly entries = new Map<string, KindEntry>();
+  /** Built-in packages by `<module>/<key>`. */
+  private readonly packageEntries = new Map<string, PackageEntry>();
+  /** Package contents are code: built once per process and locale (`<module>/<key>:<locale>`). */
+  private readonly packageCache = new Map<string, Promise<ChangeSetPackage>>();
 
   constructor(private readonly registry: ModuleRegistry) {
     for (const m of registry.modules as readonly ServerModule[]) {
@@ -119,7 +135,64 @@ export class CustomizationRegistry {
         const kind = `${m.manifest.id}.${def.kind}`;
         this.entries.set(kind, { kind, moduleId: m.manifest.id, def, handler: m.customizations![def.kind]! });
       }
+      for (const def of m.manifest.customizationPackages ?? [])
+        this.packageEntries.set(`${m.manifest.id}/${def.key}`, {
+          moduleId: m.manifest.id,
+          def,
+          load: m.customizationPackages![def.key]!,
+        });
     }
+  }
+
+  /**
+   * A built-in package's content built for `locale` (English when it isn't one of the platform's), once per locale;
+   * a failed build is retried next time.
+   */
+  private content(id: string, p: PackageEntry, locale: string): Promise<ChangeSetPackage> {
+    const lang: Locale = isLocale(locale) ? locale : 'en';
+    const cacheKey = `${id}:${lang}`;
+    let cached = this.packageCache.get(cacheKey);
+    if (!cached) {
+      cached = Promise.resolve()
+        .then(() => p.load({ locale: lang }))
+        .then((pkg) => {
+          if (!pkg || typeof pkg !== 'object' || !Array.isArray(pkg.items))
+            throw new Error(`package ${id} has no items`);
+          return pkg;
+        });
+      cached.catch(() => this.packageCache.delete(cacheKey));
+      this.packageCache.set(cacheKey, cached);
+    }
+    return cached;
+  }
+
+  /** What installing `pkg` needs, as `auth`. */
+  private requirements(
+    pkg: Pick<ChangeSetPackage, 'items' | 'requires'>,
+    auth: AuthContext,
+  ): PackageRequirements {
+    const kinds = [...new Set(pkg.items.map((i) => i.kind))];
+    const owner = (kind: string) => kind.split('.')[0]!;
+    const missingModules = [...new Set([...(pkg.requires?.modules ?? []), ...kinds.map(owner)])]
+      .filter((m) => !this.registry.isEnabled(m))
+      .sort();
+    const present = kinds.filter((k) => this.registry.isEnabled(owner(k)));
+    const unknownKinds = present.filter((k) => !this.entries.has(k)).sort();
+    const known = present.flatMap((k) => this.entries.get(k) ?? []);
+    const unreadableKinds = known
+      .filter((e) => !reaches(auth, e.def.readPermission))
+      .map((e) => ({ kind: e.kind, permission: e.def.readPermission }))
+      .sort((a, b) => a.kind.localeCompare(b.kind));
+    const unsupported = pkg.items.flatMap((item, index) => {
+      const e = this.entries.get(item.kind);
+      return e && this.registry.isEnabled(e.moduleId) && !this.ops(e).includes(item.op)
+        ? [{ index, kind: item.kind, op: item.op, operations: this.ops(e) }]
+        : [];
+    });
+    const missingApplyPermissions = [
+      ...new Set(known.filter((e) => !auth.can(e.def.applyPermission)).map((e) => e.def.applyPermission)),
+    ].sort();
+    return { missingModules, unknownKinds, unreadableKinds, unsupported, missingApplyPermissions };
   }
 
   private entry(kind: string): KindEntry {
@@ -309,7 +382,70 @@ export class CustomizationRegistry {
             issues: Object.entries(result.errors).map(([path, err]) => ({ path, message: err.code })),
           });
         const built = await t.build(result.values, ctx, auth);
-        return { op: built.op, id: built.id ?? null, label: built.label ?? null, value: built.value };
+        const own: BuiltTemplateItem = {
+          kind,
+          op: built.op,
+          id: built.id ?? null,
+          label: built.label ?? null,
+          value: built.value,
+          ref: built.ref ?? null,
+        };
+        const before = (built.before ?? []).map((b): BuiltTemplateItem => ({
+          kind: b.kind,
+          op: b.op,
+          id: b.id ?? null,
+          label: b.label ?? null,
+          value: b.value,
+          ref: b.ref ?? null,
+        }));
+        return { op: own.op, id: own.id, label: own.label, value: own.value, items: [...before, own] };
+      },
+
+      requirements: (pkg, auth) => this.requirements(pkg, auth),
+
+      packages: async (auth) => {
+        const out: CustomizationPackageInfo[] = [];
+        // Built as it would install for this person (the change set takes the same language).
+        const locale = auth.user?.locale ?? 'en';
+        for (const [id, p] of this.packageEntries) {
+          if (!this.registry.isEnabled(p.moduleId)) continue;
+          let pkg: ChangeSetPackage;
+          try {
+            pkg = await this.content(id, p, locale);
+          } catch (err) {
+            this.registry
+              .context(p.moduleId)
+              .logger.warn({ err, package: id }, 'built-in package failed to load');
+            continue;
+          }
+          const requirements = this.requirements(pkg, auth);
+          const canPropose =
+            !requirements.missingModules.length &&
+            !requirements.unknownKinds.length &&
+            !requirements.unreadableKinds.length &&
+            !requirements.unsupported.length;
+          out.push({
+            key: p.def.key,
+            moduleId: p.moduleId,
+            name: p.def.name,
+            description: p.def.description,
+            icon: p.def.icon ?? null,
+            itemCount: pkg.items.length,
+            kinds: [...new Set(pkg.items.map((i) => i.kind))].sort(),
+            requirements,
+            canPropose,
+            canApply: canPropose && !requirements.missingApplyPermissions.length,
+          });
+        }
+        return out.sort((a, b) => a.moduleId.localeCompare(b.moduleId) || a.key.localeCompare(b.key));
+      },
+
+      loadPackage: async (moduleId, key, { locale }) => {
+        const id = `${moduleId}/${key}`;
+        const p = this.packageEntries.get(id);
+        if (!p || !this.registry.isEnabled(moduleId))
+          throw new HttpError(404, ErrorCodes.NOT_FOUND, `Unknown package ${id}`, { moduleId, key });
+        return structuredClone(await this.content(id, p, locale));
       },
     };
   }

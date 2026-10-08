@@ -67,7 +67,7 @@
   "editor": {
     "createTitle": "お知らせを作成",
     "editTitle": "お知らせを編集",
-    "hint": "公開されたお知らせは全員に表示され、他のモジュール（通知など）が利用できるイベントとして発行されます。",
+    "hint": "公開されたお知らせは全員に表示され、他のモジュール (通知など) が利用できるイベントとして発行されます。",
     "severity": "重要度",
     "title": "タイトル",
     "body": "本文",
@@ -96,7 +96,7 @@
   },
   "notifications": {
     "post_published": {
-      "label": "お知らせ（チャネル）",
+      "label": "お知らせ (チャネル)",
       "title": "{severity, select, incident {障害} maintenance {メンテナンス} other {お知らせ}}: {title}",
       "body": ""
     },

@@ -11,6 +11,9 @@ import {
 import { and, asc, eq, ilike, isNotNull, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
+  approvedSoftwareExportSchema,
+  approvedSoftwareQuerySchema,
+  approvedSoftwareSchema,
   assetDetailSchema,
   assetEventSchema,
   assetListItemSchema,
@@ -22,19 +25,29 @@ import {
   attentionSchema,
   cancelContractSchema,
   ciLookupSchema,
+  complianceItemSchema,
+  complianceQuerySchema,
+  complianceSummarySchema,
   contractDetailSchema,
   contractItemsInputSchema,
   contractListItemSchema,
   contractQuerySchema,
+  createApprovedSoftwareSchema,
   createAssetSchema,
   createAssignmentSchema,
   createContractSchema,
   createLicenseSchema,
   createModelSchema,
+  createTitleRuleSchema,
   createVendorSchema,
   dashboardSchema,
+  discoveredTitleSchema,
+  discoveryImportResultSchema,
+  discoveryImportSchema,
+  discoveryReportSchema,
   discoveryResultSchema,
   discoverySchema,
+  disposalPreviewSchema,
   disposeAssetSchema,
   historyEntrySchema,
   holdingsSchema,
@@ -48,9 +61,13 @@ import {
   modelQuerySchema,
   modelSchema,
   myAssetsSchema,
+  recordWipeSchema,
   renewContractSchema,
   returnAssetSchema,
   revealKeySchema,
+  titleRuleQuerySchema,
+  titleRuleSchema,
+  updateApprovedSoftwareSchema,
   updateAssetSchema,
   updateContractSchema,
   updateLicenseSchema,
@@ -227,6 +244,40 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       const row = await svc().assets.changeStatus(req.params.ref, req.body, req.auth);
       return svc().assets.detailById(row.id, req.auth);
     },
+  );
+
+  app.post(
+    '/assets/:ref/wipe',
+    {
+      config: HW_MANAGE,
+      schema: {
+        tags: hw,
+        summary:
+          'Record data wipe: who wiped the device’s storage, when and how (clears the pending wipe; audited)',
+        params: refParams,
+        body: recordWipeSchema,
+        response: { 200: assetDetailSchema },
+      },
+    },
+    async (req) => {
+      const a = await svc().assets.recordWipe(req.params.ref, req.body, req.auth);
+      return svc().assets.detailById(a.id, req.auth);
+    },
+  );
+
+  app.get(
+    '/assets/:ref/disposal-preview',
+    {
+      config: HW_MANAGE,
+      schema: {
+        tags: hw,
+        summary:
+          'Who would approve a disposal request now: a dry run of the bound disposal workflow with the asset’s facts',
+        params: refParams,
+        response: { 200: disposalPreviewSchema },
+      },
+    },
+    async (req) => svc().assets.disposalPreview(req.params.ref, req.auth),
   );
 
   app.post(
@@ -474,7 +525,223 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
         response: { 200: discoveryResultSchema },
       },
     },
-    async (req) => svc().licenses.discover(req.body, req.auth),
+    async (req) => svc().discovery.discover(req.body, req.auth),
+  );
+
+  app.post(
+    '/discovery/import',
+    {
+      config: HW_MANAGE,
+      schema: {
+        tags: sw,
+        summary:
+          'Imports devices from an inventory tool’s CSV export (parsed by the client; whole devices, at most 100 per request): each device is a complete report, like /discovery/software',
+        body: discoveryImportSchema,
+        response: { 200: discoveryImportResultSchema },
+      },
+    },
+    async (req) => svc().discovery.importDevices(req.body, req.auth),
+  );
+
+  app.get(
+    '/discovery/reports',
+    {
+      config: HW_MANAGE,
+      schema: {
+        tags: sw,
+        summary: 'Software reports per device (API and CSV imports), newest first',
+        querystring: listQuerySchema.extend({ source: z.enum(['api', 'import']).optional() }),
+        response: { 200: pageSchema(discoveryReportSchema) },
+      },
+    },
+    async (req) => svc().discovery.reports(req.query, req.auth),
+  );
+
+  app.get(
+    '/discovery/titles',
+    {
+      config: HW_MANAGE,
+      schema: {
+        tags: sw,
+        summary: 'Discovered titles that match no licence’s product and have no rule, most widespread first',
+        querystring: listQuerySchema,
+        response: { 200: pageSchema(discoveredTitleSchema) },
+      },
+    },
+    async (req) => svc().discovery.titles(req.query, req.auth),
+  );
+
+  app.get(
+    '/discovery/rules',
+    {
+      config: HW_MANAGE,
+      schema: {
+        tags: sw,
+        summary: 'Title rules: discovered titles counted as a licence’s product, or ignored',
+        querystring: titleRuleQuerySchema,
+        response: { 200: pageSchema(titleRuleSchema) },
+      },
+    },
+    async (req) => svc().discovery.rules(req.query, req.auth),
+  );
+
+  app.post(
+    '/discovery/rules',
+    {
+      config: SW_MANAGE,
+      schema: {
+        tags: sw,
+        summary: 'Map a discovered title to a licence (licenseId) or ignore it (licenseId null)',
+        body: createTitleRuleSchema,
+        response: { 201: titleRuleSchema },
+      },
+    },
+    async (req, reply) => reply.status(201).send(await svc().discovery.createRule(req.body, req.auth)),
+  );
+
+  app.delete(
+    '/discovery/rules/:id',
+    {
+      config: SW_MANAGE,
+      schema: {
+        tags: sw,
+        summary: 'Remove a title rule (a mapped title’s installs go back to the reported title)',
+        params: z.object({ id }),
+      },
+    },
+    async (req, reply) => {
+      await svc().discovery.deleteRule(req.params.id, req.auth);
+      return reply.status(204).send();
+    },
+  );
+
+  app.get(
+    '/discovery/compliance',
+    {
+      config: HW_MANAGE,
+      schema: {
+        tags: sw,
+        summary:
+          'Installs on devices in use that the approved-software list doesn’t cover for the device’s department (unapproved) or blocks',
+        querystring: complianceQuerySchema,
+        response: { 200: pageSchema(complianceItemSchema) },
+      },
+    },
+    async (req) => svc().approvedSoftware.compliance(req.query, req.auth),
+  );
+
+  app.get(
+    '/discovery/compliance/summary',
+    {
+      config: HW_MANAGE,
+      schema: {
+        tags: sw,
+        summary: 'How many installs are unapproved or blocked, on how many devices',
+        response: { 200: complianceSummarySchema },
+      },
+    },
+    async (req) => svc().approvedSoftware.summary(req.auth),
+  );
+
+  /* ───────────────────────────── approved software ───────────────────────────── */
+
+  app.get(
+    '/approved-software',
+    {
+      config: SW_READ,
+      schema: {
+        tags: sw,
+        summary: 'The approved-software list (allow and block list)',
+        querystring: approvedSoftwareQuerySchema,
+        response: { 200: pageSchema(approvedSoftwareSchema) },
+      },
+    },
+    async (req) => svc().approvedSoftware.list(req.query, req.auth),
+  );
+
+  app.get(
+    '/approved-software/export',
+    {
+      config: SW_READ,
+      schema: {
+        tags: sw,
+        summary:
+          'The list as CSV (UTF-8 with BOM) in the software whitelist layout, with the filters of the list',
+        querystring: approvedSoftwareExportSchema,
+      },
+    },
+    async (req, reply) => {
+      const { locale, ...q } = req.query;
+      const lang = locale ?? (req.auth.user?.locale as 'en' | 'zh-TW' | 'ja-JP' | undefined) ?? 'en';
+      const body = await svc().approvedSoftware.exportCsv(
+        { ...q },
+        req.auth,
+        lang === 'zh-TW' || lang === 'ja-JP' ? lang : 'en',
+      );
+      return reply
+        .header('content-type', 'text/csv; charset=utf-8')
+        .header(
+          'content-disposition',
+          `attachment; filename="approved-software-${new Date().toISOString().slice(0, 10)}.csv"`,
+        )
+        .header('cache-control', 'no-store')
+        .send(body);
+    },
+  );
+
+  app.post(
+    '/approved-software',
+    {
+      config: SW_MANAGE,
+      schema: {
+        tags: sw,
+        summary: 'Add a title to the list (allowed or blocked; company-wide or for departments)',
+        body: createApprovedSoftwareSchema,
+        response: { 201: approvedSoftwareSchema },
+      },
+    },
+    async (req, reply) => reply.status(201).send(await svc().approvedSoftware.create(req.body, req.auth)),
+  );
+
+  app.get(
+    '/approved-software/:id',
+    {
+      config: SW_READ,
+      schema: {
+        tags: sw,
+        summary: 'One approved-software entry',
+        params: idParams,
+        response: { 200: approvedSoftwareSchema },
+      },
+    },
+    async (req) => svc().approvedSoftware.get(req.params.id, req.auth),
+  );
+
+  app.patch(
+    '/approved-software/:id',
+    {
+      config: SW_MANAGE,
+      schema: {
+        tags: sw,
+        summary: 'Change an entry (absent fields stay as they are)',
+        params: idParams,
+        body: updateApprovedSoftwareSchema,
+        response: { 200: approvedSoftwareSchema },
+      },
+    },
+    async (req) => svc().approvedSoftware.update(req.params.id, req.body, req.auth),
+  );
+
+  app.delete(
+    '/approved-software/:id',
+    {
+      config: SW_MANAGE,
+      schema: { tags: sw, summary: 'Remove an entry from the list', params: idParams },
+    },
+    async (req, reply) => {
+      await svc().approvedSoftware.remove(req.params.id, req.auth);
+      return reply.status(204).send();
+    },
   );
 
   /* ───────────────────────────── contracts ───────────────────────────── */

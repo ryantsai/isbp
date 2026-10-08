@@ -162,6 +162,21 @@ describe('schemas', () => {
     expect(isSafePattern('(a+)+$')).toBe(false);
     expect(isSafePattern('([a-z]*)*')).toBe(false);
     expect(isSafePattern('[')).toBe(false);
+    expect(isSafePattern('(\\d+\\.){3}')).toBe(false);
+    expect(isSafePattern('(\\d{1,3}){2,}')).toBe(false);
+    expect(isSafePattern('((a+))+')).toBe(false);
+    expect(isSafePattern('((a*)b)*')).toBe(false);
+    expect(isSafePattern('(?:x+)*')).toBe(false);
+  });
+
+  it('accepts bounded quantifiers inside bounded groups', () => {
+    expect(isSafePattern('(\\d{1,3}\\.){3}\\d{1,3}')).toBe(true);
+    expect(isSafePattern('^(\\d{1,3}\\.){3}\\d{1,3}$')).toBe(true);
+    expect(isSafePattern('([A-Z]{2}-){2}\\d{4}')).toBe(true);
+    expect(isSafePattern('(\\+\\d)+')).toBe(true);
+    expect(isSafePattern('([+*])+')).toBe(true);
+    expect(isSafePattern('((ab){2}-){3}')).toBe(true);
+    expect(isSafePattern('^(?:[A-Z]{2}\\d{2})?$')).toBe(true);
   });
 });
 

@@ -8,7 +8,9 @@ import { Skeleton } from '@isbp/ui/skeleton';
 import {
   ArrowRightIcon,
   ClockAlertIcon,
+  EraserIcon,
   FileTextIcon,
+  ListChecksIcon,
   type LucideIcon,
   PackageIcon,
   ShieldAlertIcon,
@@ -21,6 +23,8 @@ const ITEMS: { key: keyof Attention; icon: LucideIcon; href: string }[] = [
   { key: 'nonCompliantLicenses', icon: ShieldAlertIcon, href: '/itam/software?view=attention' },
   { key: 'contractsRenewing30', icon: FileTextIcon, href: '/itam/contracts?view=renewing' },
   { key: 'warrantiesExpiring30', icon: ClockAlertIcon, href: '/itam/hardware?warranty=expiring' },
+  { key: 'wipesDue', icon: EraserIcon, href: '/itam/hardware?wipe=due' },
+  { key: 'unapprovedSoftware', icon: ListChecksIcon, href: '/itam/discovery?tab=compliance' },
 ];
 
 /** "Asset attention" on the home dashboard (`core.dashboard.work`), for asset managers. */

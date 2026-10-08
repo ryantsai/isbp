@@ -35,7 +35,7 @@
     "role_ownerId": "ロール所有者",
     "role_application": "アプリケーション",
     "role_id": "ロール",
-    "request_durationDays": "期間（日）",
+    "request_durationDays": "期間 (日)",
     "request_permanent": "無期限のアクセス",
     "request_scopeType": "範囲",
     "request_forSomeoneElse": "他の人のための申請",
@@ -76,7 +76,7 @@
       "task_reminded": "リマインダーを送信 — {step}",
       "task_overdue": "「{step}」の期限切れ",
       "task_escalated": "「{step}」を承認者 {count} 人にエスカレーション",
-      "task_auto_decided": "「{step}」は期限後に自動で処理されました（{outcome}）",
+      "task_auto_decided": "「{step}」は期限後に自動で処理されました ({outcome})",
       "step_rejected": "「{step}」で却下",
       "step_skipped": "「{step}」をスキップ",
       "branch_chosen": "「{branch}」のルートを選択",
@@ -112,7 +112,7 @@
     "system": "組み込み",
     "archived": "アーカイブ済み",
     "version": "バージョン {version}",
-    "draftOnly": "下書き（未公開）",
+    "draftOnly": "下書き (未公開)",
     "unpublished": "未公開の変更あり",
     "steps": "{count} ステップ",
     "running": "{count} 件実行中",
@@ -156,7 +156,10 @@
     "incomplete": "すべての承認者についてユーザー、グループ、ロール、またはフィールドを選んでください。",
     "unknownGroup": "このステップのグループは存在しません。",
     "unknownRole": "このステップのロールは存在しません。",
-    "unknownUser": "このステップのユーザーは無効です。"
+    "unknownUser": "このステップのユーザーは無効です。",
+    "unknownRecordType": "承認者の入力項目に存在しないレコードの種類が指定されています。",
+    "stepFact": "このステップより前にないステップの項目 (またはそのステップにない項目) を使用しています。",
+    "stepFields": "承認者の入力項目が不明な項目または自身に依存しているか、既定値が無効です。"
   },
   "builder": {
     "title": "ワークフロー デザイナー",
@@ -171,7 +174,7 @@
     "publish": "公開",
     "more": "その他の操作",
     "makeDefault": "新しい申請に使用",
-    "clearDefault": "使用を停止（承認不要）",
+    "clearDefault": "使用を停止 (承認不要)",
     "defaultCleared": "このトリガーの承認をオフにしました",
     "restore": "復元",
     "archive": "アーカイブ",
@@ -216,7 +219,7 @@
     "description": "説明",
     "factsFromForm": "フォームのフィールドを使用",
     "pickForm": "フォームを選択",
-    "factsFromFormHint": "条件でフォームの回答（例: 概算費用）を判定できます。",
+    "factsFromFormHint": "条件でフォームの回答 (例: 概算費用) を判定できます。",
     "usedBy": "使用箇所",
     "usedByDefault": "この種類のすべての新しい申請。",
     "usedByNothing": "まだありません。",
@@ -228,6 +231,7 @@
     "saved": "下書きを保存しました",
     "published": "バージョン {version} を公開しました。新しい申請に適用されます",
     "fixIssues": "公開する前に強調表示されたステップを修正してください",
+    "stepFact": "{step}: {field}",
     "approvers": {
       "type": "承認者の種類",
       "types": {
@@ -237,7 +241,8 @@
         "manager": "上長",
         "department-head": "部門長",
         "fact": "フィールドのユーザー",
-        "requester": "申請者"
+        "requester": "申請者",
+        "fact-group": "フィールドのグループ"
       },
       "pickRole": "ロールを選択",
       "level": "上長の階層",
@@ -245,14 +250,36 @@
       "pickFact": "フィールドを選択",
       "hints": {
         "department-head": "対象者の部署の部門長。",
-        "requester": "申請を送信した人。"
+        "requester": "申請を送信した人。",
+        "fact-group": "このフィールドが示すグループのいずれかのメンバーが承認します (例: 選択した構成アイテムのサポート グループ)。"
       },
       "remove": "削除",
       "fallback": "見つからない場合の依頼先",
-      "addFallback": "代替の承認者を追加"
+      "addFallback": "代替の承認者を追加",
+      "pickGroupFact": "グループを保持するフィールドを選択",
+      "noGroupFacts": "グループを保持するフィールドはまだありません。「フォームのフィールドを使用」で、レコード フィールド (例: 構成アイテムとそのサポート グループ) のあるフォームを選択してください。",
+      "each": "それぞれに個別に依頼する",
+      "eachHint": "フィールド内のグループまたはユーザーごとに承認を求めます。「全員」と組み合わせると、それぞれが承認する必要があります (例: 選択した各 CI の所有グループ)。"
     },
     "editor": {
       "legend": "ステップの設定",
+      "stepFields": "承認者の入力項目",
+      "stepFieldsHint": "決定時に入力します (評価結果や完了日など)。申請に保存され、後続のステップで条件に使用できます。",
+      "noStepFields": "なし: 承認者は承認または却下のみを行います。",
+      "addField": "項目の追加",
+      "fieldType": "項目の種類",
+      "requiredField": "必須",
+      "moveFieldUp": "{label} を上へ移動",
+      "moveFieldDown": "{label} を下へ移動",
+      "editField": "{label} の編集",
+      "removeField": "{label} の削除",
+      "fieldsMax": "1 つのステップで入力を求められる項目は最大 {max} 個です。",
+      "requiredOn": "必須項目の入力が必要なとき",
+      "requiredOnApprove": "承認するとき",
+      "requiredOnBoth": "承認するときと却下するとき",
+      "fieldSheetTitle": "承認者の入力項目",
+      "fieldSheetDescription": "このステップの承認者には [承認] と [却下] の横に表示されます。",
+      "saveField": "項目の保存",
       "name": "ステップ名",
       "when": "条件",
       "whenHint": "条件に一致しない申請ではこのステップをスキップします。",
@@ -291,14 +318,14 @@
       "allowDelegation": "承認者が他の人に委任できる",
       "allowDelegationHint": "不在時の代理設定は常に適用されます。",
       "allowSelf": "申請者が自分の申請を承認できる",
-      "allowSelfHint": "既定ではオフ（職務分掌のため）。",
+      "allowSelfHint": "既定ではオフ (職務分掌のため)。",
       "ifNobody": "承認者が見つからない場合",
       "nobody": {
         "reject": "申請を却下",
         "skip": "このステップをスキップ"
       },
       "instructions": "承認者への指示",
-      "instructionsPlaceholder": "承認者は何を確認すべきですか？",
+      "instructionsPlaceholder": "承認者は何を確認すべきですか?",
       "paths": "ルート",
       "pathsHint": "ルールに一致する最初のルートが選ばれ、どれにも一致しなければ最後のルートになります。",
       "newPath": "ルート {n}",
@@ -316,7 +343,7 @@
       "branchName": "分岐名",
       "removeBranch": "分岐を削除",
       "recipients": "通知先",
-      "recipientsHint": "アプリ内通知（希望すればメールも）が届きます。",
+      "recipientsHint": "アプリ内通知 (希望すればメールも) が届きます。",
       "addRecipient": "通知先を追加",
       "message": "メッセージ"
     },
@@ -338,7 +365,8 @@
         "active": "待機中",
         "waiting": "未到達"
       }
-    }
+    },
+    "recordFact": "{field}: {fact}"
   },
   "changePreview": {
     "invalid": "この提案は描画できません。グラフが有効なワークフローではありません。",

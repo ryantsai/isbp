@@ -2,33 +2,106 @@ import { defineManifest, type WorkflowGraph } from '@isbp/sdk';
 import { z } from 'zod';
 import {
   aiExpiringContractsInput,
+  approvalStatusSchema,
   aiFindAssetsInput,
   aiGetAssetInput,
   aiLicenseComplianceInput,
   assetCategorySchema,
   assetStatusSchema,
   complianceStateSchema,
-  SECURITY_SIGN_OFF_WHEN,
+  SECURITY_SIGN_OFF_STEP,
+  wipeMethodSchema,
 } from './contracts';
+
+import { ASSET_CATEGORIES, ASSET_STATUSES, COMPLIANCE_STATES, LICENSE_BILLING, LICENSE_TYPES } from './model';
+
+const fact = (key: string) => `itam.recordFacts.${key}`;
+
+/**
+ * Approval facts of an asset (`itam.asset` picked in a record field), for workflows (`records.<field>.<fact>`) and
+ * record-field filters. People are user ids.
+ */
+export const assetFactsSchema = z.object({
+  category: z.enum(ASSET_CATEGORIES).meta({ label: fact('category'), valueLabels: 'itam.category' }),
+  status: z.enum(ASSET_STATUSES).meta({ label: fact('status'), valueLabels: 'itam.status' }),
+  dataBearing: z.boolean().meta({ label: fact('dataBearing') }),
+  assigneeId: z
+    .uuid()
+    .nullable()
+    .meta({ label: fact('assigneeId'), ref: 'user' }),
+  departmentCode: z
+    .string()
+    .nullable()
+    .meta({ label: fact('departmentCode') }),
+  location: z
+    .string()
+    .nullable()
+    .meta({ label: fact('location') }),
+  warrantyEnd: z.iso
+    .date()
+    .nullable()
+    .meta({ label: fact('warrantyEnd') }),
+  /** A returned device's pending data wipe (cleared by "Record data wipe"). */
+  wipeDue: z.iso
+    .date()
+    .nullable()
+    .meta({ label: fact('wipeDue') }),
+});
+export type AssetFacts = z.infer<typeof assetFactsSchema>;
+
+/** Approval facts of a licence (`itam.license`). */
+export const licenseFactsSchema = z.object({
+  product: z.string().meta({ label: fact('product') }),
+  publisher: z
+    .string()
+    .nullable()
+    .meta({ label: fact('publisher') }),
+  licenseType: z.enum(LICENSE_TYPES).meta({ label: fact('licenseType'), valueLabels: 'itam.licenseType' }),
+  billing: z.enum(LICENSE_BILLING).meta({ label: fact('billing'), valueLabels: 'itam.billing' }),
+  complianceState: z
+    .enum(COMPLIANCE_STATES)
+    .meta({ label: fact('complianceState'), valueLabels: 'itam.compliance' }),
+  quantity: z
+    .number()
+    .int()
+    .nullable()
+    .meta({ label: fact('quantity') }),
+  cost: z
+    .number()
+    .nullable()
+    .meta({ label: fact('cost') }),
+  endDate: z.iso
+    .date()
+    .nullable()
+    .meta({ label: fact('endDate') }),
+});
+export type LicenseFacts = z.infer<typeof licenseFactsSchema>;
 
 const assetRef = z.object({ assetId: z.uuid(), tag: z.string(), name: z.string() });
 const licenseRef = z.object({ licenseId: z.uuid(), reference: z.string(), product: z.string() });
 const contractRef = z.object({ contractId: z.uuid(), reference: z.string(), title: z.string() });
+const titleRuleRef = z.object({ ruleId: z.uuid(), title: z.string(), licenseId: z.uuid().nullable() });
+const approvedSoftwareRef = z.object({ entryId: z.uuid(), title: z.string(), status: approvalStatusSchema });
 
-/** Facts the disposal workflow decides on (`asset.dataBearing`, `asset.bookValue`, …). */
-export const disposalFactsSchema = z.object({
-  asset: z.object({
-    category: assetCategorySchema,
-    dataBearing: z.boolean().describe('Laptop, desktop, server, storage, phone or tablet'),
-    bookValue: z.number().describe('Straight-line book value today (0 when unknown or fully depreciated)'),
-    ageMonths: z.number().int().describe('Whole months since purchase'),
-  }),
-});
+/**
+ * Facts the disposal workflow decides on (`asset.dataBearing`, `asset.bookValue`, …). The asset's custom fields
+ * come along as `attributes.<key>` and `records.<key>.<fact>` (`customFieldEntity` on the trigger), hence `loose()`.
+ */
+export const disposalFactsSchema = z
+  .object({
+    asset: z.object({
+      category: assetCategorySchema,
+      dataBearing: z.boolean().describe('Laptop, desktop, server, storage, phone or tablet'),
+      bookValue: z.number().describe('Straight-line book value today (0 when unknown or fully depreciated)'),
+      ageMonths: z.number().int().describe('Whole months since purchase'),
+    }),
+  })
+  .loose();
 
 /**
  * Disposal: an asset manager approves; data-bearing devices that still carry book value (or are under
  * five years old) also need the information security team's sign-off that the storage was wiped or
- * destroyed.
+ * destroyed. The disposal dialog previews whichever workflow is bound, so its notice follows the admin's graph.
  */
 const disposalGraph: WorkflowGraph = {
   steps: [
@@ -47,14 +120,24 @@ const disposalGraph: WorkflowGraph = {
       sla: { dueHours: 72, remindHours: 48, onBreach: 'notify' },
     },
     {
-      id: 'security',
+      id: SECURITY_SIGN_OFF_STEP,
       type: 'approval',
       name: {
         en: 'Information security sign-off',
         'zh-TW': '資訊安全簽核',
         'ja-JP': '情報セキュリティの承認',
       },
-      when: SECURITY_SIGN_OFF_WHEN,
+      when: {
+        all: [
+          { fact: 'asset.dataBearing', op: 'eq', value: true },
+          {
+            any: [
+              { fact: 'asset.bookValue', op: 'gt', value: 0 },
+              { fact: 'asset.ageMonths', op: 'lt', value: 60 },
+            ],
+          },
+        ],
+      },
       approvers: [
         { type: 'group', groupKey: 'security-team', fallback: { type: 'role', roleKey: 'itam-admin' } },
       ],
@@ -112,6 +195,28 @@ export const manifest = defineManifest({
       section: 'main',
       group: 'itam.nav.group',
       order: 44,
+    },
+    {
+      // The approved-software list (allow / block list): software readers see it, managers change it.
+      id: 'approved-software',
+      label: 'itam.nav.approvedSoftware',
+      href: '/itam/approved-software',
+      icon: 'list-checks',
+      permission: 'itam.software.read',
+      section: 'main',
+      group: 'itam.nav.group',
+      order: 44.2,
+    },
+    {
+      // Software reports from inventory tools and CSV imports: the same permission as the discovery API.
+      id: 'discovery',
+      label: 'itam.nav.discovery',
+      href: '/itam/discovery',
+      icon: 'radar',
+      permission: 'itam.hardware.manage',
+      section: 'main',
+      group: 'itam.nav.group',
+      order: 44.5,
     },
     {
       id: 'contracts',
@@ -239,6 +344,11 @@ export const manifest = defineManifest({
         description: 'Disposal was approved; the asset is gone',
         schema: assetRef.extend({ instanceId: z.uuid().nullable() }),
       },
+      {
+        name: 'itam.asset.data_wiped',
+        description: "A device's storage was wiped (Record data wipe); its pending wipe is cleared",
+        schema: assetRef.extend({ method: wipeMethodSchema, wipedAt: z.string() }),
+      },
       { name: 'itam.license.created', schema: licenseRef },
       { name: 'itam.license.updated', schema: licenseRef.extend({ changes: z.array(z.string()) }) },
       {
@@ -256,6 +366,28 @@ export const manifest = defineManifest({
         }),
       },
       { name: 'itam.contract.expired', schema: contractRef.extend({ endDate: z.string() }) },
+      {
+        name: 'itam.title-rule.created',
+        description:
+          'A discovered software title was mapped to a licence (licenseId) or ignored (licenseId null)',
+        schema: titleRuleRef,
+      },
+      {
+        name: 'itam.title-rule.deleted',
+        description: 'A title rule was removed: the title is matched by name again',
+        schema: titleRuleRef,
+      },
+      {
+        name: 'itam.approved-software.created',
+        description: 'A title was added to the approved-software list (allowed or blocked)',
+        schema: approvedSoftwareRef,
+      },
+      {
+        name: 'itam.approved-software.updated',
+        description: 'An approved-software entry changed (scope, validity, status…)',
+        schema: approvedSoftwareRef,
+      },
+      { name: 'itam.approved-software.deleted', schema: approvedSoftwareRef },
     ],
     consumes: ['core.user.offboarded'],
   },
@@ -273,6 +405,21 @@ export const manifest = defineManifest({
       description: 'itam.settings.warrantyDaysHelp',
       type: 'number',
       default: 30,
+    },
+    {
+      key: 'wipe.months',
+      label: 'itam.settings.wipeMonths',
+      description: 'itam.settings.wipeMonthsHelp',
+      type: 'number',
+      default: 2,
+    },
+    {
+      key: 'wipe.remindDays',
+      label: 'itam.settings.wipeRemindDays',
+      description: 'itam.settings.wipeRemindDaysHelp',
+      type: 'number',
+      default: 7,
+      advanced: true,
     },
     {
       key: 'compliance.underUsedPercent',
@@ -348,6 +495,7 @@ export const manifest = defineManifest({
       description: 'itam.workflows.disposal.description',
       subject: 'asset',
       facts: disposalFactsSchema,
+      customFieldEntity: 'itam.asset',
       required: true,
       defaultGraph: disposalGraph,
     },
@@ -358,6 +506,8 @@ export const manifest = defineManifest({
     { type: 'itam.contract.renewal_due', defaultChannels: ['inApp', 'email'] },
     { type: 'itam.warranty.expiring', defaultChannels: ['inApp'] },
     { type: 'itam.offboarding.return', defaultChannels: ['inApp', 'email'] },
+    { type: 'itam.wipe.due', defaultChannels: ['inApp', 'email'] },
+    { type: 'itam.approved-software.expiring', defaultChannels: ['inApp'] },
   ],
   customFields: {
     entities: [
@@ -387,8 +537,20 @@ export const manifest = defineManifest({
   ],
   records: {
     types: [
-      { type: 'asset', name: 'itam.entities.asset', icon: 'laptop', permission: 'itam.hardware.read' },
-      { type: 'license', name: 'itam.entities.license', icon: 'key-round', permission: 'itam.software.read' },
+      {
+        type: 'asset',
+        name: 'itam.entities.asset',
+        icon: 'laptop',
+        permission: 'itam.hardware.read',
+        facts: assetFactsSchema,
+      },
+      {
+        type: 'license',
+        name: 'itam.entities.license',
+        icon: 'key-round',
+        permission: 'itam.software.read',
+        facts: licenseFactsSchema,
+      },
       {
         type: 'contract',
         name: 'itam.entities.contract',
@@ -397,4 +559,28 @@ export const manifest = defineManifest({
       },
     ],
   },
+  /** What request forms can do here after they are sent or decided (handlers in `server/process-actions.ts`). */
+  processActions: [
+    {
+      action: 'approve-software',
+      name: 'itam.processActions.approveSoftware.name',
+      description: 'itam.processActions.approveSoftware.description',
+      icon: 'list-checks',
+      permission: 'itam.software.manage',
+    },
+    {
+      action: 'assign-asset',
+      name: 'itam.processActions.assignAsset.name',
+      description: 'itam.processActions.assignAsset.description',
+      icon: 'user-plus',
+      permission: 'itam.hardware.manage',
+    },
+    {
+      action: 'return-asset',
+      name: 'itam.processActions.returnAsset.name',
+      description: 'itam.processActions.returnAsset.description',
+      icon: 'undo-2',
+      permission: 'itam.hardware.manage',
+    },
+  ],
 });

@@ -3,7 +3,7 @@
 import { localize } from '@isbp/sdk';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { DateTime } from '@isbp/ui/relative-time';
-import { CheckCircle2Icon, FileInputIcon, SirenIcon, StarIcon } from 'lucide-react';
+import { CheckCircle2Icon, FileInputIcon, SirenIcon, StampIcon, StarIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import type { TicketDetail } from '../../contracts';
@@ -69,12 +69,19 @@ export function SlaTimers({ ticket }: { ticket: TicketDetail }) {
 export function ResolutionCard({ ticket }: { ticket: TicketDetail }) {
   const t = useTranslations('itsm');
   if (!ticket.resolutionCode && !ticket.resolutionNotes) return null;
+  const waiting = Boolean(ticket.signOff);
   return (
-    <Card className="gap-3 border-success/30 bg-success/5">
+    <Card
+      className={waiting ? 'gap-3 border-warning/40 bg-warning/10' : 'gap-3 border-success/30 bg-success/5'}
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <CheckCircle2Icon className="size-4 text-success" aria-hidden />
-          {t('ticket.resolution')}
+          {waiting ? (
+            <StampIcon className="size-4 text-warning-foreground" aria-hidden />
+          ) : (
+            <CheckCircle2Icon className="size-4 text-success" aria-hidden />
+          )}
+          {waiting ? t('signOff.resolutionTitle') : t('ticket.resolution')}
           {ticket.resolutionCode && (
             <span className="text-sm font-normal text-muted-foreground">
               · {t(`resolution.${ticket.resolutionCode}`)}
@@ -83,6 +90,7 @@ export function ResolutionCard({ ticket }: { ticket: TicketDetail }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-2 text-sm">
+        {waiting && <p className="text-muted-foreground">{t('signOff.resolutionHint')}</p>}
         {ticket.resolutionNotes && <p className="whitespace-pre-line">{ticket.resolutionNotes}</p>}
         {ticket.satisfaction !== null && (
           <p className="flex flex-wrap items-center gap-2 text-muted-foreground">

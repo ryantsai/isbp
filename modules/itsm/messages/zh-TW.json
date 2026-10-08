@@ -3,6 +3,43 @@
     "name": "服務台",
     "description": "事件、服務請求、問題與變更，含 SLA 管理"
   },
+  "processActions": {
+    "createChange": {
+      "name": "建立變更",
+      "description": "依申請建立變更，連結申請中選取的 CI，並可送出至變更諮詢委員會 (CAB) 簽核。",
+      "title": "標題",
+      "descriptionField": "說明",
+      "changeType": "變更類型",
+      "risk": "風險",
+      "changeTypeField": "以此答案作為變更類型",
+      "changeTypeFieldHelp": "答案為 normal 或 emergency 時採用，否則使用上方的變更類型。表單不會建立預先核准的標準變更。",
+      "riskField": "以此答案作為風險",
+      "riskFieldHelp": "答案為 low、medium 或 high 時採用，否則使用上方的風險。",
+      "category": "類別",
+      "group": "指派群組",
+      "ciField": "受影響的 CI 來自",
+      "ciFieldHelp": "此表單的組態項目欄位。變更會連結到其中選取的 CI。",
+      "plannedStart": "預計開始來自",
+      "plannedEnd": "預計結束來自",
+      "backoutPlan": "回復計畫",
+      "submit": "送出簽核",
+      "submitHelp": "啟動變更本身的簽核流程（風險或 CI 需要時會經過 CAB），絕不會略過。",
+      "created": "已建立變更",
+      "submitted": "已建立變更並送出簽核",
+      "windowPassed": "已建立變更；其預計時段已過，因此未送出簽核"
+    },
+    "createTicket": {
+      "name": "建立工單",
+      "description": "以您指定的標題、說明、類別與群組，為申請人建立事件或服務請求。",
+      "type": "類型",
+      "priority": "優先順序",
+      "title": "標題",
+      "descriptionField": "說明",
+      "category": "類別",
+      "group": "指派群組",
+      "created": "已建立工單"
+    }
+  },
   "nav": {
     "group": "服務台",
     "desk": "工單",
@@ -62,6 +99,10 @@
     "change": {
       "name": "變更授權",
       "description": "變更排程前的簽核流程（CAB）"
+    },
+    "resolution": {
+      "name": "解決方案簽核",
+      "description": "選用：工單解決前由主管簽核解決方案（可用條件限定範圍，例如類別）"
     }
   },
   "types": {
@@ -128,7 +169,7 @@
     "3": "低"
   },
   "channel": {
-    "portal": "入口網站",
+    "portal": "申請入口網站",
     "agent": "服務台",
     "chat": "虛擬助理",
     "email": "電子郵件",
@@ -195,8 +236,10 @@
     "defaultGroupKey": "預設指派群組（代碼）",
     "defaultGroupKeyHelp": "分類未設定群組的新工單會指派給此群組，例如 service-desk。",
     "csatEnabled": "申請人確認問題解決時，請其為服務滿意度評分",
-    "majorIncidentBroadcast": "在團隊頻道公告重大事件",
-    "majorIncidentBroadcastHelp": "事件被宣告為重大事件時，發送到組織訂閱的 Teams、Slack 與 Webhook 頻道。"
+    "majorIncidentBroadcast": "在團隊通道公告重大事件",
+    "majorIncidentBroadcastHelp": "事件被宣告為重大事件時，發送到組織訂閱的 Teams、Slack 與 Webhook 通道。",
+    "requireAcceptance": "關閉變更前須經申請人驗收",
+    "requireAcceptanceHelp": "有申請人的變更，須在申請人驗收後，才能從實施後審查關閉。"
   },
   "notifications": {
     "ticket_created": {
@@ -245,9 +288,29 @@
       "body": "{comment}"
     },
     "major_incident_declared": {
-      "label": "重大事件（通知管道）",
+      "label": "重大事件（通知通道）",
       "title": "重大事件：{reference} {title}",
       "body": "{description}"
+    },
+    "change_acceptance_requested": {
+      "label": "待驗收的變更",
+      "title": "請確認您的變更：{reference} {title}",
+      "body": "變更已實施。若運作符合預期請驗收，否則請回報問題。"
+    },
+    "change_accepted": {
+      "label": "申請人已驗收的變更",
+      "title": "已驗收：{reference} {title}",
+      "body": "{name} 已驗收此變更。"
+    },
+    "change_problem_reported": {
+      "label": "變更回報的問題",
+      "title": "回報問題：{reference} {title}",
+      "body": "{name} 回報變更有問題：{reason}"
+    },
+    "ticket_sign_off_rejected": {
+      "label": "未通過簽核的解決方案",
+      "title": "解決方案未通過簽核：{reference} {title}",
+      "body": "{name} 未核准此解決方案：{reason} 工單已回到處理中。"
     }
   },
   "audit": {
@@ -272,7 +335,9 @@
     "sla_policy_updated": "更新 SLA 原則",
     "sla_policy_deleted": "刪除 SLA 原則",
     "catalog_item_updated": "變更服務目錄的履行設定",
-    "catalog_item_deleted": "從服務目錄移除表單"
+    "catalog_item_deleted": "從服務目錄移除表單",
+    "change_accepted": "申請人驗收變更",
+    "change_problem_reported": "申請人回報變更問題"
   },
   "common": {
     "major": "重大事件",
@@ -398,7 +463,7 @@
     "assignee": "處理人員",
     "cis": "受影響的組態項目",
     "major": "重大事件",
-    "majorHint": "宣告為重大事件：工單會加上「重大事件」標記並列在「重大事件」佇列中，若已開啟公告，也會在團隊頻道發布公告。其他佇列的排序不受影響。",
+    "majorHint": "宣告為重大事件：工單會加上「重大事件」標記並列在「重大事件」佇列中，若已開啟公告，也會在團隊通道發佈公告。其他佇列的排序不受影響。",
     "submit": "建立工單",
     "created": "已建立 {reference}"
   },
@@ -471,7 +536,9 @@
       "titleTooShort": "請至少輸入 3 個字元",
       "descriptionLabel": "說明",
       "markdownHint": "支援 Markdown 格式。"
-    }
+    },
+    "withdrawResolution": "撤回解決方案",
+    "sentForSignOff": "已送出解決方案簽核"
   },
   "details": {
     "title": "詳細資料",
@@ -488,7 +555,7 @@
     "priorityMatrix": "由影響範圍與緊急程度計算。",
     "priorityOverridden": "已手動調整，變更記錄在活動紀錄中。",
     "major": "重大事件",
-    "channel": "來源管道",
+    "channel": "來源通道",
     "department": "部門",
     "created": "建立時間",
     "firstResponse": "首次回應"
@@ -601,7 +668,25 @@
     "autoClosed": "申請人未回覆，系統已自動結案",
     "assignmentChanged": "{name} 變更了指派",
     "offboarded": "原處理人員已離職。",
-    "via": "（經由 {system} {reference}）"
+    "via": "（經由 {system} {reference}）",
+    "acceptance": {
+      "accepted": "{name} 已驗收此變更",
+      "problem": "{name} 回報變更有問題",
+      "acceptedLabel": "已驗收變更",
+      "problemLabel": "已回報問題",
+      "closedAccepted": "申請人已驗收",
+      "closedProblem": "申請人回報了問題",
+      "closedPending": "申請人未驗收"
+    },
+    "signOff": {
+      "requested": "{name} 已解決：等待簽核",
+      "withdrawn": "{name} 撤回了解決方案",
+      "started": "已開始解決方案簽核",
+      "approved": "解決方案已核准",
+      "rejected": "解決方案未核准",
+      "cancelled": "已撤回解決方案簽核",
+      "updated": "解決方案簽核已更新"
+    }
   },
   "composer": {
     "label": "加入對話",
@@ -943,7 +1028,7 @@
         "priority": "優先順序（1–4）",
         "category": "類別",
         "major": "重大事件",
-        "channel": "來源管道",
+        "channel": "來源通道",
         "impact": "影響範圍（1–3）",
         "urgency": "緊急程度（1–3）"
       }
@@ -987,10 +1072,10 @@
     },
     "catalog": {
       "title": "服務目錄",
-      "description": "已發布的申請表單，以及服務台如何處理每一種申請。",
+      "description": "已發佈的申請表單，以及服務台如何處理每一種申請。",
       "formBuilder": "開啟表單設計工具",
-      "empty": "尚未發布任何表單。",
-      "emptyHint": "在「管理 → 表單」建立並發布申請表單後，就會出現在這裡。",
+      "empty": "尚未發佈任何表單。",
+      "emptyHint": "在「管理 → 表單」建立並發佈申請表單後，就會出現在這裡。",
       "approval": "需簽核",
       "fulfilled": "由服務台處理",
       "paused": "已暫停",
@@ -1076,5 +1161,47 @@
         "resolution": "{priority}：解決時間（分鐘）"
       }
     }
+  },
+  "recordFacts": {
+    "type": "工單類型",
+    "status": "狀態",
+    "priority": "優先順序（1 = 最高）",
+    "impact": "影響範圍（1 = 高）",
+    "urgency": "緊急程度（1 = 高）",
+    "major": "重大事件",
+    "category": "類別代碼",
+    "groupKey": "指派群組",
+    "assigneeId": "處理人員",
+    "requesterId": "申請人",
+    "departmentCode": "部門代碼",
+    "changeType": "變更類型",
+    "risk": "風險",
+    "plannedStart": "預計開始",
+    "plannedEnd": "預計結束"
+  },
+  "signOff": {
+    "status": "等待簽核",
+    "resolutionTitle": "解決方案等待簽核",
+    "resolutionHint": "簽核核准後工單即為已解決；若被駁回，將回到處理中。"
+  },
+  "acceptance": {
+    "title": "申請人驗收",
+    "state": {
+      "pending": "等待驗收",
+      "accepted": "已驗收",
+      "problem": "已回報問題"
+    },
+    "askRequester": "變更已實施。運作是否符合您的預期？",
+    "waiting": "等待申請人驗收變更。",
+    "waitingRequired": "等待申請人驗收變更：驗收後才能關閉。",
+    "acceptedBy": "{name} 已驗收此變更。",
+    "problemBy": "{name} 回報了問題。",
+    "accept": "驗收變更",
+    "reportProblem": "回報問題",
+    "problemLabel": "有什麼問題？",
+    "problemRequired": "請說明問題（至少 3 個字元）。",
+    "sendProblem": "回報問題",
+    "acceptedToast": "已驗收變更",
+    "problemToast": "已回報問題"
   }
 }

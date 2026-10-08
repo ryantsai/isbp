@@ -85,8 +85,9 @@ Open the request from **Requests → My requests**. The **Approval path** shows 
 ### The approval path says "Skipped — nobody to ask"
 
 The workflow found nobody for that step (for example, you have no manager in your profile) and was set to skip it. If
-the review step says **Nobody can approve this step — the request would be rejected**, don't send the request: ask
-the service desk to fix your manager or the role's owner first.
+the review step, or **Who will approve this?** on a form, says **Nobody can approve this step — the request would be
+rejected**, don't send the request: ask the service desk to fix your manager, the role's owner or, on a form, the
+support group of the system you picked first.
 
 ### It says "No approval workflow is set up for this yet."
 
@@ -124,6 +125,28 @@ to check them in **Administration → Forms**:
 - Its approval workflow is published.
 
 See [Administrators](administrators.md).
+
+### A form's record picker doesn't show the CI (or application, or asset) I need
+
+A record picker only lists records you're allowed to see, and only those the form accepts: for example, a form may
+offer production systems only. Type part of the reference or the name under **Search by reference or title…**. If the
+record still doesn't appear, you may not have the role to see that kind of record (for configuration items, **CMDB
+viewer**): ask the service desk, or the person who maintains the form. See
+[Let people pick records](processes.md#let-people-pick-records).
+
+### My request was approved, but "What happens next" shows Failed
+
+The form tried to do something after the approval, such as raise a change, and it didn't work. The people who
+maintain the form were notified with the error and can run it again with **Retry** once they've fixed the cause.
+(**Retrying (attempt …)** means it's still trying on its own.) You don't need to send the request again. See
+[Follow what the actions did](processes.md#follow-what-the-actions-did).
+
+### Where do I find the link to a form?
+
+Every published form has its own address, `/requests/forms/<key>` on our ISBP address. Administrators open it from
+the form builder with **More actions → Open in the portal** and copy it from the browser. People outside the form's
+**Audience** see "This form isn't available". See
+[Publish the form and share its link](processes.md#publish-the-form-and-share-its-link).
 
 ## Notifications and language
 

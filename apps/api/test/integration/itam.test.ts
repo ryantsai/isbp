@@ -7,8 +7,9 @@ import {
   roleAssignments,
   roles,
   users,
+  workflowInstances,
 } from '@isbp/db/schema';
-import { addDays, todayIn } from '@isbp/module-itam/model';
+import { addDays, addMonths, todayIn } from '@isbp/module-itam/model';
 import { assetEvents, contracts, licenseAssignments } from '@isbp/module-itam/schema';
 import { services } from '@isbp/module-itam/services';
 import type { AuthContext } from '@isbp/sdk/server';
@@ -234,12 +235,24 @@ describe('hardware lifecycle', () => {
     expect(dispose.body.error.code).toBe('INVALID_TRANSITION');
 
     const returned = await post('am', `/assets/${a.tag}/return`, { note: 'Leaving the team' });
-    expect(returned.body).toMatchObject({ status: 'in_stock', assignee: null });
+    // A returned laptop stores data: its wipe is due the configured months (2) after today.
+    expect(returned.body).toMatchObject({
+      status: 'in_stock',
+      assignee: null,
+      dataRetainUntil: null,
+      wipeDue: addMonths(today, 2),
+      wipeState: 'scheduled',
+    });
     const again = await post('am', `/assets/${a.tag}/return`, {});
     expect(again.body.error.code).toBe('INVALID_STATE');
     const events = await get('am', `/assets/${a.tag}/events`);
-    expect(events.body.items.map((e: LooseJson) => e.kind)).toEqual(['returned', 'assigned', 'created']);
-    expect(events.body.items[1]).toMatchObject({
+    expect(events.body.items.map((e: LooseJson) => e.kind)).toEqual([
+      'wipe_scheduled',
+      'returned',
+      'assigned',
+      'created',
+    ]);
+    expect(events.body.items[2]).toMatchObject({
       user: { id: ids.alice },
       actor: { id: ids.am },
       note: 'New starter',
@@ -466,6 +479,132 @@ describe('discovery', () => {
       complianceState: 'over_deployed',
     });
   });
+
+  it('imports CSV batches, lists reports, and maps or ignores titles that match no licence', async () => {
+    const lic = (
+      await post('am', '/licenses', {
+        product: 'Microsoft Visio Plan 2',
+        licenseType: 'per_user',
+        quantity: 5,
+      })
+    ).body;
+    const pc = await newAsset({ serialNumber: 'DISC-IMPORT-1', assigneeId: ids.alice });
+    const pc2 = await newAsset({ serialNumber: 'DISC-IMPORT-2' });
+    const titles = async () =>
+      ((await get('am', '/discovery/titles?pageSize=100')).body.items as LooseJson[]).map((x) => x.title);
+
+    // A CSV export (parsed by the browser) goes through the discovery service, one complete report per device.
+    const imported = await post('am', '/discovery/import', {
+      fileName: 'intune-export.csv',
+      devices: [
+        {
+          assetSerial: 'disc-import-1',
+          products: [
+            { product: 'Visio Professional 2021', publisher: 'Microsoft' },
+            { product: 'Paint.NET' },
+          ],
+        },
+        { assetTag: pc2.tag, products: [{ product: 'Visio Professional 2021' }] },
+        { assetSerial: 'NOT-REGISTERED', products: [{ product: 'Paint.NET' }] },
+      ],
+    });
+    expect(imported.status, JSON.stringify(imported.body)).toBe(200);
+    expect(imported.body.results).toEqual([
+      expect.objectContaining({
+        device: 'disc-import-1',
+        status: 'imported',
+        added: 2,
+        asset: expect.objectContaining({ id: pc.id }),
+      }),
+      expect.objectContaining({ device: pc2.tag, status: 'imported', added: 1 }),
+      { device: 'NOT-REGISTERED', status: 'not_found', asset: null, added: 0, updated: 0, removed: 0 },
+    ]);
+    const reports = await get('am', '/discovery/reports?source=import&q=intune');
+    expect(
+      reports.body.items.map((r: LooseJson) => [
+        r.asset.id,
+        r.source,
+        r.fileName,
+        r.added,
+        r.by?.displayName,
+      ]),
+    ).toEqual([
+      [pc2.id, 'import', 'intune-export.csv', 1, 'Am'],
+      [pc.id, 'import', 'intune-export.csv', 2, 'Am'],
+    ]);
+    const unmatched = (await get('am', '/discovery/titles?q=visio')).body.items;
+    expect(unmatched).toEqual([
+      expect.objectContaining({ title: 'Visio Professional 2021', publisher: 'Microsoft', devices: 2 }),
+    ]);
+    expect(await titles()).toContain('Paint.NET');
+
+    // The same permission as the discovery API; deciding about titles needs software.manage.
+    expect((await get('viewer', '/discovery/titles')).status).toBe(403);
+    expect((await get('cm', '/discovery/reports')).status).toBe(403);
+    expect((await post('viewer', '/discovery/rules', { title: 'Paint.NET', licenseId: null })).status).toBe(
+      403,
+    );
+    expect(
+      (await post('viewer', '/discovery/import', { devices: [{ assetSerial: 'x', products: [] }] })).status,
+    ).toBe(403);
+
+    // Map the title to the Visio licence: its installs count as the licence's product, now and in later reports.
+    const mapped = await post('am', '/discovery/rules', {
+      title: 'Visio Professional 2021',
+      licenseId: lic.id,
+    });
+    expect(mapped.status, JSON.stringify(mapped.body)).toBe(201);
+    expect(mapped.body).toMatchObject({
+      title: 'Visio Professional 2021',
+      license: { id: lic.id, reference: lic.reference, product: 'Microsoft Visio Plan 2' },
+      createdBy: { id: ids.am },
+    });
+    expect((await get('am', `/licenses/${lic.reference}`)).body).toMatchObject({ unlicensed: 2 });
+    const software = await get('am', `/assets/${pc.tag}/software`);
+    expect(
+      software.body.installations.find((i: LooseJson) => i.product === 'Microsoft Visio Plan 2'),
+    ).toMatchObject({ reportedAs: 'Visio Professional 2021', licensed: false });
+    const again = await post('am', '/discovery/software', {
+      assetId: pc2.id,
+      products: [{ product: 'visio professional 2021', version: '16.1' }],
+    });
+    expect(again.body).toMatchObject({
+      added: 0,
+      updated: 1,
+      removed: 0,
+      unlicensed: ['Microsoft Visio Plan 2'],
+    });
+    // One rule per title; a title that already matches a licence needs none.
+    expect(
+      (await post('am', '/discovery/rules', { title: 'VISIO PROFESSIONAL 2021', licenseId: null })).body.error
+        .code,
+    ).toBe('CONFLICT');
+    expect(
+      (await post('am', '/discovery/rules', { title: 'microsoft visio plan 2', licenseId: null })).body.error
+        .code,
+    ).toBe('INVALID_STATE');
+
+    // Ignore free software: it leaves the review list.
+    const ignored = await post('am', '/discovery/rules', { title: 'Paint.NET', licenseId: null });
+    expect(ignored.body).toMatchObject({ title: 'Paint.NET', license: null });
+    expect(await titles()).not.toContain('Paint.NET');
+    expect(await titles()).not.toContain('Visio Professional 2021');
+    expect(
+      (await get('am', '/discovery/rules?kind=mapped')).body.items.map((r: LooseJson) => r.title),
+    ).toEqual(['Visio Professional 2021']);
+    expect(await auditOf('itam.title-rule.created')).toHaveLength(2);
+
+    // Removing the mapping restores the reported title, and the licence no longer counts those installs.
+    expect((await h.call(s.am!, 'DELETE', `${API}/discovery/rules/${mapped.body.id}`)).status).toBe(204);
+    const restored = await get('am', `/assets/${pc.tag}/software`);
+    expect(restored.body.installations.map((i: LooseJson) => [i.product, i.reportedAs])).toContainEqual([
+      'Visio Professional 2021',
+      null,
+    ]);
+    expect((await get('am', `/licenses/${lic.reference}`)).body.unlicensed).toBe(0);
+    expect(await titles()).toContain('Visio Professional 2021');
+    expect(await auditOf('itam.title-rule.deleted', mapped.body.id)).toHaveLength(1);
+  });
 });
 
 describe('disposal approval', () => {
@@ -520,13 +659,117 @@ describe('disposal approval', () => {
     expect(await auditOf('itam.asset.disposed', a.id)).toHaveLength(1);
   });
 
-  it("tells the disposal dialog whether information security will sign off, by the workflow's rule", async () => {
-    // Data-bearing with book value; data-bearing, fully depreciated and over five years old; not data-bearing.
-    expect((await newAsset()).disposalSecuritySignOff).toBe(true);
-    expect((await newAsset({ purchaseDate: addDays(today, -6 * 366) })).disposalSecuritySignOff).toBe(false);
+  it('previews who will approve a disposal with the bound workflow, security notice included', async () => {
+    const preview = async (tag: string) => {
+      const res = await get('am', `/assets/${tag}/disposal-preview`);
+      expect(res.status, JSON.stringify(res.body)).toBe(200);
+      return res.body as LooseJson;
+    };
+    // Default workflow. Data-bearing with book value: the asset manager, then information security.
+    const laptop = await newAsset();
+    const first = await preview(laptop.tag);
+    expect(first).toMatchObject({ securitySignOff: true, workflow: { name: expect.any(String) } });
+    expect(first.steps.map((x: LooseJson) => [x.id, x.outcome])).toEqual([
+      ['asset-manager', 'ask'],
+      ['security', 'ask'],
+    ]);
+    expect(first.steps[1].people).toEqual([{ id: ids.sec, displayName: 'Sec' }]);
+    // Data-bearing, fully depreciated and over five years old; not data-bearing: the asset manager only.
+    const old = await newAsset({ purchaseDate: addDays(today, -6 * 366) });
     const dongle = await newAsset({ category: 'other', modelId: null, purchaseCost: null });
-    expect(dongle.disposalSecuritySignOff).toBe(false);
-    expect((await get('viewer', `/assets/${dongle.tag}`)).body.disposalSecuritySignOff).toBe(false);
+    for (const a of [old, dongle])
+      expect(await preview(a.tag)).toMatchObject({
+        securitySignOff: false,
+        steps: [{ id: 'asset-manager' }],
+      });
+    // Like requesting disposal, previewing it needs hardware.manage.
+    expect((await get('viewer', `/assets/${dongle.tag}/disposal-preview`)).status).toBe(403);
+    expect((await get('viewer', `/assets/${dongle.tag}`)).body).not.toHaveProperty('disposalSecuritySignOff');
+
+    // An admin binds their own workflow that routes on a custom field of the asset: the notice follows it.
+    const admin = s.admin!;
+    const field = await h.call(admin, 'POST', '/api/v1/custom-fields', {
+      entityType: 'itam.asset',
+      field: {
+        key: 'classification',
+        type: 'select',
+        label: { en: 'Data classification' },
+        options: [
+          { value: 'public', label: { en: 'Public' } },
+          { value: 'confidential', label: { en: 'Confidential' } },
+        ],
+      },
+    });
+    expect(field.status, JSON.stringify(field.body)).toBe(201);
+    const previous = (
+      await h.call(admin, 'GET', '/api/v1/workflows?triggerKey=itam.disposal')
+    ).body.items.find((w: LooseJson) => w.isDefault);
+    const wf = await h.call(admin, 'POST', '/api/v1/workflows', {
+      name: 'Disposal by classification',
+      triggerKey: 'itam.disposal',
+    });
+    await h.call(admin, 'PATCH', `/api/v1/workflows/${wf.body.id}`, {
+      draft: {
+        steps: [
+          {
+            id: 'security',
+            type: 'approval',
+            name: { en: 'Security' },
+            when: { fact: 'attributes.classification', op: 'eq', value: 'confidential' },
+            approvers: [{ type: 'group', groupKey: 'security-team' }],
+            mode: 'any',
+          },
+          {
+            id: 'asset-manager',
+            type: 'approval',
+            name: { en: 'Asset manager' },
+            approvers: [{ type: 'role', roleKey: 'itam-asset-manager' }],
+            mode: 'any',
+          },
+        ],
+      },
+    });
+    expect((await h.call(admin, 'POST', `/api/v1/workflows/${wf.body.id}/publish`)).status).toBe(200);
+    expect((await h.call(admin, 'POST', `/api/v1/workflows/${wf.body.id}/default`)).status).toBe(200);
+    try {
+      const secret = await newAsset({
+        category: 'other',
+        modelId: null,
+        purchaseCost: null,
+        attributes: { classification: 'confidential' },
+      });
+      const plain = await newAsset({ attributes: { classification: 'public' } });
+      expect(await preview(secret.tag)).toMatchObject({
+        workflow: { id: wf.body.id, name: 'Disposal by classification' },
+        securitySignOff: true,
+        steps: [{ id: 'security', people: [{ id: ids.sec }] }, { id: 'asset-manager' }],
+      });
+      expect(await preview(plain.tag)).toMatchObject({
+        securitySignOff: false,
+        steps: [{ id: 'asset-manager' }],
+      });
+      // Requesting disposal starts that workflow with the same facts.
+      await post('am', `/assets/${secret.tag}/status`, { status: 'retired' });
+      const requested = await post('am', `/assets/${secret.tag}/dispose`, { note: 'Shred' });
+      const instanceId = requested.body.disposalInstanceId as string;
+      const [task] = await h.kernel.db
+        .select()
+        .from(approvalTasks)
+        .where(and(eq(approvalTasks.instanceId, instanceId), eq(approvalTasks.status, 'pending')));
+      expect(task?.assigneeId).toBe(ids.sec);
+      const [inst] = await h.kernel.db
+        .select({ facts: workflowInstances.facts })
+        .from(workflowInstances)
+        .where(eq(workflowInstances.id, instanceId));
+      expect(inst!.facts).toMatchObject({
+        asset: { category: 'other', dataBearing: false },
+        attributes: { classification: 'confidential' },
+        records: {},
+      });
+    } finally {
+      await h.call(admin, 'POST', `/api/v1/workflows/${previous.id}/default`);
+      await h.call(admin, 'POST', `/api/v1/custom-fields/${field.body.id}/archive`);
+    }
   });
 
   it('a rejection leaves the asset retired', async () => {

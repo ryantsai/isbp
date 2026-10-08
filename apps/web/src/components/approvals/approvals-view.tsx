@@ -262,6 +262,7 @@ export function ApprovalsView() {
           taskId={deciding.item.task.id}
           decision={deciding.decision}
           subject={localize(deciding.item.instance.subject.label, locale)}
+          step={deciding.item.step}
           open
           onOpenChange={(o) => !o && setDeciding(null)}
         />

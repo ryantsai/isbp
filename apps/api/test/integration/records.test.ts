@@ -121,6 +121,7 @@ describe('record links', () => {
       moduleId: 'rtest',
       name: 'rtest.entities.doc',
       icon: 'file-text',
+      facts: [],
     });
     const found = await h.call(viewer, 'GET', '/api/v1/records/search?q=beta&types=rtest.doc');
     expect(found.body.items.map((r: { id: string }) => r.id)).toEqual(['d2']);

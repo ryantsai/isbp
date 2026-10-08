@@ -127,7 +127,7 @@ export class FulfilmentService {
     if (!sub) return null;
     if (status === 'approved') {
       const early = await this.existing(submissionId);
-      if (early?.status === 'pending_approval')
+      if (early?.status === 'pending_approval' && !early.signOffInstanceId)
         // Opened on submit while the approval ran: the work can start now.
         return this.ctx.transaction((tx) =>
           this.tickets.applyStatus(tx, early, 'new', {

@@ -1,5 +1,6 @@
 import type { AiToolHandler, AuthContext } from '@isbp/sdk/server';
 import { changeSetHref, changeSetReference } from '../contracts';
+import { appliedLinks, linkText } from '../lib/links';
 import { toolInputs } from '../tool-inputs';
 import { ChangeSetService } from './change-sets';
 import type { ChangeSetItemRow, ChangeSetRow } from './schema';
@@ -11,6 +12,11 @@ import type { ChangeSetItemRow, ChangeSetRow } from './schema';
 
 /** A change set as tools return it: status, link and every item's latest dry run. */
 export function changeSetResult(row: ChangeSetRow, items: ChangeSetItemRow[]) {
+  // Once applied: where people use what it made (a form's own page), for the agent to pass on.
+  const links =
+    row.status === 'applied'
+      ? appliedLinks(items).map((l) => ({ object: l.object, label: linkText(l.label, 'en'), href: l.href }))
+      : [];
   return {
     changeSet: {
       id: row.id,
@@ -37,12 +43,16 @@ export function changeSetResult(row: ChangeSetRow, items: ChangeSetItemRow[]) {
           }
         : null,
     })),
+    ...(links.length ? { links } : {}),
     note:
       row.status === 'draft'
         ? 'This is a draft: nothing is live until it is applied (assistant.apply_change_set, which the person confirms) ' +
           'or approved in a review (assistant.request_review). Items with check.ok=false must be fixed; ' +
           'needsApprover=true items need someone who holds the permission.'
-        : `The change set is ${row.status}.`,
+        : links.length
+          ? `The change set is ${row.status}. Give the person the links of what it made (paths in the platform, ` +
+            'e.g. a form’s own page for requesters), besides changeSet.href.'
+          : `The change set is ${row.status}.`,
   };
 }
 

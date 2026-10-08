@@ -3,6 +3,20 @@
     "name": "CMDB",
     "description": "組態項目、彼此的關聯，以及中斷時會影響哪些服務"
   },
+  "processActions": {
+    "updateCi": {
+      "name": "更新組態項目",
+      "description": "設定申請中選取的 CI 的狀態、環境、重要性、支援群組或自訂欄位。",
+      "ciField": "CI 來自",
+      "ciFieldHelp": "此表單的組態項目欄位。",
+      "status": "狀態",
+      "environment": "環境",
+      "criticality": "重要性",
+      "supportGroup": "支援群組",
+      "updated": "已更新組態項目",
+      "none": "申請未選取任何組態項目"
+    }
+  },
   "nav": { "cis": "組態項目" },
   "entities": { "ci": "組態項目" },
   "systemRoles": {
@@ -254,5 +268,16 @@
     "layers": "圖層",
     "building": "建築物",
     "box": "方塊"
+  },
+  "recordFacts": {
+    "class": "類別",
+    "environment": "環境",
+    "criticality": "重要性",
+    "status": "狀態",
+    "ownerId": "負責人",
+    "ownerGroup": "支援群組",
+    "departmentCode": "部門代碼",
+    "businessServices": "業務服務（CI 編號）",
+    "tags": "標籤"
   }
 }

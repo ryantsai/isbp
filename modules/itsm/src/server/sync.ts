@@ -200,6 +200,8 @@ async function moveTo(
       { status: step, ...(resolving ? { resolutionCode: code, resolutionNotes: notes } : {}) },
       auth,
     );
+    // A resolution that waits for its sign-off (`itsm.resolution`) goes no further: the approver decides in ISBP.
+    if (current.signOffInstanceId) break;
     if (resolving) resolved = true;
   }
   return { row: current, resolved };

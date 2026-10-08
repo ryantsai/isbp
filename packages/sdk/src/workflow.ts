@@ -1,11 +1,19 @@
 import { z } from 'zod';
 import {
   type Condition,
+  conditionFacts,
   conditionSchema,
   evaluateCondition,
   type LocalizedText,
   localizedTextSchema,
 } from './conditions';
+import {
+  type FieldDef,
+  fieldDefSchema,
+  FIELD_KEY_RE,
+  type FieldValidationResult,
+  validateFields,
+} from './fields';
 
 /*
  * Workflows are a structured tree of steps (sequence → approval | parallel | condition | notify), so
@@ -15,6 +23,10 @@ import {
  */
 
 /* ───────────────────────────── approvers ───────────────────────────── */
+
+/** What an approver fact holds: user ids (default) or group keys. */
+export const FACT_APPROVER_KINDS = ['user', 'group'] as const;
+export type FactApproverKind = (typeof FACT_APPROVER_KINDS)[number];
 
 export const APPROVER_TYPES = [
   'user',
@@ -40,8 +52,13 @@ export type ApproverRule =
   | { type: 'manager'; level?: number; fallback?: ApproverRule }
   /** Manager of the subject person's department. */
   | { type: 'department-head'; fallback?: ApproverRule }
-  /** A user id taken from the facts, e.g. `role.ownerId` or a form's "approver" field. */
-  | { type: 'fact'; fact: string; fallback?: ApproverRule }
+  /**
+   * People named by a fact: a user id (or a list of them), e.g. `role.ownerId` or a form's "approver" field. With
+   * `kind: 'group'` the fact holds a group key (or a list) whose members approve, e.g. `records.ci.ownerGroup`.
+   * `each`: one approval per value (with the step's mode `all`, every group or person in the list must approve —
+   * e.g. the owner group of each picked CI); without it, any of them answers for all.
+   */
+  | { type: 'fact'; fact: string; kind?: FactApproverKind; each?: boolean; fallback?: ApproverRule }
   /** Only for notify steps. */
   | { type: 'requester' };
 
@@ -80,7 +97,22 @@ export interface ApprovalStep extends BaseStep {
   sla?: SlaPolicy;
   /** Shown to approvers. */
   instructions?: LocalizedText;
+  /**
+   * Fields the approver fills in with the decision (the "filled in by IT" part of a paper form: evaluation result,
+   * handling notes, completion date). Validated like form answers, stored with the decision, shown on the request,
+   * and facts `steps.<stepId>.<key>` for later steps' conditions and approver rules and for process actions.
+   */
+  fields?: FieldDef[];
+  /** When the required `fields` must be filled in: to approve only (default), or to reject too. */
+  fieldsRequiredOn?: StepFieldsRequiredOn;
 }
+
+/** At most this many fields per approval step. */
+export const MAX_STEP_FIELDS = 20;
+export const STEP_FIELDS_REQUIRED_ON = ['approve', 'both'] as const;
+export type StepFieldsRequiredOn = (typeof STEP_FIELDS_REQUIRED_ON)[number];
+/** Root of the facts that hold approvers' step field values: `steps.<stepId>.<key>`. */
+export const STEP_FACTS_ROOT = 'steps';
 
 export interface Branch {
   id: string;
@@ -143,7 +175,13 @@ export const approverRuleSchema: z.ZodType<ApproverRule, ApproverRule> = z.lazy(
       fallback: approverRuleSchema.optional(),
     }),
     z.object({ type: z.literal('department-head'), fallback: approverRuleSchema.optional() }),
-    z.object({ type: z.literal('fact'), fact: factPath, fallback: approverRuleSchema.optional() }),
+    z.object({
+      type: z.literal('fact'),
+      fact: factPath,
+      kind: z.enum(FACT_APPROVER_KINDS).optional(),
+      each: z.boolean().optional(),
+      fallback: approverRuleSchema.optional(),
+    }),
     z.object({ type: z.literal('requester') }),
   ]),
 );
@@ -164,6 +202,18 @@ const slaSchema = z.object({
 
 const base = { id: stepId, name: localizedTextSchema, when: conditionSchema.optional() };
 
+/** An approval step's `fields`: the shared field model, at most {@link MAX_STEP_FIELDS}, with unique keys. */
+export const stepFieldsSchema: z.ZodType<FieldDef[], FieldDef[]> = z
+  .array(fieldDefSchema)
+  .max(MAX_STEP_FIELDS)
+  .superRefine((fields, ctx) => {
+    const keys = new Set<string>();
+    fields.forEach((f, i) => {
+      if (keys.has(f.key)) ctx.addIssue({ code: 'custom', path: [i, 'key'], message: 'Duplicate field key' });
+      keys.add(f.key);
+    });
+  });
+
 export const workflowStepSchema: z.ZodType<WorkflowStep, WorkflowStep> = z.lazy(() => {
   const branch = z.object({
     id: stepId,
@@ -182,6 +232,8 @@ export const workflowStepSchema: z.ZodType<WorkflowStep, WorkflowStep> = z.lazy(
       ifNoApprover: z.enum(['reject', 'skip']).optional(),
       sla: slaSchema.optional(),
       instructions: localizedTextSchema.optional(),
+      fields: stepFieldsSchema.optional(),
+      fieldsRequiredOn: z.enum(STEP_FIELDS_REQUIRED_ON).optional(),
     }),
     z.object({ ...base, type: z.literal('parallel'), branches: z.array(branch).max(10) }),
     z.object({
@@ -227,6 +279,59 @@ export function findStep(graph: WorkflowGraph, id: string): WorkflowStep | undef
   return walkSteps(graph.steps).find((s) => s.step.id === id)?.step;
 }
 
+/**
+ * Approval steps that may have been decided when step `stepId` starts: the steps before it in its own sequence and in
+ * every enclosing one, with everything nested in them — never the ones after it or in parallel branches beside it.
+ * Their field values (`steps.<id>.<key>`) are what the step's conditions and approver rules can read.
+ */
+export function stepsBefore(graph: WorkflowGraph, stepId: string): ApprovalStep[] {
+  const visit = (seq: readonly WorkflowStep[], before: readonly WorkflowStep[]): WorkflowStep[] | null => {
+    for (const [i, step] of seq.entries()) {
+      const earlier = [...before, ...seq.slice(0, i)];
+      if (step.id === stepId) return earlier;
+      for (const b of childBranches(step)) {
+        const found = visit(b.steps, earlier);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  return walkSteps(visit(graph.steps, []) ?? [])
+    .map((s) => s.step)
+    .filter((s): s is ApprovalStep => s.type === 'approval');
+}
+
+/** `steps.<stepId>.<key>` → `{ stepId, key }`; null for any other fact path. */
+export function parseStepFact(path: string): { stepId: string; key: string } | null {
+  const [root, stepId, key, ...rest] = path.split('.');
+  return root === STEP_FACTS_ROOT && stepId && key && !rest.length ? { stepId, key } : null;
+}
+
+/**
+ * The fields an approver fills in for this decision. Required fields count only when the step asks for them on this
+ * decision (`fieldsRequiredOn`: approving only by default, or rejecting too); otherwise they are optional.
+ */
+export function stepDecisionFields(
+  step: Pick<ApprovalStep, 'fields' | 'fieldsRequiredOn'>,
+  decision: 'approve' | 'reject',
+): FieldDef[] {
+  const fields = step.fields ?? [];
+  if (decision === 'approve' || step.fieldsRequiredOn === 'both') return fields;
+  return fields.map((f) => (f.required ? { ...f, required: false } : f));
+}
+
+/**
+ * Validates the values an approver gives with a decision — the same `validateFields` as form answers, in the browser
+ * and the API (hidden conditional fields are dropped). People and records are checked further by the API.
+ */
+export function validateStepFields(
+  step: Pick<ApprovalStep, 'fields' | 'fieldsRequiredOn'>,
+  decision: 'approve' | 'reject',
+  input: Record<string, unknown> | null | undefined,
+): FieldValidationResult {
+  return validateFields(stepDecisionFields(step, decision), input ?? {});
+}
+
 /** Short random id for new steps and branches. */
 export function newStepId(prefix = 's'): string {
   const rand =
@@ -249,7 +354,11 @@ export type WorkflowIssueCode =
   | 'noRecipients'
   | 'duplicateId'
   | 'tooDeep'
-  | 'tooManySteps';
+  | 'tooManySteps'
+  /** A condition or approver rule reads `steps.<id>.<key>` of a step that isn't before it, or a field it lacks. */
+  | 'stepFact'
+  /** A step field shows depending on an unknown field or on itself, or has an invalid default. */
+  | 'stepFields';
 
 export interface WorkflowIssue {
   stepId: string | null;
@@ -287,6 +396,8 @@ export function validateWorkflowGraph(graph: WorkflowGraph): WorkflowIssue[] {
           issues.push({ stepId: step.id, code: 'requesterApprover' });
         if (step.sla?.remindHours !== undefined && step.sla.remindHours >= step.sla.dueHours)
           issues.push({ stepId: step.id, code: 'remindAfterDue' });
+        if (step.fields?.length && !stepFieldsValid(step.fields))
+          issues.push({ stepId: step.id, code: 'stepFields' });
         break;
       }
       case 'parallel':
@@ -299,8 +410,50 @@ export function validateWorkflowGraph(graph: WorkflowGraph): WorkflowIssue[] {
         if (!step.recipients.length) issues.push({ stepId: step.id, code: 'noRecipients' });
         break;
     }
+    const stepFacts = factsReadBy(step)
+      .map(parseStepFact)
+      .filter((x) => x !== null);
+    if (stepFacts.length) {
+      const earlier = new Map(stepsBefore(graph, step.id).map((s) => [s.id, s]));
+      if (stepFacts.some((f) => !earlier.get(f.stepId)?.fields?.some((x) => x.key === f.key)))
+        issues.push({ stepId: step.id, code: 'stepFact' });
+    }
   }
   return issues;
+}
+
+/** Fact paths a step reads when it starts: its `when`, its branches' conditions and its "from a fact" rules. */
+export function factsReadBy(step: WorkflowStep): string[] {
+  const out = [...conditionFacts(step.when)];
+  const rule = (r: ApproverRule) => {
+    if (r.type === 'fact') out.push(r.fact);
+    if ('fallback' in r && r.fallback) rule(r.fallback);
+  };
+  if (step.type === 'condition') step.branches.forEach((b) => out.push(...conditionFacts(b.when)));
+  if (step.type === 'approval') [...step.approvers, ...(step.sla?.escalateTo ?? [])].forEach(rule);
+  if (step.type === 'notify') step.recipients.forEach(rule);
+  return out;
+}
+
+/** Step fields as the form builder would save them: conditions on sibling fields only, valid defaults. */
+function stepFieldsValid(fields: readonly FieldDef[]): boolean {
+  const keys = new Set(fields.map((f) => f.key));
+  return fields.every((f) => {
+    const reads = conditionFacts(f.visibleWhen).map((k) => k.split('.')[0] ?? '');
+    if (reads.some((k) => k === f.key || !keys.has(k))) return false;
+    const dv = f.defaultValue;
+    if (
+      f.type === 'user' ||
+      f.type === 'record' ||
+      dv === undefined ||
+      dv === null ||
+      dv === '' ||
+      (Array.isArray(dv) && !dv.length) ||
+      !FIELD_KEY_RE.test(f.key)
+    )
+      return true;
+    return validateFields([{ ...f, required: false, visibleWhen: undefined }], { [f.key]: dv }).ok;
+  });
 }
 
 /* ───────────────────────────── interpreter ───────────────────────────── */
@@ -470,9 +623,22 @@ export interface FactDef {
   type: FactType;
   options?: string[];
   description?: string;
+  /** i18n key of the fact's name, from `.meta({ label })` on the Zod schema (e.g. `cmdb.recordFacts.criticality`). */
+  label?: string;
+  /** i18n key prefix of its values (`<valueLabels>.<value>`), from `.meta({ valueLabels })` (e.g. `cmdb.criticality`). */
+  valueLabels?: string;
+  /** What the fact names, from `.meta({ ref })`: people (user ids) or groups (group keys) — for approver rules. */
+  ref?: FactApproverKind;
 }
 
-interface JsonSchemaNode {
+/** Builder hints a facts schema may carry with `.meta({ label, valueLabels, ref })` (they reach the JSON Schema). */
+export interface FactMeta {
+  label?: string;
+  valueLabels?: string;
+  ref?: FactApproverKind;
+}
+
+interface JsonSchemaNode extends FactMeta {
   type?: string | string[];
   format?: string;
   enum?: unknown[];
@@ -488,7 +654,17 @@ export function factsFromJsonSchema(schema: unknown, prefix = '', depth = 0): Fa
   if (!node || depth > 4) return [];
   const variants = node.anyOf?.filter((v) => v.type !== 'null');
   if (variants?.length === 1)
-    return factsFromJsonSchema({ ...variants[0], description: node.description }, prefix, depth);
+    return factsFromJsonSchema(
+      {
+        ...variants[0],
+        description: node.description ?? variants[0]!.description,
+        label: node.label ?? variants[0]!.label,
+        valueLabels: node.valueLabels ?? variants[0]!.valueLabels,
+        ref: node.ref ?? variants[0]!.ref,
+      },
+      prefix,
+      depth,
+    );
   const type = Array.isArray(node.type) ? node.type.find((t) => t !== 'null') : node.type;
   if (type === 'object' && node.properties) {
     return Object.entries(node.properties).flatMap(([key, child]) =>
@@ -504,5 +680,10 @@ export function factsFromJsonSchema(schema: unknown, prefix = '', depth = 0): Fa
   else if (node.format === 'date-time' || node.format === 'date') fact.type = 'date';
   else if (node.format === 'uuid') fact.type = 'id';
   if (node.description) fact.description = node.description;
+  if (typeof node.label === 'string') fact.label = node.label;
+  if (typeof node.valueLabels === 'string') fact.valueLabels = node.valueLabels;
+  if (node.ref === 'user' || node.ref === 'group') fact.ref = node.ref;
+  if (!fact.options && type === 'array' && node.items?.enum)
+    fact.options = node.items.enum.filter((v) => v !== null).map(String);
   return [fact];
 }

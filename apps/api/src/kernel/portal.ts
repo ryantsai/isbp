@@ -9,6 +9,7 @@ import type {
   PortalService,
 } from '@isbp/sdk/server';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
+import { publicFormSchema } from './process-actions';
 
 /** `ctx.portal`: module records in "My requests" (`core.portal_items`). */
 export function createPortalService(db: Db, manifest: ModuleManifest): PortalService {
@@ -82,7 +83,8 @@ export function createFormsService(db: Db, manifest: ModuleManifest): FormsServi
           category: row.form.category,
         },
         version: row.sub.version,
-        schema: row.schema,
+        // A form's process actions (with their sealed secrets) stay with the platform.
+        schema: publicFormSchema(row.schema),
         data: row.sub.data,
         submittedBy: row.sub.submittedBy,
         status: row.sub.status,

@@ -3,10 +3,25 @@ import {
   fileInfoSchema,
   recordFilesResponseSchema,
   recordLinksResponseSchema,
+  recordResolveQuerySchema,
+  recordResolveResponseSchema,
+  recordSearchQuerySchema,
   recordTypeSchema,
   resolvedRecordSchema,
 } from '@isbp/contracts';
-import { type AuthContext, ErrorCodes, HttpError, httpErrors, type ModuleRouter } from '@isbp/sdk/server';
+import {
+  type AuthContext,
+  ErrorCodes,
+  evaluateCondition,
+  type FactDef,
+  factsFromJsonSchema,
+  formatRecordRef,
+  HttpError,
+  httpErrors,
+  type ModuleRouter,
+  parseRecordRef,
+  type RecordTypeDef,
+} from '@isbp/sdk/server';
 import { z } from 'zod';
 import { contentDisposition } from '../../kernel/files/policy';
 import { getKernel } from '../kernel-ref';
@@ -29,6 +44,22 @@ async function editable(auth: AuthContext, ref: { type: string; id: string }) {
   return record;
 }
 
+const factCache = new WeakMap<RecordTypeDef, FactDef[]>();
+
+/** A record type's approval facts as pickable paths (`criticality`, `ownerGroup`, …). */
+export function recordTypeFacts(def: RecordTypeDef): FactDef[] {
+  let facts = factCache.get(def);
+  if (!facts) {
+    try {
+      facts = def.facts ? factsFromJsonSchema(z.toJSONSchema(def.facts, { unrepresentable: 'any' })) : [];
+    } catch {
+      facts = [];
+    }
+    factCache.set(def, facts);
+  }
+  return facts;
+}
+
 /**
  * Links between records of any modules and attachments on them. People only (no API clients): every
  * call is checked against the owning module's resolver for the caller.
@@ -41,15 +72,33 @@ export function recordRoutes(app: ModuleRouter) {
     {
       schema: {
         tags,
-        summary: 'Record types you can link to (enabled modules, your permissions)',
+        summary:
+          'Record types you can link to or pick (enabled modules, your permissions), with their approval facts; `all=true` lists every enabled type (workflow builders)',
+        querystring: z.object({ all: z.stringbool().default(false) }),
         response: { 200: z.object({ items: z.array(recordTypeSchema) }) },
       },
     },
-    async (req) => ({
-      items: getKernel()
-        .records.types(req.auth)
-        .map((t) => ({ type: t.type, moduleId: t.moduleId, name: t.def.name, icon: t.def.icon ?? null })),
-    }),
+    async (req) => {
+      const kernel = getKernel();
+      const types = req.query.all
+        ? kernel.registry.enabledModules().flatMap((m) =>
+            (m.manifest.records?.types ?? []).map((def) => ({
+              type: `${m.manifest.id}.${def.type}`,
+              moduleId: m.manifest.id,
+              def,
+            })),
+          )
+        : kernel.records.types(req.auth);
+      return {
+        items: types.map((t) => ({
+          type: t.type,
+          moduleId: t.moduleId,
+          name: t.def.name,
+          icon: t.def.icon ?? null,
+          facts: recordTypeFacts(t.def),
+        })),
+      };
+    },
   );
 
   app.get(
@@ -57,26 +106,44 @@ export function recordRoutes(app: ModuleRouter) {
     {
       schema: {
         tags,
-        summary: 'Find records to link: by reference or title (empty query: recent ones)',
-        querystring: z.object({
-          q: z.string().max(200).default(''),
-          types: z
-            .string()
-            .max(500)
-            .optional()
-            .transform((v) => (v ? v.split(',').filter(Boolean) : undefined)),
-          limit: z.coerce.number().int().min(1).max(25).default(10),
-        }),
+        summary:
+          'Find records to link or pick: by reference or title (empty query: recent ones); `where` keeps those whose facts match',
+        querystring: recordSearchQuerySchema,
         response: { 200: z.object({ items: z.array(resolvedRecordSchema) }) },
       },
     },
-    async (req) => ({
-      items: await getKernel().records.search(req.query.q, {
-        auth: req.auth,
-        types: req.query.types,
-        limit: req.query.limit,
-      }),
-    }),
+    async (req) => {
+      const { q, types, limit, where } = req.query;
+      const records = getKernel().records;
+      if (!where) return { items: await records.search(q, { auth: req.auth, types, limit }) };
+      // Only records the caller may already see are tested, so the filter reveals nothing new.
+      const found = await records.search(q, { auth: req.auth, types, limit: 25 });
+      const facts = await records.facts(found);
+      return {
+        items: found
+          .filter((r) => evaluateCondition(where, facts.get(formatRecordRef(r)) ?? {}))
+          .slice(0, limit),
+      };
+    },
+  );
+
+  app.get(
+    '/records/resolve',
+    {
+      schema: {
+        tags,
+        summary:
+          'Several records as the caller sees them (e.g. the values of a record field); others are counted as hidden',
+        querystring: recordResolveQuerySchema,
+        response: { 200: recordResolveResponseSchema },
+      },
+    },
+    async (req) => {
+      const refs = req.query.refs.map((r) => parseRecordRef(r)!).map(({ type, id }) => ({ type, id }));
+      const found = await getKernel().records.resolve(refs, req.auth);
+      const items = refs.flatMap((r) => found.get(formatRecordRef(r)) ?? []);
+      return { items, hidden: refs.length - items.length };
+    },
   );
 
   app.get(

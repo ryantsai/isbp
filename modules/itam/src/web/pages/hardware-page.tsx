@@ -19,13 +19,13 @@ import { useTranslations } from 'next-intl';
 import { type ReactNode, useMemo, useState } from 'react';
 import { ASSET_CATEGORIES, type AssetListItem, HARDWARE_VIEWS, type HardwareView } from '../../contracts';
 import { AssetFormDialog } from '../asset-form-dialog';
-import { AssetStatusBadge, CategoryIcon, CategoryLabel, WarrantyEnd } from '../badges';
+import { AssetStatusBadge, CategoryIcon, CategoryLabel, WarrantyEnd, WipeBadge } from '../badges';
 import { assetHref, modelLabel, useModels, useVendors } from '../lib';
 
 const ALL = '__all__';
 const VIEWS = ['all', ...(Object.keys(HARDWARE_VIEWS) as HardwareView[])] as const;
 type Tab = (typeof VIEWS)[number];
-const FILTER_KEYS = ['q', 'category', 'warranty', 'location', 'assignee', 'model', 'vendor'] as const;
+const FILTER_KEYS = ['q', 'category', 'warranty', 'wipe', 'location', 'assignee', 'model', 'vendor'] as const;
 
 function FilterSelect({
   value,
@@ -84,6 +84,7 @@ export default function HardwarePage() {
     view: tab === 'all' ? undefined : tab,
     category: str('category'),
     warranty: str('warranty'),
+    wipe: str('wipe'),
     location: str('location'),
     assignee: assigneeId,
     model: str('model'),
@@ -186,7 +187,15 @@ export default function HardwarePage() {
           className: 'hidden max-w-52 lg:table-cell',
           headerClassName: 'hidden lg:table-cell',
         },
-        cell: ({ row }) => <WarrantyEnd date={row.original.warrantyEnd} state={row.original.warrantyState} />,
+        cell: ({ row }) =>
+          row.original.wipeState === 'due' || row.original.wipeState === 'overdue' ? (
+            <div className="grid min-w-0 justify-items-start gap-1">
+              <WarrantyEnd date={row.original.warrantyEnd} state={row.original.warrantyState} />
+              <WipeBadge state={row.original.wipeState} date={row.original.wipeDue} />
+            </div>
+          ) : (
+            <WarrantyEnd date={row.original.warrantyEnd} state={row.original.warrantyState} />
+          ),
       },
     ],
     [t],
@@ -237,6 +246,16 @@ export default function HardwarePage() {
           >
             <SelectItem value="expiring">{t('hardware.filters.warrantyExpiring')}</SelectItem>
             <SelectItem value="expired">{t('hardware.filters.warrantyExpired')}</SelectItem>
+          </FilterSelect>
+          <FilterSelect
+            value={str('wipe')}
+            onChange={(v) => set({ wipe: v })}
+            label={t('hardware.filters.wipe')}
+            allLabel={t('hardware.filters.anyWipe')}
+          >
+            <SelectItem value="pending">{t('hardware.filters.wipePending')}</SelectItem>
+            <SelectItem value="due">{t('hardware.filters.wipeDue')}</SelectItem>
+            <SelectItem value="overdue">{t('hardware.filters.wipeOverdue')}</SelectItem>
           </FilterSelect>
           <FilterSelect
             value={str('location')}

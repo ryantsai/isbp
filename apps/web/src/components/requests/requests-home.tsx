@@ -17,6 +17,7 @@ import { ArrowRightIcon, ChevronRightIcon, InboxIcon, KeyRoundIcon, StampIcon } 
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useApiQuery } from '@/lib/api';
+import { TodoSection } from '../assignments/todo-section';
 import { NavIcon } from '../nav-icon';
 import { fulfilmentOf, RequestStatus, requestHref } from './request-status';
 
@@ -145,6 +146,9 @@ export function RequestsHome() {
 
       {/* Extension point: e.g. Helpdesk AI's virtual agent. */}
       <Slot name="core.requests.assist" props={{}} />
+
+      {/* Forms someone asked the person to fill in by a date (hidden when there are none). */}
+      <TodoSection />
 
       <section aria-labelledby="new-request" className="grid gap-4">
         <h2 id="new-request" className="text-lg font-semibold">

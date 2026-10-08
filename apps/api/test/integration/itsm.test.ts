@@ -9,6 +9,7 @@ import {
   roleAssignments,
   roles,
   users,
+  workflowInstances,
 } from '@isbp/db/schema';
 import { cis } from '@isbp/module-cmdb/schema';
 import { aiTicketSchema } from '@isbp/module-itsm/contracts';
@@ -626,6 +627,97 @@ describe('change authorization (CAB)', () => {
     );
     expect(conflicts.body.items).toHaveLength(1);
     expect(conflicts.body.items[0].sharedCis).toEqual([{ id: ci.mail, name: 'mail-relay-01' }]);
+  });
+
+  it('routes on the ticket custom fields of the change (attributes.<key>)', async () => {
+    const admin = s.admin!;
+    const field = await h.call(admin, 'POST', '/api/v1/custom-fields', {
+      entityType: 'itsm.ticket',
+      field: { key: 'outageMinutes', type: 'number', label: { en: 'Expected outage (minutes)' } },
+    });
+    expect(field.status).toBe(201);
+    const previous = (await h.call(admin, 'GET', '/api/v1/workflows?triggerKey=itsm.change')).body.items.find(
+      (w: LooseJson) => w.isDefault,
+    );
+    const wf = await h.call(admin, 'POST', '/api/v1/workflows', {
+      name: 'Outage-aware CAB',
+      triggerKey: 'itsm.change',
+    });
+    expect(wf.status).toBe(201);
+    await h.call(admin, 'PATCH', `/api/v1/workflows/${wf.body.id}`, {
+      draft: {
+        steps: [
+          {
+            id: 'outage-board',
+            type: 'approval',
+            name: { en: 'Outage board' },
+            when: { fact: 'attributes.outageMinutes', op: 'gt', value: 30 },
+            approvers: [{ type: 'user', userId: ids.cab }],
+            mode: 'any',
+          },
+          {
+            id: 'manager',
+            type: 'approval',
+            name: { en: 'Change manager' },
+            approvers: [{ type: 'user', userId: ids.cm }],
+            mode: 'any',
+          },
+        ],
+      },
+    });
+    expect((await h.call(admin, 'POST', `/api/v1/workflows/${wf.body.id}/publish`)).status).toBe(200);
+    expect((await h.call(admin, 'POST', `/api/v1/workflows/${wf.body.id}/default`)).body.isDefault).toBe(
+      true,
+    );
+
+    /** Raises a normal change with these custom-field values and submits it for authorization. */
+    const submit = async (title: string, attributes: Record<string, unknown>) => {
+      const created = await raise('agent', {
+        type: 'change',
+        title,
+        description: '',
+        attributes,
+        change: { changeType: 'normal', risk: 'low', reason: 'Maintenance' },
+      });
+      expect(created.status, JSON.stringify(created.body)).toBe(201);
+      const ref = created.body.reference as string;
+      await h.call(s.agent!, 'POST', `${API}/tickets/${ref}/transition`, { status: 'assessment' });
+      const start = new Date(Date.now() + 10 * 86_400_000);
+      await h.call(s.cm!, 'PATCH', `${API}/tickets/${ref}/change`, {
+        plannedStart: start.toISOString(),
+        plannedEnd: new Date(start.getTime() + 3_600_000).toISOString(),
+      });
+      const submitted = await h.call(s.agent!, 'POST', `${API}/tickets/${ref}/transition`, {
+        status: 'authorization',
+      });
+      expect(submitted.body.status).toBe('authorization');
+      const instanceId = submitted.body.change.approvalInstanceId as string;
+      const [task] = await h.kernel.db
+        .select()
+        .from(approvalTasks)
+        .where(and(eq(approvalTasks.instanceId, instanceId), eq(approvalTasks.status, 'pending')));
+      const [inst] = await h.kernel.db
+        .select({ facts: workflowInstances.facts })
+        .from(workflowInstances)
+        .where(eq(workflowInstances.id, instanceId));
+      return { assignee: task?.assigneeId, facts: inst!.facts as LooseJson };
+    };
+
+    try {
+      const long = await submit('Replace the core switch', { outageMinutes: 90 });
+      expect(long.assignee).toBe(ids.cab);
+      expect(long.facts).toMatchObject({
+        attributes: { outageMinutes: 90 },
+        records: {},
+        change: { type: 'normal' },
+      });
+      const short = await submit('Patch the core switch', { outageMinutes: 5 });
+      expect(short.assignee).toBe(ids.cm);
+      expect(short.facts.attributes).toEqual({ outageMinutes: 5 });
+    } finally {
+      await h.call(admin, 'POST', `/api/v1/workflows/${previous.id}/default`);
+      await h.call(admin, 'POST', `/api/v1/custom-fields/${field.body.id}/archive`);
+    }
   });
 });
 

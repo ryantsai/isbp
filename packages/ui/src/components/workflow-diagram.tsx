@@ -12,8 +12,10 @@ import {
   BellIcon,
   CheckCircle2Icon,
   CircleDashedIcon,
+  CircleMinusIcon,
   ClockIcon,
   FlagIcon,
+  ForwardIcon,
   PlayIcon,
   SkipForwardIcon,
   SplitIcon,
@@ -70,9 +72,11 @@ export function useApproverText(names: DiagramNames = {}) {
           case 'department-head':
             own = t('department-head');
             break;
-          case 'fact':
-            own = t('fact', { fact: names.facts?.find((f) => f.path === rule.fact)?.label ?? rule.fact });
+          case 'fact': {
+            const fact = names.facts?.find((f) => f.path === rule.fact)?.label ?? rule.fact;
+            own = rule.kind === 'group' ? t('factGroup', { fact }) : t('fact', { fact });
             break;
+          }
           case 'requester':
             own = t('requester');
             break;
@@ -244,7 +248,9 @@ function StepCard({
                   'flex items-center gap-1 rounded-full border py-0.5 pr-2 pl-0.5 text-[11px]',
                   p.status === 'approved' && 'border-success/40',
                   p.status === 'rejected' && 'border-destructive/40',
-                  (p.status === 'cancelled' || p.status === 'delegated') && 'opacity-60',
+                  // Dimmed by colour, not opacity (which would take the initials below AA), and named by an icon.
+                  (p.status === 'cancelled' || p.status === 'delegated') &&
+                    'border-dashed text-muted-foreground',
                 )}
               >
                 <UserAvatar name={p.name} src={p.avatarUrl} className="size-4 text-[8px]" />
@@ -254,6 +260,12 @@ function StepCard({
                 )}
                 {p.status === 'rejected' && (
                   <XCircleIcon className="size-3 text-destructive" aria-label={t('status.rejected')} />
+                )}
+                {p.status === 'delegated' && (
+                  <ForwardIcon className="size-3" aria-label={t('status.delegated')} />
+                )}
+                {p.status === 'cancelled' && (
+                  <CircleMinusIcon className="size-3" aria-label={t('status.cancelled')} />
                 )}
               </li>
             ))}

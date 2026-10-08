@@ -24,7 +24,11 @@
     "email": "請輸入有效的電子郵件地址",
     "url": "請輸入以 https:// 開頭的網址",
     "date": "請輸入有效的日期",
-    "user": "請選擇人員"
+    "user": "請選擇人員",
+    "record": "請選擇此欄位接受、且您有權限檢視的紀錄",
+    "minRows": "請至少新增 {min} 列",
+    "maxRows": "最多只能輸入 {max} 列",
+    "rule": "這些答案不符合表單規則"
   },
   "localized": {
     "languages": "語言",
@@ -77,7 +81,26 @@
     "and": "且",
     "or": "或",
     "always": "永遠",
-    "not": "非（{condition}）"
+    "not": "非（{condition}）",
+    "compareWithField": "與其他欄位比較",
+    "otherField": "其他欄位",
+    "offsetDays": "加在日期上的天數（負數表示之前）",
+    "days": "天",
+    "offsetText": "{offset} 天",
+    "today": "今天"
+  },
+  "rows": {
+    "row": "第 {n} 列",
+    "rows": "{field} 的資料列",
+    "add": "新增一列",
+    "empty": "尚無資料列。",
+    "count": "{count} 列，最多 {max} 列",
+    "added": "已新增第 {n} 列",
+    "removed": "已移除第 {n} 列",
+    "moved": "第 {n} 列已移到第 {position} 個位置",
+    "moveUp": "將第 {n} 列上移",
+    "moveDown": "將第 {n} 列下移",
+    "remove": "移除第 {n} 列"
   },
   "workflow": {
     "start": "送出申請",
@@ -91,7 +114,9 @@
       "approved": "已核准",
       "rejected": "已駁回",
       "skipped": "已略過",
-      "waiting": "尚未到達"
+      "waiting": "尚未到達",
+      "delegated": "已轉交",
+      "cancelled": "已結束"
     },
     "types": {
       "approval": "簽核",
@@ -113,7 +138,8 @@
       "department-head": "部門主管",
       "fact": "「{fact}」中的人員",
       "requester": "申請人",
-      "fallback": "{rule}，否則為 {fallback}"
+      "fallback": "{rule}，否則為 {fallback}",
+      "factGroup": "「{fact}」中群組的成員"
     },
     "when": "僅在 {condition} 時",
     "skipped": {
@@ -125,5 +151,21 @@
     "decided": "{name}",
     "branches": "{count} 個分支",
     "steps": "{count} 個步驟"
+  },
+  "record": {
+    "placeholder": "選擇紀錄",
+    "placeholderMany": "新增紀錄",
+    "search": "依編號或標題搜尋…",
+    "loading": "搜尋中…",
+    "noResults": "找不到符合的紀錄",
+    "clear": "清除選擇",
+    "remove": "移除 {name}",
+    "hidden": "{count, plural, other {# 筆您無權檢視的紀錄}}",
+    "picked": "{count, plural, =0 {尚未選擇紀錄} other {已選擇 # 筆紀錄}}",
+    "max": "最多 {max} 筆紀錄",
+    "chosen": "（已選擇）"
+  },
+  "formErrors": {
+    "title": "請檢查表單"
   }
 }

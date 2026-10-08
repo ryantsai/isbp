@@ -17,7 +17,17 @@
       "defaultLabel": "電子郵件地址"
     },
     "url": { "name": "連結", "description": "網址（https://…）", "defaultLabel": "連結" },
-    "user": { "name": "人員", "description": "從目錄中選擇人員", "defaultLabel": "人員" }
+    "user": { "name": "人員", "description": "從目錄中選擇人員", "defaultLabel": "人員" },
+    "record": {
+      "name": "紀錄",
+      "description": "組態項目、應用程式、資產、工單…",
+      "defaultLabel": "紀錄"
+    },
+    "rows": {
+      "name": "表格",
+      "description": "欄位相同的多列資料：規則明細、帳號、項目",
+      "defaultLabel": "項目"
+    }
   },
   "display": {
     "heading": { "name": "標題", "description": "開始新的區段", "defaultText": "新區段" },
@@ -43,7 +53,9 @@
       "validation": "驗證",
       "default": "預設值",
       "logic": "條件邏輯",
-      "content": "內容"
+      "content": "內容",
+      "record": "紀錄",
+      "rows": "表格"
     },
     "label": "標籤",
     "labelPlaceholder": "要請人員回答什麼？",
@@ -95,7 +107,33 @@
     "visibleWhenHint": "隱藏的欄位會略過，也不會儲存。",
     "noOtherFields": "請先新增其他欄位；條件會將此欄位與其他欄位的答案比較。",
     "text": "文字",
-    "dividerHint": "分隔線沒有可編輯的內容，但可以設定顯示條件。"
+    "dividerHint": "分隔線沒有可編輯的內容，但可以設定顯示條件。",
+    "record": {
+      "types": "紀錄類型",
+      "typesHint": "人員可從這些類型中，選擇自己有權限檢視的紀錄。",
+      "noTypes": "目前沒有您可使用的紀錄類型。",
+      "multiple": "允許多選",
+      "multipleHint": "人員最多可選擇 20 筆紀錄。",
+      "where": "只限符合以下條件的紀錄…",
+      "whereHint": "依紀錄本身的資料篩選可選項目，例如只限正式環境的組態項目。伺服器也會檢查。",
+      "chooseTypeFirst": "請先選擇紀錄類型。",
+      "noFacts": "這些紀錄類型沒有可用來篩選的資料。"
+    },
+    "rows": {
+      "min": "最少列數",
+      "max": "最多列數",
+      "maxHint": "最多 {max} 列。",
+      "columns": "欄",
+      "columnsHint": "每一列都有這些欄位。完全空白的列會被忽略；必填表示至少一列。",
+      "addColumn": "新增欄",
+      "needsAttention": "需要處理",
+      "moveUp": "將 {name} 上移",
+      "moveDown": "將 {name} 下移",
+      "remove": "移除 {name}",
+      "added": "已新增 {name}",
+      "removed": "已移除 {name}",
+      "moved": "{name} 已移到第 {position} 個位置（共 {total} 個）"
+    }
   },
   "issues": {
     "labelRequired": "請加上標籤",
@@ -111,7 +149,11 @@
     "defaultInvalid": "預設值不符合此欄位本身的規則",
     "conditionSelf": "欄位不能以自己作為條件",
     "conditionUnknown": "條件參照了已不存在的欄位",
-    "textRequired": "請輸入文字"
+    "textRequired": "請輸入文字",
+    "recordTypesRequired": "請至少選擇一種紀錄類型",
+    "columnsRequired": "請至少新增一欄",
+    "columnInvalid": "「{column}」欄需要處理",
+    "rowsRangeInvalid": "最多列數小於最少列數"
   },
   "dnd": {
     "roleDescription": "可排序項目",

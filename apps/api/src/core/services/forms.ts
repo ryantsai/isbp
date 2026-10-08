@@ -20,27 +20,74 @@ import {
 import {
   type AuthContext,
   ErrorCodes,
+  expandRowFields,
+  type FieldDef,
   formFields,
   type FormSchema,
   HttpError,
   httpErrors,
+  isField,
   localize,
   type ModuleContext,
   validateFields,
+  validateForm,
   type WorkflowCompletion,
 } from '@isbp/sdk/server';
 import { and, asc, count, desc, eq, ilike, inArray, isNull, max, or, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { canonicalJson } from '../../kernel/crypto';
-import { fieldValidationError, verifyUserFields } from '../../kernel/fields';
+import {
+  fieldValidationError,
+  recordFieldFacts,
+  verifyRecordFields,
+  verifyUserFields,
+} from '../../kernel/fields';
+import { maskFormSecrets, publicFormSchema } from '../../kernel/process-actions';
 import { getKernel } from '../kernel-ref';
 import { likePattern, pageOffset } from '../util';
+import { FormAssignmentService } from './form-assignments';
 import { peopleById, ref } from './people';
+import { accessOf } from './request-access';
 import { InstanceViews } from './workflows';
 
 export const FORM_SUBMISSION_TRIGGER = 'core.form-submission';
+/** `source.type` of the reminders a request's actions schedule (`source.id` is the submission). */
+export const REMINDER_SOURCE = 'form-submission';
 type FormRow = typeof forms.$inferSelect;
 type SubmissionRow = typeof formSubmissions.$inferSelect;
+
+/**
+ * Record fields may only offer declared record types; types a field newly offers must be ones the editor may pick
+ * from themselves (types already on the field stay, whoever edits it). Paths are relative to `prefix`.
+ */
+export function assertRecordFieldTypes(
+  fields: readonly FieldDef[],
+  before: readonly FieldDef[],
+  auth: AuthContext | null,
+  path: (index: number) => string,
+) {
+  const records = getKernel().records;
+  const pickable = auth ? new Set(records.types(auth).map((t) => t.type)) : null;
+  const check = (f: FieldDef, was: readonly FieldDef[], at: string) => {
+    if (f.type !== 'record') return;
+    const had = new Set(was.find((b) => b.key === f.key && b.type === 'record')?.record?.types ?? []);
+    for (const type of f.record?.types ?? []) {
+      const known = Boolean(records.entry(type));
+      if (known && (had.has(type) || !pickable || pickable.has(type))) continue;
+      throw new HttpError(400, ErrorCodes.VALIDATION_FAILED, `Record type "${type}" can't be offered here`, {
+        issues: [{ path: at, message: known ? 'Record type not available to you' : 'Unknown record type' }],
+      });
+    }
+  };
+  fields.forEach((f, i) => {
+    if (f.type !== 'rows') return check(f, before, path(i));
+    // A table's record columns, compared with the same table's columns before.
+    const was = before.find((b) => b.key === f.key && b.type === 'rows')?.rows?.fields ?? [];
+    f.rows?.fields.forEach((c, j) =>
+      check(c, was, path(i).replace(/record\.types$/, `rows.fields.${j}.record.types`)),
+    );
+  });
+}
 
 /* ───────────────────────────── custom fields (admin) ───────────────────────────── */
 
@@ -126,6 +173,7 @@ export class CustomFieldAdminService {
 
   async create(input: z.output<typeof createCustomFieldSchema>, auth: AuthContext) {
     this.assertEntity(input.entityType);
+    assertRecordFieldTypes([input.field], [], auth, () => 'field.record.types');
     const [{ last } = { last: null }] = await this.ctx.db
       .select({ last: max(customFields.sortOrder) })
       .from(customFields)
@@ -157,10 +205,11 @@ export class CustomFieldAdminService {
     return (await this.list(input.entityType, true)).find((f) => f.id === row.id)!;
   }
 
-  async update(id: string, input: z.output<typeof updateCustomFieldSchema>) {
+  async update(id: string, input: z.output<typeof updateCustomFieldSchema>, auth?: AuthContext) {
     const before = await this.find(id);
     if (input.field.key !== before.key || input.field.type !== before.field.type)
       throw new HttpError(409, ErrorCodes.INVALID_STATE, 'The key and type of a field cannot change');
+    assertRecordFieldTypes([input.field], [before.field], auth ?? null, () => 'field.record.types');
     await this.ctx.transaction(async (tx) => {
       await tx.update(customFields).set({ field: input.field }).where(eq(customFields.id, id));
       await this.ctx.audit.record(
@@ -348,7 +397,9 @@ export class FormService {
     );
     return {
       ...summary!,
-      draft: f.draft,
+      // Secrets in process actions never leave the server (the builder sees `{ set: true }`).
+      draft: maskFormSecrets(f.draft),
+      published: summary!.published ? maskFormSecrets(summary!.published) : null,
       versions: versions.map((v) => ({
         version: v.version,
         publishedAt: v.publishedAt,
@@ -381,6 +432,16 @@ export class FormService {
     return this.get(row.id);
   }
 
+  /**
+   * The draft to store: its process actions checked against their types (fields, permissions, the handler's own
+   * rules) and their secrets sealed. Like the rest of the draft, `actions` is the whole list (left out: none).
+   */
+  private async withActions(next: FormSchema, current: FormSchema, auth: AuthContext): Promise<FormSchema> {
+    if (!next.actions) return next;
+    const actions = await getKernel().processActions.prepare(next, current.actions, auth, { db: this.db });
+    return { ...next, actions };
+  }
+
   private async assertWorkflow(id: string | null | undefined) {
     if (!id) return;
     const [w] = await this.db.select().from(workflowDefinitions).where(eq(workflowDefinitions.id, id));
@@ -391,12 +452,22 @@ export class FormService {
   async update(id: string, input: z.output<typeof updateFormSchema>, auth: AuthContext) {
     const before = await this.find(id);
     await this.assertWorkflow(input.workflowDefinitionId);
+    if (input.draft) {
+      const elements = input.draft.elements;
+      assertRecordFieldTypes(
+        elements.filter(isField),
+        formFields(before.draft),
+        auth,
+        (i) => `draft.elements.${elements.indexOf(elements.filter(isField)[i]!)}.record.types`,
+      );
+    }
+    const draft = input.draft ? await this.withActions(input.draft, before.draft, auth) : undefined;
     const patch = {
       name: input.name,
       description: input.description,
       icon: input.icon,
       category: input.category,
-      draft: input.draft,
+      draft,
       workflowDefinitionId: input.workflowDefinitionId,
       audience: input.audience as FormAudience | undefined,
       active: input.active,
@@ -414,8 +485,7 @@ export class FormService {
       } as Record<string, unknown>,
       { ...patch, draft: undefined, updatedBy: undefined } as Record<string, unknown>,
     );
-    const draftChanged =
-      input.draft !== undefined && canonicalJson(input.draft) !== canonicalJson(before.draft);
+    const draftChanged = draft !== undefined && canonicalJson(draft) !== canonicalJson(before.draft);
     await this.ctx.transaction(async (tx) => {
       await tx.update(forms).set(patch).where(eq(forms.id, id));
       if (Object.keys(changes).length || draftChanged)
@@ -448,11 +518,21 @@ export class FormService {
       if (!w || w.v === null)
         throw new HttpError(409, ErrorCodes.WORKFLOW_NOT_CONFIGURED, 'Publish the attached workflow first');
     }
+    // Actions going live are checked again: configs against today's data, permissions for what is new since the
+    // published version (someone else may have added it to the draft).
+    const live = await this.publishedSchema(f);
+    const actions = f.draft.actions
+      ? await getKernel().processActions.prepare(maskFormSecrets(f.draft), live?.actions, auth, {
+          sealedFrom: f.draft.actions,
+          db: this.db,
+        })
+      : undefined;
+    const schema: FormSchema = actions ? { ...f.draft, actions } : f.draft;
     const version = (f.publishedVersion ?? 0) + 1;
     await this.ctx.transaction(async (tx) => {
       await tx
         .insert(formVersions)
-        .values({ formId: id, version, schema: f.draft, publishedBy: auth.user?.id ?? null });
+        .values({ formId: id, version, schema, publishedBy: auth.user?.id ?? null });
       await tx
         .update(forms)
         .set({ publishedVersion: version, updatedBy: auth.user?.id ?? null })
@@ -528,7 +608,8 @@ export class FormService {
       }));
   }
 
-  private async available(key: string, auth: AuthContext) {
+  /** `assignedFormId`: the form of an open assignment of the person — it is theirs to fill in, whatever its audience. */
+  private async available(key: string, auth: AuthContext, assignedFormId?: string) {
     const [f] = await this.db.select().from(forms).where(eq(forms.key, key));
     const schema = f ? await this.publishedSchema(f) : null;
     if (
@@ -536,14 +617,15 @@ export class FormService {
       !schema ||
       f.archivedAt ||
       !f.active ||
-      !this.audienceAllows(f.audience, await this.memberGroupKeys(auth.user!.id))
+      (f.id !== assignedFormId && !this.audienceAllows(f.audience, await this.memberGroupKeys(auth.user!.id)))
     )
       throw new HttpError(404, ErrorCodes.FORM_NOT_AVAILABLE, 'This form is not available');
     return { form: f, schema };
   }
 
-  async published(key: string, auth: AuthContext) {
-    const { form, schema } = await this.available(key, auth);
+  async published(key: string, auth: AuthContext, assignmentId?: string) {
+    const assigned = await new FormAssignmentService(this.ctx).openFormIdFor(assignmentId, auth);
+    const { form, schema } = await this.available(key, auth, assigned);
     return {
       id: form.id,
       key: form.key,
@@ -551,20 +633,88 @@ export class FormService {
       description: form.description,
       icon: form.icon,
       version: form.publishedVersion!,
-      schema,
+      schema: publicFormSchema(schema),
       hasApproval: Boolean(form.workflowDefinitionId),
     };
   }
 
-  async submit(key: string, data: Record<string, unknown>, auth: AuthContext) {
-    const { form, schema } = await this.available(key, auth);
+  /** People and records the answers refer to must exist; records must be readable by `auth` and match `where`. */
+  private async referenceErrors(schema: FormSchema, values: Record<string, unknown>, auth: AuthContext) {
     const fields = formFields(schema);
-    const result = validateFields(fields, data);
+    const records = getKernel().records;
+    const [people, picked] = await Promise.all([
+      verifyUserFields(this.db, fields, values),
+      verifyRecordFields(records, fields, values, auth),
+    ]);
+    return { ...people, ...picked };
+  }
+
+  /** Workflow facts of a submission: the form, the answers (`data`) and the picked records' facts (`records`). */
+  private async workflowFacts(form: FormRow, schema: FormSchema, values: Record<string, unknown>) {
+    const records = getKernel().records;
+    return {
+      form: { key: form.key, category: form.category },
+      data: values,
+      records: await recordFieldFacts(formFields(schema), values, (refs) => records.facts(refs)),
+    };
+  }
+
+  /**
+   * "Who will approve this?" for the answers so far (nothing is saved): the steps of the attached workflow with the
+   * people they would ask, using the same facts a submission would. Answers that aren't valid yet are left out, and
+   * so are records the person can't read.
+   */
+  async preview(key: string, data: Record<string, unknown>, auth: AuthContext, assignmentId?: string) {
+    const assigned = await new FormAssignmentService(this.ctx).openFormIdFor(assignmentId, auth);
+    const { form, schema } = await this.available(key, auth, assigned);
+    if (!form.workflowDefinitionId) return { steps: [] };
+    const { values } = validateFields(formFields(schema), data);
+    for (const k of Object.keys(await this.referenceErrors(schema, values, auth))) delete values[k];
+    const result = await getKernel().workflows.preview(FORM_SUBMISSION_TRIGGER, {
+      facts: await this.workflowFacts(form, schema, values),
+      requesterId: auth.user!.id,
+      definitionId: form.workflowDefinitionId,
+    });
+    if (!result) return { steps: [] };
+    const people = await peopleById(
+      this.db,
+      result.steps.flatMap((s) => s.people),
+    );
+    return {
+      steps: result.steps.map((s) => ({
+        id: s.id,
+        name: s.name,
+        type: s.type,
+        outcome: s.outcome,
+        people: s.people.map((id) => ref(people, id)!),
+      })),
+    };
+  }
+
+  /**
+   * `assignmentId`: the person's open assignment this submission completes (in the same transaction; one submission
+   * per assignment). 404 unknown, 403 not theirs, 409 `ASSIGNMENT_CLOSED`, 400 for another form.
+   */
+  async submit(
+    key: string,
+    data: Record<string, unknown>,
+    auth: AuthContext,
+    opts: { assignmentId?: string } = {},
+  ) {
+    const assignments = new FormAssignmentService(this.ctx);
+    const assignment = opts.assignmentId ? await assignments.forSubmission(opts.assignmentId, auth) : null;
+    if (assignment && !(await assignments.isFor(assignment, key)))
+      throw new HttpError(400, ErrorCodes.BAD_REQUEST, 'This assignment is for another form');
+    const { form, schema } = await this.available(key, auth, assignment?.formId);
+    // Fields, then the form's rules (the same `validateForm` the browser runs), then what the answers refer to.
+    const result = validateForm(schema, data);
+    const fieldsOk = Object.values(result.errors).every((e) => e.code === 'rule');
     const errors = {
       ...result.errors,
-      ...(result.ok ? await verifyUserFields(this.db, fields, result.values) : {}),
+      ...(fieldsOk ? await this.referenceErrors(schema, result.values, auth) : {}),
     };
     if (Object.keys(errors).length) throw fieldValidationError(errors, 'data');
+    const facts = form.workflowDefinitionId ? await this.workflowFacts(form, schema, result.values) : null;
     const me = auth.user!;
     const created = await this.ctx.transaction(async (tx) => {
       const [sub] = await tx
@@ -587,7 +737,7 @@ export class FormService {
                 ),
                 href: `/requests/${reference}`,
               },
-              facts: { form: { key: form.key, category: form.category }, data: result.values },
+              facts: facts ?? undefined,
               requesterId: me.id,
               definitionId: form.workflowDefinitionId,
             },
@@ -599,6 +749,13 @@ export class FormService {
           .update(formSubmissions)
           .set({ status: 'pending', workflowInstanceId: started.instanceId })
           .where(eq(formSubmissions.id, sub!.id));
+      // The version's process actions for "sent" run after commit; without an approval, so do the "approved" ones.
+      await getKernel().processActions.queue(
+        tx,
+        sub!,
+        schema,
+        started ? ['submitted'] : ['submitted', 'approved'],
+      );
       const evt = { submissionId: sub!.id, number: sub!.number, formId: form.id };
       await this.ctx.audit.record(
         {
@@ -611,6 +768,7 @@ export class FormService {
         { tx },
       );
       await this.ctx.events.publish('core.form-submission.created', evt, { tx });
+      if (assignment) await assignments.complete(tx, assignment, sub!, form);
       return sub!;
     });
     return this.submission(created.id, auth);
@@ -626,10 +784,21 @@ export class FormService {
     const status = result.outcome;
     const reference = formatRequestNumber(sub.number);
     await this.ctx.transaction(async (tx) => {
-      await tx
+      // Delivered at least once: only the first delivery moves the submission on.
+      const [moved] = await tx
         .update(formSubmissions)
         .set({ status, completedAt: new Date() })
-        .where(eq(formSubmissions.id, sub.id));
+        .where(and(eq(formSubmissions.id, sub.id), eq(formSubmissions.status, 'pending')))
+        .returning({ id: formSubmissions.id });
+      if (!moved) return;
+      if (status !== 'cancelled') {
+        const [v] = await tx
+          .select({ schema: formVersions.schema })
+          .from(formVersions)
+          .where(and(eq(formVersions.formId, sub.formId), eq(formVersions.version, sub.version)));
+        if (v)
+          await getKernel().processActions.queue(tx, sub, v.schema, [status], result.decidedBy?.id ?? null);
+      } else await getKernel().reminders.cancelFor({ type: REMINDER_SOURCE, id: sub.id }, tx);
       await this.ctx.audit.record(
         {
           action: 'core.form-submission.completed',
@@ -658,13 +827,9 @@ export class FormService {
     });
   }
 
+  /** The requester, its approvers, form administrators and workflow readers (`request-access.ts`). */
   private async canView(sub: SubmissionRow, auth: AuthContext) {
-    const me = auth.user?.id;
-    if (me && sub.submittedBy === me) return true;
-    if (auth.can('core.forms.manage') || auth.can('core.workflows.read')) return true;
-    return Boolean(
-      me && sub.workflowInstanceId && (await getKernel().workflows.involves(sub.workflowInstanceId, me)),
-    );
+    return (await accessOf(this.db, sub, auth)).view;
   }
 
   async submission(id: string, auth: AuthContext) {
@@ -676,19 +841,33 @@ export class FormService {
       .from(formVersions)
       .where(and(eq(formVersions.formId, sub.formId), eq(formVersions.version, sub.version)));
     const schema = v?.schema ?? { elements: [] };
-    const userIds = formFields(schema)
+    // People picked in the answers, table cells included.
+    const flat = expandRowFields(formFields(schema), sub.data);
+    const userIds = flat.fields
       .filter((f) => f.type === 'user')
-      .map((f) => sub.data[f.key])
+      .map((f) => flat.values[f.key])
       .filter((x): x is string => typeof x === 'string');
+    // Each decision with what its approver filled in (step fields); people named there get names too.
+    const decisions = await this.views.decisions(sub.workflowInstanceId);
+    userIds.push(...decisions.userIds);
     const people = await peopleById(this.db, [sub.submittedBy, ...userIds]);
     const workflow = await this.views.summaryOf(sub.workflowInstanceId);
+    // Administrators see what the request set off, with errors, and can retry; others see status and results.
+    const admin = auth.can('core.forms.manage');
+    const actions = await getKernel().processActions.runsOf(sub.id, schema, {
+      withErrors: admin,
+      canRetry: admin,
+    });
+    const reminders = await this.remindersOf(sub.id, actions);
     return {
       id: sub.id,
       number: sub.number,
       reference: formatRequestNumber(sub.number),
       form: { id: form!.id, key: form!.key, name: form!.name, icon: form!.icon },
       version: sub.version,
-      schema,
+      schema: admin ? maskFormSecrets(schema) : publicFormSchema(schema),
+      actions,
+      reminders,
       data: sub.data,
       people: Object.fromEntries(userIds.map((id) => [id, people.get(id)?.displayName ?? '?'])),
       status: sub.status,
@@ -696,6 +875,7 @@ export class FormService {
       createdAt: sub.createdAt,
       completedAt: sub.completedAt,
       workflow,
+      decisions: decisions.items,
       canCancel: sub.status === 'pending' && sub.submittedBy === auth.user?.id,
       fulfilment: sub.fulfilment
         ? {
@@ -709,6 +889,54 @@ export class FormService {
           }
         : null,
     };
+  }
+
+  /** Reminders the request's `core.remind` actions scheduled (pending, sent or cancelled), by due date. */
+  private async remindersOf(submissionId: string, runs: readonly { id: string; actionId: string }[]) {
+    const rows = await getKernel().reminders.listFor({ type: REMINDER_SOURCE, id: submissionId });
+    const actionOf = new Map(runs.map((r) => [r.id, r.actionId]));
+    return rows.map((r) => ({
+      id: r.id,
+      actionId: (r.source?.runId && actionOf.get(r.source.runId)) || null,
+      title: typeof r.params.title === 'string' ? r.params.title : '',
+      dueAt: r.dueAt,
+      status: r.status,
+      sentAt: r.sentAt,
+    }));
+  }
+
+  /**
+   * The process actions a form builder offers: every action type of the enabled modules with its configuration
+   * fields for this draft (`allowed` when the caller may add it). `draft` is the builder's unsaved draft; without
+   * it the form's saved draft is used.
+   */
+  async actionCatalog(input: { formId?: string; draft?: FormSchema }, auth: AuthContext) {
+    const draft = input.draft ?? (input.formId ? (await this.find(input.formId)).draft : { elements: [] });
+    const locale = auth.user?.locale ?? 'en';
+    const items = await getKernel().processActions.describe(publicFormSchema(draft), auth, locale);
+    return {
+      items: items.map((i) => ({ ...i, fields: i.fields as (FieldDef & Record<string, unknown>)[] })),
+    };
+  }
+
+  /** An administrator runs a failed (or skipped) action of a request again. */
+  async retryAction(id: string, runId: string, auth: AuthContext) {
+    const [sub] = await this.db.select().from(formSubmissions).where(eq(formSubmissions.id, id));
+    if (!sub) throw httpErrors.notFound('Submission not found');
+    await this.ctx.transaction(async (tx) => {
+      const run = await getKernel().processActions.retry(id, runId, { tx });
+      await this.ctx.audit.record(
+        {
+          action: 'core.process-action.retried',
+          entityType: 'form_submission',
+          entityId: id,
+          entityLabel: formatRequestNumber(sub.number),
+          metadata: { runId, action: run.actionId, type: run.type },
+        },
+        { tx },
+      );
+    });
+    return this.submission(id, auth);
   }
 
   async byNumber(number: number, auth: AuthContext) {
@@ -731,13 +959,15 @@ export class FormService {
         .where(eq(formSubmissions.id, id));
       if (sub.workflowInstanceId)
         await this.ctx.workflows.cancel(sub.workflowInstanceId, reason ?? null, { tx });
+      // Reminders its actions set (on "sent") are of no use for a withdrawn request.
+      const reminders = await getKernel().reminders.cancelFor({ type: REMINDER_SOURCE, id }, tx);
       await this.ctx.audit.record(
         {
           action: 'core.form-submission.cancelled',
           entityType: 'form_submission',
           entityId: id,
           entityLabel: formatRequestNumber(sub.number),
-          metadata: { reason: reason ?? null },
+          metadata: { reason: reason ?? null, ...(reminders ? { remindersCancelled: reminders } : {}) },
         },
         { tx },
       );

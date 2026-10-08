@@ -12,6 +12,48 @@ import {
   policyWarningSchema,
   releaseStatusSchema,
 } from './contracts';
+import { APP_STAGES, CRITICALITIES, DATA_CLASSIFICATIONS, DISPOSITIONS, HOSTINGS } from './model';
+
+const fact = (key: string) => `alm.recordFacts.${key}`;
+
+/**
+ * Approval facts of an application (`alm.application` picked in a record field), for workflows
+ * (`records.<field>.<fact>`) and record-field filters. People are user ids, groups are group keys.
+ */
+export const appFactsSchema = z.object({
+  code: z.string().meta({ label: fact('code') }),
+  stage: z.enum(APP_STAGES).meta({ label: fact('stage'), valueLabels: 'alm.stage' }),
+  criticality: z.enum(CRITICALITIES).meta({ label: fact('criticality'), valueLabels: 'alm.criticality' }),
+  hosting: z.enum(HOSTINGS).meta({ label: fact('hosting'), valueLabels: 'alm.hosting' }),
+  dataClassification: z
+    .enum(DATA_CLASSIFICATIONS)
+    .meta({ label: fact('dataClassification'), valueLabels: 'alm.classification' }),
+  disposition: z
+    .enum(DISPOSITIONS)
+    .nullable()
+    .meta({ label: fact('disposition'), valueLabels: 'alm.disposition' }),
+  ownerId: z
+    .uuid()
+    .nullable()
+    .meta({ label: fact('ownerId'), ref: 'user' }),
+  businessOwnerId: z
+    .uuid()
+    .nullable()
+    .meta({ label: fact('businessOwnerId'), ref: 'user' }),
+  teamGroup: z
+    .string()
+    .nullable()
+    .meta({ label: fact('teamGroup'), ref: 'group' }),
+  supportGroup: z
+    .string()
+    .nullable()
+    .meta({ label: fact('supportGroup'), ref: 'group' }),
+  departmentCode: z
+    .string()
+    .nullable()
+    .meta({ label: fact('departmentCode') }),
+});
+export type AppFacts = z.infer<typeof appFactsSchema>;
 
 const appRef = z.object({ applicationId: z.uuid(), code: z.string(), name: z.string() });
 const releaseRef = appRef.extend({ releaseId: z.uuid(), version: z.string() });
@@ -244,6 +286,7 @@ export const manifest = defineManifest({
         name: 'alm.entities.application',
         icon: 'app-window',
         permission: 'alm.apps.read',
+        facts: appFactsSchema,
       },
       { type: 'release', name: 'alm.entities.release', icon: 'rocket', permission: 'alm.apps.read' },
     ],

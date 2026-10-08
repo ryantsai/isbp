@@ -11,13 +11,23 @@ import {
   EyeIcon,
   FileEditIcon,
   LockIcon,
+  ShieldAlertIcon,
+  ShieldIcon,
   ThumbsUpIcon,
 } from 'lucide-react';
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
+import { useApiQuery } from '@isbp/ui/query';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { Fragment, useMemo } from 'react';
-import type { ArticleCard, ArticleLocale, ArticleStatus, CategoryRef } from '../contracts';
+import { Fragment, useCallback, useMemo } from 'react';
+import type {
+  ArticleCard,
+  ArticleLocale,
+  ArticleStatus,
+  CategoryRef,
+  ClassificationLevel,
+  Classifications,
+} from '../contracts';
 
 /** Short labels for language chips (each language names itself). */
 export const LOCALE_LABEL: Record<ArticleLocale, string> = {
@@ -85,6 +95,50 @@ export function LocaleChip({ locale, className }: { locale: ArticleLocale; class
     >
       {LOCALE_SHORT[locale]}
     </span>
+  );
+}
+
+/* ───────────── classification ───────────── */
+
+const NO_LEVELS: ClassificationLevel[] = [];
+
+/**
+ * The classification labels in use (most restrictive first) and how to show one: built-in keys translated, custom
+ * labels as written; the tone follows the rank (the most restrictive is the strongest).
+ */
+export function useClassifications() {
+  const t = useTranslations('knowledge.classificationLevel');
+  const { data } = useApiQuery<Classifications>('/knowledge/classifications');
+  const levels = data?.items ?? NO_LEVELS;
+  const label = useCallback(
+    (key: string) => (t.has(key as 'confidential') ? t(key as 'confidential') : key),
+    [t],
+  );
+  const tone = useCallback(
+    (key: string): 'destructive' | 'warning' | 'info' | 'muted' => {
+      const level = levels.find((l) => l.key === key);
+      if (!level) return 'muted';
+      if (level.rank === 0) return 'destructive';
+      if (level.rank === 1) return 'warning';
+      return level.rank === levels.length - 1 && levels.length > 2 ? 'muted' : 'info';
+    },
+    [levels],
+  );
+  return { levels, label, tone };
+}
+
+/** The article's classification label: icon + text + tone (never colour alone). */
+export function ClassificationBadge({ value, className }: { value: string; className?: string }) {
+  const t = useTranslations('knowledge.classification');
+  const { label, tone } = useClassifications();
+  const variant = tone(value);
+  const Icon = variant === 'destructive' || variant === 'warning' ? ShieldAlertIcon : ShieldIcon;
+  return (
+    <Badge variant={variant} className={className}>
+      <Icon aria-hidden />
+      <span className="sr-only">{t('label')}: </span>
+      {label(value)}
+    </Badge>
   );
 }
 
@@ -166,6 +220,7 @@ export function ArticleHit({
             <Highlight text={item.title} query={query} />
           </span>
           {item.audience === 'agents' && <InternalBadge className="shrink-0" />}
+          {item.classification && <ClassificationBadge value={item.classification} className="shrink-0" />}
         </span>
         {!compact && (
           <span className="line-clamp-2 text-sm text-muted-foreground" lang={LOCALE_LANG[item.locale]}>

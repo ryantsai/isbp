@@ -34,6 +34,7 @@ import {
 
 import type { z } from 'zod';
 import {
+  type acceptanceSchema,
   type commentSchema,
   type confirmSchema,
   type createLinkSchema,
@@ -44,6 +45,7 @@ import {
   priorityFor,
   type reopenSchema,
   type ResolutionCode,
+  SIGN_OFF_TYPES,
   type TICKET_SORT_KEYS,
   type TicketStatus,
   ticketStatusSchema,
@@ -69,7 +71,7 @@ import {
   refOf,
   RESOLVING_STATUSES,
   SOLVED_STATUSES,
-  statusKey,
+  statusLabelKey,
   statusTone,
   ticketHref,
 } from './rules';
@@ -176,6 +178,8 @@ export interface StatusOptions {
   /** Seed/back-fill: no events, audit or notifications. */
   quiet?: boolean;
   data?: Record<string, unknown>;
+  /** Added to the audit entry's metadata. */
+  metadata?: Record<string, unknown>;
 }
 
 const validation = (field: string, message: string) =>
@@ -436,7 +440,8 @@ export class TicketService {
   async create(
     input: CreateTicketData,
     auth: AuthContext,
-    opts: { channel?: Channel } = {},
+    /** `source`: the request behind a ticket a form's process action raises (unique: a retry finds it). */
+    opts: { channel?: Channel; source?: TicketSource } = {},
   ): Promise<TicketRow> {
     const me = auth.user?.id ?? null;
     const type = input.type;
@@ -502,6 +507,7 @@ export class TicketService {
           assignmentGroupId: groupId,
           assigneeId,
           channel,
+          source: opts.source,
           major: full && type === 'incident' ? Boolean(input.major) : false,
           attributes,
           manualFields: manual,
@@ -700,7 +706,7 @@ export class TicketService {
           reference,
           href: ticketHref(reference),
           state: fulfilmentState(t.status),
-          statusKey: statusKey(t.status),
+          statusKey: statusLabelKey(t),
           tone: statusTone(t.status),
         },
         { tx },
@@ -715,7 +721,7 @@ export class TicketService {
         reference,
         title: t.title,
         state: portalState(t.status),
-        statusKey: statusKey(t.status),
+        statusKey: statusLabelKey(t),
         tone: statusTone(t.status),
         href: ticketHref(reference),
         icon: t.type === 'incident' ? 'life-buoy' : 'package',
@@ -942,7 +948,8 @@ export class TicketService {
   async transition(refOrId: string, input: TransitionData, auth: AuthContext): Promise<TicketRow> {
     const t = await this.workableRow(refOrId, auth);
     const to = input.status;
-    if (!canTransition(t.type, t.status, to))
+    const signingOff = Boolean(t.signOffInstanceId);
+    if (!canTransition(t.type, t.status, to, signingOff))
       throw new HttpError(
         409,
         ErrorCodes.INVALID_TRANSITION,
@@ -950,7 +957,7 @@ export class TicketService {
         {
           from: t.status,
           to,
-          allowed: allowedTransitions(t.type, t.status),
+          allowed: allowedTransitions(t.type, t.status, signingOff),
         },
       );
     if (RESOLVING_STATUSES.includes(to) && (!input.resolutionCode || !input.resolutionNotes))
@@ -964,20 +971,323 @@ export class TicketService {
     const me = auth.user?.id ?? null;
     if (t.type === 'change' && t.status === 'assessment' && to === 'authorization')
       return this.submitChange(t, actor, me, input.note);
+    // Resolving may need a sign-off first (`itsm.resolution`, when a workflow is bound).
+    if (SOLVED_STATUSES.includes(to) && SIGN_OFF_TYPES.includes(t.type))
+      return this.resolveWithSignOff(t, to, input, actor, me);
+    const acceptance =
+      t.type === 'change' && t.status === 'review' && to === 'closed'
+        ? await this.acceptanceToClose(t)
+        : null;
     return this.ctx.transaction(async (tx) => {
-      const after = await this.applyStatus(tx, t, to, {
+      if (signingOff) {
+        // Withdrawn (back to work) or cancelled while waiting for the sign-off: the sign-off ends with it.
+        await this.ctx.workflows.cancel(t.signOffInstanceId!, 'The resolution was withdrawn', { tx });
+        await tx
+          .update(tickets)
+          .set({
+            signOffInstanceId: null,
+            ...(to === 'in_progress' ? { resolutionCode: null, resolutionNotes: null } : {}),
+          })
+          .where(eq(tickets.id, t.id));
+      }
+      const after = await this.applyStatus(tx, signingOff ? { ...t, signOffInstanceId: null } : t, to, {
         actor,
         actorUserId: me,
         note: input.note,
         resolutionCode: input.resolutionCode ?? null,
         resolutionNotes: input.resolutionNotes ?? null,
+        ...(signingOff ? { data: { signOff: 'withdrawn' } } : {}),
+        ...(acceptance ? { data: { accepted: acceptance.accepted }, metadata: acceptance } : {}),
       });
       if (t.type === 'change' && t.status === 'authorization' && to === 'cancelled') {
         const [c] = await tx.select().from(changes).where(eq(changes.ticketId, t.id));
         if (c?.approvalInstanceId)
           await this.ctx.workflows.cancel(c.approvalInstanceId, 'The change was cancelled', { tx });
       }
+      // Post-implementation review: the requester is asked to accept the change.
+      if (t.type === 'change' && to === 'review')
+        await this.notify(
+          tx,
+          'itsm.change.acceptance_requested',
+          [after.requesterId, after.requestedForId],
+          after,
+          {},
+          me,
+        );
       return after;
+    });
+  }
+
+  /* ───────────────────────────── resolution sign-off ───────────────────────────── */
+
+  /** Facts the `itsm.resolution` workflow decides on (manifest `resolutionFacts`), with the custom fields. */
+  private async resolutionFacts(t: TicketRow, resolutionCode: ResolutionCode) {
+    const [category, group, ciRows] = await Promise.all([
+      t.categoryId ? categoryMap(this.ctx.db).then((m) => m.get(t.categoryId!) ?? null) : null,
+      t.assignmentGroupId
+        ? this.ctx.db.select({ key: groups.key }).from(groups).where(eq(groups.id, t.assignmentGroupId))
+        : Promise.resolve([]),
+      this.ctx.db
+        .select({ criticality: cis.criticality })
+        .from(ticketCis)
+        .innerJoin(cis, eq(cis.id, ticketCis.ciId))
+        .where(eq(ticketCis.ticketId, t.id)),
+    ]);
+    const order = ['critical', 'high', 'medium', 'low'] as const;
+    const highest = order.find((c) => ciRows.some((r) => r.criticality === c)) ?? null;
+    return {
+      ...(await this.ctx.fields.facts('itsm.ticket', t.attributes)),
+      ticket: {
+        type: t.type,
+        category: category?.key ?? null,
+        priority: t.priority,
+        impact: t.impact,
+        urgency: t.urgency,
+        major: t.major,
+        groupKey: group[0]?.key ?? null,
+        resolutionCode,
+        ciCount: ciRows.length,
+        ciCriticality: highest,
+        criticalCis: highest === 'critical',
+      },
+    };
+  }
+
+  /**
+   * Resolving (or fulfilling) a ticket: when a workflow is bound to `itsm.resolution` and asks someone, the ticket
+   * waits for the sign-off (`pending_approval`, "Waiting for sign-off") with its resolution kept; otherwise it is
+   * resolved at once. The person resolving is the workflow's requester (so "their manager" signs off).
+   */
+  private async resolveWithSignOff(
+    t: TicketRow,
+    to: TicketStatus,
+    input: TransitionData,
+    actor: Actor,
+    me: string | null,
+  ): Promise<TicketRow> {
+    const code = input.resolutionCode!;
+    const facts = await this.resolutionFacts(t, code);
+    const reference = refOf(t);
+    return this.ctx.transaction(async (tx) => {
+      const started = await this.ctx.workflows.start(
+        'itsm.resolution',
+        {
+          subject: {
+            type: 'ticket',
+            id: t.id,
+            label: `${reference} · ${t.title}`,
+            href: ticketHref(reference),
+          },
+          facts,
+          requesterId: me,
+        },
+        { tx },
+      );
+      const options: StatusOptions = {
+        actor,
+        actorUserId: me,
+        note: input.note,
+        resolutionCode: code,
+        resolutionNotes: input.resolutionNotes ?? null,
+      };
+      if (!started || started.status === 'approved') return this.applyStatus(tx, t, to, options);
+      if (started.status === 'rejected') {
+        // Nobody could sign off and the workflow declines: the ticket stays as it is.
+        await this.activity(tx, t.id, SYSTEM_ACTOR, {
+          kind: 'approval',
+          public: false,
+          data: { event: 'rejected', signOff: true, instanceId: started.instanceId },
+        });
+        return t;
+      }
+      const [held] = await tx
+        .update(tickets)
+        .set({
+          signOffInstanceId: started.instanceId,
+          resolutionCode: code,
+          resolutionNotes: input.resolutionNotes ?? null,
+        })
+        .where(eq(tickets.id, t.id))
+        .returning();
+      await this.activity(tx, t.id, SYSTEM_ACTOR, {
+        kind: 'approval',
+        public: false,
+        data: { event: 'started', signOff: true, instanceId: started.instanceId, to },
+      });
+      const row = await this.applyStatus(tx, held!, 'pending_approval', {
+        actor,
+        actorUserId: me,
+        note: input.note,
+        data: { signOff: 'requested', to, resolutionCode: code },
+      });
+      await this.ctx.events.publish(
+        'itsm.ticket.sign_off_requested',
+        { ...this.ref(row), instanceId: started.instanceId, to },
+        { tx },
+      );
+      return row;
+    });
+  }
+
+  /**
+   * The sign-off finished (outbox, at-least-once): approved → resolved / fulfilled with the kept resolution;
+   * rejected → back to in progress with the reason (the resolver and the assignee are told); withdrawn → nothing.
+   */
+  async onResolutionCompleted(result: WorkflowCompletion) {
+    await this.ctx.transaction(async (tx) => {
+      const [t] = await tx.select().from(tickets).where(eq(tickets.id, result.subjectId)).for('update');
+      if (!t || t.signOffInstanceId !== result.instanceId || t.status !== 'pending_approval') return;
+      const resolver: Actor = result.requesterId
+        ? { authorId: result.requesterId, authorName: null, authorAi: false }
+        : SYSTEM_ACTOR;
+      await this.activity(tx, t.id, SYSTEM_ACTOR, {
+        kind: 'approval',
+        public: false,
+        body: result.comment,
+        data: {
+          event: result.outcome,
+          signOff: true,
+          instanceId: result.instanceId,
+          ...(result.decidedBy ? { decidedBy: result.decidedBy } : {}),
+        },
+      });
+      if (result.outcome === 'approved') {
+        const [row] = await tx
+          .update(tickets)
+          .set({ signOffInstanceId: null })
+          .where(eq(tickets.id, t.id))
+          .returning();
+        await this.applyStatus(tx, row!, t.type === 'service_request' ? 'fulfilled' : 'resolved', {
+          actor: resolver,
+          actorUserId: result.requesterId,
+          resolutionCode: t.resolutionCode,
+          resolutionNotes: t.resolutionNotes,
+          data: { signOff: 'approved' },
+          metadata: { signOff: { instanceId: result.instanceId, decidedBy: result.decidedBy ?? null } },
+        });
+        return;
+      }
+      const [row] = await tx
+        .update(tickets)
+        .set({ signOffInstanceId: null, resolutionCode: null, resolutionNotes: null })
+        .where(eq(tickets.id, t.id))
+        .returning();
+      const after = await this.applyStatus(tx, row!, 'in_progress', {
+        actor: SYSTEM_ACTOR,
+        data: { signOff: result.outcome },
+        metadata: { signOff: { instanceId: result.instanceId, outcome: result.outcome } },
+      });
+      if (result.outcome === 'rejected')
+        await this.notify(
+          tx,
+          'itsm.ticket.sign_off_rejected',
+          [result.requesterId, after.assigneeId],
+          after,
+          { reason: result.comment ?? '', name: result.decidedBy?.name ?? '' },
+          null,
+        );
+    });
+  }
+
+  /* ───────────────────────────── change acceptance ───────────────────────────── */
+
+  /**
+   * Closing a change in review records whether its requester accepted it; with the setting "require the requester's
+   * acceptance" a change that has a requester closes only once they accepted it.
+   */
+  private async acceptanceToClose(t: TicketRow) {
+    const [c] = await this.ctx.db.select().from(changes).where(eq(changes.ticketId, t.id));
+    const accepted = c?.acceptance === 'accepted' ? true : c?.acceptance === 'problem' ? false : null;
+    const hasRequester = Boolean(t.requesterId || t.requestedForId);
+    if (
+      hasRequester &&
+      accepted !== true &&
+      (await this.ctx.settings.get<boolean>('changes.requireAcceptance'))
+    )
+      throw new HttpError(409, ErrorCodes.INVALID_STATE, 'The requester has not accepted the change yet', {
+        reason: 'acceptance_required',
+        acceptance: c?.acceptance ?? null,
+      });
+    return { accepted, acceptanceNote: c?.acceptanceNote ?? null };
+  }
+
+  /**
+   * The change's requester, in the post-implementation review: "Accept the change", or "Report a problem" with the
+   * reason. Recorded on the change (the latest verdict counts) and in the conversation; the implementer is told.
+   */
+  async accept(refOrId: string, input: z.output<typeof acceptanceSchema>, auth: AuthContext) {
+    const t = await this.visibleRow(refOrId, auth);
+    if (t.type !== 'change')
+      throw new HttpError(409, ErrorCodes.INVALID_STATE, 'This ticket is not a change');
+    if (t.status !== 'review')
+      throw new HttpError(
+        409,
+        ErrorCodes.INVALID_STATE,
+        'A change is accepted in its post-implementation review',
+        {
+          status: t.status,
+        },
+      );
+    if (!viewerOf(t, auth).canAccept) throw httpErrors.forbidden('Only the change’s requester can accept it');
+    const me = auth.user!.id;
+    const actor = actorOf(auth);
+    const verdict = input.accepted ? 'accepted' : 'problem';
+    const note = input.note?.trim() || null;
+    return this.ctx.transaction(async (tx) => {
+      const [before] = await tx.select().from(changes).where(eq(changes.ticketId, t.id)).for('update');
+      await tx
+        .insert(changes)
+        .values({
+          ticketId: t.id,
+          acceptance: verdict,
+          acceptanceNote: note,
+          acceptanceAt: new Date(),
+          acceptanceBy: me,
+        })
+        .onConflictDoUpdate({
+          target: changes.ticketId,
+          set: { acceptance: verdict, acceptanceNote: note, acceptanceAt: new Date(), acceptanceBy: me },
+        });
+      await this.activity(tx, t.id, actor, {
+        kind: 'comment',
+        public: true,
+        body: note,
+        data: { acceptance: verdict },
+      });
+      const [row] = await tx
+        .update(tickets)
+        .set({ updatedAt: new Date() })
+        .where(eq(tickets.id, t.id))
+        .returning();
+      await this.ctx.audit.record(
+        {
+          action: input.accepted ? 'itsm.change.accepted' : 'itsm.change.problem_reported',
+          entityType: 'itsm.ticket',
+          entityId: t.id,
+          entityLabel: `${refOf(t)} ${t.title}`,
+          changes: { acceptance: [before?.acceptance ?? null, verdict] },
+          metadata: { note },
+        },
+        { tx },
+      );
+      await this.ctx.events.publish(
+        'itsm.change.acceptance_recorded',
+        { ...this.ref(t), accepted: input.accepted },
+        { tx },
+      );
+      const name = (await peopleByIds(tx, [me])).get(me)?.displayName ?? '';
+      const recipients = row!.assigneeId
+        ? [row!.assigneeId, row!.createdBy]
+        : [...(await this.groupMemberIds(row!.assignmentGroupId)), row!.createdBy];
+      await this.notify(
+        tx,
+        input.accepted ? 'itsm.change.accepted' : 'itsm.change.problem_reported',
+        recipients,
+        row!,
+        { name, reason: note ? excerpt(note) : '' },
+        me,
+      );
+      return row!;
     });
   }
 
@@ -1050,7 +1360,10 @@ export class TicketService {
         entityId: row.id,
         entityLabel: `${ref.reference} ${row.title}`,
         changes: { status: [from, to] },
-        metadata: resolving ? { resolutionCode: o.resolutionCode } : undefined,
+        metadata:
+          resolving || o.metadata
+            ? { ...(resolving ? { resolutionCode: o.resolutionCode } : {}), ...o.metadata }
+            : undefined,
       },
       { tx },
     );
@@ -1512,7 +1825,7 @@ export class TicketService {
     });
   }
 
-  /** Facts the CAB workflow decides on (manifest `changeFacts`). */
+  /** Facts the CAB workflow decides on (manifest `changeFacts`), with the ticket's custom fields. */
   private async changeFacts(t: TicketRow, c: typeof changes.$inferSelect) {
     const ciRows = await this.ctx.db
       .select({ criticality: cis.criticality })
@@ -1520,6 +1833,7 @@ export class TicketService {
       .innerJoin(cis, eq(cis.id, ticketCis.ciId))
       .where(eq(ticketCis.ticketId, t.id));
     return {
+      ...(await this.ctx.fields.facts('itsm.ticket', t.attributes)),
       change: {
         type: c.changeType,
         risk: c.risk,

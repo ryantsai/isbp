@@ -534,5 +534,18 @@
     "draft": "草稿",
     "mergeInto": "{source} 合併至 {target}",
     "synced": "同步於"
+  },
+  "recordFacts": {
+    "code": "應用程式代碼",
+    "stage": "階段",
+    "criticality": "重要性",
+    "hosting": "架設方式",
+    "dataClassification": "資料分級",
+    "disposition": "處置策略（TIME）",
+    "ownerId": "技術負責人",
+    "businessOwnerId": "業務負責人",
+    "teamGroup": "交付團隊",
+    "supportGroup": "支援群組",
+    "departmentCode": "部門代碼"
   }
 }

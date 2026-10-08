@@ -73,12 +73,12 @@
     "emailHost": "SMTP サーバー",
     "emailPort": "SMTP ポート",
     "emailSecure": "最初から TLS を使用",
-    "emailSecureHelp": "ポート 465 ではオン。オフの場合は STARTTLS（ポート 587）を使用します。",
+    "emailSecureHelp": "ポート 465 ではオン。オフの場合は STARTTLS (ポート 587) を使用します。",
     "emailUsername": "SMTP ユーザー名",
     "emailPassword": "SMTP パスワード",
     "emailFrom": "差出人",
-    "emailFromHelp": "メールの差出人名とアドレス（例: IS Big Platform、noreply@example.com）",
-    "notificationRetention": "通知の保存期間（日）",
+    "emailFromHelp": "メールの差出人名とアドレス (例: IS Big Platform、noreply@example.com)",
+    "notificationRetention": "通知の保存期間 (日)",
     "aiChatProvider": "チャット モデルのプロバイダー",
     "aiChatBaseUrl": "チャット API のベース URL",
     "aiChatApiKey": "チャット API キー",
@@ -98,7 +98,9 @@
     "filesMaxSize": "添付ファイルの最大サイズ (MB、最大 50)",
     "filesMaxSizeHelp": "このサイズを超えるアップロードは拒否されます。",
     "filesBlocked": "ブロックするファイルの種類",
-    "filesBlockedHelp": "アップロードできない拡張子をコンマ区切りで指定します。実行ファイルと Web ページは内容でも判定してブロックします。"
+    "filesBlockedHelp": "アップロードできない拡張子をコンマ区切りで指定します。実行ファイルと Web ページは内容でも判定してブロックします。",
+    "webhookHosts": "フォームの Webhook ホスト",
+    "webhookHostsHelp": "フォームの [Webhook を呼び出す] アクションが送信できるホストです。1 行に 1 つのホストまたは *.ドメインを指定します。一覧のホストは社内ネットワーク上にあってもかまいません。空欄の場合、Webhook は使用できません。"
   },
   "systemRoles": {
     "platform-admin": {
@@ -127,7 +129,7 @@
     },
     "application-manager": {
       "name": "アプリケーション アクセス管理者",
-      "description": "アプリケーションのロールとアクセス許可を管理（1 つのアプリケーションに限定して割り当て）"
+      "description": "アプリケーションのロールとアクセス許可を管理 (1 つのアプリケーションに限定して割り当て)"
     },
     "database-admin": {
       "name": "データベース接続管理者",
@@ -143,21 +145,30 @@
     "group": "グループ",
     "department": "部署"
   },
+  "recordTypes": {
+    "request": "申請"
+  },
+  "recordFacts": {
+    "formKey": "フォーム",
+    "status": "状態",
+    "requesterId": "申請者",
+    "departmentCode": "申請者の部署"
+  },
   "workflows": {
     "accessRequest": {
       "name": "アクセス申請",
-      "description": "セルフサービスのロール申請を判断します。条件にはロール（リスク、所有者、アプリケーション）と申請内容（期間、範囲）を使用できます。"
+      "description": "セルフサービスのロール申請を判断します。条件にはロール (リスク、所有者、アプリケーション) と申請内容 (期間、範囲) を使用できます。"
     },
     "formSubmission": {
       "name": "フォームの送信",
-      "description": "このワークフローが割り当てられたフォームで実行されます。条件には送信されたすべての値（data.フィールドキー）を使用できます。"
+      "description": "このワークフローが割り当てられたフォームで実行されます。条件には送信されたすべての値 (data.フィールドキー) を使用できます。"
     }
   },
   "notifications": {
     "approval_assigned": {
       "label": "自分宛ての承認",
       "title": "承認が必要です: {subject}",
-      "body": "{requester} さんがあなたの判断を待っています（{step}）。"
+      "body": "{requester} さんがあなたの判断を待っています ({step})。"
     },
     "approval_reminder": {
       "label": "承認のリマインダー",
@@ -167,7 +178,7 @@
     "approval_escalated": {
       "label": "自分にエスカレーションされた承認",
       "title": "エスカレーション: {subject}",
-      "body": "最初の承認者が期限内に応答しませんでした（{step}）。"
+      "body": "最初の承認者が期限内に応答しませんでした ({step})。"
     },
     "approval_overdue": {
       "label": "期限切れの承認",
@@ -180,48 +191,141 @@
       "body": "{comment}"
     },
     "workflow_fyi": {
-      "label": "ワークフローの更新（参考）",
+      "label": "ワークフローの更新 (参考)",
       "title": "お知らせ: {subject}",
       "body": "{message}"
     },
     "access_request_approved": {
       "label": "自分のアクセス申請の承認",
-      "title": "承認されました: {role}（{reference}）",
+      "title": "承認されました: {role} ({reference})",
       "body": "{permanent, select, yes {このアクセスに期限はありません。} other {このアクセスは {expiresAt} に終了します。}}"
     },
     "access_request_rejected": {
       "label": "自分のアクセス申請の却下",
-      "title": "却下されました: {role}（{reference}）",
+      "title": "却下されました: {role} ({reference})",
       "body": "{comment}"
     },
     "access_request_failed": {
       "label": "付与できなかったアクセス",
-      "title": "{role} を付与できませんでした（{reference}）",
+      "title": "{role} を付与できませんでした ({reference})",
       "body": "申請は承認されましたが、アクセスを付与できませんでした。退職したか、ロールが削除された可能性があります。"
     },
     "access_expiring": {
       "label": "まもなく終了するアクセス",
       "title": "{role} のアクセスがまもなく終了します",
-      "body": "{expiresAt} に終了します。引き続き必要な場合は再度申請してください。"
+      "body": "{via, select, group {グループ「{group}」のメンバーとして持っているアクセスです。この付与は {expiresAt} に終了します。引き続き必要な場合は、ロールを自分で申請してください。} other {{expiresAt} に終了します。引き続き必要な場合は再度申請してください。}}"
     },
     "access_granted": {
       "label": "付与されたロール",
       "title": "ロール {role} が付与されました",
       "body": "付与者: {actor}"
     },
+    "user_transferred": {
+      "label": "自分の部署への異動・部署からの異動",
+      "title": "{name} が{hasTo, select, yes {{to}} other {部署なし}}に異動しました: アクセス権を確認してください",
+      "body": "{name} が{hasFrom, select, yes {{from}} other {部署なし}}から{hasTo, select, yes {{to}} other {部署なし}}に異動しました。{count, plural, =0 {直接割り当てられたロールはありません。} other {ロール (# 件): {roles}。}}{reviewCount, plural, =0 {} other {確認が必要: 異動元の部署にスコープされたロール (# 件): {review}。}}アクセス権は取り消されていません。不要になったものは ID 管理者に削除を依頼してください。"
+    },
     "form_submission_approved": {
       "label": "自分のフォーム申請の承認",
-      "title": "承認されました: {form}（{reference}）",
+      "title": "承認されました: {form} ({reference})",
       "body": ""
     },
     "form_submission_rejected": {
       "label": "自分のフォーム申請の却下",
-      "title": "却下されました: {form}（{reference}）",
+      "title": "却下されました: {form} ({reference})",
       "body": "{comment}"
+    },
+    "form_assignment_assigned": {
+      "label": "自分に割り当てられたフォーム",
+      "title": "ToDo: {title}",
+      "body": "{due} までに「{form}」に記入してください。{note}"
+    },
+    "form_assignment_reminder": {
+      "label": "自分の ToDo のリマインダー",
+      "title": "{overdue, select, yes {期限切れ: {title}} other {まもなく期限: {title}}}",
+      "body": "{overdue, select, yes {「{form}」の期限は {due} でした。できるだけ早く記入してください。} other {{due} までに「{form}」に記入してください。}}"
+    },
+    "form_assignment_overdue": {
+      "label": "自分が管理するフォームの期限切れ ToDo",
+      "title": "期限切れ: {title}",
+      "body": "{assignee} が「{form}」をまだ記入していません (期限: {due})。"
     },
     "channel_test": {
       "title": "IS Big Platform からのテスト通知",
       "body": "このメッセージが表示されていれば、チャネルは正常に動作しています。"
+    },
+    "process_action_failed": {
+      "label": "失敗したフォームのアクション",
+      "title": "{reference} のアクションが失敗しました: {action}",
+      "body": "フォーム「{form}」は再試行してもこの手順を完了できませんでした。申請を開いてエラーを確認し、もう一度実行してください。"
+    },
+    "process_action_message": {
+      "label": "フォームから送信されたメッセージ",
+      "title": "{title}",
+      "body": "{message}"
+    },
+    "reminder_due": {
+      "label": "フォームで設定されたリマインダー",
+      "title": "{title}",
+      "body": "{message}"
+    }
+  },
+  "processActions": {
+    "grantRole": {
+      "name": "ロールを付与",
+      "description": "申請者またはフォームで選択されたユーザーに、プラットフォームまたは登録済みアプリケーション (VPN、Active Directory、サーバー アクセス) のロールを、指定した日数または無期限で付与します。",
+      "role": "ロール",
+      "person": "付与先",
+      "requester": "申請者",
+      "duration": "付与する日数",
+      "durationHint": "空欄にすると無期限で付与します。",
+      "reason": "理由 (ロールの割り当てに表示)",
+      "granted": "ロールを付与しました",
+      "extended": "ロールの期限を延長しました",
+      "kept": "このユーザーはすでにロールを持っています"
+    },
+    "notify": {
+      "name": "ユーザーに通知",
+      "description": "独自のタイトルとメッセージで、申請者、フォームで指定されたユーザー、特定のユーザーまたはグループに通知します。",
+      "toRequester": "申請者に通知",
+      "userFields": "次のフィールドで指定されたユーザー",
+      "person": "追加で通知",
+      "groups": "次のグループのメンバー",
+      "title": "タイトル",
+      "message": "メッセージ",
+      "sent": "通知を送信しました"
+    },
+    "webhook": {
+      "name": "Webhook を呼び出す",
+      "description": "申請の JSON を HTTPS で他のシステムに送信します (許可されたホストのみ)。シークレット ヘッダーを付けることもできます。",
+      "url": "URL",
+      "urlHint": "HTTPS で、コア設定 [フォームの Webhook ホスト] に登録されたホストを指定します。",
+      "headerName": "ヘッダー名",
+      "headerValue": "ヘッダー値 (シークレット)",
+      "headerValueHint": "暗号化して保存され、再表示されません。空欄の場合は現在の値を保持します。",
+      "body": "JSON 本文"
+    },
+    "remind": {
+      "name": "リマインダーを送信",
+      "description": "回答または承認者が入力したフィールドの日付をもとに、その前後の指定した日数にユーザーへリマインダーを送ります (ルールの期限、短期利用の終了、データ消去など)。",
+      "dateFrom": "日付",
+      "fromStep": "承認者が入力するフィールド",
+      "fromOutcome": "結果が出た日",
+      "stepField": "承認者のフィールド",
+      "stepFieldHint": "ステップの ID とフィールドのキー (例: review.wipeDue)。",
+      "offsetDays": "日付からの日数",
+      "offsetDaysHint": "日付より前にする場合は負の数を指定します (-30: 30 日前)。日付のリマインダーは申請者のタイム ゾーンの 9:00 に送信されます。",
+      "onlyFuture": "その日がまだ来ていない場合のみ",
+      "roles": "次のロールを持つユーザー",
+      "scheduled": "{date, date, long} にリマインダーを設定しました",
+      "passed": "リマインダーなし: {date, date, long} は既に過ぎています",
+      "noDate": "リマインダーなし: この申請には使用できる日付がありません"
+    }
+  },
+  "taskTypes": {
+    "assignForm": {
+      "name": "フォームの割り当て",
+      "description": "期間 (日、週、月、四半期、年) ごとに、ユーザーまたはグループに期限までのフォームへの記入を依頼します (毎月の点検、年次レビューなど)。"
     }
   },
   "customizations": {
@@ -229,6 +333,7 @@
     "form": "申請フォーム",
     "customField": "カスタム フィールド",
     "role": "ロール",
+    "group": "グループ",
     "notificationChannel": "通知チャネル",
     "moduleSettings": "モジュール設定",
     "approvalChain": {
@@ -278,6 +383,36 @@
       "required": "必須",
       "options": "選択肢",
       "optionsHelp": "1 行に 1 つの選択肢を入力します。"
+    },
+    "approvalProcess": {
+      "label": "承認プロセス",
+      "description": "承認付きの申請フォームです。質問 (構成アイテムなど、申請者が選ぶレコードを含む)、承認者、申請の承認後に作成する変更 (任意) を設定します。",
+      "name": "フォーム名",
+      "category": "カテゴリ",
+      "recordType": "申請者が選ぶレコード",
+      "recordTypeHelp": "任意。変更が影響する構成アイテムなど。選択されたレコードに応じて承認者を決められます。",
+      "recordLabel": "レコードの質問",
+      "recordMultiple": "複数選択できる",
+      "question": "質問",
+      "type": "回答の種類",
+      "options": "選択肢",
+      "optionsHelp": "1 行に 1 つの選択肢を入力します。",
+      "required": "必須",
+      "managerApproves": "最初に申請者の上長が承認する",
+      "recordGroupApproves": "次に、選択されたレコードの担当グループが承認する",
+      "recordGroupFact": "レコードのグループ",
+      "groupApproves": "次に、グループが承認する",
+      "group": "グループ",
+      "createChange": "申請が承認されたら変更を作成する",
+      "createChangeHelp": "変更は選択された構成アイテムにリンクされます。フォームに 2 つの日付 (開始と終了) がある場合は、変更自体の承認 (必要に応じて CAB を含む) に提出されます。",
+      "stepManager": "上長の承認",
+      "stepRecordGroup": "サポート グループの承認",
+      "stepGroup": "グループの承認",
+      "workflowSuffix": "承認",
+      "actionName": "変更を作成"
+    },
+    "links": {
+      "openForm": "フォームを開く"
     }
   }
 }

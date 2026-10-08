@@ -75,7 +75,7 @@
     },
     "name": "名稱",
     "namePlaceholder": "例如：人資夥伴",
-    "key": "索引鍵",
+    "key": "代碼",
     "keyHint": "供整合服務使用的固定識別碼。可使用小寫英文字母、數字、「-」及「_」。",
     "description": "描述",
     "descriptionPlaceholder": "這個角色適用於哪些人？",
@@ -225,7 +225,7 @@
     "ownAdmin": "您無法移除自己的平台管理員角色，請洽詢其他管理員。",
     "offboarded": "此人員已離職停用，無法授予角色。",
     "systemReadOnly": "系統角色由模組定義，無法變更。",
-    "keyTaken": "已有使用此索引鍵的角色。"
+    "keyTaken": "已有使用此代碼的角色。"
   },
   "requestSettings": {
     "title": "自助申請",
@@ -246,10 +246,10 @@
       "medium": "中",
       "high": "高"
     },
-    "owner": "角色負責人",
-    "ownerHint": "當工作流程包含角色負責人簽核步驟時，由此人簽核申請。",
-    "ownerPlaceholder": "選擇負責人…",
-    "noOwner": "沒有負責人",
+    "owner": "角色擁有者",
+    "ownerHint": "當工作流程包含角色擁有者簽核步驟時，由此人簽核申請。",
+    "ownerPlaceholder": "選擇擁有者…",
+    "noOwner": "沒有擁有者",
     "maxDuration": "最長授予期限",
     "maxDurationHint": "申請的期限不得超過此值。管理員直接授予則不受限制。",
     "duration": {

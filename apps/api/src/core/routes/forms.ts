@@ -8,6 +8,9 @@ import {
   formListQuerySchema,
   formSummarySchema,
   okSchema,
+  processActionCatalogInputSchema,
+  processActionCatalogQuerySchema,
+  processActionCatalogSchema,
   reorderCustomFieldsSchema,
   submissionQuerySchema,
   submissionSummarySchema,
@@ -120,6 +123,34 @@ export function formRoutes(app: ModuleRouter, formsSvc: FormService, fields: Cus
   );
 
   app.get(
+    '/forms/process-actions',
+    {
+      config: manage,
+      schema: {
+        tags,
+        summary: 'Process actions a form can run, with their configuration fields for the form’s saved draft',
+        querystring: processActionCatalogQuerySchema,
+        response: { 200: processActionCatalogSchema },
+      },
+    },
+    async (req) => formsSvc.actionCatalog({ formId: req.query.formId }, req.auth),
+  );
+
+  app.post(
+    '/forms/process-actions',
+    {
+      config: manage,
+      schema: {
+        tags,
+        summary: 'Process actions with their configuration fields for an unsaved draft (reads only)',
+        body: processActionCatalogInputSchema,
+        response: { 200: processActionCatalogSchema },
+      },
+    },
+    async (req) => formsSvc.actionCatalog(req.body, req.auth),
+  );
+
+  app.get(
     '/forms/:id/submissions',
     {
       config: manage,
@@ -194,7 +225,7 @@ export function formRoutes(app: ModuleRouter, formsSvc: FormService, fields: Cus
         response: { 200: customFieldSchema },
       },
     },
-    async (req) => fields.update(req.params.id, req.body),
+    async (req) => fields.update(req.params.id, req.body, req.auth),
   );
 
   app.post(

@@ -15,6 +15,13 @@
       "when": 1791382924239,
       "tag": "0001_broken_blue_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791471328009,
+      "tag": "0002_tranquil_titania",
+      "breakpoints": true
     }
   ]
 }

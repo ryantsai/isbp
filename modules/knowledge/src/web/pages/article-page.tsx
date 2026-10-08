@@ -37,6 +37,7 @@ import {
   LifeBuoyIcon,
   PencilIcon,
   SendIcon,
+  ShieldAlertIcon,
   SparklesIcon,
   Trash2Icon,
   UndoIcon,
@@ -58,11 +59,13 @@ import {
   ArticleHit,
   ArticleStats,
   CategoryIcon,
+  ClassificationBadge,
   InternalBadge,
   LOCALE_LABEL,
   LOCALE_LANG,
   StatusBadge,
   useCategoryName,
+  useClassifications,
 } from '../parts';
 import { VersionHistory } from '../version-history';
 
@@ -174,6 +177,25 @@ function StateBanner({ article }: { article: Article }) {
   );
 }
 
+/** "Classified: …" above the article, so readers know how to handle it and its attachments. */
+function ClassificationBanner({ value }: { value: string }) {
+  const t = useTranslations('knowledge.classification');
+  const { label, tone } = useClassifications();
+  const strong = tone(value) === 'destructive' || tone(value) === 'warning';
+  return (
+    <div
+      role="note"
+      className={cn(
+        'flex items-start gap-2 rounded-xl border px-4 py-3 text-sm',
+        strong ? 'border-destructive/30 bg-destructive/5' : 'border-border bg-muted/50',
+      )}
+    >
+      <ShieldAlertIcon className={cn('mt-0.5 size-4 shrink-0', strong && 'text-destructive')} aria-hidden />
+      <p>{t('banner', { label: label(value) })}</p>
+    </div>
+  );
+}
+
 export default function ArticlePage({ params }: WebPageProps) {
   const t = useTranslations('knowledge');
   const tc = useTranslations('common');
@@ -265,6 +287,7 @@ export default function ArticlePage({ params }: WebPageProps) {
             <div className="flex flex-wrap items-center gap-2">
               {article.status !== 'published' && <StatusBadge status={article.status} />}
               {article.audience === 'agents' && <InternalBadge />}
+              {article.classification && <ClassificationBadge value={article.classification} />}
               <span className="font-mono text-xs text-muted-foreground">{article.reference}</span>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
@@ -347,6 +370,7 @@ export default function ArticlePage({ params }: WebPageProps) {
             </p>
           ) : null}
 
+          {article.classification && <ClassificationBanner value={article.classification} />}
           <StateBanner article={article} />
 
           {editorTools && (
@@ -419,6 +443,15 @@ export default function ArticlePage({ params }: WebPageProps) {
           )}
         >
           <Related article={article} />
+          {/* Attachments (diagrams, controlled documents): editors change them, readers download them. */}
+          {(article.canEdit || article.attachments > 0) && (
+            <div className="min-w-0">
+              <Slot<RecordPanelSlotProps>
+                name="core.record.files"
+                props={{ record: { type: 'knowledge.article', id: article.id } }}
+              />
+            </div>
+          )}
           {recordPanels && (
             <div className="min-w-0">
               <Slot<RecordPanelSlotProps>

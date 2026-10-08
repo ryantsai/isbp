@@ -58,7 +58,7 @@
     "change-set_discarded": "捨棄了變更集"
   },
   "server": {
-    "builtin": "尚未設定 AI 聊天模型，因此目前無法處理自由文字的要求。請使用下方的引導式範本準備變更，或請管理員在「系統管理 → AI」中設定模型。",
+    "builtin": "尚未設定 AI 對話模型，因此目前無法處理自由文字的要求。請使用下方的引導式範本準備變更，或請管理員在「系統管理 → AI」中設定模型。",
     "empty": "我無法完成此要求。請換個方式描述，或開啟變更集查看目前進度。",
     "confirmApply": "套用 {reference}（{count} 項變更）",
     "confirmApplyOne": "套用 {reference}（1 項變更）",
@@ -68,7 +68,10 @@
     "declinedBy": "已拒絕：{label}",
     "confirmDone": "已完成：{label}。",
     "confirmFailed": "{label}未成功：{message}",
-    "declined": "好的，不會執行：{label}。"
+    "declined": "好的，不會執行：{label}。",
+    "linksIntro": "已可使用：",
+    "link": "{object}：[{label}]({href})",
+    "reviewApplied": "{reference} 已由 {by} 核准並套用。"
   },
   "status": {
     "draft": "草稿",
@@ -86,7 +89,7 @@
   },
   "mode": {
     "builtin": "引導式範本",
-    "builtinHint": "尚未設定 AI 聊天模型，因此助理改以引導式範本取代自由文字。",
+    "builtinHint": "尚未設定 AI 對話模型，因此助理改以引導式範本取代自由文字。",
     "llm": "AI 模型：{model}",
     "llmUnknown": "AI 模型",
     "llmHint": "回答來自管理員設定的 AI 模型。助理會以您的身分和權限運作；套用或回復任何變更前，都會請您確認。"
@@ -183,8 +186,8 @@
     "addingTo": "新的變更會加入此變更集。",
     "startNew": "建立新的變更集",
     "noTemplates": "您可以變更的項目沒有引導式範本",
-    "noTemplatesHint": "管理員可在「系統管理 → AI」中設定 AI 聊天模型，讓您以自己的話描述其他變更。",
-    "withoutTemplates": "未設定 AI 聊天模型時，下列項目沒有引導式範本：{kinds}。"
+    "noTemplatesHint": "管理員可在「系統管理 → AI」中設定 AI 對話模型，讓您以自己的話描述其他變更。",
+    "withoutTemplates": "未設定 AI 對話模型時，下列項目沒有引導式範本：{kinds}。"
   },
   "list": {
     "title": "變更集",
@@ -214,7 +217,52 @@
     "emptyHint": "按下頁首的閃光按鈕開啟助理來準備變更集。",
     "emptyFiltered": "沒有符合的變更集",
     "emptyFilteredHint": "請嘗試其他狀態或搜尋條件。",
-    "liveCount": "{count, plural, other {# 個變更集}}"
+    "liveCount": "{count, plural, other {# 個變更集}}",
+    "fromPackage": "從套件建立"
+  },
+  "packages": {
+    "title": "從套件建立變更集",
+    "description": "安裝模組提供的範本套件，或匯入從其他環境匯出的套件檔案。兩者都會建立草稿變更集：在有人套用之前不會生效。",
+    "tabsLabel": "套件來源",
+    "builtin": {
+      "tab": "範本套件",
+      "listLabel": "範本套件",
+      "meta": "{count, plural, other {# 項變更}} · {module}",
+      "kinds": "變更對象：{kinds}",
+      "install": "安裝",
+      "installed": "已從套件建立 {reference}",
+      "needsReviewer": "您可以準備此變更集，但套用需要具備更多權限的人員（或透過審核）。",
+      "missingModules": "需要尚未啟用的模組：{modules}",
+      "unknownKinds": "需要本平台沒有的設定類型：{kinds}",
+      "unreadable": "準備此套件需要您未具備的權限：{permissions}",
+      "unsupported": "其中部分變更在此不受支援。",
+      "empty": "沒有範本套件",
+      "emptyHint": "已啟用的模組都未提供範本套件。您仍可匯入套件檔案。"
+    },
+    "file": {
+      "tab": "匯入檔案",
+      "hint": "選擇變更集套件 (.json)，例如從其他環境的變更集匯出的檔案。每項變更都會像一般提案一樣檢查；只要有一項失敗，就不會建立任何內容。",
+      "label": "套件檔案",
+      "fileHint": "isbp.change-set-package 檔案，最大 4 MB。",
+      "parsed": "「{title}」，{count, plural, other {# 項變更}}",
+      "parsedUntitled": "變更集套件",
+      "problems": {
+        "unreadable": "此檔案不是有效的 JSON。",
+        "notPackage": "此檔案不是變更集套件（其 format 必須是 isbp.change-set-package）。",
+        "tooLarge": "此檔案大於 4 MB。"
+      },
+      "import": "匯入",
+      "imported": "已從檔案建立 {reference}"
+    },
+    "errors": {
+      "invalid": "此套件有問題，未建立任何內容：",
+      "unsupported": "此套件不適用於本平台，未建立任何內容：",
+      "missingModules": "尚未啟用的模組：{modules}",
+      "unknownKinds": "本平台沒有的設定類型：{kinds}",
+      "forbidden": "準備這些變更需要您未具備的權限：{permissions}。",
+      "tooLarge": "此套件大於 4 MB。",
+      "more": "{count, plural, other {另有 # 項}}"
+    }
   },
   "detail": {
     "back": "變更集",
@@ -242,7 +290,8 @@
       "discard": "捨棄",
       "check": "重新檢查",
       "refresh": "重新整理",
-      "more": "更多動作"
+      "more": "更多動作",
+      "export": "匯出"
     },
     "missing": {
       "title": "您無法自行套用此變更集",
@@ -259,6 +308,11 @@
     "summaryTitle": "摘要",
     "noSummary": "尚無摘要。",
     "destructiveNote": "此變更集會封存或刪除項目：套用時需要明確確認。",
+    "live": {
+      "title": "已可使用",
+      "body": "此變更集建立的項目已生效。請將這些連結分享給使用者。",
+      "link": "{label}：{object}"
+    },
     "stats": {
       "items": "變更數",
       "kinds": "變更對象",

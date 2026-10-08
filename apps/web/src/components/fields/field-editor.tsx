@@ -8,6 +8,9 @@ import {
   type FieldValidation,
   isSafePattern,
   type LocalizedText,
+  localize,
+  MAX_ROWS,
+  ROW_FIELD_TYPES,
 } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
 import { Badge } from '@isbp/ui/badge';
@@ -28,11 +31,17 @@ import { LocalizedInput } from '@isbp/ui/localized-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Switch } from '@isbp/ui/switch';
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   CheckIcon,
   ChevronDownIcon,
+  ChevronRightIcon,
   Columns2Icon,
   LockIcon,
+  PlusIcon,
   RectangleHorizontalIcon,
+  Trash2Icon,
+  TriangleAlertIcon,
   WandSparklesIcon,
   XIcon,
 } from 'lucide-react';
@@ -46,17 +55,20 @@ import {
   cleanElement,
   cleanField,
   type EditableElement,
+  elementIssues,
   type FieldIssue,
   fieldFacts,
   isAutoKey,
   isFieldElement,
   type IssueTarget,
   LENGTH_TYPES,
+  newRowColumn,
   PLACEHOLDER_TYPES,
   slugKey,
   uniqueName,
 } from './field-utils';
 import { OptionsEditor } from './options-editor';
+import { RecordOptionsEditor } from './record-options';
 
 const NONE = '__none__';
 const PATTERN_PRESETS = [
@@ -399,6 +411,8 @@ export interface FieldEditorProps {
   types?: readonly FieldType[];
   /** Hides the type picker (e.g. when the caller shows it elsewhere). */
   hideType?: boolean;
+  /** A table's column: no width and no conditional logic. */
+  column?: boolean;
   className?: string;
 }
 
@@ -431,6 +445,7 @@ function FieldPropsEditor({
   lockedValues,
   types,
   hideType,
+  column,
   className,
 }: FieldEditorProps & { field: FieldDef & { id?: string } }) {
   const t = useTranslations('fields');
@@ -570,20 +585,26 @@ function FieldPropsEditor({
             onCheckedChange={(required) => set({ required })}
           />
         </label>
-        <div className="grid gap-1.5">
-          <span className="text-sm font-medium" id={`${uid}-width`}>
-            {t('editor.width')}
-          </span>
-          <Segmented
-            label={t('editor.width')}
-            value={field.width === 'half' ? 'half' : 'full'}
-            onChange={(width) => set({ width })}
-            options={[
-              { value: 'full', label: t('editor.widthFull'), icon: <RectangleHorizontalIcon aria-hidden /> },
-              { value: 'half', label: t('editor.widthHalf'), icon: <Columns2Icon aria-hidden /> },
-            ]}
-          />
-        </div>
+        {!column && field.type !== 'rows' && (
+          <div className="grid gap-1.5">
+            <span className="text-sm font-medium" id={`${uid}-width`}>
+              {t('editor.width')}
+            </span>
+            <Segmented
+              label={t('editor.width')}
+              value={field.width === 'half' ? 'half' : 'full'}
+              onChange={(width) => set({ width })}
+              options={[
+                {
+                  value: 'full',
+                  label: t('editor.widthFull'),
+                  icon: <RectangleHorizontalIcon aria-hidden />,
+                },
+                { value: 'half', label: t('editor.widthHalf'), icon: <Columns2Icon aria-hidden /> },
+              ]}
+            />
+          </div>
+        )}
       </Section>
 
       {choice && (
@@ -596,6 +617,18 @@ function FieldPropsEditor({
             describedBy={described('options')}
           />
           <IssueText id={`${uid}-options-issues`} issues={of('options')} />
+        </Section>
+      )}
+
+      {field.type === 'record' && (
+        <Section title={t('editor.sections.record')}>
+          <RecordOptionsEditor field={field} onChange={(record) => set({ record })} issues={of('record')} />
+        </Section>
+      )}
+
+      {field.type === 'rows' && (
+        <Section title={t('editor.sections.rows')}>
+          <RowsEditor field={field} onChange={(rows) => set({ rows })} issues={of('rows')} />
         </Section>
       )}
 
@@ -672,7 +705,7 @@ function FieldPropsEditor({
         </Section>
       )}
 
-      {field.type !== 'user' && (
+      {field.type !== 'user' && field.type !== 'record' && field.type !== 'rows' && (
         <Section title={t('editor.sections.default')}>
           <DefaultValueEditor
             field={field}
@@ -682,14 +715,197 @@ function FieldPropsEditor({
         </Section>
       )}
 
-      <Section title={t('editor.sections.logic')}>
-        <LogicEditor
-          value={field.visibleWhen}
-          onChange={(visibleWhen) => set({ visibleWhen })}
-          facts={facts}
-          issues={of('visibleWhen')}
-        />
-      </Section>
+      {!column && (
+        <Section title={t('editor.sections.logic')}>
+          <LogicEditor
+            value={field.visibleWhen}
+            onChange={(visibleWhen) => set({ visibleWhen })}
+            facts={facts}
+            issues={of('visibleWhen')}
+          />
+        </Section>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The columns of a table field (each a field of a simple type, edited with the same field editor, without conditions)
+ * and how many rows it takes. Columns are added, opened, moved and removed with buttons.
+ */
+function RowsEditor({
+  field,
+  onChange,
+  issues,
+}: {
+  field: FieldDef;
+  onChange: (rows: NonNullable<FieldDef['rows']>) => void;
+  issues: readonly FieldIssue[];
+}) {
+  const t = useTranslations('fields.editor.rows');
+  const tt = useTranslations('fields.types');
+  const locale = useLocale();
+  const uid = useId();
+  const rows = field.rows ?? { fields: [] };
+  const columns = rows.fields;
+  const [open, setOpen] = useState<number | null>(columns.length === 1 ? 0 : null);
+  const [announcement, setAnnouncement] = useState('');
+  const set = (patch: Partial<NonNullable<FieldDef['rows']>>) => onChange({ ...rows, ...patch });
+  const nameOf = (c: FieldDef) => localize(c.label, locale) || c.key;
+  const setColumn = (i: number, next: FieldDef) =>
+    set({ fields: columns.map((c, j) => (j === i ? next : c)) });
+  const add = () => {
+    const column = newRowColumn('text', columns, { [locale]: tt('text.defaultLabel') });
+    set({ fields: [...columns, column] });
+    setOpen(columns.length);
+    setAnnouncement(t('added', { name: nameOf(column) }));
+  };
+  const remove = (i: number) => {
+    const name = nameOf(columns[i]!);
+    set({ fields: columns.filter((_, j) => j !== i) });
+    setOpen(null);
+    setAnnouncement(t('removed', { name }));
+  };
+  const move = (i: number, by: -1 | 1) => {
+    const j = i + by;
+    if (j < 0 || j >= columns.length) return;
+    const next = [...columns];
+    [next[i], next[j]] = [next[j]!, next[i]!];
+    set({ fields: next });
+    if (open === i) setOpen(j);
+    setAnnouncement(t('moved', { name: nameOf(columns[i]!), position: j + 1, total: columns.length }));
+  };
+  const rangeIssues = issues.filter((i) => i.code === 'rowsRangeInvalid' || i.code === 'columnsRequired');
+
+  return (
+    <div className="grid gap-4">
+      <div className="grid grid-cols-2 gap-3">
+        <Row label={t('min')} htmlFor={`${uid}-min`} optional>
+          <NumberBox
+            id={`${uid}-min`}
+            value={rows.min}
+            integer
+            min={0}
+            max={MAX_ROWS}
+            invalid={rangeIssues.some((i) => i.code === 'rowsRangeInvalid')}
+            onChange={(min) => set({ min })}
+          />
+        </Row>
+        <Row
+          label={t('max')}
+          htmlFor={`${uid}-max`}
+          optional
+          hint={t('maxHint', { max: MAX_ROWS })}
+          hintId={`${uid}-max-hint`}
+        >
+          <NumberBox
+            id={`${uid}-max`}
+            value={rows.max}
+            integer
+            min={1}
+            max={MAX_ROWS}
+            invalid={rangeIssues.some((i) => i.code === 'rowsRangeInvalid')}
+            describedBy={`${uid}-max-hint`}
+            onChange={(max) => set({ max })}
+          />
+        </Row>
+      </div>
+      <div className="grid gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h4 id={`${uid}-columns`} className="text-sm font-medium">
+            {t('columns')}
+          </h4>
+          <Button type="button" variant="outline" size="sm" onClick={add} disabled={columns.length >= 20}>
+            <PlusIcon /> {t('addColumn')}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">{t('columnsHint')}</p>
+        <ol aria-labelledby={`${uid}-columns`} className="grid gap-2">
+          {columns.map((c, i) => {
+            const others = columns.filter((_, j) => j !== i);
+            const invalid = elementIssues(c, others).length > 0;
+            const expanded = open === i;
+            const name = nameOf(c);
+            return (
+              <li key={i} className="min-w-0 rounded-lg border">
+                <div className="flex min-w-0 items-center gap-1.5 p-1.5">
+                  <button
+                    type="button"
+                    aria-expanded={expanded}
+                    aria-controls={`${uid}-col-${i}`}
+                    onClick={() => setOpen(expanded ? null : i)}
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  >
+                    <ChevronRightIcon
+                      aria-hidden
+                      className={cn(
+                        'size-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none',
+                        expanded && 'rotate-90',
+                      )}
+                    />
+                    <ElementTypeIcon type={c.type} size="sm" />
+                    <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
+                    <code className="hidden shrink-0 font-mono text-[11px] text-muted-foreground sm:inline">
+                      {c.key}
+                    </code>
+                    {invalid && (
+                      <Badge variant="destructive" className="shrink-0">
+                        <TriangleAlertIcon aria-hidden /> {t('needsAttention')}
+                      </Badge>
+                    )}
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={i === 0}
+                    aria-label={t('moveUp', { name })}
+                    onClick={() => move(i, -1)}
+                  >
+                    <ArrowUpIcon />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={i === columns.length - 1}
+                    aria-label={t('moveDown', { name })}
+                    onClick={() => move(i, 1)}
+                  >
+                    <ArrowDownIcon />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={columns.length <= 1}
+                    aria-label={t('remove', { name })}
+                    onClick={() => remove(i)}
+                  >
+                    <Trash2Icon />
+                  </Button>
+                </div>
+                {expanded && (
+                  <div id={`${uid}-col-${i}`} className="border-t p-3">
+                    <FieldEditor
+                      value={c}
+                      onChange={(next) => setColumn(i, next as FieldDef)}
+                      siblings={others}
+                      issues={elementIssues(c, others)}
+                      types={ROW_FIELD_TYPES}
+                      column
+                    />
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+      <IssueText id={`${uid}-issues`} issues={rangeIssues} />
+      <p aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
     </div>
   );
 }

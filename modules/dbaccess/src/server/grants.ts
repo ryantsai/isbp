@@ -1211,6 +1211,12 @@ export class GrantService {
     auth.require(PERMISSIONS.grantsManage);
     const { server, role, memberName } = await this.unmanagedTarget(input);
     const person = await personById(this.db, input.userId);
+    if (person?.status === 'suspended')
+      throw new HttpError(
+        409,
+        ErrorCodes.PRINCIPAL_SUSPENDED,
+        'This person is suspended; reactivate them before adopting their access',
+      );
     if (!person || person.status !== 'active')
       throw new HttpError(
         409,

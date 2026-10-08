@@ -182,8 +182,8 @@ A pipeline loads the result of one query into a table of another database, for e
 warehouse, in one transaction per run.
 
 1. Go to **Data APIs & ETL → Pipelines** and select **New pipeline**.
-2. Under **General**, enter the **Name**, **Description** and **Owner** (told when a run started with **Run now**
-   fails).
+2. Under **General**, enter the **Name**, **Description** and **Owner** (told when a run fails, however it was
+   started; for a scheduled job, after its last attempt, and only once if the job's own alert already reaches them).
 3. Under **Source**, choose the **Connection** and write one SQL statement. It runs read-only and is streamed in
    batches. Give values for any `:parameters` under **Parameter values**.
 4. To load only what changed, turn on **Incremental**: use `:watermark` in the SQL, choose the **Watermark column**

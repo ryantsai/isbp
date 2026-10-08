@@ -160,7 +160,8 @@ export const jobCustomization: CustomizationHandler<JobValue> = {
     const sandbox = ctx.sandbox.status();
     return {
       instructions: [
-        'A scheduled job runs one task type on a trigger. Pick `type` from `taskTypes` and build `config` from its `configSchema` (scheduler.http calls a URL; scheduler.sql runs one statement with :name parameters on a data connection and needs scheduler.sql.run; scheduler.script runs code in a sandbox image and needs scheduler.scripts.manage; other modules add types such as etl.pipeline). Saving a job also needs the task type’s `permission`.',
+        'A scheduled job runs one task type on a trigger. Pick `type` from `taskTypes` and build `config` from its `configSchema` (scheduler.http calls a URL; scheduler.sql runs one statement with :name parameters on a data connection and needs scheduler.sql.run; scheduler.script runs code in a sandbox image and needs scheduler.scripts.manage; core.assign-form asks a person or group to fill in a form by a date, once per period — monthly inspections, quarterly or yearly reviews — and needs core.forms.manage; other modules add types such as etl.pipeline). Saving a job also needs the task type’s `permission`.',
+        'core.assign-form: the run opens the assignment of the period (day, week, month, quarter, year) its slot falls in, in the trigger’s time zone, so schedule it at the start of each period (e.g. "0 9 1 * *" monthly, "0 9 1 1,4,7,10 *" quarterly, "0 9 2 1 *" yearly). `due` is the end of that period or `days` after the run; `title` may use {{period}} (e.g. 2026-10, 2026-Q4). Runs are idempotent per form, assignee and period.',
         'Triggers: cron is five fields evaluated in an IANA `timezone` (e.g. "0 2 * * *", "Asia/Taipei"); interval repeats every `intervalMinutes`; after runs when the `upstreamIds` jobs succeed (`mode` all or any; no loops); manual runs only on demand.',
         `Defaults: timeoutSeconds ${LIMITS.timeoutSeconds.default}, retries ${JSON.stringify(DEFAULT_RETRIES)}, concurrency "skip", alerts ${JSON.stringify(DEFAULT_ALERTS)}.`,
         'Never put secrets in a description. For HTTP auth or secret headers, put the value in the config’s secret slot; existing secrets read back as { "secret": true, "set": true } and keep their value when sent back unchanged.',
@@ -205,6 +206,28 @@ export const jobCustomization: CustomizationHandler<JobValue> = {
             retries: { maxAttempts: 2, backoff: 'fixed', delaySeconds: 30 },
             concurrency: 'skip',
             alerts: { onFailure: true, channels: false, autoDisableAfter: 5 },
+          },
+        },
+        {
+          description:
+            'Open the monthly server room inspection for the IT operations group on the 1st at 09:00 Taipei time, due at the end of the month (core.assign-form; the form key and group key must exist)',
+          value: {
+            name: 'Monthly server room inspection',
+            description: 'Asks IT operations to fill in the server room inspection checklist every month',
+            ownerGroupId: null,
+            type: 'core.assign-form',
+            config: {
+              formKey: 'server-room-inspection',
+              assignee: { type: 'group', groupKey: 'it-ops' },
+              period: 'month',
+              due: { type: 'end-of-period' },
+              title: 'Server room inspection {{period}}',
+            },
+            trigger: { kind: 'cron', cron: '0 9 1 * *', timezone: 'Asia/Taipei' },
+            timeoutSeconds: 60,
+            retries: { maxAttempts: 3, backoff: 'exponential', delaySeconds: 60 },
+            concurrency: 'skip',
+            alerts: { onFailure: true, channels: false, autoDisableAfter: 0 },
           },
         },
       ],

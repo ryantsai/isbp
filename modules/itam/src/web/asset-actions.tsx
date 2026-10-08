@@ -1,6 +1,9 @@
 'use client';
 
+import { localize } from '@isbp/sdk';
+import { usePlatform } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
+import { Checkbox } from '@isbp/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -9,19 +12,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@isbp/ui/dialog';
+import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
-import { useApiMutation } from '@isbp/ui/query';
+import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
+import { Skeleton } from '@isbp/ui/skeleton';
 import { Textarea } from '@isbp/ui/textarea';
-import { ShieldCheckIcon } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { ShieldCheckIcon, SkipForwardIcon, UserCheckIcon, XCircleIcon } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { type FormEvent, type ReactNode, useId, useState } from 'react';
-import { type AssetDetail, type AssetStatus, RETURN_STATUSES } from '../contracts';
+import {
+  type AssetDetail,
+  type AssetStatus,
+  type DisposalPreview,
+  type RecordWipeInput,
+  RETURN_STATUSES,
+  type ReturnAssetInput,
+  WIPE_METHODS,
+  type WipeMethod,
+} from '../contracts';
 import { AssetStatusBadge } from './badges';
 import { INVALIDATE } from './lib';
 
-export type AssetAction = 'assign' | 'return' | 'status' | 'dispose';
+export type AssetAction = 'assign' | 'return' | 'status' | 'dispose' | 'wipe';
 
 function ActionDialog({
   open,
@@ -122,6 +136,7 @@ export function AssetActionDialog({
   if (action === 'return') return <ReturnDialog asset={asset} onOpenChange={onOpenChange} />;
   if (action === 'status') return <StatusDialog asset={asset} onOpenChange={onOpenChange} />;
   if (action === 'dispose') return <DisposeDialog asset={asset} onOpenChange={onOpenChange} />;
+  if (action === 'wipe') return <WipeDialog asset={asset} onOpenChange={onOpenChange} />;
   return null;
 }
 
@@ -171,9 +186,10 @@ function ReturnDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChang
   const id = useId();
   const [toStatus, setToStatus] = useState<(typeof RETURN_STATUSES)[number]>('in_stock');
   const [note, setNote] = useState('');
+  const [scheduleWipe, setScheduleWipe] = useState(asset.dataBearing);
+  const [retainUntil, setRetainUntil] = useState('');
   const ret = useApiMutation(
-    (api, body: { toStatus: string; note: string | null }) =>
-      api.post<AssetDetail>(`/itam/assets/${asset.id}/return`, body),
+    (api, body: ReturnAssetInput) => api.post<AssetDetail>(`/itam/assets/${asset.id}/return`, body),
     {
       invalidate: INVALIDATE,
       success: (a) => t('returned', { tag: a.tag }),
@@ -188,7 +204,14 @@ function ReturnDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChang
       description={t('returnHint', { name: asset.assignee?.displayName ?? '' })}
       submitLabel={t('return')}
       pending={ret.isPending}
-      onSubmit={() => ret.mutate({ toStatus, note: note.trim() || null })}
+      onSubmit={() =>
+        ret.mutate({
+          toStatus,
+          note: note.trim() || null,
+          scheduleWipe,
+          dataRetainUntil: scheduleWipe && retainUntil ? retainUntil : null,
+        })
+      }
     >
       <div className="grid gap-2">
         <Label htmlFor={id}>{t('returnTo')}</Label>
@@ -205,7 +228,116 @@ function ReturnDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChang
           </SelectContent>
         </Select>
       </div>
+      <div className="grid gap-3 rounded-lg border p-3">
+        <div className="flex items-start gap-2">
+          <Checkbox
+            id={`${id}-wipe`}
+            checked={scheduleWipe}
+            onCheckedChange={(v) => setScheduleWipe(v === true)}
+            aria-describedby={`${id}-wipe-hint`}
+          />
+          <div className="grid gap-1">
+            <Label htmlFor={`${id}-wipe`}>{t('scheduleWipe')}</Label>
+            <p id={`${id}-wipe-hint`} className="text-xs text-muted-foreground">
+              {t('scheduleWipeHint')}
+            </p>
+          </div>
+        </div>
+        {scheduleWipe && (
+          <div className="grid gap-2">
+            <Label htmlFor={`${id}-retain`}>{t('retainUntil')}</Label>
+            <Input
+              id={`${id}-retain`}
+              type="date"
+              value={retainUntil}
+              aria-describedby={`${id}-retain-hint`}
+              onChange={(e) => setRetainUntil(e.target.value)}
+            />
+            <p id={`${id}-retain-hint`} className="text-xs text-muted-foreground">
+              {t('retainUntilHint')}
+            </p>
+          </div>
+        )}
+      </div>
       <NoteField value={note} onChange={setNote} label={t('note')} hint={t('returnNoteHint')} />
+    </ActionDialog>
+  );
+}
+
+/** "Record data wipe": when, by whom and how the storage was wiped (audited; clears the pending wipe). */
+function WipeDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChange: (o: boolean) => void }) {
+  const t = useTranslations('itam.wipe');
+  const tm = useTranslations('itam.wipeMethod');
+  const { user } = usePlatform();
+  const id = useId();
+  const [method, setMethod] = useState<WipeMethod | ''>(
+    asset.category === 'phone' || asset.category === 'tablet' ? 'factory_reset' : '',
+  );
+  const [when, setWhen] = useState('');
+  const [person, setPerson] = useState<PersonOption | null>(null);
+  const [note, setNote] = useState('');
+  const wipe = useApiMutation(
+    (api, body: RecordWipeInput) => api.post<AssetDetail>(`/itam/assets/${asset.id}/wipe`, body),
+    {
+      invalidate: INVALIDATE,
+      success: (a) => t('recorded', { tag: a.tag }),
+      onSuccess: () => onOpenChange(false),
+    },
+  );
+  return (
+    <ActionDialog
+      open
+      onOpenChange={onOpenChange}
+      title={t('title', { tag: asset.tag })}
+      description={t('hint')}
+      submitLabel={t('submit')}
+      pending={wipe.isPending}
+      disabled={!method}
+      onSubmit={() =>
+        method &&
+        wipe.mutate({
+          method,
+          ...(when ? { wipedAt: new Date(when).toISOString() } : {}),
+          ...(person ? { wipedById: person.id } : {}),
+          note: note.trim() || null,
+        })
+      }
+    >
+      <div className="grid gap-2">
+        <Label htmlFor={`${id}-method`}>{t('method')}</Label>
+        <Select value={method} onValueChange={(v) => setMethod(v as WipeMethod)}>
+          <SelectTrigger id={`${id}-method`} className="w-full">
+            <SelectValue placeholder={t('methodPlaceholder')} />
+          </SelectTrigger>
+          <SelectContent>
+            {WIPE_METHODS.map((m) => (
+              <SelectItem key={m} value={m}>
+                {tm(m)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid min-w-0 gap-2">
+          <Label htmlFor={`${id}-when`}>{t('when')}</Label>
+          <Input
+            id={`${id}-when`}
+            type="datetime-local"
+            value={when}
+            aria-describedby={`${id}-when-hint`}
+            onChange={(e) => setWhen(e.target.value)}
+          />
+          <p id={`${id}-when-hint`} className="text-xs text-muted-foreground">
+            {t('whenHint')}
+          </p>
+        </div>
+        <div className="grid min-w-0 gap-2">
+          <Label htmlFor={`${id}-who`}>{t('who')}</Label>
+          <PersonPicker id={`${id}-who`} value={person} onChange={setPerson} placeholder={user.displayName} />
+        </div>
+      </div>
+      <NoteField value={note} onChange={setNote} label={t('note')} hint={t('noteHint')} />
     </ActionDialog>
   );
 }
@@ -271,7 +403,11 @@ function StatusDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChang
 
 function DisposeDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChange: (o: boolean) => void }) {
   const t = useTranslations('itam.actions');
+  const locale = useLocale();
+  const id = useId();
+  const errorText = useErrorText();
   const [note, setNote] = useState('');
+  const preview = useApiQuery<DisposalPreview>(`/itam/assets/${asset.id}/disposal-preview`);
   const dispose = useApiMutation(
     (api, body: { note: string }) => api.post<AssetDetail>(`/itam/assets/${asset.id}/dispose`, body),
     {
@@ -291,13 +427,58 @@ function DisposeDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChan
       disabled={!note.trim()}
       onSubmit={() => dispose.mutate({ note: note.trim() })}
     >
-      {/* Computed by the server with the workflow's own condition (`needsSecuritySignOff`). */}
-      {asset.disposalSecuritySignOff && (
+      {/* A dry run of the bound disposal workflow, so the notice follows whatever the admin configured. */}
+      {preview.data?.securitySignOff && (
         <p className="flex gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
           <ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
           {t('securitySignOff')}
         </p>
       )}
+      <section aria-labelledby={`${id}-approvers`} aria-busy={preview.isPending} className="grid gap-2">
+        <h3 id={`${id}-approvers`} className="text-sm font-medium">
+          {t('approvers')}
+        </h3>
+        {preview.isError ? (
+          <p role="alert" className="text-sm text-destructive">
+            {errorText(preview.error)}
+          </p>
+        ) : !preview.data ? (
+          <Skeleton className="h-10 w-full rounded-lg" />
+        ) : preview.data.steps.length ? (
+          <ol className="grid gap-2">
+            {preview.data.steps.map((s) => (
+              <li key={s.id} className="flex gap-2 text-sm">
+                {s.outcome === 'reject' ? (
+                  <XCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+                ) : s.outcome === 'ask' ? (
+                  <UserCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                ) : (
+                  <SkipForwardIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                )}
+                <div className="min-w-0">
+                  <div className="font-medium">{localize(s.name, locale)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {s.outcome === 'ask'
+                      ? [
+                          s.people
+                            .slice(0, 4)
+                            .map((p) => p.displayName)
+                            .join(', '),
+                          s.people.length > 4 ? t('approversMore', { count: s.people.length - 4 }) : null,
+                          s.people.length > 1 ? `(${t('approversAnyOf')})` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' ')
+                      : t(s.outcome === 'reject' ? 'approverReject' : 'approverNoApprover')}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t('approversNone')}</p>
+        )}
+      </section>
       <NoteField
         value={note}
         onChange={setNote}
