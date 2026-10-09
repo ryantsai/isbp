@@ -36,6 +36,8 @@ function Count({ label, value, warn }: { label: string; value: number; warn?: bo
 function ServerCard({ server }: { server: Server }) {
   const t = useTranslations('dbaccess.servers');
   const headingId = `dbaccess-server-${server.id}`;
+  // Access without a request, accounts that match nobody, and failed changes: one number to look at.
+  const attention = server.counts.unmanaged + server.counts.orphans + server.counts.failed;
   return (
     <Card className="h-full min-w-0 gap-4">
       <CardHeader className="gap-2">
@@ -58,13 +60,22 @@ function ServerCard({ server }: { server: Server }) {
       </CardHeader>
       <CardContent className="grid gap-3">
         <dl className="grid grid-cols-3 gap-3">
-          <Count label={t('roles')} value={server.counts.roles} />
           <Count label={t('liveGrants')} value={server.counts.liveGrants} />
-          <Count label={t('accounts')} value={server.counts.accounts} />
-          <Count label={t('unmanaged')} value={server.counts.unmanaged} warn />
-          <Count label={t('orphans')} value={server.counts.orphans} warn />
-          <Count label={t('failed')} value={server.counts.failed} warn />
+          <Count label={t('roles')} value={server.counts.roles} />
+          <Count label={t('attention')} value={attention} warn />
         </dl>
+        {attention > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {t('attentionHint', {
+              unmanaged: server.counts.unmanaged,
+              orphans: server.counts.orphans,
+              failed: server.counts.failed,
+            })}{' '}
+            <Link href={serverHref(server.id)} className="font-medium text-primary hover:underline">
+              {t('review')}
+            </Link>
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
           {t('lastSync')} <RelativeTime date={server.lastSyncAt} />
         </p>

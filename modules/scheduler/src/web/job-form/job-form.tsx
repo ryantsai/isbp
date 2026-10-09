@@ -2,8 +2,10 @@
 
 import { ApiError, Slot, usePlatform, useSlot } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
+import { Checkbox } from '@isbp/ui/checkbox';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { Disclosure } from '@isbp/ui/motion';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
@@ -17,6 +19,7 @@ import {
   BUILTIN_TYPES,
   CONCURRENCY_POLICIES,
   type CreateJobInput,
+  cronForPeriod,
   DEFAULT_ALERTS,
   DEFAULT_RETRIES,
   type JobDetail,
@@ -34,6 +37,8 @@ import { normalizeSql, SQL_DEFAULTS, SqlEditor } from './sql-editor';
 import { TriggerEditor, type TriggerState } from './trigger-editor';
 
 const NONE = '__none__';
+/** Server paths of the fields under "Advanced settings" (opened when one of them has an error). */
+const ADVANCED_FIELDS = ['timeoutSeconds', 'retries', 'concurrency', 'alerts.autoDisableAfter'];
 
 export interface JobFormInitial {
   type?: string;
@@ -106,13 +111,18 @@ export function JobForm({
   );
   const [ownerGroupId, setOwnerGroupId] = useState<string | null>(job?.ownerGroup?.id ?? null);
   const [type, setType] = useState(initialType);
-  const [config, setConfig] = useState<Record<string, unknown>>(
+  const initialConfig =
     job?.config ??
-      (initial?.config && initial.type === initialType ? initial.config : defaultsFor(initialType, sandbox)),
-  );
-  const [trigger, setTrigger] = useState<TriggerState>({
+    (initial?.config && initial.type === initialType ? initial.config : defaultsFor(initialType, sandbox));
+  const [config, setConfigState] = useState<Record<string, unknown>>(initialConfig);
+  /** The person changed the schedule themselves: stop following the task's period. */
+  const [triggerTouched, setTriggerTouched] = useState(Boolean(job));
+  const [runFirst, setRunFirst] = useState(true);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [trigger, setTriggerState] = useState<TriggerState>({
     kind: job?.trigger.kind ?? 'cron',
-    cron: job?.trigger.cron ?? '0 7 * * *',
+    // A period-based task (a monthly checklist) starts on its period's schedule, not a generic daily one.
+    cron: job?.trigger.cron ?? cronForPeriod(initialConfig.period) ?? '0 7 * * *',
     timezone: job?.trigger.kind === 'cron' ? job.trigger.timezone : localTimeZone(),
     intervalMinutes: String(job?.trigger.intervalMinutes ?? 60),
     upstream: job?.trigger.upstream ?? [],
@@ -140,6 +150,18 @@ export function JobForm({
   const typeInfo = types.find((x) => x.type === type);
   const scriptBlocked = type === BUILTIN_TYPES.script && sandbox.runner === 'none';
   const configErrors = scoped(errors, 'config');
+
+  const setTrigger = (next: TriggerState) => {
+    setTriggerTouched(true);
+    setTriggerState(next);
+  };
+  const setConfig = (next: Record<string, unknown>) => {
+    setConfigState(next);
+    const cron = cronForPeriod(next.period);
+    if (!triggerTouched && cron && next.period !== config.period)
+      setTriggerState((tr) => ({ ...tr, kind: 'cron', cron }));
+  };
+  const periodBased = cronForPeriod(config.period) !== null;
 
   const changeType = (next: string) => {
     setType(next);
@@ -177,6 +199,9 @@ export function JobForm({
     };
   };
 
+  const firstRun = useApiMutation((api, id: string) => api.post(`/scheduler/jobs/${id}/run`), {
+    invalidate: INVALIDATE,
+  });
   const save = useApiMutation(
     (api, body: CreateJobInput) =>
       job
@@ -186,7 +211,12 @@ export function JobForm({
       invalidate: INVALIDATE,
       silent: true,
       success: job ? t('form.saved') : t('form.created'),
-      onSuccess: (saved) => router.push(jobHref(saved.id)),
+      onSuccess: (saved) => {
+        // "Also run it now": this period's assignment opens today instead of at the next scheduled run.
+        if (!job && periodBased && runFirst && saved.enabled)
+          firstRun.mutate(saved.id, { onSettled: () => router.push(jobHref(saved.id)) });
+        else router.push(jobHref(saved.id));
+      },
     },
   );
 
@@ -199,6 +229,7 @@ export function JobForm({
     if (trigger.kind === 'interval' && !(Number(trigger.intervalMinutes) >= 1))
       local['trigger.intervalMinutes'] = t('form.intervalInvalid');
     setErrors(local);
+    if (ADVANCED_FIELDS.some((f) => local[f])) setAdvancedOpen(true);
     if (Object.keys(local).length) {
       toast.error(t('form.checkFields'));
       return;
@@ -209,6 +240,7 @@ export function JobForm({
           const issues =
             (err.details as { issues?: { path: string; message: string }[] } | undefined)?.issues ?? [];
           setErrors(Object.fromEntries(issues.map((i) => [i.path, i.message])));
+          if (issues.some((i) => ADVANCED_FIELDS.some((f) => i.path.startsWith(f)))) setAdvancedOpen(true);
           toast.error(t('form.checkFields'));
           return;
         }
@@ -355,89 +387,6 @@ export function JobForm({
         <TriggerEditor value={trigger} onChange={setTrigger} errors={errors} jobId={job?.id} />
       </Section>
 
-      <Section title={t('form.execution')}>
-        <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <FormRow label={t('fields.timeout')} hint={t('form.timeoutHint')} error={errors.timeoutSeconds}>
-            {({ id, describedBy, invalid }) => (
-              <NumberInput
-                id={id}
-                value={timeoutSeconds}
-                onChange={setTimeoutSeconds}
-                min={1}
-                describedBy={describedBy}
-                invalid={invalid}
-                className="sm:w-full"
-              />
-            )}
-          </FormRow>
-          <FormRow
-            label={t('form.maxAttempts')}
-            hint={t('form.maxAttemptsHint')}
-            error={errors['retries.maxAttempts']}
-          >
-            {({ id, describedBy, invalid }) => (
-              <NumberInput
-                id={id}
-                value={maxAttempts}
-                onChange={setMaxAttempts}
-                min={1}
-                max={10}
-                describedBy={describedBy}
-                invalid={invalid}
-                className="sm:w-full"
-              />
-            )}
-          </FormRow>
-          <FormRow label={t('form.backoff')} hint={t(`form.backoffHint.${backoff}`)}>
-            {({ id, describedBy }) => (
-              <Select value={backoff} onValueChange={(v) => setBackoff(v as 'fixed' | 'exponential')}>
-                <SelectTrigger id={id} className="w-full" aria-describedby={describedBy}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fixed">{t('form.backoffs.fixed')}</SelectItem>
-                  <SelectItem value="exponential">{t('form.backoffs.exponential')}</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          </FormRow>
-          <FormRow
-            label={t('form.retryDelay')}
-            hint={t('form.retryDelayHint')}
-            error={errors['retries.delaySeconds']}
-          >
-            {({ id, describedBy, invalid }) => (
-              <NumberInput
-                id={id}
-                value={delaySeconds}
-                onChange={setDelaySeconds}
-                min={1}
-                max={3600}
-                describedBy={describedBy}
-                invalid={invalid}
-                className="sm:w-full"
-              />
-            )}
-          </FormRow>
-        </div>
-        <FormRow label={t('fields.concurrency')} hint={t(`form.concurrencyHint.${concurrency}`)}>
-          {({ id, describedBy }) => (
-            <Select value={concurrency} onValueChange={(v) => setConcurrency(v as 'skip' | 'queue')}>
-              <SelectTrigger id={id} className="w-full sm:w-80" aria-describedby={describedBy}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CONCURRENCY_POLICIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {t(`concurrency.${c}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </FormRow>
-      </Section>
-
       <Section title={t('form.alerts')} description={t('form.alertsHint')}>
         <div className="grid min-w-0 gap-4">
           <SwitchRow
@@ -452,25 +401,121 @@ export function JobForm({
             checked={channels}
             onChange={setChannels}
           />
-          <FormRow
-            label={t('form.autoDisable')}
-            hint={t('form.autoDisableHint')}
-            error={errors['alerts.autoDisableAfter']}
-          >
-            {({ id, describedBy, invalid }) => (
-              <NumberInput
-                id={id}
-                value={autoDisable}
-                onChange={setAutoDisable}
-                min={0}
-                max={100}
-                describedBy={describedBy}
-                invalid={invalid}
-              />
-            )}
-          </FormRow>
         </div>
       </Section>
+
+      <Disclosure
+        summary={t('form.advanced')}
+        open={advancedOpen}
+        onOpenChange={setAdvancedOpen}
+        className="min-w-0 rounded-xl border bg-card px-4 shadow-xs sm:px-6"
+        triggerClassName="py-4 font-semibold"
+      >
+        <p className="-mt-2 pb-4 text-sm text-muted-foreground">{t('form.advancedHint')}</p>
+        <div className="grid min-w-0 gap-6 pb-6">
+          <Section title={t('form.execution')}>
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <FormRow label={t('fields.timeout')} hint={t('form.timeoutHint')} error={errors.timeoutSeconds}>
+                {({ id, describedBy, invalid }) => (
+                  <NumberInput
+                    id={id}
+                    value={timeoutSeconds}
+                    onChange={setTimeoutSeconds}
+                    min={1}
+                    describedBy={describedBy}
+                    invalid={invalid}
+                    className="sm:w-full"
+                  />
+                )}
+              </FormRow>
+              <FormRow
+                label={t('form.maxAttempts')}
+                hint={t('form.maxAttemptsHint')}
+                error={errors['retries.maxAttempts']}
+              >
+                {({ id, describedBy, invalid }) => (
+                  <NumberInput
+                    id={id}
+                    value={maxAttempts}
+                    onChange={setMaxAttempts}
+                    min={1}
+                    max={10}
+                    describedBy={describedBy}
+                    invalid={invalid}
+                    className="sm:w-full"
+                  />
+                )}
+              </FormRow>
+              <FormRow label={t('form.backoff')} hint={t(`form.backoffHint.${backoff}`)}>
+                {({ id, describedBy }) => (
+                  <Select value={backoff} onValueChange={(v) => setBackoff(v as 'fixed' | 'exponential')}>
+                    <SelectTrigger id={id} className="w-full" aria-describedby={describedBy}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixed">{t('form.backoffs.fixed')}</SelectItem>
+                      <SelectItem value="exponential">{t('form.backoffs.exponential')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </FormRow>
+              <FormRow
+                label={t('form.retryDelay')}
+                hint={t('form.retryDelayHint')}
+                error={errors['retries.delaySeconds']}
+              >
+                {({ id, describedBy, invalid }) => (
+                  <NumberInput
+                    id={id}
+                    value={delaySeconds}
+                    onChange={setDelaySeconds}
+                    min={1}
+                    max={3600}
+                    describedBy={describedBy}
+                    invalid={invalid}
+                    className="sm:w-full"
+                  />
+                )}
+              </FormRow>
+            </div>
+            <FormRow label={t('fields.concurrency')} hint={t(`form.concurrencyHint.${concurrency}`)}>
+              {({ id, describedBy }) => (
+                <Select value={concurrency} onValueChange={(v) => setConcurrency(v as 'skip' | 'queue')}>
+                  <SelectTrigger id={id} className="w-full sm:w-80" aria-describedby={describedBy}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONCURRENCY_POLICIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {t(`concurrency.${c}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </FormRow>
+          </Section>
+          <div className="grid min-w-0 gap-4">
+            <FormRow
+              label={t('form.autoDisable')}
+              hint={t('form.autoDisableHint')}
+              error={errors['alerts.autoDisableAfter']}
+            >
+              {({ id, describedBy, invalid }) => (
+                <NumberInput
+                  id={id}
+                  value={autoDisable}
+                  onChange={setAutoDisable}
+                  min={0}
+                  max={100}
+                  describedBy={describedBy}
+                  invalid={invalid}
+                />
+              )}
+            </FormRow>
+          </div>
+        </div>
+      </Disclosure>
 
       <Section title={t('form.state')}>
         <SwitchRow
@@ -483,6 +528,24 @@ export function JobForm({
         {scriptBlocked && <RunnerNotice sandbox={sandbox} />}
       </Section>
 
+      {!job && periodBased && (
+        <div className="flex items-start gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs sm:px-6">
+          <Checkbox
+            id="job-run-first"
+            checked={runFirst}
+            onCheckedChange={(v) => setRunFirst(v === true)}
+            aria-describedby="job-run-first-hint"
+            className="mt-0.5"
+          />
+          <div className="min-w-0">
+            <Label htmlFor="job-run-first">{t('form.runFirst')}</Label>
+            <p id="job-run-first-hint" className="text-xs text-muted-foreground">
+              {t('form.runFirstHint')}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap justify-end gap-2">
         <Button
           type="button"
@@ -491,7 +554,7 @@ export function JobForm({
         >
           {tc('cancel')}
         </Button>
-        <Button type="submit" loading={save.isPending}>
+        <Button type="submit" loading={save.isPending || firstRun.isPending}>
           {job ? tc('saveChanges') : t('form.create')}
         </Button>
       </div>

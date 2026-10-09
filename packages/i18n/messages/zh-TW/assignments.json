@@ -16,7 +16,7 @@
   "submitted": "已完成：{title}（{reference}）",
   "todo": {
     "title": "待辦事項",
-    "description": "請你在期限前填寫的表單。",
+    "description": "請您在期限前填寫的表單。",
     "count": "{count, plural, other {# 項待處理}}",
     "more": "{count, plural, other {還有 # 項}}",
     "showAll": "顯示全部",
@@ -24,7 +24,7 @@
   },
   "dashboard": {
     "title": "待辦事項",
-    "description": "請你在期限前填寫的表單。",
+    "description": "請您在期限前填寫的表單。",
     "open": "全部開啟"
   },
   "banner": {
@@ -32,11 +32,11 @@
     "due": "期限 {date}",
     "assignedBy": "由 {name} 指派",
     "scheduled": "由排程作業建立",
-    "group": "指派給 {group}：任何成員皆可填寫。",
+    "group": "指派給 {group}：任何成員都可以填寫。",
     "done": "此待辦事項已完成：",
     "doneBy": "此待辦事項已由 {name} 完成：",
     "cancelled": "此待辦事項已取消。填寫表單不會完成任何待辦事項。",
-    "notYours": "此待辦事項並未指派給你。填寫表單不會完成它。",
+    "notYours": "此待辦事項並未指派給您。填寫表單不會完成它。",
     "willComplete": "送出表單即完成此待辦事項。"
   },
   "admin": {
@@ -145,6 +145,6 @@
     "titleHint": "{token} 會換成週期，例如 {example}。",
     "note": "備註（選填）",
     "noteHint": "與表單一同顯示給被指派者。",
-    "example": "本週期（依你的時區）：「{title}」，期限 {due}。"
+    "example": "本週期（依您的時區）：「{title}」，期限 {due}。"
   }
 }

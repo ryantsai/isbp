@@ -34,7 +34,7 @@ export default function ReviewsPage() {
   const [state, set] = useListState({ pageSize: 25 });
   const view: View = VIEWS.includes(state.view as View) ? (state.view as View) : 'all';
   const summary = useApiQuery<MySummary>('/dbaccess/me/summary');
-  const { data, isLoading, isFetching } = useApiQuery<Page<Review>>('/dbaccess/reviews', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<Review>>('/dbaccess/reviews', {
     page: state.page,
     pageSize: state.pageSize,
     status: view === 'all' ? undefined : view,
@@ -51,7 +51,7 @@ export default function ReviewsPage() {
         cell: ({ row }) => (
           <span className="grid min-w-0">
             <Link
-              href={`/dbaccess/reviews/${row.original.id}`}
+              href={`/dbaccess/reviews/${row.original.reference}`}
               onClick={(e) => e.stopPropagation()}
               className="truncate font-medium outline-none hover:underline focus-visible:underline"
             >
@@ -98,8 +98,10 @@ export default function ReviewsPage() {
       pageSize={state.pageSize}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(r) => r.id}
-      onRowClick={(r) => router.push(`/dbaccess/reviews/${r.id}`)}
+      onRowClick={(r) => router.push(`/dbaccess/reviews/${r.reference}`)}
       onPageChange={(page) => set({ page })}
       onPageSizeChange={(pageSize) => set({ pageSize })}
       empty={
@@ -142,7 +144,7 @@ export default function ReviewsPage() {
               {awaiting.map((r) => (
                 <StaggerItem key={r.id} className="min-w-0">
                   <Link
-                    href={`/dbaccess/reviews/${r.id}?view=mine`}
+                    href={`/dbaccess/reviews/${r.reference}?view=mine`}
                     className="flex h-full min-w-0 items-center gap-3 rounded-xl border bg-card p-4 shadow-xs outline-none hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     <ClipboardCheckIcon className="size-5 shrink-0 text-primary" aria-hidden />
@@ -183,7 +185,7 @@ export default function ReviewsPage() {
         <ReviewFormDialog
           open={creating}
           onOpenChange={setCreating}
-          onCreated={(r) => router.push(`/dbaccess/reviews/${r.id}`)}
+          onCreated={(r) => router.push(`/dbaccess/reviews/${r.reference}`)}
         />
       )}
     </>

@@ -470,7 +470,12 @@ export const logEntrySchema = z.object({
   level: logLevelSchema,
   message: z.string(),
   ref: z
-    .object({ remote: z.string().optional(), local: z.string().optional(), linkId: z.string().optional() })
+    .object({
+      remote: z.string().optional(),
+      local: z.string().optional(),
+      linkId: z.string().optional(),
+      fields: z.array(labelSchema).optional(),
+    })
     .optional(),
 });
 export type LogEntryDto = z.infer<typeof logEntrySchema>;
@@ -619,6 +624,9 @@ export const conflictDetailSchema = conflictSummarySchema.extend({
   details: z.array(conflictFieldSchema),
   choices: z.record(z.string(), z.enum(['local', 'remote'])).nullable(),
   canResolve: z.boolean(),
+  /** When each side last changed (and, here, by whom when the audit log says so). */
+  localChange: z.object({ at: dateTime, by: z.string().nullable() }).nullable(),
+  remoteChange: z.object({ at: dateTime }).nullable(),
 });
 export type ConflictDetail = z.input<typeof conflictDetailSchema>;
 export type ConflictDetailOut = z.output<typeof conflictDetailSchema>;

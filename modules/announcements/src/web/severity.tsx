@@ -1,38 +1,66 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import { InfoIcon, TriangleAlertIcon, WrenchIcon } from 'lucide-react';
+import { defineStatusMap, MappedStatus } from '@isbp/ui/status';
+import {
+  ArchiveIcon,
+  CircleCheckIcon,
+  ClockIcon,
+  InfoIcon,
+  PencilLineIcon,
+  TriangleAlertIcon,
+  WrenchIcon,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { Severity } from '../contracts';
+import type { PostStatus, Severity } from '../contracts';
 
-const STYLE: Record<Severity, { icon: typeof InfoIcon; className: string; bar: string }> = {
-  info: { icon: InfoIcon, className: 'bg-info/12 text-info', bar: 'bg-info' },
-  maintenance: { icon: WrenchIcon, className: 'bg-warning/15 text-warning-foreground', bar: 'bg-warning' },
-  incident: {
-    icon: TriangleAlertIcon,
-    className: 'bg-destructive/10 text-destructive',
-    bar: 'bg-destructive',
-  },
+/** Severity, mapped once: tone + icon + label (never colour alone). */
+const SEVERITY = defineStatusMap<Severity>({
+  info: { tone: 'info', icon: InfoIcon, labelKey: 'info' },
+  maintenance: { tone: 'warning', icon: WrenchIcon, labelKey: 'maintenance' },
+  incident: { tone: 'destructive', icon: TriangleAlertIcon, labelKey: 'incident' },
+});
+
+const BAR: Record<Severity, string> = {
+  info: 'bg-info',
+  maintenance: 'bg-warning',
+  incident: 'bg-destructive',
 };
 
-/** Severity is always icon + label + colour — never colour alone. */
 export function SeverityBadge({ severity, className }: { severity: Severity; className?: string }) {
   const t = useTranslations('announcements.severity');
-  const { icon: Icon, className: tone } = STYLE[severity];
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium',
-        tone,
-        className,
-      )}
-    >
-      <Icon className="size-3.5" aria-hidden />
-      {t(severity)}
-    </span>
-  );
+  return <MappedStatus map={SEVERITY} value={severity} t={(k) => t(k as Severity)} className={className} />;
 }
 
+/** The coloured edge of a post card (decoration next to the severity badge, which carries the meaning). */
 export function severityBar(severity: Severity) {
-  return STYLE[severity].bar;
+  return BAR[severity];
+}
+
+/** Where a post is in its life. Published is the normal state, so it only shows on the post page. */
+const STATUS = defineStatusMap<PostStatus>({
+  draft: { tone: 'muted', icon: PencilLineIcon, labelKey: 'draft' },
+  pending: { tone: 'warning', icon: ClockIcon, labelKey: 'pending' },
+  published: { tone: 'success', icon: CircleCheckIcon, labelKey: 'published' },
+  archived: { tone: 'muted', icon: ArchiveIcon, labelKey: 'archived' },
+});
+
+export function PostStatusBadge({
+  status,
+  animate,
+  className,
+}: {
+  status: PostStatus;
+  animate?: boolean;
+  className?: string;
+}) {
+  const t = useTranslations('announcements.status');
+  return (
+    <MappedStatus
+      map={STATUS}
+      value={status}
+      t={(k) => t(k as PostStatus)}
+      animate={animate}
+      className={className}
+    />
+  );
 }

@@ -2,12 +2,13 @@
 
 This guide is for administrators and team leads who turn an IT practice into a self-service process: a
 configuration change, a firewall rule, a new virtual server, a software purchase. In ISBP, any such process is a
-request form, an approval workflow and the actions that run after the decision. You build the three parts on the
-admin pages, or describe the process to the assistant, and then share the form's link.
+request form, an approval workflow and the actions that run after the decision. You build all three in one place,
+the form builder, or describe the process to the assistant, and then share the form's link.
 
 ## What you can do here
 
 - See [how a process fits together](#how-a-process-fits-together) and [plan yours](#plan-the-process)
+- Know [what you build yourself and what needs development](#what-you-build-yourself-and-what-needs-development)
 - [Build the form](#build-the-form), with [fields that pick CIs, applications or assets](#let-people-pick-records)
   and [rules across fields](#add-rules-across-fields)
 - [Choose who approves](#choose-who-approves), [routing on the picked records](#route-on-the-answers-and-the-picked-records)
@@ -28,7 +29,7 @@ Every process has the same three parts, and one link people use to start it.
 | Part                  | What it does                                                                                                                    | Where you build it                            |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | The form              | Asks what you need to know: text, dates, choices, people, and records such as CIs or applications. Rules check answers together | **Administration → Forms**                    |
-| The approval workflow | Decides who approves, in which order and by when, from the answers and from the data of the picked records                      | **Administration → Workflows**                |
+| The approval workflow | Decides who approves, in which order and by when, from the answers and from the data of the picked records                      | The form's **Approval** tab                   |
 | The actions           | Do the work after the request is sent, approved or rejected: raise a change, grant a role, notify people, call another system   | The form's **Actions** tab                    |
 | The link              | `/requests/forms/<key>` opens the form; the form is also a card under **Requests → What do you need?**                          | The form's **Key**, chosen when you create it |
 
@@ -39,6 +40,27 @@ approval that another area requires, such as the CAB for changes.
 
 To build forms and workflows you need the **Workflow administrator** role (a **Platform administrator** can do
 everything). Some actions need another role as well: see [What each action does](#what-each-action-does).
+
+### What you build yourself and what needs development
+
+A process is **configuration**: you build it on the admin pages or with the assistant, and nobody writes code for it.
+You build it from **building blocks** ISBP already has: the field types, rules, approval options, actions and
+reminders in this guide, and forms assigned on a schedule (see
+[Ask people to fill in a form by a date](administrators.md#ask-people-to-fill-in-a-form-by-a-date)). Most IT processes
+need nothing else.
+
+| Term            | What it is                                                                                                                                                        | Who makes it                                                                                                              |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Process         | A form, its approval workflow and its actions. Recurring work also has a scheduled job that assigns the form                                                      | Workflow administrators, on the admin pages or with the assistant                                                         |
+| Process pack    | Several processes and what they need (groups, categories, schedules), installed together as one change set                                                        | Comes with a module (such as the ISMS process pack) or as a package file; installed from **Administration → Change sets** |
+| Building block  | Something every process can use: a field type, a rule, an approval option, an action                                                                              | The platform team, in code                                                                                                |
+| Record type     | A kind of thing we keep and look after over time, with its own pages, states and rules: a ticket, an asset, an account review                                     | The platform team, as a module                                                                                            |
+| Connector       | How ISBP reaches another system, such as ServiceDesk Plus or Azure DevOps Server                                                                                  | The platform team, as a module                                                                                            |
+| Outside control | A control another system enforces, such as a firewall rule or disk encryption. ISBP keeps the request that asked for it and the checks that confirm it's in place | The team that runs that system                                                                                            |
+
+When a process can't be built, the missing piece is a building block, a record type or a connector. Ask the platform
+team for that piece rather than for the whole process: they add it so that any process can use it, and you still build
+the process yourself, as configuration.
 
 ## Plan the process
 
@@ -62,14 +84,17 @@ see [the walkthrough](#walk-through-the-demo-configuration-change-request).
 
 Start with the questions; you add the approval and the actions to the same form afterwards.
 
-1. Go to **Administration → Forms** and select **New form**. Enter a **Name**, a **Key**, an **Icon** and a
-   **Category**, then select **Create and open builder**. The key is the end of the form's link
-   (`/requests/forms/<key>`) and can't be changed later.
-2. On **Build**, drag fields from **Add elements** onto the form, or click one to add it: **Short text**, **Long
+1. Go to **Administration → Forms** and select **New form**. Enter a **Name**, a **Key** and an **Icon**, pick a
+   **Category** (or type a new one and select **Add “…” as a new category**), then select **Create and open
+   builder**. The key is the end of the form's link (`/requests/forms/<key>`) and can't be changed later.
+2. On **Questions**, drag fields from **Add elements** onto the form, or click one to add it: **Short text**, **Long
    text**, **Number**, **Checkbox**, **Date**, **Dropdown**, **Multiple choice**, **Email**, **Link**, **Person** and
    **Record**.
-3. Select a field to set its **Label** (in English, 繁體中文 and 日本語), **Key**, **Help text**, **Required** and its
-   options. Use **Show this field only when…** for questions that only apply sometimes.
+3. Select a field to set its **Label** (in English, 繁體中文 and 日本語), **Required** and its own options (choices,
+   record types). The rest, such as help text, width, a **Format** for the answer and **Show this field only
+   when…** for questions that only apply sometimes, is under **More options**. The field's **Key** is made from the
+   English label; you only need it for webhooks and exports, under **Advanced**. **Show field keys** shows the keys on
+   the canvas.
 4. Add [record fields](#let-people-pick-records) and [rules](#add-rules-across-fields) as needed, and try the form on
    **Preview**.
 5. Select **Save**.
@@ -84,7 +109,7 @@ touches, the application someone needs access to, the laptop to replace. The ans
 approvers can open it, the workflow can route on its data, and actions can use it, for example to link a change to
 the picked CIs.
 
-1. On **Build**, add a **Record** field and give it a label, for example "Configuration items".
+1. On **Questions**, add a **Record** field and give it a label, for example "Configuration items".
 2. Select the field. Under **Records**, tick the **Record types** people can pick, for example **Configuration
    item**.
 3. Turn on **Allow several** to let people pick up to 20 records.
@@ -138,32 +163,34 @@ change needs a rollback plan. They're checked when people select **Submit**, aga
 and once more on the server, so a request that breaks a rule can't be sent.
 
 1. Open the **Rules** tab and select **Add rule**.
-2. Under **When (optional)**, add a condition if the rule only applies sometimes; leave it empty to always check.
-3. Under **Require**, add what must be true: choose the **Field**, the **Operator** and a **Value**. To compare two
-   answers, select **Compare with another field** and choose the **Other field**.
+2. Under **When (optional)**, select **Add condition** if the rule only applies sometimes; leave it empty to always
+   check.
+3. Under **Require**, select **Add condition** and add what must be true: choose the **Field**, the **Operator** and a
+   **Value**. To compare two answers, select **Compare with another field** and choose the **Other field**; for a date,
+   **Today** compares with the day the request is sent. A rule can't be saved without a complete **Require**.
 4. Write the **Message** people see when the rule isn't met, in each language.
 5. Under **Show the message on**, tick the fields to fix. With none ticked, the message shows above the form.
 6. Select **Add rule**, then **Save**.
 
 The demo's **Configuration change request** has two rules:
 
-| Message                                     | When (optional)          | Require                                                                            | Show the message on |
-| ------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------- | ------------------- |
-| The end date can’t be before the start date | —                        | **Planned end** **is at least**, **Compare with another field**: **Planned start** | **Planned end**     |
-| A high-risk change needs a rollback plan    | **Risk** **is** **High** | **Rollback plan** **is filled in**                                                 | **Rollback plan**   |
+| Message                                     | When (optional)          | Require                                                                               | Show the message on |
+| ------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------- | ------------------- |
+| The end date can’t be before the start date | —                        | **Planned end** **is on or after**, **Compare with another field**: **Planned start** | **Planned end**     |
+| A high-risk change needs a rollback plan    | **Risk** **is** **High** | **Rollback plan** **is filled in**                                                    | **Rollback plan**   |
 
 ![The Rules tab with the two rules of the configuration change request](../../../apps/web/public/help/en/processes-rules.jpg)
 
 **What happens next:** the rule is part of the draft and goes live when you publish. People see its message only
 once the fields' own checks pass (required fields filled in, valid dates).
 
-> **Tip:** Dates compare by day, so **is at least** allows the same day. A comparison with an empty answer is never
+> **Tip:** Dates compare by day, so **is on or after** allows the same day. A comparison with an empty answer is never
 > met: if one of the dates is optional, add **When** "**Planned start** **is filled in**" (and the same for the end)
 > so the rule only checks when both are given.
 
 > **Tip:** A date condition can add or take away days: type them in the **days** box next to the value, for example
-> **Planned end** **is at most** **Planned start** + `366` days ("at most a year"). **Today** is in the list of fields
-> too: **Planned start** **is at least** **Today** refuses a start in the past.
+> **Planned end** **is on or before** **Planned start** + `366` days ("at most a year"). With **Today** next to the
+> value box, **Planned start** **is on or after** **Today** refuses a start in the past.
 
 ### Collect several rows in a table
 
@@ -185,22 +212,29 @@ in **Show this field only when…**, in rules, in the approval workflow and in *
 
 ## Choose who approves
 
-The approval workflow decides who approves each request. Build it once the form's fields exist, so the workflow can
-use them.
+The approval decides who approves each request. You build it on the form's own **Approval** tab, next to the
+questions, so it can use the answers and the data of the picked records straight away.
 
-1. Go to **Administration → Workflows** and select **New workflow**. Under **Used for**, choose **Form submission**,
-   enter a **Name** and select **Create and open**. (The form's **Settings** tab also has **Create a workflow**, which
-   takes you here.)
-2. Open the **Workflow** tab and choose your form under **Use the fields of**. Conditions and approvers can now use
-   its answers and the data of the records it picks. Once a form uses the workflow, it's chosen for you.
-3. Add steps with **Add a step here**: **Approval**, **Decision**, **In parallel** or **Notification**. Each step's
-   approvers, conditions and deadlines are described in
-   [Design an approval workflow](administrators.md#design-an-approval-workflow).
-4. Try it on **Test**, select **Save draft**, then **Publish**.
-5. Back on the form's **Settings** tab, under **Approval**, choose the workflow and select **Save**.
+1. In the form builder, open the **Approval** tab and select **Set up an approval**. A first step is ready: **Manager
+   approval**, the requester's manager, or their department head when they have none.
+2. Change it or add steps with **Add a step here** on the canvas: **Approval**, **Decision**, **In parallel** or
+   **Notification**. Select a step to set it up on **Step**: who approves, and, under the collapsed sections, **Fields
+   the approver fills in**, **Deadline**, **Options** and **Condition**. A new approval step is named after its
+   approver ("Manager approval", "Application: Business owner approval"); rename it if you like. Each option is
+   described in [Design an approval workflow](administrators.md#design-an-approval-workflow).
+3. Try it on **Test**: under **Try as**, choose a person to fill in their department and job title, enter example
+   answers, choose how each approval goes and select **Run test**.
+4. Select **Save** to keep your work, and **Publish** when the whole process is ready: one **Publish** puts the
+   approval and the form live together.
 
-**What happens next:** new requests of the form go through the workflow. Publish the workflow before the form: a
-form whose workflow isn't published can't be published.
+To use an approval you already have, choose it under **Approval used**; choose **No approval** to let requests go
+ahead as soon as they're sent. **Open in the workflow designer** opens the same approval on its own page, with its
+versions and the forms that use it. When another form uses the same approval, the tab says so: your changes apply to
+it too.
+
+**What happens next:** new requests of the form go through the approval once you publish. **Administration →
+Workflows** lists it under **Approvals for forms**, with the forms that use it; the built-in approvals of access,
+changes and other areas are listed there under **Built-in approvals**.
 
 ### Ask approvers to fill in fields
 
@@ -221,16 +255,17 @@ review: Result is Needs the CAB"), and **Test** lets you try them. In an action'
 
 ### Route on the answers and the picked records
 
-When you've chosen the form under **Use the fields of**, the **Field** lists in conditions (a **Decision** step, or
-**Only run this step in some cases**) include the form's answers and the data of the picked records, named "field:
-data", for example **Configuration items: Criticality** or **Configuration items: Environment**.
+On the form's **Approval** tab, the **Field** lists in conditions (a **Decision** step, or **Only run this step in some
+cases** under **Condition**) include the form's answers and the data of the picked records, named "field: data", for
+example **Configuration items: Criticality** or **Configuration items: Environment**.
 
 - For a field that picks several records, a condition such as **Configuration items: Criticality** **is**
   **Critical** is met when any of the picked records is critical.
-- Combine conditions with **Match** **any rule** for "or": the CAB approves when a picked CI is critical, or when
+- Combine conditions with **Match** **any condition** for "or": the CAB approves when a picked CI is critical, or when
   the **Risk** answer is **High**.
 - On the **Test** tab, enter example **Request values**, including the picked records' data, and select **Run test**
-  to see which steps run.
+  to see which steps run. The form's **Preview** tab shows the same with real people: answer the questions and read
+  **Who will approve this?**.
 
 ### Let a group named in a record approve
 
@@ -238,12 +273,12 @@ Often the right approver is the team that looks after the system the request is 
 delivery team of an application. **Group in a field** takes that group from the picked record, so one workflow
 serves every CI.
 
-1. Select an approval step on the canvas, then **Add approver** on the **Step** tab.
+1. On the form's **Approval** tab, select an approval step on the canvas, then **Add approver** on the **Step** tab.
 2. Under **Approver type**, choose **Group in a field**, then the field that holds the group, for example
    **Configuration items: Support group**.
 3. Decide what happens when a record has no group: add a fallback with **If nobody is found, ask** (in the demo,
-   the **IT Administrators** group), or under **Options** set **If no approver is found** to **Skip this step**.
-   Otherwise the request is rejected at that step.
+   the **IT Administrators** group), or set **If no approver is found** to **Skip this step**. Otherwise the request
+   is rejected at that step, and **Before you publish** reminds you.
 
 ![The workflow builder with an approval step for the support group of the picked CIs](../../../apps/web/public/help/en/processes-workflow.jpg)
 
@@ -255,8 +290,9 @@ Groups you can take from a record: a CI's **Support group**, an application's **
 group**, and a ticket's **Assignment group**. **Person in a field** works the same way for a person, such as a CI's
 **Owner**, an application's **Technical owner** or **Business owner**, or a project's **Project manager**.
 
-> **Tip:** If **Group in a field** says no field holds a group yet, choose a form with a record field under **Use the
-> fields of** on the **Workflow** tab first.
+> **Tip:** If **Group in a field** says no field holds a group yet, add a record field to the form first (for example
+> configuration items, whose support group is a group). In the workflow designer, choose the form under **Use the
+> fields of** on the **Workflow** tab.
 
 ### Use custom fields in built-in approvals
 
@@ -264,8 +300,8 @@ Some approvals are started by an area of ISBP rather than by a form: **Change au
 **Asset disposal** and **Project proposal**. Their workflows can also use the custom fields of the record they
 approve.
 
-1. In **Administration → Custom fields**, add the field to **Ticket** (for changes), **Hardware asset** (for
-   disposals) or **Project** (for proposals), for example a **Record** field "Business application" that picks an
+1. In **Administration → Custom fields**, add the field to **Tickets** (for changes), **Hardware assets** (for
+   disposals) or **Projects** (for proposals), for example a **Record** field "Business application" that picks an
    **Application**.
 2. Open the approval's workflow in **Administration → Workflows**. The **Field** lists now include the custom field
    and, for a record field, the picked record's data, for example **Business application: Criticality**.
@@ -335,7 +371,8 @@ everything, can add them too.
 ### Run an action only in some cases
 
 Under **Only when…** in an action's settings, add conditions on the answers (table columns included), the records'
-data, what approvers filled in, the requester's department or job title, or **Today**. Without conditions the action
+data, what approvers filled in, the requester's department or job title, or **Today**. Without conditions ("No
+conditions: runs for every request.") the action
 always runs. For example, "grant the VPN role **Only when** **Access** **is** **VPN**". When the conditions don't hold
 for a request, the action shows as **Skipped** with "Not needed for this request: its condition didn't hold."; it
 can't be retried.
@@ -357,15 +394,15 @@ doesn't stop the others; the next one still runs.
 Text settings, such as a change's **Title** or a notification's **Message**, can include values from the request.
 Select **Insert value** next to the field and choose one:
 
-- **Answers**: each answer as stored, and for dropdowns, choices, people and checkboxes also "(as shown)", the text
-  people see.
-- **Picked records**: the data of the records picked in record fields, such as **Configuration items: Criticality**.
+- **Answers**: each answer as people read it: the choice's label, the person's name, the picked records' names.
+- **Picked records**: the name and the data of the records picked in record fields, such as **Application: Name** or
+  **Configuration items: Criticality**.
 - **Request**: **Request number**, **Link to the request**, **Form name**, **Requester's name**, **Requester's
   email** and **Approver's name**.
 
-The value appears as a placeholder such as `{{request.reference}}` or `{{data.title}}`, replaced when the action
-runs. A value the request doesn't have stays empty. Placeholders only fill text: choices, people, numbers and URLs
-are used exactly as you set them.
+Inserted values show as chips with their label, and an example under the setting shows what the text will look like,
+for example "e.g. REQ-01042 Buy Figma". The values are filled in when the action runs; a value the request doesn't
+have stays empty. Values only fill text: choices, people, numbers and URLs are used exactly as you set them.
 
 ### Actions never skip another approval
 
@@ -393,15 +430,23 @@ the approver.
 
 ## Publish the form and share its link
 
-When the fields, rules, approval and actions are ready, publish the form.
+When the questions, rules, approval and actions are ready, publish the process.
 
-1. In the builder, select **Publish** and confirm. If **Publish** is unavailable, its hint says why, for example
-   that the attached workflow must be published first.
-2. On **Settings**, check the **Audience** (**Everyone** or **Specific groups**) and that **Accepting requests** is
+1. On **Settings**, check the **Audience** (**Everyone** or **Specific groups**) and that **Accepting requests** is
    on.
-3. Open **More actions** and select **Open in the portal**. Copy the address from the browser: it is
-   `/requests/forms/<key>` on our ISBP address, for example `/requests/forms/config-change` in the demo.
-4. Share the link in a knowledge article, an announcement, a team channel or an email.
+2. Select **Publish**. If **Publish** is unavailable, its hint says why, for example that a question or an approval
+   step still has a problem.
+3. Read **Before you publish**. It warns about what would stop the process working for the people who use it, with a
+   fix next to each warning:
+   - a record field whose records part of the audience can't see, so they'd find nothing to pick (**Limit the
+     audience** or **Choose another record type**);
+   - an approver taken from a field with nothing to fall back on, so an empty field rejects every request (**Add a
+     fallback** or **Skip the step instead**);
+   - an approver group without active members, or a role nobody holds.
+4. Select **Publish** (or **Publish anyway**). The approval is published first, then the form.
+5. In the bar that appears, select **Copy link**, or **Open in the portal**. The link is `/requests/forms/<key>` on our
+   ISBP address, for example `/requests/forms/config-change` in the demo. Share it in a knowledge article, an
+   announcement, a team channel or an email.
 
 **What happens next:** the form appears under **Requests → What do you need?** for its audience, grouped by its
 category, and the link opens it directly. People outside the audience see "This form isn't available". Requests made
@@ -421,9 +466,11 @@ would need (including each action's own role).
    and the CAB too when a CI is critical or the risk is high. When it's approved, raise a change for the CIs and
    submit it for authorization."
 3. The assistant looks up the record types, groups and actions it may use, proposes the workflow and the form, and
-   runs a dry run. The panel shows a **Change set** card; select **Review and apply**.
-4. Review each change. **Preview** shows the workflow diagram (select **Try it** to run it) and the form as people
-   will see it.
+   checks that they can be applied (**Ready to apply**). The panel shows a **Change set** card; select **Review and
+   apply**.
+4. Review the change set: each process is one group, with a sentence saying what it creates (the questions, who
+   approves and what happens after). Previews show the workflow diagram (select **Try it** to run it) and the form as
+   people will see it.
 5. Select **Apply**, or ask the assistant to apply it and confirm on its card. If you can't apply it yourself,
    select **Request review**.
 
@@ -433,13 +480,13 @@ assistant's card, or a reviewer applies it, the assistant also posts the link in
 (**Ready to use:**). Change sets in detail:
 [Assistant and AI](assistant-and-ai.md#change-configuration-with-a-change-set).
 
-**Without a chat model**, use the **Approval process** guided template. It asks for the **Form name** and
-**Category**, the **Records people pick** (for example configuration items) and up to three more questions, and who
-approves: **The requester's manager approves first**, **Then the group responsible for the picked records approves**
-(for CIs, their support group), **Then a group approves**. **When a request is approved, raise a change** adds a
-**Raise a change** action for the picked CIs, submitted for authorization when the form asks for two dates. The form
-and its workflow go into one change set; add rules or conditions afterwards in the builders. See
-[Use a guided template](assistant-and-ai.md#use-a-guided-template).
+**Without a chat model**, use the **Request process** guided template. It asks for the **Form name**, a **Category**,
+**Who can use the form**, the **Records people pick** (for example an application) and up to three more questions, and
+who approves, in order: **The requester's manager approves first**, **Then the person named in the picked record
+approves** (for example the application's business owner), **Then the group responsible for the picked records
+approves** and **Then a group approves**. Under **When a request is approved**, choose **Raise a change**, **Raise a
+ticket** or **Notify a group**. Select **Prepare for review**: the form and its workflow go into one change set; add
+rules or more actions afterwards in the form builder. See [Use a guided template](assistant-and-ai.md#use-a-guided-template).
 
 ## What requesters see
 
@@ -517,7 +564,7 @@ action. Open them side by side to see how the parts fit.
 - Its **Audience** is limited to the groups that can see CIs (**IT Administrators**, **Service Desk**, **Network
   Team**, **Security Team** and **DBA Team**), so everyone it is offered to can pick them.
 
-**The approval** (**Administration → Workflows → Configuration change approval**):
+**The approval** (the form's **Approval** tab, also listed in **Administration → Workflows**):
 
 1. **Manager approval**: the requester's manager, skipped when they have none.
 2. **CI support group**: **Group in a field** with **Configuration items: Support group**, and the **IT
@@ -559,11 +606,11 @@ To try it, sign in as `helpdesk` and open `/requests/forms/config-change`:
 | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | A record picker finds nothing (**No matching records**)                                            | The person can't see records of that type, or none match **Only records where…**. Give the audience the viewer role (for CIs, **CMDB viewer**), or limit the form's **Audience** to people who have it |
 | "Choose a record you can see that this field accepts"                                              | A picked record is no longer visible to the person, or no longer matches the filter (for example the CI was retired). Pick another one                                                                 |
-| **Group in a field** says no field holds a group yet                                               | Choose a form with a record field under **Use the fields of** on the workflow's **Workflow** tab                                                                                                       |
+| **Group in a field** says no field holds a group yet                                               | Add a record field to the form first; in the workflow designer, choose the form under **Use the fields of** on the **Workflow** tab                                                                    |
 | **Who will approve this?** says "Nobody can approve this step — the request would be rejected"     | The picked record has no group (or person) for that step. Add a fallback with **If nobody is found, ask**, or set **If no approver is found** to **Skip this step**                                    |
 | A rule's message doesn't appear                                                                    | Rules are checked after the fields' own checks. Fill in the required fields first; check the rule's **When** and that **Show the message on** names a visible field                                    |
 | The action you need isn't in **Add an action** ("… more actions need a permission you don't have") | Ask for the role in [What each action does](#what-each-action-does), or ask someone who has it to add the action                                                                                       |
-| **Publish** is unavailable                                                                         | Its hint says why: publish the attached workflow first, add a field, or fix the problems the builder lists                                                                                             |
+| **Publish** is unavailable                                                                         | Its hint says why: add a field, or fix the problems the builder lists on **Questions**, **Rules**, **Approval** or **Actions**                                                                         |
 | **Raise a change** failed: "The planned window starts in the past"                                 | The change was raised but not submitted. Date answers have no time of day, so a start date that has begun is already in the past. Ask a change manager to plan the window and submit the change        |
 | **Call a webhook** failed: "… is not an allowed webhook host"                                      | Add the host to **Webhook hosts for forms** in the Core platform's settings, then **Retry**                                                                                                            |
 | An action is **Skipped**                                                                           | Its module is turned off, or the request or its form version no longer exists. Turn the module back on and **Retry**                                                                                   |

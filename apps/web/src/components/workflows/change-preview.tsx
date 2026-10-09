@@ -2,7 +2,16 @@
 
 import type { Group, Role, WorkflowTrigger } from '@isbp/contracts';
 import type { AssistantPreviewProps } from '@isbp/module-assistant/contracts';
-import { type ApproverRule, type Page, walkSteps, type WorkflowGraph, workflowGraphSchema } from '@isbp/sdk';
+import {
+  type ApproverRule,
+  type FieldDef,
+  type FormSchema,
+  formFields,
+  type Page,
+  walkSteps,
+  type WorkflowGraph,
+  workflowGraphSchema,
+} from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { usePeople } from '@isbp/ui/person-picker';
 import { type StepRuntime, WorkflowDiagram } from '@isbp/ui/workflow-diagram';
@@ -11,6 +20,7 @@ import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
 import { useApiQuery } from '@/lib/api';
 import { Segmented } from '../roles/segmented';
+import { useFieldFacts } from './field-facts';
 import { type SimulationView, Simulator } from './simulator';
 import { useFactOptions } from './use-fact-label';
 
@@ -38,6 +48,33 @@ function userIdsOf(graph: WorkflowGraph | undefined): string[] {
   return out;
 }
 
+/**
+ * The fields of the request forms in the same change set that use this workflow (by `"$ref:<name>"` while it is a
+ * draft, by id once applied), so its approvers and conditions read "Which application?: Delivery team" rather than a
+ * fact path, and Try it asks for the form's answers.
+ */
+function proposedForms(
+  props: AssistantPreviewProps,
+): { key: unknown; category: unknown; fields: FieldDef[] }[] {
+  const { item, items } = props;
+  const names = new Set(
+    [item.ref ? `$ref:${item.ref}` : null, item.targetId, item.appliedId].filter((x): x is string => !!x),
+  );
+  return (items ?? [])
+    .filter((i) => i.kind === 'core.form')
+    .flatMap((i) => {
+      const v = (i.after?.value ?? i.value) as {
+        workflowId?: unknown;
+        schema?: unknown;
+        key?: unknown;
+        category?: unknown;
+      } | null;
+      return v && typeof v.workflowId === 'string' && names.has(v.workflowId)
+        ? [{ key: v.key, category: v.category, fields: formFields(v.schema as FormSchema) }]
+        : [];
+    });
+}
+
 type Shown = 'proposed' | 'current';
 
 /**
@@ -45,7 +82,8 @@ type Shown = 'proposed' | 'current';
  * of the proposed graph (or the current one, to compare) with the builder's simulator, run by the same interpreter
  * as the server. Nothing is saved.
  */
-export default function WorkflowChangePreview({ value, current }: AssistantPreviewProps) {
+export default function WorkflowChangePreview(props: AssistantPreviewProps) {
+  const { value, current } = props;
   const t = useTranslations('workflows.changePreview');
   const id = useId();
   const proposed = useMemo(() => workflowOf(value), [value]);
@@ -62,17 +100,51 @@ export default function WorkflowChangePreview({ value, current }: AssistantPrevi
   const groups = useApiQuery<Page<Group>>(canGroups ? '/groups' : null, { pageSize: 100 });
   const people = usePeople(userIdsOf(showing?.graph));
   const trigger = triggers.data?.items.find((x) => x.key === showing?.triggerKey);
-  const facts = useFactOptions(trigger?.facts ?? []);
+  const triggerFacts = useFactOptions(trigger?.facts ?? []);
+  const forms = useMemo(
+    () => (showing?.triggerKey === 'core.form-submission' ? proposedForms(props) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.item, props.items, showing?.triggerKey],
+  );
+  const fields = useMemo(() => forms.flatMap((f) => f.fields), [forms]);
+  const formFacts = useFieldFacts(fields, 'data');
+  // Try it knows which form it is (one form: its key and category aren't asked for).
+  const known = useMemo(
+    () => (forms.length === 1 ? { form: { key: forms[0]!.key, category: forms[0]!.category } } : undefined),
+    [forms],
+  );
+  // As the builder does: a form's own answers replace the trigger's generic "data" and "records".
+  const facts = useMemo(
+    () =>
+      formFacts.length
+        ? [...triggerFacts.filter((f) => !['data', 'records'].includes(f.path)), ...formFacts]
+        : triggerFacts,
+    [triggerFacts, formFacts],
+  );
+  // Groups the same change set creates (a pack's approvers) are named too, before they exist.
+  const proposedGroups = useMemo(
+    () =>
+      (props.items ?? []).flatMap((i) => {
+        const v = (i.after?.value ?? i.value) as { key?: unknown; name?: unknown } | null;
+        return i.kind === 'core.group' && i.op !== 'delete' && v && typeof v.key === 'string'
+          ? [[v.key, typeof v.name === 'string' && v.name ? v.name : i.label] as const]
+          : [];
+      }),
+    [props.items],
+  );
   const names = useMemo(
     () => ({
-      groups: Object.fromEntries((groups.data?.items ?? []).map((g) => [g.key, g.name])),
+      groups: {
+        ...Object.fromEntries(proposedGroups),
+        ...Object.fromEntries((groups.data?.items ?? []).map((g) => [g.key, g.name])),
+      },
       roles: Object.fromEntries(
         (roles.data?.items ?? []).filter((r) => r.application.isPlatform).map((r) => [r.key, r.name]),
       ),
       users: Object.fromEntries([...people].map(([key, p]) => [key, p.displayName])),
       facts,
     }),
-    [groups.data, roles.data, people, facts],
+    [groups.data, roles.data, people, facts, proposedGroups],
   );
 
   if (!proposed)
@@ -126,7 +198,13 @@ export default function WorkflowChangePreview({ value, current }: AssistantPrevi
             <FlaskConicalIcon className="size-4 text-primary" aria-hidden />
             {t('simulate')}
           </h4>
-          <Simulator key={shown} graph={showing!.graph} facts={facts} onResult={setSimulation} />
+          <Simulator
+            key={shown}
+            graph={showing!.graph}
+            facts={facts}
+            known={known}
+            onResult={setSimulation}
+          />
         </section>
       </div>
     </div>

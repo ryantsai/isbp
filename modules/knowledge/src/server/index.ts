@@ -121,6 +121,7 @@ export default defineServerModule(manifest, {
           body: v.body,
           categoryId: await svc.categoryIdByKey(v.categoryKey),
           tags: [...new Set((v.tags ?? []).map((t) => t.toLowerCase()))],
+          // Omitted: the caller's language (`create` picks it), never silently English.
           locale: v.locale,
           audience: v.audience,
           translationOf: null,

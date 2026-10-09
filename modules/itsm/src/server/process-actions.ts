@@ -214,7 +214,7 @@ export const createChangeAction: ProcessActionHandler = {
         type: 'text',
         label: c((x) => x.title),
         required: true,
-        defaultValue: '{{request.form}}: {{requester.displayName}} ({{request.reference}})',
+        defaultValue: '{{request.form}}: {{requester.displayName}}',
         validation: { maxLength: 400 },
       },
       {
@@ -365,7 +365,8 @@ export const createChangeAction: ProcessActionHandler = {
           change: {
             changeType,
             risk,
-            reason: `Request ${request.reference}`,
+            // The change shows its source request ("From request REQ-01030 · …"): no English text here.
+            reason: '',
             plannedStart: isoOf(window.start),
             plannedEnd: isoOf(window.end),
             backoutPlan: textLong(config.backoutPlan),
@@ -387,12 +388,7 @@ export const createChangeAction: ProcessActionHandler = {
         change = await ctx.transaction((tx) =>
           svc.applyStatus(tx, change, 'assessment', { actor: actorOf(auth) }),
         );
-      change = await svc.submitChange(
-        change,
-        actorOf(auth),
-        request.requester?.id ?? null,
-        request.reference,
-      );
+      change = await svc.submitChange(change, actorOf(auth), request.requester?.id ?? null);
       submitted = true;
     }
     const reference = refOf(change);

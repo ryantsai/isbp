@@ -12,6 +12,7 @@ import {
 } from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { Collapse } from '@isbp/ui/motion';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
@@ -31,7 +32,6 @@ import {
   RECURRENCES,
   type RecordItemInput,
   STOCKTAKE_EDITABLE,
-  STOCKTAKE_RESULTS,
   type Stocktake,
   type StocktakeItem,
 } from '../contracts';
@@ -40,7 +40,13 @@ import { PeoplePicker } from './people';
 
 type Editable = (typeof STOCKTAKE_EDITABLE)[number];
 
-/** Record one item: confirmed, changed (with the corrections), missing or disposed (with a note). */
+const DIFFERENT = ['changed', 'missing', 'disposed'] as const;
+type Different = (typeof DIFFERENT)[number];
+
+/**
+ * "Something's different": shows what the register says, then asks what is different — details changed (correct
+ * them), missing or disposed of (with a note). Nothing is pre-selected. Confirming an item is the inline "It's right".
+ */
 export function RecordItemDialog({
   stocktake,
   item,
@@ -56,10 +62,12 @@ export function RecordItemDialog({
     <Dialog open={Boolean(item)} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl" closeLabel={tc('close')}>
         <DialogHeader>
-          <DialogTitle>{item ? t('record.title', { number: item.snapshot.number }) : ''}</DialogTitle>
-          <DialogDescription>{item?.snapshot.name}</DialogDescription>
+          <DialogTitle>{item ? t('record.title', { name: item.snapshot.name }) : ''}</DialogTitle>
+          <DialogDescription>{item?.snapshot.number}</DialogDescription>
         </DialogHeader>
-        {item && <RecordForm stocktake={stocktake} item={item} onDone={() => onOpenChange(false)} />}
+        {item && (
+          <RecordForm key={item.id} stocktake={stocktake} item={item} onDone={() => onOpenChange(false)} />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -79,7 +87,9 @@ function RecordForm({
   const errorText = useErrorText();
   const name = useId();
   const noteId = useId();
-  const [result, setResult] = useState<(typeof STOCKTAKE_RESULTS)[number]>(item.result ?? 'confirmed');
+  const [result, setResult] = useState<Different | null>(
+    item.result && item.result !== 'confirmed' ? item.result : null,
+  );
   const [note, setNote] = useState(item.note ?? '');
   const snap = item.snapshot;
   const [values, setValues] = useState<Record<Editable, string>>({
@@ -97,9 +107,19 @@ function RecordForm({
       api.post<StocktakeItem>(`/isms/stocktakes/${stocktake}/items/${item.id}`, body),
     { invalidate: INVALIDATE, success: t('record.saved'), silent: true },
   );
+  const register: [string, string | number | null][] = [
+    [t('fields.location'), snap.location],
+    [t('fields.quantity'), snap.quantity],
+    [t('fields.users'), snap.usersText],
+    [t('fields.brand'), snap.brand],
+    [t('fields.model'), snap.model],
+    [t('fields.version'), snap.version],
+    [t('fields.manager'), item.assignee?.displayName ?? item.assigneeGroup?.name ?? null],
+  ];
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!result) return setError(t('record.chooseWhat'));
     const changes: Record<string, string | number | null> = {};
     if (result === 'changed')
       for (const k of STOCKTAKE_EDITABLE) {
@@ -123,10 +143,25 @@ function RecordForm({
   };
   return (
     <form onSubmit={submit} className="min-w-0 space-y-4" noValidate>
+      <section aria-labelledby={`${name}-register`} className="rounded-lg bg-muted/50 p-3">
+        <h3 id={`${name}-register`} className="mb-2 text-sm font-medium">
+          {t('record.registerSays')}
+        </h3>
+        <dl className="grid grid-cols-1 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-2">
+          {register
+            .filter(([, v]) => v !== null && v !== '')
+            .map(([k, v]) => (
+              <div key={k} className="min-w-0">
+                <dt className="text-xs text-muted-foreground">{k}</dt>
+                <dd className="wrap-break-word">{v}</dd>
+              </div>
+            ))}
+        </dl>
+      </section>
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">{t('record.result')}</legend>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {STOCKTAKE_RESULTS.map((r) => (
+        <legend className="text-sm font-medium">{t('record.whatsDifferent')}</legend>
+        <div className="grid grid-cols-1 gap-2">
+          {DIFFERENT.map((r) => (
             <label
               key={r}
               htmlFor={`${name}-${r}`}
@@ -141,14 +176,14 @@ function RecordForm({
                 className="mt-0.5 size-4 accent-primary"
               />
               <span>
-                <span className="font-medium">{t(`stocktakeResult.${r}`)}</span>
+                <span className="font-medium">{t(`record.choices.${r}`)}</span>
                 <span className="block text-xs text-muted-foreground">{t(`record.hints.${r}`)}</span>
               </span>
             </label>
           ))}
         </div>
       </fieldset>
-      {result === 'changed' && (
+      <Collapse open={result === 'changed'} id={`${name}-corrections`}>
         <fieldset className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <legend className="mb-2 text-sm font-medium">{t('record.corrections')}</legend>
           {STOCKTAKE_EDITABLE.map((k) => (
@@ -163,9 +198,11 @@ function RecordForm({
             </div>
           ))}
         </fieldset>
-      )}
+      </Collapse>
       <div className="grid gap-1.5">
-        <Label htmlFor={noteId}>{t('record.note')}</Label>
+        <Label htmlFor={noteId}>
+          {result === 'missing' || result === 'disposed' ? t('record.noteNeeded') : t('record.note')}
+        </Label>
         <Textarea id={noteId} rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
       {error && (

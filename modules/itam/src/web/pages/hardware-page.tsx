@@ -76,7 +76,7 @@ export default function HardwarePage() {
   const people = usePeople(assigneeId ? [assigneeId] : []);
   const assignee = assigneeId ? (people.get(assigneeId) ?? null) : null;
 
-  const { data, isLoading, isFetching } = useApiQuery<Page<AssetListItem>>('/itam/assets', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<AssetListItem>>('/itam/assets', {
     page: state.page,
     pageSize: state.pageSize,
     sort: state.sort,
@@ -212,6 +212,8 @@ export default function HardwarePage() {
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(a) => a.id}
       onRowClick={(a) => router.push(assetHref(a))}
       onPageChange={(page) => set({ page })}

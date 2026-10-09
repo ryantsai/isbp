@@ -2,27 +2,37 @@
 
 /** Data hooks shared by core pages and module pages (same DX for built-in and custom modules). */
 
+import { localize } from '@isbp/sdk';
 import { type ApiClient, ApiError, type Query, useApi } from '@isbp/sdk/web';
+import { inUseReferences } from './in-use';
 import { toast } from './sonner';
 import {
   keepPreviousData,
   type QueryClient,
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
 /** Translates API error codes; falls back to the server's English message. */
 export function useErrorText() {
   const t = useTranslations('errors');
+  const tUse = useTranslations('ui.inUse');
+  const locale = useLocale();
   return useCallback(
     (err: unknown) => {
-      if (err instanceof ApiError) return t.has(err.code) ? t(err.code) : err.message;
-      return t('generic');
+      if (!(err instanceof ApiError)) return t('generic');
+      const text = t.has(err.code) ? t(err.code) : err.message;
+      // A refused delete says what still uses it ("Still used by REQ-01039 · New laptop and 2 more.").
+      const used = inUseReferences(err);
+      if (!used) return text;
+      const first = localize(used.items[0]!.label, locale);
+      return `${text} ${tUse('summary', { first, more: used.items.length - 1 + (used.more ? 1 : 0) })}`;
     },
-    [t],
+    [t, tUse, locale],
   );
 }
 
@@ -39,6 +49,26 @@ export function useApiQuery<T>(
     enabled: path !== null && (opts.enabled ?? true),
     placeholderData: keepPreviousData,
     refetchInterval: opts.refetchInterval,
+  });
+}
+
+/**
+ * Cursor paging for `{ items, nextCursor }` responses (`nextCursor` is null on the last page): `fetchNextPage` asks for
+ * the page after the last one. Loaded pages stay cached under the query key, like `useApiQuery`'s.
+ */
+export function useApiInfiniteQuery<T extends { nextCursor: string | null }>(
+  path: string | null,
+  query?: Query,
+  opts: { enabled?: boolean } = {},
+) {
+  const api = useApi();
+  return useInfiniteQuery({
+    queryKey: [path, query ?? {}, 'pages'],
+    queryFn: ({ pageParam }) => api.get<T>(path!, { ...query, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: path !== null && (opts.enabled ?? true),
+    placeholderData: keepPreviousData,
   });
 }
 

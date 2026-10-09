@@ -209,6 +209,8 @@ export interface LogRef {
   /** Local reference or title. */
   local?: string;
   linkId?: string;
+  /** Fields the line is about, as labels (i18n keys or text per locale): the page lists them in the reader's language. */
+  fields?: (string | Record<string, string>)[];
 }
 
 export interface LogEntry {

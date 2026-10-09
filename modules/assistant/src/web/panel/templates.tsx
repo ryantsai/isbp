@@ -5,6 +5,7 @@ import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Form } from '@isbp/ui/form';
+import { Disclosure } from '@isbp/ui/motion';
 import { FormFields, useFieldsResolver } from '@isbp/ui/form-renderer';
 import { applyServerErrors, useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -19,7 +20,7 @@ import {
 } from 'lucide-react';
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
 import { motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
 import { type FieldValues, useForm } from 'react-hook-form';
 import { useActionErrorText } from '../change-set/dialogs';
@@ -29,6 +30,22 @@ import { ChangeSetCard } from './change-set-card';
 interface Picked {
   kind: KindInfoDto;
   template: KindInfoDto['templates'][number];
+}
+
+/**
+ * Templates in the order people need them: a whole request process first, then a form, a field and an approval on
+ * their own; the rest after, in the order of their kinds.
+ */
+const ORDER = [
+  'core.form/approval-process',
+  'core.form/request-form',
+  'core.custom-field/',
+  'core.workflow/',
+];
+
+function rankOf(kind: string, templateId: string): number {
+  const i = ORDER.findIndex((o) => `${kind}/${templateId}`.startsWith(o));
+  return i < 0 ? ORDER.length : i;
 }
 
 function KindIcon({ kind }: { kind: KindInfoDto }) {
@@ -179,11 +196,19 @@ export function TemplatesView({
   const t = useTranslations('assistant.templates');
   const text = useCatalogText();
   const kindLabel = useKindLabel(kinds);
+  const format = useFormatter();
+  const list = (xs: string[]) => format.list(xs, { type: 'conjunction' });
   const listId = useId();
   const [picked, setPicked] = useState<Picked | null>(null);
   const [built, setBuilt] = useState<string | null>(null);
   const withTemplates = kinds.filter((k) => k.templates.length > 0);
   const without = kinds.filter((k) => k.templates.length === 0);
+  // One flat list, ordered by use (kinds keep their order among the rest).
+  const templates = withTemplates
+    .flatMap((k, ki) => k.templates.map((tpl, ti) => ({ kind: k, template: tpl, order: ki * 100 + ti })))
+    .sort(
+      (a, b) => rankOf(a.kind.kind, a.template.id) - rankOf(b.kind.kind, b.template.id) || a.order - b.order,
+    );
 
   if (picked)
     return (
@@ -243,57 +268,50 @@ export function TemplatesView({
         />
       ) : (
         <section aria-labelledby={listId} className="grid gap-3">
-          <div className="space-y-1">
-            <h3 id={listId} className="text-sm font-semibold">
-              {t('title')}
-            </h3>
-            <p className="text-sm text-muted-foreground">{t('intro')}</p>
-          </div>
-          <ul className="grid gap-4">
-            {withTemplates.map((k) => (
-              <li key={k.kind} className="grid gap-2">
-                <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <KindIcon kind={k} />
-                  {kindLabel(k.kind)}
-                </p>
-                <ul className="grid gap-2">
-                  {k.templates.map((tpl) => (
-                    <li key={tpl.id} className="min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setBuilt(null);
-                          setPicked({ kind: k, template: tpl });
-                        }}
-                        className={cn(
-                          'group flex w-full min-w-0 items-center gap-3 rounded-xl border bg-card px-3.5 py-3 text-left shadow-xs outline-none transition-all',
-                          'hover:border-ring/40 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
-                        )}
-                      >
-                        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                          <KindIcon kind={k} />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-medium">{text(tpl.label)}</span>
-                          <span className="block text-xs text-muted-foreground">{text(tpl.description)}</span>
-                        </span>
-                        <ChevronRightIcon
-                          className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
-                          aria-hidden
-                        />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+          <h3 id={listId} className="text-sm font-semibold">
+            {t('title')}
+          </h3>
+          <ul className="grid gap-2">
+            {templates.map(({ kind: k, template: tpl }) => (
+              <li key={`${k.kind}/${tpl.id}`} className="min-w-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBuilt(null);
+                    setPicked({ kind: k, template: tpl });
+                  }}
+                  className={cn(
+                    'group flex w-full min-w-0 items-center gap-3 rounded-xl border bg-card px-3.5 py-3 text-left shadow-xs outline-none transition-all',
+                    'hover:border-ring/40 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
+                  )}
+                >
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                    <KindIcon kind={k} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium">{text(tpl.label)}</span>
+                    <span className="block text-xs text-muted-foreground">{text(tpl.description)}</span>
+                  </span>
+                  <ChevronRightIcon
+                    className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+                    aria-hidden
+                  />
+                </button>
               </li>
             ))}
           </ul>
         </section>
       )}
       {without.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          {t('withoutTemplates', { kinds: without.map((k) => kindLabel(k.kind)).join(', ') })}
-        </p>
+        <Disclosure
+          summary={t('whyNot')}
+          triggerClassName="text-xs text-muted-foreground"
+          contentClassName="text-xs text-muted-foreground"
+        >
+          <p className="pb-1">
+            {t('withoutTemplates', { kinds: list(without.map((k) => kindLabel(k.kind))) })}
+          </p>
+        </Disclosure>
       )}
     </div>
   );

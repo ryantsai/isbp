@@ -17,6 +17,7 @@ import {
 import { v7 as uuidv7 } from 'uuid';
 import { registerAuth } from './kernel/http/auth';
 import { registerErrorHandling } from './kernel/http/errors';
+import { scaleRouteRateLimits } from './kernel/http/route-rate-limit';
 import { API_VERSION, type Kernel } from './kernel/kernel';
 import { httpDuration } from './kernel/metrics';
 import { loggerOptions } from './logger';
@@ -61,6 +62,15 @@ export async function buildApp(kernel: Kernel) {
   });
 
   registerAuth(app, kernel);
+
+  // Before the rate-limit plugin below reads the routes' own limits (see route-rate-limit.ts).
+  if (config.RATE_LIMIT_ROUTE_SCALE !== 1) {
+    app.log.warn(
+      { scale: config.RATE_LIMIT_ROUTE_SCALE },
+      'Per-route rate limits are multiplied (RATE_LIMIT_ROUTE_SCALE)',
+    );
+    app.addHook('onRoute', scaleRouteRateLimits(config.RATE_LIMIT_ROUTE_SCALE));
+  }
 
   await app.register(rateLimit, {
     global: true,

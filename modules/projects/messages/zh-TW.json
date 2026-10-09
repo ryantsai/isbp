@@ -6,7 +6,8 @@
   "nav": {
     "group": "專案",
     "portfolio": "專案",
-    "myTasks": "我的工作"
+    "myTasks": "我的工作項目",
+    "sections": "專案區段"
   },
   "systemRoles": {
     "projects-member": {
@@ -38,7 +39,7 @@
     "hoursPerWeek": "每週工時",
     "hoursPerWeekHelp": "工作負載中全職人員的產能（投入比例 × 工時）。",
     "proposalThresholdHours": "提案簽核門檻（小時）",
-    "proposalThresholdHoursHelp": "啟動專案時顯示：超過門檻的提案需由負責人的主管核准。預設簽核流程使用相同數值，修改時請一併調整（管理 → 工作流程）。",
+    "proposalThresholdHoursHelp": "啟動專案時顯示：超過門檻的提案需由專案經理的直屬主管核准。預設簽核流程使用相同數值，修改時請一併調整（管理 → 簽核流程）。",
     "details": "基本資料",
     "members": {
       "title": "成員",
@@ -56,7 +57,8 @@
       "remove": "移除 {name}",
       "removeTitle": "要將 {name} 從專案移除嗎？",
       "removeBody": "其未完成的工作項目將改為未指派。",
-      "removeConfirm": "移除"
+      "removeConfirm": "移除",
+      "personRequired": "請選擇要新增的人員。"
     },
     "milestones": {
       "title": "里程碑",
@@ -79,7 +81,8 @@
       "moveUp": "將 {name} 上移",
       "moveDown": "將 {name} 下移",
       "deleteTitle": "要刪除里程碑 {name} 嗎？",
-      "deleteBody": "其工作項目將不再屬於任何里程碑。"
+      "deleteBody": "其工作項目將不再屬於任何里程碑。",
+      "nameRequired": "請輸入里程碑名稱。"
     },
     "danger": {
       "title": "封存或刪除",
@@ -117,7 +120,7 @@
     "cancelled": "已取消"
   },
   "taskStatus": {
-    "backlog": "待辦清單",
+    "backlog": "待規劃",
     "todo": "待處理",
     "in_progress": "進行中",
     "in_review": "審查中",
@@ -189,7 +192,8 @@
   "health": {
     "on_track": "進度正常",
     "at_risk": "有風險",
-    "off_track": "偏離軌道"
+    "off_track": "進度落後",
+    "notAssessed": "尚未評估"
   },
   "priority": {
     "urgent": "緊急",
@@ -270,7 +274,8 @@
       "labels": "標籤",
       "description": "說明",
       "attributes": "其他資訊"
-    }
+    },
+    "planning": "規劃"
   },
   "filters": {
     "label": "篩選條件",
@@ -335,7 +340,7 @@
     "notFound": "找不到工作項目",
     "notFoundHint": "{reference} 不存在，或您無法檢視其所屬專案。",
     "loadFailed": "無法載入工作項目",
-    "toMyTasks": "前往我的工作",
+    "toMyTasks": "前往我的工作項目",
     "backToProject": "返回 {key}",
     "titleLabel": "工作項目標題",
     "editTitle": "編輯標題",
@@ -473,7 +478,7 @@
   },
   "approval": {
     "title": "提案簽核",
-    "needsManager": "預估投入超過 {threshold} 小時，需由負責人的主管核准啟動。",
+    "needsManager": "預估投入超過 {threshold} 小時，需由專案經理的直屬主管核准啟動。",
     "automatic": "預估投入未超過 {threshold} 小時的提案，送出後即自動啟動。",
     "notStarted": "尚未送出",
     "startHint": "請按「啟動專案」送出提案。",
@@ -492,7 +497,13 @@
       "budgetHours": "預估投入（小時）",
       "priority": "優先順序",
       "memberCount": "成員數"
-    }
+    },
+    "submitHint": "請按「送出簽核」，將提案送交專案經理的直屬主管。",
+    "pathTitle": "簽核流程",
+    "pathDescription": "提案會經過的每個步驟，以及目前進行到哪裡。",
+    "showPath": "顯示簽核流程",
+    "sent": "送出於",
+    "due": "到期"
   },
   "healthDialog": {
     "title": "更新健康狀態",
@@ -543,7 +554,9 @@
     "title": "新增工作項目",
     "titlePlaceholder": "例如：更換 9 樓存取交換器",
     "datesInvalid": "到期日早於開始日。",
-    "created": "已建立 {reference}"
+    "created": "已建立 {reference}",
+    "moreDetails": "更多詳細資料",
+    "titleRequired": "請輸入工作項目標題。"
   },
   "form": {
     "createTitle": "新增專案",
@@ -623,7 +636,7 @@
     "archived": "已封存（唯讀）",
     "start": "啟動專案",
     "startTitle": "要啟動 {key} 嗎？",
-    "startNeedsApproval": "預估投入（{hours} 小時）超過 {threshold} 小時，須先由負責人的主管核准，結果將通知您。",
+    "startNeedsApproval": "預估投入（{hours} 小時）超過 {threshold} 小時，須先由專案經理的直屬主管核准才能啟動，結果將通知您。",
     "startAutomatic": "預估投入未超過 {threshold} 小時的專案會立即啟動。",
     "started": "專案已開始進行",
     "submitted": "已送出提案以供簽核",
@@ -632,7 +645,9 @@
     "changeStatus": "狀態",
     "notFound": "找不到專案",
     "notFoundHint": "{key} 不存在或您無法檢視。",
-    "loadFailed": "無法載入專案"
+    "loadFailed": "無法載入專案",
+    "submitForApproval": "送出簽核",
+    "submitTitle": "要將 {key} 送出簽核嗎？"
   },
   "overview": {
     "kpi": {
@@ -660,10 +675,11 @@
     "manage": "管理",
     "members": "{count, plural, other {# 位成員}}",
     "owner": "專案經理",
-    "allocation": "{pct}%"
+    "allocation": "{pct}%",
+    "addMilestone": "新增里程碑"
   },
   "myTasks": {
-    "title": "我的工作",
+    "title": "我的工作項目",
     "description": "各專案中指派給您且尚未完成的工作項目。",
     "filterProject": "專案",
     "allProjects": "所有專案",
@@ -676,13 +692,15 @@
       "noDate": "未設定日期"
     },
     "empty": "目前沒有待辦工作",
-    "emptyHint": "沒有指派給您的未完成工作項目。"
+    "emptyHint": "沒有指派給您的未完成工作項目。",
+    "moved": "已將 {reference} 標為{status}",
+    "undo": "復原"
   },
   "dashboard": {
-    "title": "我的工作",
+    "title": "我的工作項目",
     "description": "指派給您的專案工作項目",
     "summary": "{overdue, plural, =0 {無逾期} other {# 個已逾期}} · {week, plural, =0 {本週沒有其他到期工作} other {本週到期 # 個}}",
-    "open": "我的工作",
+    "open": "我的工作項目",
     "nothing": "沒有指派給您的未完成工作項目。",
     "nothingDue": "本週沒有到期的工作。",
     "more": "{count, plural, other {本週還有 # 個到期}}"
@@ -711,7 +729,8 @@
       "labels": "標籤"
     },
     "via": "經由 {system} {reference}",
-    "addedVia": "經由 {system} {reference} 加入"
+    "addedVia": "經由 {system} {reference} 加入",
+    "addedFrom": "由 {system} 加入"
   },
   "recordFacts": {
     "key": "專案代碼",
@@ -724,5 +743,26 @@
     "budgetHours": "預估投入（小時）",
     "startDate": "開始日",
     "targetDate": "目標完成日"
+  },
+  "work": {
+    "tasks": "專案工作"
+  },
+  "getStarted": {
+    "title": "開始使用",
+    "progress": "已完成 {done}/{total}",
+    "milestones": "規劃里程碑",
+    "milestonesHint": "工作要達成的主要日期。",
+    "addMilestone": "新增里程碑",
+    "tasks": "新增第一批工作項目",
+    "tasksHint": "要完成哪些事、由誰負責、何時完成。",
+    "newTask": "新增工作項目",
+    "members": "加入團隊成員",
+    "membersHint": "誰參與專案，以及每週投入多少時間。",
+    "addMembers": "新增成員",
+    "submit": "將提案送出簽核",
+    "submitHint": "預估投入需要核准後專案才能啟動。",
+    "start": "啟動專案",
+    "startHint": "此規模的專案會立即啟動。",
+    "done": "已完成"
   }
 }

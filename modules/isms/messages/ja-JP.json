@@ -9,7 +9,8 @@
     "stocktakes": "資産棚卸",
     "accounts": "共有アカウント",
     "reviews": "アカウント棚卸",
-    "settings": "情報セキュリティ"
+    "settings": "情報セキュリティの設定",
+    "settingsAbout": "資産クラス、番号付け、評価"
   },
   "systemRoles": {
     "isms-participant": {
@@ -26,7 +27,7 @@
     },
     "isms-security-officer": {
       "name": "情報セキュリティ責任者",
-      "description": "棚卸とアカウント棚卸を承認し、共有アカウントとアカウント棚卸を管理し、台帳を閲覧します"
+      "description": "棚卸とアカウント棚卸を確定し、共有アカウントとアカウント棚卸を管理し、台帳を閲覧します"
     },
     "isms-admin": {
       "name": "情報セキュリティ管理者",
@@ -38,12 +39,12 @@
     "assetsManage": "情報資産を登録、変更、インポート、削除する",
     "configManage": "資産分類、拠点、機密区分を設定する",
     "stocktakesManage": "棚卸を開始、スケジュール、キャンセルし、任意の項目を記録する",
-    "stocktakesSignoff": "棚卸を承認する",
+    "stocktakesSignoff": "棚卸を確定する",
     "accountsRead": "すべての共有アカウントを閲覧する",
     "accountsManage": "共有アカウントとその利用者を登録、変更する",
     "reviewsRead": "すべてのアカウント棚卸を閲覧する",
     "reviewsManage": "アカウント棚卸を開始、スケジュール、キャンセルする",
-    "reviewsSignoff": "アカウント棚卸を承認する",
+    "reviewsSignoff": "アカウント棚卸を確定する",
     "selfUse": "参加する: 棚卸項目の記録、アカウント棚卸の判定、割り当てられた共有アカウントの管理"
   },
   "entities": {
@@ -55,7 +56,7 @@
   },
   "settings": {
     "reminderDays": "期限前のリマインダー日数",
-    "reminderDaysHelp": "棚卸またはアカウント棚卸の期限の何日前に、資産管理者と棚卸担当者に通知するか。",
+    "reminderDaysHelp": "棚卸またはアカウント棚卸の期限の何日前に、管理責任者と棚卸担当者に通知するか。",
     "reviewMonths": "共有アカウント棚卸の間隔 (月)",
     "reviewMonthsHelp": "共有アカウントの利用者を確認すると、次回の棚卸がこの月数後に設定されます。",
     "title": "情報セキュリティの設定",
@@ -119,7 +120,7 @@
     "availability": "可用性",
     "value": "資産価値",
     "classification": "機密区分",
-    "managerId": "資産管理者",
+    "managerId": "管理責任者",
     "managerGroup": "管理グループ",
     "siteCode": "拠点コード",
     "status": "資産の状態"
@@ -136,7 +137,7 @@
   "stocktakeStatus": {
     "scheduled": "スケジュール済み",
     "open": "進行中",
-    "signed_off": "承認済み",
+    "signed_off": "確定済み",
     "cancelled": "キャンセル済み"
   },
   "stocktakeResult": {
@@ -149,13 +150,13 @@
   "reviewStatus": {
     "scheduled": "スケジュール済み",
     "open": "進行中",
-    "completed": "承認待ち",
-    "signed_off": "承認済み",
+    "completed": "確定待ち",
+    "signed_off": "確定済み",
     "cancelled": "キャンセル済み"
   },
   "reviewDecision": {
-    "undecided": "未判定",
-    "keep": "継続",
+    "undecided": "未判断",
+    "keep": "維持",
     "disable": "無効化",
     "delete": "削除"
   },
@@ -182,10 +183,10 @@
     "class": "大分類",
     "subclass": "小分類",
     "site": "拠点",
-    "manager": "資産管理者",
-    "managerGroup": "管理グループ",
-    "users": "資産利用者",
-    "usersText": "利用者 (部署またはユーザー、テキスト)",
+    "manager": "管理責任者",
+    "managerGroup": "管理責任グループ",
+    "users": "利用ユーザー",
+    "usersText": "その他の利用者 (テキスト)",
     "location": "保管場所",
     "brand": "メーカー",
     "model": "型番",
@@ -312,14 +313,14 @@
   },
   "register": {
     "title": "情報資産",
-    "description": "情報資産台帳: 各資産の分類、管理者、機密性、完全性、可用性と資産価値。",
-    "new": "資産を登録",
+    "description": "情報資産台帳: 各資産の分類、管理責任者、価値 (機密性、完全性、可用性の最大値)。",
+    "new": "新しい資産",
     "more": "その他",
     "import": "CSV からインポート",
     "createFrom": "他のレコードから作成",
     "export": "CSV をエクスポート",
     "search": "番号または名前で検索",
-    "allClasses": "すべての分類",
+    "allClasses": "すべての大分類",
     "minValue": "最小の資産価値",
     "anyValue": "すべての価値",
     "valueAtLeast": "価値 {value} 以上",
@@ -339,18 +340,19 @@
       "title": "情報資産はありません",
       "none": "組織が依存するユーザー、ハードウェア、ソフトウェア、情報、サービスを登録します。",
       "filtered": "フィルターに一致する資産はありません。"
-    }
+    },
+    "needClassSite": "大分類と拠点を選択してください。"
   },
   "assetForm": {
-    "createTitle": "情報資産を登録",
+    "createTitle": "新しい情報資産",
     "editTitle": "{number} を編集",
-    "hint": "分類の評価基準に従って機密性、完全性、可用性を評価します。資産価値は 3 つの最大値です。",
+    "hint": "名前と管理責任者を入力し、資産の分類の評価基準に従って機密性、完全性、可用性を評価します。資産価値は 3 つの最大値です。",
     "identity": "資産",
-    "responsibility": "責任と保管場所",
-    "details": "詳細",
+    "responsibility": "管理責任者",
+    "details": "詳細: メーカー、型番、バージョン、数量",
     "cia": "機密性、完全性、可用性",
     "ciaHint": "価値を過小評価しないよう、当てはまる最も高い評価点を選びます。",
-    "ciaPickClass": "分類を選ぶと各評価点の意味が表示されます。",
+    "ciaPickClass": "大分類を選ぶと各評価点の意味が表示されます。",
     "confidentialityHint": "見るべきでない人に開示された場合の影響。",
     "integrityHint": "誤り、欠落、無断の変更があった場合の影響。",
     "availabilityHint": "使用できない場合の影響。",
@@ -358,7 +360,7 @@
     "noGuidance": "この評価点の基準はありません",
     "nameHint": "機能を簡潔にわかりやすく記述します。",
     "nameRequired": "名前を入力してください",
-    "classRequired": "分類を選択してください",
+    "classRequired": "大分類を選択してください",
     "siteRequired": "拠点を選択してください",
     "quantityInvalid": "0 以上の整数を入力してください",
     "choose": "選択…",
@@ -370,18 +372,38 @@
     "managerPlaceholder": "ユーザーを選択",
     "addUser": "ユーザーを追加",
     "usersTextPlaceholder": "例: 経理部、全社員",
-    "register": "登録",
+    "register": "保存",
     "created": "{number} を登録しました",
-    "saved": "資産を保存しました"
+    "saved": "資産を保存しました",
+    "usersAndPlace": "利用者と保管場所",
+    "scoreRequired": "評価点を選択してください",
+    "notScored": "未評価",
+    "because": "{dimensions}で決定",
+    "classificationSuggested": "機密性の評価点から提案しています。別の区分が必要な場合は変更してください。",
+    "classificationHint": "4 つの区分は機密性の評価に対応します。評価 4 が最も厳しい区分です。",
+    "usersTextHint": "プラットフォームにいない利用者 (部署や取引先など) を入力します。"
   },
   "asset": {
-    "notFound": "この資産は存在しないか、表示する権限がありません",
+    "notFound": "この資産は存在しないか、表示するアクセス許可がありません",
     "about": "資産の情報",
     "cia": "資産価値",
     "ciaDescription": "資産価値は {value} です (機密性、完全性、可用性の最大値)。",
     "deleteTitle": "{number} を削除しますか?",
-    "deleteDescription": "{name} はリンクと添付ファイルとともに台帳から削除されます。履歴は監査ログに残ります。",
-    "deleted": "資産を削除しました"
+    "deleteDescription": "削除すると {name} はリンクと添付ファイルとともに台帳から削除されます (履歴は監査ログに残ります)。記録を残す場合は、代わりに廃棄済みにしてください。",
+    "deleted": "資産を削除しました",
+    "changeStatus": "状態を変更…",
+    "changeStatusTitle": "{number} の状態を変更",
+    "statusHints": {
+      "active": "台帳のとおり使用中です。",
+      "missing": "見つかりません。",
+      "disposed": "もう存在しません (破棄、返却、削除済み)。"
+    },
+    "statusNote": "備考 (省略可)",
+    "statusNoteRequired": "備考: いつ、どのように（必須）",
+    "statusNoteMissing": "備考を入力してください: いつ、どのように。",
+    "statusChanged": "状態を変更しました",
+    "markDisposedInstead": "代わりに廃棄済みにする",
+    "changeStatusSubmit": "状態を変更"
   },
   "history": {
     "title": "履歴",
@@ -456,7 +478,7 @@
     "noSources": "登録元として使えるレコードの種類がありません。",
     "registered": "{number} として登録済み",
     "defaults": "新しい資産の設定",
-    "needClassSite": "分類と拠点を選択してください。",
+    "needClassSite": "大分類と拠点を選択してください。",
     "submit": "{count, plural, =0 {登録} other {資産 # 件を登録}}",
     "done": "{created, plural, other {資産 # 件を登録しました}}。{skipped} 件は処理されませんでした。",
     "types": {
@@ -466,7 +488,8 @@
       "itam_contract": "契約",
       "alm_application": "アプリケーション",
       "knowledge_article": "ナレッジ記事"
-    }
+    },
+    "needScores": "機密性、完全性、可用性を評価してください。"
   },
   "stocktakes": {
     "title": "資産棚卸",
@@ -482,56 +505,64 @@
     "progressLabel": "{name} の進捗",
     "empty": {
       "title": "棚卸はありません",
-      "description": "棚卸を開始して、資産管理者に資産を確認してもらいます。"
+      "description": "棚卸を開始して、管理責任者に資産を確認してもらいます。",
+      "participantTitle": "確認が必要な資産はありません",
+      "participant": "棚卸に担当の資産が含まれると、ここと「自分の作業」に表示されます。"
     }
   },
   "stocktake": {
-    "notFound": "この棚卸は存在しないか、表示する権限がありません",
+    "notFound": "この棚卸は存在しないか、表示するアクセス許可がありません",
     "items": "棚卸の資産",
     "search": "番号または名前で検索",
-    "onlyMine": "自分の項目のみ",
-    "noItems": "資産はありません",
     "export": "結果をエクスポート",
     "cancel": "棚卸をキャンセル",
     "cancelTitle": "{reference} をキャンセルしますか?",
-    "cancelDescription": "記録済みの結果は保持されますが、この棚卸は承認できなくなります。",
+    "cancelDescription": "記録済みの結果は保持されますが、この棚卸は確定できなくなります。",
     "cancelled": "棚卸をキャンセルしました",
-    "signOff": "承認",
-    "signOffTitle": "{reference} を承認",
+    "signOff": "確定する",
+    "signOffTitle": "{reference} を確定",
     "signOffDescription": "所在不明と廃棄の資産は状態が変わり、その他の資産は本日確認済みとして記録されます。",
-    "signOffWhenDone": "すべての資産を記録すると承認できます。",
-    "signedOff": "棚卸を承認しました",
-    "signedOffBy": "{name} が承認",
+    "signOffWhenDone": "すべての資産を記録すると確定できます。",
+    "signedOff": "棚卸を確定しました",
+    "signedOffBy": "{name} が確定",
     "scheduled": "この棚卸は {date} に開始します。",
     "summary": "確認済み {confirmed} 件、修正済み {changed} 件、所在不明 {missing} 件、廃棄済み {disposed} 件、未確認 {pending} 件",
     "views": {
-      "all": "すべて",
-      "pending": "未確認",
-      "done": "記録済み",
-      "confirmed": "確認済み",
-      "changed": "修正済み",
-      "missing": "所在不明",
-      "disposed": "廃棄済み"
+      "todo": "未確認",
+      "done": "対応済み",
+      "all": "すべて"
+    },
+    "runBy": "実施者: {name}",
+    "progressValue": "{total} 件中 {done} 件確認済み",
+    "readyToSignOff": "すべての資産を確認しました。確定できます。",
+    "allDone": "すべて完了しました。ありがとうございます。ほかに確認する資産はありません。",
+    "allDoneHint": "棚卸が確定されるまで、「対応済み」で結果を変更できます。",
+    "scope": {
+      "label": "表示範囲",
+      "mine": "自分の担当",
+      "everyone": "すべての担当"
+    },
+    "anyResult": "すべての結果",
+    "empty": {
+      "todo": "確認する資産はありません",
+      "done": "まだ記録はありません",
+      "all": "この棚卸に資産はありません"
     }
   },
   "newStocktake": {
     "title": "新しい棚卸",
-    "description": "対象の資産が項目となり、各資産管理者が期限までに確認します。",
+    "description": "対象の資産が項目となり、各管理責任者が期限までに確認します。",
     "defaultName": "{year} 年 資産棚卸",
     "scopeHint": "一覧を空欄にするとすべてが対象になります。使用中と所在不明の資産が含まれます。",
-    "managers": "資産管理者",
-    "addManager": "管理者を追加",
+    "managers": "管理責任者",
+    "addManager": "管理責任者を追加",
     "required": "名前と期限を入力してください。",
     "start": "開始",
     "schedule": "スケジュール",
     "created": "棚卸 {reference} を作成しました"
   },
   "record": {
-    "title": "{number} を確認",
-    "open": "確認",
-    "change": "変更",
-    "openFor": "{number} を確認",
-    "result": "結果",
+    "title": "「{name}」の何が違いますか?",
     "corrections": "現在の正しい内容",
     "note": "備考",
     "submit": "記録",
@@ -539,15 +570,40 @@
     "changesRequired": "少なくとも 1 つの値を変更してください。",
     "noteRequired": "備考を入力してください: 資産に何がありましたか?",
     "hints": {
-      "confirmed": "台帳の内容は正しい。",
-      "changed": "台帳を今すぐ修正する。",
-      "missing": "見つからない。",
-      "disposed": "廃棄された。"
-    }
+      "changed": "下で修正してください。台帳はすぐに更新されます。",
+      "missing": "見つかりませんでした。探した場所を入力してください。",
+      "disposed": "いつ、どのように廃棄したかを入力してください。"
+    },
+    "facts": {
+      "location": "場所: {value}",
+      "noLocation": "場所の記録なし",
+      "quantity": "数量: {value}",
+      "users": "利用者: {value}",
+      "verified": "最終確認 {date}",
+      "neverVerified": "棚卸でまだ確認されていません"
+    },
+    "checkedBy": "確認担当: {name}",
+    "right": "正しい",
+    "different": "違いがある…",
+    "rightFor": "「{name}」は台帳のとおり",
+    "differentFor": "「{name}」の違いを報告",
+    "groupFor": "「{name}」の台帳は正しいですか?",
+    "confirmSelected": "正しい（{count} 件）",
+    "confirmedOne": "記録しました: 「{name}」は台帳のとおりです",
+    "confirmedMany": "{count, plural, other {# 件の資産を確認しました}}",
+    "registerSays": "台帳の内容",
+    "whatsDifferent": "何が違いますか?",
+    "choices": {
+      "changed": "一部の内容が違う",
+      "missing": "見つからない",
+      "disposed": "廃棄された"
+    },
+    "chooseWhat": "何が違うかを選択してください。",
+    "noteNeeded": "備考（必須）"
   },
   "signOff": {
     "note": "備考 (省略可)",
-    "confirm": "承認"
+    "confirm": "確定する"
   },
   "accounts": {
     "title": "共有アカウント",
@@ -569,13 +625,17 @@
       "password": "変更が必要なパスワードはありません。",
       "review": "期限の来た棚卸はありません。",
       "retired": "廃止したアカウントはありません。",
-      "all": "利用が承認された共有アカウントを登録します。"
-    }
+      "all": "利用が承認された共有アカウントを登録します。",
+      "participantTitle": "共有アカウントはありません",
+      "participant": "あなたが使用または保管している共有アカウントがここに表示されます。"
+    },
+    "recordChange": "変更を記録",
+    "recordChangeFor": "{account} のパスワード変更を記録"
   },
   "account": {
-    "notFound": "この共有アカウントは存在しないか、表示する権限がありません",
+    "notFound": "この共有アカウントは存在しないか、表示するアクセス許可がありません",
     "about": "アカウントの情報",
-    "passwordChanged": "パスワードを変更済み",
+    "passwordChanged": "パスワード変更を記録",
     "review": "利用者を棚卸",
     "dueTitle": "本日中にパスワードを変更してください",
     "dueBody": "{reason, select, member_left {{member} が退職しました} member_moved {{member} が他の部署に異動しました} custodian_left {主保管者の {member} が退職しました。新しい保管者を指定してください} other {{member} が利用者一覧から外されました}}。",
@@ -587,7 +647,14 @@
     "removeMember": "{name} を一覧から外す",
     "removeTitle": "{name} を一覧から外しますか?",
     "removeDescription": "外した後、本日中に {account} のパスワードを変更する必要があります。",
-    "memberRemoved": "一覧から外しました。本日中にパスワードを変更してください"
+    "memberRemoved": "一覧から外しました。本日中にパスワードを変更してください",
+    "custodianIs": "主保管者: {name}",
+    "emptyDetails": "{count, plural, other {空欄の項目を表示（# 件）}}",
+    "addPerson": "ユーザーを追加",
+    "addPersonTitle": "{account} にユーザーを追加",
+    "addPersonDescription": "このユーザーは今後このアカウントを使用できます。年次棚卸で改めて確認されます。",
+    "person": "ユーザー",
+    "personAdded": "一覧に追加しました"
   },
   "accountForm": {
     "createTitle": "共有アカウントを登録",
@@ -603,7 +670,7 @@
     "saved": "共有アカウントを保存しました"
   },
   "password": {
-    "title": "{account} のパスワードを変更済み",
+    "title": "{account} のパスワード変更を記録",
     "description": "パスワードを変更した日付を記録します。ここにパスワードを書かないでください。",
     "changedOn": "変更日",
     "note": "備考 (省略可)",
@@ -635,7 +702,7 @@
   },
   "reviews": {
     "title": "アカウント棚卸",
-    "description": "システムのアカウントを確認して継続、無効化、削除を判定し、情報セキュリティ責任者が結果を承認します。",
+    "description": "システムのアカウントを確認して維持、無効化、削除を判断し、情報セキュリティ責任者が結果を確定します。",
     "new": "新しいアカウント棚卸",
     "all": "すべて",
     "search": "システムで検索",
@@ -643,53 +710,73 @@
     "progressLabel": "{target} のアカウント棚卸の進捗",
     "empty": {
       "title": "アカウント棚卸はありません",
-      "description": "システム、デバイス、アプリケーションの棚卸を開始します。"
+      "description": "システム、デバイス、アプリケーションの棚卸を開始します。",
+      "participantTitle": "担当のアカウント棚卸はありません",
+      "participant": "システムのアカウント棚卸を依頼されると、ここと「自分の作業」に表示されます。"
     }
   },
   "review": {
-    "notFound": "このアカウント棚卸は存在しないか、表示する権限がありません",
+    "notFound": "このアカウント棚卸は存在しないか、表示するアクセス許可がありません",
     "items": "アカウント",
     "search": "アカウントまたはユーザーを検索",
     "reviewer": "棚卸担当者: {name}",
-    "accounts": "アカウント",
     "import": "アカウント一覧をインポート",
     "add": "アカウントを追加",
-    "export": "エクスポート",
-    "raiseTickets": "チケットを作成",
+    "export": "CSV をエクスポート",
+    "raiseTickets": "チケットを {count} 件作成",
     "ticketsRaised": "{raised, plural, other {チケット # 件を作成しました}}{failed, plural, =0 {} other {、# 件失敗}}",
-    "complete": "完了",
-    "completed": "棚卸を完了しました。承認待ちです",
-    "completeWhenDone": "すべてのアカウントに判定を入力し、無効化と削除に実施日を入力すると完了できます。",
+    "complete": "確定に回す",
+    "completed": "確定に回しました",
+    "completeWhenDone": "すべてのアカウントを判断し、無効化と削除に実施日を入力すると、確定に回せます。",
     "reopen": "差し戻し",
     "reopened": "棚卸担当者に差し戻しました",
-    "signOff": "承認",
-    "signOffTitle": "{reference} を承認",
+    "signOff": "確定する",
+    "signOffTitle": "{reference} を確定",
     "signOffDescription": "判定を確認します。定期的な棚卸は次回がスケジュールされます。",
-    "signedOff": "アカウント棚卸を承認しました",
-    "signedOffBy": "{name} が承認",
-    "waitingSignOff": "完了: 情報セキュリティ責任者の承認待ちです。",
+    "signedOff": "アカウント棚卸を確定しました",
+    "signedOffBy": "{name} が確定",
+    "waitingSignOff": "{name} が送信しました。情報セキュリティ責任者の確定待ちです。",
     "cancel": "棚卸をキャンセル",
     "cancelTitle": "{reference} をキャンセルしますか?",
-    "cancelDescription": "記録済みの判定は保持されますが、この棚卸は承認できなくなります。",
+    "cancelDescription": "記録済みの判断は保持されますが、この棚卸は確定できなくなります。",
     "cancelled": "アカウント棚卸をキャンセルしました",
     "scheduled": "この棚卸は {date} に開始します。",
     "noItems": "アカウントはありません",
     "noItemsHint": "システムのアカウント一覧をインポートするか、手動でアカウントを追加します。",
     "doneOn": "{date} 実施",
-    "notDoneYet": "実施日が未入力",
-    "summary": "継続 {keep} 件、無効化 {disable} 件、削除 {delete} 件、未判定 {undecided} 件",
+    "notDoneYet": "未実施: 実施したら日付を入力してください",
+    "summary": "維持 {keep} · 無効化 {disable} · 削除 {delete} · 判断待ち {undecided}",
     "views": {
+      "todo": "判断待ち",
+      "done": "判断済み",
       "all": "すべて",
-      "undecided": "未判定",
-      "keep": "継続",
-      "disable": "無効化",
-      "delete": "削除",
       "admin": "管理者"
-    }
+    },
+    "ticketsTitle": "サービス デスクのチケットを {count} 件作成しますか?",
+    "ticketsDescription": "無効化または削除するアカウントごとにサービス要求を 1 件作成し、サービス デスクが変更を行います。チケットはあなたの名前で作成されます。",
+    "ticketLine": {
+      "disable": "{account} を無効化",
+      "delete": "{account} を削除"
+    },
+    "ticket": "チケット {reference}",
+    "progressValue": "{total} 件中 {done} 件判断済み",
+    "stillEnabled": {
+      "disable": "無効化済みとして記録されていますが、最新のインポートでは有効です",
+      "delete": "削除済みとして記録されていますが、最新のインポートでは有効です"
+    },
+    "filter": "判断",
+    "anyDecision": "すべての判断",
+    "empty": {
+      "todo": "すべてのアカウントを判断しました",
+      "done": "まだ判断はありません",
+      "all": "アカウントはありません"
+    },
+    "allDecided": "すべてのアカウントを判断しました。",
+    "allDecidedHint": "上部のボタンで確定に回してください。"
   },
   "newReview": {
     "title": "新しいアカウント棚卸",
-    "description": "棚卸担当者がシステムのすべてのアカウントについて継続、無効化、削除を判定します。",
+    "description": "棚卸担当者がシステムのすべてのアカウントについて維持、無効化、削除を判断します。",
     "targetPlaceholder": "例: コア ファイアウォール、10.0.0.1",
     "source": "アカウント",
     "sourceCsv": "システムのアカウント一覧からインポート",
@@ -701,14 +788,32 @@
     "created": "アカウント棚卸 {reference} を作成しました"
   },
   "decide": {
-    "open": "判定",
-    "openFor": "{account} を判定",
-    "title": "{account} を判定",
-    "titleMany": "{count} 件のアカウントを判定",
-    "description": "アカウントを継続、無効化、削除します。",
-    "doneHint": "アカウントを無効化または削除した日付。後で入力することもできます。",
-    "selected": "選択した {count} 件を判定",
-    "saved": "{count, plural, other {判定を保存しました}}"
+    "title": {
+      "disable": "{account} を無効化",
+      "delete": "{account} を削除"
+    },
+    "titleMany": {
+      "disable": "{count} 件のアカウントを無効化",
+      "delete": "{count} 件のアカウントを削除"
+    },
+    "description": "実施日を記録すると、棚卸に表示されます。",
+    "doneHint": "実施するまでは空欄のままにします。すべての無効化と削除に日付が入ると、確定に回せます。",
+    "selected": {
+      "keep": "{count} 件を維持",
+      "disable": "{count} 件を無効化",
+      "delete": "{count} 件を削除"
+    },
+    "saved": "{count, plural, other {判定を保存しました}}",
+    "doneOn": "実施日 (省略可)",
+    "today": "今日",
+    "for": {
+      "keep": "{account} を維持",
+      "disable": "{account} を無効化",
+      "delete": "{account} を削除"
+    },
+    "groupFor": "{account} の判断",
+    "kept": "{account} を維持しました",
+    "keptMany": "{count, plural, other {# 件のアカウントを維持しました}}"
   },
   "addAccount": {
     "title": "アカウントを追加",
@@ -790,7 +895,7 @@
     "stocktake_created": "棚卸を作成しました",
     "stocktake_started": "棚卸を開始しました",
     "stocktake_item_recorded": "棚卸項目を記録しました",
-    "stocktake_signed_off": "棚卸を承認しました",
+    "stocktake_signed_off": "棚卸を確定しました",
     "stocktake_cancelled": "棚卸をキャンセルしました",
     "stocktake_exported": "棚卸結果をエクスポートしました",
     "account_created": "共有アカウントを登録しました",
@@ -806,7 +911,7 @@
     "review_item_decided": "棚卸のアカウントを判定しました",
     "review_completed": "アカウント棚卸を完了しました",
     "review_reopened": "アカウント棚卸を差し戻しました",
-    "review_signed_off": "アカウント棚卸を承認しました",
+    "review_signed_off": "アカウント棚卸を確定しました",
     "review_cancelled": "アカウント棚卸をキャンセルしました",
     "review_exported": "アカウント棚卸をエクスポートしました",
     "review_ticket_raised": "アカウント棚卸からチケットを作成しました"
@@ -828,8 +933,8 @@
       "body": "期限は {due} でした。{count, plural, other {資産 # 件が未確認です}}。"
     },
     "stocktake_ready": {
-      "label": "承認できる棚卸",
-      "title": "{reference} を承認できます",
+      "label": "確定できる棚卸",
+      "title": "{reference} を確定できます",
       "body": "{name} のすべての資産が記録されました。"
     },
     "account_password_change_due": {
@@ -845,7 +950,7 @@
     "review_assigned": {
       "label": "割り当てられたアカウント棚卸",
       "title": "{target} のアカウントを棚卸してください",
-      "body": "{reference}: {due} までに{count, plural, =0 {各アカウント} other { # 件のアカウント}}について継続、無効化、削除を判定してください。"
+      "body": "{reference}: {due} までに{count, plural, =0 {各アカウント} other { # 件のアカウント}}について維持、無効化、削除を判断してください。"
     },
     "review_reminder": {
       "label": "アカウント棚卸のリマインダー",
@@ -858,8 +963,8 @@
       "body": "{target} の棚卸の期限は {due} でした。"
     },
     "review_ready": {
-      "label": "承認できるアカウント棚卸",
-      "title": "{reference} を承認できます",
+      "label": "確定できるアカウント棚卸",
+      "title": "{reference} を確定できます",
       "body": "{target} のアカウント棚卸が完了しました。"
     }
   },
@@ -1103,5 +1208,11 @@
         "resolutionSignOff": "機器・リソース異常の解決の承認"
       }
     }
+  },
+  "work": {
+    "stocktakeChecks": "棚卸の確認",
+    "accountReviews": "アカウント棚卸",
+    "passwordChanges": "変更が必要なパスワード",
+    "toCheck": "{count, plural, other {確認待ち # 件}}"
   }
 }

@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { Category } from '../src/contracts';
+import { allowedTransitions } from '../src/server/rules';
 import {
+  articleRefsIn,
   categoryTree,
   dayIn,
+  listOf,
+  nextStep,
+  windowProblem,
   monthGrid,
   mostUrgent,
   niceTicks,
@@ -130,5 +135,76 @@ describe('statuses', () => {
     expect(statusesOf('change')[0]).toBe('draft');
     expect(statusesOf('change')).toContain('rejected');
     expect(NEEDS_CODE).toEqual(['resolved', 'fulfilled', 'cancelled']);
+  });
+});
+
+describe('nextStep', () => {
+  const step = (
+    type: Parameters<typeof nextStep>[0]['type'],
+    status: Parameters<typeof nextStep>[0]['status'],
+  ) => nextStep({ type, status, transitions: allowedTransitions(type, status) })?.key ?? null;
+
+  it('names the next stop of each lifecycle', () => {
+    expect(step('incident', 'new')).toBe('resolve');
+    expect(step('incident', 'resolved')).toBe('reopen');
+    expect(step('incident', 'closed')).toBeNull();
+    expect(step('service_request', 'in_progress')).toBe('fulfil');
+    expect(step('problem', 'new')).toBe('startInvestigating');
+    expect(step('problem', 'investigating')).toBe('markKnownError');
+    expect(step('problem', 'known_error')).toBe('resolve');
+    expect(step('change', 'draft')).toBe('submitForApproval');
+    expect(step('change', 'assessment')).toBe('submitForApproval');
+    expect(step('change', 'authorization')).toBeNull();
+    expect(step('change', 'scheduled')).toBe('startImplementation');
+    expect(step('change', 'implementing')).toBe('finishImplementation');
+    expect(step('change', 'review')).toBe('closeChange');
+    expect(step('change', 'rejected')).toBe('revise');
+  });
+
+  it('waits while a sign-off runs and only offers what the viewer may do', () => {
+    expect(
+      nextStep({ type: 'incident', status: 'pending_approval', signOff: {}, transitions: ['in_progress'] }),
+    ).toBeNull();
+    expect(nextStep({ type: 'incident', status: 'new', transitions: [] })).toBeNull();
+  });
+});
+
+describe('ticket page helpers', () => {
+  it('sends each kind back to its own list', () => {
+    expect(listOf('incident').href).toBe('/itsm');
+    expect(listOf('problem').href).toBe('/itsm/problems');
+    expect(listOf('change').href).toBe('/itsm/changes');
+  });
+
+  it('knows when a change window keeps it from being submitted', () => {
+    const now = new Date('2026-10-09T10:00:00Z');
+    expect(windowProblem({ changeType: 'normal', plannedStart: null, plannedEnd: null }, now)).toBe(
+      'missing',
+    );
+    expect(
+      windowProblem(
+        { changeType: 'normal', plannedStart: '2026-10-08T10:00:00Z', plannedEnd: '2026-10-08T11:00:00Z' },
+        now,
+      ),
+    ).toBe('past');
+    expect(
+      windowProblem(
+        { changeType: 'emergency', plannedStart: '2026-10-08T10:00:00Z', plannedEnd: '2026-10-08T11:00:00Z' },
+        now,
+      ),
+    ).toBeNull();
+    expect(
+      windowProblem(
+        { changeType: 'normal', plannedStart: '2026-10-10T10:00:00Z', plannedEnd: '2026-10-10T11:00:00Z' },
+        now,
+      ),
+    ).toBeNull();
+  });
+
+  it('finds the articles a reply cites', () => {
+    expect(articleRefsIn('See [KB-00078](/knowledge/KB-00078) and KB-00012.')).toEqual([
+      'KB-00078',
+      'KB-00012',
+    ]);
   });
 });

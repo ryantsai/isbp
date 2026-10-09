@@ -1,11 +1,11 @@
 {
-  "title": "ダッシュボード",
+  "title": "ホーム",
   "greeting": {
     "morning": "おはようございます、{name} さん",
     "afternoon": "こんにちは、{name} さん",
     "evening": "こんばんは、{name} さん"
   },
-  "subtitle": "本日のプラットフォーム全体の状況です。",
+  "subtitle": "今日はどのようなご用件ですか?",
   "kpi": {
     "people": "有効なユーザー",
     "peopleHint": "ディレクトリ内 {total} 人",
@@ -26,7 +26,8 @@
     "security": "セキュリティ",
     "other": "その他",
     "total": "合計",
-    "tooltip": "{date}: {total} 件のイベント (うちセキュリティ {security} 件)"
+    "tooltip": "{date}: {total} 件のイベント (うちセキュリティ {security} 件)",
+    "section": "アクティビティ"
   },
   "sources": {
     "title": "サインイン方法",
@@ -36,30 +37,30 @@
     "title": "最近のアクティビティ",
     "empty": "アクティビティはまだありません。"
   },
-  "quick": {
-    "title": "クイック操作",
-    "createUser": "ユーザーを追加",
-    "grantAccess": "ロールを付与",
-    "reviewAudit": "監査ログを確認",
-    "configureSso": "シングル サインオンを構成"
+  "allClear": "すべて完了: 対応待ちの項目はありません。",
+  "waiting": "{count, plural, other {今日対応が必要な項目が # 件あります。}}",
+  "figures": "ユーザーとプラットフォーム",
+  "needsYou": {
+    "title": "対応が必要",
+    "description": "「自分の作業」で最も急ぎの項目です。",
+    "open": "自分の作業を開く",
+    "tasksTitle": "未完了のタスク"
   },
-  "modules": {
-    "title": "利用できるモジュール",
-    "description": "ここにあるものはすべて、同じ SDK で構築されたモジュールです。",
-    "manage": "モジュールの管理"
+  "requests": {
+    "title": "進行中の申請",
+    "description": "申請した内容と現在の状況です。",
+    "new": "新しい申請"
   },
-  "welcome": {
-    "title": "IS Big Platform へようこそ",
-    "body": "検索 (⌘K / Ctrl K) を使うと、どこへでもすばやく移動できます。他のモジュールへのアクセスが必要な場合は、管理者にお問い合わせください。"
+  "actions": {
+    "label": "クイック アクション",
+    "askIt": "IT に質問",
+    "askItHint": "すぐに回答を得る",
+    "report": "問題を報告",
+    "reportHint": "何かが正しく動作しない",
+    "request": "申請する",
+    "requestHint": "アクセス権、機器など",
+    "devices": "自分のデバイス",
+    "devicesHint": "自分に割り当てられた機器"
   },
-  "myWork": {
-    "approvals": "あなたの承認待ち",
-    "approvalsHint": "あなたの判断が必要な申請です。",
-    "open": "開く",
-    "noApprovals": "承認待ちの項目はありません。",
-    "requests": "進行中の申請",
-    "requestsHint": "送信したアクセス申請やその他の申請。",
-    "newRequest": "新しい申請",
-    "noRequests": "進行中の申請はありません。"
-  }
+  "onlyTasks": "判断待ちの項目はありません。未完了のタスクが {count} 件あります。"
 }

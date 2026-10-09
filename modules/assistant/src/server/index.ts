@@ -9,7 +9,7 @@ import { changeSets } from './schema';
 import { seed } from './seed';
 import { aiTools } from './tools';
 
-export { ChangeSetService } from './change-sets';
+export { ChangeSetService, checkFromError, readableError } from './change-sets';
 
 /**
  * The AI agent that customises the platform through change sets. Configuration surfaces are the customisation
@@ -43,7 +43,7 @@ export default defineServerModule(manifest, {
       id: r.id,
       type: 'change-set',
       title: `${changeSetReference(r.number)} ${r.title}`.trim(),
-      subtitle: r.status,
+      status: `assistant.status.${r.status}`,
       href: changeSetHref(r.id),
       icon: 'git-pull-request-arrow',
     }));

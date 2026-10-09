@@ -453,7 +453,6 @@ export default function ApplicationPage({ params }: WebPageProps) {
             <div className="flex flex-wrap items-center gap-2">
               <StageBadge stage={app.stage} />
               <CriticalityBadge criticality={app.criticality} />
-              {app.disposition && <DispositionBadge disposition={app.disposition} />}
             </div>
             <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <span>

@@ -12,7 +12,7 @@ import {
   type ModuleContext,
   PermissionSet,
 } from '@isbp/sdk/server';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { type AnyColumn, eq, inArray, sql } from 'drizzle-orm';
 import {
   COMPANY_TIME_ZONE,
   DEFAULT_UNDER_USED_PERCENT,
@@ -20,6 +20,13 @@ import {
   DEFAULT_WIPE_REMIND_DAYS,
   todayIn,
 } from '../model';
+
+/**
+ * An outer column inside a correlated subquery of a select list. In a single-table select Drizzle writes the
+ * columns of the select list unqualified (`"id"`), which inside `(select … from x where x.ref = "id")` means the
+ * inner table's own `id`. A column wrapped in its own `sql` keeps its table name.
+ */
+export const outer = (column: AnyColumn) => sql`${column}`;
 
 /** Full access for the module's own background work (jobs, event handlers, workflow callbacks, seed). */
 export function systemAuth(name = 'Assets'): AuthContext {

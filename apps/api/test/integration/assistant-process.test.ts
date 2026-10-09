@@ -10,7 +10,7 @@ import { createHarness, type Harness, type LooseJson, type Session } from './har
 /*
  * Phase 8 in the assistant: a change set with a form gives the form's own link (`/requests/forms/<key>`, "Open the
  * form") on the change set, in the agent's apply result and in its reply — after the person confirms, or after a
- * review applies it — and the builtin-mode template "Approval process" proposes a workflow and the form using it as
+ * review applies it — and the builtin-mode template "Request process" (`approval-process`) proposes a workflow and the form using it as
  * one change set. The chat model is the scripted stand-in of `tooling/integration-mocks` (`/llm/v1`).
  */
 
@@ -159,7 +159,7 @@ describe('the approval-process template (builtin mode)', () => {
     [groupFactKey]: 'ownerGroup',
     groupApproves: true,
     group: 'cab',
-    createChange: true,
+    afterApproval: 'change',
   });
 
   it('proposes the workflow and the form that uses it in one change set, renaming refs already taken', async () => {
@@ -212,6 +212,100 @@ describe('the approval-process template (builtin mode)', () => {
     });
     expect(none.status).toBe(422);
     expect((await h.call(admin, 'GET', `${A}/change-sets/${setId}`)).body.items).toHaveLength(before);
+  });
+
+  it('asks who may use the form, the person in the picked record and what happens after, as building blocks', async () => {
+    const { body } = await h.call(admin, 'GET', `${A}/templates/core.form/approval-process`);
+    const fields = body.fields as LooseJson[];
+    const byKey = (key: string) => fields.find((f) => f.key === key);
+    // A category picker (the portal's own, those in use, something else), the audience, what happens after.
+    expect(byKey('category').type).toBe('select');
+    expect(byKey('category').options.map((o: LooseJson) => o.value)).toEqual(
+      expect.arrayContaining(['hardware', 'software', '__new']),
+    );
+    expect(
+      byKey('category').options.find((o: LooseJson) => o.value === 'software').label['zh-TW'],
+    ).toBeTruthy();
+    expect(byKey('audience').options.map((o: LooseJson) => o.value)).toEqual(['everyone', 'groups']);
+    expect(byKey('afterApproval').options.map((o: LooseJson) => o.value)).toEqual(
+      expect.arrayContaining(['nothing', 'change', 'ticket', 'notify']),
+    );
+    // Every question is labelled in three languages (R49).
+    for (const f of fields) expect(Object.keys(f.label).sort(), f.key).toEqual(['en', 'ja-JP', 'zh-TW']);
+    const personFact = fields.find(
+      (f) =>
+        f.key.startsWith('recordPersonFact') && JSON.stringify(f.visibleWhen).includes('"alm.application"'),
+    );
+    expect(personFact.options.map((o: LooseJson) => o.value)).toEqual(['ownerId', 'businessOwnerId']);
+
+    const built = await h.call(admin, 'POST', `${A}/templates/build`, {
+      kind: 'core.form',
+      templateId: 'approval-process',
+      answers: {
+        name: 'Software purchase request',
+        category: '__new',
+        newCategory: 'Software purchases',
+        audience: 'groups',
+        audienceGroupKeys: ['cab'],
+        recordType: 'alm.application',
+        recordLabel: 'Application',
+        q1Label: 'Why do you need it?',
+        q1Type: 'textarea',
+        managerApproves: true,
+        recordPersonApproves: true,
+        [personFact.key]: 'businessOwnerId',
+        afterApproval: 'ticket',
+      },
+    });
+    expect(built.status).toBe(200);
+    const [workflow, form] = built.body.items as LooseJson[];
+    expect(workflow.check.ok).toBe(true);
+    expect(form.check.ok).toBe(true);
+    expect(workflow.value.graph.steps.map((st: LooseJson) => st.id)).toEqual(['manager', 'record-person']);
+    // The manager approved already: an application without a business owner skips the step instead of rejecting.
+    expect(workflow.value.graph.steps[1]).toMatchObject({
+      approvers: [{ type: 'fact', fact: 'records.application.businessOwnerId' }],
+      ifNoApprover: 'skip',
+    });
+    expect(form.value).toMatchObject({
+      category: 'Software purchases',
+      audience: { type: 'groups', groupKeys: ['cab'] },
+    });
+    expect(form.value.schema.actions).toEqual([
+      expect.objectContaining({ type: 'itsm.create-ticket', on: 'approved', id: 'raise-ticket' }),
+    ]);
+    await h.call(admin, 'POST', `${A}/change-sets/${built.body.id}/discard`);
+
+    // Without the manager, the person's step falls back to the manager rather than rejecting everything.
+    const ownerOnly = {
+      name: 'Owner only request',
+      recordType: 'alm.application',
+      recordLabel: 'Application',
+      managerApproves: false,
+      recordPersonApproves: true,
+      [personFact.key]: 'ownerId',
+    };
+    const alone = await h.call(admin, 'POST', `${A}/templates/build`, {
+      kind: 'core.form',
+      templateId: 'approval-process',
+      answers: { ...ownerOnly, afterApproval: 'nothing' },
+    });
+    expect(alone.status).toBe(200);
+    expect(alone.body.items[0].value.graph.steps).toEqual([
+      expect.objectContaining({
+        id: 'record-person',
+        approvers: [{ type: 'fact', fact: 'records.application.ownerId', fallback: { type: 'manager' } }],
+      }),
+    ]);
+    expect(alone.body.items[1].value.audience).toEqual({ type: 'everyone' });
+    await h.call(admin, 'POST', `${A}/change-sets/${alone.body.id}/discard`);
+    // "Notify a group" needs a group.
+    const nobody = await h.call(admin, 'POST', `${A}/templates/build`, {
+      kind: 'core.form',
+      templateId: 'approval-process',
+      answers: { ...ownerOnly, afterApproval: 'notify', notifyGroups: [] },
+    });
+    expect(nobody.status).toBe(422);
   });
 
   it('once applied, gives each form’s own link on the change set and in the tools’ result', async () => {

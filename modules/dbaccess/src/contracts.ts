@@ -7,6 +7,7 @@
  *     GET    /me/summary                     → mySummarySchema (dashboard card)
  *     GET    /catalog                        catalogQuerySchema → { items: catalogItemSchema[] }
  *     POST   /requests                       createRequestSchema → { items: requestSchema[] } (201)
+ *     POST   /requests/preview               requestPreviewInputSchema → requestPreviewSchema (who would approve)
  *     GET    /requests/:ref                  → requestSchema (DBR-00042 or id; requester, approvers, readers)
  *     POST   /requests/:ref/cancel           → requestSchema
  *     POST   /grants/:id/relinquish          reasonSchema → grantSchema
@@ -360,6 +361,27 @@ export const createRequestSchema = z.object({
 });
 export type CreateRequestInput = z.input<typeof createRequestSchema>;
 
+/** "Who will approve it" before sending: the roles and end dates being asked for. */
+export const requestPreviewInputSchema = createRequestSchema.pick({ items: true });
+export type RequestPreviewInput = z.input<typeof requestPreviewInputSchema>;
+
+/** A step of the request's approval workflow, as it would run for this request (a dry run). */
+export const approvalStepPreviewSchema = z.object({
+  id: z.string(),
+  name: localizedTextSchema,
+  type: z.enum(['approval', 'notify']),
+  /** `ask` these people; `skipped` by a condition; nobody matched and the step is skipped or rejects. */
+  outcome: z.enum(['ask', 'skipped', 'no-approver', 'reject']),
+  people: z.array(z.object({ id: z.string(), displayName: z.string() })),
+});
+export type ApprovalStepPreview = z.input<typeof approvalStepPreviewSchema>;
+
+/** One approval path per role (each role becomes its own request). `steps` is empty when nobody approves. */
+export const requestPreviewSchema = z.object({
+  items: z.array(z.object({ roleId: id, steps: z.array(approvalStepPreviewSchema) })),
+});
+export type RequestPreview = z.input<typeof requestPreviewSchema>;
+
 export const requestSchema = z.object({
   id,
   reference: z.string(),
@@ -513,6 +535,8 @@ export const reviewTotalsSchema = z.object({
   pending: z.number().int(),
   /** Undecided items the caller may decide. */
   mine: z.number().int(),
+  /** Every item the caller reviews, decided or not (0: they don't take part). */
+  mineTotal: z.number().int(),
 });
 
 export const reviewSchema = z.object({
@@ -569,6 +593,13 @@ export const reviewItemSchema = z.object({
   server: serverRefSchema,
   grantedAt: dateTime.nullable(),
   expiresAt: dateTime.nullable(),
+  /** Why the person asked for it (the request's justification), when it came through a request. */
+  reason: z.string().nullable(),
+  /**
+   * The account's last sign-in from the server's last sync: `known` false when the server isn't synced or doesn't
+   * report it; `lastAt` null with `known` true = never signed in.
+   */
+  signIn: z.object({ known: z.boolean(), lastAt: dateTime.nullable(), checkedAt: dateTime.nullable() }),
   reviewer: ownerSchema.nullable(),
   decision: reviewDecisionSchema.nullable(),
   comment: z.string().nullable(),
@@ -582,6 +613,8 @@ export type ReviewItem = z.input<typeof reviewItemSchema>;
 
 export const reviewItemQuerySchema = listQuerySchema.extend({
   view: z.enum(['mine', 'undecided', 'decided', 'all']).optional(),
+  /** Only items the caller reviews. */
+  mine: z.stringbool().optional(),
   serverId: id.optional(),
 });
 

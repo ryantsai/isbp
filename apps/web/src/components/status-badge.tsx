@@ -1,24 +1,28 @@
 'use client';
 
 import { Badge } from '@isbp/ui/badge';
+import { defineStatusMap, MappedStatus } from '@isbp/ui/status';
+import { BanIcon, CircleCheckIcon, ClockIcon, UserXIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-const STATUS_VARIANT = {
-  active: 'success',
-  pending: 'warning',
-  suspended: 'destructive',
-  offboarded: 'muted',
-} as const;
+/** People lifecycle status: one map (tone, icon, label), rendered as icon + text. */
+export const USER_STATUS = defineStatusMap({
+  active: { tone: 'success', icon: CircleCheckIcon, labelKey: 'active', quiet: true },
+  pending: { tone: 'warning', icon: ClockIcon, labelKey: 'pending' },
+  suspended: { tone: 'destructive', icon: BanIcon, labelKey: 'suspended' },
+  offboarded: { tone: 'muted', icon: UserXIcon, labelKey: 'offboarded' },
+});
 
-/** People lifecycle status — colour plus a dot and text label (never colour alone). */
-export function UserStatusBadge({ status }: { status: string }) {
+/** `quiet` (lists): "Active" as muted text, chips only for the exceptions. */
+export function UserStatusBadge({ status, quiet = false }: { status: string; quiet?: boolean }) {
   const t = useTranslations('common.status_values');
-  const variant = STATUS_VARIANT[status as keyof typeof STATUS_VARIANT] ?? 'muted';
   return (
-    <Badge variant={variant}>
-      <span className="size-1.5 rounded-full bg-current" aria-hidden />
-      {t.has(status) ? t(status) : status}
-    </Badge>
+    <MappedStatus
+      map={USER_STATUS}
+      value={status}
+      t={(k) => (t.has(k) ? t(k) : k)}
+      quiet={quiet ? undefined : false}
+    />
   );
 }
 

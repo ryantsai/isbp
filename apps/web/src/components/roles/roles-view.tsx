@@ -65,7 +65,18 @@ export function RolesView() {
       />
       <Tabs
         value={tab}
-        onValueChange={(v) => patch({ tab: v === 'assignments' ? 'assignments' : null, page: null })}
+        onValueChange={(v) =>
+          // Each tab has its own search and filters.
+          patch({
+            tab: v === 'assignments' ? 'assignments' : null,
+            page: null,
+            q: null,
+            type: null,
+            requestable: null,
+            roleId: null,
+            includeExpired: null,
+          })
+        }
       >
         <TabsList>
           <TabsTrigger value="roles">

@@ -4,6 +4,16 @@ import { dateTime, id, keySchema } from './common';
 
 /* ───────────── audit ───────────── */
 
+export const auditRefSchema = z.object({
+  /** `user`, `group`, `department`, `role`, `form`, `workflow_definition`, `application`. */
+  type: z.string(),
+  name: z.string(),
+  /** Roles: their key and module, so the UI can show the translated name. */
+  key: z.string().nullable(),
+  moduleId: z.string().nullable(),
+});
+export type AuditRef = z.input<typeof auditRefSchema>;
+
 export const auditLogSchema = z.object({
   seq: z.number().int(),
   eventId: z.string(),
@@ -23,6 +33,11 @@ export const auditLogSchema = z.object({
   ip: z.string().nullable(),
   userAgent: z.string().nullable(),
   requestId: z.string().nullable(),
+  /**
+   * Names for the ids the record mentions (its target, ids in `changes`, `metadata.userIds`, role keys under
+   * `role:<key>`), resolved when it is read: what they are called now. Absent when nothing needed resolving.
+   */
+  refs: z.record(z.string(), auditRefSchema).optional(),
 });
 export type AuditLog = z.input<typeof auditLogSchema>;
 
@@ -36,6 +51,15 @@ export const auditQuerySchema = listQuerySchema.extend({
   category: z.enum(['data', 'security', 'system']).optional(),
   from: z.iso.datetime({ offset: true }).optional(),
   to: z.iso.datetime({ offset: true }).optional(),
+  /** Any of these actions; an entry ending in `*` is a prefix (`core.role.*`). "What changed" uses it. */
+  actions: z
+    .union([z.string().max(200), z.array(z.string().max(200)).max(40)])
+    .transform((v) => (Array.isArray(v) ? v : [v]))
+    .optional(),
+  /** Entries about this person: their own record, or a change that lists them (group members added, removed). */
+  userId: id.optional(),
+  /** Entries about this role: the role itself and the grants, revocations and expiries of it. */
+  roleId: id.optional(),
 });
 export type AuditQuery = z.input<typeof auditQuerySchema>;
 
@@ -94,15 +118,26 @@ export interface NavItem {
   href: string;
   icon?: string;
   section: 'main' | 'admin';
-  /** i18n key of a sub-heading within the section. */
+  /** @deprecated Always empty: groups are entries with `children`. */
   group?: string;
   /** Counter key from `GET /me/badges`. */
   badge?: string;
   order: number;
   moduleId: string;
+  /** A group's pages (sidebar rows). */
   children?: NavItem[];
+  /** Pages reached through this page's section tabs: not rows, but they highlight it and the palette lists them. */
+  tabs?: NavItem[];
+  /** Extra path prefixes that highlight the entry. */
+  match?: string[];
+  /** i18n key: what the page is for. */
+  description?: string;
+  /** i18n key: extra words the command palette matches. */
+  keywords?: string;
+  /** Administration entries: the hub section. */
+  area?: 'people' | 'automation' | 'modules' | 'integrations' | 'platform';
 }
-const navItem: z.ZodType<NavItem> = z.lazy(() =>
+const navItem: z.ZodType<NavItem, NavItem> = z.lazy(() =>
   z.object({
     id: z.string(),
     label: z.string(),
@@ -114,9 +149,26 @@ const navItem: z.ZodType<NavItem> = z.lazy(() =>
     order: z.number(),
     moduleId: z.string(),
     children: z.array(navItem).optional(),
+    tabs: z.array(navItem).optional(),
+    match: z.array(z.string()).optional(),
+    description: z.string().optional(),
+    keywords: z.string().optional(),
+    area: z.enum(['people', 'automation', 'modules', 'integrations', 'platform']).optional(),
   }),
 );
-export const navigationSchema = z.object({ items: z.array(navItem) });
+export const navigationSchema = z.object({
+  /**
+   * The sidebar in order: personal entries, one row per area (a group of `children`), and the Administration row
+   * (`/admin`) when the person has administration pages (one or two of them are shown as rows instead).
+   */
+  items: z.array(navItem),
+  /** Every administration page the person may open (the `/admin` hub's cards). */
+  admin: z.array(navItem),
+});
+export interface Navigation {
+  items: NavItem[];
+  admin: NavItem[];
+}
 
 /* ───────────── search ───────────── */
 
@@ -127,6 +179,9 @@ export const searchHitSchema = z.object({
   subtitle: z.string().nullable().optional(),
   href: z.string(),
   icon: z.string().optional(),
+  /** i18n key of the status. */
+  status: z.string().nullable().optional(),
+  exact: z.boolean().optional(),
   moduleId: z.string(),
 });
 export type SearchHitDTO = z.input<typeof searchHitSchema>;

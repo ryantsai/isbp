@@ -16,6 +16,8 @@ API reference, recipes, generated extension-point reference, testing, UI, defini
   `pnpm docs:screenshots` (stack running)
 - Integration tests (real Postgres/Redis, `isbp_test` DB): `pnpm test:integration`
 - E2E (stack must be running): `E2E_BASE_URL=http://localhost:3000 pnpm e2e`
+- GitHub Actions CI is **disabled** (out of minutes; `gh workflow enable CI` turns it back on): run the gate,
+  integration tests and e2e locally before pushing.
 - New module: `pnpm create-module <id>` · after adding/removing modules: `pnpm modules:sync`
 
 ## Conventions
@@ -72,7 +74,8 @@ API reference, recipes, generated extension-point reference, testing, UI, defini
 - Records (Phase 3): linkable types go in `manifest.records.types`, each with a resolver in
   `defineServerModule({ records })`. The resolver returns only what the caller may read, plus `editable`.
   Record pages host `<Slot name="core.record.links" props={{ record }} />` and `core.record.files`. Deleting a
-  record calls `ctx.records.forget(ref, { tx })`. To create a record in another module already linked, navigate to
+  record calls `ctx.records.forget(ref, { tx })`, which refuses with `IN_USE` while open work or live settings use it
+  (modules report theirs with `references` finders; groups too). To create a record in another module already linked, navigate to
   its form with `?link=<type>:<id>` (ITSM supports it). Never call the other module's API from the UI.
 - Attachments go through the core panel and `ctx.files` (policy, sniffing, AV, audit). Never accept uploads in a
   module route. Store secrets (licence keys, credentials) with `ctx.secrets.seal/open`.
@@ -127,6 +130,9 @@ API reference, recipes, generated extension-point reference, testing, UI, defini
   are the `core.remind` action. Ready-made process sets are built-in **change-set packages**
   (`manifest.customizationPackages`, content built per installer locale; installed as a draft change set, all or
   nothing). The `isms` module ships the ISMS process pack.
+- **A process is configuration, never code** (`docs/architecture.md` §1, R56): code is only a **building block** any
+  process can use, a **record type** (a module) or a **connector**. Name new code after what it does, never after the
+  process or organisation that asked for it.
 
 ## Gotchas
 

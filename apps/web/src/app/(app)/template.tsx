@@ -1,16 +1,20 @@
 'use client';
 
-import { easeOut } from '@isbp/ui/motion';
+import { ease, useEntranceMotion } from '@isbp/ui/motion';
 import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
 
-/** Re-mounts on every navigation → a short, purposeful page transition (opacity-only under reduced motion). */
+/**
+ * Re-mounts on every navigation: the new page fades in (opacity only, 150 ms). Server-rendered first loads and
+ * reduced motion show it at once.
+ */
 export default function Template({ children }: { children: ReactNode }) {
+  const play = useEntranceMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: easeOut }}
+      initial={play ? { opacity: 0 } : false}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15, ease: ease.enter }}
     >
       {children}
     </motion.div>

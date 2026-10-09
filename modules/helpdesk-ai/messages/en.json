@@ -44,10 +44,12 @@
     "conversation_escalated": "Raised a ticket from the virtual agent"
   },
   "mode": {
-    "builtin": "Builtin · no LLM",
     "builtinHint": "No language model is configured: answers come from knowledge-base search, similar tickets and templates.",
     "llm": "Language model",
-    "llmHint": "Answers are written by a language model ({provider}), grounded in your knowledge base. Personal data is masked before it leaves the platform."
+    "llmHint": "Answers are written by a language model ({provider}), grounded in your knowledge base. Personal data is masked before it leaves the platform.",
+    "basic": "Basic mode",
+    "chatBuiltin": "Answers from our knowledge base",
+    "chatLlm": "AI answers based on our knowledge base"
   },
   "language": {
     "en": "English",
@@ -83,6 +85,12 @@
     "dismiss": "Dismiss",
     "rerun": "Suggest again",
     "confidence": "Confidence",
+    "lowConfidence": "Low confidence — check before applying",
+    "neighbour": "{reference} ({percent}%)",
+    "basedOn": "Most similar resolved tickets: {list}.",
+    "noNeighbours": "No similar resolved tickets were found; impact and urgency use the defaults.",
+    "keywords": "Raised by keywords: {list}.",
+    "keyword": "“{word}”",
     "fallback": "The AI model was unavailable, so this suggestion comes from similar tickets only.",
     "decidedBy": "By {name}"
   },
@@ -95,8 +103,16 @@
   },
   "similar": {
     "title": "Similar resolved tickets",
+    "problemTitle": "Similar incidents",
     "match": "{percent}% match",
-    "none": "No similar resolved tickets yet."
+    "none": "No similar resolved tickets yet.",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "link": "Link to this problem",
+    "linkFor": "Link {reference} to this problem",
+    "linked": "Linked",
+    "linkedToast": "{reference} is now linked to this problem",
+    "open": "Open"
   },
   "resolution": {
     "solved": "Solved",
@@ -115,9 +131,9 @@
     "insertText": "This article should help: {link}"
   },
   "generated": {
-    "builtin": "Builtin template — review before sending",
+    "builtin": "Basic template — review before sending",
     "llm": "Written by {model} — review before sending",
-    "fallback": "The AI model was unavailable — builtin version shown"
+    "fallback": "The AI model was unavailable — the basic version is shown"
   },
   "reply": {
     "title": "Draft a reply",
@@ -192,9 +208,9 @@
     "checkingTickets": "Checking your tickets…",
     "loading": "Loading conversation",
     "didItHelp": "Did this solve it?",
-    "solved": "That solved it",
-    "stillNeedHelp": "I still need help",
-    "stillNeedHelpMessage": "That didn't solve it — I still need help.",
+    "solved": "Yes, thanks",
+    "stillNeedHelp": "No, raise a ticket",
+    "stillNeedHelpMessage": "That didn't solve it. Please raise a ticket for me.",
     "resolved": "Glad that helped! Ask again any time.",
     "ticketRaised": "Ticket {reference} was raised. The service desk will follow up there.",
     "viewTicket": "View ticket",
@@ -223,19 +239,20 @@
   "proposal": {
     "title": "Raise a ticket",
     "hint": "Review the details. Nothing is created until you confirm.",
-    "cta": "Still stuck? I've prepared a ticket for the service desk.",
-    "review": "Review ticket",
     "fields": {
       "title": "Title",
       "description": "Description",
-      "urgency": "Urgency",
       "type": "Type"
     },
     "titleTooShort": "Give the ticket a title of at least 3 characters.",
-    "urgency": {
-      "1": "High — I can't work",
-      "2": "Medium — my work is slowed",
-      "3": "Low — it can wait"
+    "impactLegend": "How much does it affect you?",
+    "impact": {
+      "blocked": "I can't work",
+      "blockedHint": "Work has stopped",
+      "slow": "It slows me down",
+      "slowHint": "There's a way around it, for now",
+      "minor": "It's minor",
+      "minorHint": "Fix it when you can"
     },
     "type": {
       "incident": "Something is broken",
@@ -258,12 +275,15 @@
     "description": "How well Helpdesk AI triages tickets and answers questions, and what it costs.",
     "period": "Period",
     "lastDays": "Last {days} days",
-    "configure": "Configure AI"
+    "configure": "Configure AI",
+    "sections": "Reports",
+    "serviceDesk": "Service desk",
+    "forbidden": "You don't have access to this page."
   },
   "kpi": {
     "acceptance": "Triage acceptance",
     "acceptanceHint": "{accepted} of {decided} decided suggestions",
-    "deflection": "Deflection rate",
+    "deflection": "Solved without a ticket",
     "deflectionHint": "{deflected} solved · {escalated} became tickets",
     "conversations": "Conversations",
     "conversationsHint": "{open} still open",
@@ -288,6 +308,7 @@
   "config": {
     "title": "Current AI configuration",
     "description": "Where answers come from and which automations are on.",
+    "technical": "Technical details",
     "mode": "Answers",
     "embeddings": "Embeddings",
     "vectorStore": "Vector search",
@@ -307,7 +328,18 @@
     "title": "What agents did with triage suggestions",
     "description": "{total, plural, one {# suggestion} other {# suggestions}} in this period.",
     "confidence": "Average confidence {percent}%.",
-    "kbDrafts": "{count, plural, one {# knowledge article} other {# knowledge articles}} drafted from resolved tickets."
+    "kbDrafts": "{count, plural, one {# knowledge article} other {# knowledge articles}} drafted from resolved tickets.",
+    "showPending": "Show tickets"
+  },
+  "pending": {
+    "title": "Suggestions waiting for an agent",
+    "description": "Open tickets whose triage suggestion still differs from the ticket and nobody has applied or dismissed.",
+    "ticket": "Ticket",
+    "suggested": "Suggested",
+    "confidence": "Confidence",
+    "raised": "Suggested",
+    "empty": "Nothing is waiting: every open ticket matches its suggestion or was decided.",
+    "more": "{count, plural, one {# more ticket is waiting} other {# more tickets are waiting}}"
   },
   "usage": {
     "title": "AI usage by feature",
@@ -318,14 +350,15 @@
     "cost": "Cost",
     "errors": "{count, plural, one {# failed} other {# failed}}",
     "none": "No model calls in this period",
-    "noneBuiltin": "Builtin mode uses no language model, so it costs nothing."
+    "noneBuiltin": "Basic mode uses no language model, so it costs nothing."
   },
   "features": {
     "triage": "Triage",
     "reply": "Reply drafts",
     "summary": "Summaries",
     "kb_draft": "KB drafts",
-    "chat": "Virtual agent"
+    "chat": "Virtual agent",
+    "similar": "Similar incidents"
   },
   "table": {
     "title": "Recent conversations",
@@ -363,9 +396,10 @@
       "offerTicket": "If this doesn't solve it, I can raise a ticket for the service desk — review the details below and confirm.",
       "offerTicketNone": "I can raise a ticket so the service desk can help — review the details below and confirm.",
       "defaultTitle": "Help needed from IT",
-      "proposalIntro": "Raised from the virtual agent (Ask IT).",
+      "proposalIntro": "Raised from Ask IT.",
       "proposalUser": "What I described:",
-      "proposalArticles": "Articles suggested: {list}",
+      "proposalArticles": "Ask IT suggested {list}, but that didn't solve it.",
+      "proposalArticle": "“{title}” ({reference})",
       "ticketCreated": "I've raised {reference} for you. The service desk will follow up there."
     },
     "triage": {

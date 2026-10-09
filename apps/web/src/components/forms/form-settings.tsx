@@ -1,44 +1,25 @@
 'use client';
 
-import type { FormDetail, FormSummary, WorkflowDefinitionSummary } from '@isbp/contracts';
+import type { FormDetail, FormSummary } from '@isbp/contracts';
+import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
 import { Switch } from '@isbp/ui/switch';
-import {
-  ArrowUpRightIcon,
-  CircleCheckIcon,
-  GlobeIcon,
-  PencilLineIcon,
-  PlusIcon,
-  TriangleAlertIcon,
-  UsersRoundIcon,
-} from 'lucide-react';
+import { CircleCheckIcon, GlobeIcon, PencilLineIcon, UsersRoundIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useId, useMemo } from 'react';
+import { ActivityFeed } from '@/components/audit/activity-feed';
 import { hasText } from '@/components/fields/field-utils';
 import { DateTime } from '@/components/relative-time';
 import { Segmented } from '@/components/roles/segmented';
 import { useApiQuery } from '@/lib/api';
 import { CategoryInput, IconPicker } from './form-inputs';
-import { useWorkflowName } from './forms-view';
 import { GroupMultiPicker } from './group-multi-picker';
 import type { BuilderState } from './use-builder';
-
-const NO_APPROVAL = '__none__';
 
 export type SettingsIssue = 'nameRequired' | 'groupsRequired';
 
@@ -76,23 +57,19 @@ function Field({
   );
 }
 
-/** Name, look, availability, audience and the approval workflow of a form (saved with the draft). */
+/** Name, look, availability and audience of a form (saved with the draft); who approves is the Approval tab. */
 export function FormSettings({
   form,
   state,
   onChange,
-  workflows,
-  workflowsLoading,
 }: {
   form: FormDetail;
   state: BuilderState;
   onChange: (fn: (s: BuilderState) => BuilderState, tag?: string) => void;
-  workflows: WorkflowDefinitionSummary[];
-  workflowsLoading: boolean;
 }) {
   const t = useTranslations('forms.settings');
   const uid = useId();
-  const workflowName = useWorkflowName();
+  const canAudit = useCan('core.audit.read');
   const issues = settingsIssues(state);
   const all = useApiQuery<{ items: FormSummary[] }>('/forms', { includeArchived: true });
   const categories = useMemo(
@@ -101,11 +78,6 @@ export function FormSettings({
         ...new Set((all.data?.items ?? []).map((f) => f.category).filter((c): c is string => Boolean(c))),
       ].sort(),
     [all.data],
-  );
-  const usable = workflows.filter((w) => !w.archived && w.publishedVersion !== null);
-  const attached = workflows.find((w) => w.id === state.workflowDefinitionId);
-  const attachedUnusable = Boolean(
-    state.workflowDefinitionId && (!attached || attached.archived || attached.publishedVersion === null),
   );
   const set = (patch: Partial<BuilderState>, tag?: string) => onChange((s) => ({ ...s, ...patch }), tag);
 
@@ -226,69 +198,6 @@ export function FormSettings({
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('approvalTitle')}</CardTitle>
-            <CardDescription>{t('approvalDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            <Label htmlFor={`${uid}-workflow`} className="sr-only">
-              {t('approvalTitle')}
-            </Label>
-            <Select
-              value={state.workflowDefinitionId ?? NO_APPROVAL}
-              onValueChange={(v) => set({ workflowDefinitionId: v === NO_APPROVAL ? null : v })}
-              disabled={workflowsLoading}
-            >
-              <SelectTrigger id={`${uid}-workflow`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_APPROVAL}>{t('noApproval')}</SelectItem>
-                <SelectSeparator />
-                {usable.map((w) => (
-                  <SelectItem key={w.id} value={w.id}>
-                    {workflowName(w.name)}
-                    {w.isDefault && (
-                      <Badge variant="muted" className="ml-1">
-                        {t('defaultWorkflow')}
-                      </Badge>
-                    )}
-                  </SelectItem>
-                ))}
-                {attachedUnusable && state.workflowDefinitionId && (
-                  <SelectItem value={state.workflowDefinitionId}>
-                    {attached ? workflowName(attached.name) : state.workflowDefinitionId}
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-            {attachedUnusable && (
-              <p className="flex items-start gap-2 rounded-lg bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
-                <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {t('workflowNotPublished')}
-              </p>
-            )}
-            {!state.workflowDefinitionId && (
-              <p className="text-sm text-muted-foreground">{t('noApprovalHint')}</p>
-            )}
-            <div className="flex flex-wrap gap-2">
-              {state.workflowDefinitionId && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/admin/workflows/${state.workflowDefinitionId}`}>
-                    <ArrowUpRightIcon /> {t('openWorkflow')}
-                  </Link>
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/admin/workflows">
-                  <PlusIcon /> {t('createWorkflow')}
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>{t('versionsTitle')}</CardTitle>
             <CardDescription>{t('versionsDescription')}</CardDescription>
           </CardHeader>
@@ -328,6 +237,15 @@ export function FormSettings({
             )}
           </CardContent>
         </Card>
+
+        {canAudit && (
+          <section aria-labelledby={`${uid}-activity`} className="grid gap-2">
+            <h2 id={`${uid}-activity`} className="text-base font-semibold">
+              {t('activityTitle')}
+            </h2>
+            <ActivityFeed subject={{ type: 'form', id: form.id }} description={t('activityDescription')} />
+          </section>
+        )}
       </div>
     </div>
   );

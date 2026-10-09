@@ -3,12 +3,12 @@
 import { useCan, usePlatform } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@isbp/ui/card';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { KeyRoundIcon, LaptopIcon, LifeBuoyIcon } from 'lucide-react';
+import { KeyRoundIcon, LaptopIcon, LifeBuoyIcon, PackagePlusIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import type { MyAssets } from '../../contracts';
@@ -23,12 +23,14 @@ export default function MyDevicesPage() {
   const day = useDay();
   const { enabledModules } = usePlatform();
   const canReport = useCan('itsm.tickets.create') && enabledModules.includes('itsm');
-  const { data, isLoading } = useApiQuery<MyAssets>('/itam/me/assets');
+  const { data, isLoading, error, refetch } = useApiQuery<MyAssets>('/itam/me/assets');
 
   return (
     <>
       <PageHeader title={t('title')} description={t('description')} />
-      {isLoading || !data ? (
+      {error ? (
+        <ErrorState kind="page" error={error} onRetry={() => refetch()} />
+      ) : isLoading || !data ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-56 rounded-xl" />
@@ -65,10 +67,10 @@ export default function MyDevicesPage() {
                           <CategoryIcon category={d.category} className="size-5" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <CardTitle id={`device-${d.id}`} className="truncate text-base">
+                          <CardTitle id={`device-${d.id}`} className="text-base wrap-break-word">
                             {d.model ? modelLabel(d.model) : tt(`category.${d.category}`)}
                           </CardTitle>
-                          <p className="truncate text-sm text-muted-foreground">{d.name}</p>
+                          <p className="text-sm wrap-break-word text-muted-foreground">{d.name}</p>
                         </div>
                         {d.status !== 'deployed' && <AssetStatusBadge status={d.status} />}
                       </CardHeader>
@@ -77,7 +79,7 @@ export default function MyDevicesPage() {
                           <dt className="text-muted-foreground">{t('tag')}</dt>
                           <dd className="font-mono text-xs leading-5">{d.tag}</dd>
                           <dt className="text-muted-foreground">{t('serial')}</dt>
-                          <dd className="truncate font-mono text-xs leading-5">{d.serialNumber ?? '—'}</dd>
+                          <dd className="font-mono text-xs leading-5 break-all">{d.serialNumber ?? '—'}</dd>
                           <dt className="text-muted-foreground">{t('since')}</dt>
                           <dd>
                             {d.since ? format.dateTime(new Date(d.since), { dateStyle: 'medium' }) : '—'}
@@ -142,6 +144,33 @@ export default function MyDevicesPage() {
               </Card>
             )}
           </section>
+          {data.devices.length > 0 && (
+            <section
+              aria-labelledby="itam-mine-help"
+              className="flex flex-col gap-3 rounded-xl border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="min-w-0">
+                <h2 id="itam-mine-help" className="text-sm font-semibold">
+                  {t('helpTitle')}
+                </h2>
+                <p className="text-sm text-muted-foreground">{t('helpHint')}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {canReport && (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/itsm/report">
+                      <LifeBuoyIcon /> {t('tellUs')}
+                    </Link>
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/requests">
+                    <PackagePlusIcon /> {t('requestDevice')}
+                  </Link>
+                </Button>
+              </div>
+            </section>
+          )}
         </div>
       )}
     </>

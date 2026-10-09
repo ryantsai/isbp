@@ -35,7 +35,6 @@ import {
   PRIVILEGES,
   RECURRENCES,
   REVIEW_COLUMNS,
-  REVIEW_DECISIONS,
   type Review,
   type ReviewImportReport,
   type ReviewItem,
@@ -227,14 +226,19 @@ function NewReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
   );
 }
 
-/** Decide one or several accounts: keep, disable or delete, with the date it was done and a note. */
+/**
+ * Disable or delete one or more accounts: the date it was done (empty while it isn't done yet) and a note. Keep is
+ * one click in the list; this dialog is for the decisions that need a date.
+ */
 export function DecideDialog({
   review,
   items,
+  decision,
   onOpenChange,
 }: {
   review: string;
   items: ReviewItem[];
+  decision: 'disable' | 'delete';
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations('isms');
@@ -244,8 +248,7 @@ export function DecideDialog({
   const today = todayLocal(timeZone);
   const name = useId();
   const first = items[0];
-  const [decision, setDecision] = useState<(typeof REVIEW_DECISIONS)[number]>(first?.decision ?? 'keep');
-  const [doneOn, setDoneOn] = useState(first?.doneOn ?? '');
+  const [doneOn, setDoneOn] = useState(first?.decision === decision ? (first.doneOn ?? '') : '');
   const [note, setNote] = useState(items.length === 1 ? (first?.note ?? '') : '');
   const [error, setError] = useState<string | null>(null);
   const save = useApiMutation(
@@ -261,48 +264,35 @@ export function DecideDialog({
         <DialogHeader>
           <DialogTitle>
             {items.length === 1
-              ? t('decide.title', { account: first?.accountName ?? '' })
-              : t('decide.titleMany', { count: items.length })}
+              ? t(`decide.title.${decision}`, { account: first?.accountName ?? '' })
+              : t(`decide.titleMany.${decision}`, { count: items.length })}
           </DialogTitle>
           <DialogDescription>
-            {first?.userName ?? first?.user?.displayName ?? t('decide.description')}
+            {items.length === 1
+              ? (first?.userName ?? first?.user?.displayName ?? t('decide.description'))
+              : t('decide.description')}
           </DialogDescription>
         </DialogHeader>
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">{t('fields.decision')}</legend>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {REVIEW_DECISIONS.map((d) => (
-              <label
-                key={d}
-                htmlFor={`${name}-${d}`}
-                className="flex cursor-pointer items-center gap-2 rounded-md border p-2.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50"
-              >
-                <input
-                  id={`${name}-${d}`}
-                  type="radio"
-                  name={name}
-                  checked={decision === d}
-                  onChange={() => setDecision(d)}
-                  className="size-4 accent-primary"
-                />
-                {t(`reviewDecision.${d}`)}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        {decision !== 'keep' && (
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${name}-done`}>{t('fields.doneOn')}</Label>
+        <div className="grid gap-1.5">
+          <Label htmlFor={`${name}-done`}>{t('decide.doneOn')}</Label>
+          <div className="flex flex-wrap items-center gap-2">
             <Input
               id={`${name}-done`}
               type="date"
               max={today}
               value={doneOn}
               onChange={(e) => setDoneOn(e.target.value)}
+              className="w-auto"
+              aria-describedby={`${name}-done-hint`}
             />
-            <p className="text-xs text-muted-foreground">{t('decide.doneHint')}</p>
+            <Button type="button" variant="outline" size="sm" onClick={() => setDoneOn(today)}>
+              {t('decide.today')}
+            </Button>
           </div>
-        )}
+          <p id={`${name}-done-hint`} className="text-xs text-muted-foreground">
+            {t('decide.doneHint')}
+          </p>
+        </div>
         <div className="grid gap-1.5">
           <Label htmlFor={`${name}-note`}>{t('fields.note')}</Label>
           <Textarea id={`${name}-note`} rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
@@ -318,13 +308,14 @@ export function DecideDialog({
           </Button>
           <Button
             type="button"
+            variant={decision === 'delete' ? 'destructive' : 'default'}
             loading={save.isPending}
             onClick={async () => {
               setError(null);
               try {
                 await save.mutateAsync({
                   decision,
-                  doneOn: decision === 'keep' ? null : doneOn || null,
+                  doneOn: doneOn || null,
                   ...(items.length === 1 || note.trim() ? { note: note.trim() || null } : {}),
                 });
                 onOpenChange(false);
@@ -333,7 +324,7 @@ export function DecideDialog({
               }
             }}
           >
-            {tc('save')}
+            {t(`reviewDecision.${decision}`)}
           </Button>
         </DialogFooter>
       </DialogContent>

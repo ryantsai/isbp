@@ -49,6 +49,23 @@ to the resolver and the assignee). Admins scope it with step conditions (e.g. `t
 anomaly" category); out of scope, the ticket resolves at once. A sync that resolves a ticket starts the same sign-off
 and goes no further.
 
+**Desk flows.** The ticket page's primary button is the next lifecycle step (`nextStep` in `src/web/logic.ts`):
+a draft change goes to `authorization` in one call (the assessment is passed in the same transaction), and "Start
+implementation" makes the person starting an unowned change its assignee. Status changes, confirmations, acceptance
+and edits lock the ticket row inside their transaction and re-check it: two simultaneous resolves give one 200 and one
+409 `INVALID_TRANSITION` (`details.reason: 'changed'`); an edit computed from a stale row (impact and urgency changed
+at once, a sync pulling a value) is recomputed from the fresh row instead of overwriting it. Resolving can name the
+article that solved it (`articleId`, checked as the caller through `knowledge.get_article`; a platform link between
+the ticket and `knowledge.article`, and `data.article` on the status entry). `POST /tickets` takes `ticketLinks`
+(a problem raised from its incidents) and `POST /tickets/:ref/links` a `direction` (`incoming`: the other ticket
+points at this one). `POST /tickets/:ref/problem/article` writes the known-error article as a knowledge draft for
+agents through `knowledge.create_draft` (as the caller) and sets it as the problem's article. The queues count open
+incidents and service requests (`DESK_TYPES`, drafts never), `attention` = breached or at risk, `types` filters the
+list by several types and `sort=slaDue` orders by the earliest running deadline. "My requests" and form fulfilments
+use requester words (`itsm.requesterStatus.*`: "Received" for new). The configuration lookups compare a one-row stamp
+(count and latest `updated_at`) with the database on every use, so a category made by the API is valid in the worker
+at once.
+
 Common tasks:
 
 ```bash

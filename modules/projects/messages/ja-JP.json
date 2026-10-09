@@ -6,7 +6,8 @@
   "nav": {
     "group": "プロジェクト",
     "portfolio": "プロジェクト",
-    "myTasks": "マイ タスク"
+    "myTasks": "マイ タスク",
+    "sections": "プロジェクトのセクション"
   },
   "systemRoles": {
     "projects-member": {
@@ -38,7 +39,7 @@
     "hoursPerWeek": "週あたりの作業時間",
     "hoursPerWeekHelp": "作業負荷ビューでのフルタイム 1 人の稼働時間 (割り当て率 × 時間)。",
     "proposalThresholdHours": "提案の承認しきい値 (時間)",
-    "proposalThresholdHoursHelp": "プロジェクト開始時に表示: これを超える提案は責任者の上長の承認が必要です。既定の承認ワークフローも同じ値を使うため、両方を変更してください (管理 → ワークフロー)。",
+    "proposalThresholdHoursHelp": "プロジェクト開始時に表示: これを超える提案はプロジェクト マネージャーの上長の承認が必要です。既定の承認ワークフローも同じ値を使うため、両方を変更してください (管理 → ワークフロー)。",
     "details": "詳細",
     "members": {
       "title": "メンバー",
@@ -56,7 +57,8 @@
       "remove": "{name} を削除",
       "removeTitle": "{name} をプロジェクトから削除しますか?",
       "removeBody": "未完了のタスクは未割り当てになります。",
-      "removeConfirm": "削除"
+      "removeConfirm": "削除",
+      "personRequired": "追加するユーザーを選択してください。"
     },
     "milestones": {
       "title": "マイルストーン",
@@ -79,7 +81,8 @@
       "moveUp": "{name} を上へ移動",
       "moveDown": "{name} を下へ移動",
       "deleteTitle": "マイルストーン {name} を削除しますか?",
-      "deleteBody": "そのタスクはマイルストーンなしで残ります。"
+      "deleteBody": "そのタスクはマイルストーンなしで残ります。",
+      "nameRequired": "マイルストーンの名前を入力してください。"
     },
     "danger": {
       "title": "アーカイブまたは削除",
@@ -189,7 +192,8 @@
   "health": {
     "on_track": "順調",
     "at_risk": "リスクあり",
-    "off_track": "計画から逸脱"
+    "off_track": "遅延",
+    "notAssessed": "未評価"
   },
   "priority": {
     "urgent": "緊急",
@@ -270,7 +274,8 @@
       "labels": "ラベル",
       "description": "説明",
       "attributes": "追加情報"
-    }
+    },
+    "planning": "計画"
   },
   "filters": {
     "label": "フィルター",
@@ -473,7 +478,7 @@
   },
   "approval": {
     "title": "提案の承認",
-    "needsManager": "予定工数が {threshold} 時間を超えるため、責任者の上長が開始を承認します。",
+    "needsManager": "予定工数が {threshold} 時間を超えるため、プロジェクト マネージャーの上長が開始を承認します。",
     "automatic": "{threshold} 時間以下の提案は、提出するとすぐに開始されます。",
     "notStarted": "未提出",
     "startHint": "「プロジェクトを開始」で提案を提出します。",
@@ -492,7 +497,13 @@
       "budgetHours": "予定工数 (時間)",
       "priority": "優先度",
       "memberCount": "メンバー数"
-    }
+    },
+    "submitHint": "「承認を申請」で、提案をプロジェクト マネージャーの上長に送ります。",
+    "pathTitle": "承認フロー",
+    "pathDescription": "提案が通るすべてのステップと、現在の位置です。",
+    "showPath": "承認フローを表示",
+    "sent": "送信",
+    "due": "期限"
   },
   "healthDialog": {
     "title": "健全性を更新",
@@ -543,7 +554,9 @@
     "title": "新しいタスク",
     "titlePlaceholder": "例: 9 階のアクセス スイッチを交換",
     "datesInvalid": "期限が開始日より前です。",
-    "created": "{reference} を作成しました"
+    "created": "{reference} を作成しました",
+    "moreDetails": "その他の詳細",
+    "titleRequired": "タスクのタイトルを入力してください。"
   },
   "form": {
     "createTitle": "新しいプロジェクト",
@@ -623,7 +636,7 @@
     "archived": "アーカイブ済み (読み取り専用)",
     "start": "プロジェクトを開始",
     "startTitle": "{key} を開始しますか?",
-    "startNeedsApproval": "予定工数 ({hours} 時間) が {threshold} 時間を超えるため、先に責任者の上長の承認が必要です。結果は通知されます。",
+    "startNeedsApproval": "予定工数 ({hours} 時間) が {threshold} 時間を超えるため、開始前にプロジェクト マネージャーの上長の承認が必要です。結果は通知されます。",
     "startAutomatic": "予定工数が {threshold} 時間以下のプロジェクトはすぐに開始されます。",
     "started": "プロジェクトを開始しました",
     "submitted": "提案を承認に提出しました",
@@ -632,7 +645,9 @@
     "changeStatus": "状態",
     "notFound": "プロジェクトが見つかりません",
     "notFoundHint": "{key} は存在しないか、表示するアクセス許可がありません。",
-    "loadFailed": "プロジェクトを読み込めませんでした"
+    "loadFailed": "プロジェクトを読み込めませんでした",
+    "submitForApproval": "承認を申請",
+    "submitTitle": "{key} の承認を申請しますか?"
   },
   "overview": {
     "kpi": {
@@ -660,7 +675,8 @@
     "manage": "管理",
     "members": "{count, plural, other {メンバー # 人}}",
     "owner": "プロジェクト マネージャー",
-    "allocation": "{pct}%"
+    "allocation": "{pct}%",
+    "addMilestone": "マイルストーンを追加"
   },
   "myTasks": {
     "title": "マイ タスク",
@@ -676,7 +692,9 @@
       "noDate": "日付なし"
     },
     "empty": "すべて完了しています",
-    "emptyHint": "自分に割り当てられた未完了のタスクはありません。"
+    "emptyHint": "自分に割り当てられた未完了のタスクはありません。",
+    "moved": "{reference} を{status}にしました",
+    "undo": "元に戻す"
   },
   "dashboard": {
     "title": "マイ タスク",
@@ -711,7 +729,8 @@
       "labels": "ラベル"
     },
     "via": "{system} {reference} 経由",
-    "addedVia": "{system} {reference} 経由で追加"
+    "addedVia": "{system} {reference} 経由で追加",
+    "addedFrom": "{system} から追加"
   },
   "recordFacts": {
     "key": "プロジェクト キー",
@@ -724,5 +743,26 @@
     "budgetHours": "予定工数 (時間)",
     "startDate": "開始日",
     "targetDate": "目標日"
+  },
+  "work": {
+    "tasks": "プロジェクトのタスク"
+  },
+  "getStarted": {
+    "title": "はじめに",
+    "progress": "{total} 件中 {done} 件完了",
+    "milestones": "マイルストーンを計画",
+    "milestonesHint": "作業が目指す主な日付です。",
+    "addMilestone": "マイルストーンを追加",
+    "tasks": "最初のタスクを追加",
+    "tasksHint": "やるべきこと、担当者、期限です。",
+    "newTask": "新しいタスク",
+    "members": "チームを追加",
+    "membersHint": "プロジェクトに参加するユーザーと、週あたりの割り当てです。",
+    "addMembers": "メンバーを追加",
+    "submit": "提案の承認を申請",
+    "submitHint": "予定工数の承認を受けてからプロジェクトが開始されます。",
+    "start": "プロジェクトを開始",
+    "startHint": "この規模のプロジェクトはすぐに開始されます。",
+    "done": "完了"
   }
 }

@@ -6,7 +6,8 @@
   "nav": {
     "group": "Projects",
     "portfolio": "Projects",
-    "myTasks": "My tasks"
+    "myTasks": "My tasks",
+    "sections": "Projects sections"
   },
   "systemRoles": {
     "projects-member": {
@@ -38,7 +39,7 @@
     "hoursPerWeek": "Working hours per week",
     "hoursPerWeekHelp": "Capacity of a full-time person in the workload view (allocation × hours).",
     "proposalThresholdHours": "Proposal approval threshold (hours)",
-    "proposalThresholdHoursHelp": "Shown when a project starts: larger proposals need the owner's manager. The default approval workflow uses the same number; change both together (Administration → Workflows).",
+    "proposalThresholdHoursHelp": "Shown when a project starts: larger proposals need the project manager’s line manager. The default approval workflow uses the same number; change both together (Administration → Workflows).",
     "details": "Details",
     "members": {
       "title": "Members",
@@ -56,7 +57,8 @@
       "remove": "Remove {name}",
       "removeTitle": "Remove {name} from the project?",
       "removeBody": "Their open tasks become unassigned.",
-      "removeConfirm": "Remove"
+      "removeConfirm": "Remove",
+      "personRequired": "Choose the person to add."
     },
     "milestones": {
       "title": "Milestones",
@@ -79,7 +81,8 @@
       "moveUp": "Move {name} up",
       "moveDown": "Move {name} down",
       "deleteTitle": "Delete the milestone {name}?",
-      "deleteBody": "Its tasks keep going without a milestone."
+      "deleteBody": "Its tasks keep going without a milestone.",
+      "nameRequired": "Enter a name for the milestone."
     },
     "danger": {
       "title": "Archive or delete",
@@ -189,7 +192,8 @@
   "health": {
     "on_track": "On track",
     "at_risk": "At risk",
-    "off_track": "Off track"
+    "off_track": "Off track",
+    "notAssessed": "Not assessed yet"
   },
   "priority": {
     "urgent": "Urgent",
@@ -270,7 +274,8 @@
       "labels": "labels",
       "description": "description",
       "attributes": "additional information"
-    }
+    },
+    "planning": "Planning"
   },
   "filters": {
     "label": "Filters",
@@ -473,7 +478,7 @@
   },
   "approval": {
     "title": "Proposal approval",
-    "needsManager": "Planned effort is over {threshold} h, so the owner’s manager approves the start.",
+    "needsManager": "Planned effort is over {threshold} h, so the project manager’s line manager approves the start.",
     "automatic": "Proposals up to {threshold} h start as soon as they’re submitted.",
     "notStarted": "Not submitted",
     "startHint": "Use “Start project” to submit the proposal.",
@@ -492,7 +497,13 @@
       "budgetHours": "Planned effort (hours)",
       "priority": "Priority",
       "memberCount": "Members"
-    }
+    },
+    "submitHint": "Use “Submit for approval” to send the proposal to the project manager’s line manager.",
+    "pathTitle": "Approval path",
+    "pathDescription": "Every step the proposal goes through, and where it is now.",
+    "showPath": "Show approval path",
+    "sent": "sent",
+    "due": "due"
   },
   "healthDialog": {
     "title": "Update health",
@@ -543,7 +554,9 @@
     "title": "New task",
     "titlePlaceholder": "e.g. Replace access switch on 9F",
     "datesInvalid": "The due date is before the start date.",
-    "created": "{reference} created"
+    "created": "{reference} created",
+    "moreDetails": "More details",
+    "titleRequired": "Enter a title for the task."
   },
   "form": {
     "createTitle": "New project",
@@ -623,7 +636,7 @@
     "archived": "Archived (read-only)",
     "start": "Start project",
     "startTitle": "Start {key}?",
-    "startNeedsApproval": "The planned effort ({hours} h) is over {threshold} h, so the owner’s manager has to approve it first. You’ll be notified of the decision.",
+    "startNeedsApproval": "The planned effort ({hours} h) is over {threshold} h, so the project manager’s line manager approves it before it starts. You’ll be notified of the decision.",
     "startAutomatic": "Projects up to {threshold} h of planned effort start right away.",
     "started": "The project is active",
     "submitted": "Proposal submitted for approval",
@@ -632,7 +645,9 @@
     "changeStatus": "Status",
     "notFound": "Project not found",
     "notFoundHint": "{key} doesn’t exist or you can’t see it.",
-    "loadFailed": "The project could not be loaded"
+    "loadFailed": "The project could not be loaded",
+    "submitForApproval": "Submit for approval",
+    "submitTitle": "Submit {key} for approval?"
   },
   "overview": {
     "kpi": {
@@ -660,7 +675,8 @@
     "manage": "Manage",
     "members": "{count, plural, one {# member} other {# members}}",
     "owner": "project manager",
-    "allocation": "{pct}%"
+    "allocation": "{pct}%",
+    "addMilestone": "Add milestone"
   },
   "myTasks": {
     "title": "My tasks",
@@ -676,7 +692,9 @@
       "noDate": "No date"
     },
     "empty": "You’re all caught up",
-    "emptyHint": "No open tasks are assigned to you."
+    "emptyHint": "No open tasks are assigned to you.",
+    "moved": "{reference} marked {status}",
+    "undo": "Undo"
   },
   "dashboard": {
     "title": "My tasks",
@@ -711,7 +729,8 @@
       "labels": "Labels"
     },
     "via": "via {system} {reference}",
-    "addedVia": "Added via {system} {reference}"
+    "addedVia": "Added via {system} {reference}",
+    "addedFrom": "Added from {system}"
   },
   "recordFacts": {
     "key": "Project key",
@@ -724,5 +743,26 @@
     "budgetHours": "Planned effort (hours)",
     "startDate": "Start date",
     "targetDate": "Target date"
+  },
+  "work": {
+    "tasks": "Project tasks"
+  },
+  "getStarted": {
+    "title": "Get started",
+    "progress": "{done} of {total} done",
+    "milestones": "Plan the milestones",
+    "milestonesHint": "The main dates the work is heading for.",
+    "addMilestone": "Add milestone",
+    "tasks": "Add the first tasks",
+    "tasksHint": "What has to be done, by whom and by when.",
+    "newTask": "New task",
+    "members": "Add the team",
+    "membersHint": "Who works on the project and how much of their week.",
+    "addMembers": "Add members",
+    "submit": "Submit the proposal for approval",
+    "submitHint": "The planned effort needs approval before the project starts.",
+    "start": "Start the project",
+    "startHint": "Projects of this size start right away.",
+    "done": "Done"
   }
 }

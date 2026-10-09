@@ -1,58 +1,89 @@
 'use client';
 
-import type { CatalogItem, MyRequest, PortalEntry } from '@isbp/contracts';
+import type { CatalogItem, FormAssignment, MyRequest, PortalEntry } from '@isbp/contracts';
 import { localize, type Page } from '@isbp/sdk';
 import { Slot } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { RelativeTime } from '@isbp/ui/relative-time';
+import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { ArrowRightIcon, ChevronRightIcon, InboxIcon, KeyRoundIcon, StampIcon } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  BriefcaseBusinessIcon,
+  ChevronRightIcon,
+  InboxIcon,
+  KeyRoundIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 import { useApiQuery } from '@/lib/api';
-import { TodoSection } from '../assignments/todo-section';
 import { NavIcon } from '../nav-icon';
 import { fulfilmentOf, RequestStatus, requestHref } from './request-status';
+
+/** The groups of "What do you need?", in the order they appear. */
+const GROUPS = ['help', 'equipment', 'access', 'other'] as const;
+type Group = (typeof GROUPS)[number];
+
+/** Portal cards by the module that offers them (modules without a card here land in "Other"). */
+const ENTRY_GROUP: Record<string, Group> = {
+  itsm: 'help',
+  knowledge: 'help',
+  itam: 'equipment',
+  dbaccess: 'access',
+};
+
+/** Form categories (keys from the form builder; anything else is "Other"). */
+const CATEGORY_GROUP: Record<string, Group> = {
+  hardware: 'equipment',
+  software: 'equipment',
+  access: 'access',
+  security: 'help',
+};
+
+/**
+ * The group of a form's category. Categories are typed in the form builder, so "Hardware", " hardware " and "HARDWARE"
+ * are the same category: match them case-insensitively, ignoring surrounding spaces.
+ */
+function categoryGroup(category: string | null | undefined): Group {
+  return CATEGORY_GROUP[(category ?? '').trim().toLowerCase()] ?? 'other';
+}
 
 function CatalogCard({
   href,
   icon,
   title,
   description,
-  badge,
   featured,
 }: {
   href: string;
   icon: React.ReactNode;
   title: string;
   description?: string | null;
-  badge?: React.ReactNode;
   featured?: boolean;
 }) {
   return (
     <Link
       href={href}
       className={
-        'group relative flex h-full flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 shadow-xs outline-none transition-all hover:-translate-y-0.5 hover:border-ring/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:hover:translate-y-0' +
+        'group relative flex h-full min-w-0 flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 shadow-xs outline-none transition-all hover:-translate-y-0.5 hover:border-ring/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:hover:translate-y-0' +
         (featured ? ' bg-gradient-to-br from-primary/10 via-card to-card' : '')
       }
     >
       <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-105 [&_svg]:size-5">
         {icon}
       </span>
-      <span className="grid gap-1">
-        <span className="font-medium">{title}</span>
+      <span className="grid min-w-0 gap-1">
+        <span className="font-medium [overflow-wrap:anywhere]">{title}</span>
         {description && <span className="line-clamp-2 text-sm text-muted-foreground">{description}</span>}
       </span>
-      <span className="mt-auto flex items-center justify-between gap-2">
-        {badge ?? <span />}
+      <span className="mt-auto flex items-center justify-end">
         <ArrowRightIcon
           className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
           aria-hidden
@@ -66,7 +97,8 @@ function RequestRow({ r }: { r: MyRequest }) {
   const t = useTranslations('requests');
   const locale = useLocale();
   const waiting = r.workflow?.status === 'running' ? r.workflow : null;
-  // A form request being fulfilled shows the fulfilment's status instead of "Approved".
+  const names = waiting?.pendingWith.map((p) => p.displayName) ?? [];
+  // A form request being fulfilled shows the fulfilment's reference next to its own.
   const fulfilling = fulfilmentOf(r);
   return (
     <li>
@@ -78,9 +110,8 @@ function RequestRow({ r }: { r: MyRequest }) {
           {r.kind === 'access' ? <KeyRoundIcon /> : <NavIcon name={r.icon} />}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-x-2">
-            <span className="truncate font-medium group-hover:underline">{localize(r.title, locale)}</span>
-            {r.subtitle && <span className="truncate text-sm text-muted-foreground">{r.subtitle}</span>}
+          <span className="block font-medium [overflow-wrap:anywhere] group-hover:underline">
+            {localize(r.title, locale)}
           </span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             <span className="font-mono">{r.reference}</span>
@@ -92,44 +123,71 @@ function RequestRow({ r }: { r: MyRequest }) {
             )}
             <span aria-hidden>·</span>
             <RelativeTime date={r.updatedAt} />
+            <span aria-hidden>·</span>
+            <RequestStatus r={r} />
             {waiting && waiting.currentSteps.length > 0 && (
-              <>
-                <span aria-hidden>·</span>
-                <span>
-                  {t('home.waitingFor', {
+              <span className="flex min-w-0 basis-full items-center gap-1.5 sm:basis-auto">
+                <span aria-hidden className="hidden sm:inline">
+                  ·
+                </span>
+                {names.length > 0 && (
+                  <span className="flex -space-x-1.5" aria-hidden>
+                    {waiting.pendingWith.slice(0, 3).map((p) => (
+                      <UserAvatar
+                        key={p.id}
+                        name={p.displayName}
+                        src={p.avatarUrl}
+                        className="size-5 text-[8px] ring-2 ring-background"
+                      />
+                    ))}
+                  </span>
+                )}
+                <span className="min-w-0 [overflow-wrap:anywhere]">
+                  {t('home.waitingNamed', {
+                    names: names.length > 1 ? `${names[0]} +${names.length - 1}` : (names[0] ?? ''),
                     step: waiting.currentSteps.map((s) => localize(s.name, locale)).join(', '),
                   })}
                 </span>
-                <span className="flex -space-x-1.5">
-                  {waiting.pendingWith.slice(0, 3).map((p) => (
-                    <UserAvatar
-                      key={p.id}
-                      name={p.displayName}
-                      src={p.avatarUrl}
-                      className="size-5 text-[8px] ring-2 ring-background"
-                    />
-                  ))}
-                </span>
-                {waiting.pendingWith.length > 3 && <span>+{waiting.pendingWith.length - 3}</span>}
-              </>
+              </span>
             )}
           </span>
         </span>
-        <RequestStatus r={r} />
         <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
       </Link>
     </li>
   );
 }
 
-/** The self-service portal: what you can ask for, and where your requests are. */
+/** "To do" lives on My work; this is the way there, shown only while something is waiting. */
+function TodoLink() {
+  const t = useTranslations('requests.home');
+  const open = useApiQuery<Page<FormAssignment>>('/me/form-assignments', { status: 'open', pageSize: 1 });
+  const count = open.data?.total ?? 0;
+  if (!count) return null;
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="flex items-center gap-2 text-sm font-medium">
+        <BriefcaseBusinessIcon className="size-4 shrink-0 text-primary" aria-hidden />
+        {t('todoLink', { count })}
+      </p>
+      <Button asChild variant="outline" size="sm" className="self-start sm:self-auto">
+        <Link href="/my-work">
+          {t('todoOpen')}
+          <ArrowRightIcon aria-hidden />
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
+/** The self-service portal: follow what you asked for, then ask for more. */
 export function RequestsHome() {
   const t = useTranslations('requests');
-  const tc = useTranslations('requests.categories');
+  const tg = useTranslations('requests.groups');
   const locale = useLocale();
-  const [state, set] = useListState({ pageSize: 10 });
-  const scope = (state.show as string | undefined) ?? 'open';
   const root = useTranslations();
+  const [state, set] = useListState({ pageSize: 5 });
+  const scope = (state.show as string | undefined) ?? 'open';
   const catalog = useApiQuery<{ items: CatalogItem[] }>('/forms/catalog');
   const entries = useApiQuery<{ items: PortalEntry[] }>('/portal/entries');
   const mine = useApiQuery<Page<MyRequest>>('/me/requests', {
@@ -137,86 +195,63 @@ export function RequestsHome() {
     page: state.page,
     pageSize: state.pageSize,
   });
-  const categories = [...new Set((catalog.data?.items ?? []).map((f) => f.category ?? 'other'))];
   const pages = mine.data ? Math.ceil(mine.data.total / mine.data.pageSize) : 1;
+
+  // "What do you need?": portal cards and forms, grouped; a search box once there are more than eight of them.
+  const query = (state.q as string | undefined)?.trim().toLowerCase() ?? '';
+  const cards = useMemo(() => {
+    const out: {
+      group: Group;
+      key: string;
+      href: string;
+      icon: React.ReactNode;
+      title: string;
+      description: string | null;
+      text: string;
+    }[] = [];
+    for (const e of entries.data?.items ?? []) {
+      const title = root.has(e.label) ? root(e.label) : e.label;
+      const description = e.description && root.has(e.description) ? root(e.description) : null;
+      out.push({
+        group: ENTRY_GROUP[e.moduleId] ?? 'other',
+        key: `${e.moduleId}-${e.id}`,
+        href: e.href,
+        icon: <NavIcon name={e.icon} />,
+        title,
+        description,
+        text: `${title} ${description ?? ''}`,
+      });
+    }
+    for (const f of catalog.data?.items ?? []) {
+      const title = localize(f.name, locale);
+      const description = localize(f.description, locale);
+      out.push({
+        group: categoryGroup(f.category),
+        key: `form-${f.id}`,
+        href: `/requests/forms/${f.key}`,
+        icon: <NavIcon name={f.icon} />,
+        title,
+        description,
+        text: `${title} ${description ?? ''}`,
+      });
+    }
+    return out;
+  }, [entries.data, catalog.data, locale, root]);
+  const total = cards.length + 1; // the access card
+  const shown = query ? cards.filter((c) => c.text.toLowerCase().includes(query)) : cards;
+  const loading = entries.isLoading || catalog.isLoading;
+  const accessMatches =
+    !query || `${t('home.accessTitle')} ${t('home.accessDescription')}`.toLowerCase().includes(query);
 
   return (
     <div className="grid gap-10">
       <PageHeader title={t('home.title')} description={t('home.description')} />
 
-      {/* Extension point: e.g. Helpdesk AI's virtual agent. */}
-      <Slot name="core.requests.assist" props={{}} />
-
-      {/* Forms someone asked the person to fill in by a date (hidden when there are none). */}
-      <TodoSection />
-
-      <section aria-labelledby="new-request" className="grid gap-4">
-        <h2 id="new-request" className="text-lg font-semibold">
-          {t('home.new')}
-        </h2>
-        <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {(entries.data?.items ?? []).map((e) => (
-            <StaggerItem key={`${e.moduleId}-${e.id}`}>
-              <CatalogCard
-                featured
-                href={e.href}
-                icon={<NavIcon name={e.icon} />}
-                title={root.has(e.label) ? root(e.label) : e.label}
-                description={e.description && root.has(e.description) ? root(e.description) : null}
-              />
-            </StaggerItem>
-          ))}
-          <StaggerItem>
-            <CatalogCard
-              featured
-              href="/requests/access"
-              icon={<KeyRoundIcon />}
-              title={t('home.accessTitle')}
-              description={t('home.accessDescription')}
-              badge={
-                <Badge variant="info">
-                  <StampIcon aria-hidden />
-                  {t('home.needsApproval')}
-                </Badge>
-              }
-            />
-          </StaggerItem>
-          {catalog.isLoading &&
-            [0, 1, 2].map((i) => (
-              <StaggerItem key={i}>
-                <Skeleton className="h-40 rounded-xl" />
-              </StaggerItem>
-            ))}
-          {categories.flatMap((cat) =>
-            (catalog.data?.items ?? [])
-              .filter((f) => (f.category ?? 'other') === cat)
-              .map((f) => (
-                <StaggerItem key={f.id}>
-                  <CatalogCard
-                    href={`/requests/forms/${f.key}`}
-                    icon={<NavIcon name={f.icon} />}
-                    title={localize(f.name, locale)}
-                    description={localize(f.description, locale)}
-                    badge={
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <Badge variant="muted">{tc.has(cat) ? tc(cat) : cat}</Badge>
-                        {f.hasApproval && (
-                          <Badge variant="info">
-                            <StampIcon aria-hidden />
-                            {t('home.needsApproval')}
-                          </Badge>
-                        )}
-                      </span>
-                    }
-                  />
-                </StaggerItem>
-              )),
-          )}
-        </Stagger>
-      </section>
-
-      <section aria-labelledby="my-requests">
-        <Tabs value={scope} onValueChange={(v) => set({ show: v === 'open' ? undefined : v })}>
+      <section aria-labelledby="my-requests" className="grid gap-4">
+        <Tabs
+          value={scope}
+          onValueChange={(v) => set({ show: v === 'open' ? undefined : v, page: undefined })}
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 id="my-requests" className="text-lg font-semibold">
               {t('home.mine')}
@@ -229,7 +264,7 @@ export function RequestsHome() {
           </div>
           {/* Radix renders the panel's children only for the active tab. */}
           {(['open', 'closed', 'all'] as const).map((v) => (
-            <TabsContent key={v} value={v} className="grid gap-4">
+            <TabsContent key={v} value={v} className="mt-4 grid gap-4">
               <div className="overflow-hidden rounded-xl border bg-card">
                 {mine.isLoading ? (
                   <div className="grid gap-px">
@@ -237,10 +272,21 @@ export function RequestsHome() {
                       <Skeleton key={i} className="h-16 rounded-none" />
                     ))}
                   </div>
+                ) : mine.error ? (
+                  <EmptyState
+                    icon={<InboxIcon />}
+                    title={t('home.loadFailed')}
+                    action={
+                      <Button variant="outline" size="sm" onClick={() => mine.refetch()}>
+                        {t('home.retry')}
+                      </Button>
+                    }
+                  />
                 ) : !mine.data?.items.length ? (
                   <EmptyState
                     icon={<InboxIcon />}
                     title={t(scope === 'open' ? 'home.emptyOpen' : 'home.empty')}
+                    description={scope === 'open' ? t('home.emptyOpenHint') : undefined}
                   />
                 ) : (
                   <ul className="divide-y">
@@ -276,6 +322,84 @@ export function RequestsHome() {
             </TabsContent>
           ))}
         </Tabs>
+      </section>
+
+      <TodoLink />
+
+      <section aria-labelledby="new-request" className="grid gap-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="grid gap-1">
+            <h2 id="new-request" className="text-lg font-semibold">
+              {t('home.new')}
+            </h2>
+            <p className="text-sm text-muted-foreground">{t('home.newHint')}</p>
+          </div>
+          {total > 8 && (
+            <SearchInput
+              value={(state.q as string | undefined) ?? ''}
+              onChange={(q) => set({ q: q || undefined })}
+              placeholder={t('home.search')}
+              aria-label={t('home.search')}
+              className="sm:w-72"
+            />
+          )}
+        </div>
+
+        {/* Extension point: the service desk's "Ask IT" invitation (`core.requests.assist`). */}
+        <Slot name="core.requests.assist" props={{}} />
+
+        {loading ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-32 rounded-xl" />
+            ))}
+          </div>
+        ) : (
+          GROUPS.map((group) => {
+            const items = shown.filter((c) => c.group === group);
+            const showAccess = group === 'access' && accessMatches;
+            if (!items.length && !showAccess) return null;
+            return (
+              <section key={group} aria-labelledby={`group-${group}`} className="grid gap-3">
+                <h3 id={`group-${group}`} className="text-sm font-semibold text-muted-foreground">
+                  {tg(group)}
+                </h3>
+                <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {showAccess && (
+                    <StaggerItem>
+                      <CatalogCard
+                        featured
+                        href="/requests/access"
+                        icon={<KeyRoundIcon />}
+                        title={t('home.accessTitle')}
+                        description={t('home.accessDescription')}
+                      />
+                    </StaggerItem>
+                  )}
+                  {items.map((c) => (
+                    <StaggerItem key={c.key}>
+                      <CatalogCard
+                        href={c.href}
+                        icon={c.icon}
+                        title={c.title}
+                        description={c.description}
+                        featured={c.group === 'help'}
+                      />
+                    </StaggerItem>
+                  ))}
+                </Stagger>
+              </section>
+            );
+          })
+        )}
+
+        {!loading && query && shown.length === 0 && !accessMatches && (
+          <EmptyState
+            icon={<InboxIcon />}
+            title={t('home.noMatch')}
+            className="rounded-xl border border-dashed"
+          />
+        )}
       </section>
     </div>
   );

@@ -59,11 +59,11 @@ export function notificationRoutes(app: ModuleRouter, svc: NotificationAdminServ
     {
       schema: {
         tags,
-        summary: 'Counters for the navigation (pending approvals, unread notifications)',
+        summary: 'Counters for the navigation (waiting on My work, pending approvals, unread notifications)',
         response: { 200: badgesSchema },
       },
     },
-    async (req) => svc.badges(req.auth.user!.id),
+    async (req) => svc.badges(req.auth.user!.id, req.auth),
   );
 
   /**
@@ -76,6 +76,7 @@ export function notificationRoutes(app: ModuleRouter, svc: NotificationAdminServ
     async (req, reply) => {
       const kernel = getKernel();
       const userId = req.auth.user!.id;
+      const auth = req.auth;
       const token = req.cookies[SESSION_COOKIE];
       reply.hijack();
       const res = reply.raw;
@@ -88,7 +89,7 @@ export function notificationRoutes(app: ModuleRouter, svc: NotificationAdminServ
       let closed = false;
       const send = async () => {
         if (closed) return;
-        const badges = await svc.badges(userId).catch(() => null);
+        const badges = await svc.badges(userId, auth).catch(() => null);
         if (badges && !closed) res.write(`event: badges\ndata: ${JSON.stringify(badges)}\n\n`);
       };
       let pending: NodeJS.Timeout | undefined;

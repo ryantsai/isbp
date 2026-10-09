@@ -1,4 +1,4 @@
-import { users } from '@isbp/db/schema';
+import { applications, rolePermissions, roles, users } from '@isbp/db/schema';
 import {
   type AuthContext,
   type BuiltTemplateItem,
@@ -9,6 +9,7 @@ import {
   httpErrors,
   likePattern,
   localize,
+  matchPermission,
   type ModuleContext,
   type Page,
   type VersionedObject,
@@ -27,11 +28,13 @@ import {
   DESTRUCTIVE_OPS,
   MAX_PACKAGE_ITEMS,
   type ObjectSnapshot,
+  type PermissionRole,
   type ProposeItemInput,
   REF_PREFIX,
 } from '../contracts';
 import { type AppliedLink, appliedLinks } from '../lib/links';
 import { type PackageIssue, packageIssues, packageOf, proposalProblems } from '../lib/packages';
+import { dependentsOf } from '../lib/processes';
 import { labelOf, refsIn, renameRefs, resolveRefs, uniqueRef } from '../lib/refs';
 import {
   type ChangeSetItemRow,
@@ -48,6 +51,8 @@ export const REVIEW_TRIGGER = 'assistant.change-set';
 /** As many as a package may hold, so every package fits one change set. */
 export const MAX_ITEMS = MAX_PACKAGE_ITEMS;
 
+/** The platform's own application (its roles are the ones messages name). */
+const PLATFORM_APP = 'isbp';
 const READ_ALL = 'assistant.change-sets.read';
 const MANAGE = 'assistant.change-sets.manage';
 
@@ -90,8 +95,106 @@ const OK: CheckResult = {
   permission: null,
 };
 
+/** A JSON column's value as a statement parameter (null is SQL NULL, as the ORM writes it). */
+const jsonParam = (value: unknown) =>
+  value === null || value === undefined ? sql`null::jsonb` : sql`${JSON.stringify(value)}::jsonb`;
+
+/**
+ * The dry-run results of a set's items, stored in one statement: one update per item made a dry run of N items N round
+ * trips. `updated_at` is set as the ORM sets it on every update.
+ */
+async function writeChecks(tx: Db, checks: ReadonlyMap<string, CheckResult>) {
+  if (!checks.size) return;
+  const rows = [...checks].map(([id, check]) => sql`(${id}::uuid, ${jsonParam(check)})`);
+  await tx.execute(sql`
+    update "assistant"."change_set_items" as i
+    set "check" = v."check", "updated_at" = ${new Date()}
+    from (values ${sql.join(rows, sql`, `)}) as v("id", "check")
+    where i."id" = v."id"
+  `);
+}
+
+/** What applying an item left on it: the object it made or changed, and the snapshots before and after. */
+interface AppliedItem {
+  id: string;
+  appliedId: string;
+  before: ObjectSnapshot | null;
+  after: ObjectSnapshot | null;
+}
+
+/** The applied items' results, stored in one statement (see {@link writeChecks}); each passed its check. */
+async function writeApplied(tx: Db, applied: readonly AppliedItem[]) {
+  if (!applied.length) return;
+  const rows = applied.map(
+    (a) => sql`(${a.id}::uuid, ${a.appliedId}, ${jsonParam(a.before)}, ${jsonParam(a.after)})`,
+  );
+  await tx.execute(sql`
+    update "assistant"."change_set_items" as i
+    set "applied_id" = v."applied_id", "before" = v."before", "after" = v."after",
+        "check" = ${jsonParam(OK)}, "updated_at" = ${new Date()}
+    from (values ${sql.join(rows, sql`, `)}) as v("id", "applied_id", "before", "after")
+    where i."id" = v."id"
+  `);
+}
+
+/** An object a change set made or changed, for the kind that owns it to refresh what it caches after commit. */
+interface CommittedChange {
+  kind: string;
+  op: ChangeSetItemRow['op'];
+  id: string;
+}
+
+/** Each item's object (what it made, or the object it changed), except references to objects of the set itself. */
+function changedObjects(
+  items: readonly Pick<ChangeSetItemRow, 'kind' | 'op' | 'appliedId' | 'targetId'>[],
+): CommittedChange[] {
+  return items.flatMap((i) => {
+    const target = i.appliedId ?? i.targetId;
+    return target && !target.startsWith('$ref:') ? [{ kind: i.kind, op: i.op, id: target }] : [];
+  });
+}
+
+/**
+ * Postgres errors of two transactions meeting rather than of the change itself: a lock not available in time, a
+ * serialization failure, a deadlock, a statement cancelled by its timeout while waiting.
+ */
+const BUSY_PG_CODES = new Set(['55P03', '40001', '40P01', '57014']);
+const UNIQUE_VIOLATION = '23505';
+/** How long a dry run, apply or rollback waits for another one touching the same kinds of configuration. */
+const LOCK_WAIT = '60s';
+
+/** The SQLSTATE of a database error (drivers and ORMs wrap it in `cause`), or null. */
+function pgCodeOf(err: unknown): string | null {
+  let e: unknown = err;
+  for (let depth = 0; depth < 4 && e && typeof e === 'object'; depth++) {
+    const code = (e as { code?: unknown }).code;
+    if (typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) return code;
+    e = (e as { cause?: unknown }).cause;
+  }
+  return null;
+}
+
+/**
+ * An error a person can act on, or null when it is an unexpected one (shown as INTERNAL, never with its internals):
+ * the kind's own refusal as it is, "another change set is busy" for concurrency, "already exists" for a unique key.
+ */
+export function readableError(err: unknown): HttpError | null {
+  if (err instanceof HttpError) return err;
+  const code = pgCodeOf(err);
+  if (code && BUSY_PG_CODES.has(code))
+    return new HttpError(
+      409,
+      ErrorCodes.CHANGE_SET_BUSY,
+      'Another change set is being applied or tried right now. Try again in a moment.',
+    );
+  if (code === UNIQUE_VIOLATION)
+    return new HttpError(409, ErrorCodes.CONFLICT, 'Something with the same name or key already exists');
+  return null;
+}
+
 /** A dry-run or apply error as an item's check result. */
-export function checkFromError(err: unknown): CheckResult {
+export function checkFromError(error: unknown): CheckResult {
+  const err = readableError(error) ?? error;
   if (err instanceof HttpError) {
     const d = (err.details ?? {}) as { issues?: CheckResult['issues']; permission?: string };
     const permissionDenied = err.statusCode === 403 || err.code === ErrorCodes.PRIVILEGE_ESCALATION;
@@ -250,6 +353,22 @@ export class ChangeSetService {
     input: ProposeItemInput,
     auth: AuthContext,
   ): Promise<{ changeSet: ChangeSetRow; item: ChangeSetItemRow }> {
+    const { row, item } = await this.stage(changeSetId, input, auth);
+    await this.dryRun(row.id, auth);
+    const [fresh] = await this.ctx.db.select().from(changeSets).where(eq(changeSets.id, row.id));
+    const [freshItem] = await this.ctx.db.select().from(changeSetItems).where(eq(changeSetItems.id, item.id));
+    return { changeSet: fresh!, item: freshItem! };
+  }
+
+  /**
+   * Writes one item into the set (a new change set when none is given), without dry-running the set: {@link propose}
+   * does that after it, and a template checks its set once after all its items. Returns the set and the saved item.
+   */
+  private async stage(
+    changeSetId: string | null,
+    input: ProposeItemInput,
+    auth: AuthContext,
+  ): Promise<{ row: ChangeSetRow; item: ChangeSetItemRow }> {
     const kind = this.kindsFor(auth).get(input.kind);
     if (!kind)
       throw new HttpError(404, ErrorCodes.NOT_FOUND, `Unknown or unavailable kind ${input.kind}`, {
@@ -331,10 +450,7 @@ export class ChangeSetService {
       await tx.update(changeSets).set({ updatedAt: new Date() }).where(eq(changeSets.id, row.id));
       return saved!;
     });
-    await this.dryRun(row.id, auth);
-    const [fresh] = await this.ctx.db.select().from(changeSets).where(eq(changeSets.id, row.id));
-    const [freshItem] = await this.ctx.db.select().from(changeSetItems).where(eq(changeSetItems.id, item.id));
-    return { changeSet: fresh!, item: freshItem! };
+    return { row, item };
   }
 
   /**
@@ -366,22 +482,32 @@ export class ChangeSetService {
         taken.add(name);
         names.set(item.ref, name);
       }
+    // The changes are all written, then the set is checked once: a check after each change would only be overwritten.
+    // A failure part-way still checks what was written, as proposing change by change did.
     let id = changeSetId;
-    for (const item of built.items) {
-      const { changeSet } = await this.propose(
-        id,
-        {
-          kind: item.kind,
-          op: item.op,
-          targetId: item.id,
-          label: item.label ?? undefined,
-          value: renameRefs(item.value, names),
-          ...(item.ref ? { ref: names.get(item.ref) } : {}),
-        },
-        auth,
-      );
-      id = changeSet.id;
+    let written = false;
+    try {
+      for (const item of built.items) {
+        const { row } = await this.stage(
+          id,
+          {
+            kind: item.kind,
+            op: item.op,
+            targetId: item.id,
+            label: item.label ?? undefined,
+            value: renameRefs(item.value, names),
+            ...(item.ref ? { ref: names.get(item.ref) } : {}),
+          },
+          auth,
+        );
+        written = true;
+        id = row.id;
+      }
+    } catch (err) {
+      if (written) await this.dryRun(id!, auth);
+      throw err;
     }
+    if (written) await this.dryRun(id!, auth);
     // A new change set from several changes is named after the template's own one (the form, not its workflow).
     if (!changeSetId && built.items.length > 1 && built.label)
       await this.ctx.db
@@ -506,13 +632,24 @@ export class ChangeSetService {
     return { reference, pkg: packageOf({ ...row, reference }, items) };
   }
 
-  /** Removes an item by id or `ref` (later items referring to it fail their dry run until fixed). */
-  async removeItem(changeSetId: string, itemIdOrRef: string, auth: AuthContext) {
+  /**
+   * Removes an item by id or `ref`. Later items referring to it fail their dry run until fixed, unless
+   * `withDependents`: then they go too (by `$ref` or a key they name, transitively), so no change is left broken.
+   */
+  async removeItem(
+    changeSetId: string,
+    itemIdOrRef: string,
+    auth: AuthContext,
+    opts: { withDependents?: boolean } = {},
+  ) {
     await this.editable(changeSetId, auth);
     const items = await this.itemsOf(changeSetId);
     const item = items.find((i) => i.id === itemIdOrRef || i.ref === itemIdOrRef);
     if (!item) throw httpErrors.notFound('Item not found');
-    await this.ctx.db.delete(changeSetItems).where(eq(changeSetItems.id, item.id));
+    const ids = [item.id, ...(opts.withDependents ? dependentsOf(items, item.id).map((i) => i.id) : [])];
+    await this.ctx.db
+      .delete(changeSetItems)
+      .where(and(eq(changeSetItems.changeSetId, changeSetId), inArray(changeSetItems.id, ids)));
     await this.dryRun(changeSetId, auth);
   }
 
@@ -534,6 +671,24 @@ export class ChangeSetService {
   /* ───────────── dry run ───────────── */
 
   /**
+   * Serialises dry runs, applies and rollbacks that touch the same kinds of configuration (two installs of one
+   * package create the same group keys): a transaction-scoped advisory lock per kind, taken in order at the start of
+   * the transaction, so the second waits for the first instead of blocking on its uncommitted rows item by item.
+   * Waiting longer than {@link LOCK_WAIT} fails with `CHANGE_SET_BUSY` (via {@link readableError}).
+   */
+  private async lockKinds(tx: Db, items: readonly { kind: string }[]) {
+    const kinds = [...new Set(items.map((i) => i.kind))].sort();
+    if (!kinds.length) return;
+    const { rows } = await tx.execute<{ t: string }>(sql`select current_setting('statement_timeout') as t`);
+    await tx.execute(sql`select set_config('statement_timeout', ${LOCK_WAIT}, true)`);
+    for (const kind of kinds)
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext('assistant.change-set'), hashtext(${kind}))`,
+      );
+    await tx.execute(sql`select set_config('statement_timeout', ${rows[0]?.t ?? '30s'}, true)`);
+  }
+
+  /**
    * Runs every item in order inside one transaction that is always rolled back — each in a savepoint, so one
    * failure doesn't hide the next — as `auth` with each kind's apply permission assumed. Stores each item's result.
    */
@@ -545,6 +700,7 @@ export class ChangeSetService {
     const source = { type: 'change-set', id, reference: changeSetReference(row.number) };
     try {
       await this.ctx.transaction(async (tx) => {
+        await this.lockKinds(tx, items);
         const ids = new Map<string, string>();
         for (const item of items) {
           const value = resolveRefs(item.value, ids);
@@ -578,11 +734,16 @@ export class ChangeSetService {
         throw new DryRunRollback();
       });
     } catch (err) {
-      if (!(err instanceof DryRunRollback)) throw err;
+      if (!(err instanceof DryRunRollback)) {
+        // Another change set held the same kinds for too long: every item says so (and can be checked again).
+        const readable = readableError(err);
+        if (readable?.code !== ErrorCodes.CHANGE_SET_BUSY) throw err;
+        const busy = checkFromError(readable);
+        for (const item of items) results.set(item.id, busy);
+      }
     }
     await this.ctx.transaction(async (tx) => {
-      for (const [itemId, check] of results)
-        await tx.update(changeSetItems).set({ check }).where(eq(changeSetItems.id, itemId));
+      await writeChecks(tx, results);
       await tx.update(changeSets).set({ checkedAt: new Date() }).where(eq(changeSets.id, id));
     });
     return results;
@@ -590,7 +751,8 @@ export class ChangeSetService {
 
   /* ───────────── applying ───────────── */
 
-  private async fail(id: string, err: unknown, tx?: Db) {
+  private async fail(id: string, error: unknown, tx?: Db) {
+    const err = readableError(error) ?? error;
     const lastError: LastError =
       err instanceof HttpError
         ? { code: String(err.code), message: err.message, details: err.details, at: new Date().toISOString() }
@@ -634,14 +796,17 @@ export class ChangeSetService {
     const reference = changeSetReference(row.number);
     const source = { type: 'change-set', id, reference };
     const applier = { id: auth.user?.id ?? null, name: auth.principal.name };
+    let changes: CommittedChange[] = [];
     try {
       await this.ctx.transaction(async (tx) => {
+        await this.lockKinds(tx, items);
         const [locked] = await tx.select().from(changeSets).where(eq(changeSets.id, id)).for('update');
         if (locked!.status !== row.status)
           throw new HttpError(409, ErrorCodes.INVALID_STATE, `The change set is ${locked!.status}`, {
             status: locked!.status,
           });
         const ids = new Map<string, string>();
+        const applied: AppliedItem[] = [];
         for (const item of items) {
           const value = resolveRefs(item.value, ids);
           const target = item.targetId ? resolveRefs(item.targetId, ids) : { value: null, missing: [] };
@@ -654,7 +819,7 @@ export class ChangeSetService {
                   code: 'unknown_ref',
                 })),
               });
-            const applied = await this.ctx.customizations.apply(
+            const result = await this.ctx.customizations.apply(
               item.kind,
               {
                 op: item.op,
@@ -667,27 +832,30 @@ export class ChangeSetService {
               },
               { auth, tx, source },
             );
-            if (item.ref) ids.set(item.ref, applied.id);
-            await tx
-              .update(changeSetItems)
-              .set({
-                appliedId: applied.id,
-                before: snapshot(applied.before),
-                after: snapshot(applied.after),
-                check: OK,
-              })
-              .where(eq(changeSetItems.id, item.id));
-          } catch (err) {
-            if (err instanceof HttpError)
+            if (item.ref) ids.set(item.ref, result.id);
+            applied.push({
+              id: item.id,
+              appliedId: result.id,
+              before: snapshot(result.before),
+              after: snapshot(result.after),
+            });
+          } catch (error) {
+            const err = readableError(error);
+            if (err)
               throw new HttpError(err.statusCode, err.code, err.message, {
                 ...(err.details as object),
                 itemId: item.id,
                 position: item.position,
                 label: item.label,
               });
-            throw err;
+            throw error;
           }
         }
+        await writeApplied(tx, applied);
+        const appliedIds = new Map(applied.map((a) => [a.id, a.appliedId]));
+        changes = changedObjects(
+          items.map((item) => ({ ...item, appliedId: appliedIds.get(item.id) ?? null })),
+        );
         await tx
           .update(changeSets)
           .set({
@@ -734,18 +902,16 @@ export class ChangeSetService {
       });
     } catch (err) {
       await this.fail(id, err);
-      throw err;
+      // Concurrency and duplicate keys as errors people can act on; the kind's own refusals as they are.
+      throw readableError(err) ?? err;
     }
-    await this.committed(id);
+    await this.committed(changes);
   }
 
   /** Lets each kind refresh what it caches, now that its changes are committed. */
-  private async committed(id: string) {
-    for (const item of await this.itemsOf(id)) {
-      const target = item.appliedId ?? item.targetId;
-      if (target && !target.startsWith('$ref:'))
-        await this.ctx.customizations.committed(item.kind, { op: item.op, id: target });
-    }
+  private async committed(changes: readonly CommittedChange[]) {
+    for (const change of changes)
+      await this.ctx.customizations.committed(change.kind, { op: change.op, id: change.id });
   }
 
   /* ───────────── review ───────────── */
@@ -988,6 +1154,7 @@ export class ChangeSetService {
     const source = { type: 'change-set-rollback', id, reference };
     try {
       await this.ctx.transaction(async (tx) => {
+        await this.lockKinds(tx, items);
         const [locked] = await tx.select().from(changeSets).where(eq(changeSets.id, id)).for('update');
         if (locked!.status !== 'applied')
           throw new HttpError(409, ErrorCodes.INVALID_STATE, `The change set is ${locked!.status}`);
@@ -1004,14 +1171,15 @@ export class ChangeSetService {
               },
               { auth, tx, source },
             );
-          } catch (err) {
-            if (err instanceof HttpError)
+          } catch (error) {
+            const err = readableError(error);
+            if (err)
               throw new HttpError(err.statusCode, err.code, err.message, {
                 ...(err.details as object),
                 itemId: item.id,
                 label: item.label,
               });
-            throw err;
+            throw error;
           }
         }
         await tx
@@ -1052,9 +1220,10 @@ export class ChangeSetService {
       });
     } catch (err) {
       await this.fail(id, err);
-      throw err;
+      // Concurrency and duplicate keys as errors people can act on; the kind's own refusals as they are.
+      throw readableError(err) ?? err;
     }
-    await this.committed(id);
+    await this.committed(changedObjects(items));
   }
 
   async discard(id: string, auth: AuthContext) {
@@ -1109,6 +1278,55 @@ export class ChangeSetService {
     };
   }
 
+  /**
+   * For each permission, the narrowest platform system roles that grant it (most exactly, then with the fewest
+   * permissions), so a page can say "needs Workflow administrator" instead of a code. Role names are the manifests'
+   * English; the web translates them.
+   */
+  async rolesFor(permissions: readonly string[]): Promise<PermissionRole[]> {
+    const wanted = [...new Set(permissions.filter(Boolean))];
+    if (!wanted.length) return [];
+    const rows = await this.ctx.db
+      .select({
+        id: roles.id,
+        key: roles.key,
+        name: roles.name,
+        moduleId: roles.moduleId,
+        permission: rolePermissions.permission,
+      })
+      .from(roles)
+      .innerJoin(applications, eq(applications.id, roles.applicationId))
+      .innerJoin(rolePermissions, eq(rolePermissions.roleId, roles.id))
+      .where(and(eq(applications.key, PLATFORM_APP), eq(roles.isSystem, true)));
+    const byRole = new Map<
+      string,
+      { key: string; name: string; moduleId: string | null; grants: string[] }
+    >();
+    for (const r of rows) {
+      const role = byRole.get(r.id) ?? { key: r.key, name: r.name, moduleId: r.moduleId, grants: [] };
+      role.grants.push(r.permission);
+      byRole.set(r.id, role);
+    }
+    const all = [...byRole.values()];
+    // How exactly a role grants it: `core.workflows.manage` (3) before `core.workflows.*` (2), `core.*` and `*`.
+    const specificity = (grants: readonly string[], permission: string) =>
+      Math.max(
+        -1,
+        ...grants
+          .filter((g) => matchPermission(g, permission))
+          .map((g) => g.split('.').filter((seg) => seg !== '*').length),
+      );
+    return wanted.map((permission) => ({
+      permission,
+      roles: all
+        .map((r) => ({ ...r, score: specificity(r.grants, permission) }))
+        .filter((r) => r.score >= 0)
+        .sort((a, b) => b.score - a.score || a.grants.length - b.grants.length || a.key.localeCompare(b.key))
+        .slice(0, 2)
+        .map(({ key, name, moduleId }) => ({ key, name, moduleId })),
+    }));
+  }
+
   async summaryOf(id: string, auth: AuthContext): Promise<ChangeSetSummary> {
     const row = await this.load(id, auth);
     return this.summary(row, await this.itemsOf(id));
@@ -1161,6 +1379,12 @@ export class ChangeSetService {
       ),
     ];
     const blocked = this.rollbackBlocked(row, items, kinds);
+    const errorPermissions = (row.lastError?.details as { permissions?: unknown } | undefined)?.permissions;
+    const permissionRoles = await this.rolesFor([
+      ...missing,
+      ...items.flatMap((i) => (i.check?.permission ? [i.check.permission] : [])),
+      ...(Array.isArray(errorPermissions) ? errorPermissions.filter((p) => typeof p === 'string') : []),
+    ]);
     return {
       ...this.summary(row, items),
       items: outItems,
@@ -1187,6 +1411,7 @@ export class ChangeSetService {
         missing,
         rollbackBlocked: blocked,
       },
+      permissionRoles,
       href: changeSetHref(row.id),
     };
   }

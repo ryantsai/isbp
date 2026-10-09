@@ -1,11 +1,11 @@
 {
-  "title": "Dashboard",
+  "title": "Home",
   "greeting": {
     "morning": "Good morning, {name}",
     "afternoon": "Good afternoon, {name}",
     "evening": "Good evening, {name}"
   },
-  "subtitle": "Here's what's happening across the platform today.",
+  "subtitle": "What do you need today?",
   "kpi": {
     "people": "Active people",
     "peopleHint": "{total} in directory",
@@ -26,7 +26,8 @@
     "security": "Security",
     "other": "Other",
     "total": "Total",
-    "tooltip": "{date}: {total} events, {security} security"
+    "tooltip": "{date}: {total} events, {security} security",
+    "section": "Activity"
   },
   "sources": {
     "title": "How people sign in",
@@ -36,30 +37,30 @@
     "title": "Recent activity",
     "empty": "No activity yet."
   },
-  "quick": {
-    "title": "Quick actions",
-    "createUser": "Add a person",
-    "grantAccess": "Grant a role",
-    "reviewAudit": "Review the audit log",
-    "configureSso": "Configure single sign-on"
+  "allClear": "All clear: nothing is waiting for you.",
+  "waiting": "{count, plural, one {# thing needs you today.} other {# things need you today.}}",
+  "figures": "People and platform",
+  "needsYou": {
+    "title": "Needs you",
+    "description": "The most urgent things on My work.",
+    "open": "Open My work",
+    "tasksTitle": "Your open tasks"
   },
-  "modules": {
-    "title": "Your modules",
-    "description": "Everything here is a module built on the same SDK.",
-    "manage": "Manage modules"
+  "requests": {
+    "title": "Your open requests",
+    "description": "What you asked for and where it is now.",
+    "new": "New request"
   },
-  "welcome": {
-    "title": "Welcome to IS Big Platform",
-    "body": "Use the search (⌘K / Ctrl K) to jump anywhere. Ask your administrator if you need access to more modules."
+  "actions": {
+    "label": "Quick actions",
+    "askIt": "Ask IT",
+    "askItHint": "Get an answer right away",
+    "report": "Report a problem",
+    "reportHint": "Something isn't working",
+    "request": "Request something",
+    "requestHint": "Access, equipment and more",
+    "devices": "My devices",
+    "devicesHint": "What's assigned to you"
   },
-  "myWork": {
-    "approvals": "Waiting for your approval",
-    "approvalsHint": "Requests that need your decision.",
-    "open": "Open",
-    "noApprovals": "Nothing is waiting for you.",
-    "requests": "Your open requests",
-    "requestsHint": "Access and other requests you sent.",
-    "newRequest": "New request",
-    "noRequests": "You have no open requests."
-  }
+  "onlyTasks": "Nothing is waiting for a decision. You have {count, plural, one {# open task} other {# open tasks}}."
 }

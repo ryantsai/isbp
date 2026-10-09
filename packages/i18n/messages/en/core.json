@@ -4,7 +4,6 @@
     "description": "Identity, access control, audit and the module system that every other module builds on."
   },
   "nav": {
-    "dashboard": "Dashboard",
     "users": "People",
     "groups": "Groups",
     "departments": "Departments",
@@ -12,22 +11,39 @@
     "audit": "Audit log",
     "modules": "Modules",
     "identity": "Sign-in providers",
-    "sectionMain": "Workspace",
-    "sectionAdmin": "Administration",
-    "approvals": "Approvals",
     "requests": "Requests",
-    "applications": "Applications",
+    "applications": "Application access",
     "apiClients": "API clients",
     "workflows": "Workflows",
     "forms": "Forms",
     "customFields": "Custom fields",
     "notifications": "Notifications",
-    "groupIdentity": "Identity",
-    "groupAccess": "Access",
-    "groupAutomation": "Automation",
-    "groupPlatform": "Platform",
     "ai": "AI",
-    "databases": "Database connections"
+    "databases": "Database connections",
+    "home": "Home",
+    "myWork": "My work",
+    "admin": "Administration",
+    "main": "Main navigation",
+    "keywords": {
+      "myWork": "approvals, to do, inbox, tasks, reviews"
+    },
+    "about": {
+      "users": "Accounts, onboarding and offboarding",
+      "groups": "Teams that share roles and work",
+      "departments": "The organisation chart and cost centres",
+      "roles": "Who may do what, and the access people can request",
+      "applications": "Business applications whose roles the platform manages",
+      "apiClients": "Keys for other systems that call the platform",
+      "identity": "Single sign-on and directory sync",
+      "forms": "Request forms people fill in, and what happens next",
+      "workflows": "Who approves what, and in which order",
+      "customFields": "Extra fields on people, tickets, assets and more",
+      "notifications": "Email, chat and webhook channels",
+      "databases": "Databases other features read and change",
+      "ai": "Models, budget and what AI may do",
+      "modules": "Turn features on and off, and their settings",
+      "audit": "Every change and sign-in, tamper-evident"
+    }
   },
   "permissions": {
     "usersRead": "View people and their profiles",
@@ -128,8 +144,8 @@
       "description": "Design approval workflows, forms, custom fields and notification channels"
     },
     "application-manager": {
-      "name": "Application manager",
-      "description": "Manage an application’s roles and permissions (assign it scoped to one application)"
+      "name": "Application access manager",
+      "description": "Manage the roles and permissions of an application in Application access (assign it scoped to one application)"
     },
     "database-admin": {
       "name": "Database connection administrator",
@@ -161,7 +177,7 @@
     },
     "formSubmission": {
       "name": "Form submission",
-      "description": "Runs for forms that have this workflow attached. Conditions can use every submitted value (data.fieldKey)."
+      "description": "Approves requests made with forms that use this workflow. Conditions can use the form's answers."
     }
   },
   "notifications": {
@@ -325,7 +341,10 @@
   "taskTypes": {
     "assignForm": {
       "name": "Assign a form",
-      "description": "Asks a person or a group to fill in a form by a date, once per period (day, week, month, quarter or year): monthly inspections, yearly reviews."
+      "description": "Asks a person or a group to fill in a form by a date, once per period (day, week, month, quarter or year): monthly inspections, yearly reviews.",
+      "label": "Assign “{form}” to {assignee}, {period, select, day {every day} week {every week} month {every month} quarter {every quarter} year {every year} other {each {period}}}",
+      "assigned": "Assigned “{title}”",
+      "alreadyAssigned": "Already assigned for {period}"
     }
   },
   "customizations": {
@@ -385,8 +404,8 @@
       "optionsHelp": "One choice per line."
     },
     "approvalProcess": {
-      "label": "Approval process",
-      "description": "A request form with its own approval: the questions (including records people pick, such as configuration items), who approves, and optionally a change raised once a request is approved.",
+      "label": "Request process",
+      "description": "A form, who approves it and what happens after",
       "name": "Form name",
       "category": "Category",
       "recordType": "Records people pick",
@@ -403,16 +422,39 @@
       "recordGroupFact": "Group from the records",
       "groupApproves": "Then a group approves",
       "group": "Group",
-      "createChange": "When a request is approved, raise a change",
-      "createChangeHelp": "The change is linked to the configuration items picked. When the form asks for two dates (start and end), it is submitted to its own authorization, with the CAB when needed.",
       "stepManager": "Manager approval",
       "stepRecordGroup": "Support group approval",
       "stepGroup": "Group approval",
       "workflowSuffix": "approval",
-      "actionName": "Raise a change"
+      "actionName": "Raise a change",
+      "categoryNew": "Something else…",
+      "newCategory": "New category",
+      "audience": "Who can use the form",
+      "audienceHelp": "If the form asks people to pick records, choose people who can see those records: others find nothing to pick.",
+      "audienceEveryone": "Everyone",
+      "audienceGroups": "Members of some groups",
+      "audienceGroupKeys": "Groups",
+      "recordPersonApproves": "Then the person named in the picked record approves",
+      "recordPersonFact": "Person from the records",
+      "afterApproval": "When a request is approved",
+      "afterApprovalHelp": "You can add more rules and actions in the form builder later. A change is linked to the configuration items picked.",
+      "afterNothing": "Nothing else",
+      "afterChange": "Raise a change",
+      "afterTicket": "Raise a ticket",
+      "afterNotify": "Notify a group",
+      "ticketCategory": "Ticket category",
+      "ticketGroup": "Group that handles the ticket",
+      "notifyGroups": "Groups to notify",
+      "stepRecordPerson": "Record owner approval",
+      "actionTicketName": "Raise a ticket",
+      "actionNotifyName": "Notify a group"
     },
     "links": {
       "openForm": "Open the form"
     }
+  },
+  "work": {
+    "approvals": "Approvals",
+    "forms": "Forms to fill in"
   }
 }

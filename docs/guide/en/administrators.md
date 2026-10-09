@@ -8,8 +8,8 @@ approvals and follow-up actions, see [Build your own process](processes.md).
 
 ## What you can do here
 
-- Manage [people and their lifecycle](#add-and-onboard-a-person), [groups](#organise-people-in-groups) and
-  [departments](#build-the-department-tree)
+- Manage [people and their lifecycle](#add-and-onboard-a-person), [moves between departments](#move-a-person-to-another-department),
+  [groups](#organise-people-in-groups) and [departments](#build-the-department-tree)
 - [Create roles](#create-a-role), [grant them with a scope and an end date](#grant-a-role-with-a-scope-and-an-end-date)
   and [let people request access](#let-people-request-a-role)
 - Register [applications and their roles](#manage-business-applications-and-their-roles) and give other systems
@@ -25,42 +25,79 @@ approvals and follow-up actions, see [Build your own process](processes.md).
 
 ## Find your way around Administration
 
-The **Administration** part of the sidebar only shows the pages you have permission for. The system roles below are
-the usual way to hand out administration; **Platform administrator** can do everything.
+Select **Administration** at the bottom of the sidebar. The Administration page shows a card for every page you have
+permission for, in **People & access**, **Requests & automation**, **Module settings**, **Integrations** and
+**Platform**; type in **Find a setting…** to filter them. With permission to read people, the top shows **People and
+platform** (**Active people**, **Awaiting onboarding**, **Access expiring**, …), and with the audit log **Platform
+activity** and **Recent activity** at the bottom. **Add a person** and **Grant a role** are at the top right. If you
+have only one or two administration pages, you see them in the sidebar instead of **Administration**.
+
+![The Administration page with its sections of settings](../../../apps/web/public/help/en/administrators-hub.jpg)
+
+The system roles below are the usual way to hand out administration; **Platform administrator** can do everything.
 
 | Page (Administration → …)                                      | What it's for                                            | Role that manages it                                                          |
 | -------------------------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | **People**, **Groups**, **Departments**                        | Accounts, membership and the organisation tree           | **Identity administrator**                                                    |
 | **Roles & access**                                             | Roles, permissions and who holds them                    | **Platform administrator** (create roles); **Identity administrator** (grant) |
-| **Applications**, **API clients**                              | Business applications, their roles, and service accounts | **Application manager**; **Platform administrator**                           |
+| **Application access**, **API clients**                        | Business applications, their roles, and service accounts | **Application access manager**; **Platform administrator**                    |
 | **Workflows**, **Forms**, **Custom fields**, **Notifications** | Approvals, request forms, extra fields and delivery      | **Workflow administrator**                                                    |
 | **AI**                                                         | Models, privacy, budget, the index and outside agents    | **Platform administrator**                                                    |
 | **Audit log**                                                  | Every change and sign-in                                 | **Security auditor** (read-only everywhere)                                   |
 | **Modules**                                                    | Turn modules on or off and change their settings         | **Module administrator**                                                      |
 | **Database connections**                                       | External databases                                       | **Database connection administrator**                                         |
 | **Sign-in providers**                                          | SSO and directory sync                                   | **Platform administrator**                                                    |
-| **Integrations**, **Sync conflicts**                           | ServiceDesk Plus and Azure DevOps Server                 | **Integrations administrator**                                                |
+| **Connections**, **Sync conflicts**                            | ServiceDesk Plus and Azure DevOps Server                 | **Integrations administrator**                                                |
 | **Change sets**                                                | Configuration changes prepared with the assistant        | **Assistant administrator**                                                   |
 
-Modules add their own administration pages, such as **Service desk** (ticket categories, SLA policies, calendars and
-the service catalog). Those are described in the guides for each area.
+Modules add their own settings under **Module settings**, such as **Service desk settings** (ticket categories, SLA
+policies, calendars and the service catalog), **Asset settings** and **Information security settings**. Those are
+described in the guides for each area. **Process packs** (under **Requests & automation**) installs a ready-made
+process as a change set.
 
 ## Add and onboard a person
 
 People who sign in with SSO are created automatically at their first sign-in (when the provider allows it). Add a
 person by hand for a local account, or to pre-board a new hire before their first day.
 
-1. Go to **Administration → People** and select **Add person**.
-2. Fill in **Identity** (work email, username, display name), **Organisation** (department, manager, job title) and
-   **Account** (language, time zone).
-3. Under **Start as**, choose **Active now** (can sign in immediately) or **Pre-boarded** (the account exists but
+1. Go to **Administration → People** and select **Add person**. Fields marked * are required.
+2. Under **Identity**, enter the **Work email** (the **Username** fills itself in from it), then **Given name** and
+   **Family name**. **Display name** fills itself in from the two names; change it if they go by another name.
+3. Under **Organisation**, enter the **Job title** and choose the **Department**. The **Manager** fills itself in with
+   the department's manager ("Suggested: the manager of …"); pick someone else if needed.
+4. Under **Groups**, select **Add groups**, search and tick the groups of their team. The groups give them their
+   access: the roles granted to a group apply to its members.
+5. Under **Start as**, choose **Active now** (can sign in immediately) or **Pre-boarded** (the account exists but
    can't sign in until onboarded).
-4. For a local account, set an **Initial password** (right after their first sign-in, ISBP asks them to choose a new
-   one). Leave it empty for SSO-only accounts.
-5. Add **Groups**: membership grants the roles assigned to those groups. Select **Create**.
+6. For a local account, open **Language, time zone and password** and set an **Initial password** (right after their
+   first sign-in, ISBP asks them to choose a new one). Leave it empty for SSO-only accounts. Select **Create**.
 
-**What happens next:** On the start date, open the person and select **Onboard**. The person's **Access** tab shows
-their effective permissions and why they have each one: directly, through a group, or as everyone.
+**What happens next:** The person's page opens with **What's next?**: the usual next steps, such as **Grant a role**
+(for access their groups don't give them) and, with Asset management, **Assign a device** from the devices in stock.
+On the start date of a pre-boarded person, select **Onboard**. The person's **Access** tab lists their roles and why
+they have each one (directly, through a group, or as everyone); **Show permissions** lists the permissions behind them.
+
+![The Add a person sheet with the department's manager suggested and groups chosen](../../../apps/web/public/help/en/administrators-add-person.jpg)
+
+## Move a person to another department
+
+Moving someone changes more than their department: their manager, often their job title, and the groups their old
+and new teams use. Do it in one step.
+
+1. Open the person in **Administration → People**, select **More actions** and then **Move to another department**.
+2. Choose the **New department**. The **Manager** is set to that department's manager; change it if needed, and
+   update the **Job title**.
+3. Under **Groups to leave**, the groups most of their current department is in (and the new one isn't) are ticked.
+   Under **Groups to join**, the groups most of the new department is in are already added. Change both as needed.
+   Memberships kept by a sign-in provider's directory sync can't be changed here.
+4. Under **Department-scoped roles to review**, tick the roles that only applied to their old job (**For the old
+   department**) to remove them.
+5. Select **Move**.
+
+**What happens next:** The change is saved at once, and the person's **Activity** shows one entry, **Moved to another
+department**, with everything that changed. Their previous manager and their new one are notified (**People moving
+between my department and another**) with the roles the person still has; roles scoped to the old department are
+listed to review.
 
 ## Suspend, reactivate or offboard a person
 
@@ -91,6 +128,15 @@ leaves loses it.
 Groups filled by directory sync say so; manual changes there may be overwritten by the next sync. The **Everyone**
 group holds every active person and gives baseline access.
 
+**Delete group** is refused while something still needs the group: a request in approval whose actions notify it,
+an approval in progress or an approval process that asks it, an open to-do assigned to it, tickets in its queue, or a
+published form or scheduled job that names it. The message lists them (**Still used by**) with links: finish,
+reassign or archive those first, then delete the group. Roles granted to the group go with it.
+
+You can also work from the person: on their page, the **Groups** tab lists their groups. Select **Add to groups** to
+add them to several at once, or **Remove from group** on a row (a toast offers **Undo**). Memberships kept by a
+directory sync show **Kept by LDAP** (or the sign-in type) and are changed in the directory.
+
 ## Build the department tree
 
 Departments group people and can limit what an administrator may manage. In the demo, the HR partner (`hr.partner`)
@@ -104,9 +150,9 @@ manages people only in the Sales department and its sub-departments.
 Moving a department moves everything under it. Deleting one is refused while it has sub-departments, and revokes roles
 scoped to it.
 
-When you move a person to another department, their previous manager and their new one are notified (**People moving
-between my department and another**) with the person's roles; roles scoped to the old department are listed to review.
-Nothing is revoked: remove the roles they no longer need on their page.
+To move a person between departments, use [Move to another department](#move-a-person-to-another-department). If you
+change the department with **Edit profile** instead, the managers are notified the same way, but groups and roles
+aren't offered.
 
 ## Create a role
 
@@ -117,6 +163,11 @@ covers a whole module or resource.
 2. Enter a **Name**, a **Key** and a **Description**.
 3. Under **Permissions**, tick individual permissions, or select a whole module or resource to grant it with a
    wildcard (which also covers permissions added later). Select **Create role**.
+
+The **Roles** tab groups roles by area: **Custom roles** first, then **Platform administration** and each module.
+Select an area to open it, or **Expand all**. Search by name, and filter by **Type** (**System**, **Custom**) and
+**Requests** (**People can request**, **Not requestable**). A role's page shows its permissions by what they allow;
+select **Show permission codes** to see the codes (such as `core.users.read`) and the role's key.
 
 System roles come from the modules and can't be edited: open one and select **Duplicate** to make an editable copy.
 Their names and descriptions are shown in each person's language; roles you create keep the name you give them.
@@ -165,7 +216,7 @@ is requestable for at most 30 days and goes through the **Privileged access** wo
 Register a business application (such as Finance ERP in the demo) so its access is granted, requested, approved,
 expired and audited like platform access. The application asks the Role Query API who may do what.
 
-1. Go to **Administration → Applications** and select **Register application**. Enter a **Name**, a **Key** (the
+1. Go to **Administration → Application access** and select **Register application**. Enter a **Name**, a **Key** (the
    application uses it when it calls the API; it can't change later), the **Owner** and select **Register**.
 2. On **Permissions**, add the actions the application checks, such as `invoices.approve`.
 3. On **Roles**, select **New role**, pick its permissions and, under **Self-service requests**, decide whether people
@@ -173,7 +224,9 @@ expired and audited like platform access. The application asks the Role Query AP
 4. On **People with access**, select **Grant access** to give a person or group a role.
 5. On **Role Query**, pick a person to see exactly what the application gets back, or check one permission.
 
-Roles of the platform itself are managed on **Roles & access**, not here.
+Roles of the platform itself are managed on **Roles & access**, not here. **Application access** is about who may do
+what in an application; the inventory of applications, their releases and deployments is **Applications** in the
+sidebar (see [Changes and releases](changes-and-releases.md)).
 
 ## Give another system access with an API client
 
@@ -213,31 +266,39 @@ stay disabled.
 ## Design an approval workflow
 
 Approval workflows decide who approves access requests, form requests and module work such as changes (**Change
-authorization**), asset disposal, project proposals, database access, publishing and change set reviews.
+authorization**), asset disposal, project proposals, database access, publishing and change set reviews. The approval
+of a request form is easiest to build on the form's own **Approval** tab (see [Build a request form](#build-a-request-form)):
+it uses the same canvas.
 
-1. Go to **Administration → Workflows**. Workflows are grouped by what they're **Used for**; **Always runs** marks
-   approvals that can never be turned off.
-2. Select **New workflow** (or **New** next to a trigger), choose what it's **Used for**, a **Name** and whether to
-   **Start from** a copy, then select **Create and open**.
+1. Go to **Administration → Workflows**. **Approvals for forms** lists each form's approval with the forms that use
+   it; **Built-in approvals** lists the others by area. **Required** marks approvals that can never be turned off,
+   **Off** those that run only once you set them up.
+2. Select **New workflow** (or **Set up an approval** under a built-in approval that has none), choose what it's
+   **Used for**, a **Name** and whether to **Start from** a copy, then select **Create and open**.
 3. On the canvas, select **Add a step here** and choose a step:
    - **Approval**: ask people to approve or reject.
    - **Decision**: take a different path depending on the request (for example the amount on a form).
    - **In parallel**: several approvals at the same time.
    - **Notification**: let people know, no decision needed.
-4. Select a step and set it on the **Step** tab:
+4. Select a step and set it on the **Step** tab. A new approval step is named after its approver ("Manager
+   approval"); rename it if you like.
    - **Approvers**: **A person**, **A group**, **Holders of a role**, **Manager**, **Department head**, **Person in a
      field**, **Group in a field** or **The requester**, each with an optional fallback (**If nobody is found,
      ask**). **Person in a field** and **Group in a field** take the approver from the request, for example the
-     support group of the CI picked on a form.
-   - **How many must approve**: **The first answer decides**, **Every approver** or **A number of approvers**.
-   - **Only run this step in some cases**: a condition, such as the amount being above a limit.
-   - **Deadline**: **Due within**, **Remind after**, and **When the deadline passes** (notify, escalate, approve or
-     reject automatically).
-   - **Options**: delegation, self-approval (off by default), and **If no approver is found**.
-   - **Instructions for approvers**.
+     support group of the CI picked on a form. With several approvers, choose **How many must approve**: **The first
+     answer decides**, **Every approver** or **A number of approvers**. **If no approver is found** rejects the
+     request or skips the step.
+   - The other settings are in sections you open when you need them; each says in one line what it holds:
+     **Fields the approver fills in**, **Deadline** (**Due within**, **Remind after**, and **When the deadline
+     passes**: notify, escalate, approve or reject automatically), **Options** (delegation, self-approval, off by
+     default, and **Instructions for approvers**) and **Condition** (**Only run this step in some cases**, "Always"
+     when empty).
 5. On the **Workflow** tab, choose **Use the fields of** a form so conditions can test its answers and the data of
    the records it picks, listed as "field: data" (for example **Configuration items: Criticality**). For a field that
-   picks several records, a condition is met when any of them matches.
+   picks several records, a condition is met when any of them matches. A workflow a form already uses takes that
+   form's fields without asking. **When someone already approved this request** chooses **Ask them again** (the
+   default) or **Count their earlier approval**: with the second, a person who already approved an earlier step is not
+   asked again at a later one, and the step records that the earlier approval counts.
 6. Select **Save draft**.
 
 In the demo, **Laptop request approval** asks the department head, then holders of the **Asset manager** role when
@@ -256,15 +317,16 @@ can test a custom field, or the data of a record picked in a record custom field
 
 Test a workflow before people depend on it, then publish it.
 
-1. In the builder, open the **Test** tab. Enter example **Request values** and **Decisions**, then select **Run
-   test**. The canvas shows which steps run, are skipped or wait. Nothing is saved or sent.
+1. In the builder, open the **Test** tab. Under **Try as**, choose a person to fill in their department and job
+   title, enter example **Request values** and **Decisions**, then select **Run test**. The canvas shows which steps
+   run, are skipped or wait. Nothing is saved or sent.
 2. Select **Publish**. "Published version … — new requests use it now" confirms it.
-3. To make it the one used for its trigger, open **More actions** and select **Use for new requests**. For a form,
-   attach it on the form's **Settings** tab instead: each form chooses its own workflow.
+3. For a built-in approval, open **More actions** and select **Use for new requests** to make it the one used. A
+   form names its own approval on its **Approval** tab instead, and its **Publish** publishes the approval too.
 
 **What happens next:** Requests already running keep the version they started with. Follow every running approval on
 the **Running & history** tab. **Stop using (no approval)** turns approval off for an optional trigger, and **Archive**
-retires a workflow.
+retires a workflow after you confirm. The **Workflow** tab lists the approval's versions and, if you may read the audit log, its **Activity**.
 
 ## Build a request form
 
@@ -272,21 +334,27 @@ Request forms are what people fill in from the portal: equipment, software, anyt
 
 1. Go to **Administration → Forms** and select **New form**. Enter a **Name**, a **Key**, an **Icon** and a
    **Category**, then select **Create and open builder**.
-2. On **Build**, drag fields from **Add elements** onto the form, or click one to add it. Select a field to set its
+2. On **Questions**, drag fields from **Add elements** onto the form, or click one to add it. Select a field to set its
    **Label** (in English, 繁體中文 and 日本語), **Key**, **Help text**, **Required**, its options, and **Show this field
    only when…** for conditional fields. A **Record** field lets people pick configuration items, applications,
    assets, tickets and other records they're allowed to see; set its **Record types**, **Allow several** and **Only
-   records where…**.
+   records where…**. While a request in approval (or with actions still to run) names a record, that record can't be
+   deleted: the message lists the request.
 3. On **Rules**, add checks across fields, such as the end date not being before the start date (**Add rule**).
-4. On **Actions**, add what happens after a request is sent, approved or rejected, such as **Raise a change**,
+4. On **Approval**, select **Set up an approval** (it starts with the requester's manager) and change it on the
+   canvas, or choose an approval you already have under **Approval used**. See
+   [Choose who approves](processes.md#choose-who-approves).
+5. On **Actions**, add what happens after a request is sent, approved or rejected, such as **Raise a change**,
    **Grant a role** or **Notify people** (**Add action**). Each action needs its own permission.
-5. On **Preview**, try the form in each language and submit it to check the answers and rules.
-6. On **Settings**, choose who sees it under **Audience** (**Everyone** or **Specific groups**), whether it's
-   **Accepting requests**, and its **Approval** workflow.
-7. Select **Save**, then **Publish**.
+6. On **Preview**, try the form in each language: **Who will approve this?** shows the approvers for your sample
+   answers (choose another requester under **Preview as**) and **What happens next** lists the actions.
+7. On **Settings**, choose who sees it under **Audience** (**Everyone** or **Specific groups**) and whether it's
+   **Accepting requests**.
+8. Select **Save**, then **Publish**. **Before you publish** warns about what would stop the form working for its
+   audience; the approval is published together with the form.
 
-**What happens next:** The form appears in the portal, and **More actions → Open in the portal** opens its own link
-(`/requests/forms/<key>`) to share. Requests made with it are on its **Requests** tab; each request page shows what
+**What happens next:** The form appears in the portal. The bar under the header shows its link
+(`/requests/forms/<key>`) with **Copy link** and **Open in the portal**. Requests made with it are on its **Requests** tab; each request page shows what
 the actions did under **What happens next**. Publishing again creates a new version; requests already submitted keep
 theirs, with their version's actions. To have the service desk fulfil approved requests, add the form to the service
 catalog (see [Service desk guide](service-desk.md)). Record fields, rules and actions step by step:
@@ -354,11 +422,13 @@ In the demo, **IT Operations (Microsoft Teams)** and **#it-approvals (Slack)** a
 
 Every capability is a module, and modules can be turned off at runtime without losing data.
 
-1. Go to **Administration → Modules**. Each card shows whether the module is on.
+1. Go to **Administration → Modules**. Each card shows what the module does, whether it's on and how many settings it
+   has.
 2. Use the switch on a card to turn a module on or off. Modules that others depend on must stay on until those are
    off; ISBP tells you which.
-3. Open a module to see its permissions, events, AI tools and the identity its background AI work runs as. On
-   **Settings**, change its settings and select **Save changes**.
+3. Open a module. On **Settings**, change its settings and select **Save changes**. **Overview** shows which modules it
+   depends on and which depend on it. **Technical details** lists what it declares for developers and support: its
+   version, permissions, events, AI tools, background jobs and the identity its background AI work runs as.
 
 For example, Helpdesk AI's settings turn on **Apply confident suggestions automatically** for triage, and the core
 platform's settings include the largest attachment size and blocked file types.
@@ -368,8 +438,8 @@ platform's settings include the largest attachment size and blocked file types.
 AI features work without a model (builtin mode). Add a model to turn on generative answers and free-text requests to
 the assistant. See [Assistant and AI](assistant-and-ai.md) for what changes for people.
 
-1. Go to **Administration → AI**. The top shows the mode, the embedding model, the vector store and this month's
-   spend.
+1. Go to **Administration → AI**. The top shows the mode (generative answers on, or builtin mode where no data leaves
+   the platform) and this month's spend. **Technical details** shows the embedding model and the vector store.
 2. On **Models**, under **Chat model**, choose the **Provider**: **None**, **Anthropic (Claude)** or
    **OpenAI-compatible** (OpenAI, Azure OpenAI, Ollama, vLLM and others). Enter the API key and model, and the
    prices if you want cost estimates. Select **Save changes**, then **Test connection**.
@@ -379,8 +449,9 @@ the assistant. See [Assistant and AI](assistant-and-ai.md) for what changes for 
    **Custom patterns** if needed, and set a monthly **Budget** (0 means no limit). Select **Save changes**.
 5. On **Usage**, see calls, tokens, cost and masked values by feature and model. On **Index**, see what semantic
    search can draw on and select **Re-embed now** after a model change.
-6. On **Outside agents (MCP)**, see the MCP endpoint, the API clients that may use it and the command to connect
-   Claude Code (see [Connect an outside agent](assistant-and-ai.md#connect-an-outside-agent-over-mcp)).
+6. On **Outside agents (MCP)**, see the MCP endpoint, the API clients that may use it, what agents get and the
+   command to connect Claude Code (see [Connect an outside agent](assistant-and-ai.md#connect-an-outside-agent-over-mcp)).
+   The protocol revisions and transport are under **Technical details**.
 
 Keys are stored encrypted and never shown again.
 
@@ -390,11 +461,17 @@ The audit log records every change, sign-in and access decision. It can't be edi
 the previous one with a hash, so tampering shows.
 
 1. Go to **Administration → Audit log**.
-2. Search by actor, target or action, and filter by **Category** (**Data**, **Security**, **System**), **Outcome**,
-   **Module** and dates.
-3. Open a record to see the changed fields, the details and the context. Select **Verify hash** to check on the
-   server that the record is intact.
+2. Search by person, record or action: the search also matches the action names in the **Action** column, such as
+   "Updated role" or "Signed in". Choose **What changed** (**People**, **Roles**, **Role grants**, **Groups**,
+   **Forms and custom fields**, **Workflows**, **Settings changes**, …) and **When** (**Today**, **Last 7 days**,
+   **Last 30 days** or **Choose dates…**). Under **Filters**, narrow by **Category** (**Data**, **Security**,
+   **System**), **Outcome** and **Module**.
+3. Open a record to see the changes by field name ("Risk: Low → Medium", "Owner: — → Platform Admin"), the details
+   and the context. Select **Verify hash** to check on the server that the record is intact.
 4. Select **Export CSV** to download the rows on the page.
+
+A person's, a group's and a role's own history is on their page, on **Activity**: for a role, its changes and who was
+granted it or lost it. **Open in the audit log** shows the same entries with every filter.
 
 Changes applied from a change set name the change set; changes made by a sync name the connection and the remote
 record; turning on **Allow insecure HTTP** for an integration is a **Security** event.
@@ -403,7 +480,7 @@ record; turning on **Allow insecure HTTP** for an integration is a **Security** 
 
 - **Administration → Database connections** registers SQL Server, PostgreSQL, MySQL and Oracle databases for Data
   APIs, pipelines, SQL jobs and database access. See [Data and automation](data-and-automation.md).
-- **Administration → Integrations** connects ServiceDesk Plus and Azure DevOps Server. See
+- **Administration → Connections** connects ServiceDesk Plus and Azure DevOps Server. See
   [Integrations](integrations.md).
 
 ## Administer the assistant
@@ -437,7 +514,7 @@ chat model; the guided templates work without one). Some tasks are admin pages o
 | Task                                                     | On the admin pages                                                                                                        | Ask the assistant                                                                                                                                  |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Add an approval step for laptops over 60 000 TWD         | **Workflows** → the laptop workflow → **Add a step here** → **Approval** with a condition on the amount → **Publish**     | "Laptop requests over 60,000 TWD also need approval from IT asset management", or the **Approval chain** template                                  |
-| Add a cost centre field to assets                        | **Custom fields** → **Hardware asset** → **Add field**                                                                    | "Add a cost centre field to hardware assets", or the **Custom field** template                                                                     |
+| Add a cost centre field to assets                        | **Custom fields** → **Hardware assets** → **Add field**                                                                   | "Add a cost centre field to hardware assets", or the **Custom field** template                                                                     |
 | Route major incidents to a Teams channel                 | **Notifications** → **Channels** → **Add channel** (**Microsoft Teams**) with **Major incidents (channels)**              | Only for an existing channel: "Send major incidents to IT Operations (Microsoft Teams) too". A new channel and its URL are added on the admin page |
 | Create a request form for a second monitor               | **Forms** → **New form** → **Publish**                                                                                    | "Create a request form for a second monitor", or the **Request form** template                                                                     |
 | Build a configuration change process                     | **Forms** (record field, rules, **Raise a change** action) and **Workflows** (see [Build your own process](processes.md)) | Describe the form, the approvers and the action in one request, or the **Approval process** template                                               |

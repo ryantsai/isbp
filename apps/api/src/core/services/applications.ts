@@ -237,6 +237,9 @@ export class ApplicationService {
     auth.require('core.applications.manage');
     const a = await this.find(id);
     this.assertExternal(a);
+    // Its roles go with it, and access requests for them must stay on record.
+    const own = await this.db.select({ id: roles.id }).from(roles).where(eq(roles.applicationId, id));
+    await this.access.assertNoRequestHistory(own.map((r) => r.id));
     await this.ctx.transaction(async (tx) => {
       await tx.delete(applications).where(eq(applications.id, id));
       await this.ctx.audit.record(

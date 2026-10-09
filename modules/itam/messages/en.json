@@ -5,14 +5,16 @@
   },
   "nav": {
     "group": "Assets",
-    "overview": "Asset overview",
+    "overview": "Overview",
     "hardware": "Hardware",
     "software": "Software",
-    "discovery": "Discovery",
+    "discovery": "Installed software",
     "contracts": "Contracts",
     "vendors": "Vendors",
-    "settings": "Assets",
-    "approvedSoftware": "Approved software"
+    "settings": "Asset settings",
+    "approvedSoftware": "Approved software",
+    "mine": "My devices",
+    "settingsAbout": "Categories, models, locations and lifecycle rules"
   },
   "portal": {
     "myDevices": "My devices",
@@ -130,6 +132,7 @@
     "license_compliance_changed": "Licence compliance changed",
     "license_key_revealed": "Revealed licence key",
     "discovery_reported": "Software inventory reported",
+    "discovery_removal_requested": "Asked the service desk to remove software",
     "title-rule_created": "Mapped or ignored a discovered title",
     "title-rule_deleted": "Removed a discovered-title rule",
     "contract_created": "Added contract",
@@ -327,7 +330,9 @@
       "nonCompliant": "Non-compliant licences",
       "nonCompliantHint": "of {total} licences",
       "renewing": "Contracts renewing in 90 days",
-      "renewingHint": "{cost} a year"
+      "renewingHint": "{cost} a year",
+      "installs": "Installs needing action",
+      "installsHint": "{unlicensed} titles without a licence · {notAllowed} installs not allowed"
     },
     "byCategory": "Assets by category and status",
     "byCategoryHint": "Disposed assets are left out.",
@@ -385,16 +390,16 @@
   "assetForm": {
     "createTitle": "New asset",
     "editTitle": "Edit {tag}",
-    "hint": "Status changes and assignment have their own actions on the asset page.",
+    "hint": "Say what it is; choose a person to hand it over right away, or keep it in stock.",
     "identity": "Identity",
     "placement": "Location",
-    "purchase": "Purchase and warranty",
+    "purchase": "Purchase details (optional)",
     "nameRequired": "Enter a name",
     "namePlaceholder": "e.g. TPE-LT-0042",
     "serialPlaceholder": "As printed on the device",
     "statusHint": "Ordered devices move to stock when they arrive.",
     "deployHint": "It will be deployed to the person you chose.",
-    "assignTo": "Deploy to (optional)",
+    "assignTo": "Assign to (optional)",
     "assignToPlaceholder": "Nobody yet — keep it in stock",
     "locationPlaceholder": "e.g. Taipei HQ 12F",
     "ciHint": "Servers and network gear: the CMDB record this device is.",
@@ -403,7 +408,11 @@
     "currencyInvalid": "Use a 3-letter currency code",
     "serialTaken": "Another asset already has this serial number",
     "created": "{tag} registered",
-    "saved": "Changes saved"
+    "saved": "Changes saved",
+    "editHint": "Assigning, returning and status changes are actions on the asset page.",
+    "willDeploy": "It will be deployed to {name}.",
+    "retiresOn": "Retires around {date} (the model’s lifespan).",
+    "lifespan": "This model lasts {months, plural, one {# month} other {# months}}."
   },
   "actions": {
     "assign": "Assign",
@@ -445,9 +454,13 @@
     "disposalNoteHint": "e.g. wipe the SSD and send it to the certified recycler",
     "disposalRequested": "Disposal of {tag} sent for approval",
     "scheduleWipe": "Schedule a data wipe",
-    "scheduleWipeHint": "The device's storage must be wiped within the configured months after the data retention date.",
-    "retainUntil": "Keep the data until",
-    "retainUntilHint": "Empty: no retention; the wipe is due counted from today."
+    "scheduleWipeHint": "The device stores company data: you’ll be reminded to wipe it, and the date shows on the asset.",
+    "retainUntil": "Keep the data until (optional)",
+    "retainUntilHint": "If someone still needs the files, for example a leaver’s handover.",
+    "requestDisposalMore": "Request disposal…",
+    "disposeRetiresHint": "This also retires the asset now. The request goes to the approvers below; once approved the asset is marked disposed.",
+    "wipeBy": "Wipe due by {date} ({months, plural, one {# month} other {# months}} after the data is no longer needed)",
+    "alreadyWiped": "Already wiped? Record it now"
   },
   "asset": {
     "notFound": "Asset not found",
@@ -491,7 +504,8 @@
     "userSeats": "Held by {name}",
     "contractsHidden": "You can't see contracts",
     "noContracts": "No contracts cover this asset",
-    "noContractsHint": "Support, maintenance or lease contracts list the assets they cover."
+    "noContractsHint": "Support, maintenance or lease contracts list the assets they cover.",
+    "assignedTo": "Assigned to {name}"
   },
   "history": {
     "created": "Registered ({status})",
@@ -539,15 +553,15 @@
     "liveCount": "{count, plural, one {# licence} other {# licences}}"
   },
   "discovery": {
-    "title": "Software discovery",
-    "description": "What inventory tools report as installed, the titles that match no licence, and CSV imports.",
+    "title": "Installed software",
+    "description": "What inventory tools and CSV imports report as installed: software without a licence, software that isn’t allowed, and the reports themselves.",
     "import": "Import CSV",
     "liveCount": "{count, plural, one {# item} other {# items}}",
     "tabs": {
-      "titles": "To review",
-      "reports": "Recent reports",
-      "rules": "Mapped & ignored",
-      "compliance": "Not approved"
+      "titles": "No licence",
+      "compliance": "Not allowed",
+      "reports": "Reports",
+      "rules": "Mapped & ignored"
     },
     "titles": {
       "search": "Search titles",
@@ -556,14 +570,17 @@
       "devices": "Devices",
       "lastSeen": "Last seen",
       "map": "Map to licence",
-      "ignore": "Ignore",
-      "actionsFor": "Actions for {title}",
-      "hint": "Discovered titles on devices in use that match no licence’s product. Map a title to the licence it belongs to, or ignore software that needs none.",
+      "ignore": "Needs no licence",
+      "actionsFor": "More actions for {title}",
+      "hint": "Titles on devices in use that match no licence’s product. Map a title to the licence it belongs to, or mark software that needs none. Free and open-source software on the approved list doesn’t show here.",
       "emptyTitle": "Nothing to review",
       "empty": "Every discovered title matches a licence, or has been mapped or ignored.",
       "emptyFiltered": "No title matches your search.",
-      "allow": "Add to approved list",
-      "block": "Block"
+      "allow": "Allow…",
+      "block": "Block…",
+      "mapFor": "Map {title} to a licence",
+      "ignoreFor": "{title} needs no licence",
+      "onDevices": "{count, plural, one {On # device} other {On # devices}}"
     },
     "reports": {
       "search": "Search devices or files",
@@ -611,9 +628,9 @@
       "done": "“{title}” now counts as {product}"
     },
     "ignore": {
-      "title": "Ignore “{title}”?",
+      "title": "Does “{title}” need no licence?",
       "description": "For software that needs no licence. The installs stay on the devices; the title leaves the review list.",
-      "submit": "Ignore",
+      "submit": "Needs no licence",
       "done": "“{title}” ignored"
     },
     "importDialog": {
@@ -673,10 +690,22 @@
       "unapproved": "Not on the approved list",
       "blocked": "Blocked",
       "allDepartments": "All departments",
-      "allowFor": "Add {title} to the approved list",
+      "allowFor": "Allow {title}",
       "emptyTitle": "Everything is approved",
       "empty": "Every install on devices in use is on the approved list.",
-      "emptyFiltered": "No install matches your filters."
+      "emptyFiltered": "No install matches your filters.",
+      "allow": "Allow…",
+      "askRemoval": "Ask to remove",
+      "askRemovalFor": "Ask to remove {title} from {device}",
+      "askRemovalTitle": "Ask to remove “{title}” from {device}?",
+      "askRemovalDescription": "This raises a service desk request, linked to the device, to uninstall it. The device’s user: {user}.",
+      "askRemovalDone": "Request {reference} raised"
+    },
+    "removal": {
+      "ticketTitle": "Remove {title} from {device}",
+      "ticketBody": "{title} on {device} is blocked or not on the approved software list. Please uninstall it, or ask for it to be approved.",
+      "version": "Version",
+      "user": "Device user"
     }
   },
   "licenseForm": {
@@ -731,7 +760,7 @@
     "assign": "Assign",
     "seatAssigned": "Seat assigned",
     "seatRemoved": "Seat removed",
-    "removeSeat": "Remove the seat of {name}",
+    "removeSeat": "Reclaim the seat of {name}",
     "searchSeats": "Search people or devices…",
     "holder": "Holder",
     "since": "Since",
@@ -749,7 +778,22 @@
     "noOwner": "No user",
     "onlyUnlicensed": "Only unlicensed",
     "noUnlicensed": "No unlicensed installs",
-    "noInstalls": "No installs reported"
+    "noInstalls": "No installs reported",
+    "overHint": "More seats are used than bought: reclaim seats nobody needs, or buy more.",
+    "showReclaim": "Show seats to reclaim",
+    "reclaimWhy": "Could be reclaimed",
+    "reclaimReason": {
+      "left": "Person left or is suspended",
+      "device_gone": "Device retired or lost",
+      "unused": "Not seen in 90 days"
+    },
+    "reclaim": "Reclaim",
+    "reclaimSelected": "Reclaim {count}",
+    "seatsReclaimed": "{count, plural, one {Seat reclaimed} other {# seats reclaimed}}",
+    "onlyReclaim": "Only seats to reclaim",
+    "noReclaim": "No seat to reclaim",
+    "noReclaimHint": "Everyone with a seat is active and uses the software on a device that reported it in the last 90 days.",
+    "noFreeSeats": "No free seat: reclaim or buy more first"
   },
   "contracts": {
     "title": "Contracts",
@@ -908,7 +952,10 @@
     "reportFor": "Report a problem with {device}",
     "noSoftware": "No software licences are assigned to you personally.",
     "onDevice": "on {tag}",
-    "until": "until {date}"
+    "until": "until {date}",
+    "helpTitle": "Something wrong, missing or not yours?",
+    "helpHint": "Tell the service desk, or request another device or software.",
+    "requestDevice": "Request something"
   },
   "settingsPage": {
     "title": "Assets settings",
@@ -952,7 +999,8 @@
     "wipeMonths": "Data wipe after retention",
     "wipeMonthsHint": "Returned devices must be wiped within this time after their data retention date.",
     "wipeRemindDays": "Data wipe reminder window",
-    "wipeRemindDaysHint": "Wipes due within this window are flagged and reminded."
+    "wipeRemindDaysHint": "Wipes due within this window are flagged and reminded.",
+    "generalEditHint": "Changes apply right away (the same settings as in Administration → Modules)."
   },
   "ciSlot": {
     "title": "Asset record",
@@ -1054,7 +1102,7 @@
     "method": "Method",
     "methodPlaceholder": "Choose how it was wiped",
     "when": "Wiped at",
-    "whenHint": "Leave empty for now.",
+    "whenHint": "Empty means now.",
     "who": "Wiped by",
     "note": "Note",
     "noteHint": "For example the tool used, or the certificate number of the disposal company.",
@@ -1069,7 +1117,7 @@
   },
   "approvedSoftware": {
     "title": "Approved software",
-    "description": "The software whitelist: titles that may be installed, for the whole company or some departments, and titles that are blocked.",
+    "description": "The approved list: software that may be installed, for the whole company or some departments, and software that is blocked.",
     "export": {
       "number": "No.",
       "title": "Software",
@@ -1133,7 +1181,7 @@
       "versionHint": "Empty for any version.",
       "licenseHint": "The licence record holding the serial number or seats, for paid software.",
       "validUntilHint": "For short-term use; empty means permanent.",
-      "requestHint": "The software install request it was approved with.",
+      "requestHint": "The reference of the request it was approved with, for example REQ-01042.",
       "titleRequired": "Enter the software name",
       "departmentsRequired": "Choose at least one department",
       "add": "Add",
@@ -1141,7 +1189,9 @@
       "created": "{title} added to the list",
       "deleted": "{title} removed from the list",
       "deleteTitle": "Remove {title} from the list?",
-      "deleteDescription": "Installs of it are no longer covered: they show as not on the approved list (or, for a blocked entry, as allowed again)."
+      "deleteDescription": "Installs of it are no longer covered: they show as not on the approved list (or, for a blocked entry, as allowed again).",
+      "licenseModelRequired": "Choose the licence type",
+      "chooseLicenseModel": "Choose…"
     }
   },
   "processActions": {
@@ -1202,5 +1252,14 @@
       "returned": "Device returned",
       "returnedWipe": "Device returned; data wipe due by {date, date, medium}"
     }
+  },
+  "sections": {
+    "software": "Software sections",
+    "licences": "Licences",
+    "approved": "Approved list",
+    "installed": "Installed",
+    "contracts": "Contract sections",
+    "contractList": "Contracts",
+    "vendors": "Vendors"
   }
 }

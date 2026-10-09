@@ -160,11 +160,12 @@ export function DailyChart({ data }: { data: Day[] }) {
               const base = PAD.top + innerH;
               const dim = active !== null && active !== i;
               return (
+                // No entrance replay on every visit; only the hover dimming moves.
                 <motion.g
                   key={d.date}
-                  initial={reduce ? false : { opacity: 0, y: 8 }}
-                  animate={{ opacity: dim ? 0.45 : 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: reduce ? 0 : Math.min(i, 30) * 0.012 }}
+                  initial={false}
+                  animate={{ opacity: dim ? 0.45 : 1 }}
+                  transition={{ duration: reduce ? 0 : 0.12 }}
                 >
                   {esc > 0 && (
                     <path d={columnPath(x, base - escH, barW, escH, rest === 0)} className="fill-chart-1" />

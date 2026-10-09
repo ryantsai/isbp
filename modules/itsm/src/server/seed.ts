@@ -164,6 +164,7 @@ export async function seed(ctx: ModuleContext) {
   for (const p of POLICIES)
     await db.insert(slaPolicies).values({
       name: p.name,
+      label: p.label,
       description: p.description,
       ticketTypes: p.ticketTypes,
       condition: p.condition,

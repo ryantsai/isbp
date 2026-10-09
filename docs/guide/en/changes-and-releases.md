@@ -38,17 +38,22 @@ The approver lists come from the **Change manager** role and the **Change Adviso
 Raise a change for anything that alters production: an upgrade, a configuration change, a deployment. You need
 the **Change manager** role; in the demo, `admin` has it.
 
-1. Go to **Service desk → Changes** and select **New change**.
-2. Fill in **What will change?** and **Details**.
-3. Pick the **Configuration items** the change touches. They are used to find other changes on the same CIs and to
-   route the approval.
-4. Choose the **Change type** and the **Risk**, and write the **Reason for the change**.
-5. Set the **Planned window** (**Start** and **End**).
-6. Write the **Implementation plan**, the **Backout plan** and the **Test plan**.
-7. Check the conflict message under the plan, then select **Create change**.
+1. Go to **Service desk → Changes** and select **New change**. The form opens at the side.
+2. Under **What and when**, fill in **What will change?**.
+3. Pick the **Configuration items** the change touches. They are used for conflict checks, impact and CAB rules
+   (critical CIs need the CAB).
+4. Set the **Planned window** (**Start** and **End**), and choose the **Change type** and the **Risk**.
+5. Check the conflict message, and the **Requester (accepts the change)**: you by default. The requester accepts
+   the change after implementation, and their department decides who approves it.
+6. Under **Reason and plans**, write the **Details**, the **Reason for the change**, the **Implementation plan**,
+   the **Backout plan** and the **Test plan** (you can also add them later, before the CAB looks at it).
+7. Select **Create and submit for approval** to send it to the CAB straight away, or **Save draft** to finish the
+   plan first.
 
-**What happens next:** the change is created as a **Draft** ("CHG-… created as a draft") and opens. Until you
-submit it, you can change the plan with **Edit** on the **Change plan** card.
+**What happens next:** the change opens. Submitted, it is **Waiting for CAB** ("CHG-… created and submitted for
+approval"); saved, it is a **Draft** ("CHG-… created as a draft"). Submitting needs a planned window that hasn't
+started yet (except for emergency changes); the form says so before anything is created. Until it is submitted,
+you can change the plan with **Edit** on the **Change plan** card or **More actions → Edit plan**.
 
 > **Tip:** From a release in Applications, **Raise a change** opens this form for change managers, with the title
 > "Deploy (application) (version) to production" filled in and the release already linked. A request form can also
@@ -61,9 +66,14 @@ Two changes on the same CI at the same time make failures hard to trace. ISBP fl
 1. While you create or edit a change, the form says either "No other changes touch these CIs in this window" or
    how many other changes do, with the CIs they share.
 2. On the change page, the **Change plan** card lists the overlapping changes with their status.
-3. To see the whole picture, go to **Service desk → Changes**. The **Calendar** tab shows the month (or an
-   **Agenda**), marks overlapping changes as **Conflict**, and has **Previous month**, **Next month** and
-   **Today**. The **List** tab shows every change with its **Planned window**.
+3. To see the whole picture, go to **Service desk → Changes** and choose a view: **Month**, **Agenda** or
+   **List**. The month and the agenda show each change with its start time, marked by where it stands (**Not
+   submitted** with a dashed outline, **Waiting for CAB** with a clock, **Approved and planned**, **Done** with a
+   check), emergencies with a lightning icon and overlapping changes as **Conflict**; use **Previous month**,
+   **Next month** and **Today** to move. A change that was never submitted and whose start has passed shows
+   **Window has passed**. **List** shows every change with its type, risk, **Planned window**, status and owner. The
+   month view loads every change of the month, up to 2,000; if there are more, it says so, and you can read the rest
+   in the agenda. The agenda loads a page at a time: select **Show more** at the end of the list for the next page.
 
 Only changes in **Assessment**, **Waiting for CAB**, **Scheduled** or **Implementing** count as conflicts; drafts
 don't.
@@ -77,25 +87,28 @@ Saturday evening, so both are flagged.
 
 When the plan is ready, send the change through the approval workflow.
 
-1. Open the change. With **Status**, move it from **Draft** to **Assessment**.
-2. Select **Submit for approval**.
+1. Open the change and select **Submit for approval** (the main button of a draft).
+2. If the change has no planned window yet, or its window has already started, **Plan the window to submit**
+   opens: set **Start** and **End** and select **Save and submit for approval**.
 
 A change can't be submitted without a planned window, and the window may not start in the past (except for
-emergency changes).
+emergency changes). If submitting fails for another reason, the message says what to fix, with **Edit plan**.
 
 **What happens next:**
 
-- The status becomes **Waiting for CAB**. The **CAB approval** section of the **Change plan** card shows the
-  workflow's progress: the current step, who it is **Waiting for**, and the path as a diagram. **Open my
-  approvals** goes to your own inbox.
+- The status becomes **Waiting for CAB**. The **CAB approval** section of the **Change plan** card shows each
+  step of the path the change takes: who it is waiting for and by when, who approved or rejected it, and steps
+  that were skipped and why. When everyone of a fallback group is asked, it says so: the first answer decides.
+  **Show the whole flow** shows the workflow as a diagram.
 - The approvers are notified and decide in **Approvals**.
 - **Approved:** the change moves to **Scheduled**, and the requester, the assignee and whoever raised it are
   notified with the planned start.
-- **Rejected:** the change moves to **Rejected** with the approver's comment. Move it back to **Draft**, improve
-  the plan and submit it again.
-- To stop a change that is waiting, choose **Cancelled** in **Status** (with a reason); the approval is withdrawn.
+- **Rejected:** the change moves to **Rejected** with the approver's comment. Select **Revise and resubmit** (it
+  goes back to **Draft**), improve the plan and submit it again.
+- To stop a change that is waiting, choose **Cancelled** in **Other status** (with a reason); the approval is
+  withdrawn.
 
-> **Important:** Nobody can move a change past **Waiting for CAB** by hand — not in the **Status** menu, not
+> **Important:** Nobody can move a change past **Waiting for CAB** by hand — not in **Other status**, not
 > through the API and not through an integration. Only the approval does it. Once submitted, the plan can't be
 > edited.
 
@@ -109,26 +122,28 @@ as it was submitted.
 
 As the change manager or a CAB member, you get a notification for every change waiting for you.
 
-1. Go to **Approvals** in the sidebar (**Waiting for me**), or open the notification.
-2. Open the change's approval. It shows **What is requested**, the **Approval path** and the **History**; **Open
-   the request** takes you to the change itself, with its plans, CIs and conflicts.
-3. Select **Approve** (with an optional comment) or **Reject** (a reason is required; the requester sees it). To
-   pass it to a colleague, select **Hand over**.
+1. Open the notification, or the change from **My work** (**To decide**).
+2. On the change, **Your approval is needed** sits under the title, with the deadline. Check the plan, the window,
+   the affected CIs and any conflicts below it.
+3. Select **Approve** (with an optional comment) or **Reject** (a reason is required; the requester sees it), and
+   confirm. If the step asks you to fill in fields, **Open the approval** takes you to your approvals instead. To
+   pass it to a colleague, use **Hand over** in your approvals.
 
 For a group step, the first answer decides. Reminders and escalations follow the deadlines in
 [Choose the change type](#choose-the-change-type). More on the approvals inbox: [Employees](employees.md).
 
 ## Implement and review a change
 
-1. When the window opens, choose **Implementing** in **Status**.
+1. When the window opens, select **Start implementation**. If nobody owns the change yet, it is assigned to you.
 2. Keep a record of the work as **Work note**s on the change, and record the deployment in Applications if the
    change deploys an application version (see [Record a deployment](#record-a-deployment)).
-3. When the work is done, choose **Post-implementation review**. Note what went as planned and what didn't. The
-   change's requester is asked to check it: on the change they select **Accept the change**, or **Report a problem**
-   and say what is wrong. The **Requester acceptance** card shows their answer, and you are notified.
-4. Choose **Closed**. The timeline records whether the requester accepted the change. If an administrator turned on
-   **Require the requester's acceptance before closing a change**, a change with a requester can only be closed once
-   they have accepted it.
+3. When the work is done, select **Finish implementation**: the change moves to **Post-implementation review**.
+   Note what went as planned and what didn't. The change's requester is asked to check it: on the change they
+   select **Accept the change**, or **Report a problem** and say what is wrong — it is right under the title for
+   them. The **Requester acceptance** card shows their answer, and you are notified.
+4. Select **Close change**. The timeline records whether the requester accepted the change. If an administrator
+   turned on **Require the requester's acceptance before closing a change**, a change with a requester can only be
+   closed once they have accepted it; until then the button says **Waiting for the requester to accept**.
 
 A scheduled change can still be cancelled (with a code and a reason). Once it is **Implementing**, it can only go
 on to review.
@@ -140,7 +155,7 @@ review.
 ## Handle changes that come from ServiceDesk Plus
 
 If your organisation also plans changes in on-premises ManageEngine ServiceDesk Plus, the Integrations Hub can
-bring them into ISBP (in the demo, the **Changes → changes** profile of Contoso ServiceDesk Plus). They show the
+bring them into ISBP (in the demo, the **Changes → changes** sync rule of Contoso ServiceDesk Plus). They show the
 **Synced with** card and follow the same lifecycle.
 
 The sync can fill in a change and submit it, but it can't approve it: a change from outside stops at **Waiting
@@ -182,16 +197,19 @@ lifecycle, what version runs in each environment and how delivery is going.
   application and its releases with that role alone.
 - **Applications manager** edits any application; **Release manager** plans releases of any application.
 
-1. Go to **Applications → Applications**. Use the tabs (**All**, **In production**, **In development**,
-   **Sunsetting & retired**, **Owned by me**), the search box (code or name) and the filters.
+1. Go to **Applications**. Above the list are the number of applications, **Deployments, last 7 days** and
+   **Releases in the next 14 days** (select it for the release calendar). Use the tabs (**All**, **In production**,
+   **In development**, **Sunsetting & retired**, **Owned by me**, each with its count), the search box (code or
+   name) and the filters.
 2. Open an application. The header shows its stage, criticality, the version **in production** and its owners.
    **Overview** shows the **Environments** with the version each one **Runs**, the **Delivery metrics**, the
    **Description**, the **Repositories**, **Ownership**, the **CMDB** configuration item and **Details**.
-3. Select **Edit** to change the name, stage, criticality, **Disposition (TIME)**, hosting, owners, **Delivery
-   team**, **Support group**, configuration item and other details. The **Code** can't change: CI/CD pipelines
+3. Select **Edit** to change the name, stage, criticality, **Investment decision** (**Keep as is**, **Invest**,
+   **Replace or move** or **Retire**), hosting, owners, **Delivery team**, **Support group**, configuration item and
+   other details. The **Code** can't change: CI/CD pipelines
    use it.
 4. Use the **Settings** tab to maintain **Environments** (in pipeline order; production environments are
-   protected by the change policy), **Repositories** and the **Lifecycle** (stage, TIME disposition and dates).
+   protected by the change policy), **Repositories** and the **Lifecycle** (stage, investment decision and dates).
 
 **Git status.** Repositories on our on-premises Azure DevOps Server are kept up to date by the Integrations Hub:
 each one shows its default branch, last commit, branches (**Show branches**), active pull requests and when it was
@@ -206,22 +224,28 @@ CAB, whether it can go.
 
 1. On the application, select **New release**. Enter the **Version** (unique within the application, for example
    `12.1.0`), a **Name**, the **Planned date** and the **Release notes** (Markdown), and save.
-2. On the release page, follow its lifecycle (**Planned**, **In progress**, **Ready**, **Released**); move it with
-   **Status → Move to**.
-3. Link the change that will deploy it: select **Raise a change** in the readiness card (change managers), or
-   link an existing change under **Linked records** with **Link record**.
-4. Check **Readiness for production**. It passes when:
-   - **An authorized change is linked** (approved by the CAB: scheduled or implementing);
-   - the version **Succeeded in test or staging**;
-   - **Release notes are written**;
+2. On the release page, follow its lifecycle (**Planned**, **In progress**, **Ready**, **Released**) under the
+   header; move it with **Move to …** under **More actions**.
+3. Check **Readiness for production**: how many checks pass, and under each check that doesn't pass yet, what is
+   missing and a button for the next step. It passes when:
+   - **An authorized change is linked** (approved by the CAB and scheduled, or implementing). Select **Raise a
+     change** (change managers) to open a new change already linked to the release, with its window on the evening
+     of the planned date (20:00–21:00, which you can change), or **Open CHG-…** to submit or follow the linked one.
+     You can also link an existing change under **Linked records** with **Link record**;
+   - the version **Succeeded in test or staging**: **Record a test deployment** opens **Record deployment** for a
+     test environment;
+   - **Release notes are written**: **Write release notes** opens the release for editing;
    - there was **No failed production deployment** of this version.
 
-**What happens next:** linking a change moves a planned release to **In progress**. When every check passes, the
-owners are notified that the release is ready for production. A successful production deployment of the version
-marks the release **Released**.
+   Under **Before production**, the card also says what production will need from the change policy.
 
-**Applications → Release calendar** shows the releases of every application in the coming weeks (**By week** or
-**Month**), with their change status and readiness; **Only my applications** narrows it to yours.
+**What happens next:** linking a change moves a planned release to **In progress**. When every check passes, the
+owners are notified that the release is ready for production; the notification opens **Record deployment** for
+production. A successful production deployment of the version marks the release **Released**.
+
+The **Release calendar** tab of **Applications** shows the releases of every application in the coming weeks (**By
+week** or **Month**), with their change status (**No change linked** when there is none) and readiness; weeks with
+nothing planned are folded together. **Only my applications** narrows it to yours.
 
 In the demo, Finance ERP 12.1.0 "ERP v12 upgrade" has reached Staging, but its change (CHG-00011) is still a
 draft, so one check fails. HR Portal 3.4.0 is ready: its change CHG-00009 is scheduled.
@@ -236,10 +260,13 @@ permission to record deployments (the **Release manager** or **Applications mana
 1. On the application or the release, select **Record deployment**.
 2. Choose the **Environment**, check the **Version**, and choose the **Outcome** (**Succeeded**, **Failed**, **In
    progress** or **Rolled back**).
-3. For production, name the CAB-approved change in **Change (optional)**, unless one is linked to the release.
-4. Read **Change policy**: it says whether the deployment is allowed now, and why not if it isn't.
+3. For production, choose the **Change**: the one linked to the release (**CHG-… (linked to the release)**), **No
+   change**, or **Another change…** to enter its **Change reference**.
+4. Read **Change policy**: it says whether the deployment is allowed now, and why not if it isn't. When no change
+   is authorized, **Raise a change** opens a new change for the release.
 5. Optionally add **Notes**, and under **Commit and pipeline** the **Commit** and the **Pipeline run** link.
-6. Select **Record deployment**.
+6. Select **Record deployment**. If the change policy refuses the deployment, the form says so under the button
+   and points to the policy above (or to **Override with reason**, if you may override it).
 
 **The change policy.** A deployment to a production environment needs a change that is **Scheduled** or
 **Implementing**, named in the form or linked to the release. Other environments need no change. Outside the
@@ -268,7 +295,8 @@ The request format: [API guide](../../api.md#recording-deployments-from-cicd-app
 Sometimes production must be fixed before a change can be approved. Only people with the **Applications
 administrator** role can record such a deployment.
 
-1. In **Record deployment**, when the policy refuses the deployment, select **Override with reason**.
+1. In **Record deployment**, when the policy refuses the deployment, select **Override with reason** (under
+   **Change policy**).
 2. Explain **Why must this deploy without an authorized change?** (at least 10 characters).
 3. Select **Record with override**.
 

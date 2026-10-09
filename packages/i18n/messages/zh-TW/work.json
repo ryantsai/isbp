@@ -1,0 +1,22 @@
+{
+  "title": "我的工作",
+  "description": "所有等待您處理的事項，最緊急的排在最前面。",
+  "allClear": "目前沒有等待您處理的事項",
+  "allClearHint": "當有人請您核准、填寫、檢查或處理事項時，會顯示在這裡，您也會收到通知。",
+  "sectionsLabel": "我的工作的區段",
+  "kinds": {
+    "approval": "待您決定",
+    "todo": "待辦事項",
+    "review": "待您檢查",
+    "task": "工作項目"
+  },
+  "kindHints": {
+    "approval": "等待您核准的申請。",
+    "todo": "請您填寫或完成的事項。",
+    "review": "請您檢查的紀錄，例如存取權審查與盤點。",
+    "task": "專案中指派給您的工作（不計入徽章數字）。"
+  },
+  "viewAll": "查看全部",
+  "viewMore": "{count, plural, other {查看其餘 # 項}}",
+  "liveCount": "{count, plural, =0 {目前沒有等待您處理的事項} other {有 # 項事項等待您處理}}"
+}

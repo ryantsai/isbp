@@ -107,7 +107,7 @@ export default defineServerModule(manifest, {
       id: r.id,
       type: 'announcement',
       title: r.title,
-      subtitle: r.severity,
+      status: `announcements.severity.${r.severity}`,
       href: `/announcements/${r.id}`,
       icon: 'megaphone',
     }));

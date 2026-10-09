@@ -21,7 +21,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildAuthContext } from '../../src/kernel/http/auth';
 import { hashPassword } from '../../src/kernel/passwords';
 import { startWorker } from '../../src/kernel/worker';
-import { createHarness, type Harness, type LooseJson, PASSWORD, type Session } from './harness';
+import { createHarness, everyPage, type Harness, type LooseJson, PASSWORD, type Session } from './harness';
 
 let h: Harness;
 let stopWorker: () => Promise<void>;
@@ -279,7 +279,7 @@ describe('requester → agent → requester', () => {
         expect.objectContaining({
           kind: 'module',
           reference: ref,
-          statusKey: 'itsm.status.new',
+          statusKey: 'itsm.requesterStatus.new',
           moduleId: 'itsm',
         }),
       ]),
@@ -370,6 +370,14 @@ describe('requester → agent → requester', () => {
 
     const view = (await h.call(s.alice!, 'GET', `${API}/tickets/${ref}`)).body;
     expect(view.viewer).toMatchObject({ canReopen: true, canConfirm: true });
+    // My work asks the requester to confirm the fix, linking to the ticket.
+    const work = (await h.call(s.alice!, 'GET', '/api/v1/me/work')).body;
+    const fixes = work.sections.find((x: { source: string }) => x.source === 'itsm.confirm-fixes');
+    expect(fixes).toMatchObject({ kind: 'todo' });
+    expect(fixes.items.map((i: { subtitle: string; href: string }) => [i.subtitle, i.href])).toContainEqual([
+      ref,
+      `/itsm/tickets/${ref}`,
+    ]);
     const confirmed = await h.call(s.alice!, 'POST', `${API}/tickets/${ref}/confirm`, {
       rating: 5,
       comment: 'Great help',
@@ -385,7 +393,7 @@ describe('requester → agent → requester', () => {
 
     const mine = await h.call(s.alice!, 'GET', '/api/v1/me/requests');
     expect(mine.body.items.find((i: LooseJson) => i.reference === ref)).toMatchObject({
-      statusKey: 'itsm.status.closed',
+      statusKey: 'itsm.requesterStatus.closed',
     });
     // Resolved tickets feed the similar-ticket index (through the module's own event).
     const chunks = await eventually(
@@ -589,12 +597,12 @@ describe('change authorization (CAB)', () => {
     expect(scheduled.body.status).toBe('scheduled');
     expect(await notificationsOf(ids.agent, 'itsm.change.approved')).toHaveLength(1);
 
-    const calendar = await h.call(
+    const calendar = await everyPage(
+      h,
       s.agent!,
-      'GET',
       `${API}/changes/calendar?from=${encodeURIComponent(new Date().toISOString())}&to=${encodeURIComponent(new Date(Date.now() + 7 * 86_400_000).toISOString())}`,
     );
-    expect(calendar.body.items.map((c: LooseJson) => c.reference)).toContain(ref);
+    expect(calendar.items.map((c: LooseJson) => c.reference)).toContain(ref);
   });
 
   it('standard changes are pre-approved and flagged when they overlap on a CI', async () => {
@@ -772,7 +780,7 @@ describe('catalog fulfilment', () => {
     expect(submission.body.fulfilment).toMatchObject({
       moduleId: 'itsm',
       state: 'open',
-      statusKey: 'itsm.status.new',
+      statusKey: 'itsm.requesterStatus.new',
     });
     expect(reference).toMatch(/^SR-/);
 
@@ -815,7 +823,10 @@ describe('catalog fulfilment', () => {
       resolutionNotes: 'Delivered.',
     });
     const after = await h.call(s.alice!, 'GET', `/api/v1/form-submissions/${sub.body.id}`);
-    expect(after.body.fulfilment).toMatchObject({ state: 'done', statusKey: 'itsm.status.fulfilled' });
+    expect(after.body.fulfilment).toMatchObject({
+      state: 'done',
+      statusKey: 'itsm.requesterStatus.fulfilled',
+    });
     // Fulfilled requests report on the submission, not as a second "My requests" row.
     const mine = await h.call(s.alice!, 'GET', '/api/v1/me/requests');
     expect(mine.body.items.filter((i: LooseJson) => i.reference === reference)).toHaveLength(0);

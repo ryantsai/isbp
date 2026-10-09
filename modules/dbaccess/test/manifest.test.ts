@@ -92,15 +92,19 @@ describe('dbaccess manifest', () => {
     });
   });
 
-  it('places the navigation in the Database access group', () => {
-    expect(manifest.navigation?.map((n) => [n.href, n.order, n.icon, n.permission ?? null, n.group])).toEqual(
-      [
-        ['/dbaccess', 64, 'database', 'dbaccess.self.request', 'dbaccess.nav.group'],
-        ['/dbaccess/grants', 65, 'key-round', 'dbaccess.grants.read', 'dbaccess.nav.group'],
-        ['/dbaccess/reviews', 66, 'clipboard-check', 'dbaccess.self.request', 'dbaccess.nav.group'],
-        ['/dbaccess/servers', 67, 'server-cog', 'dbaccess.servers.manage', 'dbaccess.nav.group'],
-      ],
-    );
+  it('groups the pages of the people who run database access; reviewers get their part on My work', () => {
+    const [mine, group] = manifest.navigation ?? [];
+    // A personal entry, shown to the people who hold database access (the module checks).
+    expect([mine?.href, mine?.order, mine?.check]).toEqual(['/dbaccess', 3.5, true]);
+    expect([group?.label, group?.href, group?.order]).toEqual(['dbaccess.nav.group', '/dbaccess/grants', 65]);
+    expect(group?.children?.map((n) => [n.href, n.icon, n.permission])).toEqual([
+      ['/dbaccess/grants', 'key-round', 'dbaccess.grants.read'],
+      ['/dbaccess/reviews', 'clipboard-check', ['dbaccess.reviews.read', 'dbaccess.reviews.manage']],
+      ['/dbaccess/servers', 'server-cog', 'dbaccess.servers.manage'],
+    ]);
+    expect(manifest.work?.map((w) => [w.key, w.kind, w.permission])).toEqual([
+      ['reviews', 'review', 'dbaccess.self.request'],
+    ]);
     expect(manifest.portal?.entries).toEqual([
       expect.objectContaining({ href: '/dbaccess/request', permission: 'dbaccess.self.request' }),
     ]);
@@ -145,7 +149,16 @@ describe('dbaccess manifest', () => {
     const keys = [
       manifest.name,
       manifest.description!,
-      ...(manifest.navigation ?? []).flatMap((n) => [n.label, n.group!]),
+      ...(function navKeys(entries: NonNullable<typeof manifest.navigation> = []): string[] {
+        return entries.flatMap((n) => [
+          n.label,
+          ...(n.description ? [n.description] : []),
+          ...(n.keywords ? [n.keywords] : []),
+          ...navKeys(n.children),
+          ...navKeys(n.tabs),
+        ]);
+      })(manifest.navigation),
+      ...(manifest.work ?? []).map((w) => w.label),
       ...(manifest.permissions ?? []).map((p) => p.description),
       ...(manifest.settings ?? []).flatMap((s) => [s.label, s.description!]),
       ...(manifest.portal?.entries ?? []).flatMap((e) => [e.label, e.description!]),

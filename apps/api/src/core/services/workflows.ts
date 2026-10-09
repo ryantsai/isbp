@@ -316,6 +316,31 @@ export class InstanceViews {
 
 /* ───────────────────────────── definitions (admin) ───────────────────────────── */
 
+/**
+ * The facts a trigger's conditions may read: its declared `facts` schema as facts, then the requester's and the
+ * subject user's fields every trigger has. Declarations are static, so each is converted to JSON Schema once.
+ */
+const declaredFacts = new WeakMap<object, ReturnType<typeof factsFromJsonSchema>>();
+function factsOf(def: { key: string; facts?: z.ZodType }): ReturnType<typeof factsFromJsonSchema> {
+  let facts = declaredFacts.get(def);
+  if (!facts) {
+    let declared: ReturnType<typeof factsFromJsonSchema> = [];
+    try {
+      declared = def.facts ? factsFromJsonSchema(z.toJSONSchema(def.facts, { unrepresentable: 'any' })) : [];
+    } catch {
+      declared = [];
+    }
+    facts = [
+      ...declared,
+      { path: 'requester.departmentCode', type: 'string' as const },
+      { path: 'requester.jobTitle', type: 'string' as const },
+      { path: 'subjectUser.departmentCode', type: 'string' as const },
+    ];
+    declaredFacts.set(def, facts);
+  }
+  return facts;
+}
+
 export class WorkflowAdminService {
   readonly views: InstanceViews;
 
@@ -341,12 +366,6 @@ export class WorkflowAdminService {
       .from(workflowDefinitions)
       .where(and(eq(workflowDefinitions.isDefault, true), isNull(workflowDefinitions.archivedAt)));
     return this.engine.triggers().map(({ moduleId, def }) => {
-      let facts: ReturnType<typeof factsFromJsonSchema> = [];
-      try {
-        facts = def.facts ? factsFromJsonSchema(z.toJSONSchema(def.facts, { unrepresentable: 'any' })) : [];
-      } catch {
-        facts = [];
-      }
       const d = defaults.find((x) => x.triggerKey === def.key);
       return {
         key: def.key,
@@ -356,15 +375,16 @@ export class WorkflowAdminService {
         subject: def.subject,
         required: Boolean(def.required),
         customFieldEntity: def.customFieldEntity ?? null,
-        facts: [
-          ...facts,
-          { path: 'requester.departmentCode', type: 'string' as const },
-          { path: 'requester.jobTitle', type: 'string' as const },
-          { path: 'subjectUser.departmentCode', type: 'string' as const },
-        ],
+        facts: factsOf(def),
         defaultDefinition: d ? { id: d.id, name: d.name } : null,
       };
     });
+  }
+
+  /** The facts a trigger's conditions may read, as `triggers()` lists them, without the query (for checks). */
+  triggerFacts(key: string): ReturnType<typeof factsFromJsonSchema> | undefined {
+    const entry = this.engine.trigger(key);
+    return entry ? factsOf(entry.def) : undefined;
   }
 
   private assertTrigger(key: string) {
@@ -493,15 +513,9 @@ export class WorkflowAdminService {
     return issues as WorkflowIssue[];
   }
 
-  async get(id: string) {
-    const d = await this.find(id);
-    const [summary] = await this.summaries([d]);
-    const [versions, usedForms, usedRoles] = await Promise.all([
-      this.db
-        .select()
-        .from(workflowVersions)
-        .where(eq(workflowVersions.definitionId, id))
-        .orderBy(desc(workflowVersions.version)),
+  /** The forms and roles that use a definition (a definition in use can't be archived). */
+  private async usedBy(id: string) {
+    const [usedForms, usedRoles] = await Promise.all([
       this.db
         .select({ id: forms.id, key: forms.key, name: forms.name })
         .from(forms)
@@ -510,6 +524,20 @@ export class WorkflowAdminService {
         .select({ id: roles.id, key: roles.key, name: roles.name })
         .from(roles)
         .where(eq(roles.requestWorkflowId, id)),
+    ]);
+    return { forms: usedForms, roles: usedRoles };
+  }
+
+  async get(id: string) {
+    const d = await this.find(id);
+    const [summary] = await this.summaries([d]);
+    const [versions, usedBy] = await Promise.all([
+      this.db
+        .select()
+        .from(workflowVersions)
+        .where(eq(workflowVersions.definitionId, id))
+        .orderBy(desc(workflowVersions.version)),
+      this.usedBy(id),
     ]);
     const people = await peopleById(
       this.db,
@@ -525,11 +553,12 @@ export class WorkflowAdminService {
       })),
       issues: await this.issues(d.draft),
       names: await referencedNames(this.db, d.draft),
-      usedBy: { forms: usedForms, roles: usedRoles },
+      usedBy,
     };
   }
 
-  async create(input: z.output<typeof createWorkflowSchema>, auth: AuthContext) {
+  /** Creates the definition (audited) and returns its row, without reading the view back (`create` does). */
+  async createRow(input: z.output<typeof createWorkflowSchema>, auth: AuthContext): Promise<DefinitionRow> {
     this.assertTrigger(input.triggerKey);
     let draft: WorkflowGraph = { steps: [] };
     if (input.copyFromId) {
@@ -575,10 +604,25 @@ export class WorkflowAdminService {
       );
       return created!;
     });
+    return row;
+  }
+
+  async create(input: z.output<typeof createWorkflowSchema>, auth: AuthContext) {
+    const row = await this.createRow(input, auth);
     return this.get(row.id);
   }
 
   async update(id: string, input: z.output<typeof updateWorkflowSchema>, auth: AuthContext) {
+    await this.updateRow(id, input, auth);
+    return this.get(id);
+  }
+
+  /** Saves the definition's name, description and draft (audited), without reading the view back (`update` does). */
+  async updateRow(
+    id: string,
+    input: z.output<typeof updateWorkflowSchema>,
+    auth: AuthContext,
+  ): Promise<void> {
     const before = await this.find(id);
     if (before.archivedAt)
       throw new HttpError(409, ErrorCodes.INVALID_STATE, 'Restore the workflow before editing it');
@@ -622,10 +666,15 @@ export class WorkflowAdminService {
           { tx },
         );
     });
-    return this.get(id);
   }
 
   async publish(id: string, auth: AuthContext) {
+    await this.publishRow(id, auth);
+    return this.get(id);
+  }
+
+  /** Publishes the draft as the next version (audited), without reading the view back (`publish` does). */
+  async publishRow(id: string, auth: AuthContext): Promise<void> {
     const d = await this.find(id);
     if (d.archivedAt)
       throw new HttpError(409, ErrorCodes.INVALID_STATE, 'Archived workflows cannot be published');
@@ -669,14 +718,19 @@ export class WorkflowAdminService {
         { tx },
       );
     });
-    return this.get(id);
   }
 
   async makeDefault(id: string) {
+    await this.makeDefaultRow(id);
+    return this.get(id);
+  }
+
+  /** Makes the definition its trigger's default (audited), without reading the view back (`makeDefault` does). */
+  async makeDefaultRow(id: string): Promise<void> {
     const d = await this.find(id);
     if (d.archivedAt || d.publishedVersion === null)
       throw new HttpError(409, ErrorCodes.INVALID_STATE, 'Publish the workflow before making it the default');
-    if (d.isDefault) return this.get(id);
+    if (d.isDefault) return;
     await this.ctx.transaction(async (tx) => {
       await tx
         .update(workflowDefinitions)
@@ -694,11 +748,16 @@ export class WorkflowAdminService {
         { tx },
       );
     });
-    return this.get(id);
   }
 
   /** Turns approval off for an optional trigger (no default definition). */
   async clearDefault(id: string) {
+    await this.clearDefaultRow(id);
+    return this.get(id);
+  }
+
+  /** Turns the default off for an optional trigger (audited), without reading the view back (`clearDefault` does). */
+  async clearDefaultRow(id: string): Promise<void> {
     const d = await this.find(id);
     if (this.engine.trigger(d.triggerKey)?.def.required)
       throw new HttpError(
@@ -719,18 +778,18 @@ export class WorkflowAdminService {
         { tx },
       );
     });
-    return this.get(id);
   }
 
   async archive(id: string) {
     const d = await this.find(id);
-    const detail = await this.get(id);
-    if (detail.usedBy.forms.length || detail.usedBy.roles.length)
+    // Only what refuses the archive is read (not the whole view).
+    const usedBy = await this.usedBy(id);
+    if (usedBy.forms.length || usedBy.roles.length)
       throw new HttpError(
         409,
         ErrorCodes.IN_USE,
         'Detach the workflow from its forms and roles first',
-        detail.usedBy,
+        usedBy,
       );
     if (d.isDefault && this.engine.trigger(d.triggerKey)?.def.required)
       throw new HttpError(409, ErrorCodes.IN_USE, 'Make another workflow the default for this trigger first');
@@ -810,13 +869,15 @@ export class ApprovalService {
 
   async inbox(auth: AuthContext, q: z.output<typeof approvalQuerySchema>) {
     const me = auth.user!.id;
-    const where = and(
-      eq(approvalTasks.assigneeId, me),
-      q.status === 'pending'
-        ? and(eq(approvalTasks.status, 'pending'), eq(workflowInstances.status, 'running'))
-        : inArray(approvalTasks.status, ['approved', 'rejected', 'delegated']),
-      q.q ? sql`${workflowInstances.subjectLabel}::text ilike ${likePattern(q.q)}` : undefined,
-    );
+    const where = q.task
+      ? and(eq(approvalTasks.id, q.task), eq(approvalTasks.assigneeId, me))
+      : and(
+          eq(approvalTasks.assigneeId, me),
+          q.status === 'pending'
+            ? and(eq(approvalTasks.status, 'pending'), eq(workflowInstances.status, 'running'))
+            : inArray(approvalTasks.status, ['approved', 'rejected', 'delegated']),
+          q.q ? sql`${workflowInstances.subjectLabel}::text ilike ${likePattern(q.q)}` : undefined,
+        );
     const order =
       q.status === 'pending'
         ? [sql`${approvalTasks.dueAt} asc nulls last`, desc(approvalTasks.createdAt)]

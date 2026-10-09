@@ -20,6 +20,7 @@ import { ContractStatusBadge } from '../badges';
 import { ContractFormDialog } from '../contract-dialogs';
 import { contractHref, useDay, useMoney, useVendors } from '../lib';
 import { RenewsIn } from '../renews-in';
+import { ContractSections } from '../sections';
 
 const ALL = '__all__';
 
@@ -39,15 +40,18 @@ export default function ContractsPage() {
   const str = (k: string) => (state[k] as string | undefined) || undefined;
   const { vendors } = useVendors();
 
-  const { data, isLoading, isFetching } = useApiQuery<Page<ContractListItem>>('/itam/contracts', {
-    page: state.page,
-    pageSize: state.pageSize,
-    sort: state.sort,
-    q: state.q,
-    view,
-    kind: str('kind'),
-    vendor: str('vendor'),
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<ContractListItem>>(
+    '/itam/contracts',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      sort: state.sort,
+      q: state.q,
+      view,
+      kind: str('kind'),
+      vendor: str('vendor'),
+    },
+  );
   const filtered = Boolean(state.q || str('kind') || str('vendor'));
 
   const columns = useMemo<DataTableColumn<ContractListItem>[]>(
@@ -149,6 +153,8 @@ export default function ContractsPage() {
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(c) => c.id}
       onRowClick={(c) => router.push(contractHref(c))}
       onPageChange={(page) => set({ page })}
@@ -234,6 +240,7 @@ export default function ContractsPage() {
           )
         }
       />
+      <ContractSections />
       <Tabs
         value={view}
         onValueChange={(v) => set({ view: v === 'active' ? undefined : v })}

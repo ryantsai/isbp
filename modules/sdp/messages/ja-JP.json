@@ -23,7 +23,7 @@
     "optional": "(省略可能)",
     "authentication": "認証",
     "apiKey": "技術者の API キー",
-    "apiKeyHint": "ISBP が代理で操作する技術者が ServiceDesk Plus で生成します。",
+    "apiKeyHint": "IS Big Platform が代理で操作する技術者が ServiceDesk Plus で生成します。",
     "stored": "保存済みです。空のままにすると現在の値を保持します。",
     "advanced": "詳細設定",
     "assetEndpoints": "資産の製品タイプ API",
@@ -33,15 +33,15 @@
       "title": "アクセスの設定",
       "builds": "ServiceDesk Plus ビルド {target} 向けです。ビルド {minimum} 以降 (その資産 API) が必要です。",
       "https": "HTTPS を推奨します。HTTP のみのサーバーでは、この接続で「安全でない HTTP を許可」をオンにしてください。API キーが暗号化されずに送信されるため、この通信は信頼できるネットワーク内に限定してください。",
-      "technician": "同期するモジュール (リクエスト、問題、変更、資産、ソリューション) のみを表示および編集できるロールを持つ専用の技術者 (例: svc-isbp) を作成します。ISBP による変更はすべて、この技術者として ServiceDesk Plus に記録されます。",
+      "technician": "同期するモジュール (リクエスト、問題、変更、資産、ソリューション) のみを表示および編集できるロールを持つ専用の技術者 (例: svc-isbp) を作成します。IS Big Platform による変更はすべて、この技術者として ServiceDesk Plus に記録されます。",
       "apiKey": "その技術者でサインインし、プロファイル メニューから [API キーの生成] (ビルドによっては [Authtoken の生成]) を選び、有効期限を設定してキーをここに貼り付けます。有効期限が切れる前に更新してください。",
-      "certificates": "サーバーが社内の証明機関が発行した証明書を使用している場合は、その証明機関を信頼するよう ISBP の運用担当者に依頼してください (NODE_EXTRA_CA_CERTS)。",
-      "throttling": "ServiceDesk Plus は API URL のアクセス回数を制限することがあります (「…requests within N minutes was violated」)。ISBP は待機してから再試行します。ビルド 14500 以降では、管理者が制限を引き上げるか無効にできます。",
+      "certificates": "サーバーが社内の証明機関が発行した証明書を使用している場合は、その証明機関を信頼するよう IS Big Platform の運用担当者に依頼してください (NODE_EXTRA_CA_CERTS)。",
+      "throttling": "ServiceDesk Plus は API URL のアクセス回数を制限することがあります (「…requests within N minutes was violated」)。IS Big Platform は待機してから再試行します。ビルド 14500 以降では、管理者が制限を引き上げるか無効にできます。",
       "webhookTitle": "省略可能: 数秒以内に同期する",
       "webhook": "Admin → Developer Space → Webhooks で Webhook を追加し、この接続の Webhook URL に POST するように設定します。カスタム ヘッダー X-ISBP-Webhook-Secret にそのシークレットを設定し、ペイロードは JSON にします。",
       "webhookBody": "次のペイロードを、モジュール (request、problem、change) ごとに 1 つの Webhook で使用します。ID の位置で $ を入力し、レコードの ID フィールドを選択します:",
       "trigger": "Admin → Automation → Custom Triggers で、リクエスト、問題、変更について、レコードの作成時または編集時にその Webhook を実行するトリガーを追加します。資産とソリューションにはカスタム トリガーがないため、スケジュールで同期されます。",
-      "webhookNote": "Webhook は変更されたレコードを ISBP に知らせるだけで、ISBP は API を通じてレコードを読み直します。スケジュールされた同期は引き続き実行されるため、届かなかった Webhook も補完されます。"
+      "webhookNote": "Webhook は変更されたレコードを IS Big Platform に知らせるだけで、IS Big Platform は API を通じてレコードを読み直します。スケジュールされた同期は引き続き実行されるため、届かなかった Webhook も補完されます。"
     }
   }
 }

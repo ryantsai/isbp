@@ -1,4 +1,5 @@
 import {
+  type Condition,
   conditionFacts,
   type DisplayElement,
   type DisplayType,
@@ -362,6 +363,21 @@ export function fieldFacts(fields: readonly FieldDef[], locale: string): FactOpt
           return { path: f.key, label, type: 'string' };
       }
     });
+}
+
+/**
+ * How many conditions lack what they compare with: no field, or no value (and no other field) for an operator that
+ * needs one. Such a condition never holds as the admin meant ("End is after …"), so builders refuse to save it.
+ */
+export function incompleteConditions(condition: Condition | null | undefined): number {
+  if (!condition) return 0;
+  if ('all' in condition) return condition.all.reduce((n, c) => n + incompleteConditions(c), 0);
+  if ('any' in condition) return condition.any.reduce((n, c) => n + incompleteConditions(c), 0);
+  if ('not' in condition) return incompleteConditions(condition.not);
+  if (!condition.fact) return 1;
+  if (condition.op === 'empty' || condition.op === 'notEmpty' || condition.valueFact) return 0;
+  const v = condition.value;
+  return v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) ? 1 : 0;
 }
 
 /** The reserved `today` fact (`YYYY-MM-DD`, UTC) for date conditions: "the planned start is today or later". */

@@ -27,14 +27,17 @@ function AccountsTable({ servers }: { servers: ServerOption[] }) {
   const tc = useTranslations('common');
   const [state, set] = useListState({ pageSize: 25 });
   const str = (k: string) => (state[k] as string | undefined) || undefined;
-  const { data, isLoading, isFetching } = useApiQuery<Page<InventoryAccount>>('/dbaccess/accounts', {
-    page: state.page,
-    pageSize: state.pageSize,
-    sort: state.sort,
-    q: state.q,
-    serverId: str('server'),
-    orphan: str('orphan'),
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<InventoryAccount>>(
+    '/dbaccess/accounts',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      sort: state.sort,
+      q: state.q,
+      serverId: str('server'),
+      orphan: str('orphan'),
+    },
+  );
   const filtered = Boolean(state.q || str('server') || str('orphan'));
   const columns = useMemo<DataTableColumn<InventoryAccount>[]>(
     () => [
@@ -123,6 +126,8 @@ function AccountsTable({ servers }: { servers: ServerOption[] }) {
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(a) => `${a.server.id}|${a.name}`}
       onPageChange={(page) => set({ page })}
       onPageSizeChange={(pageSize) => set({ pageSize })}

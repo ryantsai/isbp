@@ -391,6 +391,15 @@ export function MappingTable({
         </p>
       ) : (
         <ol className="grid min-w-0 gap-2">
+          <li
+            aria-hidden
+            className="hidden grid-cols-[minmax(0,1fr)_13rem_minmax(0,1fr)_8.5rem] gap-2 px-2 text-xs font-medium text-muted-foreground sm:grid"
+          >
+            <span>{t('inIsbp')}</span>
+            <span>{t('direction')}</span>
+            <span>{t('inRemoteHeader', { system })}</span>
+            <span />
+          </li>
           {mappings.map((m, i) => {
             const lf = L.get(m.local);
             const rf = R.get(m.remote);
@@ -401,11 +410,14 @@ export function MappingTable({
               <li
                 key={i}
                 className={cn(
-                  'grid min-w-0 grid-cols-1 items-start gap-2 rounded-lg border p-2 sm:grid-cols-[minmax(0,1fr)_9.5rem_minmax(0,1fr)_auto]',
+                  'grid min-w-0 grid-cols-1 items-start gap-2 rounded-lg border p-2 sm:grid-cols-[minmax(0,1fr)_13rem_minmax(0,1fr)_8.5rem]',
                   rowIssues.length > 0 && 'border-destructive/50',
                 )}
                 aria-describedby={rowIssues.length ? `${id}-issues-${i}` : undefined}
               >
+                <span className="text-xs font-medium text-muted-foreground sm:hidden" aria-hidden>
+                  {t('inIsbp')}
+                </span>
                 <Select
                   value={m.local || ''}
                   onValueChange={(v) => update(i, { local: v })}
@@ -430,6 +442,9 @@ export function MappingTable({
                     ))}
                   </SelectContent>
                 </Select>
+                <span className="text-xs font-medium text-muted-foreground sm:hidden" aria-hidden>
+                  {t('direction')}
+                </span>
                 <Select
                   value={m.direction}
                   onValueChange={(v) => update(i, { direction: v as MappingDirection })}
@@ -447,6 +462,9 @@ export function MappingTable({
                     ))}
                   </SelectContent>
                 </Select>
+                <span className="text-xs font-medium text-muted-foreground sm:hidden" aria-hidden>
+                  {t('inRemoteHeader', { system })}
+                </span>
                 <Select
                   value={m.remote || ''}
                   onValueChange={(v) => update(i, { remote: v })}
@@ -473,7 +491,7 @@ export function MappingTable({
                       ))}
                   </SelectContent>
                 </Select>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center justify-end gap-1">
                   {choice && lf && rf && (
                     <Button type="button" variant="outline" size="sm" onClick={() => setEditingValues(i)}>
                       {t('values')}

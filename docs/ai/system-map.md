@@ -54,7 +54,8 @@ sequenceDiagram
   `details.issues`.
 - **Context:** `ctx.principal()` (from async context) is the user, API client, AI agent or `system:module:<id>`.
   Audit rows are attributed automatically.
-- **Rate limiting** is global per IP/principal (`RATE_LIMIT_MAX`) plus per route (`config.rateLimit`).
+- **Rate limiting** is global per IP/principal (`RATE_LIMIT_MAX`) plus per route (`config.rateLimit`, multiplied by
+  `RATE_LIMIT_ROUTE_SCALE`: 1 except in the flow simulator's stack).
 
 ## Data ownership
 
@@ -90,8 +91,11 @@ The audit log (`core.audit_logs`) is append-only and hash-chained. Postgres trig
 - `/<moduleId>/<path…>` is served by one Next.js route (`app/(app)/[module]/[[...slug]]`). `ModuleHost` matches
   the path against the module's `defineWebModule({ routes })` patterns and lazy-loads the page component.
   Static core routes (`/admin/*`, `/settings`, `/requests`, `/approvals`) take precedence.
-- The shell (sidebar, command palette, notifications) is core. The sidebar renders `manifest.navigation` filtered
-  by permission. Entries with the same `group` sit together, ordered by `order`.
+- The shell (sidebar, command palette, notifications, My work) is core. `GET /platform/navigation` builds the
+  sidebar from every enabled `manifest.navigation`: personal entries (Home, My work, Requests, My devices, Knowledge),
+  one collapsible group per area (`children`, plus other modules' entries that name it as `parent`), and one
+  Administration row for every `section: 'admin'` entry (the `/admin` hub). My work (`/my-work`) gathers every
+  module's `manifest.work` providers for the person; its count is the sidebar badge.
 - **Platform context** (`usePlatform()`): the user, their grants, the CSRF token and the enabled modules.
   `useCan(permission)` gates UI only.
 - **Messages:** core namespaces live in `packages/i18n/messages/<locale>/*.json`; module catalogs in

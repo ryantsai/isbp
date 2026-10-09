@@ -74,12 +74,14 @@ test('a person sees the to-do, fills the form in from it, and it is done', async
   const title = `Inspection October ${suffix}`;
   const todo = await assign(request, title);
 
-  await page.goto('/requests');
+  // To do lives on My work; the requests page only says how many are waiting.
+  await page.goto('/my-work');
   const section = page.getByRole('region', { name: 'To do' });
   await expect(section).toBeVisible();
   const link = section.getByRole('link', { name: new RegExp(title) });
   await expect(link).toBeVisible();
-  await expect(link).toContainText('Due soon');
+  // The My work row says when it is due ("Due in 30 hours", "Overdue by …"): the exact wording depends on the time left.
+  await expect(link).toContainText(/Due|Overdue/);
   await expectAccessible(page);
 
   await link.click();
@@ -97,6 +99,7 @@ test('a person sees the to-do, fills the form in from it, and it is done', async
   const after = await request.get(`/api/v1/me/form-assignments/${todo.id}`);
   expect(((await after.json()) as { state: string }).state).toBe('done');
   await page.goto('/requests');
+  await page.goto('/my-work');
   await expect(page.getByRole('link', { name: new RegExp(title) })).toHaveCount(0);
 
   // Opening the done to-do again says so.
@@ -104,13 +107,14 @@ test('a person sees the to-do, fills the form in from it, and it is done', async
   await expect(page.getByText('This to-do was already completed by')).toBeVisible();
 });
 
-test('the dashboard shows open to-dos', async ({ page, request }) => {
+test('My work shows open to-dos', async ({ page, request }) => {
   const title = `Backup check ${suffix}`;
   await assign(request, title, 24 * 10);
-  await page.goto('/');
-  const link = page.getByRole('link', { name: new RegExp(title) });
+  await page.goto('/my-work');
+  const todo = page.getByRole('region', { name: 'To do' });
+  const link = todo.getByRole('link', { name: new RegExp(title) });
   await expect(link).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Open all' })).toHaveAttribute('href', '/requests#todo');
+  await expect(link).toHaveAttribute('href', /\/requests\/forms\/.+\?assignment=/);
   await expectAccessible(page);
 });
 
@@ -167,6 +171,7 @@ test('Scheduled Jobs offers “Assign a form” with its own editor', async ({ p
 test('to-dos and the assignments tab work at 375 px and in dark mode', async ({ page, request }) => {
   await assign(request, `Narrow screen check with a rather long title ${suffix}`);
   await page.setViewportSize({ width: 375, height: 800 });
+  // My work's own layout (the dashboard) is checked by its owner's spec; here the pages this feature changes.
   for (const path of ['/requests', `/admin/forms/${formId}?tab=assignments`]) {
     await page.goto(path);
     await settle(page);
@@ -175,9 +180,10 @@ test('to-dos and the assignments tab work at 375 px and in dark mode', async ({ 
   }
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await page.evaluate(() => localStorage.setItem('theme', 'dark'));
-  await page.goto('/requests');
+  await page.goto('/my-work');
   await expect(page.getByRole('region', { name: 'To do' })).toBeVisible();
   await expectAccessible(page);
   await page.goto(`/admin/forms/${formId}?tab=assignments`);
+  await expect(page.getByText(`Narrow screen check with a rather long title ${suffix}`)).toBeVisible();
   await expectAccessible(page);
 });

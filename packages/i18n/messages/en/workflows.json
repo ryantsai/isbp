@@ -46,7 +46,47 @@
     "subjectUser_departmentCode": "Person's department",
     "post_severity": "Announcement type",
     "post_pinned": "Pinned",
-    "post_hasWindow": "Has a time window"
+    "post_hasWindow": "Has a time window",
+    "data": "Answers",
+    "records": "Picked records",
+    "change_type": "Change type",
+    "change_risk": "Risk",
+    "change_impact": "Impact (1 high … 3 low)",
+    "change_ciCount": "Number of configuration items",
+    "change_durationHours": "Duration (hours)",
+    "change_criticalCis": "Touches a critical configuration item",
+    "ticket_type": "Ticket type",
+    "ticket_category": "Category",
+    "ticket_priority": "Priority (1 critical … 4 low)",
+    "ticket_impact": "Impact (1 high … 3 low)",
+    "ticket_urgency": "Urgency (1 high … 3 low)",
+    "ticket_major": "Major incident",
+    "ticket_groupKey": "Assignment group",
+    "ticket_resolutionCode": "Resolution",
+    "ticket_ciCount": "Number of configuration items",
+    "ticket_ciCriticality": "Highest configuration item criticality",
+    "ticket_criticalCis": "Touches a critical configuration item",
+    "kinds": "What it changes",
+    "modules": "Modules",
+    "itemCount": "Number of changes",
+    "destructive": "Archives or deletes something",
+    "title": "Title",
+    "role_risk": "Risk level",
+    "role_approverIds": "Approvers",
+    "role_environment": "Environment",
+    "role_permanent": "Permanent access",
+    "role_days": "Duration (days)",
+    "article_audience": "Audience",
+    "article_locale": "Language",
+    "article_categoryKey": "Category",
+    "asset_category": "Asset category",
+    "asset_dataBearing": "Holds data",
+    "asset_bookValue": "Book value",
+    "asset_ageMonths": "Age (months)",
+    "project_budgetHours": "Planned effort (hours)",
+    "project_priority": "Priority",
+    "project_departmentId": "Department",
+    "project_memberCount": "Number of members"
   },
   "factValues": {
     "role_riskLevel": {
@@ -63,6 +103,75 @@
       "info": "Information",
       "maintenance": "Maintenance",
       "incident": "Incident"
+    },
+    "change_type": {
+      "standard": "Standard",
+      "normal": "Normal",
+      "emergency": "Emergency"
+    },
+    "change_risk": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "ticket_type": {
+      "incident": "Incident",
+      "service_request": "Service request",
+      "problem": "Problem",
+      "change": "Change"
+    },
+    "ticket_resolutionCode": {
+      "solved": "Solved",
+      "workaround": "Workaround",
+      "user_error": "User error",
+      "duplicate": "Duplicate",
+      "no_fault_found": "No fault found",
+      "not_reproducible": "Not reproducible",
+      "cancelled_by_requester": "Cancelled by the requester"
+    },
+    "ticket_ciCriticality": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "role_risk": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "role_environment": {
+      "production": "Production",
+      "staging": "Staging",
+      "test": "Test",
+      "development": "Development"
+    },
+    "article_audience": {
+      "everyone": "Everyone",
+      "agents": "Service desk agents"
+    },
+    "article_locale": {
+      "en": "English",
+      "zh-TW": "繁體中文",
+      "ja-JP": "日本語"
+    },
+    "asset_category": {
+      "laptop": "Laptop",
+      "desktop": "Desktop",
+      "monitor": "Monitor",
+      "phone": "Phone",
+      "tablet": "Tablet",
+      "server": "Server",
+      "network": "Network device",
+      "storage": "Storage",
+      "printer": "Printer",
+      "peripheral": "Peripheral",
+      "other": "Other"
+    },
+    "project_priority": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
     }
   },
   "timeline": {
@@ -83,17 +192,19 @@
       "notified": "{step}: notified {count, plural, one {# person} other {# people}}",
       "completed": "Finished: {outcome, select, approved {approved} rejected {rejected} cancelled {withdrawn} other {{outcome}}}",
       "cancelled": "{actor} withdrew the request",
-      "other": "{type}"
+      "other": "{type}",
+      "task_already_approved": "The earlier approval of {actor} counts — {step}"
     },
     "reasons": {
       "condition": "condition not met",
       "no-approver": "nobody to ask",
-      "cancelled": "cancelled"
+      "cancelled": "cancelled",
+      "already-approved": "Already approved at {step}"
     }
   },
   "list": {
     "title": "Workflows",
-    "description": "Approval paths for access requests, forms and modules. Changes apply to new requests once published.",
+    "description": "Who approves what. Approvals for forms are built with their form; the built-in ones decide about access, changes and other module records.",
     "tabs": {
       "definitions": "Workflows",
       "instances": "Running & history"
@@ -102,12 +213,12 @@
     "showArchived": "Show archived",
     "new": "New workflow",
     "newFor": "New",
-    "required": "Always runs",
+    "required": "Required",
     "optional": "Optional",
     "usesDefault": "In use: {name}",
     "perForm": "Each form chooses its own workflow.",
     "noDefault": "Not in use — no approval needed until you choose a default.",
-    "empty": "No workflows for this trigger yet.",
+    "empty": "No approval set up: these go ahead without one.",
     "default": "Default",
     "system": "Built-in",
     "archived": "Archived",
@@ -118,7 +229,7 @@
     "running": "{count} running",
     "create": {
       "title": "New workflow",
-      "description": "Pick what it decides about. You can start blank or from a copy.",
+      "description": "Choose what it decides about. You can start blank or from a copy.",
       "trigger": "Used for",
       "name": "Name",
       "descriptionLabel": "Description",
@@ -126,7 +237,22 @@
       "blank": "A blank workflow",
       "cancel": "Cancel",
       "submit": "Create and open",
-      "created": "Workflow created"
+      "created": "Workflow created",
+      "formHint": "Approvals for forms are easiest to build from the form itself: open it and use its Approval tab."
+    },
+    "on": "On",
+    "off": "Off",
+    "inUse": "In use",
+    "setUp": "Set up an approval",
+    "formsTitle": "Approvals for forms",
+    "formsDescription": "Each form names its own approval. Build and change them from the form's Approval tab.",
+    "formsEmpty": "No form has an approval yet.",
+    "usedByForms": "Used by: {names}",
+    "usedByNoForm": "Not used by any form",
+    "builtInTitle": "Built-in approvals",
+    "builtInDescription": "Decisions the platform's areas ask for. Required ones always run; the others run once you set them up.",
+    "areas": {
+      "access": "Access"
     }
   },
   "instances": {
@@ -175,7 +301,7 @@
     "more": "More actions",
     "makeDefault": "Use for new requests",
     "clearDefault": "Stop using (no approval)",
-    "defaultCleared": "Approval turned off for this trigger",
+    "defaultCleared": "Approval turned off for {name}",
     "restore": "Restore",
     "archive": "Archive",
     "zoomOut": "Zoom out",
@@ -259,7 +385,9 @@
       "pickGroupFact": "Choose a field that holds a group",
       "noGroupFacts": "No field holds a group yet. Choose a form with a record field (for example a CI and its support group) under “Use the fields of”.",
       "each": "Ask each one separately",
-      "eachHint": "One approval per group or person in the field. With “Every approver”, each of them must approve (for example the owner group of every picked CI)."
+      "eachHint": "One approval per group or person in the field. With “Every approver”, each of them must approve (for example the owner group of every picked CI).",
+      "removeApprover": "Remove approver {name}",
+      "removeFallback": "Remove fallback {name}"
     },
     "editor": {
       "legend": "Step settings",
@@ -283,6 +411,7 @@
       "name": "Step name",
       "when": "Condition",
       "whenHint": "Skip this step for requests that don't match.",
+      "whenEmpty": "Add what a request must match for this step to run.",
       "onlySometimes": "Only run this step in some cases",
       "approvers": "Approvers",
       "approversHint": "Each line is one approver. A group or role counts as one: any member can answer.",
@@ -345,7 +474,26 @@
       "recipients": "Who to notify",
       "recipientsHint": "They get an in-app notification (and email, if they want it).",
       "addRecipient": "Add recipient",
-      "message": "Message"
+      "message": "Message",
+      "always": "Always",
+      "summary": {
+        "due": "Due within {hours} h",
+        "remind": "reminder after {hours} h",
+        "breach": {
+          "notify": "then a reminder",
+          "escalate": "then escalated",
+          "approve": "then approved automatically",
+          "reject": "then rejected automatically"
+        },
+        "noDeadline": "No deadline",
+        "nobody": {
+          "reject": "If no approver is found: reject",
+          "skip": "If no approver is found: skip the step"
+        },
+        "selfAllowed": "requester may approve",
+        "noHandover": "no handing over",
+        "fields": "{count, plural, one {# field} other {# fields}}"
+      }
     },
     "test": {
       "intro": "Try the workflow with example values and decisions. Nothing is saved or sent.",
@@ -364,9 +512,35 @@
         "skipped": "skipped",
         "active": "waiting",
         "waiting": "not reached"
-      }
+      },
+      "tryAs": "Try as",
+      "tryAsHint": "Choose a person",
+      "enterYourself": "Enter values yourself",
+      "alreadyAt": "Already approved at {step}"
     },
-    "recordFact": "{field}: {fact}"
+    "recordFact": "{field}: {fact}",
+    "stepActionsFor": "Actions for {name}",
+    "startHint": "Add the first step with the + on the canvas.",
+    "autoName": {
+      "generic": "Approval",
+      "manager": "Manager approval",
+      "managerLevel": "Level {level} manager approval",
+      "departmentHead": "Department head approval",
+      "named": "{name} approval",
+      "requester": "Requester confirmation"
+    },
+    "editInForm": "Its form's Approval tab shows the form's questions and this approval together.",
+    "archiveTitle": "Archive {name}?",
+    "archiveBody": "New requests can't use it any more. Requests already in progress continue. You can restore it later.",
+    "archiveBodyUsed": "{count, plural, one {# form or role uses it and} other {# forms or roles use it and}} will stop finding an approval until you choose another. Requests already in progress continue.",
+    "activity": "Activity",
+    "activityDescription": "Who changed or published this approval, newest first.",
+    "repeatApprovers": {
+      "title": "When someone already approved this request",
+      "ask": "Ask them again",
+      "skip": "Count their earlier approval",
+      "hint": "Count their earlier approval: they are not asked again at a later step, and the approval they gave earlier counts for it."
+    }
   },
   "changePreview": {
     "invalid": "This proposal can’t be drawn: its graph isn’t a valid workflow.",

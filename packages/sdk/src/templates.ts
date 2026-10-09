@@ -114,3 +114,36 @@ export function renderTemplates<T>(
 export function templatePaths(template: string): string[] {
   return [...template.matchAll(TEMPLATE_RE)].map((m) => m[1]!).filter((p) => PATH_RE.test(p));
 }
+
+/** A piece of a template: literal text, or a placeholder's path. */
+export type TemplateSegment = { text: string } | { path: string };
+
+/**
+ * A template as text and placeholders, in order (for editors that show placeholders as chips). Only plain paths are
+ * placeholders: `{{ not a path }}` stays text, so `joinTemplate(templateSegments(t))` gives `t` back, except that
+ * spaces inside a placeholder's braces are dropped. Neighbouring text is merged and empty text is left out.
+ */
+export function templateSegments(template: string): TemplateSegment[] {
+  const out: TemplateSegment[] = [];
+  const text = (t: string) => {
+    if (!t) return;
+    const last = out[out.length - 1];
+    if (last && 'text' in last) last.text += t;
+    else out.push({ text: t });
+  };
+  let at = 0;
+  for (const m of template.matchAll(TEMPLATE_RE)) {
+    const path = m[1]!;
+    text(template.slice(at, m.index));
+    if (PATH_RE.test(path)) out.push({ path });
+    else text(m[0]);
+    at = m.index + m[0].length;
+  }
+  text(template.slice(at));
+  return out;
+}
+
+/** The template text of segments (`{{path}}` for each placeholder). */
+export function joinTemplate(segments: readonly TemplateSegment[]): string {
+  return segments.map((s) => ('path' in s ? `{{${s.path}}}` : s.text)).join('');
+}

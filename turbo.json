@@ -42,7 +42,7 @@
     "ISBP_*",
     "SESSION_*",
     "LOGIN_*",
-    "RATE_LIMIT_MAX",
+    "RATE_LIMIT_*",
     "WORKER_CONCURRENCY",
     "API_DOCS",
     "OTEL_*",

@@ -2,14 +2,16 @@ import { users } from '@isbp/db/schema';
 import { parameterNames, statementCount } from '@isbp/sql';
 import {
   type AuthContext,
+  type Db,
   ErrorCodes,
   HttpError,
   httpErrors,
   likePattern,
   type ModuleContext,
   type Page,
+  runProblemFromText,
 } from '@isbp/sdk/server';
-import { and, asc, desc, eq, gte, ilike, inArray, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, or, type SQL, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import type {
   PipelineDetailOut,
@@ -39,7 +41,22 @@ import { type PipelineRow, type RunRow, STALE_QUEUE_MS, STALE_RUN_MS } from './r
 import { pipelineRuns, pipelines } from './schema';
 
 type PipelineInput = z.infer<typeof pipelineInputSchema>;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PREVIEW_ROWS = 10;
+
+/** A queued or running run that is still alive: running with a recent heartbeat, or queued recently. */
+function aliveRun(): SQL {
+  return or(
+    and(
+      eq(pipelineRuns.status, 'running'),
+      gte(pipelineRuns.heartbeatAt, new Date(Date.now() - STALE_RUN_MS)),
+    ),
+    and(
+      eq(pipelineRuns.status, 'queued'),
+      gte(pipelineRuns.createdAt, new Date(Date.now() - STALE_QUEUE_MS)),
+    ),
+  )!;
+}
 
 /** Pipelines: definitions validated against the target catalog, "Run now", runs and cancellation. */
 export class PipelineService {
@@ -82,7 +99,9 @@ export class PipelineService {
       finishedAt: r.finishedAt,
       durationMs: r.durationMs,
       error: r.error,
+      problem: r.problem ?? (r.error && r.status === 'failed' ? runProblemFromText(r.error) : null),
       triggeredBy: by ? { id: by.id, name: by.displayName } : null,
+      jobRun: r.taskRunId && UUID_RE.test(r.taskRunId) ? { runId: r.taskRunId, jobId: r.taskJobId } : null,
       cancelRequested: r.cancelRequested,
       createdAt: r.createdAt,
     };
@@ -176,9 +195,23 @@ export class PipelineService {
     ).rows;
     const people = await peopleById(this.ctx, [row.createdBy]);
     const creator = row.createdBy ? people.get(row.createdBy) : undefined;
+    const [scheduled] = await this.ctx.db
+      .select({ jobId: pipelineRuns.taskJobId, at: pipelineRuns.createdAt })
+      .from(pipelineRuns)
+      .where(
+        and(
+          eq(pipelineRuns.pipelineId, row.id),
+          eq(pipelineRuns.trigger, 'schedule'),
+          isNotNull(pipelineRuns.taskJobId),
+          gte(pipelineRuns.createdAt, new Date(Date.now() - 60 * 86_400_000)),
+        ),
+      )
+      .orderBy(desc(pipelineRuns.createdAt))
+      .limit(1);
     return {
       ...summary!,
       definition: this.definitionOf(row),
+      schedule: scheduled?.jobId ? { jobId: scheduled.jobId, lastRunAt: scheduled.at } : null,
       watermark: row.watermark,
       stats: {
         runs: Number(stats?.runs ?? 0),
@@ -448,25 +481,11 @@ export class PipelineService {
   /* ───────────── runs ───────────── */
 
   /** A queued or running run that is still alive (stale ones no longer block). */
-  async activeRun(pipelineId: string): Promise<RunRow | null> {
-    const [r] = await this.ctx.db
+  async activeRun(pipelineId: string, db: Db = this.ctx.db): Promise<RunRow | null> {
+    const [r] = await db
       .select()
       .from(pipelineRuns)
-      .where(
-        and(
-          eq(pipelineRuns.pipelineId, pipelineId),
-          or(
-            and(
-              eq(pipelineRuns.status, 'running'),
-              gte(pipelineRuns.heartbeatAt, new Date(Date.now() - STALE_RUN_MS)),
-            ),
-            and(
-              eq(pipelineRuns.status, 'queued'),
-              gte(pipelineRuns.createdAt, new Date(Date.now() - STALE_QUEUE_MS)),
-            ),
-          ),
-        ),
-      )
+      .where(and(eq(pipelineRuns.pipelineId, pipelineId), aliveRun()))
       .limit(1);
     return r ?? null;
   }
@@ -478,11 +497,20 @@ export class PipelineService {
   async queueRun(
     pipeline: PipelineRow,
     trigger: 'manual' | 'schedule',
-    opts: { userId?: string | null; taskRunId?: string | null } = {},
+    opts: { userId?: string | null; taskRunId?: string | null; taskJobId?: string | null } = {},
   ): Promise<RunRow> {
-    if (await this.activeRun(pipeline.id))
-      throw new HttpError(409, ErrorCodes.JOB_RUNNING, `${pipeline.name} is already running`);
+    const busy = () => new HttpError(409, ErrorCodes.JOB_RUNNING, `${pipeline.name} is already running`);
+    if (await this.activeRun(pipeline.id)) throw busy();
     return this.ctx.transaction(async (tx) => {
+      // Single flight: the pipeline row is the lock. A second request waits here until the first commits,
+      // then sees its run (read committed) and is refused instead of starting a parallel run.
+      const [locked] = await tx
+        .select({ id: pipelines.id })
+        .from(pipelines)
+        .where(eq(pipelines.id, pipeline.id))
+        .for('update');
+      if (!locked) throw httpErrors.notFound('Pipeline not found');
+      if (await this.activeRun(pipeline.id, tx)) throw busy();
       // Runs nobody will finish (crashed worker) are closed so the history stays truthful.
       await tx
         .update(pipelineRuns)
@@ -491,6 +519,7 @@ export class PipelineService {
           and(
             eq(pipelineRuns.pipelineId, pipeline.id),
             or(eq(pipelineRuns.status, 'running'), eq(pipelineRuns.status, 'queued')),
+            sql`not coalesce(${aliveRun()}, false)`,
           ),
         );
       const [run] = await tx
@@ -500,6 +529,7 @@ export class PipelineService {
           trigger,
           triggeredBy: opts.userId ?? null,
           taskRunId: opts.taskRunId ?? null,
+          taskJobId: opts.taskJobId ?? null,
           log: [],
         })
         .returning();

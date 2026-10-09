@@ -12,8 +12,16 @@
       "started": "実行を開始しました"
     }
   },
-  "nav": { "group": "スケジュール ジョブ", "overview": "概要", "jobs": "ジョブ", "runs": "実行履歴" },
-  "entities": { "job": "スケジュール ジョブ" },
+  "nav": {
+    "group": "スケジュール ジョブ",
+    "overview": "概要",
+    "jobs": "ジョブ",
+    "runs": "実行履歴",
+    "sections": "スケジュール ジョブのセクション"
+  },
+  "entities": {
+    "job": "スケジュール ジョブ"
+  },
   "systemRoles": {
     "scheduler-viewer": {
       "name": "スケジュール ジョブ閲覧者",
@@ -45,7 +53,10 @@
     "misfireGraceMinutesHelp": "スケジューラーの停止中に実行されなかったスケジュールは、遅れがこの時間以内であれば 1 回実行されます。それより古いものは実行漏れとして記録されます。"
   },
   "taskTypes": {
-    "http": { "name": "HTTP 要求", "description": "URL を呼び出して応答の状態を確認します" },
+    "http": {
+      "name": "HTTP 要求",
+      "description": "URL を呼び出して応答の状態を確認します"
+    },
     "sql": {
       "name": "SQL ステートメント",
       "description": "データベース接続で 1 つのステートメントを実行します"
@@ -100,14 +111,22 @@
     "dependency": "ジョブの後",
     "retry": "再実行"
   },
-  "triggerKind": { "cron": "Cron", "interval": "間隔", "after": "他のジョブの後", "manual": "手動" },
+  "triggerKind": {
+    "cron": "スケジュール",
+    "interval": "間隔",
+    "after": "他のジョブの後",
+    "manual": "手動"
+  },
   "triggerKindHint": {
-    "cron": "決まった時刻に、タイム ゾーンを指定して",
+    "cron": "毎日・毎週・毎月の決まった時刻",
     "interval": "数分または数時間ごと",
     "after": "他のジョブが成功したとき",
     "manual": "誰かが実行したときのみ"
   },
-  "concurrency": { "skip": "実行中ならスキップ", "queue": "前回の実行の完了を待つ" },
+  "concurrency": {
+    "skip": "実行中ならスキップ",
+    "queue": "前回の実行の完了を待つ"
+  },
   "series": {
     "succeeded": "成功",
     "failed": "失敗",
@@ -142,7 +161,9 @@
     "weekdays": "平日 {time}",
     "weekly": "毎週{days} {time}",
     "monthly": "毎月 {day} 日 {time}",
-    "custom": "Cron {cron}"
+    "custom": "Cron {cron}",
+    "quarterly": "四半期ごと {day} 日 {time}",
+    "yearly": "毎年 {date} {time}"
   },
   "trigger": {
     "withZone": "{text} ({zone})",
@@ -169,7 +190,7 @@
   },
   "overview": {
     "title": "スケジュール ジョブ",
-    "description": "ジョブの状況: 過去 1 日の実行、失敗しているもの、遅いもの、次に実行されるもの。",
+    "description": "まず対応が必要なもの、次にジョブの状況と今後の実行を表示します。",
     "unavailable": "現在ダッシュボードを表示できません。",
     "kpis": "主要な数値",
     "kpi": {
@@ -182,7 +203,9 @@
       "failingHint": "前回の実行が失敗",
       "runningNow": "実行中",
       "avgDuration": "平均所要時間 (24 時間)",
-      "avgDurationHint": "完了した実行の平均"
+      "avgDurationHint": "完了した実行の平均",
+      "successHint7d": "過去 7 日: {rate}",
+      "avgHint": "平均実行時間: {duration}"
     },
     "hourly": "1 時間あたりの実行回数",
     "hourlyHint": "過去 24 時間、状態別",
@@ -192,16 +215,25 @@
     "upcomingHint": "今後 24 時間のスケジュール",
     "noUpcoming": "今後 24 時間にスケジュールはありません。",
     "failing": "失敗しているジョブ",
-    "failingHint": "前回の実行が失敗したジョブ",
+    "failingHint": "前回の実行が失敗したジョブ: 原因と対処",
     "noFailing": "失敗しているジョブはありません。",
     "streak": "{count, plural, one {# 回失敗} other {# 回連続}}",
     "slowest": "最も遅いジョブ",
     "slowestHint": "過去 7 日間の成功した実行の 95 パーセンタイルの所要時間",
     "noRuns": "過去 7 日間に成功した実行はありません。",
     "p95": "{duration} · {runs, plural, other {# 回の実行}}",
-    "viewAll": "すべて表示"
+    "viewAll": "すべて表示",
+    "lastFailed": "前回の失敗",
+    "seeRun": "実行を表示",
+    "runNowJob": "{job} を今すぐ実行",
+    "nextAt": "次回 {time}",
+    "runsIn24h": "24 時間で {count} 回"
   },
-  "charts": { "viewAs": "表示形式", "chart": "グラフ", "table": "表" },
+  "charts": {
+    "viewAs": "表示形式",
+    "chart": "グラフ",
+    "table": "表"
+  },
   "jobs": {
     "title": "ジョブ",
     "description": "スケジュール、他のジョブの後、またはオンデマンドで実行されるすべてのジョブ。",
@@ -248,7 +280,10 @@
     "deleteHint": "ジョブとその実行履歴が削除されます。この操作は元に戻せません。",
     "runningNow": "実行中",
     "typeUnavailable": "{type} を提供するモジュールが無効です。再度有効になるまで、このジョブの実行は失敗します。",
-    "tabs": { "overview": "概要", "runs": "実行履歴" },
+    "tabs": {
+      "overview": "概要",
+      "runs": "実行履歴"
+    },
     "schedule": "スケジュール",
     "nextRun": "次回の実行",
     "notScheduledDisabled": "スケジュールなし: ジョブは無効です",
@@ -280,12 +315,19 @@
     "alertsOff": "失敗の通知なし",
     "alertsChannels": "失敗は組織のチャネルにも投稿されます",
     "autoDisableValue": "{count} 回連続で失敗すると無効化",
-    "runsOf": "{job} の実行履歴"
+    "runsOf": "{job} の実行履歴",
+    "nextRunMeta": "次回の実行",
+    "seeLastRun": "前回の実行を表示",
+    "timeout": "タイムアウト"
   },
   "runs": {
     "title": "実行履歴",
     "description": "すべてのジョブのすべての実行 (新しい順)。",
-    "views": { "all": "すべて", "failed": "失敗", "active": "進行中" },
+    "views": {
+      "all": "すべて",
+      "failed": "失敗",
+      "active": "進行中"
+    },
     "job": "ジョブ",
     "status": "状態",
     "scheduledFor": "予定日時",
@@ -300,7 +342,11 @@
     "allTriggers": "すべてのトリガー",
     "period": "期間",
     "anyTime": "すべての期間",
-    "periods": { "h24": "過去 24 時間", "h168": "過去 7 日間", "h720": "過去 30 日間" },
+    "periods": {
+      "h24": "過去 24 時間",
+      "h168": "過去 7 日間",
+      "h720": "過去 30 日間"
+    },
     "empty": "実行履歴はありません",
     "emptyFiltered": "別のフィルターをお試しください。",
     "emptyHint": "ジョブがスケジュールどおりに実行されたり、誰かが実行したりすると、ここに表示されます。"
@@ -338,9 +384,17 @@
     "download": "ダウンロード",
     "waiting": "最初の行を待っています…",
     "empty": "この実行はログを書き込みませんでした。",
-    "level": { "info": "情報", "warn": "警告", "error": "エラー" }
+    "level": {
+      "info": "情報",
+      "warn": "警告",
+      "error": "エラー"
+    }
   },
-  "secret": { "stored": "保存済み (非表示)", "replace": "置き換え", "secret": "シークレット" },
+  "secret": {
+    "stored": "保存済み (非表示)",
+    "replace": "置き換え",
+    "secret": "シークレット"
+  },
   "http": {
     "request": "要求",
     "method": "メソッド",
@@ -367,7 +421,11 @@
     "token": "トークン",
     "body": "本文",
     "bodyType": "本文の種類",
-    "bodyTypes": { "none": "本文なし", "json": "JSON", "text": "テキスト" }
+    "bodyTypes": {
+      "none": "本文なし",
+      "json": "JSON",
+      "text": "テキスト"
+    }
   },
   "sql": {
     "connection": "データベース接続",
@@ -375,10 +433,18 @@
     "pickConnection": "接続を選択",
     "loading": "読み込み中…",
     "readOnly": "読み取り専用",
-    "engines": { "mssql": "SQL Server", "postgres": "PostgreSQL", "mysql": "MySQL", "oracle": "Oracle" },
+    "engines": {
+      "mssql": "SQL Server",
+      "postgres": "PostgreSQL",
+      "mysql": "MySQL",
+      "oracle": "Oracle"
+    },
     "noConnections": "使用できるデータ接続がありません。[管理] → [データベース接続] で追加するよう管理者に依頼してください。",
     "mode": "モード",
-    "modes": { "query": "クエリ: 行数とプレビューを記録", "execute": "実行: 影響を受けた行数を記録" },
+    "modes": {
+      "query": "クエリ: 行数とプレビューを記録",
+      "execute": "実行: 影響を受けた行数を記録"
+    },
     "modeHint": {
       "query": "データベースが対応している場合は読み取り専用トランザクションで実行されます。",
       "execute": "クリーンアップやプロシージャなど、データを変更するステートメント用です。"
@@ -428,7 +494,12 @@
     "runnerLocal": "開発用ランナー: スクリプトは分離されずにワーカー上で実行されます (サンドボックスなし)。運用環境では使用しないでください。",
     "runnerIsolated": "スクリプトは分離されたコンテナー ({runner}) で実行されます。資格情報なし、読み取り専用ファイル システム、許可された場合のみネットワークを使用できます。",
     "language": "言語",
-    "languages": { "python": "Python", "node": "Node.js", "powershell": "PowerShell", "shell": "シェル" },
+    "languages": {
+      "python": "Python",
+      "node": "Node.js",
+      "powershell": "PowerShell",
+      "shell": "シェル"
+    },
     "image": "コンテナー イメージ",
     "pickImage": "イメージを選択",
     "script": "スクリプト",
@@ -443,7 +514,10 @@
     "cpu": "CPU (コア)",
     "memory": "メモリ (MB)",
     "network": "ネットワーク",
-    "networks": { "none": "ネットワークなし", "egress": "送信を許可" },
+    "networks": {
+      "none": "ネットワークなし",
+      "egress": "送信を許可"
+    },
     "networkHint": {
       "none": "スクリプトはどこにも接続できません。",
       "egress": "スクリプトはネットワークに接続できます。"
@@ -500,7 +574,10 @@
     "loading": "読み込み中…",
     "upstreamRequired": "ジョブを 1 つ以上選択してください",
     "mode": "条件",
-    "modes": { "all": "すべて成功した", "any": "いずれかが成功した" },
+    "modes": {
+      "all": "すべて成功した",
+      "any": "いずれかが成功した"
+    },
     "modeHint": {
       "all": "このジョブの前回の実行以降に、選択したすべてのジョブが成功すると 1 回実行されます。",
       "any": "選択したいずれかのジョブが成功するたびに実行されます。"
@@ -512,7 +589,10 @@
     "maxAttempts": "試行回数",
     "maxAttemptsHint": "1 は再試行なし (最大 10)",
     "backoff": "バックオフ",
-    "backoffs": { "fixed": "固定", "exponential": "指数" },
+    "backoffs": {
+      "fixed": "固定",
+      "exponential": "指数"
+    },
     "backoffHint": {
       "fixed": "再試行の前に毎回同じ時間待機します。",
       "exponential": "待機時間を毎回 2 倍にします (最大 1 時間)。"
@@ -538,7 +618,28 @@
     "checkFields": "強調表示されたフィールドを確認してください",
     "create": "ジョブを作成",
     "created": "ジョブを作成しました",
-    "saved": "変更を保存しました"
+    "saved": "変更を保存しました",
+    "repeats": "繰り返し",
+    "repeat": {
+      "hourly": "毎時",
+      "daily": "毎日",
+      "weekdays": "平日",
+      "weekly": "毎週",
+      "monthly": "毎月",
+      "quarterly": "四半期ごと",
+      "yearly": "毎年",
+      "custom": "カスタム (cron)"
+    },
+    "onWeekday": "曜日",
+    "inMonth": "月",
+    "onDay": "日",
+    "onDayQuarterHint": "四半期の最初の月の日付",
+    "atMinute": "毎時の分",
+    "atTime": "時刻",
+    "advanced": "詳細設定",
+    "advancedHint": "制限時間、再試行、実行の重複、自動無効化。既定値でほとんどのジョブに対応できます。",
+    "runFirst": "今すぐ 1 回実行する",
+    "runFirstHint": "最初のスケジュール実行を待たずに、今期の作業をすぐに開始します。"
   },
   "attention": {
     "title": "失敗しているジョブ",
@@ -559,5 +660,14 @@
         "every": "間隔 (分)"
       }
     }
+  },
+  "results": {
+    "http": "HTTP {status} · {ms} ミリ秒",
+    "affected": "{count} 行に影響",
+    "rows": "{count} 行",
+    "rowsCapped": "{count}+ 行 (接続の上限で打ち切り)",
+    "script": "{ms} ミリ秒で完了",
+    "skippedOverlap": "スキップ: 前回の実行がまだ続いていました",
+    "missed": "スケジュールされた実行を {count} 回逃しました"
   }
 }

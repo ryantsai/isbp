@@ -3,38 +3,31 @@
 import { ApiError, type WebPageProps } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Button } from '@isbp/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { FadeIn } from '@isbp/ui/motion';
-import { useApiMutation } from '@isbp/ui/query';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
   ArchiveIcon,
-  ArrowLeftIcon,
   CalendarIcon,
-  ChevronDownIcon,
   FileQuestionIcon,
   PencilIcon,
   PlayIcon,
   PlusIcon,
   RotateCwIcon,
+  SendIcon,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { ProjectDetail, ProjectStatus } from '../../contracts';
-import { HealthBadge, KeyBadge, ProjectStatusBadge, VisibilityBadge } from '../components/badges';
-import { ConfirmDialog } from '../components/inputs';
+import { KeyBadge, ProjectHealthBadge, ProjectStatusBadge, VisibilityBadge } from '../components/badges';
 import { TaskSheet } from '../components/task-sheet';
 import { WorkloadGrid } from '../components/workload-grid';
-import { dateValue, INVALIDATE, projectApi, useProject, useSearchParam } from '../lib';
+import { dateValue, projectApi, projectHref, useProject, useSearchParam } from '../lib';
 import { BoardTab } from '../project/board-tab';
+import { useStartProject } from '../project/start';
 import { HealthDialog, NewTaskDialog, StatusDialog } from '../project/dialogs';
 import { ListTab } from '../project/list-tab';
 import { OverviewTab } from '../project/overview-tab';
@@ -63,28 +56,17 @@ function Header({ project, onNewTask }: { project: ProjectDetail; onNewTask: () 
   const ts = useTranslations('projects.statusDialog');
   const format = useFormatter();
   const [statusTarget, setStatusTarget] = useState<ProjectStatus | null>(null);
-  const [confirmStart, setConfirmStart] = useState(false);
   const [health, setHealth] = useState(false);
-  const start = useApiMutation((api) => api.post<ProjectDetail>(`${projectApi(project.key)}/start`), {
-    invalidate: INVALIDATE,
-    success: (p) => (p.status === 'active' ? t('started') : t('submitted')),
-    onSuccess: () => setConfirmStart(false),
-  });
+  const starter = useStartProject(project);
   const v = project.viewer;
-  const needsApproval =
-    project.budgetHours !== null && project.budgetHours > project.settings.proposalThresholdHours;
+  const newTask = { id: 'new-task', label: t('newTask'), icon: <PlusIcon />, onSelect: onNewTask };
   return (
-    <FadeIn y={4} className="grid gap-3">
-      <Link
-        href="/projects"
-        className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeftIcon className="size-3.5" aria-hidden />
-        {t('back')}
-      </Link>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="grid min-w-0 flex-1 gap-2">
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+    <div className="grid gap-3">
+      <DetailHeader
+        className="pb-0"
+        back={{ href: '/projects', label: t('back'), highlight: project.key }}
+        reference={
+          <span className="flex flex-wrap items-center gap-2">
             <KeyBadge projectKey={project.key} />
             <VisibilityBadge visibility={project.visibility} />
             {project.department && <span>{project.department.name}</span>}
@@ -107,78 +89,55 @@ function Header({ project, onNewTask }: { project: ProjectDetail; onNewTask: () 
                 })}
               </span>
             )}
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-balance break-words">{project.name}</h1>
-          <div className="flex flex-wrap items-center gap-2">
+          </span>
+        }
+        title={project.name}
+        status={
+          <>
             <ProjectStatusBadge status={project.status} />
-            <HealthBadge health={project.health} />
+            <ProjectHealthBadge project={project} />
             {project.archivedAt && (
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <ArchiveIcon className="size-3.5" aria-hidden />
                 {t('archived')}
               </span>
             )}
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          {v.canStart && (
-            <Button onClick={() => setConfirmStart(true)}>
-              <PlayIcon />
-              {t('start')}
+          </>
+        }
+        primaryAction={
+          v.canStart ? (
+            <Button onClick={starter.open}>
+              {starter.needsApproval ? <SendIcon /> : <PlayIcon />}
+              {starter.label}
             </Button>
-          )}
-          {v.canEditTasks && (
-            <Button variant={v.canStart ? 'outline' : 'default'} onClick={onNewTask}>
+          ) : v.canEditTasks ? (
+            <Button onClick={onNewTask}>
               <PlusIcon />
               {t('newTask')}
             </Button>
-          )}
-          {v.canManage && (
-            <Button variant="outline" onClick={() => setHealth(true)}>
-              <PencilIcon />
-              {t('updateHealth')}
-            </Button>
-          )}
-          {v.transitions.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <RotateCwIcon />
-                  {t('changeStatus')}
-                  <ChevronDownIcon className="opacity-60" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                {v.transitions.map((s) => (
-                  <DropdownMenuItem
-                    key={s}
-                    variant={s === 'cancelled' ? 'destructive' : 'default'}
-                    onSelect={() => setStatusTarget(s)}
-                  >
-                    {ts(`action.${s}`)}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      </div>
-      <ConfirmDialog
-        open={confirmStart}
-        onOpenChange={setConfirmStart}
-        title={t('startTitle', { key: project.key })}
-        description={
-          needsApproval
-            ? t('startNeedsApproval', {
-                hours: project.budgetHours ?? 0,
-                threshold: project.settings.proposalThresholdHours,
-              })
-            : t('startAutomatic', { threshold: project.settings.proposalThresholdHours })
+          ) : undefined
         }
-        confirmLabel={t('start')}
-        loading={start.isPending}
-        onConfirm={() => start.mutate(undefined)}
+        actions={[
+          ...(v.canStart && v.canEditTasks ? [newTask] : []),
+          ...(v.canManage
+            ? [
+                {
+                  id: 'health',
+                  label: t('updateHealth'),
+                  icon: <PencilIcon />,
+                  onSelect: () => setHealth(true),
+                },
+              ]
+            : []),
+        ]}
+        menu={v.transitions.map((st) => ({
+          id: st,
+          label: ts(`action.${st}`),
+          destructive: st === 'cancelled',
+          onSelect: () => setStatusTarget(st),
+        }))}
       />
+      {starter.dialog}
       {v.canManage && (
         <>
           <StatusDialog
@@ -190,7 +149,7 @@ function Header({ project, onNewTask }: { project: ProjectDetail; onNewTask: () 
           <HealthDialog project={project} open={health} onOpenChange={setHealth} />
         </>
       )}
-    </FadeIn>
+    </div>
   );
 }
 
@@ -203,6 +162,7 @@ export default function ProjectPage({ params }: WebPageProps) {
   const [viewParam, setView] = useSearchParam('view');
   const [, setTask] = useSearchParam('task');
   const [creating, setCreating] = useState(false);
+  const router = useRouter();
 
   if (isLoading || (isPlaceholderData && project?.key !== key)) return <ProjectSkeleton />;
   if (error || !project) {
@@ -251,7 +211,15 @@ export default function ProjectPage({ params }: WebPageProps) {
         {views.map((v) => (
           <TabsContent key={v} value={v} className="min-w-0">
             {v !== view ? null : v === 'overview' ? (
-              <OverviewTab project={project} onManage={() => setView('settings', { push: true })} />
+              <OverviewTab
+                project={project}
+                onNewTask={() => setCreating(true)}
+                onManage={(section) =>
+                  router.push(`${projectHref(project.key)}?view=settings&section=${section}`, {
+                    scroll: false,
+                  })
+                }
+              />
             ) : v === 'board' ? (
               <BoardTab project={project} />
             ) : v === 'list' ? (

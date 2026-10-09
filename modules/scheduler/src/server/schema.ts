@@ -1,4 +1,5 @@
 import { createdAt, groups, id, updatedAt, users } from '@isbp/db/schema';
+import type { RunProblem } from '@isbp/sdk';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
@@ -114,6 +115,8 @@ export interface AttemptRecord {
   finishedAt: string | null;
   status: RunStatus;
   error: string | null;
+  /** Why the attempt failed, for the plain explanation (absent on attempts recorded before it was kept). */
+  problem?: RunProblem | null;
 }
 
 export const runs = schedulerSchema.table(
@@ -144,10 +147,14 @@ export const runs = schedulerSchema.table(
     cancelledBy: uuid('cancelled_by').references(() => users.id, { onDelete: 'set null' }),
     triggeredBy: uuid('triggered_by').references(() => users.id, { onDelete: 'set null' }),
     upstreamRunId: uuid('upstream_run_id'),
+    /** An i18n key (with `summary_params`) or plain text. */
     summary: text('summary'),
+    summaryParams: jsonb('summary_params').$type<Record<string, string | number>>(),
     metrics: jsonb('metrics').$type<Record<string, number>>().notNull().default({}),
     href: varchar('href', { length: 500 }),
     error: text('error'),
+    /** Why it failed, as a kind the UI explains (`runProblemOf`); `error` keeps the raw text. */
+    problem: jsonb('problem').$type<RunProblem>(),
     logCount: integer('log_count').notNull().default(0),
     logTruncated: boolean('log_truncated').notNull().default(false),
     createdAt: createdAt(),

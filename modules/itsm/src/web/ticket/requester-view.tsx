@@ -5,10 +5,9 @@ import { Slot, usePlatform } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Markdown } from '@isbp/ui/markdown';
-import { FadeIn } from '@isbp/ui/motion';
+import { BackLink } from '@isbp/ui/page-header';
 import { DateTime } from '@isbp/ui/relative-time';
-import { ArrowLeftIcon, BanIcon, CheckIcon, ServerIcon } from 'lucide-react';
-import Link from 'next/link';
+import { BanIcon, CheckIcon, ServerIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useRef, useState } from 'react';
 import type { TicketDetail, TicketStatus } from '../../contracts';
@@ -19,6 +18,9 @@ import { Composer, type ComposerState, type ComposerTab } from './composer';
 import { ConfirmPanel } from './confirm-panel';
 import { ResolutionCard, SourceChip } from './parts';
 import { Timeline, useActivities } from './timeline';
+
+/** Urgency in the requester's words (the "How much does it affect you?" choices of Report an issue). */
+const URGENCY_WORDS: Record<number, string> = { 1: 'blocked', 2: 'slow', 3: 'minor' };
 
 const STEP_OF: Partial<Record<TicketStatus, number>> = {
   new: 0,
@@ -110,25 +112,19 @@ export function RequesterView({ ticket }: { ticket: TicketDetail }) {
   const open = !ended && ticket.status !== 'closed';
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-6">
-      <FadeIn y={4} className="grid gap-3">
-        <Link
-          href="/requests"
-          className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeftIcon className="size-3.5" aria-hidden />
-          {t('back')}
-        </Link>
+    <div className="grid max-w-5xl gap-6">
+      <div className="grid gap-3">
+        <BackLink href="/requests" label={t('back')} />
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-1.5 font-mono font-medium text-foreground">
             <TypeIcon type={ticket.type} />
             {ticket.reference}
           </span>
-          <TicketStatusBadge status={ticket.status} signOff={Boolean(ticket.signOff)} />
+          <TicketStatusBadge status={ticket.status} signOff={Boolean(ticket.signOff)} requester animate />
           <SourceChip ticket={ticket} />
         </div>
         <h1 className="text-2xl font-semibold tracking-tight text-balance break-words">{ticket.title}</h1>
-      </FadeIn>
+      </div>
 
       <Card className="py-5">
         <CardContent>
@@ -152,7 +148,7 @@ export function RequesterView({ ticket }: { ticket: TicketDetail }) {
       <AcceptancePanel ticket={ticket} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <section aria-labelledby="itsm-conversation" className="grid min-w-0 content-start gap-4">
+        <section aria-labelledby="itsm-conversation" className="grid min-w-0 grid-cols-1 content-start gap-4">
           <h2 id="itsm-conversation" className="text-base font-semibold">
             {t('conversation')}
           </h2>
@@ -176,10 +172,11 @@ export function RequesterView({ ticket }: { ticket: TicketDetail }) {
               state={composer}
               canComment={ticket.viewer.canComment}
               canWorkNote={false}
+              audience="requester"
             />
           )}
         </section>
-        <aside className="grid min-w-0 content-start gap-4" aria-label={t('detailsLabel')}>
+        <aside className="grid min-w-0 grid-cols-1 content-start gap-4" aria-label={t('detailsLabel')}>
           <Card className="gap-4">
             <CardHeader>
               <CardTitle>{t('yourReport')}</CardTitle>
@@ -199,7 +196,8 @@ export function RequesterView({ ticket }: { ticket: TicketDetail }) {
                 </div>
                 <div className="min-w-0">
                   <dt className="text-xs font-medium text-muted-foreground">{t('urgency')}</dt>
-                  <dd>{tt(`urgency.${ticket.urgency}`)}</dd>
+                  {/* The words the requester chose from on "Report an issue". */}
+                  <dd>{tt(`report.impact.${URGENCY_WORDS[ticket.urgency] ?? 'slow'}`)}</dd>
                 </div>
                 {ticket.category && (
                   <div className="min-w-0">

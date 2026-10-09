@@ -40,6 +40,8 @@ export const meSchema = z.object({
   preferences: z.object({
     theme: z.enum(['light', 'dark', 'system']).optional(),
     sidebarCollapsed: z.boolean().optional(),
+    /** Sidebar groups the person keeps open (navigation ids). */
+    navExpanded: z.array(z.string()).optional(),
   }),
 });
 export type Me = z.input<typeof meSchema>;
@@ -61,6 +63,7 @@ export const updateMeSchema = z.object({
     .object({
       theme: z.enum(['light', 'dark', 'system']).optional(),
       sidebarCollapsed: z.boolean().optional(),
+      navExpanded: z.array(z.string().max(120)).max(40).optional(),
     })
     .optional(),
 });

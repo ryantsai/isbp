@@ -54,7 +54,7 @@ export function DatabasesView() {
   const canManage = useCan('core.databases.manage');
   const [state, set] = useListState({ pageSize: 25 });
   const [deleting, setDeleting] = useState<DbConnection | null>(null);
-  const { data, isLoading, isFetching, error } = useApiQuery<{ items: DbConnection[] }>(
+  const { data, isLoading, isFetching, refetch, error } = useApiQuery<{ items: DbConnection[] }>(
     canRead ? '/databases' : null,
   );
   const all = useMemo(() => data?.items ?? [], [data]);
@@ -230,6 +230,8 @@ export function DatabasesView() {
         pageSize={state.pageSize}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(c) => c.id}
         onRowClick={(c) => setParam(canManage ? 'edit' : 'catalog', c.id)}
         onPageChange={(p) => set({ page: p })}

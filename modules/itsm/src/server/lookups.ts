@@ -1,16 +1,21 @@
 /**
- * Small, rarely-changing configuration (categories, calendars, SLA policies) cached per process for a
- * few seconds, plus batched lookups of people and groups for DTOs.
+ * Small, rarely-changing configuration (categories, calendars, SLA policies) cached per process and checked
+ * against the database on every use (a one-row stamp query), plus batched lookups of people and groups for DTOs.
  */
 import { groups, users } from '@isbp/db/schema';
 import { type Db, localize, type LocalizedText } from '@isbp/sdk/server';
-import { asc, eq, inArray, is } from 'drizzle-orm';
+import { asc, eq, inArray, is, sql } from 'drizzle-orm';
 import { PgTransaction } from 'drizzle-orm/pg-core';
 import type { TicketType } from '../contracts';
 import type { CalendarSpec } from './business-time';
 import { businessCalendars, categories, slaPolicies } from './schema';
 
-const TTL_MS = 15_000;
+/**
+ * How long a cached copy may be used without asking. Every use first compares a cheap stamp (row count and latest
+ * `updated_at`) with the database, so a change made by another process (the API while this is the worker) is seen
+ * at once; the TTL only bounds how long a copy can live at all.
+ */
+const TTL_MS = 5 * 60_000;
 
 export interface CategoryInfo {
   id: string;
@@ -31,6 +36,7 @@ export type PolicyRow = typeof slaPolicies.$inferSelect;
 
 interface Entry<T> {
   at: number;
+  stamp: string;
   value: Promise<T>;
 }
 
@@ -42,17 +48,25 @@ let policyCache: Entry<PolicyRow[]> | null = null;
  * Inside a transaction (a change set being applied, or a dry run that is rolled back) the tables are read
  * directly and nothing is cached: the transaction sees its own changes, and they never outlive a rollback.
  */
-function cached<T>(
+async function cached<T>(
   db: Db,
+  table: typeof categories | typeof businessCalendars | typeof slaPolicies,
   entry: Entry<T> | null,
   load: () => Promise<T>,
   set: (e: Entry<T>) => void,
 ): Promise<T> {
   if (is(db, PgTransaction)) return load();
-  if (entry && Date.now() - entry.at < TTL_MS) return entry.value;
+  const [row] = await db
+    .select({
+      n: sql<number>`count(*)`.mapWith(Number),
+      at: sql<string | null>`max(${table.updatedAt})::text`,
+    })
+    .from(table);
+  const stamp = `${row?.n ?? 0}:${row?.at ?? ''}`;
+  if (entry && entry.stamp === stamp && Date.now() - entry.at < TTL_MS) return entry.value;
   const value = load();
-  set({ at: Date.now(), value });
-  value.catch(() => set({ at: 0, value }));
+  set({ at: Date.now(), stamp, value });
+  value.catch(() => set({ at: 0, stamp: '', value }));
   return value;
 }
 
@@ -66,6 +80,7 @@ export function invalidateLookups() {
 export function categoryMap(db: Db): Promise<Map<string, CategoryInfo>> {
   return cached(
     db,
+    categories,
     categoryCache,
     async () => {
       const rows = await db.select().from(categories).orderBy(asc(categories.sortOrder), asc(categories.key));
@@ -101,6 +116,7 @@ export function categoryMap(db: Db): Promise<Map<string, CategoryInfo>> {
 export function calendarMap(db: Db): Promise<Map<string, CalendarInfo>> {
   return cached(
     db,
+    businessCalendars,
     calendarCache,
     async () => {
       const rows = await db.select().from(businessCalendars);
@@ -122,6 +138,7 @@ export function calendarMap(db: Db): Promise<Map<string, CalendarInfo>> {
 export function activePolicies(db: Db): Promise<PolicyRow[]> {
   return cached(
     db,
+    slaPolicies,
     policyCache,
     () =>
       db
@@ -134,7 +151,7 @@ export function activePolicies(db: Db): Promise<PolicyRow[]> {
 }
 
 export function categoryRef(c: CategoryInfo | undefined | null) {
-  return c ? { id: c.id, key: c.key, name: c.name, path: c.path } : null;
+  return c ? { id: c.id, key: c.key, name: c.name, path: c.path, ancestors: c.ancestors } : null;
 }
 
 export interface PersonInfo {

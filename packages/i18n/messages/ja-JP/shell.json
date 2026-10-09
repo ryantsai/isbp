@@ -7,7 +7,7 @@
   "passwordRequired": "管理者から新しいパスワードの設定を求められています。",
   "passwordRequiredAction": "パスワードを変更",
   "commandPalette": {
-    "placeholder": "コマンドを入力するか、ユーザー、グループ、ロールを検索…",
+    "placeholder": "チケット、申請、記事、ユーザーを検索…またはコマンドを入力",
     "navigate": "移動",
     "actions": "操作",
     "results": "検索結果",
@@ -17,7 +17,37 @@
     "changeLanguage": "言語の変更",
     "signOut": "サインアウト",
     "createUser": "ユーザーを作成",
-    "openApiDocs": "API ドキュメントを開く"
+    "openApiDocs": "API ドキュメントを開く",
+    "suggested": "おすすめ",
+    "newRequest": "新しい申請",
+    "reportProblem": "問題を報告",
+    "askIt": "IT に質問",
+    "askItAbout": "IT に「{q}」について質問",
+    "more": "見つかりませんか?",
+    "searchKnowledge": "ナレッジ ベースで「{q}」を検索",
+    "types": {
+      "request": "申請",
+      "ticket": "チケット",
+      "article": "記事",
+      "announcement": "お知らせ",
+      "asset": "資産",
+      "license": "ライセンス",
+      "contract": "契約",
+      "ci": "構成アイテム",
+      "application": "アプリケーション",
+      "release": "リリース",
+      "project": "プロジェクト",
+      "task": "タスク",
+      "account": "共有アカウント",
+      "endpoint": "データ API",
+      "pipeline": "パイプライン",
+      "job": "スケジュールされたジョブ",
+      "change-set": "変更セット",
+      "user": "ユーザー",
+      "group": "グループ",
+      "role": "ロール",
+      "department": "部署"
+    }
   },
   "theme": {
     "label": "テーマ",
@@ -35,7 +65,7 @@
   "forbidden": "このページへのアクセス権がありません。",
   "notFoundTitle": "ページが見つかりません",
   "notFoundBody": "お探しのページは存在しないか、移動された可能性があります。",
-  "goHome": "ダッシュボードに移動",
+  "goHome": "ホームに移動",
   "errorTitle": "問題が発生しました",
   "errorBody": "予期しないエラーが発生しました。詳細はログに記録されています。",
   "badgeCount": "{count} 件の対応待ち",
@@ -47,5 +77,8 @@
     "viewAll": "すべての通知を表示",
     "empty": "新しい通知はありません。",
     "unread": "未読:"
-  }
+  },
+  "openNavigationWork": "{count, plural, other {ナビゲーションを開く (対応待ち # 件)}}",
+  "helpForPage": "このページのヘルプ",
+  "userMenu": "アカウント メニュー: {name}"
 }

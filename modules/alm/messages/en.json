@@ -6,7 +6,8 @@
   "nav": {
     "group": "Applications",
     "applications": "Applications",
-    "releases": "Release calendar"
+    "releases": "Release calendar",
+    "sections": "Applications sections"
   },
   "entities": {
     "application": "Application",
@@ -97,10 +98,10 @@
     "low": "Low"
   },
   "disposition": {
-    "tolerate": "Tolerate",
+    "tolerate": "Keep as is",
     "invest": "Invest",
-    "migrate": "Migrate",
-    "eliminate": "Eliminate"
+    "migrate": "Replace or move",
+    "eliminate": "Retire"
   },
   "hosting": {
     "on_prem": "On-premises",
@@ -142,8 +143,8 @@
     "rolled_back": "Rolled back"
   },
   "source": {
-    "manual": "recorded by a person",
-    "api": "recorded through the API"
+    "manual": "Recorded manually",
+    "api": "Recorded through the API"
   },
   "duration": {
     "seconds": "{s} s",
@@ -158,7 +159,7 @@
     "name": "Name",
     "stage": "Stage",
     "criticality": "Criticality",
-    "disposition": "Disposition (TIME)",
+    "disposition": "Investment decision",
     "hosting": "Hosting",
     "businessOwner": "Business owner",
     "technicalOwner": "Technical owner",
@@ -197,7 +198,7 @@
     "new": "New application",
     "search": "Search by code or name…",
     "summary": "Portfolio summary",
-    "deploymentsWeek": "Deployments · last 7 days",
+    "deploymentsWeek": "Deployments, last 7 days",
     "failedOrRolledBack": "failed or rolled back",
     "upcoming": "Releases in the next 14 days",
     "views": {
@@ -215,7 +216,9 @@
     "emptyMine": "You don’t own any applications",
     "emptyFiltered": "Nothing matches these filters.",
     "emptyHint": "Applications you own, or whose team you are in, show up here.",
-    "liveCount": "{count, plural, one {# application} other {# applications}}"
+    "liveCount": "{count, plural, one {# application} other {# applications}}",
+    "deploymentsWeekHint": "{succeeded} succeeded · {failed} failed or rolled back",
+    "upcomingHint": "Open the release calendar"
   },
   "form": {
     "createTitle": "New application",
@@ -285,7 +288,7 @@
   },
   "dora": {
     "title": "Delivery metrics",
-    "description": "Production, last {days} days (DORA)",
+    "description": "Production, last {days} days",
     "viewAs": "Show as",
     "chart": "Chart",
     "table": "Table",
@@ -303,7 +306,13 @@
     "weekOf": "Week of",
     "weeklyCaption": "Production deployments per week",
     "samplesLead": "{count, plural, =0 {No releases yet} one {Median of # release} other {Median of # releases}}",
-    "samplesRestore": "{count, plural, =0 {No failures to recover from} one {Median of # recovery} other {Median of # recoveries}}"
+    "samplesRestore": "{count, plural, =0 {No failures to recover from} one {Median of # recovery} other {Median of # recoveries}}",
+    "tileHints": {
+      "frequency": "How often a version reaches production",
+      "failureRate": "Share of production deployments that failed or were rolled back",
+      "leadTime": "How long from creating a release to its first production deployment",
+      "restore": "How long a failed production deployment took to fix"
+    }
   },
   "deployments": {
     "label": "Deployments",
@@ -327,7 +336,7 @@
     "emptyHint": "Plan the next version to track its readiness and deployments."
   },
   "changes": {
-    "none": "No change",
+    "none": "No change linked",
     "inWindow": "now in window",
     "outsideWindow": "outside the window now",
     "noWindow": "No planned window"
@@ -336,8 +345,8 @@
     "title": "Readiness for production",
     "allPass": "All checks pass: ready for production.",
     "progressLong": "{passed} of {total} checks pass",
-    "progress": "{passed}/{total} ready",
-    "ready": "Ready",
+    "progress": "{passed}/{total} checks",
+    "ready": "All checks pass",
     "summaryTitle": "{passed} of {total} readiness checks pass",
     "passed": "Passed",
     "notPassed": "Not yet",
@@ -348,17 +357,21 @@
       "production": "No failed production deployment"
     },
     "details": {
-      "noChange": "Link a change approved by the CAB (scheduled or implementing).",
+      "noChange": "Link a change approved by the CAB and scheduled.",
       "testedIn": "Succeeded in {environments}.",
       "notTested": "Deploy this version to a test or staging environment first.",
       "notesWritten": "Release notes are in place.",
       "noNotes": "Write release notes for the people using the application.",
       "noFailures": "No production deployment of this version failed.",
-      "failures": "{count, plural, one {# production deployment} other {# production deployments}} of this version failed."
+      "failures": "{count, plural, one {# production deployment} other {# production deployments}} of this version failed.",
+      "changeNotYet": "Approved by the CAB and scheduled counts: open the change to submit or follow it."
     },
     "raiseChange": "Raise a change",
     "allChanges": "Linked changes",
-    "policyNow": "Deploying to production now"
+    "policyNow": "Before production",
+    "openChange": "Open {reference}",
+    "recordTest": "Record a test deployment",
+    "writeNotes": "Write release notes"
   },
   "policy": {
     "notProduction": "{environment} is not production: no change is needed.",
@@ -367,21 +380,26 @@
     "warnOutsideWindow": "The change is approved, but now is outside its planned window. The deployment will be recorded with a warning.",
     "reason": {
       "no_change": "No authorized change: name one or link it to the release.",
-      "change_not_approved": "The change is not approved yet: it must be scheduled or implementing.",
+      "change_not_approved": "The change is not approved yet: the CAB must approve it and it must be scheduled.",
       "outside_window": "Now is outside the planned window of the change."
     },
-    "rule": "Production deployments need a change approved by the CAB (scheduled or implementing), named here or linked to the release.",
-    "ruleWithWindow": "Production deployments need a change approved by the CAB (scheduled or implementing), and must happen within its planned window.",
+    "rule": "Production deployments need a change approved by the CAB and scheduled, named here or linked to the release.",
+    "ruleWithWindow": "Production deployments need a change approved by the CAB and scheduled, and must happen within its planned window.",
     "namedNotFound": "There is no change with this reference.",
-    "raiseChange": "Raise a change"
+    "raiseChange": "Raise a change",
+    "needs": {
+      "no_change": "Production will need an authorized change: raise one or link it to the release.",
+      "change_not_approved": "Production will need the change to be approved by the CAB and scheduled.",
+      "outside_window": "Production deployments must happen within the change’s planned window."
+    }
   },
   "deploy": {
     "title": "Record deployment",
     "description": "Record a deployment of {name}. Production deployments are checked against the change policy.",
     "chooseEnvironment": "Choose an environment",
     "outcome": "Outcome",
-    "changeReference": "Change (optional)",
-    "changeHint": "For production: the CAB-approved change, unless one is linked to the release.",
+    "changeReference": "Change reference",
+    "changeHint": "Needed for production unless one is linked to the release.",
     "policyCheck": "Change policy",
     "linkedChanges": "Changes linked to this release",
     "overrideWithReason": "Override with reason",
@@ -397,7 +415,14 @@
     "reasonTooShort": "Give a reason of at least 10 characters.",
     "record": "Record deployment",
     "recordWithOverride": "Record with override",
-    "recorded": "Recorded {version} on {environment}"
+    "recorded": "Recorded {version} on {environment}",
+    "change": "Change",
+    "linkedChange": "The change linked to the release",
+    "noChange": "No change",
+    "otherChange": "Another change…",
+    "blockedExplain": "This deployment can’t be recorded yet: the change policy above says what production needs.",
+    "blockedOverride": "The change policy refuses this deployment (see above). Override with a reason if you must deploy anyway.",
+    "linkedOne": "{reference} (linked to the release)"
   },
   "release": {
     "notFound": "This release doesn’t exist or you can’t see it",
@@ -418,7 +443,8 @@
     "notYet": "Not deployed",
     "noNotes": "No release notes yet.",
     "deployments": "Deployments ({count})",
-    "raiseChangeTitle": "Deploy {app} {version} to production"
+    "raiseChangeTitle": "Deploy {app} {version} to production",
+    "moveToStatus": "Move to {status}"
   },
   "releaseForm": {
     "createTitle": "New release of {name}",
@@ -466,7 +492,7 @@
     "repoDuplicate": "This repository is already listed.",
     "nameRequired": "Fill in the name.",
     "lifecycle": "Lifecycle",
-    "lifecycleHint": "Stage, the TIME disposition and the dates that frame the application’s life.",
+    "lifecycleHint": "Stage, the investment decision (Gartner TIME) and the dates that frame the application’s life.",
     "lifecycleSaved": "Lifecycle saved"
   },
   "calendar": {
@@ -482,7 +508,8 @@
     "month": "Month",
     "weekOf": "Week of {range}",
     "count": "{count, plural, =0 {no releases} one {# release} other {# releases}}",
-    "nothingPlanned": "Nothing planned this week."
+    "nothingPlanned": "Nothing planned this week.",
+    "nothingPlannedRange": "{range}: nothing planned"
   },
   "ciRelated": {
     "title": "Application",
@@ -541,7 +568,7 @@
     "criticality": "Criticality",
     "hosting": "Hosting",
     "dataClassification": "Data classification",
-    "disposition": "Disposition (TIME)",
+    "disposition": "Investment decision",
     "ownerId": "Technical owner",
     "businessOwnerId": "Business owner",
     "teamGroup": "Delivery team",

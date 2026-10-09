@@ -1,5 +1,12 @@
-import { fieldDefSchema } from '@isbp/sdk';
-import { ErrorCodes, HttpError, type ModuleContext, type ModuleRouter, pageSchema } from '@isbp/sdk/server';
+import { fieldDefSchema, localize } from '@isbp/sdk';
+import {
+  type AuthContext,
+  ErrorCodes,
+  HttpError,
+  type ModuleContext,
+  type ModuleRouter,
+  pageSchema,
+} from '@isbp/sdk/server';
 import { z } from 'zod';
 import {
   applySchema,
@@ -13,14 +20,17 @@ import {
   confirmSchema,
   conversationSchema,
   createChangeSetSchema,
+  packageContentSchema,
   packageFileName,
   packageListSchema,
   proposeItemSchema,
+  removeItemQuerySchema,
   rollbackSchema,
   sendMessageSchema,
   submitSchema,
   updateChangeSetSchema,
 } from '../contracts';
+import { labelOf } from '../lib/refs';
 import { formatSse } from '../lib/sse';
 import { ChangeSetService } from './change-sets';
 import { ChatService } from './chat';
@@ -289,13 +299,16 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       config: { permission: USE },
       schema: {
         tags,
-        summary: 'Remove a proposed change',
+        summary: 'Remove a proposed change (with `withDependents=true`, also the changes that refer to it)',
         params: z.object({ id: z.uuid(), itemId: z.uuid() }),
+        querystring: removeItemQuerySchema,
         response: detail,
       },
     },
     async (req) => {
-      await sets.removeItem(req.params.id, req.params.itemId, req.auth);
+      await sets.removeItem(req.params.id, req.params.itemId, req.auth, {
+        withDependents: req.query.withDependents === true,
+      });
       return sets.detail(req.params.id, req.auth);
     },
   );
@@ -417,7 +430,71 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
         response: { 200: packageListSchema },
       },
     },
-    async (req) => ({ items: await ctx.customizations.packages(req.auth) }),
+    async (req) => {
+      const items = await ctx.customizations.packages(req.auth);
+      const permissionRoles = await sets.rolesFor(
+        items.flatMap((p) => [
+          ...p.requirements.unreadableKinds.map((k) => k.permission),
+          ...p.requirements.missingApplyPermissions,
+        ]),
+      );
+      return { items, permissionRoles };
+    },
+  );
+
+  /** A built-in package in the reader's language, as installing it would build it. */
+  const loadPackage = async (module: string, key: string, auth: AuthContext) => {
+    const locale = auth.user?.locale ?? 'en';
+    const parsed = changeSetPackageSchema.safeParse(
+      await ctx.customizations.loadPackage(module, key, { locale }),
+    );
+    // A module's own package that doesn't parse is a bug in that module: say where.
+    if (!parsed.success)
+      throw new HttpError(
+        422,
+        ErrorCodes.VALIDATION_FAILED,
+        `The built-in package ${module}/${key} is invalid`,
+        {
+          issues: parsed.error.issues.slice(0, 50).map((i) => ({
+            path: i.path.join('.'),
+            message: i.message,
+            code: i.code,
+          })),
+        },
+      );
+    return { pkg: parsed.data, locale };
+  };
+
+  app.get(
+    '/packages/:module/:key',
+    {
+      config: { permission: USE },
+      schema: {
+        tags,
+        summary: 'What a built-in package holds, in your language, to read before installing it',
+        params: z.object({ module: z.string().max(40), key: z.string().max(60) }),
+        response: { 200: packageContentSchema },
+      },
+    },
+    async (req) => {
+      const { module, key } = req.params;
+      const { pkg, locale } = await loadPackage(module, key, req.auth);
+      return {
+        key,
+        moduleId: module,
+        title: localize(pkg.title, locale),
+        summary: localize(pkg.summary, locale),
+        items: pkg.items.map((i) => ({
+          ref: i.ref ?? null,
+          kind: i.kind,
+          op: i.op,
+          targetId: i.op === 'create' ? null : (i.targetId ?? null),
+          label: i.label?.trim() || labelOf(i.value, locale) || i.kind,
+          value: i.value ?? null,
+          note: i.note ?? null,
+        })),
+      };
+    },
   );
 
   app.post(
@@ -434,25 +511,8 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
     async (req, reply) => {
       const { module, key } = req.params;
       // Built in the installer's language, as the change set's title is (plain-text names and messages).
-      const locale = req.auth.user?.locale ?? 'en';
-      const parsed = changeSetPackageSchema.safeParse(
-        await ctx.customizations.loadPackage(module, key, { locale }),
-      );
-      // A module's own package that doesn't parse is a bug in that module: say where.
-      if (!parsed.success)
-        throw new HttpError(
-          422,
-          ErrorCodes.VALIDATION_FAILED,
-          `The built-in package ${module}/${key} is invalid`,
-          {
-            issues: parsed.error.issues.slice(0, 50).map((i) => ({
-              path: i.path.join('.'),
-              message: i.message,
-              code: i.code,
-            })),
-          },
-        );
-      const id = await sets.importPackage(parsed.data, req.auth, { type: 'package', moduleId: module, key });
+      const { pkg } = await loadPackage(module, key, req.auth);
+      const id = await sets.importPackage(pkg, req.auth, { type: 'package', moduleId: module, key });
       return reply.status(201).send(await sets.detail(id, req.auth));
     },
   );

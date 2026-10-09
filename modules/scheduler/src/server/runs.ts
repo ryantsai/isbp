@@ -1,3 +1,4 @@
+import { runProblemFromText } from '@isbp/sdk';
 import { users } from '@isbp/db/schema';
 import {
   type AuthContext,
@@ -9,7 +10,7 @@ import {
 } from '@isbp/sdk/server';
 import { and, asc, count, desc, eq, gt, gte, ilike, inArray, type SQL, sql } from 'drizzle-orm';
 import type { LogLineOut, LogsPageOut, RunDetailOut, RunQueryOut, RunSummaryOut } from '../contracts';
-import { ACTIVE_STATUSES, FINAL_STATUSES, RUN_STATUSES, type RunStatus } from '../model';
+import { ACTIVE_STATUSES, FINAL_STATUSES, problemOfRun, RUN_STATUSES, type RunStatus } from '../model';
 import { personOf } from './access';
 import type { Engine, RunRow } from './engine';
 import type { JobService } from './jobs';
@@ -76,7 +77,9 @@ export class RunService {
       finishedAt: run.finishedAt,
       durationMs: run.durationMs,
       summary: run.summary,
+      summaryParams: run.summaryParams ?? null,
       error: run.error,
+      problem: problemOfRun(run),
       triggeredBy: run.triggeredBy ? (byId.get(run.triggeredBy) ?? null) : null,
     }));
   }
@@ -120,7 +123,7 @@ export class RunService {
     const { run } = joined;
     const job = await this.jobService.row(run.jobId);
     const [summary] = await this.summaries([joined]);
-    const [task] = (await this.jobService.summaries([job])).map((j) => j.task);
+    const [task] = (await this.jobService.summaries([job], auth.user?.locale)).map((j) => j.task);
     let upstreamRun: RunDetailOut['upstreamRun'] = null;
     if (run.upstreamRunId) {
       const [u] = await this.ctx.db
@@ -143,6 +146,7 @@ export class RunService {
         finishedAt: a.finishedAt ? new Date(a.finishedAt) : null,
         status: a.status,
         error: a.error,
+        problem: a.problem ?? (a.error ? runProblemFromText(a.error) : null),
         durationMs: a.finishedAt ? new Date(a.finishedAt).getTime() - new Date(a.startedAt).getTime() : null,
       })),
       cancelRequested: run.cancelRequested,

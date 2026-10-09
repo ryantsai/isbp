@@ -309,13 +309,24 @@ function ListSkeleton() {
   );
 }
 
+/** Notices are plain text: senders' Markdown (bold, code, links, list marks) is shown as its words. */
+export function plainText(s: string): string {
+  return s
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/^\s*[-*]\s+/gm, '')
+    .trim();
+}
+
 function NotificationRow({ n, unread, onOpen }: { n: Notification; unread: boolean; onOpen: () => void }) {
   const t = useTranslations('notifications');
   const typeLabel = useTypeLabel();
   const label = (
     <>
       {unread && <span className="sr-only">{t('unread')} </span>}
-      {n.title}
+      {plainText(n.title)}
     </>
   );
   // The title is the row's main control; its ::after stretches over the row so the whole card clicks.
@@ -362,7 +373,7 @@ function NotificationRow({ n, unread, onOpen }: { n: Notification; unread: boole
             </button>
           )}
         </p>
-        {n.body && <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{n.body}</p>}
+        {n.body && <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{plainText(n.body)}</p>}
         <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
           {n.actorName && (
             <>

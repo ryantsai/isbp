@@ -104,9 +104,12 @@ function StepFieldSheet({
 export function StepFieldsEditor({
   step,
   onChange,
+  bare,
 }: {
   step: ApprovalStep;
   onChange: (s: WorkflowStep) => void;
+  /** Inside a section that already has the title: only the hint and the button. */
+  bare?: boolean;
 }) {
   const t = useTranslations('workflows.builder.editor');
   const tt = useTranslations('fields.types');
@@ -148,7 +151,7 @@ export function StepFieldsEditor({
     <section aria-labelledby={`${id}-title`} className="grid gap-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 id={`${id}-title`} className="text-sm font-semibold">
+          <h3 id={`${id}-title`} className={bare ? 'sr-only' : 'text-sm font-semibold'}>
             {t('stepFields')}
           </h3>
           <p className="text-xs text-muted-foreground">{t('stepFieldsHint')}</p>

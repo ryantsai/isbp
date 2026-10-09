@@ -8,18 +8,18 @@ import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { CodeEditor } from '@isbp/ui/code-editor';
 import { useListState } from '@isbp/ui/data-table';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { ErrorState } from '@isbp/ui/empty-state';
 import { Markdown } from '@isbp/ui/markdown';
-import { FadeIn } from '@isbp/ui/motion';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
+import { RunProblemBanner } from '@isbp/ui/run-detail';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { StatusBadge } from '@isbp/ui/status';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
-  ArrowLeftIcon,
   ArrowRightIcon,
   ExternalLinkIcon,
-  FileQuestionIcon,
   GitMergeIcon,
   PauseIcon,
   PencilIcon,
@@ -36,7 +36,7 @@ import { type ReactNode, useId, useState } from 'react';
 import { BUILTIN_TYPES, type JobDetail, type RunDetail } from '../../contracts';
 import { JobStateBadge, RunStatusText, TaskIcon, TRIGGER_ICON } from '../badges';
 import { ConfirmDialog } from '../confirm-dialog';
-import { INVALIDATE, jobHref, runHref, useSeconds, useTaskTypes, useTypeName } from '../lib';
+import { INVALIDATE, jobHref, runHref, useRunResult, useSeconds, useTaskTypes, useTypeName } from '../lib';
 import { RunsTable } from '../runs-table';
 import { useTriggerText } from '../trigger-text';
 
@@ -183,6 +183,7 @@ export default function JobPage({ params }: WebPageProps) {
   const router = useRouter();
   const triggerText = useTriggerText();
   const typeName = useTypeName();
+  const runResult = useRunResult();
   const seconds = useSeconds();
   const { sandbox } = useTaskTypes();
   const id = params.id ?? '';
@@ -227,79 +228,92 @@ export default function JobPage({ params }: WebPageProps) {
         <Skeleton className="h-72 w-full rounded-xl" />
       </div>
     );
-  if (error || !job) return <EmptyState icon={<FileQuestionIcon />} title={t('job.notFound')} />;
+  if (error || !job) return <ErrorState error={error} kind="page" />;
 
   const tab: Tab = TABS.includes(state.tab as Tab) ? (state.tab as Tab) : 'overview';
+  const lastResult = job.lastRun ? runResult(job.lastRun) : null;
+  const failing =
+    job.failureStreak > 0 && (job.lastRun?.status === 'failed' || job.lastRun?.status === 'timed_out');
+  // An attempt failed and the run tries again: say why now, not only after the last attempt.
+  const retrying = job.lastRun?.status === 'retrying' && Boolean(job.lastRun.problem || job.lastRun.error);
   const record: RecordPanelSlotProps['record'] = { type: 'scheduler.job', id: job.id };
   const TriggerIcon = TRIGGER_ICON[job.trigger.kind];
   const scriptBlocked = job.type === BUILTIN_TYPES.script && sandbox.runner === 'none';
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href="/scheduler/jobs">
-          <ArrowLeftIcon /> {t('jobs.title')}
-        </Link>
-      </Button>
-
-      <FadeIn y={4} className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <TaskIcon icon={job.task.icon} className="size-6" />
-          </span>
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-              <span className="font-mono">{job.reference}</span>
-              <span aria-hidden>·</span>
-              <span>{typeName(job.task.name, job.type)}</span>
-            </p>
-            <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{job.name}</h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <JobStateBadge enabled={job.enabled} disabledReason={job.disabledReason} />
-              {job.running && (
-                <Badge variant="info">
-                  <ZapIcon aria-hidden /> {t('job.runningNow')}
-                </Badge>
-              )}
-              {job.failureStreak > 0 && (
-                <Badge variant="destructive">
-                  <TriangleAlertIcon aria-hidden /> {t('jobs.streak', { count: job.failureStreak })}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          {job.viewer.canEdit && (
-            <Button
-              variant="outline"
-              loading={toggle.isPending}
-              disabled={!job.enabled && scriptBlocked}
-              onClick={() => toggle.mutate(!job.enabled)}
-            >
-              {job.enabled ? <PauseIcon /> : <PlayIcon />} {job.enabled ? t('job.disable') : t('job.enable')}
-            </Button>
-          )}
-          {job.viewer.canEdit && (
-            <Button variant="outline" asChild>
-              <Link href={`${jobHref(job.id)}/edit`}>
-                <PencilIcon /> {t('job.edit')}
-              </Link>
-            </Button>
-          )}
-          {job.viewer.canDelete && (
-            <Button variant="outline" onClick={() => setConfirmDelete(true)} aria-label={t('job.delete')}>
-              <Trash2Icon />
-              <span className="sm:hidden">{t('job.delete')}</span>
-            </Button>
-          )}
-          {job.viewer.canRun && (
+      <DetailHeader
+        className="pb-0"
+        back={{ href: '/scheduler/jobs', label: t('nav.jobs'), highlight: job.id }}
+        icon={<TaskIcon icon={job.task.icon} />}
+        reference={`${job.reference} · ${typeName(job.task.name, job.type)}`}
+        title={job.name}
+        status={
+          <>
+            {!job.enabled && <JobStateBadge enabled={job.enabled} disabledReason={job.disabledReason} />}
+            {job.running && <StatusBadge tone="info" icon={ZapIcon} label={t('job.runningNow')} />}
+            {job.failureStreak > 0 && (
+              <StatusBadge
+                tone="destructive"
+                icon={TriangleAlertIcon}
+                label={t('jobs.streak', { count: job.failureStreak })}
+              />
+            )}
+          </>
+        }
+        meta={
+          job.enabled && job.nextRunAt ? (
+            <span>
+              {t('job.nextRunMeta')} <RelativeTime date={job.nextRunAt} />
+            </span>
+          ) : undefined
+        }
+        primaryAction={
+          job.viewer.canRun && (
             <Button loading={run.isPending} disabled={scriptBlocked} onClick={() => run.mutate(undefined)}>
               <PlayIcon /> {t('job.runNow')}
             </Button>
-          )}
-        </div>
-      </FadeIn>
+          )
+        }
+        actions={[
+          ...(job.viewer.canEdit
+            ? [
+                { label: t('job.edit'), icon: <PencilIcon />, href: `${jobHref(job.id)}/edit` },
+                {
+                  label: job.enabled ? t('job.disable') : t('job.enable'),
+                  icon: job.enabled ? <PauseIcon /> : <PlayIcon />,
+                  disabled: toggle.isPending || (!job.enabled && scriptBlocked),
+                  onSelect: () => toggle.mutate(!job.enabled),
+                },
+              ]
+            : []),
+        ]}
+        menu={
+          job.viewer.canDelete
+            ? [
+                {
+                  label: t('job.delete'),
+                  icon: <Trash2Icon />,
+                  destructive: true,
+                  onSelect: () => setConfirmDelete(true),
+                },
+              ]
+            : []
+        }
+      />
+
+      {(failing || retrying) && job.lastRun && (
+        <RunProblemBanner
+          problem={job.lastRun.problem}
+          error={job.lastRun.error}
+          tone={failing ? 'destructive' : 'warning'}
+          actions={
+            <Button asChild size="sm" variant="outline">
+              <Link href={runHref(job.lastRun.id)}>{t('job.seeLastRun')}</Link>
+            </Button>
+          }
+        />
+      )}
 
       {scriptBlocked && (
         <p
@@ -379,8 +393,8 @@ export default function JobPage({ params }: WebPageProps) {
                           date={job.lastRun.finishedAt ?? job.lastRun.startedAt ?? job.lastRun.scheduledFor}
                           className="text-xs text-muted-foreground"
                         />
-                        {job.lastRun.summary && (
-                          <span className="text-xs text-muted-foreground">· {job.lastRun.summary}</span>
+                        {lastResult?.text && (
+                          <span className="text-xs text-muted-foreground">· {lastResult.text}</span>
                         )}
                       </span>
                     ) : (
@@ -482,7 +496,7 @@ export default function JobPage({ params }: WebPageProps) {
               </CardHeader>
               <CardContent>
                 <dl className="divide-y">
-                  <Field label={t('fields.timeout')}>{seconds(job.timeoutSeconds)}</Field>
+                  <Field label={t('job.timeout')}>{seconds(job.timeoutSeconds)}</Field>
                   <Field label={t('fields.retries')}>
                     {job.retries.maxAttempts > 1
                       ? t('job.retriesValue', {

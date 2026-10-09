@@ -6,10 +6,12 @@ import { customizations } from './customizations';
 import { ismsProcesses } from './packages/isms-processes';
 import { processActions } from './process-actions';
 import { recordResolvers, searchIsms } from './records';
+import { references } from './references';
 import { routes } from './routes';
 import { seedIsms } from './seed';
 import { services } from './services';
 import { systemAuth } from './support';
+import { ismsWork } from './work';
 
 /**
  * Information security: the information asset register (configurable classes, C/I/A, numbering per site and class,
@@ -52,7 +54,9 @@ export default defineServerModule(manifest, {
 
   ai: aiTools,
   records: recordResolvers,
+  references,
   search: searchIsms,
+  work: ismsWork,
   processActions,
   customizations,
   customizationPackages: { 'isms-processes': ({ locale }) => ismsProcesses(locale) },

@@ -8,7 +8,7 @@ tickets, changes, configuration items and releases they relate to.
 ## What you can do here
 
 - [Propose a project](#propose-a-project) and [start it](#start-a-project-and-get-the-proposal-approved), with
-  approval for large proposals
+  approval for large proposals, following the **Get started** checklist
 - [Add members and milestones](#add-members-and-milestones)
 - [Report the project's health](#report-health-and-status) and change its status
 - [Plan and move work on the board](#work-on-the-board), with the mouse, the keyboard or **Move to…**
@@ -38,7 +38,7 @@ comment. An **Internal** project is visible to everyone who uses Projects; a **P
 
 New work starts as a proposal, so the plan can be checked before anyone books time on it.
 
-1. Go to **Projects → Projects** and select **New project**.
+1. Go to **Projects** and select **New project**.
 2. Enter the **Name** (for example "Network refresh 2026") and a **Key** of 2–10 letters or digits. Task
    references start with the key, for example `NET-12`. The key can't change once the project has tasks.
 3. Choose the **Project manager** (also a manager of the project), the **Department**, the **Start date** and
@@ -46,23 +46,32 @@ New work starts as a proposal, so the plan can be checked before anyone books ti
 4. Enter the **Planned effort (hours)**. It decides whether the proposal needs approval.
 5. Describe the scope in **Description** (Markdown is supported) and select **Create project**.
 
-**What happens next:** the project is **Proposed**. Add members, milestones and tasks while you plan, then start it.
+**What happens next:** the project is **Proposed**. Its **Overview** opens with a **Get started** checklist: **Plan
+the milestones** (**Add milestone**), **Add the first tasks** (**New task**), **Add the team** (**Add members**) and,
+last, **Start the project** or **Submit the proposal for approval**. Each step has its button and is ticked off when
+it's done; the checklist disappears once everything is done. Until someone assesses it, the project's health shows
+**Not assessed yet**.
 
 ## Start a project and get the proposal approved
 
-1. Open the project and select **Start project**.
-2. The dialog tells you whether approval is needed, then select **Start project** again.
+1. Open the project. The button at the top is **Start project** when the planned effort is within the threshold,
+   and **Submit for approval** when it is over it.
+2. The dialog says what happens (it starts at once, or the project manager's line manager approves it first); select
+   **Start project** or **Submit for approval** again to confirm.
 
 **What happens next:**
 
 - Projects with up to 400 hours of planned effort become **Active** at once.
-- Larger ones go to the **Project proposal** approval: the owner's manager decides (the PMO when the owner has no
-  manager), within 72 hours with a reminder after 48. The **Overview** shows a **Proposal approval** card with
-  **Waiting for** and the approver; approvers see **Decide in your approvals inbox**.
+- Larger ones go to the **Project proposal** approval: the project manager's line manager decides (the PMO when the
+  project manager has no manager), within 72 hours with a reminder after 48. The **Overview** shows a **Proposal
+  approval** card with its status (**Waiting for approval**, **Approved** or **Not approved**), **Waiting for** and
+  the approver, and when it was sent and is due. **Show approval path** lists every step the proposal goes through
+  and where it is now. Approvers see **Decide in your approvals inbox**.
 - The owner is notified of the decision. If it is not approved, the project stays **Proposed**: adjust it and
   start again.
 
-In the demo, **Kaohsiung office opening** (`KHH`) plans 800 hours, so its proposal waits for the owner's manager.
+In the demo, **Kaohsiung office opening** (`KHH`) plans 800 hours, so its proposal waits for the project manager's
+line manager.
 It shows on the **Proposed** tab of the portfolio.
 
 > **Tip:** The 400-hour threshold is part of the approval workflow. An administrator can change it in
@@ -73,7 +82,11 @@ It shows on the **Proposed** tab of the portfolio.
 
 Members and their allocation drive the workload view; milestones group the timeline.
 
-1. Open the project and go to the **Settings** tab (only managers see it).
+To add a milestone quickly, select **Add milestone** on the **Milestones** card of the **Overview**, enter the
+**Milestone name** and **Due date**, and save. To manage both lists:
+
+1. Open the project and go to the **Settings** tab (only managers see it), or select **Manage** on the **Overview**
+   card.
 2. Under **Members**, choose the **Person**, the **Role** (**Manager**, **Member** or **Viewer**) and the
    **Allocation %** (the share of the person's week planned for this project), then select **Add**.
 3. Under **Milestones**, enter the **Milestone name** and **Due date** and select **Add milestone**. Use the arrows
@@ -98,7 +111,8 @@ with open tasks asks you to confirm **Complete anyway** with a comment.
 In the demo, **ERP upgrade to v12** is **At risk** and **Zero Trust rollout** is **Off track**, each with a note.
 
 The **Overview** tab also shows **Open tasks**, **Overdue**, **Done this week** and **Blocked**, **Tasks by
-status**, the milestones with their progress, the members with their allocation, and the project's history.
+status**, the milestones with their progress, the members with their allocation, and the project's history. A project
+that no one has assessed yet shows **Not assessed yet** instead of a health.
 
 ## Work on the board
 
@@ -106,14 +120,17 @@ The board is where the team moves work day to day.
 
 1. Open the project and select the **Board** tab. The columns are **Backlog**, **To do**, **In progress**, **In
    review** and **Done**; turn on **Show cancelled** to add a column for cancelled tasks.
-2. To add a task quickly, select **Add task** in a column, type the title and select **Add**. For a full task
-   (type, assignee, milestone, dates, hours), select **New task** at the top of the project.
+2. To add a task quickly, select **Add task** in a column, type the title and select **Add**. For a full task,
+   select **New task** at the top of the project: enter the **Title**, **Assignee**, **Due date** and **Milestone**,
+   and open **More details** for the **Type**, **Priority**, **Start date**, **Estimate (hours)** and
+   **Description**.
 3. To move a card, drag it by its handle, or use the keyboard:
    1. Tab to the card's handle (**Move NET-12**) and press Space or Enter to pick it up.
    2. Use the arrow keys to move it within and between columns.
    3. Press Space or Enter to drop it, or Escape to cancel. A screen reader announces each position.
 4. Or open the card's menu (**Move NET-12 to…**) and choose the column under **Move to**.
-5. Select a card's title to open it in a side panel: edit the details, add dependencies and a parent, and comment
+5. Select a card's title to open it in a side panel: edit the details (the estimate, remaining hours and labels are under
+   **Planning**), add dependencies and a parent, and comment
    under **Comments and activity** (**Add a comment**, then **Comment**). **Open as page** gives it its own page.
 
 Use the filters above the board to narrow it by text, **Assignee** (**Me**, **Unassigned**), **Milestone**, label
@@ -166,7 +183,7 @@ How the numbers are made:
 - **Capacity**: the member's allocation × the working hours per week (40 by default, a module setting).
 - The **Unassigned** row shows planned work nobody owns yet.
 
-Project managers, the PMO and administrators also have **Team workload** on **Projects → Projects** (the layout
+Project managers, the PMO and administrators also have **Team workload** on **Projects** (the layout
 switch next to **Cards** and **Table**). It shows the same grid across all the live projects you manage (every live
 project for the PMO and administrators), with each person's allocations added up.
 
@@ -174,11 +191,12 @@ project for the PMO and administrators), with each person's allocations added up
 
 ## Follow your own tasks
 
-1. Go to **Projects → My tasks** to see the open tasks assigned to you across projects, grouped as **Overdue**,
-   **Today**, **This week**, **Later** and **No date**.
-2. Change a task's status right there, or open it.
+1. Go to **Projects** and open the **My tasks** tab to see the open tasks assigned to you across projects, grouped
+   as **Overdue**, **Today**, **This week**, **Later** and **No date**.
+2. Change a task's status right there, or open it. A task you mark done leaves the list; select **Undo** in the
+   message if you changed the wrong one.
 
-The **Dashboard** also has a **My tasks** card with what is overdue and due this week.
+Your open tasks are also on **My work** under **Tasks**, the soonest due first.
 
 ## Link tasks to tickets, changes, CIs and releases
 
@@ -202,7 +220,7 @@ the Finance ERP 12.1.0 release.
 Development teams that plan in Azure DevOps Server (on premises) can keep their work items and the project's
 tasks in step through the Integrations Hub. An integration administrator sets it up per project.
 
-- Work items become tasks and back, with their type, parent, state, assignee, dates, hours and, if the profile
+- Work items become tasks and back, with their type, parent, state, assignee, dates, hours and, if the sync rule
   includes them, comments.
 - The project's rules still apply: a task can't start while its dependencies aren't done, an archived project
   stays read-only, and an assignee who isn't on the project joins it as a **Member** at 0 % allocation.
@@ -212,7 +230,7 @@ tasks in step through the Integrations Hub. An integration administrator sets it
 
 In the demo, **ERP work items ↔ tasks** syncs the `ERP` project with the stand-in **Contoso Azure DevOps Server** in
 both directions (where both sides changed, the Azure DevOps value wins), and **Network work items → tasks** brings
-work items into `NET` one way. Setting up connections and profiles is covered in the
+work items into `NET` one way. Setting up connections and sync rules is covered in the
 [Integrations guide](integrations.md).
 
 ## How it connects

@@ -1,29 +1,39 @@
 'use client';
 
 import type { Page } from '@isbp/sdk';
+import { localize } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, DataTableSummary, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
+import { type FilterDef, FilterBar } from '@isbp/ui/filter-bar';
+import { AnimatedNumber } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
+import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { FolderTreeIcon, LockIcon, NotebookPenIcon, PlusIcon } from 'lucide-react';
+import { LockIcon, NotebookPenIcon, PlusIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
-import { useMemo } from 'react';
-import { localize } from '@isbp/sdk';
-import { ARTICLE_LOCALES, type ArticleListItem, type ArticleQuery, type Category } from '../../contracts';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { useMemo, useState } from 'react';
+import {
+  ARTICLE_LOCALES,
+  type ArticleCounts,
+  type ArticleListItem,
+  type ArticleQuery,
+  type Category,
+} from '../../contracts';
 import {
   ArticleStats,
   ClassificationBadge,
   InternalBadge,
+  KnowledgeSections,
   LOCALE_LABEL,
   LocaleChip,
   StatusBadge,
@@ -31,9 +41,12 @@ import {
   useClassifications,
 } from '../parts';
 
-const TABS = ['mine', 'review', 'published', 'retired', 'due'] as const;
+/** Work first: what waits for a decision, then the author's drafts, then the library and its upkeep. */
+const TABS = ['review', 'mine', 'published', 'due', 'retired'] as const;
 type Tab = (typeof TABS)[number];
 const ALL = '__all';
+const FILTERS = ['category', 'audience', 'locale', 'classification'] as const;
+type Filter = (typeof FILTERS)[number];
 
 /** What each tab asks the API for. */
 const TAB_QUERY: Record<Tab, Partial<ArticleQuery>> = {
@@ -44,35 +57,59 @@ const TAB_QUERY: Record<Tab, Partial<ArticleQuery>> = {
   due: { reviewDue: 'true' },
 };
 
-/** Agent workspace: drafts, the review queue, published and retired articles, and overdue reviews. */
+/**
+ * The tab to open without one in the URL: the review queue when it has articles for an editor, else the author's
+ * drafts when there are some, else the published library (never an empty "My drafts").
+ */
+function defaultTab(counts: ArticleCounts | undefined, canPublish: boolean): Tab {
+  if (!counts) return 'published';
+  if (canPublish && counts.review > 0) return 'review';
+  if (counts.mine > 0) return 'mine';
+  return 'published';
+}
+
+/** Agent workspace: the review queue, drafts, published and retired articles, and overdue reviews. */
 export default function ManagePage() {
   const t = useTranslations('knowledge.manage');
   const tk = useTranslations('knowledge');
   const locale = useLocale();
+  const format = useFormatter();
   const router = useRouter();
   const categoryName = useCategoryName();
   const classifications = useClassifications();
   const canWrite = useCan('knowledge.articles.write');
-  const canManageCategories = useCan('knowledge.categories.manage');
   const canPublish = useCan('knowledge.articles.publish');
   const [state, set] = useListState({ pageSize: 25 });
-  const tab = (TABS as readonly string[]).includes(String(state.tab)) ? (state.tab as Tab) : 'mine';
+  const filters = {
+    q: state.q,
+    category: state.category as string | undefined,
+    audience: state.audience as string | undefined,
+    locale: state.locale as string | undefined,
+    classification: state.classification as string | undefined,
+  };
   const categories = useApiQuery<{ items: Category[] }>(canWrite ? '/knowledge/categories' : null);
-  const { data, isLoading, isFetching } = useApiQuery<Page<ArticleListItem>>(
-    canWrite ? '/knowledge/articles' : null,
-    {
-      ...TAB_QUERY[tab],
-      // Authors are reminded about their own articles; editors see every overdue review.
-      ...(tab === 'due' && !canPublish ? { owner: 'me' } : {}),
-      q: state.q,
-      category: state.category as string | undefined,
-      audience: state.audience as string | undefined,
-      locale: state.locale as string | undefined,
-      classification: state.classification as string | undefined,
-      sort: state.sort ?? (tab === 'due' ? 'reviewAt' : '-updatedAt'),
-      page: state.page,
-      pageSize: state.pageSize,
-    },
+  const counts = useApiQuery<ArticleCounts>(canWrite ? '/knowledge/articles/counts' : null, filters);
+
+  // Without a tab in the URL, pick one once the counts are known, and keep it while the page is open (a refetch
+  // that empties the review queue doesn't switch the table under the person).
+  const [fallback, setFallback] = useState<Tab | null>(null);
+  if (fallback === null && (counts.data || counts.error)) setFallback(defaultTab(counts.data, canPublish));
+  const requested = (TABS as readonly string[]).includes(String(state.tab)) ? (state.tab as Tab) : null;
+  const tab = requested ?? fallback;
+
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<ArticleListItem>>(
+    canWrite && tab ? '/knowledge/articles' : null,
+    tab
+      ? {
+          ...TAB_QUERY[tab],
+          // Authors are reminded about their own articles; editors see every overdue review.
+          ...(tab === 'due' && !canPublish ? { owner: 'me' } : {}),
+          ...filters,
+          sort: state.sort ?? (tab === 'due' ? 'reviewAt' : '-updatedAt'),
+          page: state.page,
+          pageSize: state.pageSize,
+        }
+      : undefined,
   );
 
   const columns = useMemo<DataTableColumn<ArticleListItem>[]>(
@@ -98,6 +135,11 @@ export default function ManagePage() {
                 <span className="shrink-0 font-mono">{a.reference}</span>
                 <span className="truncate">{a.summary}</span>
               </span>
+              <DataTableSummary>
+                <LocaleChip locale={a.locale} foreignOnly />
+                {a.category && <span>{categoryName(a.category)}</span>}
+                <RelativeTime date={a.updatedAt} />
+              </DataTableSummary>
             </Link>
           );
         },
@@ -105,7 +147,7 @@ export default function ManagePage() {
       {
         id: 'category',
         header: t('columns.category'),
-        meta: { className: 'hidden lg:table-cell', headerClassName: 'hidden lg:table-cell' },
+        meta: { priority: 3 },
         cell: ({ row }) =>
           row.original.category ? (
             <span className="text-sm">{categoryName(row.original.category)}</span>
@@ -126,13 +168,13 @@ export default function ManagePage() {
       {
         id: 'locale',
         header: t('columns.language'),
-        meta: { className: 'hidden md:table-cell', headerClassName: 'hidden md:table-cell' },
+        meta: { priority: 2 },
         cell: ({ row }) => <LocaleChip locale={row.original.locale} />,
       },
       {
         id: 'owner',
         header: t('columns.owner'),
-        meta: { className: 'hidden xl:table-cell', headerClassName: 'hidden xl:table-cell' },
+        meta: { priority: 3 },
         cell: ({ row }) =>
           row.original.owner ? (
             <span className="flex min-w-0 items-center gap-2">
@@ -150,11 +192,7 @@ export default function ManagePage() {
       {
         id: 'views',
         header: t('columns.views'),
-        meta: {
-          sortKey: 'views',
-          className: 'hidden sm:table-cell',
-          headerClassName: 'hidden sm:table-cell',
-        },
+        meta: { sortKey: 'views', priority: 2 },
         cell: ({ row }) => (
           <ArticleStats
             views={row.original.views}
@@ -166,15 +204,15 @@ export default function ManagePage() {
       {
         id: 'review',
         header: t('columns.review'),
-        meta: {
-          sortKey: 'reviewAt',
-          className: 'hidden lg:table-cell',
-          headerClassName: 'hidden lg:table-cell',
-        },
+        meta: { sortKey: 'reviewAt', priority: 3 },
         cell: ({ row }) =>
           row.original.reviewAt ? (
             <span className="flex items-center gap-1.5 text-sm tabular-nums">
-              {new Date(`${row.original.reviewAt}T00:00:00`).toLocaleDateString(locale)}
+              {/* A calendar date: shown as written, whatever the reader's time zone. */}
+              {format.dateTime(new Date(`${row.original.reviewAt}T00:00:00Z`), {
+                dateStyle: 'medium',
+                timeZone: 'UTC',
+              })}
               {row.original.reviewDue && <Badge variant="warning">{t('due')}</Badge>}
             </span>
           ) : (
@@ -184,15 +222,11 @@ export default function ManagePage() {
       {
         id: 'updated',
         header: t('columns.updated'),
-        meta: {
-          sortKey: 'updatedAt',
-          className: 'hidden text-muted-foreground md:table-cell',
-          headerClassName: 'hidden md:table-cell',
-        },
+        meta: { sortKey: 'updatedAt', priority: 2, className: 'text-muted-foreground' },
         cell: ({ row }) => <RelativeTime date={row.original.updatedAt} />,
       },
     ],
-    [t, categoryName, locale],
+    [t, categoryName, format],
   );
 
   if (!canWrite)
@@ -203,66 +237,128 @@ export default function ManagePage() {
       </>
     );
 
-  const filter = (key: 'category' | 'audience' | 'locale' | 'classification', value: string) =>
-    set({ [key]: value === ALL ? undefined : value });
+  const filter = (key: Filter, value: string) => set({ [key]: value === ALL ? undefined : value });
+  const filtered = FILTERS.some((k) => state[k] !== undefined) || Boolean(state.q);
+  const clearAll = () =>
+    set({
+      q: undefined,
+      category: undefined,
+      audience: undefined,
+      locale: undefined,
+      classification: undefined,
+    });
+  const categoryItems = categories.data?.items ?? [];
+  const pickedCategory = categoryItems.find((c) => c.key === state.category);
+
+  const filterDefs: FilterDef[] = [
+    {
+      id: 'category',
+      label: t('columns.category'),
+      primary: true,
+      value: state.category
+        ? pickedCategory
+          ? localize(pickedCategory.name, locale) || pickedCategory.key
+          : String(state.category)
+        : undefined,
+      onClear: () => set({ category: undefined }),
+      control: (
+        <Select value={(state.category as string) ?? ALL} onValueChange={(v) => filter('category', v)}>
+          <SelectTrigger size="sm" className="w-full sm:w-44" aria-label={t('columns.category')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>{t('allCategories')}</SelectItem>
+            {categoryItems.map((c) => (
+              <SelectItem key={c.id} value={c.key}>
+                {localize(c.name, locale) || c.key}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
+    },
+    {
+      id: 'audience',
+      label: t('audienceFilter'),
+      primary: true,
+      value:
+        state.audience === 'everyone' || state.audience === 'agents'
+          ? tk(`audience.${state.audience}`)
+          : undefined,
+      onClear: () => set({ audience: undefined }),
+      control: (
+        <Select value={(state.audience as string) ?? ALL} onValueChange={(v) => filter('audience', v)}>
+          <SelectTrigger size="sm" className="w-full sm:w-44" aria-label={t('audienceFilter')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>{t('allAudiences')}</SelectItem>
+            <SelectItem value="everyone">{tk('audience.everyone')}</SelectItem>
+            <SelectItem value="agents">{tk('audience.agents')}</SelectItem>
+          </SelectContent>
+        </Select>
+      ),
+    },
+    {
+      id: 'locale',
+      label: t('columns.language'),
+      value: (ARTICLE_LOCALES as readonly string[]).includes(String(state.locale))
+        ? LOCALE_LABEL[state.locale as (typeof ARTICLE_LOCALES)[number]]
+        : undefined,
+      onClear: () => set({ locale: undefined }),
+      control: (
+        <Select value={(state.locale as string) ?? ALL} onValueChange={(v) => filter('locale', v)}>
+          <SelectTrigger size="sm" className="w-full" aria-label={t('columns.language')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>{t('allLanguages')}</SelectItem>
+            {ARTICLE_LOCALES.map((l) => (
+              <SelectItem key={l} value={l}>
+                {LOCALE_LABEL[l]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
+    },
+    {
+      id: 'classification',
+      label: t('classificationFilter'),
+      value: state.classification
+        ? state.classification === 'none'
+          ? t('unclassified')
+          : classifications.label(String(state.classification))
+        : undefined,
+      onClear: () => set({ classification: undefined }),
+      control: (
+        <Select
+          value={(state.classification as string) ?? ALL}
+          onValueChange={(v) => filter('classification', v)}
+        >
+          <SelectTrigger size="sm" className="w-full" aria-label={t('classificationFilter')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>{t('allClassifications')}</SelectItem>
+            <SelectItem value="none">{t('unclassified')}</SelectItem>
+            {classifications.levels.map((l) => (
+              <SelectItem key={l.key} value={l.key}>
+                {classifications.label(l.key)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ),
+    },
+  ];
 
   const toolbar = (
-    <>
-      <SearchInput value={state.q ?? ''} onChange={(q) => set({ q })} placeholder={t('search')} />
-      <Select value={(state.category as string) ?? ALL} onValueChange={(v) => filter('category', v)}>
-        <SelectTrigger size="sm" className="w-full sm:w-44" aria-label={t('columns.category')}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ALL}>{t('allCategories')}</SelectItem>
-          {(categories.data?.items ?? []).map((c) => (
-            <SelectItem key={c.id} value={c.key}>
-              {localize(c.name, locale) || c.key}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select value={(state.audience as string) ?? ALL} onValueChange={(v) => filter('audience', v)}>
-        <SelectTrigger size="sm" className="w-full sm:w-40" aria-label={t('audienceFilter')}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ALL}>{t('allAudiences')}</SelectItem>
-          <SelectItem value="everyone">{tk('audience.everyone')}</SelectItem>
-          <SelectItem value="agents">{tk('audience.agents')}</SelectItem>
-        </SelectContent>
-      </Select>
-      <Select value={(state.locale as string) ?? ALL} onValueChange={(v) => filter('locale', v)}>
-        <SelectTrigger size="sm" className="w-full sm:w-36" aria-label={t('columns.language')}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ALL}>{t('allLanguages')}</SelectItem>
-          {ARTICLE_LOCALES.map((l) => (
-            <SelectItem key={l} value={l}>
-              {LOCALE_LABEL[l]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select
-        value={(state.classification as string) ?? ALL}
-        onValueChange={(v) => filter('classification', v)}
-      >
-        <SelectTrigger size="sm" className="w-full sm:w-48" aria-label={t('classificationFilter')}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ALL}>{t('allClassifications')}</SelectItem>
-          <SelectItem value="none">{t('unclassified')}</SelectItem>
-          {classifications.levels.map((l) => (
-            <SelectItem key={l.key} value={l.key}>
-              {classifications.label(l.key)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </>
+    <FilterBar
+      search={<SearchInput value={state.q ?? ''} onChange={(q) => set({ q })} placeholder={t('search')} />}
+      filters={filterDefs}
+      onClearAll={clearAll}
+    />
   );
 
   return (
@@ -271,67 +367,77 @@ export default function ManagePage() {
         title={t('title')}
         description={t('description')}
         actions={
-          <>
-            {canManageCategories && (
-              <Button variant="outline" asChild>
-                <Link href="/knowledge/categories">
-                  <FolderTreeIcon /> {tk('nav.categories')}
-                </Link>
-              </Button>
-            )}
-            <Button asChild>
-              <Link href="/knowledge/new">
-                <PlusIcon /> {tk('newArticle')}
-              </Link>
-            </Button>
-          </>
+          <Button asChild>
+            <Link href="/knowledge/new">
+              <PlusIcon /> {tk('newArticle')}
+            </Link>
+          </Button>
         }
       />
-      <Tabs value={tab} onValueChange={(v) => set({ tab: v === 'mine' ? undefined : v, sort: undefined })}>
-        <TabsList aria-label={t('title')}>
+      <KnowledgeSections />
+      {tab ? (
+        <Tabs value={tab} onValueChange={(v) => set({ tab: v, sort: undefined })}>
+          <TabsList aria-label={t('tabsLabel')}>
+            {TABS.map((k) => (
+              <TabsTrigger key={k} value={k}>
+                {t(`tabs.${k}`)}
+                {counts.data && (
+                  <span className="rounded-full bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">
+                    <AnimatedNumber value={counts.data[k]} />
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
           {TABS.map((k) => (
-            <TabsTrigger key={k} value={k}>
-              {t(`tabs.${k}`)}
-            </TabsTrigger>
+            <TabsContent key={k} value={k}>
+              <DataTable
+                label={t(`tabs.${k}`)}
+                columns={columns}
+                data={data?.items ?? []}
+                total={data?.total ?? 0}
+                page={state.page}
+                pageSize={state.pageSize}
+                sort={state.sort ?? (k === 'due' ? 'reviewAt' : '-updatedAt')}
+                onSortChange={(sort) => set({ sort })}
+                onPageChange={(page) => set({ page })}
+                onPageSizeChange={(pageSize) => set({ pageSize })}
+                loading={isLoading}
+                fetching={isFetching}
+                error={error}
+                onRetry={() => refetch()}
+                getRowId={(a) => a.id}
+                onRowClick={(a) => router.push(a.href)}
+                toolbar={toolbar}
+                empty={
+                  filtered ? (
+                    <EmptyState variant="filtered" onClearFilters={clearAll} />
+                  ) : (
+                    <EmptyState
+                      icon={<NotebookPenIcon />}
+                      title={t(`empty.${k}`)}
+                      action={
+                        k === 'mine' ? (
+                          <Button asChild size="sm">
+                            <Link href="/knowledge/new">
+                              <PlusIcon /> {tk('newArticle')}
+                            </Link>
+                          </Button>
+                        ) : undefined
+                      }
+                    />
+                  )
+                }
+              />
+            </TabsContent>
           ))}
-        </TabsList>
-        {TABS.map((k) => (
-          <TabsContent key={k} value={k}>
-            <DataTable
-              label={t(`tabs.${k}`)}
-              columns={columns}
-              data={data?.items ?? []}
-              total={data?.total ?? 0}
-              page={state.page}
-              pageSize={state.pageSize}
-              sort={state.sort ?? (k === 'due' ? 'reviewAt' : '-updatedAt')}
-              onSortChange={(sort) => set({ sort })}
-              onPageChange={(page) => set({ page })}
-              onPageSizeChange={(pageSize) => set({ pageSize })}
-              loading={isLoading}
-              fetching={isFetching}
-              getRowId={(a) => a.id}
-              onRowClick={(a) => router.push(a.href)}
-              toolbar={toolbar}
-              empty={
-                <EmptyState
-                  icon={<NotebookPenIcon />}
-                  title={t(`empty.${k}`)}
-                  action={
-                    k === 'mine' ? (
-                      <Button asChild size="sm">
-                        <Link href="/knowledge/new">
-                          <PlusIcon /> {tk('newArticle')}
-                        </Link>
-                      </Button>
-                    ) : undefined
-                  }
-                />
-              }
-            />
-          </TabsContent>
-        ))}
-      </Tabs>
+        </Tabs>
+      ) : (
+        <div className="grid gap-4" aria-busy="true">
+          <Skeleton className="h-9 w-full max-w-xl" />
+          <Skeleton className="h-80 rounded-xl" />
+        </div>
+      )}
     </>
   );
 }

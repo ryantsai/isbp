@@ -264,6 +264,8 @@ export function AppGrantDialog({
                     })
                   }
                   placeholder={t('userPlaceholder')}
+                  aria-label={t('person')}
+                  aria-describedby={principalError ? 'app-grant-principal-error' : undefined}
                 />
               ) : (
                 <GroupPicker
@@ -274,6 +276,7 @@ export function AppGrantDialog({
                     })
                   }
                   placeholder={t('groupPlaceholder')}
+                  aria-label={t('group')}
                   invalid={Boolean(principalError)}
                   describedBy={principalError ? 'app-grant-principal-error' : undefined}
                 />

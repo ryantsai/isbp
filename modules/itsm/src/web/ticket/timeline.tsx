@@ -7,6 +7,7 @@ import { Markdown, safeUrl } from '@isbp/ui/markdown';
 import { usePeople } from '@isbp/ui/person-picker';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
+import { AnimatedItem, AnimatedList, Disclosure } from '@isbp/ui/motion';
 import { Skeleton } from '@isbp/ui/skeleton';
 import {
   AlarmClockOffIcon,
@@ -18,6 +19,7 @@ import {
   ClockAlertIcon,
   GavelIcon,
   InfoIcon,
+  LayersIcon,
   LinkIcon,
   LockIcon,
   type LucideIcon,
@@ -27,10 +29,10 @@ import {
   SparklesIcon,
   UserRoundCogIcon,
 } from 'lucide-react';
-import { motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
+import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useMemo } from 'react';
-import type { Page } from '@isbp/sdk';
+import { localize, type Page } from '@isbp/sdk';
 import type { Activity, TicketDetail, TicketStatus } from '../../contracts';
 import { statusIcon } from '../components/badges';
 import { ticketApi, useGroups } from '../lib';
@@ -73,6 +75,32 @@ function changedFields(data: Data): string[] {
       .filter((x): x is string => Boolean(x));
   if (isObj(c)) return Object.keys(c);
   return [];
+}
+
+/* ───────────────────────────── who ───────────────────────────── */
+
+/** The form that raised a ticket acts as `form:<key>`: named after the form, never by its key. */
+export function useAuthorName(ticket: Pick<TicketDetail, 'source'> | null) {
+  const tl = useTranslations('itsm.timeline');
+  const locale = useLocale();
+  return (a: Activity) => {
+    const name = a.author?.displayName;
+    if (!name) return tl('system');
+    if (!a.author?.id && name.startsWith('form:')) {
+      const key = name.slice('form:'.length);
+      return ticket?.source && ticket.source.formKey === key
+        ? tl('requestForm', { name: localize(ticket.source.formName, locale) })
+        : tl('requestFormUnnamed');
+    }
+    return name;
+  };
+}
+
+/** Entries no person wrote (a sync, the AI, a rule): a run of them folds into "3 system updates". */
+function isSystemEntry(a: Activity) {
+  const data = (a.data ?? {}) as Data;
+  const person = Boolean(a.author?.id) && !a.author?.ai && !isObj(data.via);
+  return !person && ['field', 'assignment', 'link', 'system', 'triage', 'status'].includes(a.kind);
 }
 
 /* ───────────────────────────── rendering ───────────────────────────── */
@@ -145,10 +173,18 @@ function SystemLine({
   );
 }
 
-function Bubble({ activity, end, label }: { activity: Activity; end: boolean; label?: ReactNode }) {
-  const t = useTranslations('itsm.timeline');
+function Bubble({
+  activity,
+  end,
+  label,
+  name,
+}: {
+  activity: Activity;
+  end: boolean;
+  label?: ReactNode;
+  name: string;
+}) {
   const author = activity.author;
-  const name = author?.displayName ?? t('system');
   return (
     <div className={cn('flex gap-3', end && 'flex-row-reverse')}>
       {author?.ai ? (
@@ -181,9 +217,8 @@ function Bubble({ activity, end, label }: { activity: Activity; end: boolean; la
   );
 }
 
-function WorkNote({ activity }: { activity: Activity }) {
+function WorkNote({ activity, name }: { activity: Activity; name: string }) {
   const t = useTranslations('itsm.timeline');
-  const name = activity.author?.displayName ?? t('system');
   return (
     <div className="flex gap-3">
       {activity.author?.ai ? (
@@ -232,15 +267,18 @@ export function ActivityItem({
   activity: a,
   end,
   names,
+  author,
 }: {
   activity: Activity;
   end: boolean;
   names?: NameResolver;
+  /** The author's display name (forms and services named in words); defaults to the entry's own. */
+  author?: string;
 }) {
   const t = useTranslations('itsm');
   const tl = useTranslations('itsm.timeline');
   const data = (a.data ?? {}) as Data;
-  const who = a.author?.displayName ?? tl('system');
+  const who = author ?? a.author?.displayName ?? tl('system');
   const statusText = (v: unknown) => {
     const s = typeof v === 'string' ? v : null;
     return s && t.has(`status.${s}`) ? t(`status.${s}`) : (s ?? '—');
@@ -267,6 +305,7 @@ export function ActivityItem({
         <Bubble
           activity={a}
           end={end}
+          name={who}
           label={
             data.reopen === true ? (
               <Badge variant="warning" className="gap-1">
@@ -284,7 +323,7 @@ export function ActivityItem({
       );
     }
     case 'work_note':
-      return <WorkNote activity={a} />;
+      return <WorkNote activity={a} name={who} />;
     case 'status': {
       const to = typeof data.to === 'string' ? (data.to as TicketStatus) : null;
       const code =
@@ -292,12 +331,24 @@ export function ActivityItem({
           ? t(`resolution.${data.resolutionCode}`)
           : null;
       const rating = typeof data.rating === 'number' ? data.rating : null;
+      const article = isObj(data.article) && typeof data.article.reference === 'string' ? data.article : null;
       return (
         <SystemLine
           icon={to ? statusIcon(to) : ArrowRightLeftIcon}
           activity={a}
           note={
             <>
+              {article && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {tl('articleUsed')}{' '}
+                  <Link
+                    href={`/knowledge/${encodeURIComponent(String(article.reference))}`}
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
+                  >
+                    {String(article.reference)} · {nameOf(article.title) ?? ''}
+                  </Link>
+                </p>
+              )}
               {(code || rating) && (
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {[code, rating ? tl('rated', { rating }) : null].filter(Boolean).join(' · ')}
@@ -511,6 +562,7 @@ export function Timeline({
     return ids;
   }, [items]);
   const people = usePeople(personIds);
+  const authorName = useAuthorName(ticket);
   const hasGroups = items.some((a) => a.kind === 'assignment');
   const { groups } = useGroups(hasGroups);
   const { requester, requestedFor, assignee, assignmentGroup } = ticket;
@@ -532,6 +584,25 @@ export function Timeline({
       </div>
     );
   if (!items.length) return <p className="py-6 text-center text-sm text-muted-foreground">{t('empty')}</p>;
+  // Runs of three or more entries no person wrote fold into one expandable line.
+  const blocks: ({ kind: 'one'; a: Activity } | { kind: 'group'; id: string; items: Activity[] })[] = [];
+  for (const a of items) {
+    const last = blocks.at(-1);
+    if (isSystemEntry(a) && last?.kind === 'group') last.items.push(a);
+    else if (isSystemEntry(a)) blocks.push({ kind: 'group', id: a.id, items: [a] });
+    else blocks.push({ kind: 'one', a });
+  }
+  const flat = blocks.flatMap((b) =>
+    b.kind === 'group' && b.items.length < 3 ? b.items.map((a) => ({ kind: 'one' as const, a })) : [b],
+  );
+  const item = (a: Activity) => (
+    <ActivityItem
+      activity={a}
+      names={names}
+      author={authorName(a)}
+      end={isMine ? isMine(a) : Boolean(a.author && a.author.id !== ticket.requester?.id)}
+    />
+  );
   return (
     <>
       {total > items.length && (
@@ -539,22 +610,38 @@ export function Timeline({
           {t('truncated', { count: items.length })}
         </p>
       )}
-      <ol className="grid gap-3" aria-label={t('label')}>
-        {items.map((a, i) => (
-          <motion.li
-            key={a.id}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, delay: Math.min(i, 10) * 0.03, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <ActivityItem
-              activity={a}
-              names={names}
-              end={isMine ? isMine(a) : Boolean(a.author && a.author.id !== ticket.requester?.id)}
-            />
-          </motion.li>
-        ))}
-      </ol>
+      {/* Entries already there when the page opens don't animate; new ones (a reply, a status change) slide in. */}
+      <AnimatedList as="ol" aria-label={t('label')}>
+        {flat.map((b) =>
+          b.kind === 'one' ? (
+            <AnimatedItem key={b.a.id} className="pb-3">
+              {item(b.a)}
+            </AnimatedItem>
+          ) : (
+            <AnimatedItem key={`group:${b.id}`} className="pb-3">
+              <Disclosure
+                summary={
+                  <span className="inline-flex items-center gap-3 font-normal text-muted-foreground">
+                    <span
+                      className="grid size-6 place-items-center rounded-full border bg-background"
+                      aria-hidden
+                    >
+                      <LayersIcon className="size-3.5" />
+                    </span>
+                    {t('systemUpdates', { count: b.items.length })}
+                  </span>
+                }
+                triggerClassName="py-1"
+                contentClassName="grid gap-3 pt-2 pl-4"
+              >
+                {b.items.map((a) => (
+                  <div key={a.id}>{item(a)}</div>
+                ))}
+              </Disclosure>
+            </AnimatedItem>
+          ),
+        )}
+      </AnimatedList>
     </>
   );
 }

@@ -22,7 +22,9 @@ export function initials(name: string): string {
       ? parts[0]!.slice(0, 1) + parts[1]!.slice(0, 1)
       : trimmed.slice(1, 3) || trimmed.slice(0, 1);
   }
-  const parts = trimmed.split(/\s+/).filter(Boolean);
+  // Only words that start with a letter or digit count ("Mei Lin (review)" → "ML", not "M(").
+  const parts = trimmed.split(/\s+/).filter((p) => /^[\p{L}\p{N}]/u.test(p));
+  if (!parts.length) return trimmed.slice(0, 1).toUpperCase();
   return (
     (parts[0]?.[0] ?? '') + (parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '')
   ).toUpperCase();

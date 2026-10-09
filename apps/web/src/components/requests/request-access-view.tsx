@@ -1,11 +1,12 @@
 'use client';
 
 import type { AccessRequest, ApprovalPreview, RequestableRole } from '@isbp/contracts';
-import { localize } from '@isbp/sdk';
 import { ApiError, usePlatform } from '@isbp/sdk/web';
+import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
+import { Disclosure, StepTransition } from '@isbp/ui/motion';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
@@ -13,76 +14,39 @@ import { PageHeader } from '@isbp/ui/page-header';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Textarea } from '@isbp/ui/textarea';
+import { Stepper } from '@isbp/ui/stepper';
 import { toast } from '@isbp/ui/sonner';
-import { cn } from '@isbp/ui';
+import { Textarea } from '@isbp/ui/textarea';
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
   CheckCircle2Icon,
-  CheckIcon,
   ClockIcon,
   KeyRoundIcon,
   SearchXIcon,
   SendIcon,
-  SkipForwardIcon,
-  UserCheckIcon,
-  XCircleIcon,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
 import { useApiMutation, useApiQuery, useErrorText } from '@/lib/api';
 import { useRoleText } from '../roles/role-utils';
 import { RiskBadge } from '../workflows/subject-details';
+import { ApprovalPathList, ApprovalPathSkeleton, previewSteps } from './approval-path';
 
 type Step = 0 | 1 | 2;
 const PRESETS = [7, 30, 90] as const;
 
-function Stepper({ step }: { step: Step }) {
-  const t = useTranslations('requests.access.steps');
-  const labels = [t('role'), t('details'), t('review')];
-  return (
-    <ol className="flex items-center gap-2 text-sm" aria-label={t('label')}>
-      {labels.map((label, i) => (
-        <li key={label} className="flex items-center gap-2" aria-current={i === step ? 'step' : undefined}>
-          <span
-            className={cn(
-              'grid size-7 place-items-center rounded-full border text-xs font-semibold transition-colors',
-              i < step && 'border-primary bg-primary text-primary-foreground',
-              i === step && 'border-primary text-primary',
-              i > step && 'text-muted-foreground',
-            )}
-          >
-            {i < step ? <CheckIcon className="size-3.5" aria-hidden /> : i + 1}
-          </span>
-          <span className={cn('hidden sm:inline', i === step ? 'font-medium' : 'text-muted-foreground')}>
-            {label}
-          </span>
-          {i < labels.length - 1 && <span aria-hidden className="mx-1 h-px w-6 bg-border sm:w-10" />}
-        </li>
-      ))}
-    </ol>
-  );
-}
+type RoleItem = RequestableRole & { name: string; description: string | null };
 
-function RoleCard({
-  role,
-  selected,
-  onSelect,
-}: {
-  role: RequestableRole;
-  selected: boolean;
-  onSelect: () => void;
-}) {
+function RoleCard({ role, selected, onSelect }: { role: RoleItem; selected: boolean; onSelect: () => void }) {
   const t = useTranslations('requests.access');
   const disabled = role.held || Boolean(role.pendingRequest);
   return (
     <div
       className={cn(
-        'relative flex h-full flex-col gap-2 rounded-xl border bg-card p-4 text-left transition-all',
+        'relative flex h-full min-w-0 flex-col gap-2 rounded-xl border bg-card p-4 text-left transition-all',
         !disabled && 'cursor-pointer hover:border-ring/40 hover:shadow-md',
         selected && 'border-primary ring-2 ring-primary/30',
         disabled && 'opacity-75',
@@ -100,14 +64,17 @@ function RoleCard({
       </button>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="font-medium">{role.name}</div>
-          <div className="text-xs text-muted-foreground">
-            {role.application.isPlatform ? t('platform') : role.application.name}
-          </div>
+          <div className="font-medium [overflow-wrap:anywhere]">{role.name}</div>
         </div>
         <RiskBadge level={role.riskLevel} />
       </div>
-      {role.description && <p className="line-clamp-2 text-sm text-muted-foreground">{role.description}</p>}
+      {role.description ? (
+        <p className="line-clamp-2 text-sm text-muted-foreground">{role.description}</p>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">
+          {role.owner ? t('noDescriptionOwner', { name: role.owner.displayName }) : t('noDescription')}
+        </p>
+      )}
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-1 text-xs text-muted-foreground">
         {role.maxDurationDays ? (
           <span className="inline-flex items-center gap-1">
@@ -115,7 +82,7 @@ function RoleCard({
             {t('upTo', { count: role.maxDurationDays })}
           </span>
         ) : null}
-        {role.owner && <span>{t('owner', { name: role.owner.displayName })}</span>}
+        {role.owner && role.description && <span>{t('owner', { name: role.owner.displayName })}</span>}
         {role.held && (
           <Badge variant="success" className="relative z-10">
             <CheckCircle2Icon aria-hidden />
@@ -135,62 +102,23 @@ function RoleCard({
   );
 }
 
-/** "Who will approve it": the approval steps of a dry run with the people each would ask (also on request forms). */
-export function ApprovalPath({ preview }: { preview: ApprovalPreview | undefined }) {
-  const t = useTranslations('requests.access.path');
-  const locale = useLocale();
-  if (!preview) return <Skeleton className="h-32 w-full rounded-xl" />;
-  const steps = preview.steps.filter((s) => s.type === 'approval');
-  return (
-    <ol className="relative grid gap-3 before:absolute before:top-3 before:bottom-3 before:left-[15px] before:w-px before:bg-border">
-      {steps.map((s) => {
-        const skipped = s.outcome !== 'ask';
-        return (
-          <li key={s.id} className="relative flex gap-3">
-            <span
-              className={cn(
-                'relative z-10 grid size-8 shrink-0 place-items-center rounded-full ring-4 ring-background [&_svg]:size-4',
-                skipped ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary',
-                s.outcome === 'reject' && 'bg-destructive/10 text-destructive',
-              )}
-            >
-              {s.outcome === 'reject' ? <XCircleIcon /> : skipped ? <SkipForwardIcon /> : <UserCheckIcon />}
-            </span>
-            <div className="min-w-0 pt-1">
-              <div className={cn('text-sm font-medium', skipped && 'text-muted-foreground')}>
-                {localize(s.name, locale)}
-              </div>
-              {s.outcome === 'ask' ? (
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  {s.people.slice(0, 4).map((p) => (
-                    <span
-                      key={p.id}
-                      className="inline-flex items-center gap-1 rounded-full border py-0.5 pr-2 pl-0.5 text-xs"
-                    >
-                      <UserAvatar name={p.displayName} src={p.avatarUrl} className="size-4 text-[8px]" />
-                      {p.displayName}
-                    </span>
-                  ))}
-                  {s.people.length > 4 && (
-                    <span className="text-xs text-muted-foreground">
-                      {t('more', { count: s.people.length - 4 })}
-                    </span>
-                  )}
-                  {s.people.length > 1 && <span className="text-xs text-muted-foreground">{t('anyOf')}</span>}
-                </div>
-              ) : (
-                <div className="text-xs text-muted-foreground">{t(s.outcome)}</div>
-              )}
-            </div>
-          </li>
-        );
-      })}
-      {!steps.length && <li className="text-sm text-muted-foreground">{t('none')}</li>}
-    </ol>
-  );
+/** "Who will approve it" for the access asked for (a dry run of its workflow). Also used by the forms builder. */
+export function ApprovalPath({
+  preview,
+  waiting,
+}: {
+  preview: ApprovalPreview | undefined;
+  /** Steps waiting for an answer that is still empty (step id → the answer's label). */
+  waiting?: Map<string, string>;
+}) {
+  if (!preview) return <ApprovalPathSkeleton />;
+  return <ApprovalPathList steps={previewSteps(preview, waiting)} mode="preview" />;
 }
 
-/** Three steps: choose the access, say why and for how long, review who will approve it. */
+/**
+ * Three steps: choose the access (grouped by application, the platform's own roles last), say why and for how long,
+ * review who will approve it. The same stepper and wording as the database access request.
+ */
 export function RequestAccessView() {
   const t = useTranslations('requests.access');
   const router = useRouter();
@@ -216,21 +144,48 @@ export function RequestAccessView() {
   const roleText = useRoleText();
   // Module roles in the reader's language (search matches what they see).
   const items = useMemo(
-    () => (roles.data?.items ?? []).map((r) => ({ ...r, ...roleText(r) })),
+    () => (roles.data?.items ?? []).map((r) => ({ ...r, ...roleText(r) }) as RoleItem),
     [roles.data, roleText],
   );
   const role = items.find((r) => r.id === roleId) ?? null;
   const apps = useMemo(() => {
     const seen = new Map<string, { id: string; name: string; isPlatform: boolean }>();
     for (const r of items) seen.set(r.application.id, r.application);
-    return [...seen.values()];
+    // Business applications alphabetically, the platform's own last.
+    return [...seen.values()].sort(
+      (a, b) => Number(a.isPlatform) - Number(b.isPlatform) || a.name.localeCompare(b.name),
+    );
   }, [items]);
-  const visible = items.filter(
-    (r) =>
-      (app === 'all' || r.application.id === app) &&
-      (!q ||
-        `${r.name} ${r.description ?? ''} ${r.application.name}`.toLowerCase().includes(q.toLowerCase())),
+  const needle = q.trim().toLowerCase();
+  const visible = useMemo(
+    () =>
+      items.filter(
+        (r) =>
+          (app === 'all' || r.application.id === app) &&
+          (!needle ||
+            `${r.name} ${r.description ?? ''} ${r.application.name}`.toLowerCase().includes(needle)),
+      ),
+    [items, app, needle],
   );
+  // One group per application. When someone searches, the applications that match come first; the platform's own
+  // roles always come last, collapsed, so they never push a business application down the list.
+  const groups = useMemo(() => {
+    const byApp = new Map<string, { id: string; name: string; isPlatform: boolean; roles: RoleItem[] }>();
+    for (const r of visible) {
+      const g = byApp.get(r.application.id) ?? { ...r.application, roles: [] };
+      g.roles.push(r);
+      byApp.set(r.application.id, g);
+    }
+    const matches = (g: { name: string }) => Boolean(needle) && g.name.toLowerCase().includes(needle);
+    return [...byApp.values()]
+      .map((g) => ({ ...g, roles: g.roles.sort((a, b) => a.name.localeCompare(b.name)) }))
+      .sort(
+        (a, b) =>
+          Number(a.isPlatform) - Number(b.isPlatform) ||
+          Number(matches(b)) - Number(matches(a)) ||
+          a.name.localeCompare(b.name),
+      );
+  }, [visible, needle]);
   const max = role?.maxDurationDays ?? null;
   const days = duration === -1 ? Number(custom) || null : duration;
   const durationValid = days === null ? !max : days >= 1 && (!max || days <= max);
@@ -267,6 +222,11 @@ export function RequestAccessView() {
     submitError?.code === 'DUPLICATE_REQUEST'
       ? (submitError.details as { reference?: string } | undefined)?.reference
       : null;
+  const steps = [
+    { id: 'role', label: t('steps.role') },
+    { id: 'details', label: t('steps.details') },
+    { id: 'review', label: t('steps.review') },
+  ];
 
   return (
     <div className="mx-auto grid max-w-5xl gap-6">
@@ -274,299 +234,328 @@ export function RequestAccessView() {
         eyebrow={
           <Link href="/requests" className="inline-flex items-center gap-1 hover:text-foreground">
             <ArrowLeftIcon className="size-3.5" aria-hidden />
-            {t('back')}
+            {t('backToRequests')}
           </Link>
         }
         title={t('title')}
         description={t('description')}
-        actions={<Stepper step={step} />}
       />
+      <Stepper steps={steps} current={step} label={t('steps.label')} />
 
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: 16 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -16 }}
-          transition={{ duration: 0.18 }}
-        >
-          {step === 0 && (
-            <div className="grid gap-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <SearchInput value={q} onChange={setQ} placeholder={t('search')} className="sm:w-80" />
-                <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('applications')}>
-                  {[{ id: 'all', name: t('allApplications'), isPlatform: false }, ...apps].map((a) => (
-                    <Button
-                      key={a.id}
-                      size="sm"
-                      variant={app === a.id ? 'secondary' : 'ghost'}
-                      aria-pressed={app === a.id}
-                      onClick={() => setApp(a.id)}
-                    >
-                      {a.isPlatform ? t('platform') : a.name}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              {roles.isLoading ? (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {[0, 1, 2, 3, 4, 5].map((i) => (
-                    <Skeleton key={i} className="h-36 rounded-xl" />
-                  ))}
-                </div>
-              ) : !visible.length ? (
-                <EmptyState
-                  icon={<SearchXIcon />}
-                  title={t('noRoles')}
-                  className="rounded-xl border border-dashed"
-                />
-              ) : (
-                <div
-                  role="radiogroup"
-                  aria-label={t('steps.role')}
-                  className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-                >
-                  {visible.map((r) => (
-                    <RoleCard
-                      key={r.id}
-                      role={r}
-                      selected={r.id === roleId}
-                      onSelect={() => setRoleId(r.id)}
-                    />
-                  ))}
-                </div>
-              )}
-              <div className="sticky bottom-4 z-10 flex items-center justify-end gap-3 rounded-xl border bg-background/90 p-3 shadow-lg backdrop-blur">
-                <span className="mr-auto truncate text-sm text-muted-foreground" aria-live="polite">
-                  {role ? t('selected', { name: role.name }) : t('selectHint')}
-                </span>
-                <Button
-                  disabled={!role || role.held || Boolean(role.pendingRequest)}
-                  onClick={() => {
-                    if (max && (duration === null || (duration !== -1 && duration > max)))
-                      setDuration(PRESETS.find((p) => p <= max) ?? max);
-                    setStep(1);
-                  }}
-                >
-                  {t('continue')}
-                  <ArrowRightIcon />
-                </Button>
+      <StepTransition step={step}>
+        {step === 0 && (
+          <div className="grid gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <SearchInput value={q} onChange={setQ} placeholder={t('search')} className="sm:w-80" />
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('applications')}>
+                {[{ id: 'all', name: t('allApplications'), isPlatform: false }, ...apps].map((a) => (
+                  <Button
+                    key={a.id}
+                    size="sm"
+                    variant={app === a.id ? 'secondary' : 'ghost'}
+                    aria-pressed={app === a.id}
+                    onClick={() => setApp(a.id)}
+                  >
+                    {a.isPlatform ? t('platform') : a.name}
+                  </Button>
+                ))}
               </div>
             </div>
-          )}
-
-          {step === 1 && role && (
-            <div className="grid gap-6 rounded-xl border bg-card p-5 sm:p-6">
-              <div className="flex items-center gap-3">
-                <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <KeyRoundIcon className="size-5" />
-                </span>
-                <div>
-                  <div className="font-medium">{role.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {role.application.isPlatform ? t('platform') : role.application.name}
-                  </div>
-                </div>
-                <RiskBadge level={role.riskLevel} />
+            {roles.isLoading ? (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-36 rounded-xl" />
+                ))}
               </div>
+            ) : !visible.length ? (
+              <EmptyState
+                icon={<SearchXIcon />}
+                title={t('noRoles')}
+                className="rounded-xl border border-dashed"
+              />
+            ) : (
+              <div className="grid gap-6">
+                {groups
+                  .filter((g) => !g.isPlatform)
+                  .map((g) => (
+                    <section key={g.id} aria-labelledby={`${id}-app-${g.id}`} className="grid gap-3">
+                      <h2 id={`${id}-app-${g.id}`} className="flex items-center gap-2 text-sm font-semibold">
+                        <KeyRoundIcon className="size-4 text-muted-foreground" aria-hidden />
+                        {g.name}
+                        <span className="font-normal text-muted-foreground">({g.roles.length})</span>
+                      </h2>
+                      <div
+                        role="radiogroup"
+                        aria-labelledby={`${id}-app-${g.id}`}
+                        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                      >
+                        {g.roles.map((r) => (
+                          <RoleCard
+                            key={r.id}
+                            role={r}
+                            selected={r.id === roleId}
+                            onSelect={() => setRoleId(r.id)}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                {groups
+                  .filter((g) => g.isPlatform)
+                  .map((g) => (
+                    <Disclosure
+                      key={`${g.id}-${needle ? 'search' : 'rest'}`}
+                      summary={t('platformRoles', { count: g.roles.length })}
+                      defaultOpen={Boolean(needle) || g.roles.some((r) => r.id === roleId)}
+                      className="rounded-xl border"
+                      triggerClassName="w-full justify-between rounded-xl px-4 py-3 text-sm font-semibold"
+                      contentClassName="px-4 pb-4"
+                    >
+                      <div
+                        role="radiogroup"
+                        aria-label={t('platformRoles', { count: g.roles.length })}
+                        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                      >
+                        {g.roles.map((r) => (
+                          <RoleCard
+                            key={r.id}
+                            role={r}
+                            selected={r.id === roleId}
+                            onSelect={() => setRoleId(r.id)}
+                          />
+                        ))}
+                      </div>
+                    </Disclosure>
+                  ))}
+              </div>
+            )}
+            <div className="sticky bottom-4 z-10 flex items-center justify-end gap-3 rounded-xl border bg-background/90 p-3 shadow-lg backdrop-blur">
+              <span className="mr-auto truncate text-sm text-muted-foreground" aria-live="polite">
+                {role ? t('selected', { name: role.name }) : t('selectHint')}
+              </span>
+              <Button
+                disabled={!role || role.held || Boolean(role.pendingRequest)}
+                onClick={() => {
+                  if (max && (duration === null || (duration !== -1 && duration > max)))
+                    setDuration(PRESETS.find((p) => p <= max) ?? max);
+                  setStep(1);
+                }}
+              >
+                {t('continue')}
+                <ArrowRightIcon />
+              </Button>
+            </div>
+          </div>
+        )}
 
-              <fieldset className="grid gap-2">
-                <legend className="mb-2 text-sm font-medium">{t('who')}</legend>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant={!forOther ? 'secondary' : 'outline'}
-                    aria-pressed={!forOther}
-                    onClick={() => setForOther(false)}
-                  >
-                    <UserAvatar name={user.displayName} src={user.avatarUrl} className="size-5 text-[9px]" />
-                    {t('forMe')}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={forOther ? 'secondary' : 'outline'}
-                    aria-pressed={forOther}
-                    onClick={() => setForOther(true)}
-                  >
-                    {t('forSomeoneElse')}
-                  </Button>
+        {step === 1 && role && (
+          <div className="grid gap-6 rounded-xl border bg-card p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                <KeyRoundIcon className="size-5" />
+              </span>
+              <div>
+                <div className="font-medium">{role.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {role.application.isPlatform ? t('platform') : role.application.name}
                 </div>
-                {forOther && (
-                  <div className="grid max-w-md gap-1.5">
-                    <PersonPicker
-                      value={person}
-                      onChange={setPerson}
-                      excludeIds={[user.id]}
-                      includePreboarded
-                      invalid={touched && !person}
-                      aria-describedby={`${id}-for-hint`}
+              </div>
+              <RiskBadge level={role.riskLevel} />
+            </div>
+
+            <fieldset className="grid gap-2">
+              <legend className="mb-2 text-sm font-medium">{t('who')}</legend>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant={!forOther ? 'secondary' : 'outline'}
+                  aria-pressed={!forOther}
+                  onClick={() => setForOther(false)}
+                >
+                  <UserAvatar name={user.displayName} src={user.avatarUrl} className="size-5 text-[9px]" />
+                  {t('forMe')}
+                </Button>
+                <Button
+                  type="button"
+                  variant={forOther ? 'secondary' : 'outline'}
+                  aria-pressed={forOther}
+                  onClick={() => setForOther(true)}
+                >
+                  {t('forSomeoneElse')}
+                </Button>
+              </div>
+              {forOther && (
+                <div className="grid max-w-md gap-1.5">
+                  <PersonPicker
+                    value={person}
+                    onChange={setPerson}
+                    excludeIds={[user.id]}
+                    includePreboarded
+                    invalid={touched && !person}
+                    aria-describedby={`${id}-for-hint`}
+                  />
+                  <p id={`${id}-for-hint`} className="text-xs text-muted-foreground">
+                    {person?.status === 'pending'
+                      ? t('preboardedHint', { name: person.displayName })
+                      : t('forHint')}
+                  </p>
+                </div>
+              )}
+            </fieldset>
+
+            <fieldset className="grid gap-2">
+              <legend className="mb-2 text-sm font-medium">{t('howLong')}</legend>
+              <div className="flex flex-wrap items-center gap-2">
+                {PRESETS.filter((p) => !max || p <= max).map((p) => (
+                  <Button
+                    key={p}
+                    type="button"
+                    variant={duration === p ? 'secondary' : 'outline'}
+                    aria-pressed={duration === p}
+                    onClick={() => setDuration(p)}
+                  >
+                    {t('days', { count: p })}
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  variant={duration === -1 ? 'secondary' : 'outline'}
+                  aria-pressed={duration === -1}
+                  onClick={() => setDuration(-1)}
+                >
+                  {t('custom')}
+                </Button>
+                {!max && (
+                  <Button
+                    type="button"
+                    variant={duration === null ? 'secondary' : 'outline'}
+                    aria-pressed={duration === null}
+                    onClick={() => setDuration(null)}
+                  >
+                    {t('permanent')}
+                  </Button>
+                )}
+                {duration === -1 && (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={max ?? 3650}
+                      className="w-24"
+                      aria-label={t('customDays')}
+                      value={custom}
+                      aria-invalid={touched && !durationValid}
+                      onChange={(e) => setCustom(e.target.value)}
                     />
-                    <p id={`${id}-for-hint`} className="text-xs text-muted-foreground">
-                      {person?.status === 'pending'
-                        ? t('preboardedHint', { name: person.displayName })
-                        : t('forHint')}
-                    </p>
+                    <span className="text-sm text-muted-foreground">{t('daysUnit')}</span>
                   </div>
                 )}
-              </fieldset>
-
-              <fieldset className="grid gap-2">
-                <legend className="mb-2 text-sm font-medium">{t('howLong')}</legend>
-                <div className="flex flex-wrap items-center gap-2">
-                  {PRESETS.filter((p) => !max || p <= max).map((p) => (
-                    <Button
-                      key={p}
-                      type="button"
-                      variant={duration === p ? 'secondary' : 'outline'}
-                      aria-pressed={duration === p}
-                      onClick={() => setDuration(p)}
-                    >
-                      {t('days', { count: p })}
-                    </Button>
-                  ))}
-                  <Button
-                    type="button"
-                    variant={duration === -1 ? 'secondary' : 'outline'}
-                    aria-pressed={duration === -1}
-                    onClick={() => setDuration(-1)}
-                  >
-                    {t('custom')}
-                  </Button>
-                  {!max && (
-                    <Button
-                      type="button"
-                      variant={duration === null ? 'secondary' : 'outline'}
-                      aria-pressed={duration === null}
-                      onClick={() => setDuration(null)}
-                    >
-                      {t('permanent')}
-                    </Button>
-                  )}
-                  {duration === -1 && (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={1}
-                        max={max ?? 3650}
-                        className="w-24"
-                        aria-label={t('customDays')}
-                        value={custom}
-                        aria-invalid={touched && !durationValid}
-                        onChange={(e) => setCustom(e.target.value)}
-                      />
-                      <span className="text-sm text-muted-foreground">{t('daysUnit')}</span>
-                    </div>
-                  )}
-                </div>
-                <p
-                  className={cn(
-                    'text-xs',
-                    touched && !durationValid ? 'text-destructive' : 'text-muted-foreground',
-                  )}
-                >
-                  {max ? t('maxHint', { count: max }) : t('expiryHint')}
-                </p>
-              </fieldset>
-
-              <div className="grid gap-2">
-                <Label htmlFor={`${id}-why`}>{t('why')}</Label>
-                <Textarea
-                  id={`${id}-why`}
-                  rows={4}
-                  maxLength={2000}
-                  value={justification}
-                  aria-invalid={touched && !justificationValid}
-                  aria-describedby={`${id}-why-hint`}
-                  placeholder={t('whyPlaceholder')}
-                  onChange={(e) => setJustification(e.target.value)}
-                />
-                <p
-                  id={`${id}-why-hint`}
-                  className={cn(
-                    'flex justify-between text-xs',
-                    touched && !justificationValid ? 'text-destructive' : 'text-muted-foreground',
-                  )}
-                >
-                  <span>{t('whyHint')}</span>
-                  <span className="tabular-nums">{justification.trim().length}/2000</span>
-                </p>
               </div>
+              <p
+                className={cn(
+                  'text-xs',
+                  touched && !durationValid ? 'text-destructive' : 'text-muted-foreground',
+                )}
+              >
+                {max ? t('maxHint', { count: max }) : t('expiryHint')}
+              </p>
+            </fieldset>
 
+            <div className="grid gap-2">
+              <Label htmlFor={`${id}-why`}>{t('why')}</Label>
+              <Textarea
+                id={`${id}-why`}
+                rows={4}
+                maxLength={2000}
+                value={justification}
+                aria-invalid={touched && !justificationValid}
+                aria-describedby={`${id}-why-hint`}
+                placeholder={t('whyPlaceholder')}
+                onChange={(e) => setJustification(e.target.value)}
+              />
+              <p
+                id={`${id}-why-hint`}
+                className={cn(
+                  'flex justify-between text-xs',
+                  touched && !justificationValid ? 'text-destructive' : 'text-muted-foreground',
+                )}
+              >
+                <span>{t('whyHint')}</span>
+                <span className="tabular-nums">{justification.trim().length}/2000</span>
+              </p>
+            </div>
+
+            <div className="flex justify-between gap-2">
+              <Button variant="ghost" onClick={() => setStep(0)}>
+                <ArrowLeftIcon />
+                {t('back')}
+              </Button>
+              <Button onClick={goReview}>
+                {t('review')}
+                <ArrowRightIcon />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && role && (
+          <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,22rem)]">
+            <div className="grid content-start gap-5 rounded-xl border bg-card p-5 sm:p-6">
+              <h2 className="text-base font-semibold">{t('summary')}</h2>
+              <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-muted-foreground">{t('steps.role')}</dt>
+                  <dd className="font-medium">{role.name}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">{t('who')}</dt>
+                  <dd>{forOther ? person?.displayName : user.displayName}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">{t('howLong')}</dt>
+                  <dd>{days ? t('days', { count: days }) : t('permanent')}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-muted-foreground">{t('why')}</dt>
+                  <dd className="mt-0.5 whitespace-pre-line">{justification.trim()}</dd>
+                </div>
+              </dl>
+              {submitError && (
+                <p
+                  role="alert"
+                  className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+                >
+                  {errorText(submitError)}{' '}
+                  {existing && (
+                    <Link className="font-medium underline" href={`/requests/${existing}`}>
+                      {existing}
+                    </Link>
+                  )}
+                </p>
+              )}
               <div className="flex justify-between gap-2">
-                <Button variant="ghost" onClick={() => setStep(0)}>
+                <Button variant="ghost" onClick={() => setStep(1)}>
                   <ArrowLeftIcon />
                   {t('back')}
                 </Button>
-                <Button onClick={goReview}>
-                  {t('review')}
-                  <ArrowRightIcon />
+                <Button onClick={() => submit.mutate(body())} disabled={submit.isPending}>
+                  <SendIcon />
+                  {t('submit')}
                 </Button>
               </div>
             </div>
-          )}
-
-          {step === 2 && role && (
-            <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,22rem)]">
-              <div className="grid content-start gap-5 rounded-xl border bg-card p-5 sm:p-6">
-                <h2 className="text-base font-semibold">{t('summary')}</h2>
-                <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt className="text-xs text-muted-foreground">{t('steps.role')}</dt>
-                    <dd className="font-medium">{role.name}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">{t('who')}</dt>
-                    <dd>{forOther ? person?.displayName : user.displayName}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">{t('howLong')}</dt>
-                    <dd>{days ? t('days', { count: days }) : t('permanent')}</dd>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <dt className="text-xs text-muted-foreground">{t('why')}</dt>
-                    <dd className="mt-0.5 whitespace-pre-line">{justification.trim()}</dd>
-                  </div>
-                </dl>
-                {submitError && (
-                  <p
-                    role="alert"
-                    className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-                  >
-                    {errorText(submitError)}{' '}
-                    {existing && (
-                      <Link className="font-medium underline" href={`/requests/${existing}`}>
-                        {existing}
-                      </Link>
-                    )}
-                  </p>
-                )}
-                <div className="flex justify-between gap-2">
-                  <Button variant="ghost" onClick={() => setStep(1)}>
-                    <ArrowLeftIcon />
-                    {t('back')}
-                  </Button>
-                  <Button onClick={() => submit.mutate(body())} disabled={submit.isPending}>
-                    <SendIcon />
-                    {t('submit')}
-                  </Button>
-                </div>
-              </div>
-              <aside
-                className="grid content-start gap-3 rounded-xl border bg-muted/30 p-5"
-                aria-live="polite"
-              >
-                <h2 className="text-base font-semibold">{t('path.title')}</h2>
-                <p className="text-sm text-muted-foreground">{t('path.description')}</p>
-                {previewQuery.isError ? (
-                  <p className="text-sm text-destructive">{errorText(previewQuery.error)}</p>
-                ) : (
-                  <ApprovalPath preview={previewQuery.data} />
-                )}
-              </aside>
-            </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
+            <aside className="grid content-start gap-3 rounded-xl border bg-muted/30 p-5" aria-live="polite">
+              <h2 className="text-base font-semibold">{t('path.title')}</h2>
+              <p className="text-sm text-muted-foreground">{t('path.description')}</p>
+              {previewQuery.isError ? (
+                <p className="text-sm text-destructive">{errorText(previewQuery.error)}</p>
+              ) : (
+                <ApprovalPath preview={previewQuery.data} />
+              )}
+            </aside>
+          </div>
+        )}
+      </StepTransition>
     </div>
   );
 }

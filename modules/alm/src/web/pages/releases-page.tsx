@@ -5,7 +5,6 @@ import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
 import { Label } from '@isbp/ui/label';
-import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
@@ -20,6 +19,7 @@ import { type AppSummary, RELEASE_STATUSES, type ReleaseSummary } from '../../co
 import { RELEASE_META, ReleaseStatusBadge } from '../badges';
 import { appHref, dateOnly, isoToday, releaseHref } from '../lib';
 import { LinkedChangeChip, ReadinessSummary } from '../release-bits';
+import { AlmTabs } from '../section-tabs';
 
 const ALL = '__all__';
 const OPEN = 'planned,in_progress,ready';
@@ -75,7 +75,7 @@ function ReleaseRow({ r }: { r: ReleaseSummary }) {
   );
 }
 
-/** Releases grouped by week (Monday first). */
+/** Releases grouped by week (Monday first); runs of empty weeks fold into one line ("Nov 2 – 15: nothing planned"). */
 function Agenda({ items, from }: { items: ReleaseSummary[]; from: string }) {
   const t = useTranslations('alm.calendar');
   const format = useFormatter();
@@ -86,48 +86,53 @@ function Agenda({ items, from }: { items: ReleaseSummary[]; from: string }) {
     const w = mondayOf(r.plannedDate);
     byWeek.set(w, [...(byWeek.get(w) ?? []), r]);
   }
+  const blocks: ({ kind: 'week'; week: string } | { kind: 'empty'; from: string; to: string })[] = [];
+  for (const w of weeks) {
+    const last = blocks.at(-1);
+    if (byWeek.has(w)) blocks.push({ kind: 'week', week: w });
+    else if (last?.kind === 'empty') last.to = addDays(w, 6);
+    else blocks.push({ kind: 'empty', from: w, to: addDays(w, 6) });
+  }
+  const range = (a: string, b: string) =>
+    format.dateTimeRange(dateOnly(a), dateOnly(b), { month: 'short', day: 'numeric', timeZone: 'UTC' });
   return (
-    <Stagger className="grid gap-4">
-      {weeks.map((w) => {
-        const list = byWeek.get(w) ?? [];
-        const headingId = `alm-week-${w}`;
-        return (
-          <StaggerItem key={w}>
-            <section
-              aria-labelledby={headingId}
-              className="overflow-hidden rounded-xl border bg-card shadow-xs"
+    <div className="grid gap-4">
+      {blocks.map((b) => {
+        if (b.kind === 'empty')
+          return (
+            <p
+              key={`empty-${b.from}`}
+              className="rounded-xl border border-dashed px-4 py-2 text-sm text-muted-foreground"
             >
-              <h2
-                id={headingId}
-                className="flex items-center justify-between gap-2 border-b bg-muted/40 px-4 py-2 text-sm font-semibold"
-              >
-                <span>
-                  {t('weekOf', {
-                    range: format.dateTimeRange(dateOnly(w), dateOnly(addDays(w, 6)), {
-                      month: 'short',
-                      day: 'numeric',
-                      timeZone: 'UTC',
-                    }),
-                  })}
-                </span>
-                <span className="text-xs font-normal text-muted-foreground">
-                  {t('count', { count: list.length })}
-                </span>
-              </h2>
-              {list.length ? (
-                <ul className="divide-y">
-                  {list.map((r) => (
-                    <ReleaseRow key={r.id} r={r} />
-                  ))}
-                </ul>
-              ) : (
-                <p className="px-4 py-3 text-sm text-muted-foreground">{t('nothingPlanned')}</p>
-              )}
-            </section>
-          </StaggerItem>
+              {t('nothingPlannedRange', { range: range(b.from, b.to) })}
+            </p>
+          );
+        const list = byWeek.get(b.week) ?? [];
+        const headingId = `alm-week-${b.week}`;
+        return (
+          <section
+            key={b.week}
+            aria-labelledby={headingId}
+            className="overflow-hidden rounded-xl border bg-card shadow-xs"
+          >
+            <h2
+              id={headingId}
+              className="flex items-center justify-between gap-2 border-b bg-muted/40 px-4 py-2 text-sm font-semibold"
+            >
+              <span>{t('weekOf', { range: range(b.week, addDays(b.week, 6)) })}</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                {t('count', { count: list.length })}
+              </span>
+            </h2>
+            <ul className="divide-y">
+              {list.map((r) => (
+                <ReleaseRow key={r.id} r={r} />
+              ))}
+            </ul>
+          </section>
         );
       })}
-    </Stagger>
+    </div>
   );
 }
 
@@ -261,15 +266,8 @@ export default function ReleasesPage() {
 
   return (
     <>
-      <PageHeader
-        title={t('calendar.title')}
-        description={t('calendar.description')}
-        actions={
-          <Button variant="outline" asChild>
-            <Link href="/alm">{t('inventory.title')}</Link>
-          </Button>
-        }
-      />
+      <PageHeader title={t('inventory.title')} description={t('calendar.description')} />
+      <AlmTabs />
       <div className="grid gap-4">
         <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3 shadow-xs">
           <div className="flex items-center gap-1">

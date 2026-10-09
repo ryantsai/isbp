@@ -23,7 +23,7 @@
     "optional": "（選用）",
     "authentication": "驗證",
     "apiKey": "技術人員 API 金鑰",
-    "apiKeyHint": "由 ISBP 所代表的技術人員在 ServiceDesk Plus 中產生。",
+    "apiKeyHint": "由 IS Big Platform 所代表的技術人員在 ServiceDesk Plus 中產生。",
     "stored": "已儲存。留空即保留原值。",
     "advanced": "進階",
     "assetEndpoints": "資產產品類型 API",
@@ -33,15 +33,15 @@
       "title": "設定存取權",
       "builds": "適用於 ServiceDesk Plus 組建 {target}；需要組建 {minimum} 或更新版本（其資產 API）。",
       "https": "建議使用 HTTPS。若伺服器僅提供 HTTP，請在此連線開啟「允許不安全的 HTTP」；API 金鑰將以未加密方式傳送，因此請將此流量限制在受信任的網路內。",
-      "technician": "建立專用的技術人員（例如 svc-isbp），其角色僅能檢視與編輯您要同步的模組：請求、問題、變更、資產、解決方案。ISBP 所做的每項變更都會以此技術人員記錄在 ServiceDesk Plus 中。",
+      "technician": "建立專用的技術人員（例如 svc-isbp），其角色僅能檢視與編輯您要同步的模組：請求、問題、變更、資產、解決方案。IS Big Platform 所做的每項變更都會以此技術人員記錄在 ServiceDesk Plus 中。",
       "apiKey": "以該技術人員登入，開啟個人設定選單，選擇「產生 API 金鑰」（部分版本為「產生 Authtoken」），設定到期日後將金鑰貼到此處。請在到期前更新。",
-      "certificates": "若伺服器使用內部憑證授權單位簽發的憑證，請要求 ISBP 管理者信任該授權單位（NODE_EXTRA_CA_CERTS）。",
-      "throttling": "ServiceDesk Plus 可能會限制 API URL 的存取次數（「…requests within N minutes was violated」）。ISBP 會等待後重試；在組建 14500 或更新版本中，管理者可調高或停用此限制。",
+      "certificates": "若伺服器使用內部憑證授權單位簽發的憑證，請要求 IS Big Platform 管理者信任該授權單位（NODE_EXTRA_CA_CERTS）。",
+      "throttling": "ServiceDesk Plus 可能會限制 API URL 的存取次數（「…requests within N minutes was violated」）。IS Big Platform 會等待後重試；在組建 14500 或更新版本中，管理者可調高或停用此限制。",
       "webhookTitle": "選用：在數秒內同步",
       "webhook": "在 Admin → Developer Space → Webhooks 新增 Webhook，以 POST 呼叫此連線的 Webhook URL，加入自訂標頭 X-ISBP-Webhook-Secret 並設為其密碼，內容為 JSON。",
       "webhookBody": "使用下列內容，每個模組（request、problem 或 change）各一個 Webhook。請在 ID 的位置輸入 $ 並選擇記錄的 ID 欄位：",
       "trigger": "在 Admin → Automation → Custom Triggers 中，為請求、問題與變更新增於記錄建立或編輯時執行該 Webhook 的觸發程序。資產與解決方案沒有自訂觸發程序，會依排程同步。",
-      "webhookNote": "Webhook 只會告訴 ISBP 哪筆記錄有變更，ISBP 會再透過 API 讀取。排程同步會持續執行，因此遺漏的 Webhook 也會補上。"
+      "webhookNote": "Webhook 只會告訴 IS Big Platform 哪筆記錄有變更，IS Big Platform 會再透過 API 讀取。排程同步會持續執行，因此遺漏的 Webhook 也會補上。"
     }
   }
 }

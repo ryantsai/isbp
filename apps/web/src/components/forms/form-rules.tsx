@@ -25,19 +25,28 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
+import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import { PencilIcon, PlusIcon, ShieldCheckIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
-import { fieldFacts, hasText, newElementId, useTodayFact } from '@/components/fields/field-utils';
+import {
+  fieldFacts,
+  hasText,
+  incompleteConditions,
+  newElementId,
+  useTodayFact,
+} from '@/components/fields/field-utils';
 
-export type RuleIssueCode = 'requireEmpty' | 'messageEmpty' | 'unknownField';
+export type RuleIssueCode = 'requireEmpty' | 'conditionIncomplete' | 'messageEmpty' | 'unknownField';
 
 /** Problems that stop a rule from saving (the API runs the same schema), as codes the editor translates. */
 export function ruleIssues(rule: Partial<FormRule>, fields: readonly FieldDef[]): RuleIssueCode[] {
   const keys = new Set(fields.map((f) => f.key));
   const issues: RuleIssueCode[] = [];
   if (!rule.require || !conditionFacts(rule.require).length) issues.push('requireEmpty');
+  // A condition without its value never holds as intended ("End is after …").
+  if (incompleteConditions(rule.when) + incompleteConditions(rule.require) > 0)
+    issues.push('conditionIncomplete');
   if (!hasText(rule.message)) issues.push('messageEmpty');
   const used = [...conditionFacts(rule.when), ...conditionFacts(rule.require), ...(rule.fields ?? [])].filter(
     (k) => !RESERVED_FACTS.includes(k),
@@ -109,6 +118,7 @@ function RuleSheet({
               value={value.when}
               onChange={(when) => setValue((v) => ({ ...v, when }))}
               facts={facts}
+              emptyText={t('whenEmpty')}
             />
           </section>
           <section aria-labelledby={`${uid}-require`} className="grid gap-2">
@@ -120,10 +130,11 @@ function RuleSheet({
               value={value.require}
               onChange={(require) => setValue((v) => ({ ...v, require }))}
               facts={facts}
+              emptyText={t('requireEmpty')}
             />
-            {shown('requireEmpty') && (
+            {(shown('requireEmpty') || shown('conditionIncomplete')) && (
               <p role="alert" className="text-xs font-medium text-destructive">
-                {t('issues.requireEmpty')}
+                {t(shown('requireEmpty') ? 'issues.requireEmpty' : 'issues.conditionIncomplete')}
               </p>
             )}
           </section>
@@ -244,20 +255,13 @@ export function FormRules({
           className="rounded-xl border border-dashed"
         />
       ) : (
-        <ul className="grid gap-3" aria-label={t('title')}>
-          <AnimatePresence initial={false}>
-            {rules.map((rule) => {
-              const problems = issues.get(rule.id) ?? [];
-              const message = localize(rule.message, locale);
-              return (
-                <motion.li
-                  key={rule.id}
-                  layout
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="grid gap-2 rounded-xl border bg-card p-4"
-                >
+        <AnimatedList className="-mb-3" aria-label={t('title')}>
+          {rules.map((rule) => {
+            const problems = issues.get(rule.id) ?? [];
+            const message = localize(rule.message, locale);
+            return (
+              <AnimatedItem key={rule.id} className="pb-3">
+                <div className="grid gap-2 rounded-xl border bg-card p-4">
                   <div className="flex items-start gap-3">
                     <ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
                     <div className="min-w-0 flex-1 space-y-1">
@@ -313,11 +317,11 @@ export function FormRules({
                       ))}
                     </div>
                   )}
-                </motion.li>
-              );
-            })}
-          </AnimatePresence>
-        </ul>
+                </div>
+              </AnimatedItem>
+            );
+          })}
+        </AnimatedList>
       )}
       <p aria-live="polite" className="sr-only">
         {announcement}

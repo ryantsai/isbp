@@ -15,24 +15,25 @@ import {
   ArrowUpIcon,
   CheckIcon,
   PencilIcon,
-  PlusIcon,
   RotateCcwIcon,
   Trash2Icon,
   UserPlusIcon,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { MEMBER_ROLES, type MemberRole, type Milestone, type ProjectDetail } from '../../contracts';
 import { ConfirmDialog } from '../components/inputs';
 import { ProjectForm } from '../components/project-form';
-import { dateValue, INVALIDATE, projectApi, projectHref } from '../lib';
+import { dateValue, INVALIDATE, projectApi, projectHref, useSearchParam } from '../lib';
+import { AddMilestoneForm } from './milestone-form';
 
 function MembersSection({ project }: { project: ProjectDetail }) {
   const t = useTranslations('projects.settings.members');
   const tr = useTranslations('projects.roles');
   const id = useId();
   const [person, setPerson] = useState<PersonOption | null>(null);
+  const [noPerson, setNoPerson] = useState(false);
   const [role, setRole] = useState<MemberRole>('member');
   const [allocation, setAllocation] = useState('100');
   const [removing, setRemoving] = useState<{ userId: string; name: string } | null>(null);
@@ -69,9 +70,14 @@ function MembersSection({ project }: { project: ProjectDetail }) {
       <CardContent className="grid gap-5">
         <form
           className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_7rem_auto] sm:items-end"
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
-            if (person) add.mutate({ userId: person.id, role, allocationPct: role === 'viewer' ? 0 : pct });
+            if (!person) {
+              setNoPerson(true);
+              return;
+            }
+            add.mutate({ userId: person.id, role, allocationPct: role === 'viewer' ? 0 : pct });
           }}
         >
           <div className="grid min-w-0 gap-2">
@@ -79,9 +85,19 @@ function MembersSection({ project }: { project: ProjectDetail }) {
             <PersonPicker
               id={`${id}-person`}
               value={person}
-              onChange={setPerson}
+              onChange={(p) => {
+                setPerson(p);
+                if (p) setNoPerson(false);
+              }}
+              invalid={noPerson}
+              aria-describedby={noPerson ? `${id}-person-error` : undefined}
               excludeIds={project.members.map((m) => m.userId)}
             />
+            {noPerson && (
+              <p id={`${id}-person-error`} className="text-xs text-destructive">
+                {t('personRequired')}
+              </p>
+            )}
           </div>
           <div className="grid min-w-0 gap-2">
             <Label htmlFor={`${id}-role`}>{t('role')}</Label>
@@ -111,7 +127,7 @@ function MembersSection({ project }: { project: ProjectDetail }) {
               onChange={(e) => setAllocation(e.target.value)}
             />
           </div>
-          <Button type="submit" disabled={!person} loading={add.isPending}>
+          <Button type="submit" loading={add.isPending}>
             <UserPlusIcon />
             {t('add')}
           </Button>
@@ -327,21 +343,7 @@ function MilestoneRow({
 
 function MilestonesSection({ project }: { project: ProjectDetail }) {
   const t = useTranslations('projects.settings.milestones');
-  const id = useId();
-  const [name, setName] = useState('');
-  const [due, setDue] = useState('');
   const base = `${projectApi(project.key)}/milestones`;
-  const create = useApiMutation(
-    (api, body: { name: string; dueDate: string | null }) => api.post(base, body),
-    {
-      invalidate: INVALIDATE,
-      success: t('created'),
-      onSuccess: () => {
-        setName('');
-        setDue('');
-      },
-    },
-  );
   const reorder = useApiMutation((api, ids: string[]) => api.post(`${base}/reorder`, { ids }), {
     invalidate: INVALIDATE,
   });
@@ -372,26 +374,7 @@ function MilestonesSection({ project }: { project: ProjectDetail }) {
             ))}
           </ol>
         )}
-        <form
-          className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem_auto] sm:items-end"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (name.trim()) create.mutate({ name: name.trim(), dueDate: due || null });
-          }}
-        >
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={`${id}-name`}>{t('name')}</Label>
-            <Input id={`${id}-name`} value={name} maxLength={200} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={`${id}-due`}>{t('due')}</Label>
-            <Input id={`${id}-due`} type="date" value={due} onChange={(e) => setDue(e.target.value)} />
-          </div>
-          <Button type="submit" disabled={!name.trim()} loading={create.isPending}>
-            <PlusIcon />
-            {t('add')}
-          </Button>
-        </form>
+        <AddMilestoneForm project={project} />
       </CardContent>
     </Card>
   );
@@ -482,6 +465,14 @@ function DangerZone({ project }: { project: ProjectDetail }) {
 export function SettingsTab({ project }: { project: ProjectDetail }) {
   const t = useTranslations('projects.settings');
   const router = useRouter();
+  const [section] = useSearchParam('section');
+  // "Manage" on the overview opens the right section (members, milestones), not the top of Settings.
+  useEffect(() => {
+    if (section !== 'members' && section !== 'milestones') return;
+    const el = document.getElementById(section);
+    el?.scrollIntoView({ block: 'start' });
+    el?.querySelector<HTMLElement>('input, button')?.focus({ preventScroll: true });
+  }, [section]);
   return (
     <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <Card className="min-w-0 gap-4 lg:col-span-2">
@@ -498,12 +489,12 @@ export function SettingsTab({ project }: { project: ProjectDetail }) {
           />
         </CardContent>
       </Card>
-      <div className="min-w-0 lg:col-span-2">
+      <section id="members" className="min-w-0 scroll-mt-20 lg:col-span-2">
         <MembersSection project={project} />
-      </div>
-      <div className="min-w-0 lg:col-span-2">
+      </section>
+      <section id="milestones" className="min-w-0 scroll-mt-20 lg:col-span-2">
         <MilestonesSection project={project} />
-      </div>
+      </section>
       <div className="min-w-0 lg:col-span-2">
         <DangerZone project={project} />
       </div>

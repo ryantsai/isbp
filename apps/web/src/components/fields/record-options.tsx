@@ -111,7 +111,12 @@ export function RecordOptionsEditor({
         ) : !facts.length && !record.where ? (
           <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">{t('noFacts')}</p>
         ) : (
-          <ConditionBuilder value={record.where} onChange={(where) => set({ where })} facts={facts} />
+          <ConditionBuilder
+            value={record.where}
+            onChange={(where) => set({ where })}
+            facts={facts}
+            emptyText={t('whereEmpty')}
+          />
         )}
       </div>
     </div>

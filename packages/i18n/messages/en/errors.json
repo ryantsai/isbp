@@ -12,6 +12,7 @@
   "PRIVILEGE_ESCALATION": "You can only grant permissions you hold yourself.",
   "SELF_LOCKOUT": "That would lock you out of your own account or access.",
   "SYSTEM_ROLE_READONLY": "System roles are managed by their module and can't be changed.",
+  "ROLE_HAS_HISTORY": "People have requested this access before, and that history must be kept, so it can't be deleted. Turn off “People can request this role” and remove its members instead.",
   "SYSTEM_GROUP": "System groups can't be changed this way.",
   "SYSTEM_MODULE": "System modules can't be disabled.",
   "MODULE_DEPENDENCY": "Other modules depend on this one — change them first.",
@@ -75,6 +76,7 @@
   "CONFLICT_RESOLVED": "Someone has already resolved this conflict.",
   "INSECURE_HTTP": "This connection uses plain HTTP, which isn't encrypted. Use HTTPS, or turn on “Allow insecure HTTP” for the connection.",
   "CHANGE_SET_STALE": "Someone changed this configuration after the change set was prepared. Refresh the change set, review it again, then retry.",
+  "CHANGE_SET_BUSY": "Another change set is being applied or tried right now. Try again in a moment.",
   "PACKAGE_UNSUPPORTED": "This package needs modules that aren't enabled or kinds of configuration this platform doesn't have.",
   "PROCESS_ACTION_FORBIDDEN": "You can't add or change this action: it needs a permission you don't have.",
   "PROCESS_ACTION_UNAVAILABLE": "This action isn't available. Its module may be disabled."

@@ -2,10 +2,11 @@
 
 This guide is for everyone who works with IT: asking for access, equipment or software, getting help when something
 breaks, following what you asked for, and deciding on your team's requests when you're an approver. Everything here
-starts from the **Requests** page and the **Approvals** inbox in the sidebar.
+starts from **Requests** and **My work** in the sidebar.
 
 ## What you can do here
 
+- [See what's waiting for you](#see-whats-waiting-for-you) on **My work**
 - [Find what you need in Requests](#find-what-you-need-in-requests)
 - [Request equipment or software with a form](#request-equipment-or-software-with-a-form)
 - [Request access to an application or a role](#request-access-to-an-application-or-a-role)
@@ -21,28 +22,43 @@ starts from the **Requests** page and the **Approvals** inbox in the sidebar.
 - [Choose which notifications you get](#choose-which-notifications-you-get) and
   [set your language, time zone and sessions](#set-your-language-time-zone-and-sessions)
 
+## See what's waiting for you
+
+**My work** is the one place for everything someone asked you to do: approve a request, fill in a form, check your
+part of a review, accept a change, confirm a fix, change a shared account's password or work on a project task.
+
+1. Select **My work** in the sidebar. The number next to it is how many things are waiting for you (project tasks
+   aren't counted). On **Home**, **Needs you** shows the most urgent ones.
+2. Items are grouped into **To decide**, **To do**, **To check** and **Tasks**, the most urgent first. Each shows what
+   it is, its reference or who asked, and a deadline badge such as **Due in 2 days** or **Overdue by 3 days**.
+3. Select an item to open it: the decision, the form, or your part of the review.
+
+![My work with things to decide, to do and to check](../../../apps/web/public/help/en/employees-my-work.jpg)
+
+**What happens next:** once you've done it, the item leaves **My work** and the number goes down. When nothing is
+waiting, **My work** says **Nothing is waiting for you**. Notifications about the same things open the same item, so
+you can start from either.
+
 ## Find what you need in Requests
 
 **Requests** is the front door to IT. Go there whenever you need something from IT or want to know where a request
 stands.
 
 1. Select **Requests** in the sidebar.
-2. Under **What do you need?**, pick a card:
+2. **My requests** is at the top, so what you've already sent is the first thing you see. Below it, **What do you
+   need?** groups the cards:
 
-| Card                        | Use it when                                                                                                                                                    |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Report an issue**         | Something isn't working and you want the service desk to fix it ([details](#report-an-issue))                                                                  |
-| **My devices**              | You want to see the laptop, phone and software IT gave you, or report a problem with one ([details](#see-your-devices-and-report-a-problem-with-one))          |
-| **Browse knowledge**        | You'd like to fix it yourself with a step-by-step article                                                                                                      |
-| **Request database access** | You need a role on a SQL Server, Oracle or PostgreSQL database for a while ([details](#request-database-access))                                               |
-| **Request access**          | You need a role in the platform or in a business application ([details](#request-access-to-an-application-or-a-role))                                          |
-| A request form              | You need equipment, software or something else IT provides, for example **Laptop request** in the demo ([details](#request-equipment-or-software-with-a-form)) |
+| Group                      | Cards                                                                                                                                                                                                                            |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Get help**               | **Report an issue** ([details](#report-an-issue)), **Browse knowledge** and **Ask IT**, which answers your question first ([details](#ask-it-before-you-raise-a-ticket))                                                         |
+| **Equipment and software** | **My devices** ([details](#see-your-devices-and-report-a-problem-with-one)) and the request forms for equipment and software, for example **Laptop request** in the demo ([details](#request-equipment-or-software-with-a-form)) |
+| **Access**                 | **Access to an application** ([details](#request-access-to-an-application-or-a-role)) and **Direct database access** ([details](#request-database-access))                                                                       |
+| **Other**                  | Anything else IT offers                                                                                                                                                                                                          |
 
-Cards marked **Needs approval** go to an approver before IT acts on them. Request forms are grouped by category
-(**Hardware**, **Software**, **Security**, **Access**, **Changes**, **Other**). Above the cards, **Ask IT** offers to answer your
-question straight away ([details](#ask-it-before-you-raise-a-ticket)).
+When there are more than eight cards, a search box appears above them: type part of a name, such as **Laptop**, to
+narrow the list.
 
-![The Requests page with the Ask IT card, the request cards and My requests](../../../apps/web/public/help/en/employees-portal.jpg)
+![The Requests page with My requests, the Get help cards and the request forms](../../../apps/web/public/help/en/employees-portal.jpg)
 
 > **Tip:** You only see the forms meant for you. If a colleague mentions a form you can't find, it may be offered only
 > to some groups: see [A form isn't in the portal](faq.md#a-form-isnt-in-the-portal).
@@ -63,6 +79,7 @@ asks exactly what IT needs to know, and the approvals it needs are attached to i
    people it would ask, based on your answers so far. It updates as you fill in the form, for example when the
    system you picked needs an extra approval. Steps that don't apply to your answers are marked **Skipped for this
    request** or left out.
+   If a step’s approver comes from an answer you haven’t given yet, the step says **Depends on the answer to “…”** and names the question. Its approver appears once you fill that question in.
 5. Select **Submit**. If a required field is empty, the form shows **This field is required** next to it. Forms can
    also check answers together, for example that the end date isn't before the start date: the form's own message
    then appears on the field to fix, or above the form under **Please check the form**.
@@ -85,15 +102,17 @@ request is approved or rejected.
 
 ## Request access to an application or a role
 
-Use **Request access** when you need a role in IS Big Platform (for example **Announcement editor**) or in a
-business application registered in ISBP (in the demo, **Finance ERP**, **HR Portal** and **Expense Claims**). You
-say how long you need it and why, and you see who will approve it before you send it.
+Use **Access to an application** when you need a role in IS Big Platform (for example **Announcement editor**) or in a
+business application registered in ISBP (in the demo, **Finance ERP**, **HR Portal** and **Expense Claims**). You say
+how long you need it and why, and you see who will approve it before you send it.
 
-1. Go to **Requests** and select **Request access**.
-2. Choose the access you need. Use **Search roles and applications…** or the application buttons to narrow the
-   list. Each role shows its risk (**Low risk**, **Medium risk**, **High risk**), its owner and the longest period it
-   can be granted for (**Up to 90 days**, for example). Roles you already have say **You have it**; roles you already
-   asked for show **Requested (REQ-…)**.
+1. Go to **Requests** and select **Access to an application**.
+2. Choose the access you need. Roles are grouped by application: the business applications first, and the platform's
+   own roles under **Platform roles** at the bottom, folded away until you open them. Type an application's name in
+   **Search roles and applications…** (or pick its button) and its roles come first. Each role shows its risk
+   (**Low risk**, **Medium risk**, **High risk**), its owner and the longest period it can be granted for (**Up to 90
+   days**, for example). A role that has no description yet says **No description yet**, with its owner to ask. Roles
+   you already have say **You have it**; roles you already asked for show **Requested (REQ-…)**.
 3. Select **Continue**.
 4. Under **Who needs it?**, choose **Me** or **Someone else**. Managers can request for their direct reports;
    access administrators can request for anyone. New joiners who haven't started yet are marked **Pre-boarded**:
@@ -102,17 +121,18 @@ say how long you need it and why, and you see who will approve it before you sen
    **No end date** if the role allows it.
 6. Under **Why do you need it?**, write at least 10 characters. Approvers read this, so be specific: "I approve the
    service desk team's expense claims while the lead is away."
-7. Select **Review**. Check **Your request** and **Who will approve it**: the people for each step, based on the
-   approval workflow and the org chart right now.
+7. Select **Review**. Check **Your request** and **Who will approve it**: each step in order, with the people it would
+   ask, based on the approval workflow and the org chart right now.
 8. Select **Send request**.
 
-![Choosing the access to request in the Request access wizard](../../../apps/web/public/help/en/employees-access-request.jpg)
+![Choosing the access to request in the access wizard](../../../apps/web/public/help/en/employees-access-request.jpg)
 
-**What happens next:** the request opens with the status **Waiting for approval**. By default it goes to your
-**Manager approval**, then to a **Security review** for high-risk roles, then to the **Access owner approval**. Some
-roles use their own workflow; the review step always shows the real path. When the last approver agrees, the role is
-granted automatically and the request says **Access granted — it ends on …** (or **it does not expire**). Time-bound
-access is removed automatically when it ends; you're reminded a few days before (**Access ending soon**).
+**What happens next:** the request opens with the status **Waiting for approval**, and its status line names who it
+waits for. By default it goes to your **Manager approval**, then to a **Security review** for high-risk roles, then to
+the **Access owner approval**. Some roles use their own workflow; the review step always shows the real path. When the
+last approver agrees, the role is granted automatically and the request says **Access granted — it ends on …** (or **it
+does not expire**). Time-bound access is removed automatically when it ends; you're reminded a few days before
+(**Access ending soon**).
 
 > **Important:** If the review step says **Nobody can approve this step — the request would be rejected**, nobody is
 > set up to approve that step for you. Don't send it: ask the service desk or the role owner first.
@@ -123,14 +143,16 @@ access is removed automatically when it ends; you're reminded a few days before 
 questions (VPN, passwords, MFA, printers) are answered in seconds, without a ticket. If it can't help, it prepares a
 ticket for you, and nothing is sent until you confirm.
 
-1. Select **Ask IT** in the sidebar, or **Ask a question** on the **Requests** page.
+1. Select **Ask IT** on **Home**, or **Ask a question** on the **Requests** page. Or type your question in **Search or jump
+   to…** at the top of the page and choose **Ask IT about "…"**: Ask IT opens with your question in the box.
 2. Describe the problem in your own words, in any language, or pick one of the **Suggested questions** (for example
    **My VPN won't connect**). Press Enter or select **Send**.
-3. Read the answer. The articles it used are listed under **Sources**; open them for the full steps.
-4. Under **Did this solve it?**, select **That solved it** or **I still need help**.
-5. If you still need help, Ask IT says **Still stuck? I've prepared a ticket for the service desk.** Select **Review
-   ticket**, check the **Title**, **Description**, **Urgency** and **Type** (**Something is broken** or **I need
-   something**), then select **Create ticket**. Select **Not now** to keep chatting instead.
+3. Read the answer. The articles it used are shown as cards under **Sources**; open them for the full steps.
+4. Under **Did this solve it?**, select **Yes, thanks** or **No, raise a ticket**.
+5. With **No, raise a ticket**, the ticket opens right under the answer, already filled in. Check the **Title**, the
+   **Description**, **How much does it affect you?** (**I can't work**, **It slows me down** or **It's minor**) and
+   the **Type** (**Something is broken** or **I need something**), then select **Create ticket**. Select **Not now**
+   to keep chatting instead.
 
 ![Ask IT, the virtual agent, with suggested questions](../../../apps/web/public/help/en/employees-ask-it.jpg)
 
@@ -138,10 +160,13 @@ ticket for you, and nothing is sent until you confirm.
 ticket**. The ticket appears under **My requests**, like any ticket you report. Your earlier conversations are
 listed under **Conversations**; start a fresh one with **New conversation**.
 
-> **Tip:** The label at the top of the chat says how answers are made. **Builtin · no LLM** means no AI language model
-> is configured: answers come from knowledge-base search and templates. **Language model** means an AI model writes
-> the answers from the knowledge base, after personal data is masked. Either way, answers can be wrong: check the
-> linked articles. See [Assistant and AI](assistant-and-ai.md).
+> **Tip:** Reading a knowledge article that didn't solve it? Answer **No** under **Was this article helpful?**:
+> **Still stuck?** offers **Ask IT** and **Report an issue**.
+
+> **Tip:** The label at the top of the chat says how answers are made. **Answers from our knowledge base** means no AI
+> language model is configured: answers come from knowledge-base search and templates. **AI answers based on our
+> knowledge base** means an AI model writes the answers from the knowledge base, after personal data is masked.
+> Either way, answers can be wrong: check the linked articles. See [Assistant and AI](assistant-and-ai.md).
 
 ## Report an issue
 
@@ -158,40 +183,49 @@ dropping, Outlook won't sync, a printer is jammed.
 7. Select **Send to the service desk**.
 
 **What happens next:** you see **INC-… sent. We're on it.** and the ticket opens. You get a notification that the
-service desk has it, and the ticket appears under **My requests**. The ticket page shows its progress (**Reported**,
-**In progress**, **Resolved**, **Closed**), who handles it (**Handled by**) and the **Conversation** with the service
-desk. Add details or answer questions in the reply box and select **Send reply**; add screenshots under
-**Attachments**. You're notified when an agent replies and when the ticket is resolved. The service desk's response and
+service desk has it, and the ticket appears under **My requests** as **Received**. The ticket page shows its progress
+(**Received**, **In progress**, **Resolved**, **Closed**), who handles it (**Handled by**) and the **Conversation**
+with the service desk. Add details or answer questions under **Message the service desk** and select **Send**; add
+screenshots under **Attachments**. You're notified when an agent replies and when the ticket is resolved. The service desk's response and
 resolution times are tracked against SLAs; see [Service desk](service-desk.md).
 
 ## Follow your requests
 
-**My requests** at the bottom of the **Requests** page lists everything you asked for: access requests, form
+**My requests** is at the top of the **Requests** page. It lists everything you asked for: access requests, form
 requests, tickets you reported and database access requests.
 
-1. Go to **Requests** and scroll to **My requests**.
+1. Go to **Requests**. **My requests** is the first section.
 2. Choose **Open**, **Closed** or **All**.
 3. Each row shows the reference, when it last changed and its status. While a request waits for approval, the row
-   says **Waiting for …** with the step name and the approvers' pictures.
+   says **Waiting for …** with the people it waits for and the step, for example **Waiting for Mei Lin (Manager
+   approval)**.
 4. Select a row to open the request.
 
-| Status you see                                                                 | Meaning                                                                         |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| **Waiting for approval**                                                       | An approver hasn't decided yet; the request page shows who (**Waiting for**)    |
-| **Approved** / **Rejected**                                                    | Decided. A rejection shows the approver's reason under **Rejected:**            |
-| **Withdrawn**                                                                  | You (or the person who asked for you) withdrew it                               |
-| **Couldn't be granted**                                                        | Approved, but the role no longer exists or the person is no longer active       |
-| **New**, **In progress**, **On hold**, **Resolved**, **Fulfilled**, **Closed** | A ticket, or a form request being fulfilled through a ticket                    |
-| **Being set up**, **Access granted**, **Ended**, **Removed**                   | Database access ([details](#request-database-access))                           |
-| **Done**                                                                       | Approved, and the form's own steps created what it set out to, such as a change |
+| Status you see                                               | Meaning                                                                              |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| **Received**                                                 | Sent, and no approval is needed                                                      |
+| **Waiting for approval**                                     | An approver hasn't decided yet; the request page shows who it waits for              |
+| **In progress**                                              | Approved, and IT (or a form's own steps) is working on it                            |
+| **Approved** / **Done**                                      | Decided, or fulfilled. Access requests say **Access granted** when the role is given |
+| **Rejected**                                                 | An approver said no; their reason is shown on the request                            |
+| **Withdrawn**                                                | You (or the person who asked for you) withdrew it                                    |
+| **Not completed**                                            | Approved, but the role no longer exists or the person is no longer active            |
+| **On hold**, **Resolved — please confirm**, **Closed**       | A ticket you reported (see [Confirm a fix](#confirm-a-fix-and-rate-the-service))     |
+| **Being set up**, **Access granted**, **Ended**, **Removed** | Database access ([details](#request-database-access))                                |
 
-The request page shows the **Approval path** (each step, who decided and when) and the **History**. For access
-requests it also shows the role, **For**, **Duration** and **Justification**; for forms, your **Answers** (records you
-picked are links) and, once the form has started work on its own, **What happens next**: each step, its status
-(**Waiting**, **Running**, **Done**, **Failed** or **Skipped**) and a link to what it created, such as **Open CHG-…**.
-If a step failed, the people who maintain the form are told and can run it again.
+The request page starts with a status line: what is happening, who it waits for, when it is due, and what comes next
+(**Next: Finance approval**). Under it, **Who will approve it** lists each approval step in order. A finished step says
+**Approved** or **Rejected** with who decided and when, and the approver's comment appears under it. The step that is
+waiting says **Waiting for approval** with who is asked and since when. A step that hasn't started says **Up next**
+with the people who would be asked, and a step that doesn't apply to your answers says **Not needed**.
 
-> **Tip:** The **Dashboard** also shows **Your open requests** and, for approvers, **Waiting for your approval**.
+For access requests the page also shows the role, **For** (only when someone else gets the access), **Duration** and
+**Justification**. For forms it shows your **Answers** (questions you left empty are not listed) and, once the form has
+started work on its own, **What happens next**: each step, its status (**Waiting**, **Running**, **Done**, **Failed** or
+**Skipped**) and a link to what it created, such as **Open CHG-…**. **History** lists everything that happened. If a step
+failed, the people who maintain the form are told and can run it again.
+
+> **Tip:** **Home** also shows **Your open requests**, and **My work** lists the approvals waiting for you.
 
 ### Confirm a fix and rate the service
 
@@ -219,28 +253,28 @@ request later.
 ## Fill in forms you've been asked to
 
 Some checks are due by a date, often every month or quarter: the server room inspection, a backup check, a firewall
-rule review. When someone asks you (or a group you're in) to fill in such a form, it appears under **To do** at the
-top of the **Requests** page and on the **Dashboard**, and you get a notification **To do: …**.
+rule review. When someone asks you (or a group you're in) to fill in such a form, it appears on **My work** under
+**To do** (and in **Needs you** on **Home**), and you get a notification **To do: …**. The **Requests** page tells you
+how many to-dos are waiting and links to **My work**.
 
-1. Go to **Requests**. **To do** lists your open to-dos, the soonest due first, each with its form and its due date:
-   **Due soon** (within two days) or **Overdue** when it's late. A to-do for a group says **For …**: anyone in the
-   group can do it.
-2. Select a to-do. The form opens with the to-do above it (for example, **Server room inspection 2026-10 — Due Oct
-   31**), any note from the person who asked, and **Sending the form completes this to-do.**
+1. Open **My work**. **To do** lists your open to-dos, the soonest due first, each with its form and a deadline badge
+   (**Overdue by …** when it's late). Anyone in the group can do a to-do assigned to a group.
+2. Select a to-do. The form opens with the to-do above it: its title, when it is due, any note from the person who
+   asked, who may fill it in, and **Sending the form completes this to-do.**
 3. Fill in the form and select **Submit**.
 
-**What happens next:** you see **Done: …** with the request number, and the to-do leaves your list (for a group, it
-leaves everyone's list). The request appears under **My requests** like any other; if the form needs approval, it
-goes through it as usual. Until you do it, you're reminded once a day from two days before the due date and after it,
-and once it's overdue the people who maintain the form are told. In the demo, **Server room inspection** for this
-month is waiting for the IT Administrators group.
+**What happens next:** the request page says **Done. This completed your to-do “…”** and **It is recorded for October 2026.** Select **Back to My work** to go back. The to-do leaves your list (for a group, it leaves everyone's list). The
+request appears under **My requests** like any other; if the form needs approval, it goes through it as usual. Until you
+do it, you're reminded once a day from two days before the due date and after it, and once it's overdue the people who
+maintain the form are told. In the demo, **Server room inspection** for this month is waiting for the IT Administrators
+group.
 
 ## See your devices and report a problem with one
 
 **My devices** lists the laptop, phone and other hardware IT has assigned to you, with the software licences assigned
 to you personally. Use it to check an asset tag or warranty, or to report a problem with a specific device.
 
-1. Go to **Requests** and select **My devices**.
+1. Select **My devices** in the sidebar (or on **Home**).
 2. Each device shows its **Asset tag**, **Serial number**, **Yours since** and **Warranty**.
 3. To report a problem with one, select **Report a problem** on it.
 
@@ -253,10 +287,9 @@ desk** so they can register it. In the demo, the service desk lead (`helpdesk`) 
 Developers, analysts and support staff sometimes need a role on a database for a limited time. ISBP handles the whole
 process: approval, creating the account, giving you the password once, and removing the access when it ends.
 
-1. Go to **Requests** and select **Request database access**.
-2. **Choose roles**, then set **Duration and reason**, then **Review and send**.
-3. When the access is ready (**Your access is ready** notification), open **Database access → My database access**
-   and select **Show the password**. It's shown only once, for 7 days after the account was created: store it in your
+1. Go to **Requests** and select **Direct database access**.
+2. Choose the roles on **Access**, set how long and why on **Details**, then check **Who will approve it** on **Review** and select **Send request**.
+3. When the access is ready (**Your access is ready** notification), select the notification (or **My database access** in the sidebar) to open it, and select **Show the password**. It's shown only once, for 7 days after the account was created: store it in your
    password manager.
 
 The approval goes to your **Manager approval**, then the **Role owner approval**, and to **Information security
@@ -265,18 +298,21 @@ approval** for high-risk roles. Details: [Data and automation](data-and-automati
 ## Approve or reject a request
 
 If you're a manager, a role or application owner, a CAB member or in an approving group, requests come to you for a
-decision. Decide promptly: approval steps have deadlines, with reminders before them, and some workflows escalate the request to someone else when a deadline passes.
+decision. Decide promptly: approval steps have deadlines, with reminders before them, and some workflows escalate the
+request to someone else when a deadline passes.
 
-1. Select **Approvals** in the sidebar. The number next to it is how many decisions are waiting. **Waiting for me**
-   lists them, the most urgent first; each shows the workflow, the step, the requester and a deadline badge such as
-   **Due in 5 hours** or **Overdue by 2 days**.
-2. To see the details first, select the request. The panel shows **What is requested**, the **Approval path**, the
-   **History** and a link to **Open the request**. Records the requester picked on a form, such as configuration
-   items, are links you can open (those you aren't allowed to see are only counted).
-3. Select **Approve** or **Reject**.
+1. Open **My work**: **To decide** lists the requests waiting for you, the most urgent first. Select one, or the
+   approval notification, to open it. **View all** opens the **Approvals** inbox, where **Waiting for me** lists them.
+   Each card says the step (**Manager approval**), what is requested, who asked (**Requested by …**) and a deadline
+   badge such as **Due in 5 hours** or **Overdue by 2 days**.
+2. To see the details first, select the card. The panel shows **What is requested**, **Who will approve it** (every step,
+   with the step you're at marked **Waiting for you**), a **History** you can open, and a link to **Open the request**.
+   Records the requester picked on a form, such as configuration items, are links you can open (those you aren't allowed
+   to see are only counted).
+3. Select **Approve** or **Reject**. On a phone, both buttons are on the card, so you can decide from the list.
 4. In the dialog, add a comment: optional when you approve (**Comment (optional)**), required when you reject (**Why
    are you rejecting it?**). The requester sees it.
-5. Some steps ask you to fill in fields with your decision, under **To fill in** — for example an evaluation result,
+5. Some steps ask you to fill in fields with your decision, under **To fill in**: for example an evaluation result,
    handling notes or the date a device was wiped. Fields marked \* are needed to approve; when you reject they are
    optional unless the step says otherwise. What you enter is kept with your decision and shown on the request.
 6. Select **Approve** or **Reject** in the dialog.
@@ -287,9 +323,9 @@ withdrawn.
 
 ![The approvals inbox with requests waiting for a decision](../../../apps/web/public/help/en/employees-approvals.jpg)
 
-**What happens next:** the request moves on to the next step, or completes. The requester is notified and sees your
-comment. **Decided by me** lists what you decided. If someone else already decided (with "first answer decides"), you
-see **This approval has already been handled.**
+**What happens next:** the card leaves the list, and the toast names the request you decided on. The
+request moves on to the next step, or completes. The requester is notified and sees your comment. **Decided by me**
+lists what you decided. If someone else already decided, the panel says **Already decided by …** with the time.
 
 > **Tip:** You can search the inbox by reference (**Search requests…**). New approvals reach you in the app and, if
 > email is set up, by email (**Approvals waiting for me**).
@@ -311,7 +347,8 @@ own request. If **Hand over** isn't there, that workflow step doesn't allow it.
 
 ## Set up out-of-office before you go on leave
 
-Schedule out-of-office so approvals don't wait for you while you're away.
+Schedule out-of-office so approvals don't wait for you while you're away. The setting only appears for people who
+approve things, because it hands approvals to a colleague.
 
 1. Open the user menu (your avatar, top right) and select **Profile & preferences**.
 2. Go to **Out of office** and select **Schedule**.
@@ -329,12 +366,16 @@ scheduled, with approvals going to the service desk lead.
 ISBP notifies you about approvals, your requests, tickets and more: in the app (the bell in the header) and by email.
 
 1. Open the user menu and select **Profile & preferences**, then **Notifications**.
-2. For each **Notification** type, switch **In-app** and **Email** on or off. Changes are saved automatically.
-3. **Reset to defaults** restores the original settings.
+2. The types are grouped into **Approvals**, **My requests**, **Assigned to me**, **Announcements**, **Security notices**
+   and **Other**. Each group has **All on** and **All off**. To pick individual types, open **Customise** and switch
+   **In-app** and **Email** for each one. Changes are saved automatically.
+3. The page shows the types that apply to you: the ones you set before, the ones you have received, and the ones that
+   can't be switched off. Select **Show all** to see the rest.
+4. **Reset to defaults** restores the original settings.
 
 **What happens next:** new notifications follow your choices. Types marked **Required for security** can't be turned
-off. If the page says email notifications aren't set up on this platform yet, you only get notifications in the app
-until an administrator turns email on.
+off. If the page says email notifications aren't set up on this platform yet, the **Email** column is hidden and you
+only get notifications in the app until an administrator turns email on.
 
 To read notifications, select the bell: select one to open what it's about, or **Mark all as read**. **View all
 notifications** opens the full list with **All** and **Unread** tabs.

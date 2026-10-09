@@ -6,7 +6,7 @@ import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
-import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
+import { RelativeTime } from '@isbp/ui/relative-time';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { BotIcon, HistoryIcon, ShieldAlertIcon, TriangleAlertIcon, UserIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -35,7 +35,7 @@ export function DeploymentsTable({
   const [state, set] = useListState({ pageSize: 25 });
   const envFilter = (state.env as string | undefined) || undefined;
   const statusFilter = (state.status as string | undefined) || undefined;
-  const { data, isLoading, isFetching } = useApiQuery<Page<Deployment>>('/alm/deployments', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<Deployment>>('/alm/deployments', {
     application,
     release,
     environment: envFilter,
@@ -113,7 +113,7 @@ export function DeploymentsTable({
       {
         id: 'actor',
         header: t('fields.actor'),
-        meta: { className: 'hidden max-w-44 md:table-cell', headerClassName: 'hidden md:table-cell' },
+        meta: { className: 'max-w-44', priority: 3 },
         cell: ({ row }) => {
           const Icon = row.original.source === 'api' ? BotIcon : UserIcon;
           return (
@@ -128,10 +128,7 @@ export function DeploymentsTable({
       {
         id: 'change',
         header: t('fields.change'),
-        meta: {
-          className: 'hidden font-mono text-xs lg:table-cell',
-          headerClassName: 'hidden lg:table-cell',
-        },
+        meta: { className: 'font-mono text-xs', priority: 2 },
         cell: ({ row }) => {
           const c = row.original.change;
           if (!c) return <span className="text-muted-foreground">—</span>;
@@ -154,17 +151,13 @@ export function DeploymentsTable({
         cell: ({ row }) => (
           <span className="flex flex-col">
             <RelativeTime date={row.original.startedAt} />
-            <DateTime date={row.original.startedAt} className="hidden text-muted-foreground xl:inline" />
           </span>
         ),
       },
       {
         id: 'duration',
         header: t('fields.duration'),
-        meta: {
-          className: 'hidden text-xs tabular-nums sm:table-cell',
-          headerClassName: 'hidden sm:table-cell',
-        },
+        meta: { className: 'text-xs tabular-nums', priority: 3 },
         cell: ({ row }) =>
           row.original.status === 'in_progress' ? (
             <span className="text-muted-foreground">{t('deployments.running')}</span>
@@ -188,48 +181,53 @@ export function DeploymentsTable({
       sort={state.sort ?? '-startedAt'}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(d) => d.id}
       onPageChange={(page) => set({ page })}
       onPageSizeChange={(pageSize) => set({ pageSize })}
       onSortChange={(sort) => set({ sort })}
       toolbar={
-        <>
-          <Select value={envFilter ?? ALL} onValueChange={(v) => set({ env: v === ALL ? undefined : v })}>
-            <SelectTrigger className="w-full sm:w-48" aria-label={t('fields.environment')}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>{t('deployments.allEnvironments')}</SelectItem>
-              {environments.map((e) => (
-                <SelectItem key={e.id} value={e.id}>
-                  {e.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={statusFilter ?? ALL}
-            onValueChange={(v) => set({ status: v === ALL ? undefined : v })}
-          >
-            <SelectTrigger className="w-full sm:w-44" aria-label={t('fields.status')}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>{t('deployments.allStatuses')}</SelectItem>
-              <SelectItem value="failed,rolled_back">{t('deployments.failures')}</SelectItem>
-              {DEPLOYMENT_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {t(`deploymentStatus.${s}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {filtered && (
-            <Button variant="ghost" size="sm" onClick={() => set({ env: undefined, status: undefined })}>
-              {tc('clearFilters')}
-            </Button>
-          )}
-        </>
+        // Nothing deployed yet: no filters to offer.
+        !filtered && data && data.total === 0 ? undefined : (
+          <>
+            <Select value={envFilter ?? ALL} onValueChange={(v) => set({ env: v === ALL ? undefined : v })}>
+              <SelectTrigger className="w-full sm:w-48" aria-label={t('fields.environment')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>{t('deployments.allEnvironments')}</SelectItem>
+                {environments.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={statusFilter ?? ALL}
+              onValueChange={(v) => set({ status: v === ALL ? undefined : v })}
+            >
+              <SelectTrigger className="w-full sm:w-44" aria-label={t('fields.status')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>{t('deployments.allStatuses')}</SelectItem>
+                <SelectItem value="failed,rolled_back">{t('deployments.failures')}</SelectItem>
+                {DEPLOYMENT_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {t(`deploymentStatus.${s}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {filtered && (
+              <Button variant="ghost" size="sm" onClick={() => set({ env: undefined, status: undefined })}>
+                {tc('clearFilters')}
+              </Button>
+            )}
+          </>
+        )
       }
       empty={
         <EmptyState

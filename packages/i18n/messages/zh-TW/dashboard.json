@@ -1,11 +1,11 @@
 {
-  "title": "儀表板",
+  "title": "首頁",
   "greeting": {
     "morning": "早安，{name}",
     "afternoon": "午安，{name}",
     "evening": "晚安，{name}"
   },
-  "subtitle": "以下是平台今天的整體動態。",
+  "subtitle": "今天需要什麼協助？",
   "kpi": {
     "people": "啟用中人員",
     "peopleHint": "目錄中共 {total} 人",
@@ -26,7 +26,8 @@
     "security": "安全性",
     "other": "其他",
     "total": "總計",
-    "tooltip": "{date}：共 {total} 個事件，其中 {security} 個與安全性相關"
+    "tooltip": "{date}：共 {total} 個事件，其中 {security} 個與安全性相關",
+    "section": "活動"
   },
   "sources": {
     "title": "人員登入方式",
@@ -36,30 +37,30 @@
     "title": "近期活動",
     "empty": "尚無任何活動。"
   },
-  "quick": {
-    "title": "快速動作",
-    "createUser": "新增人員",
-    "grantAccess": "授予角色",
-    "reviewAudit": "檢閱稽核日誌",
-    "configureSso": "設定單一登入"
+  "allClear": "都處理完了：目前沒有等待您處理的事項。",
+  "waiting": "{count, plural, other {今天有 # 件事需要您處理。}}",
+  "figures": "人員與平台",
+  "needsYou": {
+    "title": "需要您處理",
+    "description": "「我的工作」中最緊急的事項。",
+    "open": "開啟我的工作",
+    "tasksTitle": "您進行中的工作"
   },
-  "modules": {
-    "title": "您的模組",
-    "description": "這裡的每項功能都是以同一套 SDK 建構的模組。",
-    "manage": "管理模組"
+  "requests": {
+    "title": "您進行中的申請",
+    "description": "您提出的申請與目前進度。",
+    "new": "提出申請"
   },
-  "welcome": {
-    "title": "歡迎使用 IS Big Platform",
-    "body": "使用搜尋（⌘K / Ctrl K）即可快速前往任何位置。如需存取更多模組，請洽詢您的管理員。"
+  "actions": {
+    "label": "快速動作",
+    "askIt": "詢問 IT",
+    "askItHint": "立即取得解答",
+    "report": "回報問題",
+    "reportHint": "有東西無法正常運作",
+    "request": "提出申請",
+    "requestHint": "存取權、設備等",
+    "devices": "我的設備",
+    "devicesHint": "配發給您的設備"
   },
-  "myWork": {
-    "approvals": "待您簽核",
-    "approvalsHint": "需要您決定的申請。",
-    "open": "開啟",
-    "noApprovals": "目前沒有待您簽核的項目。",
-    "requests": "您進行中的申請",
-    "requestsHint": "您送出的權限與其他申請。",
-    "newRequest": "新增申請",
-    "noRequests": "您目前沒有進行中的申請。"
-  }
+  "onlyTasks": "沒有待您決定的事項。您有 {count} 項進行中的工作。"
 }

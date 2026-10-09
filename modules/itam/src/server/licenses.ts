@@ -38,6 +38,7 @@ import {
   licenseAssignments,
   licenses,
   softwareInstallations,
+  softwareTitleRules,
   vendors,
 } from './schema';
 import {
@@ -58,6 +59,8 @@ export type LicenseQueryData = z.output<typeof licenseQuerySchema>;
 type AssignmentData = z.output<typeof createAssignmentSchema>;
 
 export const LICENSE_ENTITY = 'itam.license';
+/** A seat whose product no device of its holder has reported for this long is a reclaim candidate. */
+export const RECLAIM_DAYS = 90;
 export const licenseHref = (reference: string) => `/itam/software/${reference}`;
 const auditLabel = (l: { number: number; product: string }) => `${formatLicenseRef(l.number)} ${l.product}`;
 
@@ -77,6 +80,16 @@ const licensedExpr = sql<boolean>`exists (
 
 const managedExpr = sql<boolean>`exists (
   select 1 from ${licenses} l2 where lower(l2.product) = lower(${softwareInstallations.product}))`;
+
+/**
+ * One install per device and product: a device that reports a mapped title and the licence's product (or two titles
+ * mapped to one product) has two rows; lists of a product's installs show the reported product first.
+ */
+const firstOfProduct = sql<boolean>`not exists (
+  select 1 from ${softwareInstallations} j
+   where j.asset_id = ${softwareInstallations.assetId}
+     and lower(j.product) = lower(${softwareInstallations.product})
+     and ((j.reported_as is not null), j.id) < ((${softwareInstallations.reportedAs} is not null), ${softwareInstallations.id}))`;
 
 const COMPLIANCE_RANK = sql`case ${licenses.complianceState} when 'over_deployed' then 0 when 'expired' then 1 when 'expiring' then 2 when 'under_used' then 3 else 4 end`;
 const ASSIGNED_COUNT = sql`(select count(*) from ${licenseAssignments} la where la.license_id = ${licenses.id})`;
@@ -182,7 +195,10 @@ export class LicenseService {
     const wanted = [...new Set(products.map(lower))];
     if (!wanted.length) return new Map();
     const rows = await db
-      .select({ product: sql<string>`lower(${softwareInstallations.product})`, n: count() })
+      .select({
+        product: sql<string>`lower(${softwareInstallations.product})`,
+        n: sql<number>`count(distinct ${softwareInstallations.assetId})::int`,
+      })
       .from(softwareInstallations)
       .innerJoin(assets, eq(assets.id, softwareInstallations.assetId))
       .where(
@@ -217,15 +233,23 @@ export class LicenseService {
    * Entering `over_deployed` or `expired` notifies the asset managers.
    */
   async recomputeProducts(tx: Db, products: readonly string[], today = companyToday()) {
+    return this.recomputeRows(tx, await this.lockProducts(tx, products), today);
+  }
+
+  /**
+   * Locks the licences of these products (in number order) for the rest of the transaction. `for no key update`:
+   * a seat insert holds a key-share lock on its licence (the foreign key), which `for update` would wait on, so two
+   * seat changes at once deadlocked. Call it before writing seats so concurrent changes queue up instead.
+   */
+  async lockProducts(tx: Db, products: readonly string[]) {
     const wanted = [...new Set(products.map(lower))];
     if (!wanted.length) return [];
-    const rows = await tx
+    return tx
       .select()
       .from(licenses)
       .where(inArray(sql`lower(${licenses.product})`, wanted))
       .orderBy(asc(licenses.number))
-      .for('update');
-    return this.recomputeRows(tx, rows, today);
+      .for('no key update');
   }
 
   async recomputeLicenses(tx: Db, licenseIds: readonly string[], today = companyToday()) {
@@ -416,8 +440,27 @@ export class LicenseService {
   async assignments(ref: string, q: z.output<typeof assignmentQuerySchema>) {
     const l = await this.resolve(ref);
     const person = alias(users, 'person');
+    const product = lower(l.product);
+    // Seats that could go back to the pool: the person left (or the device is gone), or — when inventory tools
+    // report the product at all — nothing has reported it on their devices for RECLAIM_DAYS.
+    const reported = sql`exists (select 1 from ${softwareInstallations} r where lower(r.product) = ${product})`;
+    const seenSince = sql`now() - make_interval(days => ${RECLAIM_DAYS})`;
+    const reclaim = sql<'left' | 'device_gone' | 'unused' | null>`case
+      when ${licenseAssignments.userId} is not null and ${person.status} <> 'active' then 'left'
+      when ${licenseAssignments.assetId} is not null and ${assets.status} in ('retired', 'disposed', 'lost')
+        then 'device_gone'
+      when ${reported} and ${licenseAssignments.userId} is not null and not exists (
+        select 1 from ${softwareInstallations} i join ${assets} d on d.id = i.asset_id
+         where lower(i.product) = ${product} and d.assigned_to = ${licenseAssignments.userId}
+           and i.last_seen_at >= ${seenSince}) then 'unused'
+      when ${reported} and ${licenseAssignments.assetId} is not null and not exists (
+        select 1 from ${softwareInstallations} i
+         where lower(i.product) = ${product} and i.asset_id = ${licenseAssignments.assetId}
+           and i.last_seen_at >= ${seenSince}) then 'unused'
+      else null end`;
     const where = all(
       eq(licenseAssignments.licenseId, l.id),
+      q.reclaim ? sql`(${reclaim}) is not null` : undefined,
       q.target === 'user'
         ? sql`${licenseAssignments.userId} is not null`
         : q.target === 'asset'
@@ -442,6 +485,7 @@ export class LicenseService {
           assetCategory: assets.category,
           assetStatus: assets.status,
           assetAssignee: assets.assignedTo,
+          reclaim,
         })
         .from(licenseAssignments)
         .leftJoin(person, eq(person.id, licenseAssignments.userId))
@@ -482,6 +526,7 @@ export class LicenseService {
               : null,
           assignedAt: r.a.assignedAt,
           assignedBy: by ? { id: by.id, displayName: by.displayName } : null,
+          reclaim: r.reclaim ?? null,
         };
       }),
       total: total!.n,
@@ -499,6 +544,7 @@ export class LicenseService {
       filter.product ? eq(sql`lower(${softwareInstallations.product})`, lower(filter.product)) : undefined,
       filter.assetId ? eq(softwareInstallations.assetId, filter.assetId) : undefined,
       filter.product ? notInArray(assets.status, INACTIVE_DEVICE) : undefined,
+      filter.product ? firstOfProduct : undefined,
       q.unlicensed ? sql`not ${licensedExpr}` : undefined,
       q.q
         ? or(
@@ -686,6 +732,20 @@ export class LicenseService {
     return this.ctx.transaction(async (tx) => {
       const [row] = await tx.update(licenses).set(patch).where(eq(licenses.id, before.id)).returning();
       const l = row!;
+      if (patch.product !== undefined)
+        // Titles mapped to this licence count as its new product name.
+        await tx
+          .update(softwareInstallations)
+          .set({ product: l.product })
+          .where(
+            inArray(
+              sql`lower(${softwareInstallations.reportedAs})`,
+              tx
+                .select({ title: sql`lower(${softwareTitleRules.title})` })
+                .from(softwareTitleRules)
+                .where(eq(softwareTitleRules.licenseId, l.id)),
+            ),
+          );
       await this.ctx.audit.record(
         {
           action: 'itam.license.updated',
@@ -729,6 +789,7 @@ export class LicenseService {
     }
     try {
       return await this.ctx.transaction(async (tx) => {
+        await this.lockProducts(tx, [l.product]);
         const [row] = await tx
           .insert(licenseAssignments)
           .values({
@@ -770,6 +831,7 @@ export class LicenseService {
     auth.require(SOFTWARE_MANAGE);
     const l = await this.resolve(ref);
     await this.ctx.transaction(async (tx) => {
+      await this.lockProducts(tx, [l.product]);
       const [row] = await tx
         .delete(licenseAssignments)
         .where(and(eq(licenseAssignments.id, assignmentId), eq(licenseAssignments.licenseId, l.id)))

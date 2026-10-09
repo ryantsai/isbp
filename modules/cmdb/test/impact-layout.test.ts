@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { CiRef, ImpactNode } from '../src/contracts';
-import { fitText, layoutImpact, NODE_W, nodesPerRow } from '../src/web/impact-layout';
+import {
+  fitText,
+  layoutImpact,
+  NODE_H,
+  NODE_W,
+  nodesPerRow,
+  PAD,
+  pathToRoot,
+} from '../src/web/impact-layout';
 
 const ci = (id: string, classKey = 'server'): CiRef => ({
   id,
@@ -83,6 +91,37 @@ describe('impact graph layout', () => {
     const lonely = layoutImpact({ root: ci('r'), impacted: [], dependsOn: [] });
     expect(lonely.nodes).toHaveLength(1);
     expect(lonely.edges).toHaveLength(0);
+    expect(lonely.bands).toEqual([]);
+  });
+
+  it('labels the two sides right above and right below the analysed CI, clear of every node', () => {
+    const root = at('root:root');
+    expect(layout.bands.map((b) => [b.side, b.count])).toEqual([
+      ['impacted', 4],
+      ['dependsOn', 1],
+    ]);
+    const [up, down] = layout.bands;
+    // "Affected if it fails" sits between the first impacted row and the CI; "Depends on" between the CI and its
+    // first dependency row. The 22 px label must not touch a node.
+    expect(up!.y).toBeLessThan(root.y - 11);
+    expect(up!.y).toBeGreaterThan(at('impacted:a').y + NODE_H + 11);
+    expect(down!.y).toBeGreaterThan(root.y + NODE_H + 11);
+    expect(down!.y).toBeLessThan(at('dependsOn:db').y - 11);
+    // Labels start at the left edge, where edges never run (they leave the CI from its centre).
+    expect(root.x + NODE_W / 2).toBeGreaterThan(PAD + 150);
+  });
+
+  it('only labels the sides that have CIs, and keeps room for the labels on a one-column graph', () => {
+    const chain = layoutImpact({ root: ci('r'), impacted: [node('up', 1, 'r')], dependsOn: [] });
+    expect(chain.bands.map((b) => b.side)).toEqual(['impacted']);
+    expect(chain.width).toBeGreaterThanOrEqual(2 * NODE_W + 2 * PAD);
+  });
+
+  it('finds the path from a CI back to the analysed CI', () => {
+    expect([...pathToRoot(layout, 'impacted:svc')]).toEqual(['impacted:svc', 'impacted:b', 'root:root']);
+    expect([...pathToRoot(layout, 'dependsOn:db')]).toEqual(['dependsOn:db', 'root:root']);
+    expect(pathToRoot(layout, null).size).toBe(0);
+    expect(pathToRoot(layout, 'nope').size).toBe(0);
   });
 
   it('shortens long names, counting wide characters double', () => {

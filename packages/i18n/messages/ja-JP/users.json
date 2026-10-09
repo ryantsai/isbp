@@ -56,9 +56,15 @@
     "password": "初期パスワード",
     "passwordHint": "10 文字以上で指定してください。初回サインイン時に変更が必要です。SSO 専用アカウントの場合は空欄のままにします。",
     "groups": "グループ",
-    "groupsHint": "グループのメンバーには、そのグループに割り当てられたロールが付与されます。",
+    "groupsHint": "グループでアクセス権が決まります。グループに付与されたロールはメンバーに適用されます。",
     "created": "{name} を追加しました",
-    "saved": "変更を保存しました"
+    "saved": "変更を保存しました",
+    "requiredNote": "* の付いた項目は必須です。",
+    "displayNameHint": "姓と名から自動で入力されます。別の名前で呼ばれている場合は変更してください。",
+    "usernameInvalid": "英字、数字、「.」、「_」、「-」のみ使用できます。",
+    "managerFromDepartment": "候補: {department} の上司です。",
+    "more": "言語、タイム ゾーン、パスワード",
+    "moreEditing": "言語とタイム ゾーン"
   },
   "detail": {
     "tabs": {
@@ -90,7 +96,11 @@
     "assignments": "ロールの割り当て",
     "manageAccess": "アクセスの管理",
     "expires": "{time} に期限切れ",
-    "activityHint": "このユーザーに対する変更と、本人による操作です。"
+    "activityHint": "このユーザーに対する変更と、本人による操作です。",
+    "notFound": "このユーザーは存在しないか、表示する権限がありません。",
+    "never": "なし",
+    "showPermissions": "アクセス許可を表示",
+    "hidePermissions": "アクセス許可を非表示"
   },
   "actions": {
     "edit": "プロファイルを編集",
@@ -100,7 +110,8 @@
     "offboard": "オフボーディング",
     "resetPassword": "パスワードを設定",
     "revokeSessions": "すべてのデバイスからサインアウト",
-    "more": "その他の操作"
+    "more": "その他の操作",
+    "transfer": "別の部署へ異動"
   },
   "lifecycle": {
     "onboarded": "{name} を有効化しました",
@@ -125,5 +136,84 @@
     "newPassword": "新しいパスワード",
     "requireChange": "次回サインイン時にパスワードの変更を要求する",
     "passwordSet": "パスワードを更新しました"
+  },
+  "picker": {
+    "clear": "{name} をクリア",
+    "search": "ユーザーを検索"
+  },
+  "groupPicker": {
+    "selected": "選択したグループ",
+    "unknown": "不明なグループ",
+    "remove": "{name} を削除",
+    "add": "グループに追加",
+    "search": "グループを検索…",
+    "options": "グループ",
+    "none": "グループが見つかりません。",
+    "members": "{count, plural, =0 {メンバーなし} other {メンバー # 人}}",
+    "chosen": "選択済み"
+  },
+  "nextSteps": {
+    "title": "{name} を追加しました。次の作業",
+    "description": "新しいユーザーに通常必要な作業です。このカードは今回のみ表示されます。",
+    "dismiss": "次の作業を閉じる",
+    "groups": "グループに追加する",
+    "groupsHint": "グループに追加すると、チームと同じアクセス権が付与されます。",
+    "groupsAction": "グループに追加",
+    "role": "ロールを付与する",
+    "roleHint": "グループで付与されないアクセス権が必要な場合に使用します。",
+    "roleAction": "ロールを付与",
+    "device": "デバイスを割り当てる",
+    "deviceHint": "在庫のノート PC や携帯電話を選んで {name} に割り当てます。",
+    "deviceAction": "在庫のデバイス",
+    "onboard": "入社日にアカウントを有効にする",
+    "onboardHint": "事前登録されたユーザーです。入社したら、このページ上部の [オンボーディング] を選択してください。"
+  },
+  "groups": {
+    "title": "グループ",
+    "description": "これらのグループに付与されたロールがこのユーザーに適用されます。",
+    "add": "グループに追加",
+    "none": "どのグループにも所属していません。",
+    "noneHint": "チームのグループに追加してください。",
+    "synced": "{source} で管理: ディレクトリで変更してください",
+    "remove": "グループから削除",
+    "removeLabel": "{group} から削除",
+    "removed": "{group} から削除しました",
+    "undo": "元に戻す",
+    "added": "{count, plural, =0 {すでにそのグループに所属しています} other {# 個のグループに追加しました}}",
+    "addTitle": "{name} をグループに追加",
+    "addDescription": "これらのグループに付与されたロールがすぐに適用されます。",
+    "choose": "グループ",
+    "pick": "グループを選択",
+    "addConfirm": "{count, plural, =0 {追加} other {# 個のグループに追加}}"
+  },
+  "transfer": {
+    "title": "{name} を別の部署へ異動",
+    "description": "部署、上司、役職、グループを一度に変更します。残りのアクセス権は、異動前と異動後の上司に確認を依頼します。",
+    "department": "異動先の部署",
+    "departmentPlaceholder": "部署を選択",
+    "currently": "現在の部署: {department}",
+    "manager": "上司",
+    "noManager": "上司なし",
+    "managerFrom": "候補: {department} の上司です。",
+    "jobTitle": "役職",
+    "leave": "外れるグループ",
+    "leaveHint": "チェック済み: 現在の部署の多くが所属し、異動先の部署では多くが所属していないグループです。",
+    "noGroups": "どのグループにも所属していません。",
+    "suggested": "候補",
+    "synced": "{source} で管理",
+    "join": "参加するグループ",
+    "joinSuggested": "候補: 異動先の部署の多くが所属しているグループです。",
+    "joinHint": "新しいチームのグループを追加してください。",
+    "roles": "確認が必要な部署単位のロール",
+    "rolesHint": "これらのロールは 1 つの部署でのみ有効です。削除するロールをチェックしてください。",
+    "rolesHintReadOnly": "これらのロールは 1 つの部署でのみ有効です。不要になったロールの削除は、ロールを付与できる担当者に依頼してください。",
+    "scopedTo": "{department} 内",
+    "forOldJob": "異動前の部署用",
+    "removeRole": "{role} を削除",
+    "summary": "{join, plural, =0 {参加するグループなし} other {# 個のグループに参加}}、{leave, plural, =0 {外れるグループなし} other {# 個から外れる}}、{roles, plural, =0 {削除するロールなし} other {# 個のロールを削除}}。",
+    "submit": "異動",
+    "done": "{name} を {department} に異動しました",
+    "chooseDepartment": "異動先の部署を選択してください。",
+    "sameDepartment": "すでにこの部署に所属しています。"
   }
 }

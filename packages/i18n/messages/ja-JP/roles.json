@@ -37,7 +37,93 @@
       "roles": "ロール",
       "audit": "監査ログ",
       "modules": "モジュール",
-      "idp": "サインイン プロバイダー"
+      "idp": "サインイン プロバイダー",
+      "access-requests": "アクセス申請",
+      "ai": "AI",
+      "api-clients": "API クライアント",
+      "applications": "アプリケーション アクセス",
+      "custom-fields": "カスタム フィールド",
+      "databases": "データベース接続",
+      "forms": "フォーム",
+      "mcp": "外部エージェント (MCP)",
+      "notifications": "通知",
+      "role-query": "ロール クエリ API",
+      "workflows": "ワークフロー"
+    },
+    "alm": {
+      "apps": "アプリケーション",
+      "deployments": "デプロイ",
+      "releases": "リリース",
+      "repositories": "リポジトリ"
+    },
+    "announcements": {
+      "posts": "お知らせ"
+    },
+    "assistant": {
+      "agent": "組み込みエージェント",
+      "change-sets": "設定の変更"
+    },
+    "cmdb": {
+      "cis": "構成アイテム",
+      "classes": "CI クラス",
+      "services": "ビジネス サービス"
+    },
+    "dbaccess": {
+      "grants": "データベース アクセス",
+      "reviews": "アクセス レビュー",
+      "self": "自分のデータベース アクセス",
+      "servers": "データベース サーバー"
+    },
+    "etl": {
+      "endpoints": "データ API",
+      "pipelines": "パイプライン"
+    },
+    "helpdesk-ai": {
+      "assist": "エージェント支援",
+      "chat": "IT に質問",
+      "insights": "インサイト"
+    },
+    "integrations": {
+      "conflicts": "同期の競合",
+      "connections": "接続"
+    },
+    "isms": {
+      "accounts": "共有アカウント",
+      "assets": "情報資産",
+      "config": "情報セキュリティの設定",
+      "reviews": "アカウント レビュー",
+      "self": "自分のタスク",
+      "stocktakes": "棚卸"
+    },
+    "itam": {
+      "assets": "資産",
+      "config": "資産の設定",
+      "contracts": "契約",
+      "hardware": "ハードウェア",
+      "licenses": "ライセンス",
+      "self": "自分のデバイス",
+      "software": "ソフトウェア"
+    },
+    "itsm": {
+      "changes": "変更",
+      "config": "サービス デスクの設定",
+      "problems": "問題",
+      "reports": "レポート",
+      "tickets": "チケット"
+    },
+    "knowledge": {
+      "articles": "記事",
+      "categories": "カテゴリ"
+    },
+    "projects": {
+      "portfolio": "ポートフォリオ",
+      "projects": "プロジェクト",
+      "tasks": "タスク"
+    },
+    "scheduler": {
+      "jobs": "スケジュールされたジョブ",
+      "scripts": "スクリプト",
+      "sql": "SQL ステップ"
     }
   },
   "permissions": {
@@ -61,7 +147,10 @@
     "patternHint": "module.resource.action の形式です。任意のセグメントに * を使用できます (例: core.users.* や *.*.read)。",
     "patternInvalid": "有効なパターンではありません。module.resource.action の形式で、必要に応じて * ワイルドカードを使用してください。",
     "patternExists": "このロールには既にそのパターンがあります。",
-    "patternNotHeld": "付与できるのは、自分が保持しているアクセス許可のみです。"
+    "patternNotHeld": "付与できるのは、自分が保持しているアクセス許可のみです。",
+    "everything": "すべて",
+    "everythingIn": "{name} のすべて",
+    "impliedByName": "「{name}」に含まれています"
   },
   "form": {
     "createTitle": "新しいロール",
@@ -218,7 +307,15 @@
     "grant": "付与",
     "noAssignments": "まだ誰にも付与されていません",
     "viewAll": "{count} 件すべてを表示",
-    "manageAssignments": "割り当ての管理"
+    "manageAssignments": "割り当ての管理",
+    "tabs": {
+      "permissions": "アクセス許可",
+      "activity": "アクティビティ"
+    },
+    "showCodes": "アクセス許可のコードを表示",
+    "hideCodes": "アクセス許可のコードを非表示",
+    "activityHint": "このロールの変更と、ロールが付与または削除されたユーザーです。",
+    "deleteRequested": "このロールは申請を受け付けています。過去に申請があった場合は削除できません (申請履歴は保持されます)。[このロールの申請を受け付ける] をオフにし、メンバーを削除してください。"
   },
   "errors": {
     "escalation": "自分が保持していないアクセス許可は付与できません: {permissions}",
@@ -275,5 +372,24 @@
     "unsaved": "未保存の変更があります",
     "reset": "リセット",
     "saved": "申請の設定を保存しました"
+  },
+  "list": {
+    "assigned": "{count, plural, =0 {未付与} other {# 件の付与}}",
+    "count": "{count, plural, other {# 個のロール}}",
+    "type": "種類",
+    "types": {
+      "all": "すべてのロール",
+      "system": "システム",
+      "custom": "カスタム"
+    },
+    "requestable": "申請",
+    "requestables": {
+      "all": "申請の可否を問わない",
+      "yes": "申請を受け付ける",
+      "no": "申請を受け付けない"
+    },
+    "platform": "プラットフォーム管理",
+    "expandAll": "すべて展開",
+    "collapseAll": "すべて折りたたむ"
   }
 }

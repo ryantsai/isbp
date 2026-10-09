@@ -5,33 +5,25 @@ import { Slot, type WebPageProps } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { ErrorState } from '@isbp/ui/empty-state';
 import { Markdown } from '@isbp/ui/markdown';
-import { FadeIn, Stagger, StaggerItem } from '@isbp/ui/motion';
+import { Stagger, StaggerItem } from '@isbp/ui/motion';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import {
-  ArrowLeftIcon,
-  CheckIcon,
-  ChevronDownIcon,
-  FileQuestionIcon,
-  PencilIcon,
-  RocketIcon,
-} from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { CheckIcon, PencilIcon, RocketIcon } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import type { AppDetail, ReleaseDetail, ReleaseStatus } from '../../contracts';
-import { DeploymentStatusText, ENV_ICON, RELEASE_META, ReleaseStatusBadge } from '../badges';
+import {
+  type AppDetail,
+  ENVIRONMENT_KINDS,
+  type EnvironmentKind,
+  type ReleaseDetail,
+  type ReleaseStatus,
+} from '../../contracts';
+import { DeploymentStatusText, ENV_ICON, RELEASE_META } from '../badges';
 import { DeploymentDialog } from '../deployment-dialog';
 import { DeploymentsTable } from '../deployments-table';
 import { appHref, INVALIDATE, releaseHref } from '../lib';
@@ -41,19 +33,22 @@ import { ReleaseFormDialog } from '../release-form-dialog';
 
 const STEPS: ReleaseStatus[] = ['planned', 'in_progress', 'ready', 'released'];
 
-/** planned → in progress → ready → released, with the current step marked (cancelled shows apart). */
+/**
+ * planned → in progress → ready → released, as plain progress text (it is the release's status, not a set of
+ * buttons; the status menu changes it). Cancelled shows apart.
+ */
 function StatusStepper({ status }: { status: ReleaseStatus }) {
   const t = useTranslations('alm');
   if (status === 'cancelled')
     return (
-      <p className="flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+      <p className="flex items-center gap-2 rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
         <RELEASE_META.cancelled.icon className="size-4 shrink-0" aria-hidden />
         {t('release.cancelledBanner')}
       </p>
     );
   const current = STEPS.indexOf(status);
   return (
-    <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label={t('release.lifecycle')}>
+    <ol className="flex flex-wrap items-center gap-x-2 gap-y-2" aria-label={t('release.lifecycle')}>
       {STEPS.map((s, i) => {
         const done = i < current;
         const active = i === current;
@@ -63,17 +58,22 @@ function StatusStepper({ status }: { status: ReleaseStatus }) {
             key={s}
             aria-current={active ? 'step' : undefined}
             className={cn(
-              'flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm',
-              active && 'border-primary bg-primary/5 font-medium text-foreground',
-              done && 'text-foreground',
-              !active && !done && 'text-muted-foreground',
+              'flex min-w-0 items-center gap-2 text-sm',
+              active ? 'font-semibold text-foreground' : done ? 'text-foreground' : 'text-muted-foreground',
             )}
           >
+            {i > 0 && (
+              <span
+                aria-hidden
+                className={cn('h-px w-6 sm:w-10', done || active ? 'bg-success' : 'bg-border')}
+              />
+            )}
             <span
               className={cn(
-                'grid size-6 shrink-0 place-items-center rounded-full border',
-                done && 'border-success bg-success/12 text-success',
-                active && 'border-primary bg-primary text-primary-foreground',
+                'grid size-6 shrink-0 place-items-center rounded-full',
+                done && 'bg-success/12 text-success',
+                active && 'bg-primary text-primary-foreground',
+                !active && !done && 'bg-muted',
               )}
             >
               <Icon className="size-3.5" aria-hidden />
@@ -143,8 +143,18 @@ export default function ReleasePage({ params }: WebPageProps) {
   const { data: app } = useApiQuery<AppDetail>(
     release ? `/alm/applications/${encodeURIComponent(code)}` : null,
   );
-  const [dialog, setDialog] = useState<'edit' | 'deploy' | null>(null);
+  const searchParams = useSearchParams();
+  // `?deploy=production` (the "ready for production" notification) opens Record deployment for that environment.
+  const linkKind = searchParams.get('deploy');
+  const [dialog, setDialog] = useState<'edit' | 'deploy' | null>(linkKind ? 'deploy' : null);
+  const [deployKind, setDeployKind] = useState<EnvironmentKind | null>(
+    ENVIRONMENT_KINDS.includes(linkKind as EnvironmentKind) ? (linkKind as EnvironmentKind) : null,
+  );
   const close = (open: boolean) => !open && setDialog(null);
+  const openDeploy = (kind: EnvironmentKind | null) => {
+    setDeployKind(kind);
+    setDialog('deploy');
+  };
   const move = useApiMutation(
     (api, status: ReleaseStatus) =>
       api.post<ReleaseDetail>(`/alm/releases/${release!.id}/status`, { status }),
@@ -163,7 +173,7 @@ export default function ReleasePage({ params }: WebPageProps) {
         <Skeleton className="h-72 w-full rounded-xl" />
       </div>
     );
-  if (error || !release) return <EmptyState icon={<FileQuestionIcon />} title={t('release.notFound')} />;
+  if (error || !release) return <ErrorState error={error} kind="page" />;
 
   const record: RecordPanelSlotProps['record'] = { type: 'alm.release', id: release.id };
   const canDeploy =
@@ -171,75 +181,60 @@ export default function ReleasePage({ params }: WebPageProps) {
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href={appHref(release.application.code)}>
-          <ArrowLeftIcon /> {release.application.name}
-        </Link>
-      </Button>
-
-      <FadeIn y={4} className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <RocketIcon className="size-6" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-              <Link
-                href={appHref(release.application.code)}
-                className="hover:underline focus-visible:underline focus-visible:outline-none"
-              >
-                {release.application.name}
-              </Link>
-              <span aria-hidden>·</span>
-              <span>{t('release.plannedFor')}</span>
-              <PlannedDate date={release.plannedDate} />
-            </p>
-            <h1 className="flex flex-wrap items-baseline gap-x-3 text-2xl font-semibold tracking-tight wrap-anywhere">
-              <span className="font-mono">{release.version}</span>
-              {release.name && (
-                <span className="text-lg font-normal text-muted-foreground">{release.name}</span>
-              )}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <ReleaseStatusBadge status={release.status} />
-              {release.releasedAt && (
+      <DetailHeader
+        className="pb-0"
+        back={{ href: appHref(release.application.code), label: release.application.name }}
+        icon={<RocketIcon />}
+        reference={
+          <span className="flex flex-wrap items-center gap-x-2">
+            <span>{release.application.name}</span>
+            <span aria-hidden>·</span>
+            <span>{t('release.plannedFor')}</span>
+            <PlannedDate date={release.plannedDate} />
+            {release.releasedAt && (
+              <>
+                <span aria-hidden>·</span>
                 <span>
                   {t('release.releasedOn')} <DateTime date={release.releasedAt} />
                 </span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          {release.viewer.canManageReleases && (
-            <Button variant="outline" onClick={() => setDialog('edit')}>
-              <PencilIcon /> {t('release.edit')}
-            </Button>
-          )}
-          {release.transitions.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={move.isPending}>
-                  {t('release.changeStatus')} <ChevronDownIcon />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuLabel>{t('release.moveTo')}</DropdownMenuLabel>
-                {release.transitions.map((s) => (
-                  <DropdownMenuItem key={s} onSelect={() => move.mutate(s)}>
-                    <ReleaseStatusBadge status={s} />
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          {canDeploy && (
-            <Button onClick={() => setDialog('deploy')}>
+              </>
+            )}
+          </span>
+        }
+        title={
+          <span className="flex flex-wrap items-baseline gap-x-3">
+            <span className="font-mono">{release.version}</span>
+            {release.name && (
+              <span className="text-lg font-normal text-muted-foreground">{release.name}</span>
+            )}
+          </span>
+        }
+        primaryAction={
+          canDeploy && (
+            <Button onClick={() => openDeploy(null)}>
               <RocketIcon /> {t('app.recordDeployment')}
             </Button>
-          )}
-        </div>
-      </FadeIn>
+          )
+        }
+        actions={
+          release.viewer.canManageReleases
+            ? [
+                {
+                  id: 'edit',
+                  label: t('release.edit'),
+                  icon: <PencilIcon />,
+                  onSelect: () => setDialog('edit'),
+                },
+              ]
+            : []
+        }
+        menu={release.transitions.map((st) => ({
+          id: st,
+          label: t('release.moveToStatus', { status: t(`releaseStatus.${st}`) }),
+          disabled: move.isPending,
+          onSelect: () => move.mutate(st),
+        }))}
+      />
 
       <StatusStepper status={release.status} />
 
@@ -285,7 +280,11 @@ export default function ReleasePage({ params }: WebPageProps) {
           </section>
         </div>
         <div className="grid min-w-0 gap-6">
-          <ReadinessCard release={release} />
+          <ReadinessCard
+            release={release}
+            onEditNotes={release.viewer.canManageReleases ? () => setDialog('edit') : undefined}
+            onDeploy={canDeploy ? (kind) => openDeploy(kind) : undefined}
+          />
           <Slot
             name="core.record.links"
             props={{ record } satisfies RecordPanelSlotProps}
@@ -311,11 +310,16 @@ export default function ReleasePage({ params }: WebPageProps) {
       {canDeploy && app && (
         <DeploymentDialog
           open={dialog === 'deploy'}
-          onOpenChange={close}
+          onOpenChange={(open) => {
+            close(open);
+            if (!open && searchParams.get('deploy'))
+              router.replace(releaseHref(code, release.version), { scroll: false });
+          }}
           app={release.application}
           environments={app.environments}
           release={{ id: release.id, version: release.version }}
           canOverride={release.viewer.canOverride}
+          environmentKind={deployKind ?? undefined}
         />
       )}
     </div>

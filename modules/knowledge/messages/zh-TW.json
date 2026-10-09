@@ -19,14 +19,14 @@
     },
     "knowledge-editor": {
       "name": "知識庫編輯者",
-      "description": "發佈、停用與還原文章，編輯任何文章並管理分類"
+      "description": "發佈、下架與還原文章，編輯任何文章並管理分類"
     }
   },
   "permissions": {
     "read": "閱讀已發佈的自助服務文章",
-    "readInternal": "閱讀內部（僅限客服人員）文章",
+    "readInternal": "閱讀內部（僅限服務台人員）文章",
     "write": "撰寫草稿、編輯自己的草稿並送出審查",
-    "publish": "發佈、停用與還原文章，以及編輯任何文章",
+    "publish": "發佈、下架與還原文章，以及編輯任何文章",
     "manageCategories": "建立、編輯與刪除知識庫分類",
     "sync": "透過整合寫入文章（發佈仍需要發佈權限）"
   },
@@ -34,7 +34,7 @@
     "reviewIntervalDays": "文章發佈後幾天需要重新審閱（0 = 不設定預設審閱日期）",
     "reminderRepeatDays": "逾期審閱提醒每隔 N 天重複一次",
     "guidePublish": "發佈使用指南",
-    "guidePublishHelp": "在知識庫中保留「使用 IS Big Platform」（平台的使用指南，含所有語言），並隨每個新版本更新。關閉後會停止發佈與更新；如要移除，請將其文章停用。",
+    "guidePublishHelp": "在知識庫中保留「使用 IS Big Platform」（平台的使用指南，含所有語言），並隨每個新版本更新。關閉後會停止發佈與更新；如要移除，請將其文章下架。",
     "classificationLevels": "機密等級標籤",
     "classificationLevelsHelp": "每行一個標籤，由最高機密等級開始。使用 strictly-confidential、customer-confidential、confidential 或 internal-use-only 表示內建（已翻譯）的標籤，或自行輸入。"
   },
@@ -47,7 +47,7 @@
   "workflows": {
     "publish": {
       "name": "發佈知識庫文章",
-      "description": "文章上線前的選用審查。條件可使用 article.audience、article.locale 與 article.categoryKey。"
+      "description": "文章上線前的選用審查。條件可使用適用對象、語言與分類。"
     }
   },
   "notifications": {
@@ -79,7 +79,7 @@
     "article_published": "發佈知識庫文章",
     "article_withdrawn": "撤回知識庫文章審查",
     "article_restored": "將知識庫文章還原為草稿",
-    "article_retired": "停用知識庫文章",
+    "article_retired": "下架知識庫文章",
     "article_deleted": "刪除知識庫文章",
     "article_review_closed": "結束知識庫文章審查",
     "article_rated": "評分知識庫文章",
@@ -92,11 +92,11 @@
     "draft": "草稿",
     "in_review": "審查中",
     "published": "已發佈",
-    "retired": "已停用"
+    "retired": "已下架"
   },
   "audience": {
     "everyone": "所有人",
-    "agents": "僅限客服人員"
+    "agents": "僅限服務台人員"
   },
   "audienceHint": {
     "everyone": "自助服務：所有可閱讀知識庫的人員。",
@@ -106,14 +106,14 @@
     "submit": "送出審查",
     "withdraw": "撤回審查",
     "publish": "發佈",
-    "retire": "停用",
+    "retire": "下架",
     "restore": "還原為草稿"
   },
   "toast": {
     "published": "文章已發佈",
-    "submitted": "已送出——將由編輯發佈",
+    "submitted": "已送出審查——將由編輯者發佈",
     "sentForApproval": "已送出簽核——核准後即會上線",
-    "retired": "文章已停用",
+    "retired": "文章已下架",
     "draft": "文章已回到草稿",
     "deleted": "文章已刪除"
   },
@@ -122,6 +122,12 @@
     "helpfulShare": "{percent}% 的人覺得有幫助"
   },
   "newArticle": "新增文章",
+  "sections": {
+    "label": "知識庫分頁",
+    "browse": "瀏覽",
+    "manage": "管理",
+    "categories": "分類"
+  },
   "home": {
     "description": "搜尋解答與逐步指南，或依主題瀏覽。",
     "searchLabel": "需要什麼協助？",
@@ -130,9 +136,11 @@
     "searchHintEscape": "清除搜尋",
     "clear": "清除搜尋",
     "results": "搜尋結果",
+    "searchFailed": "無法搜尋知識庫",
     "resultCount": "{count, plural, =0 {找不到文章} other {找到 # 篇文章}}",
     "noResults": "沒有符合「{query}」的文章",
     "noResultsHint": "請換個說法，或告訴我們您遇到的問題，我們會協助您。",
+    "noResultsHintOther": "請換個說法，或依主題瀏覽。",
     "reportIssue": "回報問題",
     "keywordMode": "顯示關鍵字比對結果。",
     "categories": "依主題瀏覽",
@@ -142,7 +150,6 @@
     "empty": "尚無文章。",
     "emptyCategory": "此分類尚無已發佈的文章。",
     "allCategories": "所有主題",
-    "manageHint": "撰寫與審查文章",
     "previous": "上一頁",
     "next": "下一頁",
     "pageOf": "第 {page} 頁，共 {pages} 頁"
@@ -156,7 +163,7 @@
     "language": "語言",
     "stats": "瀏覽次數與回饋",
     "translations": "其他語言",
-    "generatedFrom": "由 {reference} 產生的草稿",
+    "generatedFrom": "依據 {reference} 撰寫",
     "tools": "文章操作",
     "translate": "翻譯",
     "history": "{count, plural, other {歷程紀錄（# 個版本）}}",
@@ -167,13 +174,13 @@
     "version": "第 {version} 版",
     "reviewOn": "請於 {date} 前審閱",
     "tags": "標籤",
-    "bannerDraft": "這是草稿，只有作者與編輯可以看到。",
-    "bannerReview": "已送出審查：編輯可以發佈或退回。",
+    "bannerDraft": "這是草稿，只有作者與編輯者可以看到。",
+    "bannerReview": "已送出審查：編輯者可以發佈或退回。",
     "bannerApproval": "等待簽核中。核准後會自動發佈；若要修改請先撤回。",
-    "bannerRetired": "此文章已停用，不會出現在搜尋結果中。還原後即可編輯並重新發佈。",
+    "bannerRetired": "此文章已下架，不會出現在搜尋結果中。還原後即可編輯並重新發佈。",
     "bannerReviewDue": "此文章已於 {date} 到期需要審閱。請確認內容仍然正確，再設定新的審閱日期。",
     "deleteTitle": "要刪除此文章嗎？",
-    "deleteDescription": "{reference} 及其版本歷程紀錄將被永久刪除。若要保留歷程紀錄，請改為停用。",
+    "deleteDescription": "「{title}」（{reference}）及其版本歷程紀錄將被永久刪除。若要保留歷程紀錄，請改為下架。",
     "syncedFrom": "同步自 {reference}",
     "fromGuide": "本文屬於 IS Big Platform 使用指南，會隨平台一併更新；在此所做的編輯，會在新版指南推出時被取代。"
   },
@@ -187,7 +194,10 @@
     "send": "送出回饋",
     "thanksYes": "謝謝——很高興能幫上忙。",
     "thanksNo": "謝謝您告訴我們。",
-    "thanksComment": "謝謝——作者會看到您的留言。"
+    "thanksComment": "謝謝——作者會看到您的留言。",
+    "stillStuck": "還是無法解決？",
+    "askIt": "詢問 IT",
+    "reportIssue": "回報問題"
   },
   "versions": {
     "title": "版本歷程紀錄",
@@ -203,18 +213,19 @@
     "description": "撰寫、審查並維護文章內容。",
     "noAccess": "您需要撰寫知識庫文章的權限。",
     "search": "搜尋標題、摘要或 KB 編號…",
+    "tabsLabel": "依狀態檢視文章",
     "tabs": {
       "mine": "我的草稿",
       "review": "審查中",
       "published": "已發佈",
-      "retired": "已停用",
+      "retired": "已下架",
       "due": "到期需審閱"
     },
     "empty": {
       "mine": "沒有草稿。開始撰寫新文章吧。",
       "review": "目前沒有等待審查的文章。",
       "published": "沒有符合條件的已發佈文章。",
-      "retired": "沒有已停用的文章。",
+      "retired": "沒有已下架的文章。",
       "due": "所有文章都是最新的。"
     },
     "columns": {
@@ -242,7 +253,7 @@
     "newTitle": "新增文章",
     "editTitle": "編輯文章",
     "translateTitle": "新增翻譯",
-    "hint": "使用 Markdown 撰寫。可隨時儲存草稿，準備好後再送出審查。",
+    "hint": "可隨時儲存草稿；發佈前讀者看不到這篇文章。",
     "publishedHint": "此文章已上線：儲存後會將變更發佈為新版本。",
     "cannotEdit": "此文章目前的狀態無法編輯。",
     "title": "標題",
@@ -253,6 +264,18 @@
     "preview": "預覽",
     "previewEmpty": "目前沒有可預覽的內容。",
     "markdownHint": "Markdown：## 標題、1. 編號步驟、| 表格 |、**粗體**、[連結](/requests)。不會呈現 HTML。",
+    "format": {
+      "label": "格式",
+      "heading": "標題",
+      "bold": "粗體",
+      "bulleted": "項目符號清單",
+      "numbered": "編號清單",
+      "link": "連結",
+      "withShortcut": "{label}（Ctrl+{key} / ⌘{key}）",
+      "headingText": "標題",
+      "boldText": "粗體文字",
+      "linkText": "連結文字"
+    },
     "category": "分類",
     "noCategory": "未分類",
     "tags": "標籤",
@@ -261,7 +284,10 @@
     "tagsFull": "最多 {max} 個標籤",
     "removeTag": "移除標籤 {tag}",
     "audience": "對象",
+    "moreSettings": "更多設定",
+    "moreSettingsSummary": "{language} · {tags, plural, =0 {無標籤} other {# 個標籤}}",
     "language": "語言",
+    "languageHint": "這篇文章使用的語言（預設為您的語言）。",
     "translationOf": "翻譯自",
     "translationOfNone": "非翻譯文章",
     "translationOfSearch": "搜尋文章…",
@@ -271,9 +297,13 @@
     "translationOfSet": "讀者可以在此文章與其翻譯之間切換。",
     "reviewAt": "審閱期限",
     "reviewAtHint": "會在此日期提醒擁有者檢查文章內容。",
+    "attachmentsLater": "儲存後即可新增附件。",
     "saveDraft": "儲存草稿",
-    "saveAndSubmit": "儲存並送出",
-    "submitHint": "送出的文章由編輯發佈（或由簽核流程決定）。",
+    "outcome": {
+      "publish": "按下後會立即發佈給所選對象。",
+      "review": "編輯者審查後才會發佈。",
+      "approval": "會先送出簽核，核准後才發佈。"
+    },
     "publishUpdate": "發佈更新",
     "toast": {
       "saved": "變更已儲存",
@@ -304,8 +334,10 @@
     "icon": "圖示",
     "iconHint": "lucide 圖示名稱，例如 key-round、wifi、printer。",
     "sortOrder": "排序",
+    "sortOrderHint": "數字越小，在知識庫首頁排得越前面。",
     "parent": "上層分類",
     "noParent": "無（最上層）",
+    "under": "位於「{parent}」之下",
     "articles": "文章數",
     "empty": "尚無分類。",
     "created": "分類已建立",
@@ -313,6 +345,7 @@
     "deleted": "分類已刪除",
     "editLabel": "編輯 {name}",
     "deleteLabel": "刪除 {name}",
+    "rowActions": "{name} 的操作",
     "deleteTitle": "要刪除此分類嗎？",
     "deleteDescription": "將刪除「{name}」。仍有文章的分類無法刪除。",
     "errors": {

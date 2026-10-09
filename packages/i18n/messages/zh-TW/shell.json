@@ -7,7 +7,7 @@
   "passwordRequired": "您的管理員要求您設定新密碼。",
   "passwordRequiredAction": "變更密碼",
   "commandPalette": {
-    "placeholder": "輸入命令，或搜尋人員、群組、角色…",
+    "placeholder": "搜尋工單、申請、文章、人員…或輸入指令",
     "navigate": "前往",
     "actions": "動作",
     "results": "搜尋結果",
@@ -17,7 +17,37 @@
     "changeLanguage": "變更語言",
     "signOut": "登出",
     "createUser": "新增人員",
-    "openApiDocs": "開啟 API 文件"
+    "openApiDocs": "開啟 API 文件",
+    "suggested": "建議",
+    "newRequest": "提出申請",
+    "reportProblem": "回報問題",
+    "askIt": "詢問 IT",
+    "askItAbout": "詢問 IT：「{q}」",
+    "more": "找不到嗎？",
+    "searchKnowledge": "在知識庫搜尋「{q}」",
+    "types": {
+      "request": "申請",
+      "ticket": "工單",
+      "article": "文章",
+      "announcement": "公告",
+      "asset": "資產",
+      "license": "授權",
+      "contract": "合約",
+      "ci": "組態項目",
+      "application": "應用程式",
+      "release": "發行版本",
+      "project": "專案",
+      "task": "工作項目",
+      "account": "共用帳號",
+      "endpoint": "資料 API",
+      "pipeline": "管線",
+      "job": "排程作業",
+      "change-set": "變更集",
+      "user": "人員",
+      "group": "群組",
+      "role": "角色",
+      "department": "部門"
+    }
   },
   "theme": {
     "label": "佈景主題",
@@ -35,7 +65,7 @@
   "forbidden": "您沒有存取此頁面的權限。",
   "notFoundTitle": "找不到頁面",
   "notFoundBody": "您要找的頁面不存在或已移動。",
-  "goHome": "前往儀表板",
+  "goHome": "前往首頁",
   "errorTitle": "發生錯誤",
   "errorBody": "發生未預期的錯誤，詳細資訊已記錄下來。",
   "badgeCount": "{count} 項待處理",
@@ -47,5 +77,8 @@
     "viewAll": "檢視所有通知",
     "empty": "沒有新的通知。",
     "unread": "未讀："
-  }
+  },
+  "openNavigationWork": "{count, plural, other {開啟導覽選單（# 項待處理）}}",
+  "helpForPage": "此頁面的說明",
+  "userMenu": "帳戶選單：{name}"
 }

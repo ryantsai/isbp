@@ -29,13 +29,6 @@
     "blockedTitle": "{count, plural, one {另有一個模組相依於此模組，請先停用該模組：} other {有 # 個模組相依於此模組，請先停用這些模組：}}",
     "inactiveDependents": "{names} 也需要此模組（目前已停用）。"
   },
-  "stats": {
-    "permissions": "{count, plural, one {權限} other {權限}}",
-    "events": "事件",
-    "eventsDetail": "{emits, plural, one {發出 # 個} other {發出 # 個}}，{consumes, plural, one {接收 # 個} other {接收 # 個}}",
-    "aiTools": "{count, plural, one {AI 工具} other {AI 工具}}",
-    "jobs": "{count, plural, one {作業} other {作業}}"
-  },
   "tabs": {
     "overview": "概觀",
     "permissions": "權限",
@@ -43,7 +36,8 @@
     "aiTools": "AI 工具",
     "ai": "AI",
     "jobs": "作業",
-    "settings": "設定"
+    "settings": "設定",
+    "technical": "技術細節"
   },
   "overview": {
     "id": "模組 ID",
@@ -100,10 +94,6 @@
     "number": "請輸入數字。",
     "tooLong": "最多 {max} 個字元。"
   },
-  "howTo": {
-    "title": "模組的運作方式",
-    "body": "每項功能（包括核心平台）都是一個模組：一份宣告其頁面、API 路由、權限、事件、背景作業、設定及 AI 工具的資訊清單。內建模組與自訂模組都使用同一套 SDK。",
-    "scaffold": "若要自行建構模組，請在存放庫根目錄執行下列指令產生骨架：",
-    "placeholder": "name"
-  }
+  "technicalHint": "模組宣告的內容，供開發人員與支援人員參考。",
+  "hasSettings": "{count, plural, other {# 項設定}}"
 }

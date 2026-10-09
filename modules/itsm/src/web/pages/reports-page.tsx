@@ -1,20 +1,14 @@
 'use client';
 
+import { usePlatform } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { EmptyState } from '@isbp/ui/empty-state';
-import { Stagger, StaggerItem } from '@isbp/ui/motion';
+import { ErrorState } from '@isbp/ui/empty-state';
+import { SectionTabs } from '@isbp/ui/section-tabs';
+import { StatTile } from '@isbp/ui/stat-tile';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
-import {
-  AlarmClockOffIcon,
-  ChartColumnIcon,
-  InboxIcon,
-  type LucideIcon,
-  ShieldCheckIcon,
-  SmileIcon,
-  TimerIcon,
-} from 'lucide-react';
+import { AlarmClockOffIcon, InboxIcon, ShieldCheckIcon, SmileIcon, TimerIcon } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { useListState } from '@isbp/ui/data-table';
@@ -34,45 +28,6 @@ import { useCategoryLabel, useHours } from '../lib';
 const RANGES = [7, 30, 90] as const;
 const BUCKETS = ['lt1d', '1to3d', '3to7d', '7to30d', 'gt30d'] as const;
 
-function Kpi({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  tone,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: 'destructive' | 'success';
-}) {
-  return (
-    <StaggerItem className="h-full">
-      <div className="flex h-full items-start justify-between gap-3 rounded-xl border bg-card px-4 py-4 shadow-xs">
-        <div className="min-w-0 space-y-1">
-          <p className="truncate text-sm text-muted-foreground">{label}</p>
-          <p className="text-2xl font-semibold tracking-tight">{value}</p>
-          {hint && <p className="truncate text-xs text-muted-foreground">{hint}</p>}
-        </div>
-        <span
-          className={cn(
-            'grid size-9 shrink-0 place-items-center rounded-lg',
-            tone === 'destructive'
-              ? 'bg-destructive/10 text-destructive dark:bg-destructive/20'
-              : tone === 'success'
-                ? 'bg-success/12 text-success'
-                : 'bg-primary/10 text-primary',
-          )}
-          aria-hidden
-        >
-          <Icon className="size-4" />
-        </span>
-      </div>
-    </StaggerItem>
-  );
-}
-
 /** Service desk dashboard: KPIs, volume, backlog and categories for the last 7 / 30 / 90 days. */
 export default function ReportsPage() {
   const t = useTranslations('itsm.reports');
@@ -83,9 +38,15 @@ export default function ReportsPage() {
   const categoryLabel = useCategoryLabel();
   const [state, set] = useListState();
   const days = RANGES.includes(Number(state.days) as (typeof RANGES)[number]) ? Number(state.days) : 30;
-  const { data, isLoading, isFetching, error } = useApiQuery<OverviewReport>('/itsm/reports/overview', {
-    days,
-  });
+  const { enabledModules } = usePlatform();
+  // AI insights (Helpdesk AI) is the second tab: report readers see its metrics too.
+  const canInsights = enabledModules.includes('helpdesk-ai');
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<OverviewReport>(
+    '/itsm/reports/overview',
+    {
+      days,
+    },
+  );
 
   const kpis = useMemo(() => {
     if (!data) return null;
@@ -127,6 +88,15 @@ export default function ReportsPage() {
   return (
     <>
       <PageHeader title={t('title')} description={t('description')} />
+      {canInsights && (
+        <SectionTabs
+          label={t('sections.label')}
+          items={[
+            { href: '/itsm/reports', label: t('sections.serviceDesk') },
+            { href: '/helpdesk-ai', label: t('sections.ai'), match: 'exact' },
+          ]}
+        />
+      )}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div
           className="flex items-center gap-0.5 rounded-lg border bg-card p-0.5 shadow-xs"
@@ -157,9 +127,10 @@ export default function ReportsPage() {
           <Skeleton className="h-72 rounded-xl" />
         </div>
       ) : error || !data || !kpis ? (
-        <EmptyState
-          icon={<ChartColumnIcon />}
+        <ErrorState
+          error={error}
           title={t('loadFailed')}
+          onRetry={() => void refetch()}
           className="rounded-xl border border-dashed"
         />
       ) : (
@@ -167,32 +138,34 @@ export default function ReportsPage() {
           className={cn('grid gap-6 transition-opacity', isFetching && 'opacity-70')}
           aria-busy={isFetching || undefined}
         >
-          <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <Kpi
-              icon={InboxIcon}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+            <StatTile
+              icon={<InboxIcon />}
               label={t('kpi.open')}
-              value={format.number(data.open.total)}
+              value={data.open.total}
               hint={data.majorOpen ? t('kpi.majorOpen', { count: data.majorOpen }) : t('kpi.openHint')}
               tone={data.majorOpen ? 'destructive' : undefined}
+              href="/itsm?type=__all__"
             />
-            <Kpi
-              icon={AlarmClockOffIcon}
+            <StatTile
+              icon={<AlarmClockOffIcon />}
               label={t('kpi.breached')}
-              value={format.number(kpis.breached)}
+              value={kpis.breached}
               hint={t('kpi.breachedHint', {
                 response: data.sla.responseBreached,
                 resolution: data.sla.resolutionBreached,
               })}
               tone={kpis.breached ? 'destructive' : undefined}
+              href="/itsm?view=attention"
             />
-            <Kpi
-              icon={TimerIcon}
+            <StatTile
+              icon={<TimerIcon />}
               label={t('kpi.mttr')}
               value={kpis.mttr === null ? '—' : hours(kpis.mttr)}
               hint={t('kpi.mttrHint', { count: kpis.resolvedCount })}
             />
-            <Kpi
-              icon={SmileIcon}
+            <StatTile
+              icon={<SmileIcon />}
               label={t('kpi.csat')}
               value={
                 data.csat.average === null
@@ -201,8 +174,8 @@ export default function ReportsPage() {
               }
               hint={t('kpi.csatHint', { count: data.csat.responses })}
             />
-            <Kpi
-              icon={ShieldCheckIcon}
+            <StatTile
+              icon={<ShieldCheckIcon />}
               label={t('kpi.compliance')}
               value={
                 kpis.compliance === null
@@ -211,8 +184,9 @@ export default function ReportsPage() {
               }
               hint={t('kpi.complianceHint')}
               tone={kpis.compliance !== null && kpis.compliance >= 0.9 ? 'success' : undefined}
+              className="col-span-2 lg:col-span-1"
             />
-          </Stagger>
+          </div>
 
           <ChartFrame
             title={t('volume.title')}
@@ -255,6 +229,7 @@ export default function ReportsPage() {
                     key: String(p),
                     label: tt(`priority.${p}`),
                     value: data.open.byPriority.find((x) => x.priority === p)?.count ?? 0,
+                    href: `/itsm?type=__all__&priority=${p}`,
                   }))}
                 />
               }
@@ -305,6 +280,7 @@ export default function ReportsPage() {
                       label: categoryLabel(c.category),
                       hint: categoryLabel(c.category) ?? undefined,
                       value: c.count,
+                      href: `/itsm?type=__all__&status=any&categoryId=${c.category.id}`,
                     }))}
                   />
                 ) : (

@@ -16,6 +16,8 @@
     "test": "turbo run test",
     "test:integration": "pnpm --filter @isbp/api test:integration",
     "e2e": "pnpm --filter @isbp/e2e e2e",
+    "sim": "tsx tooling/flow-sim/src/cli.ts",
+    "sim:stack": "bash tooling/flow-sim/stack.sh",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "turbo run db:generate",

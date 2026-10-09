@@ -24,6 +24,14 @@ export function apiUrl(path: string, query: Record<string, string | number | und
   return `/api/v1${path}${qs ? `?${qs}` : ''}`;
 }
 
+/** Starts downloading a file the API serves (CSV exports), from a menu item. */
+export function download(url: string) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '';
+  a.click();
+}
+
 export function useTaxonomy(enabled = true) {
   return useApiQuery<Taxonomy>(enabled ? '/isms/taxonomy' : null);
 }

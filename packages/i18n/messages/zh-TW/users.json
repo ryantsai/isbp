@@ -56,9 +56,15 @@
     "password": "初始密碼",
     "passwordHint": "至少 10 個字元。該人員必須在首次登入時變更密碼。僅使用 SSO 的帳號請留空。",
     "groups": "群組",
-    "groupsHint": "加入群組後，即可獲得指派給該群組的角色。",
+    "groupsHint": "群組決定此人員的存取權：授予群組的角色會套用到群組成員。",
     "created": "已新增 {name}",
-    "saved": "已儲存變更"
+    "saved": "已儲存變更",
+    "requiredNote": "標示 * 的欄位為必填。",
+    "displayNameHint": "依姓氏與名字自動填入。若對方慣用其他名稱，可直接修改。",
+    "usernameInvalid": "只能使用英文字母、數字、「.」、「_」與「-」。",
+    "managerFromDepartment": "建議：{department} 的主管。",
+    "more": "語言、時區與密碼",
+    "moreEditing": "語言與時區"
   },
   "detail": {
     "tabs": {
@@ -90,7 +96,11 @@
     "assignments": "角色指派",
     "manageAccess": "管理存取權",
     "expires": "{time} 到期",
-    "activityHint": "對此人員所做的變更，以及其本人執行的動作。"
+    "activityHint": "對此人員所做的變更，以及其本人執行的動作。",
+    "notFound": "此人員不存在，或您無權檢視。",
+    "never": "從未",
+    "showPermissions": "顯示權限",
+    "hidePermissions": "隱藏權限"
   },
   "actions": {
     "edit": "編輯個人資料",
@@ -100,7 +110,8 @@
     "offboard": "離職停用",
     "resetPassword": "設定密碼",
     "revokeSessions": "從所有裝置登出",
-    "more": "更多動作"
+    "more": "更多動作",
+    "transfer": "調動部門"
   },
   "lifecycle": {
     "onboarded": "{name} 已啟用",
@@ -125,5 +136,84 @@
     "newPassword": "新密碼",
     "requireChange": "下次登入時要求變更密碼",
     "passwordSet": "密碼已更新"
+  },
+  "picker": {
+    "clear": "清除 {name}",
+    "search": "搜尋人員"
+  },
+  "groupPicker": {
+    "selected": "已選擇的群組",
+    "unknown": "未知的群組",
+    "remove": "移除 {name}",
+    "add": "加入群組",
+    "search": "搜尋群組…",
+    "options": "群組",
+    "none": "找不到群組。",
+    "members": "{count, plural, =0 {沒有成員} other {# 位成員}}",
+    "chosen": "已選擇"
+  },
+  "nextSteps": {
+    "title": "{name} 已建立完成，接下來呢？",
+    "description": "新人員通常接下來會需要的設定。此卡片只會在這次顯示。",
+    "dismiss": "關閉後續步驟",
+    "groups": "加入群組",
+    "groupsHint": "加入群組後，即可擁有團隊成員的存取權。",
+    "groupsAction": "加入群組",
+    "role": "授予角色",
+    "roleHint": "用於群組未提供的存取權。",
+    "roleAction": "授予角色",
+    "device": "指派裝置",
+    "deviceHint": "從庫存中挑選筆電或手機，指派給 {name}。",
+    "deviceAction": "庫存中的裝置",
+    "onboard": "在到職當天啟用帳號",
+    "onboardHint": "此人員為預先建立：到職時請點選本頁上方的「到職啟用」。"
+  },
+  "groups": {
+    "title": "群組",
+    "description": "授予這些群組的角色會套用到此人員。",
+    "add": "加入群組",
+    "none": "未加入任何群組。",
+    "noneHint": "將此人員加入所屬團隊的群組。",
+    "synced": "由 {source} 維護：請在目錄中變更",
+    "remove": "從群組移除",
+    "removeLabel": "從 {group} 移除",
+    "removed": "已從 {group} 移除",
+    "undo": "復原",
+    "added": "{count, plural, =0 {已在這些群組中} other {已加入 # 個群組}}",
+    "addTitle": "將 {name} 加入群組",
+    "addDescription": "加入後立即取得授予這些群組的角色。",
+    "choose": "群組",
+    "pick": "選擇群組",
+    "addConfirm": "{count, plural, =0 {加入} other {加入 # 個群組}}"
+  },
+  "transfer": {
+    "title": "調動 {name} 的部門",
+    "description": "一次變更部門、主管、職稱與群組。系統會請原主管與新主管檢查其餘的存取權。",
+    "department": "新部門",
+    "departmentPlaceholder": "選擇部門",
+    "currently": "目前在 {department}。",
+    "manager": "主管",
+    "noManager": "無主管",
+    "managerFrom": "建議：{department} 的主管。",
+    "jobTitle": "職稱",
+    "leave": "要離開的群組",
+    "leaveHint": "已勾選：目前部門多數成員都在、新部門則多數不在的群組。",
+    "noGroups": "未加入任何群組。",
+    "suggested": "建議",
+    "synced": "由 {source} 維護",
+    "join": "要加入的群組",
+    "joinSuggested": "建議：新部門多數成員都在的群組。",
+    "joinHint": "加入新團隊的群組。",
+    "roles": "需檢查的部門範圍角色",
+    "rolesHint": "這些角色只在單一部門內有效。請勾選要移除的角色。",
+    "rolesHintReadOnly": "這些角色只在單一部門內有效。請洽可授予角色的人員移除不再需要的角色。",
+    "scopedTo": "在 {department}",
+    "forOldJob": "屬於原部門",
+    "removeRole": "移除 {role}",
+    "summary": "{join, plural, =0 {不加入群組} other {加入 # 個群組}}、{leave, plural, =0 {不離開群組} other {離開 # 個}}、{roles, plural, =0 {不移除角色} other {移除 # 個角色}}。",
+    "submit": "調動",
+    "done": "已將 {name} 調動到 {department}",
+    "chooseDepartment": "請選擇新部門。",
+    "sameDepartment": "此人員已在這個部門。"
   }
 }

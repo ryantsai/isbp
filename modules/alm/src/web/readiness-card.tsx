@@ -3,25 +3,68 @@
 import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
+import { ErrorState } from '@isbp/ui/empty-state';
+import { Meter } from '@isbp/ui/meter';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { CircleCheckIcon, CircleXIcon, GitPullRequestIcon, ListChecksIcon } from 'lucide-react';
-import { motion, useReducedMotion } from 'motion/react';
+import {
+  CircleCheckIcon,
+  CircleXIcon,
+  FlaskConicalIcon,
+  GitPullRequestIcon,
+  ListChecksIcon,
+  NotebookPenIcon,
+} from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { Readiness, ReleaseDetail } from '../contracts';
+import type { ReactNode } from 'react';
+import type { EnvironmentKind, Readiness, ReleaseDetail } from '../contracts';
 import { ChangeLine } from './changes';
 import { PolicyExplanation, useRaiseChangeHref } from './deployment-dialog';
 
+/** ✕ → ✓ cross-fades when a check flips (a deployment recorded, a change approved). */
+function CheckIcon({ ok }: { ok: boolean }) {
+  return (
+    <span className="relative mt-0.5 size-4 shrink-0">
+      <AnimatePresence initial={false} mode="popLayout">
+        <motion.span
+          key={ok ? 'ok' : 'no'}
+          className="absolute inset-0"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          {ok ? (
+            <CircleCheckIcon className="size-4 text-success" aria-hidden />
+          ) : (
+            <CircleXIcon className="size-4 text-destructive" aria-hidden />
+          )}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
 /**
- * The readiness checklist: an authorized change linked (with its reference and status), tested in test or
- * staging, release notes written, no failed production deployment — and what the change policy says.
+ * The readiness checklist: an authorized change linked (with its reference, approval state and window), tested in
+ * test or staging, release notes written, no failed production deployment. Each open check offers its next step
+ * (raise or link the change, record a test deployment, write the notes); what production needs is explained in
+ * the info tone until a deployment is actually refused.
  */
-export function ReadinessCard({ release }: { release: ReleaseDetail }) {
+export function ReadinessCard({
+  release,
+  onEditNotes,
+  onDeploy,
+}: {
+  release: ReleaseDetail;
+  onEditNotes?: () => void;
+  onDeploy?: (kind: EnvironmentKind | null) => void;
+}) {
   const t = useTranslations('alm.readiness');
-  const reduce = useReducedMotion();
   const raise = useRaiseChangeHref();
-  const { data } = useApiQuery<Readiness>(`/alm/releases/${release.id}/readiness`);
+  const { data, error, refetch } = useApiQuery<Readiness>(`/alm/releases/${release.id}/readiness`);
   const done = release.status === 'released' || release.status === 'cancelled';
   const raiseHref = raise(release.application, release);
 
@@ -29,7 +72,10 @@ export function ReadinessCard({ release }: { release: ReleaseDetail }) {
     if (!data) return null;
     if (key === 'change')
       return data.change ? (
-        <ChangeLine change={data.change} className="mt-1" />
+        <>
+          <ChangeLine change={data.change} className="mt-1" />
+          {!ok && <span className="mt-1 block text-xs">{t('details.changeNotYet')}</span>}
+        </>
       ) : (
         <span className="text-muted-foreground">{t('details.noChange')}</span>
       );
@@ -37,6 +83,38 @@ export function ReadinessCard({ release }: { release: ReleaseDetail }) {
       return ok ? t('details.testedIn', { environments: data.testedIn.join(', ') }) : t('details.notTested');
     if (key === 'notes') return ok ? t('details.notesWritten') : t('details.noNotes');
     return ok ? t('details.noFailures') : t('details.failures', { count: data.failedInProduction });
+  };
+
+  /** The next step of a check that hasn't passed. */
+  const action = (key: Readiness['checks'][number]['key']): ReactNode => {
+    if (done || !data) return null;
+    if (key === 'change' && !data.change && raiseHref)
+      return (
+        <Button variant="outline" size="sm" asChild className="w-fit">
+          <Link href={raiseHref}>
+            <GitPullRequestIcon /> {t('raiseChange')}
+          </Link>
+        </Button>
+      );
+    if (key === 'change' && data.change)
+      return (
+        <Button variant="outline" size="sm" asChild className="w-fit">
+          <Link href={data.change.href}>{t('openChange', { reference: data.change.reference })}</Link>
+        </Button>
+      );
+    if (key === 'tested' && onDeploy)
+      return (
+        <Button variant="outline" size="sm" className="w-fit" onClick={() => onDeploy('test')}>
+          <FlaskConicalIcon /> {t('recordTest')}
+        </Button>
+      );
+    if (key === 'notes' && onEditNotes)
+      return (
+        <Button variant="outline" size="sm" className="w-fit" onClick={onEditNotes}>
+          <NotebookPenIcon /> {t('writeNotes')}
+        </Button>
+      );
+    return null;
   };
 
   return (
@@ -55,50 +133,37 @@ export function ReadinessCard({ release }: { release: ReleaseDetail }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="grid min-w-0 gap-4">
-        {!data ? (
+        {error && !data ? (
+          <ErrorState compact error={error} onRetry={() => refetch()} />
+        ) : !data ? (
           <Skeleton className="h-40 w-full" />
         ) : (
           <>
-            <div
-              className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={data.total}
-              aria-valuenow={data.passed}
-              aria-label={t('progressLong', { passed: data.passed, total: data.total })}
-            >
-              <motion.div
-                className={cn('h-full rounded-full', data.ready ? 'bg-success' : 'bg-primary')}
-                initial={reduce ? false : { width: 0 }}
-                animate={{ width: `${(data.passed / data.total) * 100}%` }}
-                transition={{ duration: 0.5 }}
-              />
-            </div>
-            <ul className="grid gap-3">
-              {data.checks.map((c) => (
-                <li key={c.key} className="flex min-w-0 gap-2.5">
-                  {c.ok ? (
-                    <CircleCheckIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-                  ) : (
-                    <CircleXIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
-                  )}
-                  <div className="grid min-w-0 flex-1 gap-0.5 text-sm">
-                    <span className="font-medium">
-                      <span className="sr-only">{c.ok ? t('passed') : t('notPassed')}: </span>
-                      {t(`checks.${c.key}`)}
-                    </span>
-                    <div className="min-w-0 text-muted-foreground">{detail(c.key, c.ok)}</div>
-                  </div>
-                </li>
-              ))}
+            <Meter
+              value={data.passed}
+              max={data.total}
+              label={t('progressLong', { passed: data.passed, total: data.total })}
+              tone={data.ready ? 'success' : 'primary'}
+              size="sm"
+            />
+            <ul className="grid gap-4">
+              {data.checks.map((c) => {
+                const next = c.ok ? null : action(c.key);
+                return (
+                  <li key={c.key} className="flex min-w-0 gap-2.5">
+                    <CheckIcon ok={c.ok} />
+                    <div className="grid min-w-0 flex-1 gap-1 text-sm">
+                      <span className={cn('font-medium', c.ok && 'text-muted-foreground')}>
+                        <span className="sr-only">{c.ok ? t('passed') : t('notPassed')}: </span>
+                        {t(`checks.${c.key}`)}
+                      </span>
+                      <div className="min-w-0 text-muted-foreground">{detail(c.key, c.ok)}</div>
+                      {next}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
-            {!data.changes.length && !done && raiseHref && (
-              <Button variant="outline" size="sm" asChild className="w-fit">
-                <Link href={raiseHref}>
-                  <GitPullRequestIcon /> {t('raiseChange')}
-                </Link>
-              </Button>
-            )}
             {data.changes.length > 1 && (
               <div className="grid gap-2 border-t pt-3">
                 <p className="text-xs font-medium text-muted-foreground">{t('allChanges')}</p>
@@ -115,6 +180,7 @@ export function ReadinessCard({ release }: { release: ReleaseDetail }) {
               <div className="grid gap-2 border-t pt-3">
                 <p className="text-xs font-medium text-muted-foreground">{t('policyNow')}</p>
                 <PolicyExplanation
+                  soft
                   decision={data.policy.production}
                   check={{
                     environment: { id: '', name: '', kind: 'production' },

@@ -1,0 +1,26 @@
+{
+  "title": "系統管理",
+  "description": "您可以設定的所有項目都在這裡。",
+  "filter": "尋找設定…",
+  "noMatch": "沒有符合的設定",
+  "noneTitle": "沒有可管理的項目",
+  "noneDescription": "您沒有系統管理權限。如有需要，請洽詢您的系統管理員。",
+  "addPerson": "新增人員",
+  "grantRole": "授予角色",
+  "areas": {
+    "people": "人員與存取權",
+    "automation": "申請與自動化",
+    "modules": "模組設定",
+    "integrations": "整合",
+    "platform": "平台"
+  },
+  "status": {
+    "people": "{active, plural, other {# 位使用中}}",
+    "peoplePending": "{active, plural, other {# 位使用中}} · {pending, plural, other {# 位等待到職}}",
+    "groups": "{count, plural, other {# 個群組}}",
+    "roles": "{count, plural, other {# 個角色}}",
+    "expiring": "{count, plural, other {有 # 項指派將於 7 天內到期}}",
+    "departments": "{count, plural, other {# 個部門}}",
+    "modules": "已啟用 {enabled} 個，共 {total} 個"
+  }
+}

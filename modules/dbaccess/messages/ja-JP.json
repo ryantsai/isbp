@@ -6,13 +6,13 @@
   "nav": {
     "group": "データベース アクセス",
     "mine": "自分のデータベース アクセス",
-    "grants": "アクセス",
+    "grants": "アクセス権の一覧",
     "reviews": "アクセス レビュー",
     "servers": "サーバー"
   },
   "portal": {
-    "request": "データベース アクセスを申請",
-    "requestDescription": "SQL Server、Oracle、PostgreSQL のデータベースのロールを期間限定で取得します。"
+    "request": "データベースへの直接アクセス",
+    "requestDescription": "レポートやデータ修正のため、SQL Server、Oracle、PostgreSQL のロールを期間限定で取得します。"
   },
   "systemRoles": {
     "dbaccess-requester": {
@@ -21,7 +21,7 @@
     },
     "dbaccess-dba": {
       "name": "データベース アクセス管理者",
-      "description": "サーバーと申請可能なロールの構成、インベントリ同期の実行、すべてのアクセスの表示、取り消し、管理外のアクセスの取り込み、プロビジョニングの再試行を行います"
+      "description": "サーバーと申請可能なロールの構成、インベントリ同期の実行、すべてのアクセスの表示、取り消し、申請のないアクセスのユーザーへの割り当て、プロビジョニングの再試行を行います"
     },
     "dbaccess-auditor": {
       "name": "データベース アクセス監査者",
@@ -29,16 +29,16 @@
     },
     "dbaccess-review-manager": {
       "name": "データベース アクセス レビュー マネージャー",
-      "description": "アクセス レビューのキャンペーンを実施します (開始、フォローアップ、終了、エクスポート)"
+      "description": "アクセス レビューを実施します (開始、フォローアップ、終了、エクスポート)"
     }
   },
   "permissions": {
     "selfRequest": "データベース ロールを申請し、自分のデータベース アクセスを管理する",
     "serversManage": "サーバーと申請可能なロールを構成し、インベントリ同期を実行する",
-    "grantsRead": "すべてのデータベース アクセス、アカウント、管理外のアクセス、孤立アカウントを表示する",
-    "grantsManage": "データベース アクセスの取り消し、管理外のアクセスの取り込み、プロビジョニングの再試行",
-    "reviewsRead": "データベース アクセス レビューのキャンペーンとレポートを表示する",
-    "reviewsManage": "データベース アクセス レビューのキャンペーンを実施する"
+    "grantsRead": "すべてのデータベース アクセス、アカウント、申請のないアクセス、該当ユーザーのないアカウントを表示する",
+    "grantsManage": "データベース アクセスの取り消し、申請のないアクセスのユーザーへの割り当て、プロビジョニングの再試行",
+    "reviewsRead": "データベース アクセス レビューとレポートを表示する",
+    "reviewsManage": "データベース アクセス レビューを実施する"
   },
   "settings": {
     "retrySeconds": "プロビジョニングの再試行間隔 (秒)",
@@ -53,7 +53,7 @@
   "taskTypes": {
     "sync": {
       "name": "データベース アクセス: インベントリ同期",
-      "description": "サーバーのアカウント、ロール、メンバーシップを読み取り、管理外のアクセスを報告します"
+      "description": "サーバーのアカウント、ロール、メンバーシップを読み取り、申請のないアクセスを報告します"
     }
   },
   "notifications": {
@@ -90,12 +90,12 @@
     "review_assigned": {
       "label": "自分に割り当てられたデータベース アクセス レビュー",
       "title": "データベース アクセスをレビューしてください: {name}",
-      "body": "{count, plural, other {# 件の付与}}があなたの判断を待っています。期限は {dueOn} です。"
+      "body": "{count, plural, other {# 件のアクセス}}があなたの判断を待っています。期限は {dueOn} です。"
     },
     "review_reminder": {
       "label": "データベース アクセス レビューのリマインダー",
       "title": "リマインダー: {name} の期限は {dueOn} です",
-      "body": "{pending, plural, other {# 件の付与}}がまだ判断を待っています。未判断のアクセスは{policy, select, revoke {取り消されます} other {維持されます}}。"
+      "body": "{pending, plural, other {# 件のアクセス}}がまだ判断を待っています。未判断のアクセスは{policy, select, revoke {取り消されます} other {維持されます}}。"
     }
   },
   "audit": {
@@ -118,7 +118,7 @@
     "grant_revoked": "データベース ロールを取り消し (確認済み)",
     "grant_expired": "データベース アクセスの期限切れ",
     "grant_extended": "データベース アクセスを延長",
-    "grant_adopted": "管理外のデータベース アクセスを取り込み",
+    "grant_adopted": "申請のないデータベース アクセスをユーザーに割り当て",
     "grant_retried": "データベースのプロビジョニングを再試行",
     "account_created": "データベース アカウントを作成",
     "account_enabled": "データベース アカウントを再有効化",
@@ -187,8 +187,8 @@
   },
   "source": {
     "request": "申請",
-    "adopted": "取り込み",
-    "unmanaged": "管理外のアクセス"
+    "adopted": "ユーザーに割り当て済み",
+    "unmanaged": "申請のないアクセス"
   },
   "reviewStatus": {
     "scheduled": "予定",
@@ -218,7 +218,7 @@
     "never": "未同期",
     "now": "今すぐ同期",
     "nowFor": "今すぐ同期: {name}",
-    "done": "{name}: アカウント {accounts} 件、ロール {roles} 件、管理外 {unmanaged} 件",
+    "done": "{name}: アカウント {accounts} 件、ロール {roles} 件、申請のないアクセス {unmanaged} 件",
     "failed": "{name} を同期できませんでした: {message}"
   },
   "reason": {
@@ -276,11 +276,11 @@
     "extendTitle": "延長を申請",
     "extendDescription": "新しい終了日を選び、引き続き必要な理由を入力してください。",
     "myAccess": "自分のデータベース アクセス",
-    "steps": "ステップ",
+    "steps": "進捗",
     "step": {
-      "choose": "ロールを選択",
-      "details": "期間と理由",
-      "review": "確認して送信"
+      "choose": "アクセス",
+      "details": "詳細",
+      "review": "確認"
     },
     "search": "ロール、データベース、サーバーを検索…",
     "server": "サーバー",
@@ -309,12 +309,6 @@
     "justificationPlaceholder": "例: 財務チームの月次決算レポート。",
     "justificationHint": "承認者がこの内容を確認します。プロジェクト、チケット、変更があれば記載してください。",
     "until": "{date} まで",
-    "whoApproves": "承認者",
-    "approver": {
-      "manager": "あなたの上長",
-      "owner": "ロール所有者: {owners}",
-      "security": "情報セキュリティ (高リスクのロール)"
-    },
     "afterApproval": "承認されると、アカウントが自動的に作成または更新され、通知が届きます。生成されたパスワードは 1 回だけ表示されます。",
     "send": "申請を送信",
     "sent": "{count, plural, other {# 件の申請を送信しました}}",
@@ -327,7 +321,6 @@
   },
   "requestPage": {
     "notFound": "この申請は存在しないか、表示するアクセス許可がありません。",
-    "back": "自分のデータベース アクセス",
     "cancel": "申請を取り下げる",
     "cancelled": "申請を取り下げました",
     "statusHint": {
@@ -342,7 +335,7 @@
     "pathHidden": "承認ルートを表示するアクセス許可がありません。",
     "waitingFor": "「{step}」で待機中:",
     "andMore": "ほか {count} 人",
-    "decide": "自分の承認で判断する",
+    "decide": "この申請を判断",
     "details": "詳細",
     "role": "データベース ロール",
     "server": "サーバー",
@@ -354,7 +347,14 @@
     "justification": "理由",
     "access": "アクセス",
     "openMyAccess": "自分のデータベース アクセスを開く",
-    "path": "承認ルート"
+    "path": "承認ルート",
+    "step": {
+      "approved": "{names} が承認 · {date}",
+      "rejected": "{names} が却下 · {date}",
+      "waiting": "{names} の対応待ち",
+      "skipped": "この申請では不要です",
+      "later": "次のステップ (上のステップの後)"
+    }
   },
   "grant": {
     "title": "データベース アクセス",
@@ -376,15 +376,16 @@
     "revoke": "取り消し",
     "revokeTitle": "このアクセスを取り消しますか?",
     "revokeDescription": "ロールはすぐに {person} のアカウントから削除され、理由が本人に通知されます。",
-    "revokeStarted": "アクセスを取り消しています"
+    "revokeStarted": "アクセスを取り消しています",
+    "retried": "{count, plural, other {# 回再試行}}"
   },
   "access": {
-    "title": "アクセス",
+    "title": "アクセス権の一覧",
     "description": "プラットフォームを通じて付与されたすべてのデータベース ロール、各サーバーのアカウント、どの付与にも該当しないアクセス。",
     "tabs": {
-      "grants": "付与",
+      "grants": "付与されたアクセス",
       "accounts": "アカウント",
-      "unmanaged": "管理外のアクセス"
+      "unmanaged": "申請なし"
     },
     "grantsTable": "データベースの付与",
     "search": "ユーザー、アカウント、ロールを検索…",
@@ -404,12 +405,12 @@
     "allRisks": "すべてのリスク",
     "sources": {
       "request": "申請",
-      "adopted": "取り込み",
-      "unmanaged": "管理外"
+      "adopted": "ユーザーに割り当て済み",
+      "unmanaged": "申請なし"
     },
     "empty": "一致するアクセスがありません",
     "emptyHint": "フィルターを変更してください。",
-    "unmanagedHint": "前回の同期で見つかった、どの付与にも該当しない申請可能なロールのメンバーシップです。正しいユーザーに終了日を付けて取り込むか、取り消してください。"
+    "unmanagedHint": "前回の同期で見つかった、どの申請にも該当しない申請可能なロールのメンバーです。正しいユーザーに終了日を付けて割り当てるか、取り消してください。"
   },
   "accounts": {
     "table": "データベース アカウント",
@@ -417,7 +418,7 @@
     "account": "アカウント",
     "server": "サーバー",
     "person": "ユーザー",
-    "orphan": "孤立",
+    "orphan": "該当ユーザーなし",
     "service": "サービス アカウント",
     "state": "状態",
     "enabled": "有効",
@@ -427,27 +428,27 @@
     "lastLogin": "最終ログイン",
     "allServers": "すべてのサーバー",
     "allAccounts": "すべてのアカウント",
-    "orphansOnly": "孤立アカウントのみ",
+    "orphansOnly": "該当ユーザーのないアカウントのみ",
     "matchedOnly": "ユーザーに対応済み",
     "empty": "アカウントがありません",
     "emptyHint": "サーバーを同期するとアカウントが表示されます。"
   },
   "unmanaged": {
-    "title": "管理外のアクセス",
-    "empty": "管理外のアクセスはありません",
-    "emptyHint": "申請可能なロールのメンバーシップは、すべて付与で説明できます。",
+    "title": "申請のないアクセス",
+    "empty": "申請のないアクセスはありません",
+    "emptyHint": "申請可能なロールのメンバーはすべて申請によるものです。",
     "memberOf": "保有ロール:",
     "looksLike": "{name} のようです",
     "seen": "検出:",
-    "adopt": "取り込み",
+    "adopt": "ユーザーに割り当て",
     "revoke": "取り消し",
-    "adoptTitle": "{account} を取り込む",
+    "adoptTitle": "{account} をユーザーに割り当て",
     "adoptDescription": "このアクセスを正しいユーザーへの付与として終了日付きで記録します。以降は他のアクセスと同様に期限切れ、レビュー、取り消しの対象になります。",
     "person": "ユーザー",
     "until": "アクセス期限",
     "untilHint": "ロールが許可している場合、空欄にすると期限なしになります。",
     "note": "メモ",
-    "adopted": "アクセスを取り込みました",
+    "adopted": "アクセスを割り当てました",
     "revokeTitle": "{account} を取り消しますか?",
     "revokeDescription": "サーバー上のアカウントからロールを削除します。アカウント自体は残ります。",
     "revokeStarted": "アクセスを取り消しています"
@@ -460,18 +461,17 @@
     "emptyHint": "下の管理用の接続を選んで、アカウントの管理を開始してください。",
     "connectionMissing": "接続が削除されました",
     "roles": "申請可能なロール",
-    "liveGrants": "現在の付与",
-    "accounts": "アカウント",
-    "unmanaged": "管理外",
-    "orphans": "孤立",
-    "failed": "失敗",
+    "liveGrants": "アクセスのあるユーザー",
     "lastSync": "最終同期:",
     "open": "開く",
     "unconfigured": "まだ管理していない管理用の接続",
     "unconfiguredHint": "管理者は「データベース接続」で管理用の接続を登録します。アカウントの管理を開始すると、そのロールを申請可能にできます。",
     "manage": "アカウントを管理",
     "notManaged": "MySQL のアカウントは管理対象外です",
-    "disabled": "無効"
+    "disabled": "無効",
+    "attention": "要対応",
+    "attentionHint": "申請なし {unmanaged} · 該当ユーザーなし {orphans} · 失敗 {failed}。",
+    "review": "確認"
   },
   "serverForm": {
     "createTitle": "サーバーのアカウントを管理",
@@ -506,7 +506,7 @@
     "servers": "サーバー",
     "notFound": "このサーバーは存在しません。",
     "back": "すべてのサーバー",
-    "summary": "接続 {connection} · アカウント名 {pattern} · {auth}",
+    "summary": "接続 {connection} · アカウント名の例: {pattern} · {auth}",
     "connectionMissing": "削除済み",
     "settings": "設定",
     "lastSync": "最終同期:",
@@ -514,7 +514,7 @@
     "tabs": {
       "roles": "申請可能なロール ({count})",
       "inventory": "インベントリ",
-      "unmanaged": "管理外 ({count})"
+      "unmanaged": "申請なし ({count})"
     },
     "rolesHint": "このサーバーで申請できるロールと、その所有者 (承認者)、リスク、期間。",
     "addRole": "ロールを申請可能にする",
@@ -581,28 +581,28 @@
   },
   "reviews": {
     "title": "アクセス レビュー",
-    "description": "ロール所有者や上長が、データベース アクセスが引き続き必要かを確認するキャンペーン。",
-    "new": "新しいキャンペーン",
+    "description": "ロール所有者や上長が、データベース アクセスが引き続き必要かを確認します。",
+    "new": "新しいアクセス レビュー",
     "awaiting": "あなたのレビュー待ち",
-    "awaitingCount": "{count, plural, other {# 件の付与}}を判断 · 期限 {due}",
+    "awaitingCount": "判断待ち {count} 件 · 期限 {due}",
     "views": {
       "scheduled": "予定",
       "active": "実施中",
       "closed": "終了"
     },
-    "name": "キャンペーン",
+    "name": "アクセス レビュー",
     "status": "状態",
     "due": "期限",
     "policy": "未判断のアクセス",
     "progress": "進捗",
     "progressText": "{items} 件中 {done} 件判断済み · 維持 {kept} · 取り消し {revoked}",
     "empty": "アクセス レビューはありません",
-    "emptyHint": "参加しているキャンペーンがここに表示されます。",
-    "emptyHintManager": "キャンペーンを開始して、アクセスが引き続き必要かを所有者に確認してもらいましょう。"
+    "emptyHint": "参加しているアクセス レビューがここと「自分の作業」に表示されます。",
+    "emptyHintManager": "アクセス レビューを開始して、アクセスが引き続き必要かを所有者に確認してもらいましょう。"
   },
   "reviewForm": {
     "title": "新しいアクセス レビュー",
-    "description": "キャンペーン開始時に対象範囲の有効な付与を記録し、レビュー担当者に割り当てます。",
+    "description": "レビュー開始時に対象範囲のアクセスを一覧にし、レビュー担当者に割り当てます。",
     "name": "名前",
     "namePlaceholder": "2027 年第 1 四半期 データベース アクセス レビュー",
     "servers": "サーバー",
@@ -616,7 +616,7 @@
     "recurrence": "繰り返し",
     "nameRequired": "名前を入力してください (3 文字以上)。",
     "dueAfterStart": "期限は開始日より後にしてください。",
-    "create": "キャンペーンを作成",
+    "create": "アクセス レビューを開始",
     "created": "{name} を作成しました"
   },
   "review": {
@@ -624,34 +624,20 @@
     "back": "アクセス レビュー",
     "summary": "期限 {due} · {policy} · レビュー担当者: {reviewers}",
     "export": "CSV をエクスポート",
-    "close": "キャンペーンを終了",
-    "closeTitle": "このキャンペーンを終了しますか?",
-    "closeDescription": "{pending, plural, =0 {すべての付与が判断済みです。} other {# 件の付与が未判断です。}}未判断のアクセスはポリシーに従います: {policy}。取り消しはすぐに開始され、キャンペーンは読み取り専用になります。",
-    "closed": "キャンペーンを終了しました",
-    "readOnly": "このキャンペーンは終了しています。判断は変更できません。",
-    "totals": "合計",
-    "tiles": {
-      "items": "対象の付与",
-      "pending": "未判断",
-      "kept": "維持",
-      "revoked": "取り消し"
-    },
+    "close": "レビューを終了",
+    "closeTitle": "このアクセス レビューを終了しますか?",
+    "closeDescription": "{pending, plural, =0 {すべてのアクセスが判断済みです。} other {# 件のアクセスが未判断です。}}未判断のアクセスはルールに従います: {policy}。取り消しはすぐに開始され、レビューは読み取り専用になります。",
+    "closed": "アクセス レビューを終了しました",
+    "readOnly": "このレビューは終了しています。判断は変更できません。",
     "views": {
-      "mine": "自分の担当",
-      "undecided": "未判断",
-      "decided": "判断済み",
+      "todo": "未対応",
+      "done": "対応済み",
       "all": "すべて"
     },
-    "items": "レビュー対象の付与",
+    "items": "レビュー対象のアクセス",
     "search": "ユーザー、アカウント、ロールを検索…",
-    "person": "ユーザー",
-    "access": "アクセス",
-    "risk": "リスク",
-    "expires": "終了",
     "permanent": "期限なし",
-    "reviewer": "レビュー担当者",
     "unassigned": "レビュー マネージャー",
-    "decision": "判断",
     "outcome": {
       "kept": "維持済み",
       "revoked": "取り消し済み"
@@ -660,22 +646,39 @@
     "revoke": "取り消し",
     "keepFor": "{person} のアクセスを維持",
     "revokeFor": "{person} のアクセスを取り消し",
-    "keepSelected": "選択項目を維持",
-    "revokeSelected": "選択項目を取り消し",
-    "revokeTitle": "{count, plural, other {# 件の付与を取り消しますか?}}",
-    "revokeDescription": "理由を入力してください。アクセスはキャンペーン終了時に削除されます。",
-    "decided": "{count, plural, other {# 件の判断を保存しました}}",
+    "keepSelected": "{count} 件を維持",
+    "revokeSelected": "{count} 件を取り消し",
+    "revokeTitle": "{count, plural, other {# 件のアクセスを取り消しますか?}}",
+    "revokeDescription": "理由を入力してください。アクセスはレビューの終了時に削除されます。",
     "empty": {
-      "mine": "あなたを待っている項目はありません",
-      "undecided": "すべて判断済みです",
-      "decided": "まだ判断はありません",
-      "all": "このキャンペーンには付与がありません"
-    }
+      "todo": "判断待ちの項目はありません",
+      "done": "まだ判断はありません",
+      "all": "このレビューにアクセスはありません"
+    },
+    "scope": {
+      "label": "表示範囲",
+      "mine": "自分の担当",
+      "everyone": "すべての担当"
+    },
+    "granted": "{date} に付与",
+    "grantedFor": "{date} に付与（理由: 「{reason}」）",
+    "endsOn": "{date} に終了",
+    "lastSignIn": "最終サインイン",
+    "neverSignedIn": "サインイン履歴なし",
+    "reviewerIs": "レビュー担当者: {name}",
+    "decisionFor": "{person} の判断",
+    "kept": "{count, plural, other {# 件のアクセスを維持しました}}",
+    "revoked": "{count, plural, other {# 件をレビュー終了時に取り消すよう記録しました}}",
+    "progressLabel": "{name} の進捗",
+    "progressValue": "{items} 件中 {done} 件判断済み",
+    "progressSummary": "維持 {kept} · 取り消し {revoked} · 判断待ち {pending}",
+    "allDone": "すべて完了しました。ありがとうございます。ほかに対応待ちの項目はありません。",
+    "allDoneHint": "レビューが終了するまで（期限 {due}）、「対応済み」で判断を変更できます。"
   },
   "taskConfig": {
     "server": "同期するサーバー",
     "placeholder": "サーバーを選択…",
-    "hint": "アカウント、ロール、メンバーシップを読み取り、管理外のアクセスを報告します。"
+    "hint": "アカウント、ロール、メンバーシップを読み取り、申請のないアクセスを報告します。"
   },
   "userSlot": {
     "title": "データベース アクセス",
@@ -692,6 +695,11 @@
     "pending": "{count, plural, other {# 件を判断}} · 期限 {due}",
     "expiring": "期限が近いアクセス",
     "ends": "{date} に終了",
-    "extend": "延長"
+    "extend": "延長",
+    "expiringDescription": "{count, plural, other {まもなく終了するデータベース アクセスが # 件あります。}}"
+  },
+  "work": {
+    "reviews": "データベース アクセス レビュー",
+    "toDecide": "{count, plural, other {判断待ちのアクセス # 件}}"
   }
 }

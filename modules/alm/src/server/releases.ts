@@ -391,7 +391,8 @@ export class ReleaseService {
             version: release.version,
             change: readiness.change?.reference ?? '',
           },
-          href: releaseHref(app.code, release.version),
+          // Opens "Record deployment" for production straight away.
+          href: `${releaseHref(app.code, release.version)}?deploy=production`,
         },
         { tx: t },
       );

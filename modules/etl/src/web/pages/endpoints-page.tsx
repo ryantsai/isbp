@@ -11,7 +11,7 @@ import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { DatabaseZapIcon, FileJsonIcon, PlusIcon, ScrollTextIcon, SearchXIcon } from 'lucide-react';
+import { DatabaseZapIcon, FileJsonIcon, PlusIcon, SearchXIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
@@ -20,6 +20,7 @@ import { type EndpointStatus, type EndpointSummary, ENDPOINT_STATUSES } from '..
 import { ConnectionLabel, DraftBadge, EndpointStatusBadge, MethodBadge, TONE } from '../badges';
 import { CreateEndpointDialog } from '../endpoint/create-dialog';
 import { endpointHref } from '../lib';
+import { DataApiTabs } from '../section-tabs';
 
 const VIEWS = ['all', ...ENDPOINT_STATUSES] as const;
 type View = (typeof VIEWS)[number];
@@ -34,13 +35,16 @@ export default function EndpointsPage() {
   const [state, set] = useListState({ pageSize: 25 });
   const [creating, setCreating] = useState(false);
   const view: View = VIEWS.includes(state.view as View) ? (state.view as View) : 'all';
-  const { data, isLoading, isFetching } = useApiQuery<Page<EndpointSummary>>('/etl/endpoints', {
-    page: state.page,
-    pageSize: state.pageSize,
-    sort: state.sort,
-    q: state.q,
-    status: view === 'all' ? undefined : (view as EndpointStatus),
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<EndpointSummary>>(
+    '/etl/endpoints',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      sort: state.sort,
+      q: state.q,
+      status: view === 'all' ? undefined : (view as EndpointStatus),
+    },
+  );
 
   const columns = useMemo<DataTableColumn<EndpointSummary>[]>(
     () => [
@@ -132,6 +136,8 @@ export default function EndpointsPage() {
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(e) => e.id}
       onRowClick={(e) => router.push(endpointHref(e.slug))}
       onPageChange={(page) => set({ page })}
@@ -175,11 +181,6 @@ export default function EndpointsPage() {
                 <FileJsonIcon /> {t('endpoints.openapi')}
               </a>
             </Button>
-            <Button variant="outline" asChild>
-              <Link href="/etl/logs">
-                <ScrollTextIcon /> {t('nav.logs')}
-              </Link>
-            </Button>
             {canManage && (
               <Button onClick={() => setCreating(true)}>
                 <PlusIcon /> {t('endpoints.new')}
@@ -188,6 +189,7 @@ export default function EndpointsPage() {
           </>
         }
       />
+      <DataApiTabs />
       <Tabs value={view} onValueChange={(v) => set({ view: v === 'all' ? undefined : v })}>
         <TabsList className="max-w-full overflow-x-auto">
           {VIEWS.map((v) => (

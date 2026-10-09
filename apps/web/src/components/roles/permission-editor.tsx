@@ -14,7 +14,7 @@ import { Hint } from '@isbp/ui/tooltip';
 import { AsteriskIcon, CheckIcon, ChevronDownIcon, LockIcon, MinusIcon, PlusIcon, XIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useId, useMemo, useState } from 'react';
+import { createContext, type ReactNode, use, useId, useMemo, useState } from 'react';
 import {
   type GroupState,
   groupCatalog,
@@ -33,6 +33,36 @@ import {
 
 const SCOPE_ORDER = ['global', 'department', 'record'];
 
+/** Whether permission codes (`core.users.read`, `core.*`) show next to their descriptions. */
+const CodesContext = createContext(false);
+
+/** "Everything in Service desk" for `itsm.*`, "Everything for People" for `core.users.*`; other patterns as code. */
+function usePatternName() {
+  const t = useTranslations('roles.permissions');
+  const tr = useTranslations();
+  const resource = useResourceLabel();
+  return (pattern: string): string | null => {
+    if (pattern === '*') return t('everything');
+    const parts = pattern.split('.');
+    if (parts.length === 2 && parts[1] === '*' && !parts[0]!.includes('*')) {
+      const key = `${parts[0]}.meta.name`;
+      return t('everythingIn', { name: tr.has(key) ? tr(key) : humanize(parts[0]!) });
+    }
+    if (parts.length === 3 && parts[2] === '*' && !parts[0]!.includes('*') && !parts[1]!.includes('*'))
+      return t('everythingIn', { name: resource(parts[0]!, parts[1]!) });
+    return null;
+  };
+}
+
+/** A resource's name in the UI language (`roles.resources.<module>.<resource>`), never a code. */
+export function useResourceLabel() {
+  const t = useTranslations('roles');
+  return (module: string, resource: string) => {
+    const key = `resources.${module}.${resource}`;
+    return t.has(key) ? t(key) : humanize(resource);
+  };
+}
+
 /**
  * Catalog-driven permission picker. Keys are `module.resource.action`; module/resource "select all"
  * produce wildcards (`core.*`, `core.users.*`). Wildcards already on the role render as chips and the
@@ -44,6 +74,7 @@ export function PermissionEditor({
   onChange,
   readOnly = false,
   loading = false,
+  showCodes = false,
   className,
 }: {
   catalog: PermissionInfo[];
@@ -51,11 +82,15 @@ export function PermissionEditor({
   onChange?: (value: string[]) => void;
   readOnly?: boolean;
   loading?: boolean;
+  /** Show the permission codes (off: descriptions only). */
+  showCodes?: boolean;
   className?: string;
 }) {
   const t = useTranslations('roles.permissions');
   const describe = usePermissionText();
   const grantable = useGrantable();
+  const patternName = usePatternName();
+  const codes = showCodes;
   const [filter, setFilter] = useState('');
   const modules = useMemo(() => groupCatalog(catalog), [catalog]);
   const catalogKeys = useMemo(() => new Set(catalog.map((p) => p.key)), [catalog]);
@@ -80,92 +115,100 @@ export function PermissionEditor({
   }
 
   return (
-    <div className={cn('space-y-4', className)}>
-      {patterns.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t('patterns')}</p>
-          <ul className="flex flex-wrap gap-1.5" aria-label={t('patterns')}>
-            <AnimatePresence initial={false}>
-              {patterns.map((p) => {
-                const count = catalog.filter((c) => matchPermission(p, c.key)).length;
-                return (
-                  <motion.li
-                    key={p}
-                    layout
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.15 }}
-                    className="inline-flex items-center gap-1.5 rounded-md border bg-card py-1 pr-1 pl-2 text-xs shadow-xs"
-                  >
-                    {isWildcard(p) ? (
-                      <AsteriskIcon className="size-3.5 text-primary" aria-hidden />
-                    ) : (
-                      <LockIcon className="size-3 text-muted-foreground" aria-hidden />
-                    )}
-                    <code className="font-mono font-medium">{p}</code>
-                    <span className="text-muted-foreground">
-                      {catalogKeys.has(p) || isWildcard(p) ? t('covers', { count }) : t('notInCatalog')}
-                    </span>
-                    {editable ? (
-                      <button
-                        type="button"
-                        onClick={() => set(value.filter((v) => v !== p))}
-                        className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-                        aria-label={t('removePattern', { pattern: p })}
-                      >
-                        <XIcon className="size-3.5" />
-                      </button>
-                    ) : (
-                      <span className="w-1" />
-                    )}
-                  </motion.li>
-                );
-              })}
-            </AnimatePresence>
-          </ul>
+    <CodesContext value={showCodes}>
+      <div className={cn('space-y-4', className)}>
+        {patterns.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {t('patterns')}
+            </p>
+            <ul className="flex flex-wrap gap-1.5" aria-label={t('patterns')}>
+              <AnimatePresence initial={false}>
+                {patterns.map((p) => {
+                  const count = catalog.filter((c) => matchPermission(p, c.key)).length;
+                  return (
+                    <motion.li
+                      key={p}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.15 }}
+                      className="inline-flex items-center gap-1.5 rounded-md border bg-card py-1 pr-1 pl-2 text-xs shadow-xs"
+                    >
+                      {isWildcard(p) ? (
+                        <AsteriskIcon className="size-3.5 text-primary" aria-hidden />
+                      ) : (
+                        <LockIcon className="size-3 text-muted-foreground" aria-hidden />
+                      )}
+                      {patternName(p) && !codes ? (
+                        <span className="font-medium">{patternName(p)}</span>
+                      ) : (
+                        <code className="font-mono font-medium">{p}</code>
+                      )}
+                      <span className="text-muted-foreground">
+                        {catalogKeys.has(p) || isWildcard(p) ? t('covers', { count }) : t('notInCatalog')}
+                      </span>
+                      {editable ? (
+                        <button
+                          type="button"
+                          onClick={() => set(value.filter((v) => v !== p))}
+                          className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                          aria-label={t('removePattern', { pattern: p })}
+                        >
+                          <XIcon className="size-3.5" />
+                        </button>
+                      ) : (
+                        <span className="w-1" />
+                      )}
+                    </motion.li>
+                  );
+                })}
+              </AnimatePresence>
+            </ul>
+          </div>
+        )}
+
+        {catalog.length > 10 && (
+          <SearchInput
+            value={filter}
+            onChange={setFilter}
+            delay={0}
+            placeholder={t('filter')}
+            className="sm:w-full"
+          />
+        )}
+
+        {modules.length === 0 && (
+          <p className="py-6 text-center text-sm text-muted-foreground">{t('emptyCatalog')}</p>
+        )}
+
+        <div className="space-y-3">
+          {modules.map((m) => {
+            const resources = m.resources
+              .map((r) => ({ ...r, permissions: r.permissions.filter(matches) }))
+              .filter((r) => r.permissions.length > 0);
+            if (needle && resources.length === 0) return null;
+            return (
+              <ModuleSection
+                key={m.module}
+                module={m}
+                visible={resources}
+                value={value}
+                editable={editable}
+                forceOpen={Boolean(needle)}
+                defaultOpen={modules.length <= 3 || m.keys.some((k) => isGranted(value, k))}
+                onChange={set}
+                grantable={grantable}
+                describe={describe}
+              />
+            );
+          })}
         </div>
-      )}
 
-      {catalog.length > 10 && (
-        <SearchInput
-          value={filter}
-          onChange={setFilter}
-          delay={0}
-          placeholder={t('filter')}
-          className="sm:w-full"
-        />
-      )}
-
-      {modules.length === 0 && (
-        <p className="py-6 text-center text-sm text-muted-foreground">{t('emptyCatalog')}</p>
-      )}
-
-      <div className="space-y-3">
-        {modules.map((m) => {
-          const resources = m.resources
-            .map((r) => ({ ...r, permissions: r.permissions.filter(matches) }))
-            .filter((r) => r.permissions.length > 0);
-          if (needle && resources.length === 0) return null;
-          return (
-            <ModuleSection
-              key={m.module}
-              module={m}
-              visible={resources}
-              value={value}
-              editable={editable}
-              forceOpen={Boolean(needle)}
-              defaultOpen={modules.length <= 3 || m.keys.some((k) => isGranted(value, k))}
-              onChange={set}
-              grantable={grantable}
-              describe={describe}
-            />
-          );
-        })}
+        {editable && <AddPattern value={value} onAdd={(p) => set([...value, p])} grantable={grantable} />}
       </div>
-
-      {editable && <AddPattern value={value} onAdd={(p) => set([...value, p])} grantable={grantable} />}
-    </div>
+    </CodesContext>
   );
 }
 
@@ -200,6 +243,7 @@ function ModuleSection({
   const contentId = useId();
   const state = groupState(value, m.keys, m.pattern);
   const name = tr.has(`${m.module}.meta.name`) ? tr(`${m.module}.meta.name`) : humanize(m.module);
+  const codes = use(CodesContext);
 
   return (
     <section className="overflow-hidden rounded-lg border bg-card" aria-label={name}>
@@ -220,7 +264,9 @@ function ModuleSection({
           className="flex min-w-0 flex-1 items-center gap-2 rounded-sm text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <span className="truncate font-medium">{name}</span>
-          <code className="hidden font-mono text-xs text-muted-foreground sm:inline">{m.pattern}</code>
+          {codes && (
+            <code className="hidden font-mono text-xs text-muted-foreground sm:inline">{m.pattern}</code>
+          )}
           <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">
             {t('selectedOf', { count: state.count, total: state.total })}
           </span>
@@ -284,8 +330,8 @@ function ResourceBlock({
   const tc = useTranslations('common');
   // `r.keys` is the full resource even when the visible rows are filtered.
   const state = groupState(value, r.keys, r.pattern);
-  const labelKey = `resources.${r.module}.${r.resource}`;
-  const name = t.has(labelKey) ? t(labelKey) : humanize(r.resource);
+  const name = useResourceLabel()(r.module, r.resource);
+  const codes = use(CodesContext);
 
   return (
     <div className="px-3 py-2">
@@ -299,7 +345,9 @@ function ResourceBlock({
           onToggle={(select) => onChange(toggleGroup(value, r.pattern, select))}
         />
         <span className="text-sm font-medium">{name}</span>
-        <code className="hidden font-mono text-xs text-muted-foreground sm:inline">{r.pattern}</code>
+        {codes && (
+          <code className="hidden font-mono text-xs text-muted-foreground sm:inline">{r.pattern}</code>
+        )}
         {state.broader && <ImpliedNote pattern={state.broader} className="ml-auto" />}
       </div>
       <ul className="ml-7 space-y-0.5 pb-1">
@@ -340,10 +388,10 @@ function ResourceBlock({
                 )}
               >
                 <span className="flex flex-wrap items-baseline gap-x-2">
-                  <code className="font-mono text-xs font-semibold">{action}</code>
+                  {codes && <code className="font-mono text-xs font-semibold">{action}</code>}
                   <span className="text-sm">{describe(p.description)}</span>
                 </span>
-                <span className="sr-only">{p.key}</span>
+                {codes && <span className="sr-only">{p.key}</span>}
                 {via && <ImpliedNote pattern={via} />}
                 {!checked && !held && editable && (
                   <span className="block text-xs text-muted-foreground">{t('permissions.notHeld')}</span>
@@ -369,13 +417,17 @@ function ResourceBlock({
 
 function ImpliedNote({ pattern, className }: { pattern: string; className?: string }) {
   const t = useTranslations('roles.permissions');
+  const codes = use(CodesContext);
+  const name = usePatternName()(pattern);
   return (
     <span className={cn('inline-flex items-center gap-1 text-xs text-muted-foreground', className)}>
       <AsteriskIcon className="size-3 text-primary" aria-hidden />
-      {t.rich('impliedBy', {
-        pattern,
-        code: (chunks: ReactNode) => <code className="font-mono">{chunks}</code>,
-      })}
+      {name && !codes
+        ? t('impliedByName', { name })
+        : t.rich('impliedBy', {
+            pattern,
+            code: (chunks: ReactNode) => <code className="font-mono">{chunks}</code>,
+          })}
     </span>
   );
 }

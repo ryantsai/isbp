@@ -32,7 +32,9 @@
     "name": "Name (optional)",
     "nameHint": "Shown on the request instead of the action's own name.",
     "when": "Only when…",
-    "whenHint": "Without conditions the action always runs. Otherwise it runs only when they hold for the request at that moment — the answers, what approvers filled in, the requester — and is shown as skipped when they don't.",
+    "whenHint": "The action runs only when these hold for the request at that moment (the answers, what approvers filled in, the requester). Otherwise it shows as skipped.",
+    "whenEmpty": "No conditions: runs for every request.",
+    "whenIncomplete": "Fill in the value of every condition.",
     "onlyWhen": "Only when {condition}",
     "facts": {
       "requesterDepartment": "Requester's department code",
@@ -42,19 +44,29 @@
     "templatesHint": "Text fields can include answers and request details: use \"Insert value\". Values the request doesn't have stay empty.",
     "insert": "Insert value",
     "insertFor": "Insert a value into {field}",
+    "example": "e.g. {text}",
     "valueGroups": {
       "answers": "Answers",
       "records": "Picked records",
       "request": "Request"
     },
     "values": {
-      "asShown": "{field} (as shown)",
+      "recordName": "{field}: Name",
+      "stored": "{field} (stored value)",
       "reference": "Request number",
       "url": "Link to the request",
       "form": "Form name",
       "requesterName": "Requester's name",
       "requesterEmail": "Requester's email",
       "decidedBy": "Approver's name"
+    },
+    "sample": {
+      "person": "Alex Chen",
+      "approver": "Jordan Lee",
+      "email": "alex.chen@example.com",
+      "form": "Request form",
+      "record": "[{field}]",
+      "answer": "[{field}]"
     },
     "secretStored": "Stored. Leave empty to keep it.",
     "secretRemove": "Remove",
@@ -143,8 +155,9 @@
     "descriptionLabel": "Description",
     "icon": "Icon",
     "category": "Category",
-    "categoryPlaceholder": "e.g. hardware",
-    "categorySuggestions": "Existing:",
+    "categoryNone": "No category",
+    "categorySearch": "Find or add a category…",
+    "categoryNew": "Add “{name}” as a new category",
     "submit": "Create and open builder",
     "created": "Form created"
   },
@@ -189,16 +202,21 @@
       "archived": "Restore the form before publishing it",
       "noFields": "Add at least one field before publishing",
       "issues": "{count, plural, one {Fix # problem before publishing} other {Fix # problems before publishing}}",
-      "workflow": "Publish the attached approval workflow first",
-      "upToDate": "Version {version} already matches these fields. Settings take effect when you save."
+      "workflow": "The approval isn't published yet, and changing it needs Workflow administrator",
+      "upToDate": "Version {version} already matches these fields. Settings take effect when you save.",
+      "approval": "{count, plural, one {Fix # problem in the approval before publishing} other {Fix # problems in the approval before publishing}}"
     },
     "tabs": {
-      "build": "Build",
+      "build": "Questions",
       "preview": "Preview",
       "settings": "Settings",
       "submissions": "Requests",
       "rules": "Rules",
-      "actions": "Actions"
+      "actions": "Actions",
+      "approval": "Approval",
+      "approvalChanged": "Approval changes not published yet",
+      "buildGroup": "Build the process",
+      "useGroup": "Using the form"
     },
     "palette": "Add elements",
     "paletteHint": "Drag onto the form, or click to add below the selected element.",
@@ -245,7 +263,22 @@
     "tipDrag": "Drag the handle (⋮⋮) to reorder, or focus it and use Space and the arrow keys.",
     "tipMove": "moves the selected element",
     "tipUndo": "undoes the last change",
-    "tipSave": "saves the draft"
+    "tipSave": "saves the draft",
+    "publishApprovalTitle": "Publish the approval?",
+    "publishApprovalBody": "The questions haven't changed. New requests use the new approval; requests already in progress keep theirs.",
+    "publishWithApproval": "The approval “{name}” is published too (version {version}).",
+    "publishAnyway": "Publish anyway",
+    "success": {
+      "title": "Version {version} is live for {audience}",
+      "titleOff": "Version {version} is published. The form is turned off, so nobody can use it yet.",
+      "everyone": "everyone",
+      "groups": "{count, plural, one {# group} other {# groups}}",
+      "copy": "Copy link",
+      "copied": "Link copied",
+      "copyFailed": "Couldn't copy the link",
+      "open": "Open in the portal",
+      "dismiss": "Dismiss"
+    }
   },
   "preview": {
     "language": "Preview language",
@@ -253,12 +286,21 @@
     "empty": "This form has no fields yet.",
     "submit": "Submit",
     "reset": "Reset",
-    "resultTitle": "Try submitting",
-    "resultDescription": "Fill in the form and submit it to check the validation. Nothing is sent.",
+    "resultTitle": "What the request stores",
+    "resultDescription": "Submit the sample answers to check the questions and rules. Nothing is sent.",
     "resultEmpty": "Submit the form to see what would be stored.",
     "resultValid": "Valid — ready to submit",
     "resultInvalid": "{count, plural, one {# field needs attention} other {# fields need attention}}",
-    "resultNote": "Hidden conditional fields are left out, exactly as the server does."
+    "resultNote": "Hidden conditional fields are left out, exactly as the server does.",
+    "whoTitle": "Who will approve this?",
+    "whoDescription": "For the sample answers, as the requester you choose. Nothing is sent.",
+    "whoNone": "Nobody: this form has no approval, so requests go ahead as soon as they're sent.",
+    "previewAs": "Preview as",
+    "previewAsYou": "You ({name})",
+    "nextTitle": "What happens next",
+    "nextNone": "Nothing else: the request is recorded and the requester can follow it in My requests.",
+    "nextConditional": "(only in some cases)",
+    "dependsOn": "Depends on the answer to “{field}”"
   },
   "settings": {
     "detailsTitle": "Details",
@@ -267,7 +309,7 @@
     "description": "Description",
     "icon": "Icon",
     "category": "Category",
-    "categoryHint": "Groups forms in the portal catalog.",
+    "categoryHint": "Groups forms in the portal. The portal's own categories show in each person's language; a new one shows as you typed it.",
     "availabilityTitle": "Availability",
     "availabilityDescription": "Who can find this form, and whether it accepts new requests.",
     "active": "Accepting requests",
@@ -297,7 +339,9 @@
     "issues": {
       "nameRequired": "Enter a name in at least one language",
       "groupsRequired": "Choose at least one group, or make the form available to everyone"
-    }
+    },
+    "activityTitle": "Activity",
+    "activityDescription": "Who changed, published or archived this form, newest first."
   },
   "submissions": {
     "title": "Requests made with this form",
@@ -340,8 +384,10 @@
     "sheetHint": "When the answers don’t meet the rule, the form can’t be sent and shows your message.",
     "when": "When (optional)",
     "whenHint": "The rule only applies when this holds. Leave it empty to always check.",
+    "whenEmpty": "No conditions: the rule always applies.",
     "require": "Require",
     "requireHint": "What must be true. Compare a field with a value or with another field.",
+    "requireEmpty": "Add what must be true.",
     "message": "Message",
     "messagePlaceholder": "e.g. The end must be after the start",
     "messageHint": "Shown to people when the rule isn’t met. Write it in each language they use.",
@@ -352,8 +398,48 @@
     "apply": "Apply",
     "issues": {
       "requireEmpty": "Add at least one condition the answers must meet",
+      "conditionIncomplete": "Fill in the value of every condition",
       "messageEmpty": "Enter the message people see",
       "unknownField": "Refers to a field that no longer exists"
     }
+  },
+  "approval": {
+    "title": "Approval",
+    "noAccess": "Seeing who approves these requests needs Workflow viewer or Workflow administrator.",
+    "noAccessNamed": "Requests are approved by “{name}”. Seeing or changing it needs Workflow viewer or Workflow administrator.",
+    "emptyTitle": "Who approves these requests?",
+    "emptyDescription": "Nobody yet: a request goes ahead as soon as it's sent, and its “After approval” actions run straight away.",
+    "setUp": "Set up an approval",
+    "setUpHint": "Starts with the requester's manager (or their department head). You can change it here.",
+    "useExisting": "Or use an approval you already have",
+    "change": "Approval used",
+    "pick": "Choose an approval",
+    "none": "No approval",
+    "notPublished": "Not published",
+    "defaultName": "{name} approval",
+    "name": "Name of the approval",
+    "statusNew": "New: published together with the form",
+    "statusChanged": "Version {version} in use · your changes are published with the form",
+    "statusLive": "Version {version} in use",
+    "openDesigner": "Open in the workflow designer",
+    "shared": "{count, plural, one {Also used by {names}: changes here apply to it too.} other {Also used by {names}: changes here apply to them too.}}",
+    "pendingLink": "This form is live: it starts using this approval when you publish.",
+    "readOnly": "You can see this approval. Changing it needs Workflow administrator.",
+    "archived": "This approval is archived. Choose another one, or restore it in the workflow designer."
+  },
+  "checks": {
+    "title": "Before you publish",
+    "recordsNobody": "Nobody can be given access to pick {type} records, so “{field}” will always be empty.",
+    "recordsSome": "Not everyone who can use this form can see {type} records (that needs {roles}), so some people will find nothing to pick in “{field}”.",
+    "recordsGroups": "Members of {groups} don't get {roles} through those groups, so some of them may find no {type} records to pick in “{field}”.",
+    "limitAudience": "Limit the audience",
+    "otherType": "Choose another record type",
+    "aStep": "this step",
+    "factNoFallback": "If “{field}” has nobody in it, “{step}” finds no approver and the request is rejected.",
+    "addFallback": "Add a fallback",
+    "skipInstead": "Skip the step instead",
+    "groupEmpty": "The group “{group}” has no active members, so “{step}” would find nobody to ask.",
+    "roleEmpty": "Nobody holds “{role}”, so “{step}” would find nobody to ask.",
+    "openStep": "Open the step"
   }
 }

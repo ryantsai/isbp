@@ -63,8 +63,8 @@ export const manifest = defineManifest({
       icon: 'book-open',
       permission: 'knowledge.articles.read',
       section: 'main',
-      order: 30,
-      children: [
+      order: 4,
+      tabs: [
         {
           id: 'manage',
           label: 'knowledge.nav.manage',

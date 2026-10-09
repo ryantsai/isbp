@@ -1,6 +1,6 @@
 {
-  "title": "Applications",
-  "description": "Business applications whose access the platform manages: their permissions, roles and who holds them. They ask the Role Query API what a person may do.",
+  "title": "Application access",
+  "description": "Business applications whose roles ISBP grants and checks: their permissions, roles and who holds them. They ask the Role Query API what a person may do.",
   "register": "Register application",
   "search": "Search applications…",
   "noMatch": "No applications match “{q}”",

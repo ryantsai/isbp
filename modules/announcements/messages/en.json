@@ -48,7 +48,8 @@
   "empty": {
     "current": "No current announcements — all systems normal.",
     "drafts": "No drafts.",
-    "archive": "Nothing archived yet."
+    "archive": "Nothing archived yet.",
+    "search": "No announcements match your search."
   },
   "new": "New announcement",
   "search": "Search announcements…",
@@ -59,15 +60,20 @@
   "notFound": "This announcement does not exist or is not published.",
   "previous": "Previous page",
   "next": "Next page",
+  "pagination": "Pages",
+  "pageOf": "Page {page} of {pages}",
   "saved": "Changes saved",
   "draftSaved": "Draft saved",
   "publishedToast": "Announcement published",
   "archivedToast": "Announcement archived",
   "deletedToast": "Announcement deleted",
+  "deleteTitle": "Delete “{title}”?",
+  "deleteBody": "The announcement is removed for good. This can’t be undone.",
+  "deleteBodyPublished": "Everyone stops seeing it and it is removed for good. To keep it on record, archive it instead.",
   "editor": {
     "createTitle": "New announcement",
     "editTitle": "Edit announcement",
-    "hint": "Published announcements are visible to everyone and emitted as events other modules (e.g. notifications) can react to.",
+    "hint": "Everyone can see published announcements. They are also posted to the chat channels set up for announcements.",
     "severity": "Severity",
     "title": "Title",
     "body": "Message",
@@ -91,7 +97,7 @@
   "workflows": {
     "publish": {
       "name": "Publishing an announcement",
-      "description": "Optional review before a post goes live. Conditions can use post.severity, post.pinned and post.hasWindow."
+      "description": "Optional review before a post goes live. Conditions can use its type, whether it's pinned and whether it has a time window."
     }
   },
   "notifications": {
@@ -114,5 +120,9 @@
   "submittedToast": "Sent for approval — it goes live once approved",
   "withdrawnToast": "Withdrawn from review — back to draft",
   "withdraw": "Withdraw from review",
-  "pendingHint": "This announcement is waiting for approval. It is published automatically once approved; withdraw it to make changes."
+  "pendingHint": "This announcement is waiting for approval. It is published automatically once approved; withdraw it to make changes.",
+  "home": {
+    "title": "News",
+    "viewAll": "All announcements"
+  }
 }

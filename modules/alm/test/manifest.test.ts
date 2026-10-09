@@ -147,9 +147,9 @@ describe('alm manifest', () => {
     expect(manifest.customFields?.entities).toEqual([
       { type: 'application', name: 'alm.entities.application' },
     ]);
-    expect(manifest.navigation?.map((n) => [n.href, n.icon, n.group])).toEqual([
-      ['/alm', 'app-window', 'alm.nav.group'],
-      ['/alm/releases', 'rocket', 'alm.nav.group'],
+    // One sidebar row; the release calendar is a section tab of it.
+    expect(manifest.navigation?.map((n) => [n.href, n.icon, n.tabs?.map((t) => t.href)])).toEqual([
+      ['/alm', 'app-window', ['/alm/releases']],
     ]);
   });
 });
@@ -294,7 +294,7 @@ describe('catalogs', () => {
       const keys = [
         manifest.name,
         manifest.description!,
-        ...(manifest.navigation ?? []).flatMap((n) => [n.label, n.group!]),
+        ...(manifest.navigation ?? []).flatMap((n) => [n.label, ...(n.tabs ?? []).map((t) => t.label)]),
         ...(manifest.permissions ?? []).map((p) => p.description),
         ...(manifest.settings ?? []).flatMap((s) => [s.label, s.description!]),
         ...(manifest.customFields?.entities ?? []).map((e) => e.name),

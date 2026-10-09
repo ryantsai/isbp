@@ -3,6 +3,8 @@
  * database). Schedule arithmetic that needs a cron parser lives in `schedule.ts` (server only).
  */
 
+import { type RunProblem, runProblemFromText } from '@isbp/sdk';
+
 /* ───────────────────────────── vocabulary ───────────────────────────── */
 
 export const TRIGGER_KINDS = ['cron', 'interval', 'after', 'manual'] as const;
@@ -40,6 +42,11 @@ export const FINAL_STATUSES: readonly RunStatus[] = [
 ];
 export const isActive = (s: RunStatus) => ACTIVE_STATUSES.includes(s);
 export const isFailure = (s: RunStatus) => s === 'failed' || s === 'timed_out';
+
+/** A run's problem: the one recorded, or one read from the raw error of runs recorded before problems were kept. */
+export function problemOfRun(run: { problem?: RunProblem | null; error: string | null }): RunProblem | null {
+  return run.problem ?? (run.error ? runProblemFromText(run.error) : null);
+}
 
 export const RUN_TRIGGERS = ['schedule', 'manual', 'dependency', 'retry'] as const;
 export type RunTrigger = (typeof RUN_TRIGGERS)[number];
@@ -312,6 +319,8 @@ export type CronDescription =
   | { kind: 'weekdays'; time: string }
   | { kind: 'weekly'; days: number[]; time: string }
   | { kind: 'monthly'; day: number; time: string }
+  | { kind: 'quarterly'; day: number; time: string }
+  | { kind: 'yearly'; month: number; day: number; time: string }
   | { kind: 'custom' };
 
 const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -356,7 +365,15 @@ export function describeCron(expr: string): CronDescription {
   if (f.length !== 5) return { kind: 'custom' };
   const [min, hour, dom, mon, dow] = f as [string, string, string, string, string];
   const time = (h: string, m: string) => `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
-  if (mon !== '*') return { kind: 'custom' };
+  if (mon !== '*') {
+    if (dow !== '*' || !isNum(min, 0, 59) || !isNum(hour, 0, 23) || !isNum(dom, 1, 31))
+      return { kind: 'custom' };
+    if (mon === '1,4,7,10' || mon === '*/3')
+      return { kind: 'quarterly', day: Number(dom), time: time(hour, min) };
+    if (isNum(mon, 1, 12))
+      return { kind: 'yearly', month: Number(mon), day: Number(dom), time: time(hour, min) };
+    return { kind: 'custom' };
+  }
   if (dom === '*' && dow === '*') {
     if (min === '*' && hour === '*') return { kind: 'everyMinute' };
     let m: RegExpExecArray | null;
@@ -377,6 +394,104 @@ export function describeCron(expr: string): CronDescription {
   }
   if (dow === '*' && isNum(dom, 1, 31)) return { kind: 'monthly', day: Number(dom), time: time(hour, min) };
   return { kind: 'custom' };
+}
+
+/* ───────────────────────────── the "Repeats" builder ───────────────────────────── */
+
+export const REPEATS = [
+  'hourly',
+  'daily',
+  'weekdays',
+  'weekly',
+  'monthly',
+  'quarterly',
+  'yearly',
+  'custom',
+] as const;
+export type Repeat = (typeof REPEATS)[number];
+
+/** What the "Repeats … on … at …" builder edits; `custom` keeps a cron expression the builder can't show. */
+export interface RepeatSpec {
+  repeat: Repeat;
+  /** `HH:MM` (the minute alone for `hourly`). */
+  time: string;
+  /** 0 = Sunday (weekly). */
+  weekday: number;
+  /** 1–31 (monthly, quarterly, yearly). */
+  monthDay: number;
+  /** 1–12 (yearly). */
+  month: number;
+}
+
+/** The builder's view of a cron expression: one of the simple shapes, or `custom`. */
+export function repeatOf(cron: string): RepeatSpec {
+  const base: RepeatSpec = { repeat: 'custom', time: '08:00', weekday: 1, monthDay: 1, month: 1 };
+  const d = describeCron(cron);
+  switch (d.kind) {
+    case 'hourly':
+      return { ...base, repeat: 'hourly', time: `00:${String(d.minute).padStart(2, '0')}` };
+    case 'daily':
+      return { ...base, repeat: 'daily', time: d.time };
+    case 'weekdays':
+      return { ...base, repeat: 'weekdays', time: d.time };
+    case 'weekly':
+      return d.days.length === 1 ? { ...base, repeat: 'weekly', time: d.time, weekday: d.days[0]! } : base;
+    case 'monthly':
+      return { ...base, repeat: 'monthly', time: d.time, monthDay: d.day };
+    case 'quarterly':
+      return { ...base, repeat: 'quarterly', time: d.time, monthDay: d.day };
+    case 'yearly':
+      return { ...base, repeat: 'yearly', time: d.time, monthDay: d.day, month: d.month };
+    default:
+      return base;
+  }
+}
+
+/** The cron expression of a builder state (`null` for `custom`: keep the typed expression). */
+export function cronOf(spec: RepeatSpec): string | null {
+  const [h = '8', m = '0'] = spec.time.split(':');
+  const hour = String(Math.min(23, Math.max(0, Number(h) || 0)));
+  const minute = String(Math.min(59, Math.max(0, Number(m) || 0)));
+  const day = Math.min(31, Math.max(1, spec.monthDay));
+  switch (spec.repeat) {
+    case 'hourly':
+      return `${minute} * * * *`;
+    case 'daily':
+      return `${minute} ${hour} * * *`;
+    case 'weekdays':
+      return `${minute} ${hour} * * 1-5`;
+    case 'weekly':
+      return `${minute} ${hour} * * ${spec.weekday}`;
+    case 'monthly':
+      return `${minute} ${hour} ${day} * *`;
+    case 'quarterly':
+      return `${minute} ${hour} ${day} 1,4,7,10 *`;
+    case 'yearly':
+      return `${minute} ${hour} ${day} ${Math.min(12, Math.max(1, spec.month))} *`;
+    default:
+      return null;
+  }
+}
+
+/**
+ * The schedule that matches a period-based task (a monthly checklist opens on the 1st of each month at 08:00), so
+ * a new job's trigger follows the task's period instead of a generic default.
+ */
+export function cronForPeriod(period: unknown): string | null {
+  switch (period) {
+    case 'day':
+      return '0 8 * * *';
+    case 'week':
+      return '0 8 * * 1';
+    case 'month':
+      return '0 8 1 * *';
+    case 'quarter':
+      return '0 8 1 1,4,7,10 *';
+    case 'year':
+      return '0 8 1 1 *';
+    default:
+      return null;
+  }
 }
 
 /* ───────────────────────────── secrets in task configs ───────────────────────────── */

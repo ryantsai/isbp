@@ -37,7 +37,93 @@
       "roles": "角色",
       "audit": "稽核日誌",
       "modules": "模組",
-      "idp": "登入提供者"
+      "idp": "登入提供者",
+      "access-requests": "存取申請",
+      "ai": "AI",
+      "api-clients": "API 用戶端",
+      "applications": "應用程式存取權",
+      "custom-fields": "自訂欄位",
+      "databases": "資料庫連線",
+      "forms": "表單",
+      "mcp": "外部代理程式 (MCP)",
+      "notifications": "通知",
+      "role-query": "角色查詢 API",
+      "workflows": "簽核流程"
+    },
+    "alm": {
+      "apps": "應用程式",
+      "deployments": "部署",
+      "releases": "發行版本",
+      "repositories": "儲存庫"
+    },
+    "announcements": {
+      "posts": "公告"
+    },
+    "assistant": {
+      "agent": "內建代理程式",
+      "change-sets": "設定變更"
+    },
+    "cmdb": {
+      "cis": "組態項目",
+      "classes": "CI 類別",
+      "services": "業務服務"
+    },
+    "dbaccess": {
+      "grants": "資料庫存取權",
+      "reviews": "存取審查",
+      "self": "自己的資料庫存取權",
+      "servers": "資料庫伺服器"
+    },
+    "etl": {
+      "endpoints": "資料 API",
+      "pipelines": "管線"
+    },
+    "helpdesk-ai": {
+      "assist": "客服人員輔助",
+      "chat": "詢問 IT",
+      "insights": "洞察"
+    },
+    "integrations": {
+      "conflicts": "同步衝突",
+      "connections": "連線"
+    },
+    "isms": {
+      "accounts": "共用帳號",
+      "assets": "資訊資產",
+      "config": "資訊安全設定",
+      "reviews": "帳號審查",
+      "self": "自己的工作",
+      "stocktakes": "盤點"
+    },
+    "itam": {
+      "assets": "資產",
+      "config": "資產設定",
+      "contracts": "合約",
+      "hardware": "硬體",
+      "licenses": "授權",
+      "self": "自己的裝置",
+      "software": "軟體"
+    },
+    "itsm": {
+      "changes": "變更",
+      "config": "服務台設定",
+      "problems": "問題",
+      "reports": "報表",
+      "tickets": "工單"
+    },
+    "knowledge": {
+      "articles": "文章",
+      "categories": "類別"
+    },
+    "projects": {
+      "portfolio": "專案組合",
+      "projects": "專案",
+      "tasks": "工作項目"
+    },
+    "scheduler": {
+      "jobs": "排程作業",
+      "scripts": "指令碼",
+      "sql": "SQL 步驟"
     }
   },
   "permissions": {
@@ -61,7 +147,10 @@
     "patternHint": "module.resource.action，任一段皆可使用 *，例如 core.users.* 或 *.*.read。",
     "patternInvalid": "這不是有效的模式。請使用 module.resource.action 格式，並可搭配 * 萬用字元。",
     "patternExists": "此角色已有該模式。",
-    "patternNotHeld": "您只能授予自己擁有的權限。"
+    "patternNotHeld": "您只能授予自己擁有的權限。",
+    "everything": "全部",
+    "everythingIn": "{name} 的全部權限",
+    "impliedByName": "已包含在「{name}」中"
   },
   "form": {
     "createTitle": "新增角色",
@@ -218,7 +307,15 @@
     "grant": "授予",
     "noAssignments": "尚未授予任何人",
     "viewAll": "檢視全部 {count} 個",
-    "manageAssignments": "管理指派"
+    "manageAssignments": "管理指派",
+    "tabs": {
+      "permissions": "權限",
+      "activity": "活動"
+    },
+    "showCodes": "顯示權限代碼",
+    "hideCodes": "隱藏權限代碼",
+    "activityHint": "此角色的變更，以及誰被授予或失去此角色。",
+    "deleteRequested": "此角色開放申請。若曾有人申請過，就無法刪除（申請紀錄會保留）：請關閉「開放申請此角色」並移除其成員。"
   },
   "errors": {
     "escalation": "您無法授予自己未擁有的權限：{permissions}",
@@ -235,7 +332,7 @@
     "requestableHint": "此角色會顯示在申請入口網站中。簽核流程完成後即授予存取權。",
     "notRequestableHint": "不在申請入口網站中——只有管理員可以授予。",
     "risk": "風險等級",
-    "riskHint": "會顯示給申請者與簽核者。工作流程可將風險較高的申請交由更多簽核者審核。",
+    "riskHint": "會顯示給申請者與簽核者。簽核流程可將風險較高的申請交由更多簽核者審核。",
     "riskLevels": {
       "low": "低風險",
       "medium": "中風險",
@@ -247,7 +344,7 @@
       "high": "高"
     },
     "owner": "角色擁有者",
-    "ownerHint": "當工作流程包含角色擁有者簽核步驟時，由此人簽核申請。",
+    "ownerHint": "當簽核流程包含角色擁有者簽核步驟時，由此人簽核申請。",
     "ownerPlaceholder": "選擇擁有者…",
     "noOwner": "沒有擁有者",
     "maxDuration": "最長授予期限",
@@ -265,7 +362,7 @@
     "years": "{count, plural, other {# 年}}",
     "daysInvalid": "請輸入 1 到 3650 之間的整數天數。",
     "workflow": "簽核流程",
-    "workflowHint": "負責處理此角色申請的工作流程。",
+    "workflowHint": "負責處理此角色申請的簽核流程。",
     "workflowDefault": "預設的權限申請簽核流程",
     "workflowDefaultNamed": "預設（{name}）",
     "badges": {
@@ -275,5 +372,24 @@
     "unsaved": "有未儲存的變更",
     "reset": "重設",
     "saved": "已儲存申請設定"
+  },
+  "list": {
+    "assigned": "{count, plural, =0 {尚未授予} other {授予 # 次}}",
+    "count": "{count, plural, other {# 個角色}}",
+    "type": "類型",
+    "types": {
+      "all": "所有角色",
+      "system": "系統",
+      "custom": "自訂"
+    },
+    "requestable": "申請",
+    "requestables": {
+      "all": "不限是否開放申請",
+      "yes": "開放申請",
+      "no": "不開放申請"
+    },
+    "platform": "平台管理",
+    "expandAll": "全部展開",
+    "collapseAll": "全部摺疊"
   }
 }

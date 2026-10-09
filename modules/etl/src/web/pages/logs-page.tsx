@@ -3,7 +3,7 @@
 import type { Page } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
-import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, DataTableSummary, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
@@ -15,6 +15,7 @@ import { Skeleton } from '@isbp/ui/skeleton';
 import { BotIcon, ScrollTextIcon, SearchXIcon, UserIcon, ZapIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
+import { DataApiTabs } from '../section-tabs';
 import { type ReactNode, useMemo, useState } from 'react';
 import {
   CALL_PERIODS,
@@ -144,7 +145,7 @@ export default function LogsPage() {
   const endpoints =
     useApiQuery<Page<EndpointSummary>>('/etl/endpoints', { pageSize: 200, sort: 'name' }).data?.items ?? [];
   const callers = useApiQuery<{ items: CallerDto[] }>('/etl/calls/callers').data?.items ?? [];
-  const { data, isLoading, isFetching } = useApiQuery<Page<CallDto>>('/etl/calls', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<CallDto>>('/etl/calls', {
     page: state.page,
     pageSize: state.pageSize,
     sort: state.sort,
@@ -161,43 +162,43 @@ export default function LogsPage() {
       {
         id: 'createdAt',
         header: t('logs.when'),
-        meta: { sortKey: 'createdAt', className: 'whitespace-nowrap' },
+        meta: { sortKey: 'createdAt', priority: 2, className: 'whitespace-nowrap' },
         cell: ({ row }) => <RelativeTime date={row.original.createdAt} />,
       },
       {
         id: 'endpoint',
         header: t('logs.endpoint'),
-        meta: { className: 'max-w-56' },
+        meta: { wrap: true, className: 'max-w-72' },
         cell: ({ row }) => (
-          <span className="flex min-w-0 flex-col">
-            <span className="truncate font-medium">{row.original.endpoint.name}</span>
-            <span className="truncate font-mono text-xs text-muted-foreground">
+          <div className="flex min-w-0 flex-col">
+            <span className="font-medium wrap-anywhere">{row.original.endpoint.name}</span>
+            <span className="font-mono text-xs wrap-anywhere text-muted-foreground">
               {row.original.endpoint.slug}
               {row.original.version !== null && ` · v${row.original.version}`}
             </span>
-          </span>
+            <DataTableSummary>
+              <RelativeTime date={row.original.createdAt} />
+              <span className="tabular-nums">{duration(row.original.durationMs)}</span>
+            </DataTableSummary>
+          </div>
         ),
       },
       {
         id: 'caller',
         header: t('logs.caller'),
-        meta: { className: 'hidden max-w-48 md:table-cell', headerClassName: 'hidden md:table-cell' },
+        meta: { priority: 2, className: 'max-w-48' },
         cell: ({ row }) => <CallerName caller={row.original.caller} />,
       },
       {
         id: 'status',
         header: t('logs.status'),
-        meta: { sortKey: 'status' },
+        meta: { sortKey: 'status', className: 'whitespace-normal' },
         cell: ({ row }) => <HttpStatus status={row.original.status} code={row.original.errorCode} />,
       },
       {
         id: 'durationMs',
         header: t('logs.duration'),
-        meta: {
-          sortKey: 'durationMs',
-          className: 'hidden tabular-nums sm:table-cell',
-          headerClassName: 'hidden sm:table-cell',
-        },
+        meta: { sortKey: 'durationMs', priority: 2, className: 'tabular-nums' },
         cell: ({ row }) => (
           <span className="flex items-center gap-1">
             {duration(row.original.durationMs)}
@@ -213,7 +214,7 @@ export default function LogsPage() {
       {
         id: 'rows',
         header: t('logs.rows'),
-        meta: { className: 'hidden tabular-nums lg:table-cell', headerClassName: 'hidden lg:table-cell' },
+        meta: { priority: 3, className: 'tabular-nums' },
         cell: ({ row }) => (row.original.rows === null ? '—' : format.number(row.original.rows)),
       },
     ],
@@ -222,7 +223,8 @@ export default function LogsPage() {
 
   return (
     <>
-      <PageHeader title={t('logs.title')} description={t('logs.description')} />
+      <PageHeader title={t('endpoints.title')} description={t('logs.description')} />
+      <DataApiTabs />
       <DataTable
         label={t('logs.title')}
         columns={columns}
@@ -233,6 +235,8 @@ export default function LogsPage() {
         sort={state.sort}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(c) => c.id}
         onRowClick={(c) => setOpen(c.id)}
         onPageChange={(page) => set({ page })}

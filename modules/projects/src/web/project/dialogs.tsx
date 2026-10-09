@@ -14,6 +14,7 @@ import {
 } from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { Disclosure } from '@isbp/ui/motion';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Textarea } from '@isbp/ui/textarea';
@@ -262,7 +263,13 @@ export function NewTaskDialog({
   const [estimate, setEstimate] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [titleMissing, setTitleMissing] = useState(false);
+  const [more, setMore] = useState(false);
+  // Epic / feature / story only matter to projects that sync with a work-item tracker (Azure DevOps).
+  const showType = project.members.some((m) => m.via) || project.updates.some((u) => u.via);
   const reset = () => {
+    setTitleMissing(false);
+    setMore(false);
     setTitle('');
     setType('task');
     setPriority('medium');
@@ -302,7 +309,14 @@ export function NewTaskDialog({
           className="grid gap-4"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!title.trim() || datesInvalid) return;
+            if (!title.trim()) {
+              setTitleMissing(true);
+              return;
+            }
+            if (datesInvalid) {
+              setMore(true);
+              return;
+            }
             setError(null);
             create
               .mutateAsync({
@@ -328,41 +342,20 @@ export function NewTaskDialog({
               maxLength={300}
               value={title}
               placeholder={t('titlePlaceholder')}
-              onChange={(e) => setTitle(e.target.value)}
+              aria-invalid={titleMissing || undefined}
+              aria-describedby={titleMissing ? `${id}-title-error` : undefined}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (e.target.value.trim()) setTitleMissing(false);
+              }}
             />
+            {titleMissing && (
+              <p id={`${id}-title-error`} className="text-xs text-destructive">
+                {t('titleRequired')}
+              </p>
+            )}
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor={`${id}-type`}>{tf('type')}</Label>
-              <Select value={type} onValueChange={(v) => setType(v as TaskType)}>
-                <SelectTrigger id={`${id}-type`} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TASK_TYPES.map((ty) => (
-                    <SelectItem key={ty} value={ty}>
-                      <TaskTypeIcon type={ty} label={false} />
-                      {tt(ty)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor={`${id}-priority`}>{tf('priority')}</Label>
-              <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
-                <SelectTrigger id={`${id}-priority`} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TASK_PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p} textValue={tp(p)}>
-                      <PriorityLabel priority={p} className="text-sm font-normal" />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="grid min-w-0 gap-2">
               <Label htmlFor={`${id}-assignee`}>{tf('assignee')}</Label>
               <MemberSelect
@@ -370,26 +363,6 @@ export function NewTaskDialog({
                 members={project.members}
                 value={assigneeId}
                 onChange={setAssigneeId}
-              />
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-4">
-            <div className="grid min-w-0 gap-2 sm:col-span-2">
-              <Label htmlFor={`${id}-milestone`}>{tf('milestone')}</Label>
-              <MilestoneSelect
-                id={`${id}-milestone`}
-                milestones={project.milestones.filter((m) => m.status === 'open')}
-                value={milestoneId}
-                onChange={setMilestoneId}
-              />
-            </div>
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor={`${id}-start`}>{tf('startDate')}</Label>
-              <Input
-                id={`${id}-start`}
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
             <div className="grid min-w-0 gap-2">
@@ -403,25 +376,96 @@ export function NewTaskDialog({
                 onChange={(e) => setDueDate(e.target.value)}
               />
             </div>
+            <div className="grid min-w-0 gap-2">
+              <Label htmlFor={`${id}-milestone`}>{tf('milestone')}</Label>
+              <MilestoneSelect
+                id={`${id}-milestone`}
+                milestones={project.milestones.filter((m) => m.status === 'open')}
+                value={milestoneId}
+                onChange={setMilestoneId}
+              />
+            </div>
           </div>
           {datesInvalid && (
             <p id={`${id}-dates`} className="text-xs text-destructive">
               {t('datesInvalid')}
             </p>
           )}
-          <div className="grid gap-2 sm:w-1/3">
-            <Label htmlFor={`${id}-estimate`}>{tf('estimateHours')}</Label>
-            <Input
-              id={`${id}-estimate`}
-              type="number"
-              min={0}
-              step={0.5}
-              inputMode="decimal"
-              value={estimate}
-              onChange={(e) => setEstimate(e.target.value)}
-            />
-          </div>
-          <MarkdownEditor value={description} onChange={setDescription} label={tf('description')} rows={4} />
+          <Disclosure
+            summary={t('moreDetails')}
+            open={more}
+            onOpenChange={setMore}
+            triggerClassName="w-auto justify-start py-1 text-sm text-muted-foreground"
+          >
+            <div className="grid gap-4 pt-2">
+              <div className="grid gap-4 sm:grid-cols-3">
+                {showType && (
+                  <div className="grid min-w-0 gap-2">
+                    <Label htmlFor={`${id}-type`}>{tf('type')}</Label>
+                    <Select value={type} onValueChange={(v) => setType(v as TaskType)}>
+                      <SelectTrigger id={`${id}-type`} className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TASK_TYPES.map((ty) => (
+                          <SelectItem key={ty} value={ty}>
+                            <TaskTypeIcon type={ty} label={false} />
+                            {tt(ty)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div className="grid min-w-0 gap-2">
+                  <Label htmlFor={`${id}-priority`}>{tf('priority')}</Label>
+                  <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
+                    <SelectTrigger id={`${id}-priority`} className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TASK_PRIORITIES.map((p) => (
+                        <SelectItem key={p} value={p} textValue={tp(p)}>
+                          <PriorityLabel priority={p} className="text-sm font-normal" />
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid min-w-0 gap-2">
+                  <Label htmlFor={`${id}-start`}>{tf('startDate')}</Label>
+                  <Input
+                    id={`${id}-start`}
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="grid min-w-0 gap-2">
+                  <Label htmlFor={`${id}-estimate`}>{tf('estimateHours')}</Label>
+                  <Input
+                    id={`${id}-estimate`}
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    inputMode="decimal"
+                    value={estimate}
+                    onChange={(e) => setEstimate(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor={`${id}-description`}>{tf('description')}</Label>
+                <MarkdownEditor
+                  id={`${id}-description`}
+                  value={description}
+                  onChange={setDescription}
+                  label={tf('description')}
+                  rows={4}
+                />
+              </div>
+            </div>
+          </Disclosure>
           {error && (
             <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {error}
@@ -431,7 +475,7 @@ export function NewTaskDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {tc('cancel')}
             </Button>
-            <Button type="submit" loading={create.isPending} disabled={!title.trim() || datesInvalid}>
+            <Button type="submit" loading={create.isPending}>
               {tc('create')}
             </Button>
           </DialogFooter>

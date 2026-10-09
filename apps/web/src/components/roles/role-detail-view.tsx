@@ -14,13 +14,14 @@ import {
   DropdownMenuTrigger,
 } from '@isbp/ui/dropdown-menu';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { FadeIn } from '@isbp/ui/motion';
+import { AnimatedItem, AnimatedList, FadeIn } from '@isbp/ui/motion';
+import { BackLink } from '@isbp/ui/page-header';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { toast } from '@isbp/ui/sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { Hint } from '@isbp/ui/tooltip';
 import {
   AlertTriangleIcon,
-  ArrowLeftIcon,
   ArrowRightIcon,
   BlocksIcon,
   CopyIcon,
@@ -40,6 +41,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
+import { ActivityFeed } from '@/components/audit/activity-feed';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { ExpiryCell, PrincipalCell, RevokeAssignmentDialog, ScopeBadge } from './assignment-parts';
@@ -67,6 +69,10 @@ export function RoleDetailView({ id }: { id: string }) {
   const accessError = useAccessErrorText();
   const canManage = useCan('core.roles.manage');
   const canAssign = useCan('core.roles.assign');
+  const canAudit = useCan('core.audit.read');
+  const tr = useTranslations();
+  const [codes, setCodes] = useState(false);
+  const [tab, setTab] = useState<'permissions' | 'activity'>('permissions');
   const { data: role, isLoading, error } = useApiQuery<Role>(`/roles/${id}`);
   const catalog = useApiQuery<{ items: PermissionInfo[] }>('/permissions');
   const [draft, setDraft] = useState<string[] | null>(null);
@@ -159,11 +165,7 @@ export function RoleDetailView({ id }: { id: string }) {
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href="/admin/roles">
-          <ArrowLeftIcon /> {t('title')}
-        </Link>
-      </Button>
+      <BackLink href="/admin/roles" label={t('title')} highlight={role.id} />
 
       <FadeIn y={4} className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <span
@@ -184,13 +186,21 @@ export function RoleDetailView({ id }: { id: string }) {
             )}
             {role.moduleId && (
               <Badge variant="outline" className="font-normal">
-                <BlocksIcon aria-hidden /> {t('badges.module', { module: role.moduleId })}
+                <BlocksIcon aria-hidden />{' '}
+                {t('badges.module', {
+                  module:
+                    role.moduleId === 'core'
+                      ? t('list.platform')
+                      : tr.has(`${role.moduleId}.meta.name`)
+                        ? tr(`${role.moduleId}.meta.name`)
+                        : role.moduleId,
+                })}
               </Badge>
             )}
             <RequestBadges role={role} showDuration />
           </div>
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-            <code className="font-mono text-xs">{role.key}</code>
+            {codes && <code className="font-mono text-xs">{role.key}</code>}
             <span className="inline-flex items-center gap-1.5">
               <UsersIcon className="size-3.5" aria-hidden />
               {t('card.assignments', { count: role.assignmentCount })}
@@ -248,35 +258,54 @@ export function RoleDetailView({ id }: { id: string }) {
         </FadeIn>
       )}
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('detail.permissions')}</CardTitle>
-            <CardDescription>
-              {editable ? t('detail.permissionsHint') : t('detail.permissionsReadOnly')}
-            </CardDescription>
-            <CardAction>
-              <Badge variant="muted" className="tabular-nums">
-                {t('card.permissions', { count: current.length })}
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardContent>
-            <PermissionEditor
-              catalog={catalog.data?.items ?? []}
-              loading={catalog.isLoading}
-              value={current}
-              readOnly={!editable}
-              onChange={editable ? (next) => setDraft(next) : undefined}
-            />
-          </CardContent>
-        </Card>
+      <Tabs value={canAudit ? tab : 'permissions'} onValueChange={(v) => setTab(v as typeof tab)}>
+        {canAudit && (
+          <TabsList>
+            <TabsTrigger value="permissions">{t('detail.tabs.permissions')}</TabsTrigger>
+            <TabsTrigger value="activity">{t('detail.tabs.activity')}</TabsTrigger>
+          </TabsList>
+        )}
+        <TabsContent value="permissions">
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('detail.permissions')}</CardTitle>
+                <CardDescription>
+                  {editable ? t('detail.permissionsHint') : t('detail.permissionsReadOnly')}
+                </CardDescription>
+                <CardAction className="flex flex-wrap items-center justify-end gap-2">
+                  <Badge variant="muted" className="tabular-nums">
+                    {t('card.permissions', { count: current.length })}
+                  </Badge>
+                  <Button variant="ghost" size="sm" aria-pressed={codes} onClick={() => setCodes(!codes)}>
+                    {codes ? t('detail.hideCodes') : t('detail.showCodes')}
+                  </Button>
+                </CardAction>
+              </CardHeader>
+              <CardContent>
+                <PermissionEditor
+                  catalog={catalog.data?.items ?? []}
+                  loading={catalog.isLoading}
+                  showCodes={codes}
+                  value={current}
+                  readOnly={!editable}
+                  onChange={editable ? (next) => setDraft(next) : undefined}
+                />
+              </CardContent>
+            </Card>
 
-        <div className="grid gap-6">
-          <RoleAssignmentsCard role={role} onGrant={canAssign ? () => setDialog('grant') : undefined} />
-          <RoleRequestSettingsCard role={role} />
-        </div>
-      </div>
+            <div className="grid min-w-0 gap-6">
+              <RoleAssignmentsCard role={role} onGrant={canAssign ? () => setDialog('grant') : undefined} />
+              <RoleRequestSettingsCard role={role} />
+            </div>
+          </div>
+        </TabsContent>
+        {canAudit && (
+          <TabsContent value="activity">
+            <ActivityFeed subject={{ type: 'role', id: role.id }} description={t('detail.activityHint')} />
+          </TabsContent>
+        )}
+      </Tabs>
 
       <AnimatePresence>
         {dirty && editable && (
@@ -373,6 +402,7 @@ export function RoleDetailView({ id }: { id: string }) {
             {t('detail.deleteWarning', { count: role.assignmentCount })}
           </p>
         )}
+        {role.requestable && <p className="text-sm text-muted-foreground">{t('detail.deleteRequested')}</p>}
       </ConfirmDialog>
     </div>
   );
@@ -418,17 +448,10 @@ function RoleAssignmentsCard({ role, onGrant }: { role: Role; onGrant?: () => vo
         ) : items.length === 0 ? (
           <EmptyState icon={<UsersIcon />} title={t('detail.noAssignments')} className="py-8" />
         ) : (
-          <ul className="-mx-1 divide-y">
-            <AnimatePresence initial={false}>
-              {items.map((a) => (
-                <motion.li
-                  key={a.id}
-                  layout
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex items-center gap-2 px-1 py-2.5"
-                >
+          <AnimatedList className="-mx-1 divide-y">
+            {items.map((a) => (
+              <AnimatedItem key={a.id}>
+                <div className="flex items-center gap-2 px-1 py-2.5">
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <PrincipalCell principal={a.principal} compact />
                     <div className="flex flex-wrap items-center gap-1.5 pl-10 text-xs">
@@ -452,10 +475,10 @@ function RoleAssignmentsCard({ role, onGrant }: { role: Role; onGrant?: () => vo
                       </Button>
                     </Hint>
                   )}
-                </motion.li>
-              ))}
-            </AnimatePresence>
-          </ul>
+                </div>
+              </AnimatedItem>
+            ))}
+          </AnimatedList>
         )}
         {total > 0 && (
           <Button variant="link" size="sm" asChild className="mt-2 h-auto px-0">

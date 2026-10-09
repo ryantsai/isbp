@@ -36,7 +36,7 @@
  *     POST   /pipelines/:id/runs/:runId/cancel      → runDetailSchema
  */
 import { dateTime, dbConnectionSummarySchema, dbEngineSchema } from '@isbp/contracts';
-import { listQuerySchema } from '@isbp/sdk';
+import { listQuerySchema, runProblemSchema } from '@isbp/sdk';
 import { z } from 'zod';
 import {
   CALL_PERIODS,
@@ -492,7 +492,11 @@ export const runSchema = z.object({
   finishedAt: dateTime.nullable(),
   durationMs: z.number().int().nullable(),
   error: z.string().nullable(),
+  /** Why it failed, for the plain explanation (`error` is the raw text). */
+  problem: runProblemSchema.nullable(),
   triggeredBy: actorSchema.nullable(),
+  /** The Scheduled jobs run that started it (trigger `schedule`). */
+  jobRun: z.object({ runId: z.string(), jobId: z.string().nullable() }).nullable(),
   cancelRequested: z.boolean(),
   createdAt: dateTime,
 });
@@ -552,6 +556,8 @@ export type PipelineDefinitionDto = z.input<typeof pipelineDefinitionOutSchema>;
 
 export const pipelineDetailSchema = pipelineSummarySchema.extend({
   definition: pipelineDefinitionOutSchema,
+  /** The scheduled job that ran it most recently (last 60 days), so the page links to it instead of offering "Schedule". */
+  schedule: z.object({ jobId: z.string(), lastRunAt: dateTime }).nullable(),
   watermark: z.string().nullable(),
   stats: z.object({
     runs: z.number().int(),

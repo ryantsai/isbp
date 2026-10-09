@@ -499,6 +499,55 @@ describe('export and import', () => {
   });
 });
 
+/* ───────────── removing changes ───────────── */
+
+describe('removing a change', () => {
+  it('removes the changes that depend on it too, when asked, so none is left broken', async () => {
+    const created = await h.call(admin, 'POST', `${A}/change-sets`, { title: 'Dependents' });
+    const id = created.body.id as string;
+    for (const item of [
+      { ref: 'base', kind: 'itest-pack.widget', op: 'create', value: { name: 'Base widget', color: 'red' } },
+      {
+        ref: 'child',
+        kind: 'itest-pack.gadget',
+        op: 'create',
+        value: { name: 'Child gadget', widgetId: '$ref:base' },
+      },
+      {
+        ref: 'other',
+        kind: 'itest-pack.widget',
+        op: 'create',
+        value: { name: 'Other widget', color: 'blue' },
+      },
+    ])
+      expect((await h.call(admin, 'POST', `${A}/change-sets/${id}/items`, item)).status).toBe(200);
+    const items = (await h.call(admin, 'GET', `${A}/change-sets/${id}`)).body.items as LooseJson[];
+    const base = items.find((i) => i.ref === 'base')!;
+
+    // Without the flag only the item goes, and what referred to it fails its dry run.
+    const copy = await h.call(admin, 'POST', `${A}/change-sets/import`, {
+      ...((await raw(admin, 'GET', `${A}/change-sets/${id}/export`)).json() as Record<string, unknown>),
+    });
+    const copyBase = (copy.body.items as LooseJson[]).find((i) => i.ref === 'base')!;
+    const alone = await h.call(admin, 'DELETE', `${A}/change-sets/${copy.body.id}/items/${copyBase.id}`);
+    expect(alone.body.items.map((i: LooseJson) => [i.ref, i.check?.ok])).toEqual([
+      ['child', false],
+      ['other', true],
+    ]);
+
+    const cascade = await h.call(
+      admin,
+      'DELETE',
+      `${A}/change-sets/${id}/items/${base.id}?withDependents=true`,
+    );
+    expect(cascade.status).toBe(200);
+    expect(cascade.body.items.map((i: LooseJson) => [i.ref, i.check?.ok])).toEqual([['other', true]]);
+    expect(cascade.body.ready).toBe(true);
+    await h.call(admin, 'POST', `${A}/change-sets/${id}/discard`);
+    await h.call(admin, 'POST', `${A}/change-sets/${copy.body.id}/discard`);
+  });
+});
+
 /* ───────────── built-in packages ───────────── */
 
 describe('built-in packages', () => {
@@ -611,6 +660,90 @@ describe('built-in packages', () => {
     expect(await h.kernel.db.select().from(groups).where(eq(groups.key, 'pack-reviewers'))).toEqual([]);
     expect((await gadgets()).some((g) => g.name === 'Starter gadget')).toBe(false);
     expect((await widgets()).find((w) => w.name === 'Starter widget')!.archived).toBe(true);
+  });
+
+  it('shows what a package holds, in the reader’s language, before it is installed', async () => {
+    const before = await changeSetCount();
+    const content = await h.call(author, 'GET', `${A}/packages/itest-pack/starter`);
+    expect(content.status).toBe(200);
+    expect(content.body).toMatchObject({ key: 'starter', moduleId: 'itest-pack', title: '入門套件' });
+    expect(content.body.items.map((i: LooseJson) => [i.ref, i.kind, i.op, i.label])).toEqual([
+      ['reviewers', 'core.group', 'create', '套件審核人員'],
+      ['widget', 'itest-pack.widget', 'create', 'Starter widget'],
+      ['gadget', 'itest-pack.gadget', 'create', 'The starter gadget'],
+    ]);
+    expect(content.body.items[2].value).toEqual({ name: 'Starter gadget', widgetId: '$ref:widget' });
+    // Reading it creates nothing.
+    expect(await changeSetCount()).toBe(before);
+    expect((await h.call(admin, 'GET', `${A}/packages/itest-pack/nope`)).status).toBe(404);
+    expect((await h.call(null, 'GET', `${A}/packages/itest-pack/starter`)).status).toBe(401);
+  });
+
+  it('names the roles that grant what installing or applying needs', async () => {
+    const list = (await h.call(author, 'GET', `${A}/packages`)).body;
+    const groupsManage = (list.permissionRoles as LooseJson[]).find(
+      (r) => r.permission === 'core.groups.manage',
+    );
+    // The identity administrator grants core.groups.* — narrower than the platform administrator's "*".
+    expect(groupsManage.roles.map((r: LooseJson) => r.key)).toEqual(['identity-admin', 'platform-admin']);
+
+    const prepared = await h.call(author, 'POST', `${A}/packages/itest-pack/starter/install`, {});
+    const roles = prepared.body.permissionRoles as LooseJson[];
+    expect(roles.find((r) => r.permission === 'itest-pack.config.manage').roles).toEqual([
+      expect.objectContaining({ key: 'platform-admin', moduleId: 'core' }),
+    ]);
+    await h.call(author, 'POST', `${A}/change-sets/${prepared.body.id}/discard`);
+  });
+
+  it('runs overlapping dry runs and applies of one package one after the other, never as an internal error', async () => {
+    // The widget an earlier test applied and rolled back is archived, and keeps its (unique) name: start afresh.
+    await h.kernel.db.execute(sql`delete from itest_pack.widgets where name = 'Starter widget'`);
+    // Two drafts of the same package: they create the same group key and widget name.
+    const first = (await h.call(admin, 'POST', `${A}/packages/itest-pack/starter/install`, {})).body;
+    const second = (await h.call(admin, 'POST', `${A}/packages/itest-pack/starter/install`, {})).body;
+    const codes = (body: LooseJson) => (body.items as LooseJson[]).map((i) => i.check?.code ?? null);
+
+    // Two dry runs at once: the second waits for the first (it would otherwise block on its uncommitted keys).
+    const started = Date.now();
+    const checks = await Promise.all([
+      h.call(admin, 'POST', `${A}/change-sets/${first.id}/check`),
+      h.call(admin, 'POST', `${A}/change-sets/${second.id}/check`),
+    ]);
+    for (const c of checks) {
+      expect(c.status).toBe(200);
+      expect(codes(c.body)).not.toContain('INTERNAL');
+      expect(c.body.ready).toBe(true);
+    }
+    // Well under the 30 s a statement waits on a row lock before it is cancelled.
+    expect(Date.now() - started).toBeLessThan(28_000);
+
+    // An apply and a dry run at once: one after the other; the dry run then finds the keys taken, or ran first.
+    const [applied, checked] = await Promise.all([
+      h.call(admin, 'POST', `${A}/change-sets/${first.id}/apply`, {}),
+      h.call(admin, 'POST', `${A}/change-sets/${second.id}/check`),
+    ]);
+    expect(applied.status).toBe(200);
+    expect(applied.body.status).toBe('applied');
+    expect(checked.status).toBe(200);
+    expect(codes(checked.body)).not.toContain('INTERNAL');
+    // Checked again now, the second draft says why it can't be applied (the group key and the widget are taken).
+    const again = await h.call(admin, 'POST', `${A}/change-sets/${second.id}/check`);
+    expect(codes(again.body)).not.toContain('INTERNAL');
+    expect(again.body.ready).toBe(false);
+
+    await h.call(admin, 'POST', `${A}/change-sets/${first.id}/rollback`, { confirm: true });
+    await h.call(admin, 'POST', `${A}/change-sets/${second.id}/discard`);
+  });
+
+  it('says "another change set is busy" in words, never "Unexpected error"', async () => {
+    const { checkFromError, readableError } = await import('@isbp/module-assistant/server');
+    const pg = (code: string) => Object.assign(new Error('raw driver text'), { code });
+    const wrapped = (code: string) => Object.assign(new Error('Failed query'), { cause: pg(code) });
+    for (const code of ['55P03', '40001', '40P01', '57014'])
+      expect(checkFromError(wrapped(code))).toMatchObject({ ok: false, code: 'CHANGE_SET_BUSY' });
+    expect(readableError(pg('23505'))).toMatchObject({ code: 'CONFLICT', statusCode: 409 });
+    // Anything else stays an internal error, without the driver's text.
+    expect(checkFromError(pg('XX000'))).toMatchObject({ code: 'INTERNAL', message: 'Unexpected error' });
   });
 
   it('hides the packages of disabled modules', async () => {

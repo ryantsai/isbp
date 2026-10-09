@@ -29,6 +29,7 @@ import { Fragment, type ReactNode, useCallback } from 'react';
 import { cn } from '../lib/utils';
 import { UserAvatar } from './avatar';
 import { type FactOption, useConditionText } from './condition-builder';
+import { useReducedMotion } from './motion';
 
 /** Where a step sits: the top-level sequence, or a branch of a parallel/condition step. */
 export type SequenceRef = { kind: 'root' } | { kind: 'branch'; stepId: string; branchId: string };
@@ -147,6 +148,7 @@ function StepCard({
 }) {
   const t = useTranslations('ui.workflow');
   const locale = useLocale();
+  const reduce = useReducedMotion();
   const describe = useApproverText(ctx.names);
   const conditionText = useConditionText(ctx.names.facts ?? []);
   const run = ctx.runtime?.[step.id];
@@ -209,11 +211,13 @@ function StepCard({
             <span className={cn('flex shrink-0 items-center gap-1 text-xs font-medium', STATUS_TONE[status])}>
               {status === 'active' ? (
                 <span className="relative flex size-2">
-                  <motion.span
-                    className="absolute inline-flex size-full rounded-full bg-primary/60"
-                    animate={{ scale: [1, 2.2], opacity: [0.7, 0] }}
-                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
-                  />
+                  {!reduce && (
+                    <motion.span
+                      className="absolute inline-flex size-full rounded-full bg-primary/60"
+                      animate={{ scale: [1, 2.2], opacity: [0.7, 0] }}
+                      transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+                    />
+                  )}
                   <span className="relative inline-flex size-2 rounded-full bg-primary" />
                 </span>
               ) : (

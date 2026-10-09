@@ -9,7 +9,7 @@ import { FormAssignmentService } from './services/form-assignments';
  */
 export const assignFormTask: TaskTypeHandler<AssignFormTaskConfig> = {
   validate: async (config, ctx) => new FormAssignmentService(ctx).validateTask(config),
-  describe: async (config, ctx) => new FormAssignmentService(ctx).describeTask(config),
+  describe: async (config, ctx, opts) => new FormAssignmentService(ctx).describeTask(config, opts?.locale),
   run: async (config, task, ctx) => new FormAssignmentService(ctx).runTask(config, task),
 };
 

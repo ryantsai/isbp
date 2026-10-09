@@ -261,7 +261,9 @@ describe('HTTP jobs', () => {
     const run = await waitRun(runId, finished);
     expect(run.status, JSON.stringify(run)).toBe('succeeded');
     expect(run.trigger).toBe('manual');
-    expect(run.summary).toMatch(/^HTTP 200/);
+    // Results are catalog keys with values, shown in the reader's language.
+    expect(run.summary).toBe('scheduler.results.http');
+    expect(run.summaryParams).toMatchObject({ status: 200 });
     expect(run.metrics.status).toBe(200);
     const hit = hits.find((x) => x.path === '/echo')!;
     expect(hit.headers['x-api-key']).toBe('k3y-sup3r-s3cret');
@@ -308,6 +310,9 @@ describe('HTTP jobs', () => {
     expect(run.attempt).toBe(3);
     expect(run.attempts.map((a: LooseJson) => a.status)).toEqual(['failed', 'failed', 'failed']);
     expect(run.error).toMatch(/Unexpected status 503/);
+    // …explained in plain words: the host, the status and what was expected.
+    expect(run.problem).toMatchObject({ kind: 'http_status', params: { status: 503 } });
+    expect(run.attempts[0].problem).toMatchObject({ kind: 'http_status' });
     const starts = run.attempts.map((a: LooseJson) => new Date(a.startedAt).getTime());
     expect(starts[1] - starts[0]).toBeGreaterThanOrEqual(900);
     const text = (await logsOf(runId)).map((l) => l.message).join('\n');
@@ -523,7 +528,8 @@ describe('SQL jobs', () => {
     expect(res.body.task.label).toContain('Scheduler test database');
     const run = await waitRun(await runNow(res.body.id), finished);
     expect(run.status, run.error).toBe('succeeded');
-    expect(run.summary).toBe('1 rows affected');
+    expect(run.summary).toBe('scheduler.results.affected');
+    expect(run.summaryParams).toEqual({ count: 1 });
     const c = new pg.Client({ connectionString: dbUrl.toString() });
     await c.connect();
     const { rows } = await c.query("select note, at from sched_itest.events where note = 'from a job'");
@@ -575,6 +581,13 @@ describe('SQL jobs', () => {
     const run = await waitRun(await runNow(res.body.id), finished);
     expect(run.status).toBe('failed');
     expect(run.error).toMatch(/42P01.*nope/);
+    // The plain explanation names the connection, so the run page can link to it.
+    expect(run.problem).toMatchObject({
+      kind: 'db_object_missing',
+      connection: { id: ids.conn, name: 'Scheduler test database' },
+    });
+    const job = (await h.call(s.admin!, 'GET', `${API}/jobs/${res.body.id}`)).body;
+    expect(job.lastRun).toMatchObject({ status: 'failed', problem: { kind: 'db_object_missing' } });
   });
 });
 

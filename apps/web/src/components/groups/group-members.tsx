@@ -87,12 +87,15 @@ function MembersTable({ group, canManage }: { group: Group; canManage: boolean }
   // Snapshot of the ids being removed, so the dialog text stays stable while it closes.
   const [toRemove, setToRemove] = useState<string[]>([]);
 
-  const { data, isLoading, isFetching } = useApiQuery<Page<GroupMember>>(`/groups/${group.id}/members`, {
-    page,
-    pageSize,
-    sort,
-    q: q || undefined,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<GroupMember>>(
+    `/groups/${group.id}/members`,
+    {
+      page,
+      pageSize,
+      sort,
+      q: q || undefined,
+    },
+  );
   const selectedIds = Object.keys(selection).filter((id) => selection[id]);
 
   const remove = useApiMutation(
@@ -131,7 +134,7 @@ function MembersTable({ group, canManage }: { group: Group; canManage: boolean }
         id: 'status',
         header: t('columns.status'),
         meta: { className: 'hidden sm:table-cell', headerClassName: 'hidden sm:table-cell' },
-        cell: ({ row }) => <UserStatusBadge status={row.original.status} />,
+        cell: ({ row }) => <UserStatusBadge status={row.original.status} quiet />,
       },
       {
         id: 'source',
@@ -165,6 +168,8 @@ function MembersTable({ group, canManage }: { group: Group; canManage: boolean }
         sort={sort}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(m) => m.id}
         selectable={canManage}
         selection={selection}

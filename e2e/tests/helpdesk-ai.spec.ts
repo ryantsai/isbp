@@ -58,7 +58,9 @@ test('ask the virtual agent a VPN question, see the cited articles, raise a tick
   try {
     await p.goto('/helpdesk-ai/chat');
     await expect(p.getByRole('heading', { name: 'How can IT help you today?' })).toBeVisible();
-    await expect(p.getByText('Builtin · no LLM').first()).toBeVisible();
+    await expect(p.getByText('Answers from our knowledge base').first()).toBeVisible();
+    // One "New conversation" button on a desktop (the one above the conversation list).
+    await expect(p.getByRole('button', { name: 'New conversation' })).toHaveCount(1);
     await expectAccessible(p, 'chat page (empty)');
 
     const question = `My VPN keeps disconnecting every few minutes when I work from home (e2e ${Date.now().toString(36)})`;
@@ -66,19 +68,27 @@ test('ask the virtual agent a VPN question, see the cited articles, raise a tick
     await input.fill(question);
     await input.press('Enter');
 
-    // The answer streams in with numbered sources linking to knowledge articles.
+    // The answer streams in with the articles as cards linking to the knowledge base (not repeated in the text).
     const log = p.getByRole('log', { name: 'Conversation' });
     await expect(log.getByText(question)).toBeVisible();
     await expect(log.getByText("Here's what I found in the knowledge base:")).toBeVisible();
     const sources = log.getByRole('list', { name: 'Sources' }).last();
     await expect(sources.getByRole('link').first()).toHaveAttribute('href', /^\/knowledge\/KB-\d{5}$/);
-    await expect(p.getByRole('button', { name: 'That solved it' })).toBeVisible();
+    await expect(log.getByText(/\[1\]/)).toHaveCount(0);
+    await expect(p.getByText('Did this solve it?')).toBeVisible();
+    await expect(p.getByRole('button', { name: 'Yes, thanks' })).toBeVisible();
     await expect(p).toHaveURL(/\/helpdesk-ai\/chat\?c=[0-9a-f-]+/);
 
-    // "I still need help" opens the prefilled proposal; nothing is created until it is confirmed.
-    await p.getByRole('button', { name: 'I still need help' }).click();
+    // "No, raise a ticket" opens the prefilled draft in place; nothing is created until it is confirmed.
+    await p.getByRole('button', { name: 'No, raise a ticket' }).click();
     const form = p.getByRole('form', { name: 'Raise a ticket' });
     await expect(form.getByLabel('Title')).toHaveValue(question.slice(0, 120));
+    await expect(form.getByLabel('Title')).toBeFocused();
+    // A plain-text description and Report an issue's impact scale.
+    await expect(form.getByLabel('Description')).not.toHaveValue(/\*\*/);
+    await expect(form.getByRole('group', { name: 'How much does it affect you?' })).toBeVisible();
+    await form.getByText("I can't work").click();
+    await expect(form.getByRole('radio', { name: /I can't work/ })).toBeChecked();
     await form.getByLabel('Title').fill(`VPN drops every few minutes (e2e ${Date.now().toString(36)})`);
     await expectAccessible(p, 'chat page with a proposal');
     await form.getByRole('button', { name: 'Create ticket' }).click();
@@ -104,7 +114,7 @@ test('the agent sees the AI assist panel on the ticket and inserts a drafted rep
     await p.goto(`/itsm/tickets/${reference}`);
     const panel = p.getByRole('region', { name: 'AI assist' });
     await expect(panel).toBeVisible();
-    await expect(panel.getByText('Builtin · no LLM')).toBeVisible();
+    await expect(panel.getByText('Basic mode')).toBeVisible();
     // Triage was suggested on create (the confidence is a labelled meter, not colour alone).
     await expect(panel.getByRole('button', { name: 'Triage suggestion' })).toHaveAttribute(
       'aria-expanded',
@@ -135,7 +145,14 @@ test('the AI insights page shows metrics, the daily chart and recent conversatio
   await page.goto('/helpdesk-ai');
   await expect(page.getByRole('heading', { name: 'AI insights' })).toBeVisible();
   await expect(page.getByText('Triage acceptance')).toBeVisible();
-  await expect(page.getByText('Deflection rate')).toBeVisible();
+  await expect(page.getByText('Solved without a ticket')).toBeVisible();
+  // Engine details stay behind "Technical details" for the people who configure AI.
+  const technical = page.getByRole('button', { name: 'Technical details' });
+  await expect(technical).toHaveAttribute('aria-expanded', 'false');
+  await technical.click();
+  await expect(technical).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByText('Vector search')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Suggestions waiting for an agent' })).toBeVisible();
   await expect(page.getByRole('group', { name: /Conversations per day/ })).toBeVisible();
   await expect(page.getByRole('table', { name: 'Recent conversations' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Configure AI' }).first()).toHaveAttribute('href', '/admin/ai');
@@ -149,6 +166,26 @@ test('the AI insights page shows metrics, the daily chart and recent conversatio
   await expect(page.getByRole('table', { name: 'Conversations per day' })).toBeVisible();
 });
 
+test('the service desk lead reads AI insights from the reports section, without the conversations', async ({
+  browser,
+  baseURL,
+}) => {
+  const lead = await signInAs(browser, baseURL!, 'helpdesk');
+  const p = lead.page;
+  try {
+    await p.goto('/helpdesk-ai');
+    await expect(p.getByRole('heading', { name: 'AI insights', level: 1 })).toBeVisible();
+    const tabs = p.getByRole('navigation', { name: 'Reports' });
+    await expect(tabs.getByRole('link', { name: 'AI insights' })).toHaveAttribute('aria-current', 'page');
+    await expect(tabs.getByRole('link', { name: 'Service desk' })).toHaveAttribute('href', '/itsm/reports');
+    await expect(p.getByText('Solved without a ticket')).toBeVisible();
+    await expect(p.getByRole('table', { name: 'Recent conversations' })).toHaveCount(0);
+    await expectAccessible(p, 'insights page (service desk lead)');
+  } finally {
+    await lead.close();
+  }
+});
+
 test('the request portal invites people to Ask IT and opens the chat in a sheet', async ({ page }) => {
   await page.goto('/requests');
   const card = page.getByRole('region', { name: 'Ask IT' });
@@ -159,4 +196,29 @@ test('the request portal invites people to Ask IT and opens the chat in a sheet'
   await expect(sheet.getByRole('heading', { name: 'How can IT help you today?' })).toBeVisible();
   await expect(sheet.getByRole('textbox', { name: 'Your question' })).toBeVisible();
   await expectAccessible(page, 'Ask IT sheet');
+});
+
+test("the knowledge home doesn't invite service desk agents to Ask IT", async ({ page }) => {
+  await page.goto('/knowledge');
+  await settle(page);
+  await expect(page.getByRole('region', { name: 'Ask IT' })).toHaveCount(0);
+});
+
+test('Ask IT on a phone: one "New conversation" in the header, no horizontal scroll', async ({
+  browser,
+  baseURL,
+}) => {
+  const requester = await signInAs(browser, baseURL!, 'hr.partner');
+  const p = requester.page;
+  try {
+    await p.setViewportSize({ width: 375, height: 812 });
+    await p.goto('/helpdesk-ai/chat');
+    await expect(p.getByRole('heading', { name: 'How can IT help you today?' })).toBeVisible();
+    await expect(p.getByRole('button', { name: 'New conversation' })).toHaveCount(1);
+    expect(
+      await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+    ).toBeLessThanOrEqual(0);
+  } finally {
+    await requester.close();
+  }
 });

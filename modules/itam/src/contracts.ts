@@ -469,10 +469,19 @@ export const licenseAssignmentSchema = z.object({
   asset: assetRefSchema.extend({ assignee: personRefSchema.nullable() }).nullable(),
   assignedAt: dateTime,
   assignedBy: z.object({ id, displayName: z.string() }).nullable(),
+  /**
+   * Why the seat could be reclaimed: the person left, the device is gone, or no device of theirs has reported
+   * the product for 90 days (only when inventory tools report it at all).
+   */
+  reclaim: z.enum(['left', 'device_gone', 'unused']).nullable(),
 });
 export type LicenseAssignment = z.input<typeof licenseAssignmentSchema>;
 
-export const assignmentQuerySchema = listQuerySchema.extend({ target: z.enum(['user', 'asset']).optional() });
+export const assignmentQuerySchema = listQuerySchema.extend({
+  target: z.enum(['user', 'asset']).optional(),
+  /** Only seats that could go back to the pool. */
+  reclaim: z.stringbool().optional(),
+});
 
 export const createAssignmentSchema = z
   .object({ userId: id.optional(), assetId: id.optional() })

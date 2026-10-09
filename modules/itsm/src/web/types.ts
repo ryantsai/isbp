@@ -4,6 +4,7 @@ import type {
   calendarSchema,
   categoryRefSchema,
   changeCalendarItemSchema,
+  changeCalendarPageSchema,
   changeConflictSchema,
   changeDetailSchema,
   changeTypeSchema,
@@ -33,6 +34,7 @@ export type ChangeType = z.infer<typeof changeTypeSchema>;
 export type Risk = z.infer<typeof riskSchema>;
 export type Channel = z.infer<typeof channelSchema>;
 export type CalendarItem = z.input<typeof changeCalendarItemSchema>;
+export type CalendarPage = z.input<typeof changeCalendarPageSchema>;
 export type ChangeConflict = z.input<typeof changeConflictSchema>;
 export type CalendarDto = z.input<typeof calendarSchema>;
 

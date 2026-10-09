@@ -18,7 +18,7 @@ import { all, CONFIG_MANAGE } from './access';
 import type { ContractService } from './contract-service';
 import type { LicenseService } from './licenses';
 import { assets, contracts, licenses, type ModelRow, models, type VendorRow, vendors } from './schema';
-import { companyToday, itamConfig, pgCode, UNIQUE_VIOLATION } from './support';
+import { companyToday, itamConfig, outer, pgCode, UNIQUE_VIOLATION } from './support';
 
 type VendorQuery = z.output<typeof vendorQuerySchema>;
 type ModelQuery = z.output<typeof modelQuerySchema>;
@@ -72,14 +72,15 @@ export class CatalogService {
       .select({
         vendor: vendors,
         assets:
-          sql<number>`(select count(*) from ${assets} a where a.vendor_id = ${vendors.id} and a.status <> 'disposed')`.mapWith(
+          sql<number>`(select count(*) from ${assets} a where a.vendor_id = ${outer(vendors.id)} and a.status <> 'disposed')`.mapWith(
             Number,
           ),
-        licenses: sql<number>`(select count(*) from ${licenses} l where l.vendor_id = ${vendors.id})`.mapWith(
-          Number,
-        ),
+        licenses:
+          sql<number>`(select count(*) from ${licenses} l where l.vendor_id = ${outer(vendors.id)})`.mapWith(
+            Number,
+          ),
         contracts:
-          sql<number>`(select count(*) from ${contracts} c where c.vendor_id = ${vendors.id})`.mapWith(
+          sql<number>`(select count(*) from ${contracts} c where c.vendor_id = ${outer(vendors.id)})`.mapWith(
             Number,
           ),
         spend: sql<number>`(${spend.contracts} + ${spend.licenses})`.mapWith(Number),
@@ -256,7 +257,7 @@ export class CatalogService {
         .select({
           model: models,
           assetCount:
-            sql<number>`(select count(*) from ${assets} a where a.model_id = ${models.id} and a.status <> 'disposed')`
+            sql<number>`(select count(*) from ${assets} a where a.model_id = ${outer(models.id)} and a.status <> 'disposed')`
               .mapWith(Number)
               .as('asset_count'),
         })
@@ -280,7 +281,7 @@ export class CatalogService {
       .select({
         model: models,
         assetCount:
-          sql<number>`(select count(*) from ${assets} a where a.model_id = ${models.id} and a.status <> 'disposed')`.mapWith(
+          sql<number>`(select count(*) from ${assets} a where a.model_id = ${outer(models.id)} and a.status <> 'disposed')`.mapWith(
             Number,
           ),
       })

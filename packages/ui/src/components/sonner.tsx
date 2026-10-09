@@ -1,7 +1,7 @@
 'use client';
 
 import { useTheme } from './theme';
-import { Toaster as Sonner, type ToasterProps } from 'sonner';
+import { Toaster as Sonner, type ToasterProps, toast as sonnerToast } from 'sonner';
 
 function richColor(kind: string, color: string) {
   return {
@@ -36,4 +36,16 @@ export function Toaster(props: ToasterProps) {
   );
 }
 
-export { toast } from 'sonner';
+/**
+ * Sonner's `toast`, except that errors stay twice as long (8 s; success and info go after 4 s). Every toast has a
+ * close button; important errors also belong inline, next to what failed.
+ * Offer "Undo" on reversible quick actions: `toast.success(text, { action: { label: t('undo'), onClick } })`.
+ */
+export const toast: typeof sonnerToast = Object.assign(
+  (...args: Parameters<typeof sonnerToast>) => sonnerToast(...args),
+  sonnerToast,
+  {
+    error: ((message, data) =>
+      sonnerToast.error(message, { duration: 8000, ...data })) as typeof sonnerToast.error,
+  },
+);

@@ -155,7 +155,17 @@ export interface RecordPanelSlotProps {
  */
 export type ShellHeaderSlotProps = Record<string, never>;
 
+/**
+ * Props of `<Slot name="core.forms.header">`, hosted in the header actions of Administration → Forms. Contributions
+ * render one secondary button (`variant="outline"`) that starts a process another way (the assistant's "Install a
+ * process pack"). `empty`: the platform has no forms yet, so the contribution may stand out more.
+ */
+export interface FormsHeaderSlotProps {
+  empty: boolean;
+}
+
 /** Props of `<Slot name="core.user.overview">` on the user page (Administration → People). */
 export interface UserOverviewSlotProps {
-  user: { id: string; displayName: string };
+  /** `managerId`: the person's manager, so a card can tell whether the viewer may read what it shows. */
+  user: { id: string; displayName: string; managerId?: string | null };
 }

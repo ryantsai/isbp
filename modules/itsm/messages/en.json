@@ -45,8 +45,10 @@
     "desk": "Tickets",
     "problems": "Problems",
     "changes": "Changes",
-    "reports": "Service desk reports",
-    "settings": "Service desk"
+    "reports": "Reports",
+    "settings": "Service desk settings",
+    "settingsAbout": "SLAs, categories, business hours and the request catalog",
+    "settingsKeywords": "SLA, categories, business hours, calendars, catalog"
   },
   "portal": {
     "report": "Report an issue",
@@ -380,7 +382,16 @@
       "clear": "Unlink the article"
     },
     "linkedTo": "Linked to",
-    "unlink": "Don't link this record"
+    "unlink": "Don't link this record",
+    "ticketPicker": {
+      "selected": "{count, plural, one {# ticket chosen} other {# tickets chosen}}",
+      "placeholder": "Find tickets by number or title",
+      "search": "Number or title…",
+      "loading": "Searching…",
+      "noResults": "No tickets found.",
+      "chosen": "Chosen tickets",
+      "remove": "Remove {reference}"
+    }
   },
   "columns": {
     "reference": "Number",
@@ -394,7 +405,11 @@
     "category": "Category",
     "window": "Planned window",
     "updated": "Updated",
-    "created": "Created"
+    "created": "Created",
+    "ticket": "Ticket",
+    "owner": "Owner",
+    "changeType": "Type",
+    "risk": "Risk"
   },
   "filters": {
     "search": "Search tickets…",
@@ -411,11 +426,22 @@
     "anyAssignee": "Anyone",
     "category": "Category",
     "anyCategory": "Any category",
-    "assignee": "Assigned to"
+    "assignee": "Assigned to",
+    "deskTypes": "Incidents & requests",
+    "sort": "Order",
+    "sortCustom": "Column order",
+    "sorts": {
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "urgent": "Most urgent SLA",
+      "updated": "Recently updated"
+    },
+    "ci": "Configuration item",
+    "ciSet": "The CI you came from"
   },
   "desk": {
     "title": "Tickets",
-    "description": "Incidents and requests waiting for the service desk, with their SLAs.",
+    "description": "Incidents and service requests waiting for the service desk, with their SLAs.",
     "new": "New ticket",
     "queues": {
       "label": "Queues",
@@ -426,7 +452,8 @@
       "breached": "Breached SLA",
       "at_risk": "At risk",
       "major": "Major incidents",
-      "tickets": "{count, plural, one {ticket} other {tickets}}"
+      "tickets": "{count, plural, one {ticket} other {tickets}}",
+      "attention": "SLA attention"
     },
     "empty": {
       "assigned": "Nothing is assigned to you right now.",
@@ -437,7 +464,8 @@
       "at_risk": "No tickets are close to breaching their SLA.",
       "major": "No major incidents are open.",
       "filtered": "No tickets match these filters",
-      "filteredHint": "Try another status or clear the filters."
+      "filteredHint": "Try another status or clear the filters.",
+      "attention": "No ticket has breached or is about to breach its SLA."
     }
   },
   "newTicket": {
@@ -469,15 +497,23 @@
   },
   "newChange": {
     "title": "New change",
-    "description": "Describe what will change, when, and how to roll back. Normal and emergency changes go to the CAB.",
+    "description": "What will change, on which CIs and when. The plans can follow before it is approved.",
     "titleLabel": "What will change?",
     "titlePlaceholder": "e.g. Upgrade the core switch firmware",
     "titleTooShort": "Enter at least 3 characters",
     "descriptionLabel": "Details",
     "cis": "Configuration items",
-    "cisHint": "Used to find other changes planned on the same CIs.",
-    "submit": "Create change",
-    "created": "{reference} created as a draft"
+    "cisHint": "Used for conflict checks, impact and CAB rules (critical CIs need the CAB).",
+    "created": "{reference} created as a draft",
+    "whatAndWhen": "What and when",
+    "requester": "Requester (accepts the change)",
+    "requesterHint": "They accept it after implementation, and their department decides who approves it.",
+    "plans": "Reason and plans",
+    "plansHint": "Fill these in before the CAB looks at it.",
+    "saveDraft": "Save draft",
+    "createAndSubmit": "Create and submit for approval",
+    "createdAndSubmitted": "{reference} created and submitted for approval",
+    "windowPast": "The window has already started: move it to a later time to submit it."
   },
   "ticket": {
     "back": "Tickets",
@@ -494,7 +530,12 @@
     "notFound": "Ticket not found",
     "notFoundHint": "{reference} doesn't exist, or you can't see it.",
     "forbidden": "You don't have access to this ticket",
-    "loadFailed": "The ticket couldn't be loaded"
+    "loadFailed": "The ticket couldn't be loaded",
+    "backTo": {
+      "tickets": "Tickets",
+      "problems": "Problems",
+      "changes": "Changes"
+    }
   },
   "actions": {
     "label": "Ticket actions",
@@ -528,7 +569,9 @@
       "notesRequired": "Tell the requester what was done.",
       "cancelHint": "The requester is told the ticket was cancelled.",
       "reason": "Reason",
-      "reasonRequired": "Tell the requester why it is cancelled."
+      "reasonRequired": "Tell the requester why it is cancelled.",
+      "article": "Article used (optional)",
+      "articleHint": "Linked to the ticket, so the knowledge base knows what solves problems."
     },
     "edit": {
       "title": "Edit ticket",
@@ -538,7 +581,31 @@
       "markdownHint": "Markdown is supported."
     },
     "withdrawResolution": "Withdraw the resolution",
-    "sentForSignOff": "Resolution sent for sign-off"
+    "sentForSignOff": "Resolution sent for sign-off",
+    "otherStatus": "Other status",
+    "submitted": "Submitted for approval",
+    "waitingForAcceptance": "Waiting for the requester to accept",
+    "editPlan": "Edit plan",
+    "createProblem": "Create problem",
+    "next": {
+      "resolve": "Resolve",
+      "fulfil": "Fulfil",
+      "reopen": "Reopen",
+      "startInvestigating": "Start investigating",
+      "markKnownError": "Mark as known error",
+      "closeProblem": "Close problem",
+      "submitForApproval": "Submit for approval",
+      "revise": "Revise and resubmit",
+      "startImplementation": "Start implementation",
+      "finishImplementation": "Finish implementation",
+      "closeChange": "Close change"
+    },
+    "errors": {
+      "editPlan": "Edit plan",
+      "windowMissing": "Plan the change window first: when does it start and end?",
+      "windowPast": "The planned window has already started. Move it to a later time first.",
+      "acceptanceRequired": "The requester hasn't accepted the change yet."
+    }
   },
   "details": {
     "title": "Details",
@@ -551,19 +618,27 @@
     "impact": "Impact",
     "urgency": "Urgency",
     "priority": "Priority",
-    "priorityAuto": "From impact × urgency ({priority})",
+    "priorityAuto": "Automatic ({priority})",
     "priorityMatrix": "Calculated from impact and urgency.",
     "priorityOverridden": "Overridden by hand; the change is in the timeline.",
     "major": "Major incident",
     "channel": "Channel",
     "department": "Department",
     "created": "Opened",
-    "firstResponse": "First response"
+    "firstResponse": "First response",
+    "priorityFrom": "From impact {impact} × urgency {urgency}",
+    "majorShort": "Major incident",
+    "majorOn": "Yes",
+    "majorOff": "No",
+    "more": "More details"
   },
   "cis": {
     "title": "Affected CIs",
     "none": "No configuration items are linked.",
-    "critical": "Critical"
+    "critical": "Critical",
+    "remove": "Remove {name}",
+    "editTitle": "Affected configuration items",
+    "editHint": "Used for impact, conflict checks and CAB rules."
   },
   "links": {
     "title": "Links",
@@ -577,18 +652,24 @@
     "targetInvalid": "Enter a ticket number such as INC-00042.",
     "added": "Tickets linked",
     "removed": "Link removed",
-    "remove": "Remove the link to {reference}"
+    "remove": "Remove the link to {reference}",
+    "targets": "Tickets",
+    "targetsHint": "Search by number or title; pick as many as apply.",
+    "addCount": "{count, plural, =0 {Link} one {Link # ticket} other {Link # tickets}}"
   },
   "slas": {
     "title": "SLAs",
     "none": "No SLA applies to this ticket.",
     "due": "Due",
-    "stopped": "Stopped"
+    "stopped": "Stopped",
+    "policy": "Set by the SLA policy “{name}”"
   },
   "customFields": {
     "title": "Additional information",
     "editTitle": "Edit additional information",
-    "notSet": "Not set"
+    "notSet": "Not set",
+    "empty": "No extra details yet.",
+    "add": "Add details"
   },
   "timeline": {
     "label": "Timeline",
@@ -686,7 +767,11 @@
       "rejected": "Resolution not signed off",
       "cancelled": "Resolution sign-off withdrawn",
       "updated": "Resolution sign-off updated"
-    }
+    },
+    "requestForm": "Request form “{name}”",
+    "requestFormUnnamed": "A request form",
+    "articleUsed": "Article used:",
+    "systemUpdates": "{count, plural, one {# system update} other {# system updates}}"
   },
   "composer": {
     "label": "Add to the conversation",
@@ -700,7 +785,16 @@
     "send": "Send reply",
     "addNote": "Add note",
     "sent": "Reply sent",
-    "noteAdded": "Work note added"
+    "noteAdded": "Work note added",
+    "sendAndResolve": "Send and resolve",
+    "sendAndFulfil": "Send and fulfil",
+    "requester": {
+      "label": "Message the service desk",
+      "placeholder": "Add details or answer the service desk's question…",
+      "send": "Send",
+      "sent": "Message sent",
+      "hint": "Send with"
+    }
   },
   "confirm": {
     "title": "Is it fixed?",
@@ -725,7 +819,7 @@
     "reopenedToast": "Your ticket is open again"
   },
   "requester": {
-    "back": "My requests",
+    "back": "Requests",
     "cancelled": "This ticket was cancelled.",
     "conversation": "Conversation",
     "noMessages": "No messages yet. We'll reply here; you can add details below.",
@@ -745,7 +839,7 @@
     },
     "steps": {
       "label": "Progress",
-      "reported": "Reported",
+      "reported": "Received",
       "inProgress": "In progress",
       "resolved": "Resolved",
       "fulfilled": "Fulfilled",
@@ -763,13 +857,19 @@
     "rootCauseEmpty": "Not identified yet.",
     "workaround": "Workaround",
     "workaroundEmpty": "No workaround yet.",
-    "knownErrorSwitch": "Known error",
-    "knownErrorHint": "The cause and a workaround are documented; agents can apply it to new incidents.",
     "incidents": "{count, plural, =0 {Linked incidents} one {# linked incident} other {# linked incidents}}",
     "noIncidents": "No incidents are linked to this problem yet.",
     "kbArticle": "Knowledge article",
     "kbArticleHint": "The article that documents this known error, for agents handling the incidents it causes. Only articles you can read are listed.",
-    "openArticle": "Open the article"
+    "openArticle": "Open the article",
+    "writeArticle": "Write known-error article",
+    "writeArticleHint": "Share the workaround with the service desk: a draft is prefilled from this problem.",
+    "articleDrafted": "Draft {reference} created — review and publish it",
+    "article": {
+      "title": "Known error: {title}",
+      "symptoms": "Symptoms",
+      "empty": "Describe the symptoms, the cause and the workaround."
+    }
   },
   "problems": {
     "title": "Problems",
@@ -821,14 +921,27 @@
       "title": "CAB approval",
       "notStarted": "Submit the change for approval when the plan is ready.",
       "unavailable": "The approval can't be shown.",
-      "waitingFor": "Waiting for",
-      "openInbox": "Open my approvals",
       "status": {
         "running": "Waiting for approval",
         "approved": "Approved",
         "rejected": "Rejected",
         "cancelled": "Withdrawn"
-      }
+      },
+      "stepStatus": {
+        "active": "waiting",
+        "approved": "approved",
+        "rejected": "rejected",
+        "skipped": "skipped"
+      },
+      "waitingForPeople": "{more, plural, =0 {Waiting for {names}} other {Waiting for {names} and # more}}",
+      "due": "due",
+      "fellBack": "Nobody is named for this step here, so all {count} people of the fallback are asked. The first answer decides.",
+      "firstAnswer": "Any one of them can decide; the first answer counts.",
+      "approvedBy": "Approved by {name}",
+      "rejectedBy": "Rejected by {name}",
+      "skippedCondition": "Skipped: its condition didn't apply to this change",
+      "skippedNobody": "Skipped: nobody could approve this step",
+      "wholeFlow": "Show the whole flow"
     },
     "facts": {
       "type": "Change type",
@@ -837,7 +950,28 @@
       "ciCount": "Number of CIs",
       "durationHours": "Duration (hours)",
       "criticalCis": "Touches a critical CI"
-    }
+    },
+    "windowPassed": "Window has passed",
+    "submitTitle": "Plan the window to submit",
+    "submitHint": "A change goes to approval with a planned window that hasn't started yet.",
+    "saveAndSubmit": "Save and submit for approval",
+    "decide": {
+      "title": "Your approval is needed",
+      "hint": "Check the plan, the window and the affected CIs below, then decide.",
+      "dueHint": "Check the plan below and decide — due",
+      "approve": "Approve",
+      "reject": "Reject",
+      "openTask": "Open the approval",
+      "approveTitle": "Approve the change",
+      "rejectTitle": "Reject the change",
+      "comment": "Comment (optional)",
+      "reason": "Why is it rejected?",
+      "reasonRequired": "Say why, so the requester can fix it.",
+      "commentHint": "The requester and the change team see this.",
+      "approved": "Change approved",
+      "rejected": "Change rejected"
+    },
+    "windowRequired": "Plan the window to submit it for approval."
   },
   "changes": {
     "title": "Changes",
@@ -846,24 +980,35 @@
     "search": "Search changes…",
     "listLabel": "Changes",
     "empty": "No changes match.",
-    "tabs": {
-      "calendar": "Calendar",
-      "list": "List"
-    },
     "calendar": {
       "previous": "Previous month",
       "next": "Next month",
       "today": "Today",
-      "display": "Display",
-      "month": "Month",
-      "agenda": "Agenda",
       "legend": "Legend",
       "conflict": "Conflict",
       "caption": "Changes planned in {month}",
       "changesOn": "Changes on {day}",
       "more": "+{count} more",
       "empty": "No changes are planned this month.",
-      "loadFailed": "The calendar couldn't be loaded"
+      "loadFailed": "The calendar couldn't be loaded",
+      "loadingMore": "Loading more changes…",
+      "showMore": "Show more",
+      "allShown": "All {count, plural, one {# change is} other {# changes are}} shown.",
+      "capped": "Only the first {count, number} changes are shown. Open the agenda and select Show more to load the rest.",
+      "partialFailed": "Some changes couldn't be loaded.",
+      "stage": {
+        "notSubmitted": "Not submitted",
+        "waiting": "Waiting for CAB",
+        "scheduled": "Approved and planned",
+        "done": "Done",
+        "cancelled": "Cancelled"
+      }
+    },
+    "views": {
+      "label": "View",
+      "month": "Month",
+      "agenda": "Agenda",
+      "list": "List"
     }
   },
   "report": {
@@ -918,7 +1063,7 @@
       "open": "Open tickets",
       "openHint": "Across every type",
       "majorOpen": "{count, plural, one {# major incident open} other {# major incidents open}}",
-      "breached": "SLA breaches",
+      "breached": "SLA breaches in period",
       "breachedHint": "{response} response · {resolution} resolution",
       "mttr": "Mean time to resolve",
       "mttrHint": "{count, plural, one {Over # resolved ticket} other {Over # resolved tickets}}",
@@ -955,6 +1100,11 @@
       "description": "Mean, for tickets resolved in the last {days} days.",
       "hours": "Mean time",
       "resolved": "Resolved"
+    },
+    "sections": {
+      "label": "Report sections",
+      "serviceDesk": "Service desk",
+      "ai": "AI insights"
     }
   },
   "settingsPage": {
@@ -968,14 +1118,14 @@
     },
     "categories": {
       "title": "Categories",
-      "description": "Classify tickets and route them to a default group.",
+      "description": "Classify tickets, route them to a group and give them SLA targets.",
       "new": "New category",
       "empty": "No categories yet.",
       "inactive": "Inactive",
       "tickets": "{count, plural, one {# ticket} other {# tickets}}",
       "createTitle": "New category",
       "editTitle": "Edit category",
-      "sheetHint": "Names are shown in every language people use.",
+      "sheetHint": "Tickets in this category go to its default group and get its SLA targets.",
       "name": "Name",
       "nameRequired": "Enter the name in at least one language.",
       "key": "Key",
@@ -986,14 +1136,34 @@
       "typesRequired": "Choose at least one ticket type.",
       "defaultGroup": "Default group",
       "defaultGroupHint": "New tickets in this category go to this group.",
-      "sortOrder": "Order",
       "active": "Active",
       "deleteTitle": "Delete this category?",
-      "deleteBody": "Categories that have tickets or children can't be deleted; make them inactive instead."
+      "deleteBody": "Categories that have tickets or children can't be deleted; make them inactive instead.",
+      "nameHint": "Fill in each language people use; a missing language shows the English name.",
+      "keyHintEdit": "Used in SLA rules and integrations: changing it can break the ones that use it.",
+      "keyInvalid": "Check the key under Advanced: lowercase letters, digits and dashes only.",
+      "activeHint": "Inactive categories can't be chosen for new tickets; existing tickets keep them.",
+      "allTypes": "All ticket types",
+      "slaOwn": "SLA: {names}",
+      "slaStandard": "Standard SLA",
+      "sla": {
+        "title": "SLA",
+        "standard": "Use the standard targets",
+        "own": "Set targets for this category",
+        "standardHint": "Standard: {names}.",
+        "noStandard": "No SLA applies to these ticket types yet.",
+        "ownHint": "For this category and its subcategories.",
+        "types": "Ticket types with these targets",
+        "calendar": "Business calendar",
+        "placed": "Checked before “{name}”, so these targets apply to this category and its subcategories.",
+        "subcategories": "These targets apply to this category and its subcategories.",
+        "editPolicy": "Edit every setting of this policy",
+        "related": "{count, plural, one {# more policy uses this category} other {# more policies use this category}}"
+      }
     },
     "sla": {
       "title": "SLA policies",
-      "description": "Response and resolution targets per priority, counted on a business calendar. The first matching policy applies.",
+      "description": "Checked from the top: the first policy that matches a ticket sets its targets, counted in business time on its calendar.",
       "new": "New policy",
       "empty": "No SLA policies yet.",
       "inactive": "Inactive",
@@ -1012,26 +1182,53 @@
       "targets": "Targets",
       "priority": "Priority",
       "targetsInvalid": "Every target needs at least one minute.",
-      "hoursOf": "{target}: hours",
-      "minutesOf": "{target}: minutes",
-      "h": "h",
-      "m": "m",
       "warnAt": "Warn at",
       "warnAtHint": "Agents are warned when this share of the target has passed.",
       "pauseStatuses": "Pause the clock while the ticket is",
-      "sortOrder": "Order",
-      "sortOrderHint": "Lower numbers are checked first.",
       "active": "Active",
       "deleteTitle": "Delete this SLA policy?",
       "deleteBody": "Running SLAs keep their targets; new tickets stop using this policy.",
       "facts": {
         "priority": "Priority (1–4)",
-        "category": "Category",
+        "category": "Category (this one only)",
         "major": "Major incident",
         "channel": "Channel",
         "impact": "Impact (1–3)",
-        "urgency": "Urgency (1–3)"
-      }
+        "urgency": "Urgency (1–3)",
+        "categoryTree": "Category (with subcategories)"
+      },
+      "nameHint": "Shown on tickets in each person's language.",
+      "calendarAlwaysOpen": "{name} (24×7)",
+      "calendarHint": "Targets only count while this calendar is open.",
+      "moreOptions": "More options",
+      "activeHint": "New tickets skip inactive policies; running SLAs keep their targets.",
+      "fixErrors": "Check the fields marked above.",
+      "positionHint": "Checked in this order",
+      "position": "Checked {position, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+      "allPriorities": "All priorities",
+      "samePriorities": "Same for all priorities",
+      "copiedFrom": "Copied from “{name}”",
+      "onlyPriorities": "Only {priorities} tickets match these rules, so only their targets are shown.",
+      "durationHint": "Business time on the calendar below, e.g. 4h, 30m or 1h 30m (three 9-hour business days = 27h).",
+      "durationInvalid": "Enter each target in hours and minutes, e.g. 4h, 30m or 1h 30m.",
+      "typesInSentence": {
+        "incident": "incidents",
+        "service_request": "service requests",
+        "problem": "problems",
+        "change": "changes"
+      },
+      "reach": {
+        "never": "This policy will never apply: “{name}” (#{position}) matches these tickets first.",
+        "neverNoMatch": "This policy will never apply: no ticket can match its rules.",
+        "notFor": "It won't apply to {types}: “{name}” (#{position}) matches them first.",
+        "notForNoMatch": "It won't apply to {types}: no such ticket can match its rules.",
+        "checkFirst": "Check it first",
+        "keepPlace": "Keep its place",
+        "willMove": "When you save, it will be checked before “{name}” (#{position}).",
+        "placedBefore": "It will be checked before “{name}” (#{position}), so it applies to these tickets.",
+        "shadows": "Then {names} will no longer apply to these tickets."
+      },
+      "quoted": "“{name}”"
     },
     "calendars": {
       "title": "Business calendars",
@@ -1099,8 +1296,20 @@
       },
       "stopTitle": "Stop fulfilling this form?",
       "stopBody": "New submissions won't open service requests. Existing tickets are kept.",
-      "stopped": "Fulfilment removed"
-    }
+      "stopped": "Fulfilment removed",
+      "setUpItem": "Set up {name}"
+    },
+    "moveUp": "Move {name} up",
+    "moveDown": "Move {name} down",
+    "editItem": "Edit {name}",
+    "advanced": "Advanced",
+    "otherGroups": "Other groups",
+    "duration": {
+      "hours": "{hours}h",
+      "minutes": "{minutes}m",
+      "both": "{hours}h {minutes}m"
+    },
+    "serviceDeskGroups": "Service desk groups"
   },
   "ciRelated": {
     "title": "Open tickets",
@@ -1203,5 +1412,64 @@
     "sendProblem": "Report the problem",
     "acceptedToast": "Change accepted",
     "problemToast": "Problem reported"
+  },
+  "related": {
+    "title": "Related",
+    "add": "Add",
+    "addCi": "Affected configuration item",
+    "addTicket": "Related ticket",
+    "addRecord": "Other record (asset, article…)",
+    "none": "Nothing linked yet. Use Add for CIs, tickets and other records.",
+    "cis": "Affected CIs",
+    "tickets": "Tickets",
+    "records": "Other records",
+    "hidden": "{count, plural, one {# linked record you can't see} other {# linked records you can't see}}",
+    "affects": "{more, plural, =0 {Affects {services}} other {Affects {services} +#}}",
+    "removeRecord": "Remove the link to {name}",
+    "recordLinked": "Record linked",
+    "recordRemoved": "Link removed",
+    "addRecordTitle": "Link a record",
+    "addRecordHint": "An asset, an article, a release… anything this ticket is about.",
+    "record": "Record",
+    "linkRecord": "Link"
+  },
+  "newProblem": {
+    "title": "New problem",
+    "description": "Record a root-cause investigation.",
+    "created": "Problem {reference} created",
+    "titleLabel": "Title",
+    "titleRequired": "Enter at least 3 characters",
+    "incidents": "Incidents it causes",
+    "incidentsHint": "They are linked as \"Caused by\" this problem; you can add more later.",
+    "details": "What is known so far",
+    "category": "Category",
+    "noCategory": "No category",
+    "group": "Assignment group",
+    "defaultGroup": "Default group",
+    "cis": "Affected CIs",
+    "submit": "Create problem"
+  },
+  "requesterStatus": {
+    "new": "Received",
+    "pending_approval": "Waiting for approval",
+    "in_progress": "In progress",
+    "on_hold": "On hold",
+    "resolved": "Resolved — please confirm",
+    "fulfilled": "Done",
+    "closed": "Closed",
+    "cancelled": "Cancelled",
+    "rejected": "Rejected",
+    "draft": "Draft",
+    "assessment": "Being assessed",
+    "authorization": "Waiting for approval",
+    "scheduled": "Scheduled",
+    "implementing": "In progress",
+    "review": "Done — please check",
+    "investigating": "In progress",
+    "known_error": "In progress"
+  },
+  "work": {
+    "acceptChanges": "Changes to accept",
+    "confirmFixes": "Fixes to confirm"
   }
 }

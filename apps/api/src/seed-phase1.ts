@@ -594,8 +594,8 @@ export async function seedPhase1(kernel: Kernel) {
         branches: [
           {
             id: 'b_expensive',
-            name: t3('Over 1,500', '超過 1,500', '1,500 超'),
-            when: { fact: 'data.estimatedCost', op: 'gt', value: 1500 },
+            name: t3('Over 45,000', '超過 45,000', '45,000 超'),
+            when: { fact: 'data.estimatedCost', op: 'gt', value: 45_000 },
             steps: [
               {
                 id: 'finance',
@@ -803,13 +803,13 @@ export async function seedPhase1(kernel: Kernel) {
         id: 'f5',
         key: 'estimatedCost',
         type: 'number',
-        label: t3('Estimated cost (USD)', '預估費用（美元）', '概算費用（USD）'),
+        label: t3('Estimated cost (TWD)', '預估費用（新台幣）', '概算費用（TWD）'),
         help: t3(
-          'Above 1,500 Finance approves too.',
-          '超過 1,500 需財務核准。',
-          '1,500 を超えると経理の承認も必要です。',
+          'Above 45,000 TWD, Finance approves too.',
+          '超過 45,000 元需財務核准。',
+          '45,000 TWD を超えると経理の承認も必要です。',
         ),
-        validation: { min: 0, max: 50000 },
+        validation: { min: 0, max: 1_500_000 },
         width: 'half',
       },
       {
@@ -1227,7 +1227,7 @@ export async function seedPhase1(kernel: Kernel) {
     itemType: 'laptop',
     laptopModel: 'perf16',
     quantity: 1,
-    estimatedCost: 2200,
+    estimatedCost: 66_000,
     neededBy: new Date(Date.now() + 14 * 24 * HOUR).toISOString().slice(0, 10),
     deliverTo: 'tpe-hq',
     forSomeoneElse: false,
@@ -1241,7 +1241,7 @@ export async function seedPhase1(kernel: Kernel) {
           itemType: faker.helpers.arrayElement(['monitor', 'dock', 'headset', 'laptop']),
           laptopModel: 'std14',
           quantity: faker.number.int({ min: 1, max: 3 }),
-          estimatedCost: faker.helpers.arrayElement([180, 260, 950, 1890]),
+          estimatedCost: faker.helpers.arrayElement([5_400, 7_800, 28_500, 56_700]),
           deliverTo: 'tpe-hq',
           justification: 'Second screen for the new hybrid desk setup.',
         }

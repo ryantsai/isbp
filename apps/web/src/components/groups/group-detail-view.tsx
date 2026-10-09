@@ -33,7 +33,8 @@ import { SourceBadge } from '@/components/status-badge';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { GroupFormDialog } from './group-form';
 import { GroupMembersPanel } from './group-members';
-import { GroupActivityPanel, GroupRolesPanel } from './group-panels';
+import { ActivityFeed } from '@/components/audit/activity-feed';
+import { GroupRolesPanel } from './group-panels';
 import { SystemBadge } from './groups-view';
 
 export function GroupDetailView({ id }: { id: string }) {
@@ -164,7 +165,7 @@ export function GroupDetailView({ id }: { id: string }) {
         )}
         {canAudit && (
           <TabsContent value="activity">
-            <GroupActivityPanel groupId={group.id} />
+            <ActivityFeed subject={{ type: 'group', id: group.id }} description={t('activity.description')} />
           </TabsContent>
         )}
       </Tabs>
@@ -217,13 +218,17 @@ function DeleteGroupDialog({
   return (
     <ConfirmDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next) => {
+        if (!next) del.reset();
+        onOpenChange(next);
+      }}
       title={t('deleteTitle', { name: group.name })}
       description={t('deleteBody', { count: group.memberCount })}
       confirmLabel={t('delete')}
       destructive
       loading={del.isPending}
       onConfirm={() => del.mutate(undefined)}
+      error={del.error}
     />
   );
 }

@@ -332,7 +332,9 @@ export class CiService {
         );
       });
     } catch (err) {
-      if (pgCode(err) === '23503')
+      // 23503: a foreign key that refuses the delete; 23001: one declared `on delete restrict` (ITSM's affected CIs).
+      const code = pgCode(err);
+      if (code === '23503' || code === '23001')
         throw new HttpError(
           409,
           ErrorCodes.IN_USE,

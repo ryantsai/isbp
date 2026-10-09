@@ -16,3 +16,6 @@ playwright-report/
 test-results/
 blob-report/
 next-env.d.ts
+
+# Flow simulator: persona passwords, stack logs and reports (tooling/flow-sim)
+tooling/flow-sim/.state/

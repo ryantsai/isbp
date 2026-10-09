@@ -404,7 +404,10 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       },
     },
     async (req) => {
-      const a = await s().assets.update(req.params.ref, req.body, req.auth);
+      const { statusNote, ...changes } = req.body;
+      const a = await s().assets.update(req.params.ref, changes, req.auth, {
+        note: changes.status && statusNote ? statusNote : undefined,
+      });
       return s().assets.detailOf(a.id, req.auth);
     },
   );

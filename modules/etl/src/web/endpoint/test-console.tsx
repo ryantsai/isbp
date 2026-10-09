@@ -2,6 +2,7 @@
 
 import { ApiError } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
+import { problemOfError, RunProblemBanner } from '@isbp/ui/run-detail';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { CodeEditor } from '@isbp/ui/code-editor';
@@ -376,14 +377,14 @@ export function TestConsole({ endpoint, onPublish }: { endpoint: EndpointDetail;
                 )}
               </div>
             ) : (
-              <div role="alert" className={cn('grid gap-1 rounded-lg px-3 py-2 text-sm', TONE.destructive)}>
-                <span className="flex items-center gap-2 font-medium">
-                  <CircleXIcon className="size-4 shrink-0" aria-hidden />
-                  {t('failed', { kind: result.error?.kind ?? 'error' })}
-                  {result.error?.dbCode && <code className="font-mono text-xs">{result.error.dbCode}</code>}
-                </span>
-                <span className="wrap-anywhere">{result.error?.message}</span>
-              </div>
+              <RunProblemBanner
+                live
+                problem={problemOfError(
+                  result.error ?? { kind: 'other', dbCode: null, message: '' },
+                  endpoint.connection ? { id: endpoint.connection.id, name: endpoint.connection.name } : null,
+                )}
+                error={[result.error?.dbCode, result.error?.message].filter(Boolean).join(': ') || null}
+              />
             )}
             {result.boundSql && (
               <div className="grid min-w-0 gap-1.5">

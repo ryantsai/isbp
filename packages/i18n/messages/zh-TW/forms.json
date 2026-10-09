@@ -32,7 +32,9 @@
     "name": "名稱（選填）",
     "nameHint": "在申請上顯示此名稱，取代動作本身的名稱。",
     "when": "僅在以下條件成立時…",
-    "whenHint": "沒有條件時動作一律執行。否則只有在當下對此申請成立時才執行（答案、簽核人填寫的內容、申請人），不成立時顯示為已略過。",
+    "whenHint": "只有在當下對此申請成立時才執行（答案、簽核人填寫的內容、申請人），不成立時顯示為已略過。",
+    "whenEmpty": "沒有條件：每筆申請都會執行。",
+    "whenIncomplete": "請填寫每個條件的值。",
     "onlyWhen": "僅在 {condition} 時",
     "facts": {
       "requesterDepartment": "申請人的部門代碼",
@@ -42,19 +44,29 @@
     "templatesHint": "文字欄位可加入答案與申請資訊：請使用「插入值」。申請中沒有的值會保留空白。",
     "insert": "插入值",
     "insertFor": "在 {field} 中插入值",
+    "example": "例如：{text}",
     "valueGroups": {
       "answers": "答案",
       "records": "選取的紀錄",
       "request": "申請"
     },
     "values": {
-      "asShown": "{field}（顯示文字）",
+      "recordName": "{field}：名稱",
+      "stored": "{field}（儲存值）",
       "reference": "申請編號",
       "url": "申請連結",
       "form": "表單名稱",
       "requesterName": "申請人姓名",
       "requesterEmail": "申請人電子郵件",
       "decidedBy": "核准者姓名"
+    },
+    "sample": {
+      "person": "陳志明",
+      "approver": "林美華",
+      "email": "alex.chen@example.com",
+      "form": "申請表單",
+      "record": "[{field}]",
+      "answer": "[{field}]"
     },
     "secretStored": "已儲存。留空表示保留原值。",
     "secretRemove": "移除",
@@ -143,13 +155,14 @@
     "descriptionLabel": "說明",
     "icon": "圖示",
     "category": "類別",
-    "categoryPlaceholder": "例如：hardware",
-    "categorySuggestions": "現有類別：",
-    "submit": "建立並開啟編輯器",
+    "categoryNone": "不分類",
+    "categorySearch": "搜尋或新增類別…",
+    "categoryNew": "新增類別「{name}」",
+    "submit": "建立並開啟表單設計工具",
     "created": "已建立表單"
   },
   "builder": {
-    "title": "表單編輯器",
+    "title": "表單設計工具",
     "notFound": "找不到表單",
     "notFoundDescription": "表單可能已被移除，或連結有誤。",
     "fieldCount": "{count, plural, =0 {尚無欄位} other {# 個欄位}}",
@@ -189,16 +202,21 @@
       "archived": "請先還原表單再發佈",
       "noFields": "請至少加入一個欄位再發佈",
       "issues": "{count, plural, other {請先修正 # 個問題再發佈}}",
-      "workflow": "請先發佈所連結的簽核流程",
-      "upToDate": "第 {version} 版的欄位已是最新內容。設定變更在儲存後即生效。"
+      "workflow": "簽核尚未發佈，變更簽核需要簽核流程管理員角色",
+      "upToDate": "第 {version} 版的欄位已是最新內容。設定變更在儲存後即生效。",
+      "approval": "{count, plural, other {請先修正簽核中的 # 個問題再發佈}}"
     },
     "tabs": {
-      "build": "編輯",
+      "build": "題目",
       "preview": "預覽",
       "settings": "設定",
       "submissions": "申請",
       "rules": "規則",
-      "actions": "動作"
+      "actions": "動作",
+      "approval": "簽核",
+      "approvalChanged": "簽核的變更尚未發佈",
+      "buildGroup": "建立流程",
+      "useGroup": "表單使用情形"
     },
     "palette": "新增元素",
     "paletteHint": "拖曳到表單上，或按一下即可加在選取的元素下方。",
@@ -245,7 +263,22 @@
     "tipDrag": "拖曳控點（⋮⋮）即可調整順序；也可以將焦點移到控點上，再用空白鍵與方向鍵操作。",
     "tipMove": "移動選取的元素",
     "tipUndo": "復原上一個變更",
-    "tipSave": "儲存草稿"
+    "tipSave": "儲存草稿",
+    "publishApprovalTitle": "要發佈簽核嗎？",
+    "publishApprovalBody": "題目沒有變更。新的申請會使用新的簽核；進行中的申請維持原本的簽核。",
+    "publishWithApproval": "簽核「{name}」也會一併發佈（第 {version} 版）。",
+    "publishAnyway": "仍要發佈",
+    "success": {
+      "title": "第 {version} 版已上線，適用對象：{audience}",
+      "titleOff": "第 {version} 版已發佈。表單目前已停用，所以還沒有人能使用。",
+      "everyone": "所有人",
+      "groups": "{count, plural, other {# 個群組}}",
+      "copy": "複製連結",
+      "copied": "已複製連結",
+      "copyFailed": "無法複製連結",
+      "open": "在入口網站開啟",
+      "dismiss": "關閉"
+    }
   },
   "preview": {
     "language": "預覽語言",
@@ -253,12 +286,21 @@
     "empty": "此表單尚無欄位。",
     "submit": "送出",
     "reset": "重設",
-    "resultTitle": "試著送出",
-    "resultDescription": "填寫表單並送出，即可檢查驗證規則。不會真的送出任何資料。",
+    "resultTitle": "申請會儲存的內容",
+    "resultDescription": "送出範例答案以檢查題目與規則。不會真的送出任何資料。",
     "resultEmpty": "送出表單後，即可看到將儲存的內容。",
     "resultValid": "驗證通過，可以送出",
     "resultInvalid": "{count, plural, other {有 # 個欄位需要修正}}",
-    "resultNote": "隱藏的條件式欄位不會納入，與伺服器的處理方式完全相同。"
+    "resultNote": "隱藏的條件式欄位不會納入，與伺服器的處理方式完全相同。",
+    "whoTitle": "誰會簽核這筆申請？",
+    "whoDescription": "依據範例答案，以您選擇的申請人身分預覽。不會送出任何資料。",
+    "whoNone": "沒有人：此表單不需簽核，申請送出後立即生效。",
+    "previewAs": "預覽身分",
+    "previewAsYou": "您（{name}）",
+    "nextTitle": "接下來會發生什麼",
+    "nextNone": "沒有其他動作：申請會被記錄，申請人可在「我的申請」中追蹤。",
+    "nextConditional": "（僅在部分情況）",
+    "dependsOn": "取決於「{field}」的答案"
   },
   "settings": {
     "detailsTitle": "基本資料",
@@ -267,7 +309,7 @@
     "description": "說明",
     "icon": "圖示",
     "category": "類別",
-    "categoryHint": "用於在申請入口網站的目錄中分組表單。",
+    "categoryHint": "用於在申請入口網站中分組表單。入口網站內建的類別會以各人的語言顯示；新增的類別則依輸入內容顯示。",
     "availabilityTitle": "開放設定",
     "availabilityDescription": "誰可以找到此表單，以及是否接受新申請。",
     "active": "接受申請",
@@ -284,20 +326,22 @@
     "members": "{count, plural, other {# 位成員}}",
     "selected": "已選取",
     "approvalTitle": "簽核",
-    "approvalDescription": "有人送出表單時執行的工作流程。",
+    "approvalDescription": "有人送出表單時執行的簽核流程。",
     "noApproval": "不需簽核",
     "noApprovalHint": "申請會記錄為已送出，不經過簽核步驟。",
     "defaultWorkflow": "預設",
-    "workflowNotPublished": "此工作流程尚未發佈（或已封存）。請先發佈工作流程，再發佈表單。",
-    "openWorkflow": "開啟工作流程",
-    "createWorkflow": "建立工作流程",
+    "workflowNotPublished": "此簽核流程尚未發佈（或已封存）。請先發佈簽核流程，再發佈表單。",
+    "openWorkflow": "開啟簽核流程",
+    "createWorkflow": "建立簽核流程",
     "versionsTitle": "版本",
     "versionsDescription": "每次發佈都會建立新版本；申請會保留送出時使用的版本。",
     "neverPublished": "尚未發佈。",
     "issues": {
       "nameRequired": "請至少以一種語言輸入名稱",
       "groupsRequired": "請至少選擇一個群組，或將表單開放給所有人"
-    }
+    },
+    "activityTitle": "活動",
+    "activityDescription": "誰變更、發佈或封存了此表單，最新的在前。"
   },
   "submissions": {
     "title": "使用此表單送出的申請",
@@ -340,8 +384,10 @@
     "sheetHint": "答案不符合規則時，表單無法送出，並會顯示您的訊息。",
     "when": "當（選填）",
     "whenHint": "只有在此條件成立時才套用規則。留白則一律檢查。",
+    "whenEmpty": "沒有條件：此規則一律適用。",
     "require": "必須",
     "requireHint": "必須成立的條件。可將欄位與固定值或其他欄位比較。",
+    "requireEmpty": "請加入必須成立的條件。",
     "message": "訊息",
     "messagePlaceholder": "例如：結束時間必須晚於開始時間",
     "messageHint": "不符合規則時顯示給人員。請以人員使用的各種語言撰寫。",
@@ -352,8 +398,48 @@
     "apply": "套用",
     "issues": {
       "requireEmpty": "請至少新增一個答案必須符合的條件",
+      "conditionIncomplete": "請填寫每個條件的值",
       "messageEmpty": "請輸入人員會看到的訊息",
       "unknownField": "參照了已不存在的欄位"
     }
+  },
+  "approval": {
+    "title": "簽核",
+    "noAccess": "需要簽核流程檢視者或簽核流程管理員角色，才能查看這些申請由誰簽核。",
+    "noAccessNamed": "申請由「{name}」簽核。需要簽核流程檢視者或簽核流程管理員角色才能查看或變更。",
+    "emptyTitle": "這些申請由誰簽核？",
+    "emptyDescription": "目前沒有人：申請送出後立即生效，「核准後」的動作也會馬上執行。",
+    "setUp": "設定簽核",
+    "setUpHint": "預設由申請人的主管（或其部門主管）簽核，可以在這裡變更。",
+    "useExisting": "或使用現有的簽核",
+    "change": "使用的簽核",
+    "pick": "選擇簽核",
+    "none": "不需簽核",
+    "notPublished": "尚未發佈",
+    "defaultName": "{name}簽核",
+    "name": "簽核名稱",
+    "statusNew": "新的簽核：與表單一起發佈",
+    "statusChanged": "使用中：第 {version} 版 · 您的變更會與表單一起發佈",
+    "statusLive": "使用中：第 {version} 版",
+    "openDesigner": "在簽核流程設計工具中開啟",
+    "shared": "{count, plural, other {{names} 也使用此簽核：在這裡的變更也會套用到它們。}}",
+    "pendingLink": "此表單已上線：發佈後才會開始使用這個簽核。",
+    "readOnly": "您可以查看此簽核。變更簽核需要簽核流程管理員角色。",
+    "archived": "此簽核已封存。請選擇其他簽核，或在簽核流程設計工具中還原。"
+  },
+  "checks": {
+    "title": "發佈前請確認",
+    "recordsNobody": "沒有任何角色能讓人員挑選{type}紀錄，因此「{field}」永遠沒有可選項目。",
+    "recordsSome": "並非所有能使用此表單的人員都能看到{type}紀錄（需要 {roles}），因此有些人在「{field}」中找不到可選的項目。",
+    "recordsGroups": "{groups} 的成員不會透過這些群組取得 {roles}，因此部分成員可能在「{field}」中找不到可選的{type}紀錄。",
+    "limitAudience": "限制適用對象",
+    "otherType": "選擇其他紀錄類型",
+    "aStep": "此步驟",
+    "factNoFallback": "如果「{field}」沒有人，「{step}」就找不到簽核者，申請會被駁回。",
+    "addFallback": "新增備援簽核者",
+    "skipInstead": "改為略過此步驟",
+    "groupEmpty": "群組「{group}」沒有啟用中的成員，因此「{step}」找不到可詢問的人。",
+    "roleEmpty": "沒有人擁有「{role}」角色，因此「{step}」找不到可詢問的人。",
+    "openStep": "開啟步驟"
   }
 }

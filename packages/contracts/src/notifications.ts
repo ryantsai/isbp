@@ -30,13 +30,20 @@ export const markReadSchema = z
   .object({ ids: z.array(id).max(200).optional(), all: z.boolean().optional() })
   .refine((v) => v.all || v.ids?.length, 'Pass ids or all');
 
-export const badgesSchema = z.object({ approvals: z.number().int(), notifications: z.number().int() });
+export const badgesSchema = z.object({
+  approvals: z.number().int(),
+  notifications: z.number().int(),
+  /** Everything waiting for the person on My work (approvals, to-dos, reviews; not tasks). */
+  work: z.number().int(),
+});
 export type Badges = z.input<typeof badgesSchema>;
 
 export const notificationPreferenceSchema = z.object({
   type: z.string(),
   moduleId: z.string(),
   mandatory: z.boolean(),
+  /** Mandatory, set by the person, or delivered to them before: shown first in settings. */
+  relevant: z.boolean(),
   defaults: z.object({ inApp: z.boolean(), email: z.boolean() }),
   inApp: z.boolean(),
   email: z.boolean(),

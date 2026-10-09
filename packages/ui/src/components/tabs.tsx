@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { Tabs as TabsPrimitive } from 'radix-ui';
 import * as React from 'react';
 import { cn } from '../lib/utils';
+import { spring } from './motion';
 
 const TabsValueContext = React.createContext<{ value?: string; id: string }>({ id: '' });
 
@@ -70,7 +71,7 @@ export function TabsTrigger({
         <motion.span
           layoutId={`tab-indicator-${ctx.id}`}
           className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-primary"
-          transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+          transition={spring.indicator}
         />
       )}
     </TabsPrimitive.Trigger>
@@ -81,7 +82,10 @@ export function TabsContent({ className, ...props }: React.ComponentProps<typeof
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn('flex-1 outline-none animate-in fade-in-0 duration-200', className)}
+      className={cn(
+        'flex-1 outline-none animate-in fade-in-0 duration-150 motion-reduce:animate-none',
+        className,
+      )}
       {...props}
     />
   );

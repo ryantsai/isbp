@@ -2,6 +2,7 @@
 
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
+import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, type ListState } from '@isbp/ui/data-table';
 import {
@@ -47,7 +48,7 @@ const VIEWS = ['all', ...LINK_STATES] as const;
 type View = (typeof VIEWS)[number];
 
 /** The local side: a link to the record, or a note that the viewer can't see it (or it isn't created yet). */
-export function LocalCell({ local }: { local: LinkDto['local'] }) {
+export function LocalCell({ local, wrap = false }: { local: LinkDto['local']; wrap?: boolean }) {
   const t = useTranslations('integrations.links');
   if (!local) return <span className="text-sm text-muted-foreground">{t('notCreated')}</span>;
   if (local.hidden)
@@ -69,12 +70,15 @@ export function LocalCell({ local }: { local: LinkDto['local'] }) {
     <Link
       href={local.href}
       onClick={(e) => e.stopPropagation()}
-      className="block truncate text-sm font-medium outline-none hover:underline focus-visible:underline"
+      className={cn(
+        'block text-sm font-medium outline-none hover:underline focus-visible:underline',
+        wrap ? 'wrap-anywhere' : 'truncate',
+      )}
     >
       {text}
     </Link>
   ) : (
-    <span className="block truncate text-sm font-medium">{text}</span>
+    <span className={cn('block text-sm font-medium', wrap ? 'wrap-anywhere' : 'truncate')}>{text}</span>
   );
 }
 
@@ -212,7 +216,7 @@ export function LinksTable({
   const view: View = VIEWS.includes(state.state as View) ? (state.state as View) : 'all';
   const [relinking, setRelinking] = useState<LinkDto | null>(null);
   const [unlinking, setUnlinking] = useState<LinkDto | null>(null);
-  const { data, isLoading, isFetching } = useApiQuery<Page<LinkDto>>('/integrations/links', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<LinkDto>>('/integrations/links', {
     connectionId,
     state: view === 'all' ? undefined : (view as LinkState),
     q: state.q,
@@ -335,6 +339,8 @@ export function LinksTable({
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(l) => l.id}
       onPageChange={(page) => set({ page })}
       onPageSizeChange={(pageSize) => set({ pageSize })}

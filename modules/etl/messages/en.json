@@ -4,10 +4,11 @@
     "description": "REST endpoints from parameterized SQL and stored procedures, and ETL pipelines between databases"
   },
   "nav": {
-    "group": "Data APIs & ETL",
+    "group": "Data & automation",
     "endpoints": "Data APIs",
     "pipelines": "Pipelines",
-    "logs": "Call log"
+    "logs": "Call log",
+    "apiSections": "Data API sections"
   },
   "systemRoles": {
     "etl-viewer": {
@@ -146,7 +147,7 @@
     "tiles": {
       "calls": "Calls",
       "errorRate": "Error rate",
-      "p95": "p95 latency",
+      "p95": "Response time (95% of calls)",
       "cacheHits": "Cache hits"
     },
     "errorsHint": "{count, plural, one {# error} other {# errors}}",
@@ -241,7 +242,10 @@
       "versions": "Versions",
       "docs": "Docs",
       "links": "Links & files"
-    }
+    },
+    "publishNeedsTest": "Publishing needs a successful test of the current draft.",
+    "testDraft": "Test the draft",
+    "editNewVersion": "Edit as new version"
   },
   "editor": {
     "statement": "Statement",
@@ -277,7 +281,8 @@
     "save": "Save draft",
     "saved": "Draft saved",
     "fixFields": "Fix the highlighted fields.",
-    "paramsList": "Parameters: {list}"
+    "paramsList": "Parameters: {list}",
+    "catalogFailed": "Couldn’t read the tables of {name}: autocomplete is off"
   },
   "params": {
     "title": "Parameters",
@@ -462,7 +467,7 @@
   },
   "pipelines": {
     "title": "Pipelines",
-    "description": "ETL between database connections: a source query, a target table, column mapping and fixed transforms.",
+    "description": "Copy data from one database into a table of another, on demand or on a schedule.",
     "search": "Search pipelines…",
     "new": "New pipeline",
     "newTitle": "New pipeline",
@@ -511,7 +516,11 @@
       "runs": "Runs",
       "definition": "Definition",
       "links": "Links & files"
-    }
+    },
+    "seeLastRun": "See the last run",
+    "onSchedule": "Runs on a schedule:",
+    "openJob": "Open the scheduled job",
+    "lastScheduled": "last scheduled run"
   },
   "pipelineEditor": {
     "source": "Source",
@@ -611,7 +620,12 @@
       "info": "Info",
       "warn": "Warning",
       "error": "Error"
-    }
+    },
+    "runAgain": "Run again",
+    "details": "Details",
+    "jobRun": "Started by a scheduled job",
+    "watermarkLabel": "Watermark",
+    "watermarkRange": "{from} → {to}"
   },
   "links": {
     "unavailable": "Links and files are not available",
@@ -628,5 +642,8 @@
   "customizations": {
     "pipeline": "ETL pipeline",
     "endpoint": "Data API"
+  },
+  "results": {
+    "pipeline": "{written, plural, one {# row written} other {# rows written}} ({read} read, {rejected} rejected)"
   }
 }

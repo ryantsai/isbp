@@ -44,6 +44,18 @@ test('portfolio lists the network refresh', async ({ page }) => {
   await expect(page.getByRole('table', { name: 'Projects' })).toBeVisible();
 });
 
+test('a proposal says who decides and by when; the approval path opens in a sheet', async ({ page }) => {
+  await page.goto('/projects/KHH');
+  await expect(page.getByRole('heading', { name: 'Kaohsiung office opening', level: 1 })).toBeVisible();
+  await expect(page.getByText('Waiting for approval')).toBeVisible();
+  await expect(page.getByText('Not assessed yet').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Show approval path' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Approval path' });
+  await expect(sheet).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+});
+
 test('board: quick-add, move with the keyboard and with "Move to…"', async ({ page }) => {
   await page.goto('/projects/NET?view=board');
   await expect(page.getByRole('heading', { name: 'Network refresh 2026', level: 1 })).toBeVisible();
@@ -131,6 +143,7 @@ test('Projects pages have no accessibility violations (light and dark)', async (
   const pages: [string, string][] = [
     ['/projects', 'portfolio'],
     ['/projects/NET', 'overview'],
+    ['/projects/KHH', 'proposal'],
     ['/projects/NET?view=board', 'board'],
     ['/projects/NET?view=timeline', 'timeline'],
     ['/projects/NET?view=timeline&layout=table', 'timeline table'],

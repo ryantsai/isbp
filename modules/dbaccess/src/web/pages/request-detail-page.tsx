@@ -1,83 +1,124 @@
 'use client';
 
 import type { WorkflowInstance } from '@isbp/contracts';
-import { localize, walkSteps } from '@isbp/sdk';
-import type { WebPageProps } from '@isbp/sdk/web';
-import { UserAvatar } from '@isbp/ui/avatar';
+import { evaluateCondition, localize, walkSteps } from '@isbp/sdk';
+import { useCan, usePlatform, type WebPageProps } from '@isbp/sdk/web';
+import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { PageHeader } from '@isbp/ui/page-header';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { DateTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { type StepRuntime, WorkflowDiagram } from '@isbp/ui/workflow-diagram';
-import { BanIcon, FileQuestionIcon, GavelIcon } from 'lucide-react';
+import {
+  BanIcon,
+  CircleCheckIcon,
+  CircleDashedIcon,
+  CircleXIcon,
+  ClockIcon,
+  DatabaseIcon,
+  FileQuestionIcon,
+  GavelIcon,
+  SkipForwardIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import type { AccessRequest } from '../../contracts';
 import { EngineLabel, GrantStatusBadge, RequestStatusBadge, RiskBadge } from '../badges';
-import { INVALIDATE, useDay, useLocalized } from '../lib';
+import { INVALIDATE, useDate, useDay, useLocalized } from '../lib';
 
-function runtimeOf(instance: WorkflowInstance) {
-  const runtime: Record<string, StepRuntime> = {};
-  const chosen: Record<string, string> = {};
+type StepView = {
+  id: string;
+  name: string;
+  state: 'approved' | 'rejected' | 'waiting' | 'skipped' | 'later';
+  people: string[];
+  at: string | null;
+};
+
+/** The approval steps in plain words: who approved, who it waits for, what is next, what isn't needed. */
+function stepsOf(instance: WorkflowInstance, locale: string): StepView[] {
+  const out: StepView[] = [];
   for (const { step } of walkSteps(instance.graph.steps)) {
+    if (step.type !== 'approval') continue;
     const st = instance.state.steps[step.id];
-    if (st?.branch) chosen[step.id] = st.branch;
-    const status = st?.status ?? 'waiting';
-    runtime[step.id] = {
-      status: status === 'active' && instance.status !== 'running' ? 'skipped' : status,
-      reason: st?.reason,
-      people: instance.tasks
-        .filter((x) => x.stepId === step.id && x.status !== 'delegated')
-        .map((x) => ({ name: x.assignee.displayName, avatarUrl: x.assignee.avatarUrl, status: x.status })),
-    };
+    const tasks = instance.tasks.filter((x) => x.stepId === step.id && x.status !== 'delegated');
+    const decided = tasks.filter((x) => x.status === 'approved' || x.status === 'rejected');
+    const base = { id: step.id, name: localize(step.name, locale), at: decided[0]?.decidedAt ?? null };
+    if (st?.status === 'approved')
+      out.push({
+        ...base,
+        state: 'approved',
+        people: decided.map((x) => (x.decidedBy ?? x.assignee).displayName),
+      });
+    else if (st?.status === 'rejected')
+      out.push({
+        ...base,
+        state: 'rejected',
+        people: decided.map((x) => (x.decidedBy ?? x.assignee).displayName),
+      });
+    else if (st?.status === 'active' && instance.status === 'running')
+      out.push({
+        ...base,
+        state: 'waiting',
+        people: tasks.filter((x) => x.status === 'pending').map((x) => x.assignee.displayName),
+      });
+    // A step whose condition doesn't hold for this request won't run: say so instead of showing it as pending.
+    else if (st?.status === 'skipped' || (!st && !evaluateCondition(step.when, instance.facts)))
+      out.push({ ...base, state: 'skipped', people: [] });
+    else if (instance.status === 'running') out.push({ ...base, state: 'later', people: [] });
   }
-  return { runtime, chosen };
+  return out;
 }
 
-/** Who the request waits for and the approval path (requester, approvers, owners, DBAs). */
+const STEP_ICON = {
+  approved: { icon: CircleCheckIcon, className: 'text-success' },
+  rejected: { icon: CircleXIcon, className: 'text-destructive' },
+  waiting: { icon: ClockIcon, className: 'text-info' },
+  skipped: { icon: SkipForwardIcon, className: 'text-muted-foreground' },
+  later: { icon: CircleDashedIcon, className: 'text-muted-foreground' },
+} as const;
+
+/** Who the request waits for and the approval path, without the rules behind it. */
 function ApprovalPath({ instanceId }: { instanceId: string }) {
   const t = useTranslations('dbaccess.requestPage');
   const locale = useLocale();
+  const date = useDate();
   const { data, isLoading, error } = useApiQuery<WorkflowInstance>(`/workflow-instances/${instanceId}`);
-  const rt = useMemo(() => (data ? runtimeOf(data) : null), [data]);
+  const steps = useMemo(() => (data ? stepsOf(data, locale) : []), [data, locale]);
   if (isLoading) return <Skeleton className="h-32 w-full rounded-lg" />;
-  if (error || !data || !rt) return <p className="text-sm text-muted-foreground">{t('pathHidden')}</p>;
+  if (error || !data) return <p className="text-sm text-muted-foreground">{t('pathHidden')}</p>;
   return (
     <div className="grid min-w-0 gap-3">
-      {data.status === 'running' && data.pendingWith.length > 0 && (
-        <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          {t('waitingFor', { step: data.currentSteps.map((s) => localize(s.name, locale)).join(', ') })}
-          {data.pendingWith.slice(0, 5).map((p) => (
-            <span key={p.id} className="inline-flex items-center gap-1 text-foreground">
-              <UserAvatar name={p.displayName} src={p.avatarUrl} className="size-5 text-[9px]" />
-              {p.displayName}
-            </span>
-          ))}
-          {data.pendingWith.length > 5 && <span>{t('andMore', { count: data.pendingWith.length - 5 })}</span>}
-        </p>
-      )}
-      <div
-        className="relative overflow-x-auto rounded-xl border bg-muted/20 py-4 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-        role="region"
-        aria-label={t('path')}
-        tabIndex={0}
-      >
-        <WorkflowDiagram
-          graph={data.graph}
-          names={data.names}
-          runtime={rt.runtime}
-          chosen={rt.chosen}
-          outcome={data.status}
-        />
-      </div>
+      <ol className="grid gap-3" aria-label={t('path')}>
+        {steps.map((s) => {
+          const { icon: Icon, className } = STEP_ICON[s.state];
+          return (
+            <li key={s.id} className={cn('flex min-w-0 gap-3', s.state === 'skipped' && 'opacity-70')}>
+              <Icon className={cn('mt-0.5 size-5 shrink-0', className)} aria-hidden />
+              <div className="min-w-0 text-sm">
+                <p className="font-medium wrap-break-word">{s.name}</p>
+                <p className="text-muted-foreground wrap-break-word">
+                  {s.state === 'approved'
+                    ? t('step.approved', { names: s.people.join(', '), date: date(s.at) })
+                    : s.state === 'rejected'
+                      ? t('step.rejected', { names: s.people.join(', '), date: date(s.at) })
+                      : s.state === 'waiting'
+                        ? t('step.waiting', { names: s.people.slice(0, 5).join(', ') })
+                        : s.state === 'skipped'
+                          ? t('step.skipped')
+                          : t('step.later')}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
       {data.myTaskId && (
-        <Link href="/approvals" className="text-sm font-medium text-primary hover:underline">
-          {t('decide')}
-        </Link>
+        <Button asChild size="sm" className="justify-self-start">
+          <Link href={`/approvals?task=${data.myTaskId}`}>{t('decide')}</Link>
+        </Button>
       )}
     </div>
   );
@@ -85,8 +126,12 @@ function ApprovalPath({ instanceId }: { instanceId: string }) {
 
 export default function RequestDetailPage({ params }: WebPageProps) {
   const t = useTranslations('dbaccess.requestPage');
+  const tn = useTranslations('dbaccess.nav');
+  const ta = useTranslations('requests.access');
   const l = useLocalized();
   const day = useDay();
+  const { user } = usePlatform();
+  const readsGrants = useCan('dbaccess.grants.read');
   const { data, isLoading, error } = useApiQuery<AccessRequest>(
     `/dbaccess/requests/${params.ref}`,
     undefined,
@@ -107,27 +152,47 @@ export default function RequestDetailPage({ params }: WebPageProps) {
         title={t('notFound')}
         action={
           <Button asChild variant="outline">
-            <Link href="/dbaccess">{t('back')}</Link>
+            <Link href="/requests">{ta('backToRequests')}</Link>
           </Button>
         }
       />
     );
 
+  // The requester came from Requests (My requests); DBAs and auditors from Who has access.
+  const back =
+    data.requester?.id === user.id || !readsGrants
+      ? { href: '/requests', label: ta('backToRequests') }
+      : { href: '/dbaccess/grants', label: tn('grants') };
+
   return (
     <>
-      <PageHeader
-        eyebrow={<span className="font-mono">{data.reference}</span>}
+      <DetailHeader
+        back={back}
+        icon={<DatabaseIcon />}
+        reference={data.reference}
         title={`${l(data.role.name)} · ${data.server.displayName}`}
-        description={t(`statusHint.${data.status}`)}
-        actions={
-          <>
-            <RequestStatusBadge status={data.status} />
-            {data.canCancel && (
-              <Button variant="outline" loading={cancel.isPending} onClick={() => cancel.mutate(undefined)}>
-                <BanIcon /> {t('cancel')}
-              </Button>
-            )}
-          </>
+        status={<RequestStatusBadge status={data.status} />}
+        meta={t(`statusHint.${data.status}`)}
+        primaryAction={
+          data.grant ? (
+            <Button asChild>
+              <Link href="/dbaccess">{t('openMyAccess')}</Link>
+            </Button>
+          ) : undefined
+        }
+        menu={
+          data.canCancel
+            ? [
+                {
+                  id: 'cancel',
+                  label: t('cancel'),
+                  icon: <BanIcon />,
+                  destructive: true,
+                  disabled: cancel.isPending,
+                  onSelect: () => cancel.mutate(undefined),
+                },
+              ]
+            : []
         }
       />
       <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -200,9 +265,6 @@ export default function RequestDetailPage({ params }: WebPageProps) {
                   <dt className="text-xs text-muted-foreground">{t('access')}</dt>
                   <dd className="flex flex-wrap items-center gap-2">
                     <GrantStatusBadge status={data.grant.viewStatus} />
-                    <Link href="/dbaccess" className="text-primary hover:underline">
-                      {t('openMyAccess')}
-                    </Link>
                   </dd>
                 </div>
               )}

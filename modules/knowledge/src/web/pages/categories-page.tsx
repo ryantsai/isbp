@@ -14,15 +14,15 @@ import {
   AlertDialogTitle,
 } from '@isbp/ui/alert-dialog';
 import { Button } from '@isbp/ui/button';
+import { useListState } from '@isbp/ui/data-table';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { EmptyState } from '@isbp/ui/empty-state';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@isbp/ui/dropdown-menu';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import {
   Form,
   FormControl,
@@ -37,17 +37,26 @@ import { LocalizedInput } from '@isbp/ui/localized-input';
 import { PageHeader } from '@isbp/ui/page-header';
 import { applyServerErrors, useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetForm,
+  SheetHeader,
+  SheetTitle,
+} from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { toast } from '@isbp/ui/sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
-import { ArrowLeftIcon, FolderTreeIcon, LockIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import Link from 'next/link';
+import { EllipsisIcon, FolderTreeIcon, LockIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import type { Category, CreateCategoryInput, UpdateCategoryInput } from '../../contracts';
-import { CategoryIcon } from '../parts';
+import { CategoryIcon, KnowledgeSections } from '../parts';
 
 const NONE = '__none';
 
@@ -80,14 +89,15 @@ function useSchema() {
 }
 type Values = z.infer<ReturnType<typeof useSchema>>;
 
-function CategoryDialog({
+/** New and edit form in a side sheet (`?create=1`, `?edit=<id>`), asking before closing with unsaved changes. */
+function CategorySheet({
   open,
-  onOpenChange,
+  onClose,
   category,
   all,
 }: {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   category: Category | null;
   all: Category[];
 }) {
@@ -134,7 +144,7 @@ function CategoryDialog({
       invalidate: ['/knowledge/'],
       silent: true,
       success: category ? t('saved') : t('created'),
-      onSuccess: () => onOpenChange(false),
+      onSuccess: () => onClose(),
     },
   );
   const submit = form.handleSubmit((v) =>
@@ -153,137 +163,140 @@ function CategoryDialog({
   const parents = all.filter((c) => c.id !== category?.id && c.parentId !== category?.id);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{category ? t('editTitle') : t('createTitle')}</DialogTitle>
-          <DialogDescription>{t('dialogHint')}</DialogDescription>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="right" className="sm:max-w-xl" dirty={form.formState.isDirty && !save.isPending}>
+        <SheetHeader>
+          <SheetTitle>{category ? t('editTitle') : t('createTitle')}</SheetTitle>
+          <SheetDescription>{t('dialogHint')}</SheetDescription>
+        </SheetHeader>
         <Form {...form}>
-          <form onSubmit={submit} className="grid gap-4" noValidate>
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field, fieldState }) => (
-                <FormItem>
-                  <FormLabel>{t('name')}</FormLabel>
-                  <FormControl>
-                    <LocalizedInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      invalid={Boolean(fieldState.error)}
-                    />
-                  </FormControl>
-                  <FormMessage>{fieldState.error ? t('errors.name') : null}</FormMessage>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="key"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('key')}</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled={Boolean(category)} className="font-mono" />
-                  </FormControl>
-                  <FormDescription>{t('keyHint')}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('descriptionLabel')}</FormLabel>
-                  <FormControl>
-                    <LocalizedInput multiline value={field.value} onChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SheetForm onSubmit={submit} noValidate>
+            <SheetBody className="grid content-start gap-4">
               <FormField
                 control={form.control}
-                name="icon"
-                render={({ field }) => (
+                name="name"
+                render={({ field, fieldState }) => (
                   <FormItem>
-                    <FormLabel>{t('icon')}</FormLabel>
-                    <div className="flex items-center gap-2">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4">
-                        <CategoryIcon name={icon} />
-                      </span>
-                      <FormControl>
-                        <Input {...field} className="font-mono" />
-                      </FormControl>
-                    </div>
-                    <FormDescription>{t('iconHint')}</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="sortOrder"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('sortOrder')}</FormLabel>
+                    <FormLabel>{t('name')}</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={10000}
-                        name={field.name}
-                        ref={field.ref}
-                        onBlur={field.onBlur}
-                        value={Number.isFinite(field.value) ? field.value : ''}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                      <LocalizedInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        invalid={Boolean(fieldState.error)}
                       />
                     </FormControl>
+                    <FormMessage>{fieldState.error ? t('errors.name') : null}</FormMessage>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="key"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('key')}</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled={Boolean(category)} className="font-mono" />
+                    </FormControl>
+                    <FormDescription>{t('keyHint')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-            <FormField
-              control={form.control}
-              name="parentId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('parent')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('descriptionLabel')}</FormLabel>
                     <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <LocalizedInput multiline value={field.value} onChange={field.onChange} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NONE}>{t('noParent')}</SelectItem>
-                      {parents.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {localize(c.name, locale) || c.key}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="parentId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('parent')}</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NONE}>{t('noParent')}</SelectItem>
+                        {parents.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {localize(c.name, locale) || c.key}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="icon"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('icon')}</FormLabel>
+                      <div className="flex items-center gap-2">
+                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4">
+                          <CategoryIcon name={icon} />
+                        </span>
+                        <FormControl>
+                          <Input {...field} className="font-mono" />
+                        </FormControl>
+                      </div>
+                      <FormDescription>{t('iconHint')}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sortOrder"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('sortOrder')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={10000}
+                          name={field.name}
+                          ref={field.ref}
+                          onBlur={field.onBlur}
+                          value={Number.isFinite(field.value) ? field.value : ''}
+                          onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                        />
+                      </FormControl>
+                      <FormDescription>{t('sortOrderHint')}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </SheetBody>
+            <SheetFooter>
+              <Button type="button" variant="outline" onClick={onClose}>
                 {tc('cancel')}
               </Button>
               <Button type="submit" loading={save.isPending}>
                 {category ? tc('saveChanges') : tc('create')}
               </Button>
-            </DialogFooter>
-          </form>
+            </SheetFooter>
+          </SheetForm>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -291,15 +304,17 @@ function CategoryDialog({
 export default function CategoriesPage() {
   const t = useTranslations('knowledge.categoriesAdmin');
   const tc = useTranslations('common');
-  const tk = useTranslations('knowledge');
   const locale = useLocale();
   const canManage = useCan('knowledge.categories.manage');
-  const { data, isLoading } = useApiQuery<{ items: Category[] }>('/knowledge/categories');
-  const [editing, setEditing] = useState<Category | null>(null);
-  const [open, setOpen] = useState(false);
+  const { data, isLoading, error, refetch } = useApiQuery<{ items: Category[] }>('/knowledge/categories');
+  const [state, set] = useListState();
   const [deleting, setDeleting] = useState<Category | null>(null);
   const items = data?.items ?? [];
   const byId = new Map(items.map((c) => [c.id, c]));
+  const editing = state.edit ? (byId.get(String(state.edit)) ?? null) : null;
+  const sheetOpen = state.create === '1' || Boolean(editing);
+  const closeSheet = () => set({ create: undefined, edit: undefined });
+  const nameOf = (c: Category) => localize(c.name, locale) || c.key;
   const remove = useApiMutation((api, c: Category) => api.delete(`/knowledge/categories/${c.id}`), {
     invalidate: ['/knowledge/'],
     success: t('deleted'),
@@ -314,26 +329,17 @@ export default function CategoriesPage() {
     );
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 mb-2 text-muted-foreground">
-        <Link href="/knowledge/manage">
-          <ArrowLeftIcon /> {tk('nav.manage')}
-        </Link>
-      </Button>
+    <>
       <PageHeader
         title={t('title')}
         description={t('description')}
         actions={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setOpen(true);
-            }}
-          >
+          <Button onClick={() => set({ create: '1', edit: undefined })}>
             <PlusIcon /> {t('add')}
           </Button>
         }
       />
+      <KnowledgeSections />
       <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         {isLoading ? (
           <div className="grid gap-px">
@@ -341,6 +347,8 @@ export default function CategoriesPage() {
               <Skeleton key={i} className="h-14 rounded-none" />
             ))}
           </div>
+        ) : error && !data ? (
+          <ErrorState error={error} onRetry={() => refetch()} kind="list" />
         ) : items.length ? (
           <Table aria-label={t('title')}>
             <TableHeader className="bg-muted/40">
@@ -349,78 +357,95 @@ export default function CategoriesPage() {
                 <TableHead className="hidden md:table-cell">{t('key')}</TableHead>
                 <TableHead className="hidden sm:table-cell">{t('parent')}</TableHead>
                 <TableHead className="text-right">{t('articles')}</TableHead>
-                <TableHead className="w-24">
+                <TableHead className="w-12">
                   <span className="sr-only">{tc('actions')}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="max-w-0 w-full">
-                    <span className="flex min-w-0 items-center gap-3">
-                      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4">
-                        <CategoryIcon name={c.icon} />
-                      </span>
-                      <span className="grid min-w-0">
-                        <span className="truncate font-medium">{localize(c.name, locale) || c.key}</span>
-                        {c.description && (
-                          <span className="truncate text-xs text-muted-foreground">
-                            {localize(c.description, locale)}
-                          </span>
-                        )}
-                      </span>
-                    </span>
-                  </TableCell>
-                  <TableCell className="hidden font-mono text-xs text-muted-foreground md:table-cell">
-                    {c.key}
-                  </TableCell>
-                  <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
-                    {c.parentId ? localize(byId.get(c.parentId)?.name, locale) : '—'}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">{c.articleCount}</TableCell>
-                  <TableCell>
-                    <span className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={t('editLabel', { name: localize(c.name, locale) || c.key })}
-                        onClick={() => {
-                          setEditing(c);
-                          setOpen(true);
-                        }}
+              {items.map((c) => {
+                const parent = c.parentId ? byId.get(c.parentId) : null;
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell className="max-w-0 w-full">
+                      {/* The name opens the category, like a row link elsewhere. */}
+                      <button
+                        type="button"
+                        onClick={() => set({ edit: c.id, create: undefined })}
+                        className="group flex w-full min-w-0 items-center gap-3 rounded-md text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                       >
-                        <PencilIcon />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-destructive hover:text-destructive"
-                        aria-label={t('deleteLabel', { name: localize(c.name, locale) || c.key })}
-                        onClick={() => setDeleting(c)}
-                      >
-                        <Trash2Icon />
-                      </Button>
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4">
+                          <CategoryIcon name={c.icon} />
+                        </span>
+                        <span className="grid min-w-0">
+                          <span className="truncate font-medium group-hover:underline">{nameOf(c)}</span>
+                          {c.description && (
+                            <span className="truncate text-xs text-muted-foreground">
+                              {localize(c.description, locale)}
+                            </span>
+                          )}
+                          {parent && (
+                            <span className="truncate text-xs text-muted-foreground sm:hidden">
+                              {t('under', { parent: nameOf(parent) })}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    </TableCell>
+                    <TableCell className="hidden font-mono text-xs text-muted-foreground md:table-cell">
+                      {c.key}
+                    </TableCell>
+                    <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
+                      {parent ? nameOf(parent) : '—'}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{c.articleCount}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t('rowActions', { name: nameOf(c) })}
+                          >
+                            <EllipsisIcon />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-40">
+                          <DropdownMenuItem onSelect={() => set({ edit: c.id, create: undefined })}>
+                            <PencilIcon /> {tc('edit')}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(c)}>
+                            <Trash2Icon /> {tc('delete')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         ) : (
-          <EmptyState icon={<FolderTreeIcon />} title={t('empty')} />
+          <EmptyState
+            icon={<FolderTreeIcon />}
+            title={t('empty')}
+            action={
+              <Button size="sm" onClick={() => set({ create: '1', edit: undefined })}>
+                <PlusIcon /> {t('add')}
+              </Button>
+            }
+          />
         )}
       </div>
 
-      <CategoryDialog open={open} onOpenChange={setOpen} category={editing} all={items} />
+      <CategorySheet open={sheetOpen} onClose={closeSheet} category={editing} all={items} />
       <AlertDialog open={Boolean(deleting)} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('deleteDescription', {
-                name: deleting ? localize(deleting.name, locale) || deleting.key : '',
-              })}
+              {t('deleteDescription', { name: deleting ? nameOf(deleting) : '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -434,6 +459,6 @@ export default function CategoriesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

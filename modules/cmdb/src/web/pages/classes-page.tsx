@@ -4,14 +4,13 @@ import { localize } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiMutation } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
 import { Hint } from '@isbp/ui/tooltip';
-import { ArrowLeftIcon, LockIcon, PencilIcon, PlusIcon, ShapesIcon, Trash2Icon } from 'lucide-react';
-import { motion } from 'motion/react';
+import { LockIcon, PencilIcon, PlusIcon, ShapesIcon, Trash2Icon } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -27,7 +26,7 @@ export default function ClassesPage() {
   const tc = useTranslations('common');
   const locale = useLocale();
   const canManage = useCan('cmdb.classes.manage');
-  const { classes, isLoading } = useClasses();
+  const { classes, isLoading, error, refetch } = useClasses();
   const [editing, setEditing] = useState<CiClass | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [deleting, setDeleting] = useState<CiClass | null>(null);
@@ -45,13 +44,9 @@ export default function ClassesPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2 text-muted-foreground">
-        <Link href="/cmdb">
-          <ArrowLeftIcon /> {t('back')}
-        </Link>
-      </Button>
+    <div>
       <PageHeader
+        back={{ href: '/cmdb', label: t('back') }}
         title={t('title')}
         description={t('description')}
         actions={
@@ -62,6 +57,8 @@ export default function ClassesPage() {
       />
       {isLoading ? (
         <Skeleton className="h-96 w-full rounded-xl" />
+      ) : error && !classes.length ? (
+        <ErrorState kind="list" error={error} onRetry={() => refetch()} className="rounded-xl border" />
       ) : !classes.length ? (
         <EmptyState
           icon={<ShapesIcon />}
@@ -74,7 +71,6 @@ export default function ClassesPage() {
             <TableHeader className="bg-muted/40">
               <TableRow className="hover:bg-transparent">
                 <TableHead>{t('columns.class')}</TableHead>
-                <TableHead className="hidden sm:table-cell">{t('columns.key')}</TableHead>
                 <TableHead className="hidden md:table-cell">{t('columns.type')}</TableHead>
                 <TableHead className="text-right">{t('columns.cis')}</TableHead>
                 <TableHead className="w-24">
@@ -83,18 +79,11 @@ export default function ClassesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {classes.map((c, i) => {
+              {classes.map((c) => {
                 const name = localize(c.name, locale);
                 const locked = c.system || c.ciCount > 0;
                 return (
-                  <motion.tr
-                    key={c.key}
-                    data-slot="table-row"
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.22, delay: Math.min(i, 12) * 0.02 }}
-                    className="border-b transition-colors hover:bg-muted/50"
-                  >
+                  <TableRow key={c.key}>
                     <TableCell className="max-w-80 whitespace-normal">
                       <div className="flex min-w-0 items-center gap-3">
                         <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -109,9 +98,6 @@ export default function ClassesPage() {
                           )}
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="hidden font-mono text-xs text-muted-foreground sm:table-cell">
-                      {c.key}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {c.system ? (
@@ -165,7 +151,7 @@ export default function ClassesPage() {
                         )}
                       </div>
                     </TableCell>
-                  </motion.tr>
+                  </TableRow>
                 );
               })}
             </TableBody>

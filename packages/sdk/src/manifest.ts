@@ -25,6 +25,7 @@ export const RESERVED_MODULE_IDS = new Set([
   'me',
   'metrics',
   'modules',
+  'my-work',
   'openapi',
   'pg-catalog',
   'platform',
@@ -38,24 +39,92 @@ export const RESERVED_MODULE_IDS = new Set([
 
 export type NavSection = 'main' | 'admin';
 
+/** The sections of the Administration hub (`/admin`) that `section: 'admin'` entries are grouped in. */
+export const ADMIN_AREAS = ['people', 'automation', 'modules', 'integrations', 'platform'] as const;
+export type AdminArea = (typeof ADMIN_AREAS)[number];
+
+/**
+ * A sidebar entry. The sidebar is personal entries first (Home, My work, Requests, Knowledge), then one row per area
+ * whose pages are its `children` (a collapsible group), then one "Administration" row that opens the `/admin` hub of
+ * every `section: 'admin'` entry. Declare one top-level entry per module (its landing page) with its pages as
+ * `children`, sub-pages that are section tabs of a page as that page's `tabs`, and settings with `section: 'admin'`.
+ */
 export interface NavEntry {
   id: string;
   /** i18n key (`<module>.nav.<x>`) — resolved by the web app. */
   label: string;
   /** Absolute path in the web app, e.g. `/announcements`. */
   href: string;
-  /** lucide icon name in kebab-case, e.g. `megaphone`. */
+  /** lucide icon name in kebab-case, e.g. `megaphone`. Top-level rows need distinct icons (the collapsed rail). */
   icon?: string;
-  /** Hidden unless the viewer holds this permission at any scope. */
-  permission?: string;
+  /**
+   * Hidden unless the viewer holds this permission (or one of these) at any scope. Use the permission of the people
+   * who *work* in the page, not a self-service one everyone holds: what people only take part in reaches them through
+   * My work (`manifest.work`) and notifications.
+   */
+  permission?: string | string[];
   section?: NavSection;
-  /** i18n key of a sub-heading within the section (entries with the same group sit together). */
+  /** @deprecated Ignored: group pages with `children` (or `parent`) instead. */
   group?: string;
-  /** Counter shown next to the label, from `GET /me/badges` (e.g. `approvals`). */
+  /** Counter shown next to the label, from `GET /me/badges` (`work`, `notifications`, …). */
   badge?: string;
   order?: number;
+  /**
+   * The area's pages: the entry becomes a collapsible group of them (an entry with children shows when at least one
+   * child does; one visible child shows as a plain row with the group's label).
+   */
   children?: NavEntry[];
+  /**
+   * Pages reached through this page's section tabs (`SectionTabs`): not sidebar rows, but they highlight this entry
+   * and are listed by the command palette.
+   */
+  tabs?: NavEntry[];
+  /**
+   * A top-level entry that belongs in another module's group: `<module>.<entry id>` (CMDB's configuration items in
+   * `itsm.service-desk`), or among another module's page's section tabs when that id is a page (Helpdesk AI's
+   * insights in `itsm.reports`). Shown on its own when that group or page is disabled or hidden from the viewer.
+   */
+  parent?: string;
+  /** Extra path prefixes that highlight this entry (plain prefixes, e.g. `/itsm/tickets/PRB-` for Problems). */
+  match?: string[];
+  /** i18n key: one line on what the page is for (Administration hub cards and the command palette). */
+  description?: string;
+  /** i18n key of extra words the command palette matches, comma-separated in the catalog ("SLA, calendars"). */
+  keywords?: string;
+  /** `section: 'admin'` entries: the Administration hub section of the card (default `modules`). */
+  area?: AdminArea;
+  /**
+   * After the permission check, ask the module whether to show the entry to this person:
+   * `defineServerModule({ navigation: { [id]: (auth, ctx) => boolean } })` (e.g. "is a member of a project").
+   */
+  check?: boolean;
 }
+
+/**
+ * A kind of work that waits for people (`<module>.<key>`): approvals, forms to fill in, review decisions, tasks. The
+ * module provides `work[key]` in `defineServerModule`; the kernel asks every source for the signed-in person and shows
+ * the results on My work (`/my-work`), on Home and as the sidebar badge.
+ */
+export interface WorkSourceDef {
+  /** Name inside the module; the full key is `<module>.<key>`. */
+  key: string;
+  /** i18n key: the heading of the source's items on My work ("Database access reviews"). */
+  label: string;
+  /**
+   * The My work section: `approval` (decisions on requests), `todo` (something to fill in or do), `review` (records
+   * to check), `task` (assigned work items). `task` items are listed but don't count in the badge.
+   */
+  kind: WorkKind;
+  /** lucide icon name. */
+  icon?: string;
+  /** Asked only for people holding this permission (any scope); the provider still decides what is theirs. */
+  permission?: string;
+  /** "View all" link (the module's own list), if any. */
+  href?: string;
+}
+
+export const WORK_KINDS = ['approval', 'todo', 'review', 'task'] as const;
+export type WorkKind = (typeof WORK_KINDS)[number];
 
 export interface PermissionDef {
   key: string;
@@ -316,6 +385,8 @@ export interface ModuleManifest {
   system?: boolean;
   dependsOn?: string[];
   navigation?: NavEntry[];
+  /** Work that waits for people, shown on My work (providers in `defineServerModule({ work })`). */
+  work?: WorkSourceDef[];
   permissions?: PermissionDef[];
   roles?: RoleTemplate[];
   events?: { emits?: EventDef[]; consumes?: string[] };
@@ -342,13 +413,15 @@ export interface ModuleManifest {
   customizationPackages?: CustomizationPackageDef[];
 }
 
+const zPermission = z.string().refine(isPermissionKey, 'invalid permission key');
+
 const zNav: z.ZodType<NavEntry> = z.lazy(() =>
   z.object({
     id: z.string().min(1),
     label: z.string().min(1),
     href: z.string().startsWith('/'),
     icon: z.string().optional(),
-    permission: z.string().refine(isPermissionKey, 'invalid permission key').optional(),
+    permission: z.union([zPermission, z.array(zPermission).min(1)]).optional(),
     section: z.enum(['main', 'admin']).optional(),
     group: z.string().optional(),
     badge: z
@@ -357,6 +430,16 @@ const zNav: z.ZodType<NavEntry> = z.lazy(() =>
       .optional(),
     order: z.number().optional(),
     children: z.array(zNav).optional(),
+    tabs: z.array(zNav).optional(),
+    parent: z
+      .string()
+      .regex(/^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$/, 'parent is `<module>.<entry id>`')
+      .optional(),
+    match: z.array(z.string().startsWith('/')).optional(),
+    description: z.string().min(1).optional(),
+    keywords: z.string().min(1).optional(),
+    area: z.enum(ADMIN_AREAS).optional(),
+    check: z.boolean().optional(),
   }),
 );
 
@@ -375,6 +458,18 @@ export const manifestSchema = z
     system: z.boolean().optional(),
     dependsOn: z.array(z.string()).optional(),
     navigation: z.array(zNav).optional(),
+    work: z
+      .array(
+        z.object({
+          key: z.string().regex(/^[a-z][a-z0-9-]*$/),
+          label: z.string().min(1),
+          kind: z.enum(WORK_KINDS),
+          icon: z.string().optional(),
+          permission: zPermission.optional(),
+          href: z.string().startsWith('/').optional(),
+        }),
+      )
+      .optional(),
     permissions: z
       .array(
         z.object({
@@ -659,6 +754,40 @@ export const manifestSchema = z
           message: 'duplicate record type',
         });
       types.add(r.type);
+    });
+    const navIds = new Set<string>();
+    const walkNav = (entries: NavEntry[] | undefined, path: (string | number)[], depth: number) =>
+      entries?.forEach((e, i) => {
+        if (navIds.has(e.id))
+          ctx.addIssue({ code: 'custom', path: [...path, i, 'id'], message: 'duplicate navigation id' });
+        navIds.add(e.id);
+        if (depth > 0 && (e.parent || e.section))
+          ctx.addIssue({
+            code: 'custom',
+            path: [...path, i],
+            message: 'only top-level entries take `parent` or `section`',
+          });
+        if (e.section === 'admin' && (e.children?.length || e.parent))
+          ctx.addIssue({
+            code: 'custom',
+            path: [...path, i],
+            message: 'administration entries are hub cards: no `children` or `parent`',
+          });
+        if (e.parent?.startsWith(`${m.id}.`))
+          ctx.addIssue({
+            code: 'custom',
+            path: [...path, i, 'parent'],
+            message: 'use `children` for entries of the same module',
+          });
+        walkNav(e.children, [...path, i, 'children'], depth + 1);
+        walkNav(e.tabs, [...path, i, 'tabs'], depth + 1);
+      });
+    walkNav(m.navigation, ['navigation'], 0);
+    const workKeys = new Set<string>();
+    m.work?.forEach((w, i) => {
+      if (workKeys.has(w.key))
+        ctx.addIssue({ code: 'custom', path: ['work', i, 'key'], message: 'duplicate work source' });
+      workKeys.add(w.key);
     });
     const taskTypes = new Set<string>();
     m.taskTypes?.forEach((t, i) => {

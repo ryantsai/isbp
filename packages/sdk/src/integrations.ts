@@ -96,6 +96,11 @@ export interface SyncWriteInput {
   containerId?: string | null;
   /** Only the fields to change. On create, fields left out get the module's defaults. */
   values: Record<string, unknown>;
+  /**
+   * On update: the record's `updatedAt` as it was read. The write is refused with 409 `CONFLICT`
+   * (`details.reason: 'changed'`) when the record changed since, so a concurrent edit isn't overwritten.
+   */
+  expectedUpdatedAt?: string | null;
 }
 
 export interface SyncWriteOptions {

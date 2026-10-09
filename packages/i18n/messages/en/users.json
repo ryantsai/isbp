@@ -56,9 +56,15 @@
     "password": "Initial password",
     "passwordHint": "At least 10 characters. The person must change it at first sign-in. Leave empty for SSO-only accounts.",
     "groups": "Groups",
-    "groupsHint": "Group membership grants the roles assigned to those groups.",
+    "groupsHint": "Groups give them their access: the roles granted to a group apply to its members.",
     "created": "{name} was added",
-    "saved": "Changes saved"
+    "saved": "Changes saved",
+    "requiredNote": "Fields marked * are required.",
+    "displayNameHint": "Filled in from the given and family names. Change it if they go by another name.",
+    "usernameInvalid": "Use letters, digits, “.”, “_” and “-” only.",
+    "managerFromDepartment": "Suggested: the manager of {department}.",
+    "more": "Language, time zone and password",
+    "moreEditing": "Language and time zone"
   },
   "detail": {
     "tabs": {
@@ -90,7 +96,11 @@
     "assignments": "Role assignments",
     "manageAccess": "Manage access",
     "expires": "Expires {time}",
-    "activityHint": "Changes to this person and their own actions."
+    "activityHint": "Changes to this person and their own actions.",
+    "notFound": "This person doesn’t exist, or you can’t see them.",
+    "never": "Never",
+    "showPermissions": "Show permissions",
+    "hidePermissions": "Hide permissions"
   },
   "actions": {
     "edit": "Edit profile",
@@ -100,7 +110,8 @@
     "offboard": "Offboard",
     "resetPassword": "Set password",
     "revokeSessions": "Sign out everywhere",
-    "more": "More actions"
+    "more": "More actions",
+    "transfer": "Move to another department"
   },
   "lifecycle": {
     "onboarded": "{name} is now active",
@@ -125,5 +136,84 @@
     "newPassword": "New password",
     "requireChange": "Require a new password at next sign-in",
     "passwordSet": "Password updated"
+  },
+  "picker": {
+    "clear": "Clear {name}",
+    "search": "Search people"
+  },
+  "groupPicker": {
+    "selected": "Chosen groups",
+    "unknown": "Unknown group",
+    "remove": "Remove {name}",
+    "add": "Add groups",
+    "search": "Search groups…",
+    "options": "Groups",
+    "none": "No groups found.",
+    "members": "{count, plural, =0 {No members} one {# member} other {# members}}",
+    "chosen": "chosen"
+  },
+  "nextSteps": {
+    "title": "{name} is set up. What’s next?",
+    "description": "What usually follows for a new person. This card only shows now.",
+    "dismiss": "Dismiss next steps",
+    "groups": "Add them to groups",
+    "groupsHint": "Groups give them the access their team has.",
+    "groupsAction": "Add to groups",
+    "role": "Grant a role",
+    "roleHint": "For access their groups don’t give them.",
+    "roleAction": "Grant a role",
+    "device": "Assign a device",
+    "deviceHint": "Pick a laptop or phone in stock and assign it to {name}.",
+    "deviceAction": "Devices in stock",
+    "onboard": "Activate the account on their first day",
+    "onboardHint": "They’re pre-boarded: choose Onboard at the top of this page when they start."
+  },
+  "groups": {
+    "title": "Groups",
+    "description": "The roles granted to these groups apply to this person.",
+    "add": "Add to groups",
+    "none": "Not a member of any group.",
+    "noneHint": "Add them to the groups of their team.",
+    "synced": "Kept by {source}: change it in the directory",
+    "remove": "Remove from group",
+    "removeLabel": "Remove from {group}",
+    "removed": "Removed from {group}",
+    "undo": "Undo",
+    "added": "{count, plural, =0 {Already in those groups} one {Added to # group} other {Added to # groups}}",
+    "addTitle": "Add {name} to groups",
+    "addDescription": "They get the roles granted to these groups straight away.",
+    "choose": "Groups",
+    "pick": "Choose groups",
+    "addConfirm": "{count, plural, =0 {Add} one {Add to # group} other {Add to # groups}}"
+  },
+  "transfer": {
+    "title": "Move {name} to another department",
+    "description": "Changes the department, manager, job title and groups in one step. Their old and new manager are asked to review the rest of their access.",
+    "department": "New department",
+    "departmentPlaceholder": "Choose a department",
+    "currently": "Currently in {department}.",
+    "manager": "Manager",
+    "noManager": "No manager",
+    "managerFrom": "Suggested: the manager of {department}.",
+    "jobTitle": "Job title",
+    "leave": "Groups to leave",
+    "leaveHint": "Ticked: groups most of their current department is in, and the new one isn’t.",
+    "noGroups": "Not a member of any group.",
+    "suggested": "Suggested",
+    "synced": "Kept by {source}",
+    "join": "Groups to join",
+    "joinSuggested": "Suggested: the groups most of the new department is in.",
+    "joinHint": "Add the groups of their new team.",
+    "roles": "Department-scoped roles to review",
+    "rolesHint": "These roles apply in one department only. Tick the ones to remove.",
+    "rolesHintReadOnly": "These roles apply in one department only. Ask someone who grants roles to remove the ones they no longer need.",
+    "scopedTo": "In {department}",
+    "forOldJob": "For the old department",
+    "removeRole": "Remove {role}",
+    "summary": "{join, plural, =0 {Joins no groups} one {Joins # group} other {Joins # groups}}, {leave, plural, =0 {leaves none} other {leaves #}}, {roles, plural, =0 {no roles removed} one {# role removed} other {# roles removed}}.",
+    "submit": "Move",
+    "done": "{name} moved to {department}",
+    "chooseDepartment": "Choose the new department.",
+    "sameDepartment": "They’re already in this department."
   }
 }

@@ -1,0 +1,26 @@
+{
+  "title": "Administration",
+  "description": "Everything you can set up, in one place.",
+  "filter": "Find a setting…",
+  "noMatch": "No settings match",
+  "noneTitle": "Nothing to administer",
+  "noneDescription": "You don't have administration rights. Ask your administrator if you need them.",
+  "addPerson": "Add a person",
+  "grantRole": "Grant a role",
+  "areas": {
+    "people": "People & access",
+    "automation": "Requests & automation",
+    "modules": "Module settings",
+    "integrations": "Integrations",
+    "platform": "Platform"
+  },
+  "status": {
+    "people": "{active, plural, one {# active} other {# active}}",
+    "peoplePending": "{active, plural, one {# active} other {# active}} · {pending, plural, one {# awaiting onboarding} other {# awaiting onboarding}}",
+    "groups": "{count, plural, one {# group} other {# groups}}",
+    "roles": "{count, plural, one {# role} other {# roles}}",
+    "expiring": "{count, plural, one {# assignment ends within 7 days} other {# assignments end within 7 days}}",
+    "departments": "{count, plural, one {# department} other {# departments}}",
+    "modules": "{enabled} of {total} turned on"
+  }
+}

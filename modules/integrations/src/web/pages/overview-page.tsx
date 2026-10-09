@@ -1,10 +1,11 @@
 'use client';
 
 import { useCan } from '@isbp/sdk/web';
+import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@isbp/ui/dialog';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
@@ -21,21 +22,38 @@ import { ConnectionSheet } from '../connection/connection-sheet';
 import { SecretDialog } from '../connection/secret-dialog';
 import { connectionHref, useCatalogue, useLabel } from '../lib';
 
-function Stat({ label, value, tone }: { label: string; value: number; tone?: 'warning' | 'destructive' }) {
+function Stat({
+  label,
+  value,
+  tone,
+  href,
+  action,
+}: {
+  label: string;
+  value: number;
+  tone?: 'warning' | 'destructive';
+  /** Problems are links to where they are dealt with. */
+  href?: string;
+  action?: string;
+}) {
   const format = useFormatter();
+  const toned =
+    tone && value > 0 ? (tone === 'warning' ? 'text-warning-foreground' : 'text-destructive') : undefined;
   return (
     <div className="min-w-0">
       <dt className="truncate text-xs text-muted-foreground">{label}</dt>
-      <dd
-        className={
-          tone && value > 0
-            ? tone === 'warning'
-              ? 'text-lg font-semibold tabular-nums text-warning-foreground'
-              : 'text-lg font-semibold tabular-nums text-destructive'
-            : 'text-lg font-semibold tabular-nums'
-        }
-      >
-        {format.number(value)}
+      <dd className={cn('text-lg font-semibold tabular-nums', toned)}>
+        {href && value > 0 ? (
+          <Link
+            href={href}
+            className="relative z-10 inline-flex items-baseline gap-1.5 rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            {format.number(value)}
+            {action && <span className="text-xs font-medium">{action} →</span>}
+          </Link>
+        ) : (
+          format.number(value)
+        )}
       </dd>
     </div>
   );
@@ -65,7 +83,11 @@ function ConnectionCard({ c }: { c: Connection }) {
           <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <HealthBadge health={c.health} enabled={c.enabled} />
+          <HealthBadge
+            health={c.health}
+            enabled={c.enabled}
+            attention={c.stats.conflicts > 0 || c.stats.errors > 0}
+          />
           {c.allowInsecureHttp && <InsecureBadge />}
           {!c.connector.available && (
             <span className="text-xs text-muted-foreground">{t('unavailable')}</span>
@@ -76,8 +98,20 @@ function ConnectionCard({ c }: { c: Connection }) {
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
           <Stat label={t('profiles')} value={c.stats.profiles} />
           <Stat label={t('linked')} value={c.stats.links} />
-          <Stat label={t('conflicts')} value={c.stats.conflicts} tone="warning" />
-          <Stat label={t('errors')} value={c.stats.errors} tone="destructive" />
+          <Stat
+            label={t('conflicts')}
+            value={c.stats.conflicts}
+            tone="warning"
+            href={`${connectionHref(c.id)}?tab=conflicts`}
+            action={t('resolve')}
+          />
+          <Stat
+            label={t('errors')}
+            value={c.stats.errors}
+            tone="destructive"
+            href={`${connectionHref(c.id)}?tab=links&state=error`}
+            action={t('view')}
+          />
         </dl>
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span>
@@ -152,7 +186,9 @@ export default function OverviewPage() {
   const router = useRouter();
   const canManage = useCan('integrations.connections.manage');
   const catalogue = useCatalogue();
-  const { data, isLoading } = useApiQuery<{ items: Connection[] }>('/integrations/connections');
+  const { data, isLoading, error, refetch } = useApiQuery<{ items: Connection[] }>(
+    '/integrations/connections',
+  );
   const [picking, setPicking] = useState(false);
   const [connector, setConnector] = useState<ConnectorInfoDto | null>(null);
   const [created, setCreated] = useState<ConnectionCreated | null>(null);
@@ -178,6 +214,8 @@ export default function OverviewPage() {
             <Skeleton key={i} className="h-48 rounded-xl" />
           ))}
         </div>
+      ) : error && !data ? (
+        <ErrorState error={error} onRetry={() => refetch()} />
       ) : items.length === 0 ? (
         <EmptyState
           icon={<ArrowLeftRightIcon />}

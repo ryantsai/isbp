@@ -606,6 +606,14 @@ export class SharedAccountService {
     if (input.changedOn > companyToday())
       throw invalidField('changedOn', 'The date is in the future', 'future');
     await this.ctx.transaction(async (tx) => {
+      // Under a lock: the same change recorded twice at once (or again) is recorded once.
+      const [locked] = await tx
+        .select()
+        .from(sharedAccounts)
+        .where(eq(sharedAccounts.id, row.id))
+        .for('update');
+      if (locked?.status !== 'active') throw invalidState('The account is retired', 'accountRetired');
+      if (locked.lastPasswordChangeOn === input.changedOn && locked.passwordDueSince === null) return;
       await tx
         .update(sharedAccounts)
         .set({
@@ -617,7 +625,7 @@ export class SharedAccountService {
         .where(eq(sharedAccounts.id, row.id));
       await this.event(tx, row.id, 'password_changed', actorOf(auth), {
         note: input.note ?? null,
-        data: { changedOn: input.changedOn, wasDue: row.passwordDueSince !== null },
+        data: { changedOn: input.changedOn, wasDue: locked.passwordDueSince !== null },
       });
       await this.ctx.audit.record(
         {
@@ -625,7 +633,7 @@ export class SharedAccountService {
           entityType: ACCOUNT_ENTITY,
           entityId: row.id,
           entityLabel: label(row),
-          metadata: { changedOn: input.changedOn, wasDue: row.passwordDueSince !== null },
+          metadata: { changedOn: input.changedOn, wasDue: locked.passwordDueSince !== null },
           category: 'security',
         },
         { tx },
@@ -650,8 +658,23 @@ export class SharedAccountService {
     const today = companyToday();
     const nextReviewOn = addMonths(today, cfg.reviewMonths);
     await this.ctx.transaction(async (tx) => {
-      for (const userId of members.filter((m) => !input.memberIds.includes(m)))
-        await this.dropMember(tx, row, userId, 'member_removed', auth);
+      // Under a lock, against the list as it is now: a review sent twice at once is recorded once.
+      const [locked] = await tx
+        .select()
+        .from(sharedAccounts)
+        .where(eq(sharedAccounts.id, row.id))
+        .for('update');
+      if (locked?.status !== 'active') throw invalidState('The account is retired', 'accountRetired');
+      const current = await this.memberIds(row.id, tx);
+      const dropping = current.filter((m) => !input.memberIds.includes(m));
+      if (
+        locked.lastReviewedOn === today &&
+        locked.lastReviewedBy === actingUserId(auth) &&
+        !dropping.length &&
+        input.memberIds.every((m) => current.includes(m))
+      )
+        return;
+      for (const userId of dropping) await this.dropMember(tx, row, userId, 'member_removed', auth);
       await tx
         .update(sharedAccounts)
         .set({
@@ -663,11 +686,7 @@ export class SharedAccountService {
         .where(eq(sharedAccounts.id, row.id));
       await this.event(tx, row.id, 'reviewed', actorOf(auth), {
         note: input.note ?? null,
-        data: {
-          kept: input.memberIds.length,
-          removed: members.length - input.memberIds.length,
-          nextReviewOn,
-        },
+        data: { kept: input.memberIds.length, removed: dropping.length, nextReviewOn },
       });
       await this.ctx.audit.record(
         {

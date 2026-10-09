@@ -68,9 +68,18 @@ export function LocalizedInput({
       ) : (
         <Input {...common} onChange={(e) => set(e.target.value)} />
       )}
-      <div role="group" aria-labelledby={`${groupId}-label`} className="flex items-center gap-1">
+      <div
+        role="group"
+        aria-labelledby={`${groupId}-label`}
+        aria-describedby={`${groupId}-fallback`}
+        className="flex items-center gap-1"
+      >
         <span id={`${groupId}-label`} className="sr-only">
           {t('languages')}
+        </span>
+        {/* Said once for the group, not on every language that is still empty. */}
+        <span id={`${groupId}-fallback`} className="sr-only">
+          {t('fallback')}
         </span>
         {locales.map((l) => {
           const filled = Boolean(value?.[l]?.trim());

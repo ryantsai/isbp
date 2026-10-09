@@ -14,6 +14,7 @@ import {
 } from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { Collapse } from '@isbp/ui/motion';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
@@ -32,8 +33,9 @@ import {
   WIPE_METHODS,
   type WipeMethod,
 } from '../contracts';
+import { addMonths, todayIn } from '../model';
 import { AssetStatusBadge } from './badges';
-import { INVALIDATE } from './lib';
+import { INVALIDATE, useDay, useItamSettings } from './lib';
 
 export type AssetAction = 'assign' | 'return' | 'status' | 'dispose' | 'wipe';
 
@@ -126,14 +128,24 @@ export function AssetActionDialog({
   asset,
   action,
   onClose,
+  onNext,
 }: {
   asset: AssetDetail;
   action: AssetAction | null;
   onClose: () => void;
+  /** Go on with another action (Return → "Already wiped? Record it now"). */
+  onNext?: (action: AssetAction) => void;
 }) {
   const onOpenChange = (open: boolean) => !open && onClose();
   if (action === 'assign') return <AssignDialog asset={asset} onOpenChange={onOpenChange} />;
-  if (action === 'return') return <ReturnDialog asset={asset} onOpenChange={onOpenChange} />;
+  if (action === 'return')
+    return (
+      <ReturnDialog
+        asset={asset}
+        onOpenChange={onOpenChange}
+        onWiped={onNext ? () => onNext('wipe') : undefined}
+      />
+    );
   if (action === 'status') return <StatusDialog asset={asset} onOpenChange={onOpenChange} />;
   if (action === 'dispose') return <DisposeDialog asset={asset} onOpenChange={onOpenChange} />;
   if (action === 'wipe') return <WipeDialog asset={asset} onOpenChange={onOpenChange} />;
@@ -180,20 +192,34 @@ function AssignDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChang
   );
 }
 
-function ReturnDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChange: (o: boolean) => void }) {
+function ReturnDialog({
+  asset,
+  onOpenChange,
+  onWiped,
+}: {
+  asset: AssetDetail;
+  onOpenChange: (o: boolean) => void;
+  onWiped?: () => void;
+}) {
   const t = useTranslations('itam.actions');
   const ts = useTranslations('itam.status');
   const id = useId();
+  const day = useDay();
+  const settings = useItamSettings();
+  const { user } = usePlatform();
   const [toStatus, setToStatus] = useState<(typeof RETURN_STATUSES)[number]>('in_stock');
   const [note, setNote] = useState('');
   const [scheduleWipe, setScheduleWipe] = useState(asset.dataBearing);
   const [retainUntil, setRetainUntil] = useState('');
+  const [alreadyWiped, setAlreadyWiped] = useState(false);
+  // The date the person will be reminded of, shown as they type (not a rule to work out).
+  const wipeBy = addMonths(retainUntil || todayIn(user.timezone), settings.wipeMonths);
   const ret = useApiMutation(
     (api, body: ReturnAssetInput) => api.post<AssetDetail>(`/itam/assets/${asset.id}/return`, body),
     {
       invalidate: INVALIDATE,
       success: (a) => t('returned', { tag: a.tag }),
-      onSuccess: () => onOpenChange(false),
+      onSuccess: () => (alreadyWiped && onWiped ? onWiped() : onOpenChange(false)),
     },
   );
   return (
@@ -243,7 +269,7 @@ function ReturnDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChang
             </p>
           </div>
         </div>
-        {scheduleWipe && (
+        <Collapse open={scheduleWipe && !alreadyWiped}>
           <div className="grid gap-2">
             <Label htmlFor={`${id}-retain`}>{t('retainUntil')}</Label>
             <Input
@@ -256,6 +282,21 @@ function ReturnDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChang
             <p id={`${id}-retain-hint`} className="text-xs text-muted-foreground">
               {t('retainUntilHint')}
             </p>
+            <p className="text-sm" aria-live="polite">
+              {t('wipeBy', { date: day(wipeBy), months: settings.wipeMonths })}
+            </p>
+          </div>
+        </Collapse>
+        {asset.dataBearing && onWiped && (
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id={`${id}-wiped`}
+              checked={alreadyWiped}
+              onCheckedChange={(v) => setAlreadyWiped(v === true)}
+            />
+            <Label htmlFor={`${id}-wiped`} className="font-normal">
+              {t('alreadyWiped')}
+            </Label>
           </div>
         )}
       </div>
@@ -346,7 +387,8 @@ function StatusDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChang
   const t = useTranslations('itam.actions');
   const ts = useTranslations('itam.status');
   const id = useId();
-  const options = asset.viewer.transitions as AssetStatus[];
+  // Deploying is "Assign" (it needs a person); disposing is "Request disposal" (it needs approval).
+  const options = (asset.viewer.transitions as AssetStatus[]).filter((s) => s !== 'deployed');
   const [status, setStatus] = useState<AssetStatus | ''>('');
   const [note, setNote] = useState('');
   const change = useApiMutation(
@@ -421,7 +463,7 @@ function DisposeDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChan
       open
       onOpenChange={onOpenChange}
       title={t('disposeTitle', { tag: asset.tag })}
-      description={t('disposeHint')}
+      description={asset.status === 'retired' ? t('disposeHint') : t('disposeRetiresHint')}
       submitLabel={t('requestDisposal')}
       pending={dispose.isPending}
       disabled={!note.trim()}

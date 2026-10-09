@@ -36,7 +36,9 @@
     "rejectedToast": "却下し、理由を申請者に通知しました",
     "fieldsTitle": "入力項目",
     "fieldsHint": "決定とともに保存され、申請に表示されます。* の付いた項目は承認に必要です。",
-    "fieldsOptionalHint": "却下する場合は省略できます。入力した内容は決定とともに保存され、申請に表示されます。"
+    "fieldsOptionalHint": "却下する場合は省略できます。入力した内容は決定とともに保存され、申請に表示されます。",
+    "approvedNamed": "{subject} を承認しました",
+    "rejectedNamed": "{subject} を却下しました"
   },
   "delegate": {
     "title": "この承認を他の人に委任",
@@ -57,6 +59,14 @@
     "timeline": "履歴",
     "approve": "承認",
     "reject": "却下",
-    "delegate": "委任"
-  }
+    "delegate": "委任",
+    "alreadyDecided": "{name} さんが判断済みです",
+    "noLongerWaiting": "この項目はもう対応を待っていません",
+    "path": "誰が承認するか",
+    "waitingForYou": "あなたの承認待ち",
+    "workflowDetails": "ワークフローの詳細"
+  },
+  "requestedBy": "申請者: {name}",
+  "loadFailed": "承認の一覧を読み込めませんでした",
+  "retry": "再試行"
 }

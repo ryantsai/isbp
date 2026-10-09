@@ -4,7 +4,6 @@
     "description": "ID、アクセス制御、監査、そして他のすべてのモジュールの土台となるモジュール システムです。"
   },
   "nav": {
-    "dashboard": "ダッシュボード",
     "users": "ユーザー",
     "groups": "グループ",
     "departments": "部署",
@@ -12,22 +11,39 @@
     "audit": "監査ログ",
     "modules": "モジュール",
     "identity": "サインイン プロバイダー",
-    "sectionMain": "ワークスペース",
-    "sectionAdmin": "管理",
-    "approvals": "承認",
     "requests": "申請",
-    "applications": "アプリケーション",
+    "applications": "アプリケーション アクセス",
     "apiClients": "API クライアント",
     "workflows": "ワークフロー",
     "forms": "フォーム",
     "customFields": "カスタム フィールド",
     "notifications": "通知",
-    "groupIdentity": "ID 管理",
-    "groupAccess": "アクセス",
-    "groupAutomation": "自動化",
-    "groupPlatform": "プラットフォーム",
     "ai": "AI",
-    "databases": "データベース接続"
+    "databases": "データベース接続",
+    "home": "ホーム",
+    "myWork": "自分の作業",
+    "admin": "管理",
+    "main": "メイン ナビゲーション",
+    "keywords": {
+      "myWork": "承認, ToDo, 受信トレイ, タスク, レビュー"
+    },
+    "about": {
+      "users": "アカウント、入社と退社の手続き",
+      "groups": "ロールと作業を共有するチーム",
+      "departments": "組織図とコスト センター",
+      "roles": "誰が何をできるか、ユーザーが申請できるアクセス",
+      "applications": "ロールをプラットフォームで管理する業務アプリケーション",
+      "apiClients": "プラットフォームを呼び出す他システム用のキー",
+      "identity": "シングル サインオンとディレクトリ同期",
+      "forms": "ユーザーが記入する申請フォームとその後の処理",
+      "workflows": "誰が何をどの順序で承認するか",
+      "customFields": "ユーザー、チケット、資産などの追加フィールド",
+      "notifications": "メール、チャット、Webhook のチャネル",
+      "databases": "他の機能が読み取り・変更するデータベース",
+      "ai": "モデル、予算、AI に許可する操作",
+      "modules": "機能のオン/オフとその設定",
+      "audit": "すべての変更とサインイン (改ざん検知付き)"
+    }
   },
   "permissions": {
     "usersRead": "ユーザーとプロファイルの表示",
@@ -129,7 +145,7 @@
     },
     "application-manager": {
       "name": "アプリケーション アクセス管理者",
-      "description": "アプリケーションのロールとアクセス許可を管理 (1 つのアプリケーションに限定して割り当て)"
+      "description": "アプリケーション アクセスでアプリケーションのロールとアクセス許可を管理 (1 つのアプリケーションに限定して割り当て)"
     },
     "database-admin": {
       "name": "データベース接続管理者",
@@ -161,7 +177,7 @@
     },
     "formSubmission": {
       "name": "フォームの送信",
-      "description": "このワークフローが割り当てられたフォームで実行されます。条件には送信されたすべての値 (data.フィールドキー) を使用できます。"
+      "description": "このワークフローを使うフォームから送信された申請を承認します。条件にはフォームの回答を使用できます。"
     }
   },
   "notifications": {
@@ -325,7 +341,10 @@
   "taskTypes": {
     "assignForm": {
       "name": "フォームの割り当て",
-      "description": "期間 (日、週、月、四半期、年) ごとに、ユーザーまたはグループに期限までのフォームへの記入を依頼します (毎月の点検、年次レビューなど)。"
+      "description": "期間 (日、週、月、四半期、年) ごとに、ユーザーまたはグループに期限までのフォームへの記入を依頼します (毎月の点検、年次レビューなど)。",
+      "label": "「{form}」を{assignee}に割り当て ({period, select, day {毎日} week {毎週} month {毎月} quarter {四半期ごと} year {毎年} other {{period} ごと}})",
+      "assigned": "「{title}」を割り当てました",
+      "alreadyAssigned": "{period} は割り当て済み"
     }
   },
   "customizations": {
@@ -385,8 +404,8 @@
       "optionsHelp": "1 行に 1 つの選択肢を入力します。"
     },
     "approvalProcess": {
-      "label": "承認プロセス",
-      "description": "承認付きの申請フォームです。質問 (構成アイテムなど、申請者が選ぶレコードを含む)、承認者、申請の承認後に作成する変更 (任意) を設定します。",
+      "label": "申請プロセス",
+      "description": "フォーム、その承認者、承認後に行うこと",
       "name": "フォーム名",
       "category": "カテゴリ",
       "recordType": "申請者が選ぶレコード",
@@ -403,16 +422,39 @@
       "recordGroupFact": "レコードのグループ",
       "groupApproves": "次に、グループが承認する",
       "group": "グループ",
-      "createChange": "申請が承認されたら変更を作成する",
-      "createChangeHelp": "変更は選択された構成アイテムにリンクされます。フォームに 2 つの日付 (開始と終了) がある場合は、変更自体の承認 (必要に応じて CAB を含む) に提出されます。",
       "stepManager": "上長の承認",
       "stepRecordGroup": "サポート グループの承認",
       "stepGroup": "グループの承認",
       "workflowSuffix": "承認",
-      "actionName": "変更を作成"
+      "actionName": "変更を作成",
+      "categoryNew": "その他…",
+      "newCategory": "新しいカテゴリ",
+      "audience": "フォームを使えるユーザー",
+      "audienceHelp": "フォームでレコードを選ばせる場合は、そのレコードを表示できるユーザーを選んでください。それ以外のユーザーには選べるものが表示されません。",
+      "audienceEveryone": "全員",
+      "audienceGroups": "特定のグループのメンバー",
+      "audienceGroupKeys": "グループ",
+      "recordPersonApproves": "次に、選択されたレコードの担当者が承認する",
+      "recordPersonFact": "レコードのユーザー",
+      "afterApproval": "申請が承認されたら",
+      "afterApprovalHelp": "後でフォーム デザイナーでルールやアクションを追加できます。変更は選択された構成アイテムにリンクされます。",
+      "afterNothing": "何もしない",
+      "afterChange": "変更を作成",
+      "afterTicket": "チケットを作成",
+      "afterNotify": "グループに通知",
+      "ticketCategory": "チケットのカテゴリ",
+      "ticketGroup": "チケットを担当するグループ",
+      "notifyGroups": "通知するグループ",
+      "stepRecordPerson": "レコード担当者の承認",
+      "actionTicketName": "チケットを作成",
+      "actionNotifyName": "グループに通知"
     },
     "links": {
       "openForm": "フォームを開く"
     }
+  },
+  "work": {
+    "approvals": "承認",
+    "forms": "記入するフォーム"
   }
 }

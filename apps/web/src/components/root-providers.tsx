@@ -2,20 +2,25 @@
 
 import { ThemeProvider } from '@isbp/ui/theme';
 import { TooltipProvider } from '@isbp/ui/tooltip';
+import { useZodErrorMap } from '@isbp/ui/validation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MotionConfig } from 'motion/react';
+import { MotionConfig, useReducedMotion } from 'motion/react';
 import { useLocale } from 'next-intl';
 import { z } from 'zod';
 import { type ReactNode, useEffect, useState } from 'react';
 import { ApiError } from '@isbp/sdk/web';
 
 const ZOD_LOCALES = { en: z.locales.en, 'zh-TW': z.locales.zhTW, 'ja-JP': z.locales.ja } as const;
-/** Zod's built-in validation messages follow the UI language. */
+/**
+ * Validation messages follow the UI language: plain ones from `@isbp/ui/validation` ("Required", "Enter at least 2
+ * characters"), Zod's own locale for anything else.
+ */
 function useZodLocale() {
   const locale = useLocale() as keyof typeof ZOD_LOCALES;
+  const errorMap = useZodErrorMap();
   useEffect(() => {
-    z.config((ZOD_LOCALES[locale] ?? z.locales.en)());
-  }, [locale]);
+    z.config({ ...(ZOD_LOCALES[locale] ?? z.locales.en)(), customError: errorMap });
+  }, [locale, errorMap]);
 }
 
 /**
@@ -28,10 +33,11 @@ function useHydratedMark() {
   }, []);
 }
 
-/** App-wide client providers. `reducedMotion="user"` makes every animation honour the OS setting. */
+/** App-wide client providers. Every animation honours the OS "reduce motion" setting (see `MotionConfig`). */
 export function RootProviders({ children }: { children: ReactNode }) {
   useZodLocale();
   useHydratedMark();
+  const reduceMotion = useReducedMotion() === true;
   const [client] = useState(
     () =>
       new QueryClient({
@@ -46,7 +52,9 @@ export function RootProviders({ children }: { children: ReactNode }) {
   );
   return (
     <ThemeProvider>
-      <MotionConfig reducedMotion="user">
+      {/* Reduced motion: transforms and layout off (`reducedMotion`), and every other animation (fades, loops) jumps
+          to its end state (`skipAnimations`). */}
+      <MotionConfig reducedMotion="user" skipAnimations={reduceMotion}>
         <QueryClientProvider client={client}>
           <TooltipProvider>{children}</TooltipProvider>
         </QueryClientProvider>

@@ -3,14 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ApiError } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
+import { Collapse, Disclosure } from '@isbp/ui/motion';
 import {
   Form,
   FormControl,
@@ -25,9 +18,19 @@ import { Label } from '@isbp/ui/label';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetForm,
+  SheetHeader,
+  SheetTitle,
+} from '@isbp/ui/sheet';
 import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { type FieldValues, useForm, type UseFormReturn, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { ASSET_CATEGORIES, type AssetDetail, type CiRef, type CreateAssetInput } from '../contracts';
@@ -40,12 +43,16 @@ import {
   useAttributesResolver,
   useEntityFields,
 } from './custom-fields';
-import { INVALIDATE, useItamSettings } from './lib';
+import { addMonths } from '../model';
+import { INVALIDATE, useDay, useItamSettings } from './lib';
 import { CiPicker, DepartmentSelect, ModelSelect, NONE, VendorSelect } from './pickers';
 
 const orNull = (v: string) => (v === NONE || v === '' ? null : v);
 
-/** Register a new asset, or edit one (status and assignment have their own actions). */
+/** Categories that are usually a configuration item in the CMDB (the CI field shows only for them). */
+const CI_CATEGORIES = new Set(['server', 'network', 'storage', 'printer']);
+
+/** A new asset (optionally handed to someone right away), or edit one. A sheet: it has more than four fields. */
 export function AssetFormDialog({
   open,
   onOpenChange,
@@ -58,17 +65,18 @@ export function AssetFormDialog({
   onSaved?: (asset: AssetDetail) => void;
 }) {
   const t = useTranslations('itam.assetForm');
-  const tc = useTranslations('common');
+  const [dirty, setDirty] = useState(false);
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{asset ? t('editTitle', { tag: asset.tag }) : t('createTitle')}</DialogTitle>
-          <DialogDescription>{t('hint')}</DialogDescription>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="sm:max-w-xl" dirty={dirty}>
+        <SheetHeader>
+          <SheetTitle>{asset ? t('editTitle', { tag: asset.tag }) : t('createTitle')}</SheetTitle>
+          <SheetDescription>{asset ? t('editHint') : t('hint')}</SheetDescription>
+        </SheetHeader>
         {open && (
           <AssetForm
             asset={asset}
+            onDirty={setDirty}
             onCancel={() => onOpenChange(false)}
             onSaved={(saved) => {
               onOpenChange(false);
@@ -76,8 +84,8 @@ export function AssetFormDialog({
             }}
           />
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -85,16 +93,19 @@ function AssetForm({
   asset,
   onCancel,
   onSaved,
+  onDirty,
 }: {
   asset?: AssetDetail;
   onCancel: () => void;
   onSaved: (asset: AssetDetail) => void;
+  onDirty: (dirty: boolean) => void;
 }) {
   const t = useTranslations('itam');
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const applyErrors = useApplyServerErrors();
   const settings = useItamSettings();
+  const day = useDay();
   const { fields, elements, ready } = useEntityFields('itam.asset');
   const { data: locations } = useApiQuery<{ items: string[] }>('/itam/lookups/locations');
   const [assignee, setAssignee] = useState<PersonOption | null>(null);
@@ -164,7 +175,19 @@ function AssetForm({
     },
   });
   useAttributeDefaults(form as unknown as UseFormReturn<FieldValues>, fields, ready, true, asset?.attributes);
-  const category = useWatch({ control: form.control, name: 'category' });
+  const [category, purchaseDate] = useWatch({ control: form.control, name: ['category', 'purchaseDate'] });
+  const [lifespan, setLifespan] = useState<number | null>(null);
+  const dirty = form.formState.isDirty || Boolean(assignee);
+  useEffect(() => onDirty(dirty), [dirty, onDirty]);
+  const showCi = CI_CATEGORIES.has(category) || Boolean(ci);
+  const hasPurchase = Boolean(
+    asset &&
+    (asset.vendor ||
+      asset.purchaseDate ||
+      asset.purchaseCost !== null ||
+      asset.warrantyEnd ||
+      asset.invoiceNumber),
+  );
 
   const save = useApiMutation(
     (api, body: CreateAssetInput) =>
@@ -188,7 +211,7 @@ function AssetForm({
       serialNumber: v.serialNumber.trim() || null,
       location: v.location.trim() || null,
       departmentId: orNull(v.departmentId),
-      ciId: ci?.id ?? null,
+      ciId: showCi ? (ci?.id ?? null) : null,
       vendorId: orNull(v.vendorId),
       purchaseDate: v.purchaseDate || null,
       purchaseCost: v.purchaseCost === '' ? null : Number(v.purchaseCost),
@@ -245,217 +268,238 @@ function AssetForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-6" noValidate>
-        <fieldset className="grid gap-4 sm:grid-cols-2">
-          <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            {t('assetForm.identity')}
-          </legend>
-          {text('name', t('fields.name'), t('assetForm.namePlaceholder'))}
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.category')}</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={(v) => {
-                    field.onChange(v);
-                    form.setValue('modelId', NONE);
-                  }}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {ASSET_CATEGORIES.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        <CategoryIcon category={c} className="text-muted-foreground" />
-                        {t(`category.${c}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="modelId"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel htmlFor={ids.model}>{t('fields.model')}</FormLabel>
-                <ModelSelect
-                  id={ids.model}
-                  value={field.value}
-                  category={category}
-                  onChange={(id) => field.onChange(id)}
-                />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {text('serialNumber', t('fields.serialNumber'), t('assetForm.serialPlaceholder'))}
-          {!asset && (
+      <SheetForm onSubmit={onSubmit} noValidate>
+        <SheetBody className="space-y-6">
+          <fieldset className="grid gap-4 sm:grid-cols-2">
+            <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {t('assetForm.identity')}
+            </legend>
             <FormField
               control={form.control}
-              name="status"
+              name="category"
               render={({ field }) => (
                 <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.status')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange} disabled={Boolean(assignee)}>
+                  <FormLabel>{t('fields.category')}</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={(v) => {
+                      field.onChange(v);
+                      form.setValue('modelId', NONE);
+                      setLifespan(null);
+                    }}
+                  >
                     <FormControl>
                       <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="in_stock">{t('status.in_stock')}</SelectItem>
-                      <SelectItem value="ordered">{t('status.ordered')}</SelectItem>
+                      {ASSET_CATEGORIES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          <CategoryIcon category={c} className="text-muted-foreground" />
+                          {t(`category.${c}`)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    {assignee ? t('assetForm.deployHint') : t('assetForm.statusHint')}
-                  </FormDescription>
+                  <FormMessage />
                 </FormItem>
               )}
             />
-          )}
-          {!asset && (
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor={ids.assignee}>{t('assetForm.assignTo')}</Label>
-              <PersonPicker
-                id={ids.assignee}
-                value={assignee}
-                onChange={setAssignee}
-                placeholder={t('assetForm.assignToPlaceholder')}
+            <FormField
+              control={form.control}
+              name="modelId"
+              render={({ field }) => (
+                <FormItem className="min-w-0">
+                  <FormLabel htmlFor={ids.model}>{t('fields.model')}</FormLabel>
+                  <ModelSelect
+                    id={ids.model}
+                    value={field.value}
+                    category={category}
+                    onChange={(id, model) => {
+                      field.onChange(id);
+                      setLifespan(model?.lifespanMonths ?? null);
+                    }}
+                  />
+                  {!asset && lifespan !== null && (
+                    <FormDescription>
+                      {purchaseDate
+                        ? t('assetForm.retiresOn', { date: day(addMonths(purchaseDate, lifespan)) })
+                        : t('assetForm.lifespan', { months: lifespan })}
+                    </FormDescription>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {text('name', t('fields.name'), t('assetForm.namePlaceholder'))}
+            {text('serialNumber', t('fields.serialNumber'), t('assetForm.serialPlaceholder'))}
+            {!asset && (
+              <div className="grid min-w-0 gap-2 sm:col-span-2">
+                <Label htmlFor={ids.assignee}>{t('assetForm.assignTo')}</Label>
+                <PersonPicker
+                  id={ids.assignee}
+                  value={assignee}
+                  onChange={setAssignee}
+                  placeholder={t('assetForm.assignToPlaceholder')}
+                />
+              </div>
+            )}
+            {!asset &&
+              (assignee ? (
+                <p className="text-sm sm:col-span-2" aria-live="polite">
+                  {t('assetForm.willDeploy', { name: assignee.displayName })}
+                </p>
+              ) : (
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem className="min-w-0">
+                      <FormLabel>{t('fields.status')}</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="in_stock">{t('status.in_stock')}</SelectItem>
+                          <SelectItem value="ordered">{t('status.ordered')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>{t('assetForm.statusHint')}</FormDescription>
+                    </FormItem>
+                  )}
+                />
+              ))}
+          </fieldset>
+
+          <fieldset className="grid gap-4 sm:grid-cols-2">
+            <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {t('assetForm.placement')}
+            </legend>
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem className="min-w-0">
+                  <FormLabel>{t('fields.location')}</FormLabel>
+                  <FormControl>
+                    <Input list={ids.locations} placeholder={t('assetForm.locationPlaceholder')} {...field} />
+                  </FormControl>
+                  <datalist id={ids.locations}>
+                    {(locations?.items ?? []).map((l) => (
+                      <option key={l} value={l} />
+                    ))}
+                  </datalist>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="departmentId"
+              render={({ field }) => (
+                <FormItem className="min-w-0">
+                  <FormLabel htmlFor={ids.department}>{t('fields.department')}</FormLabel>
+                  <DepartmentSelect id={ids.department} value={field.value} onChange={field.onChange} />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Collapse open={showCi} className="sm:col-span-2">
+              <div className="grid min-w-0 gap-2">
+                <Label htmlFor={ids.ci}>{t('fields.ci')}</Label>
+                <CiPicker id={ids.ci} value={ci} onChange={setCi} />
+                <p className="text-xs text-muted-foreground">{t('assetForm.ciHint')}</p>
+              </div>
+            </Collapse>
+          </fieldset>
+
+          <Disclosure
+            summary={t('assetForm.purchase')}
+            defaultOpen={hasPurchase}
+            triggerClassName="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+          >
+            <div className="grid gap-4 pt-3 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="vendorId"
+                render={({ field }) => (
+                  <FormItem className="min-w-0">
+                    <FormLabel htmlFor={ids.vendor}>{t('fields.vendor')}</FormLabel>
+                    <VendorSelect id={ids.vendor} value={field.value} onChange={field.onChange} />
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
+              {text('invoiceNumber', t('fields.invoiceNumber'))}
+              {date('purchaseDate', t('fields.purchaseDate'))}
+              <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+                <FormField
+                  control={form.control}
+                  name="purchaseCost"
+                  render={({ field }) => (
+                    <FormItem className="min-w-0">
+                      <FormLabel>{t('fields.purchaseCost')}</FormLabel>
+                      <FormControl>
+                        <Input inputMode="decimal" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem className="min-w-0">
+                      <FormLabel>{t('fields.currency')}</FormLabel>
+                      <FormControl>
+                        <Input maxLength={3} className="uppercase" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              {date('warrantyEnd', t('fields.warrantyEnd'))}
+              {asset && date('retireOn', t('fields.retireOn'), t('assetForm.retireOnHint'))}
             </div>
-          )}
-        </fieldset>
+          </Disclosure>
 
-        <fieldset className="grid gap-4 sm:grid-cols-2">
-          <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            {t('assetForm.placement')}
-          </legend>
           <FormField
             control={form.control}
-            name="location"
+            name="notes"
             render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.location')}</FormLabel>
+              <FormItem>
+                <FormLabel>{t('fields.notes')}</FormLabel>
                 <FormControl>
-                  <Input list={ids.locations} placeholder={t('assetForm.locationPlaceholder')} {...field} />
+                  <Textarea rows={3} {...field} />
                 </FormControl>
-                <datalist id={ids.locations}>
-                  {(locations?.items ?? []).map((l) => (
-                    <option key={l} value={l} />
-                  ))}
-                </datalist>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="departmentId"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel htmlFor={ids.department}>{t('fields.department')}</FormLabel>
-                <DepartmentSelect id={ids.department} value={field.value} onChange={field.onChange} />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="grid min-w-0 gap-2 sm:col-span-2">
-            <Label htmlFor={ids.ci}>{t('fields.ci')}</Label>
-            <CiPicker id={ids.ci} value={ci} onChange={setCi} />
-            <p className="text-xs text-muted-foreground">{t('assetForm.ciHint')}</p>
-          </div>
-        </fieldset>
 
-        <fieldset className="grid gap-4 sm:grid-cols-2">
-          <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            {t('assetForm.purchase')}
-          </legend>
-          <FormField
-            control={form.control}
-            name="vendorId"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel htmlFor={ids.vendor}>{t('fields.vendor')}</FormLabel>
-                <VendorSelect id={ids.vendor} value={field.value} onChange={field.onChange} />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {text('invoiceNumber', t('fields.invoiceNumber'))}
-          {date('purchaseDate', t('fields.purchaseDate'))}
-          <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
-            <FormField
-              control={form.control}
-              name="purchaseCost"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.purchaseCost')}</FormLabel>
-                  <FormControl>
-                    <Input inputMode="decimal" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="currency"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.currency')}</FormLabel>
-                  <FormControl>
-                    <Input maxLength={3} className="uppercase" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          {date('warrantyEnd', t('fields.warrantyEnd'))}
-          {asset && date('retireOn', t('fields.retireOn'), t('assetForm.retireOnHint'))}
-        </fieldset>
+          <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
 
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('fields.notes')}</FormLabel>
-              <FormControl>
-                <Textarea rows={3} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+          {form.formState.errors.root && (
+            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {form.formState.errors.root.message}
+            </p>
           )}
-        />
-
-        <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
-
-        {form.formState.errors.root && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
-        )}
-        <DialogFooter>
+        </SheetBody>
+        <SheetFooter>
           <Button type="button" variant="outline" onClick={onCancel}>
             {tc('cancel')}
           </Button>
           <Button type="submit" loading={save.isPending}>
-            {asset ? tc('saveChanges') : tc('create')}
+            {asset ? tc('saveChanges') : tc('save')}
           </Button>
-        </DialogFooter>
-      </form>
+        </SheetFooter>
+      </SheetForm>
     </Form>
   );
 }

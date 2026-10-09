@@ -2,9 +2,10 @@ import { defineWebModule } from '@isbp/sdk/web';
 import { manifest } from '../manifest';
 
 /**
- * Pages served at /assistant/* (the change sets) and the assistant itself: a button in the shell header on every
+ * Pages served at /assistant/* (the change sets, the process packs) and the assistant itself: a button in the shell header on every
  * page (`core.shell.header`) that opens the panel. Modules preview their own kinds on the change set page through
- * `assistant.preview.<module>.<kind>` (props: `AssistantPreviewProps` in `../contracts`).
+ * `assistant.preview.<module>.<kind>` (props: `AssistantPreviewProps` in `../contracts`). Administration → Forms
+ * gets "Install a process pack" (`core.forms.header`).
  */
 export default defineWebModule(manifest, {
   routes: [
@@ -19,8 +20,11 @@ export default defineWebModule(manifest, {
       load: () => import('./pages/change-set-page'),
       permission: 'assistant.agent.use',
     },
+    { path: '/packs', load: () => import('./pages/packs-page'), permission: 'assistant.agent.use' },
   ],
   slots: [
     { slot: 'core.shell.header', load: () => import('./panel/launcher'), permission: 'assistant.agent.use' },
+    // Administration → Forms: "Install a process pack" beside "New form".
+    { slot: 'core.forms.header', load: () => import('./forms-header'), permission: 'assistant.agent.use' },
   ],
 });

@@ -1,7 +1,9 @@
 import { aiUsage } from '@isbp/db/schema';
+import { DONE_STATUSES, formatTicketRef } from '@isbp/module-itsm/contracts';
+import { tickets } from '@isbp/module-itsm/schema';
 import type { AuthContext, ModuleContext } from '@isbp/sdk/server';
-import { and, avg, count, eq, gte, sql, sum } from 'drizzle-orm';
-import type { Out } from '../contracts';
+import { and, avg, count, desc, eq, gte, notInArray, sql, sum } from 'drizzle-orm';
+import type { Out, TriageData } from '../contracts';
 import { aiInfo, readSettings } from './assist';
 import { conversations, insights } from './schema';
 
@@ -16,6 +18,88 @@ const validZone = (tz: string | undefined) => {
 };
 
 const ratio = (part: number, whole: number) => (whole > 0 ? part / whole : null);
+
+/** Holders of either may see the metrics: Helpdesk AI's reviewers and service desk report readers. */
+export const METRICS_PERMISSIONS = ['helpdesk-ai.insights.read', 'itsm.reports.read'] as const;
+
+/** 403 (audited) unless the caller may see the metrics. */
+export function requireMetrics(auth: AuthContext) {
+  if (!METRICS_PERMISSIONS.some((p) => auth.can(p))) auth.require(METRICS_PERMISSIONS[0]);
+}
+
+/** The suggestion would still change the ticket (category, group, impact or urgency). */
+const stillDiffers = sql`(
+  (${insights.data} #>> '{suggestion,categoryId}' is not null
+    and ${insights.data} #>> '{suggestion,categoryId}' is distinct from ${tickets.categoryId}::text)
+  or (${insights.data} #>> '{suggestion,assignmentGroupId}' is not null
+    and ${insights.data} #>> '{suggestion,assignmentGroupId}' is distinct from ${tickets.assignmentGroupId}::text)
+  or (${insights.data} #>> '{suggestion,impact}')::int is distinct from ${tickets.impact}
+  or (${insights.data} #>> '{suggestion,urgency}')::int is distinct from ${tickets.urgency}
+)`;
+
+/**
+ * Triage suggestions waiting for an agent: still undecided, on tickets that are still open, and still different
+ * from the ticket (agents often set the fields by hand without telling the panel). Newest first. Ticket titles
+ * only for callers who may read every ticket; the links lead to ITSM, which checks access itself.
+ */
+export async function pendingTriage(
+  ctx: ModuleContext,
+  days: number,
+  auth: AuthContext,
+  limit = 10,
+): Promise<Out['PendingTriage']> {
+  const since = new Date(Date.now() - days * 86_400_000);
+  const where = and(
+    eq(insights.kind, 'triage'),
+    eq(insights.status, 'suggested'),
+    gte(insights.createdAt, since),
+    notInArray(tickets.status, [...DONE_STATUSES]),
+    stillDiffers,
+  );
+  const [rows, [total]] = await Promise.all([
+    ctx.db
+      .select({
+        insight: insights,
+        type: tickets.type,
+        number: tickets.number,
+        title: tickets.title,
+        status: tickets.status,
+      })
+      .from(insights)
+      .innerJoin(tickets, eq(tickets.id, insights.ticketId))
+      .where(where)
+      .orderBy(desc(insights.createdAt))
+      .limit(limit),
+    ctx.db
+      .select({ n: count() })
+      .from(insights)
+      .innerJoin(tickets, eq(tickets.id, insights.ticketId))
+      .where(where),
+  ]);
+  const titles = auth.can('itsm.tickets.read');
+  return {
+    total: total!.n,
+    items: rows.map((r) => {
+      const s = (r.insight.data as unknown as TriageData).suggestion;
+      const reference = formatTicketRef(r.type, r.number);
+      return {
+        insightId: r.insight.id,
+        ticketId: r.insight.ticketId,
+        reference,
+        href: `/itsm/tickets/${reference}`,
+        title: titles ? r.title : null,
+        status: r.status,
+        suggestion: {
+          categoryPath: s?.categoryPath ?? null,
+          assignmentGroupName: s?.assignmentGroupName ?? null,
+          priority: s?.priority ?? null,
+        },
+        confidence: r.insight.confidence,
+        createdAt: r.insight.createdAt,
+      };
+    }),
+  };
+}
 
 /** Accuracy, deflection and cost of the module's AI over the last `days` days. */
 export async function overview(

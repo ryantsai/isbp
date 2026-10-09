@@ -62,7 +62,7 @@ export function GrantsTable({ servers, owned = false }: { servers: ServerOption[
   const [open, setOpen] = useState<string | null>(null);
   const str = (k: string) => (state[k] as string | undefined) || undefined;
   const status = str('status') ?? 'live';
-  const { data, isLoading, isFetching } = useApiQuery<Page<Grant>>('/dbaccess/grants', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<Grant>>('/dbaccess/grants', {
     page: state.page,
     pageSize: state.pageSize,
     sort: state.sort,
@@ -154,6 +154,8 @@ export function GrantsTable({ servers, owned = false }: { servers: ServerOption[
         sort={state.sort}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(g) => g.id}
         onRowClick={(g) => setOpen(g.id)}
         onPageChange={(page) => set({ page })}

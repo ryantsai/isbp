@@ -11,7 +11,7 @@
     "category": "カテゴリ"
   },
   "filters": {
-    "search": "実行者、対象、操作で検索…",
+    "search": "ユーザー、レコード、操作を検索…",
     "category": "カテゴリ",
     "outcome": "結果",
     "module": "モジュール",
@@ -25,7 +25,12 @@
     "entityType": "対象の種類",
     "entityId": "対象",
     "action": "操作",
-    "removeFilter": "フィルターを解除: {filter}"
+    "removeFilter": "フィルターを解除: {filter}",
+    "changed": "変更対象",
+    "anything": "すべて",
+    "period": "期間",
+    "userId": "ユーザー",
+    "roleId": "ロール"
   },
   "category": {
     "data": "データ",
@@ -199,6 +204,117 @@
     "core_workflow-definition_restored": "承認ワークフローを復元",
     "core_workflow-definition_updated": "承認ワークフローを変更",
     "core_workflow_completed": "承認が完了しました",
-    "core_workflow_started": "承認が開始されました"
-  }
+    "core_workflow_started": "承認が開始されました",
+    "core_user_transferred": "別の部署へ異動"
+  },
+  "changed": {
+    "people": "ユーザー",
+    "signIns": "サインイン",
+    "groups": "グループ",
+    "departments": "部署",
+    "roles": "ロール",
+    "roleGrants": "ロールの付与",
+    "applications": "アプリケーション アクセスと API クライアント",
+    "forms": "フォームとカスタム フィールド",
+    "requests": "申請",
+    "workflows": "ワークフロー",
+    "approvals": "承認",
+    "changeSets": "設定の変更",
+    "modules": "モジュール、通知、AI",
+    "signInProviders": "サインイン プロバイダー"
+  },
+  "period": {
+    "any": "すべての期間",
+    "today": "今日",
+    "7d": "過去 7 日間",
+    "30d": "過去 30 日間",
+    "custom": "日付を選択…"
+  },
+  "people": "{count, plural, other {# 人のユーザー}}",
+  "fieldSeparator": "、",
+  "activity": {
+    "empty": "まだ記録はありません。",
+    "system": "システム",
+    "openAuditLog": "監査ログで開く"
+  },
+  "values": {
+    "yes": "はい",
+    "no": "いいえ",
+    "riskLevel": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "status": {
+      "active": "アクティブ",
+      "pending": "事前登録",
+      "suspended": "停止中",
+      "offboarded": "オフボード済み"
+    },
+    "scopeType": {
+      "global": "すべて",
+      "department": "1 つの部署",
+      "record": "1 つのレコード"
+    }
+  },
+  "fields": {
+    "displayName": "表示名",
+    "email": "メール",
+    "username": "ユーザー名",
+    "givenName": "名",
+    "familyName": "姓",
+    "jobTitle": "役職",
+    "phone": "電話",
+    "employeeId": "社員番号",
+    "departmentId": "部署",
+    "managerId": "上司",
+    "locale": "言語",
+    "timezone": "タイム ゾーン",
+    "status": "状態",
+    "attributes": "カスタム フィールド",
+    "name": "名前",
+    "description": "説明",
+    "permissions": "アクセス許可",
+    "requestable": "申請を受け付ける",
+    "riskLevel": "リスク",
+    "ownerId": "所有者",
+    "maxDurationDays": "最長アクセス日数",
+    "requestWorkflowId": "承認ワークフロー",
+    "parentId": "親部署",
+    "code": "コード",
+    "groupsJoined": "参加したグループ",
+    "groupsLeft": "外れたグループ",
+    "rolesRevoked": "削除したロール",
+    "userIds": "ユーザー",
+    "scopeType": "適用範囲",
+    "scopeDepartmentId": "部署",
+    "roleId": "ロール",
+    "expiresAt": "終了日時",
+    "reason": "理由"
+  },
+  "entityTypes": {
+    "user": "ユーザー",
+    "group": "グループ",
+    "department": "部署",
+    "role": "ロール",
+    "application": "アプリケーション アクセス",
+    "api_client": "API クライアント",
+    "access_request": "アクセス申請",
+    "form": "フォーム",
+    "form_submission": "申請",
+    "form_assignment": "フォームの割り当て",
+    "workflow_definition": "ワークフロー",
+    "workflow_instance": "承認",
+    "custom_field": "カスタム フィールド",
+    "module": "モジュール",
+    "identity_provider": "サインイン プロバイダー",
+    "db-connection": "データベース接続",
+    "notification_channel": "通知チャネル",
+    "file": "ファイル",
+    "record_link": "リンク",
+    "ai": "AI の設定",
+    "ai_tool": "AI ツール",
+    "core_user": "ユーザー"
+  },
+  "core_approval_already_approved": "前の承認を引き継ぎ"
 }

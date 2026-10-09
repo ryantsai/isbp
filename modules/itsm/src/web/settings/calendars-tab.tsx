@@ -4,7 +4,7 @@ import { usePlatform } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
@@ -15,13 +15,13 @@ import {
   SheetContent,
   SheetDescription,
   SheetFooter,
+  SheetForm,
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Switch } from '@isbp/ui/switch';
 import { CalendarClockIcon, PencilIcon, PlusIcon, Trash2Icon, XIcon } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useState } from 'react';
 import type { z } from 'zod';
@@ -193,9 +193,8 @@ function CalendarSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-xl" closeLabel={tc('close')}>
-        <form
+        <SheetForm
           noValidate
-          className="flex h-full flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault();
             setTouched(true);
@@ -215,7 +214,7 @@ function CalendarSheet({
             <SheetTitle>{calendar ? t('editTitle') : t('createTitle')}</SheetTitle>
             <SheetDescription>{t('sheetHint')}</SheetDescription>
           </SheetHeader>
-          <SheetBody className="grid content-start gap-6">
+          <SheetBody className="grid content-start gap-6 pb-6">
             <div className="grid gap-2">
               <Label htmlFor={`${id}-name`}>{t('name')}</Label>
               <Input
@@ -331,7 +330,7 @@ function CalendarSheet({
               {tc('save')}
             </Button>
           </SheetFooter>
-        </form>
+        </SheetForm>
       </SheetContent>
     </Sheet>
   );
@@ -340,8 +339,8 @@ function CalendarSheet({
 /** Business calendars (time zone, working hours, holidays) that SLA policies count time on. */
 export function CalendarsTab() {
   const t = useTranslations('itsm.settingsPage.calendars');
-  const tc = useTranslations('common');
-  const { data, isLoading } = useApiQuery<{ items: CalendarDto[] }>('/itsm/calendars');
+  const ts = useTranslations('itsm.settingsPage');
+  const { data, isLoading, error, refetch } = useApiQuery<{ items: CalendarDto[] }>('/itsm/calendars');
   const [editing, setEditing] = useState<CalendarDto | null>(null);
   const [open, setOpen] = useState(false);
   const edit = (c: CalendarDto | null) => {
@@ -369,7 +368,9 @@ export function CalendarsTab() {
           {t('new')}
         </Button>
       </div>
-      {isLoading ? (
+      {error ? (
+        <ErrorState error={error} onRetry={() => refetch()} kind="list" className="rounded-xl border" />
+      ) : isLoading ? (
         <Skeleton className="h-48 w-full rounded-xl" />
       ) : !data?.items.length ? (
         <EmptyState
@@ -379,12 +380,9 @@ export function CalendarsTab() {
         />
       ) : (
         <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {data.items.map((c, i) => (
-            <motion.li
+          {data.items.map((c) => (
+            <li
               key={c.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25, delay: i * 0.04 }}
               className="flex min-w-0 items-start justify-between gap-3 rounded-xl border bg-card p-4 shadow-xs"
             >
               <div className="grid min-w-0 gap-1">
@@ -404,11 +402,11 @@ export function CalendarsTab() {
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => edit(c)}
-                aria-label={`${tc('edit')} ${c.name}`}
+                aria-label={ts('editItem', { name: c.name })}
               >
                 <PencilIcon />
               </Button>
-            </motion.li>
+            </li>
           ))}
         </ul>
       )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { usePlatform } from '@isbp/sdk/web';
+import { ApiError } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
 import {
   Dialog,
@@ -19,20 +19,27 @@ import {
 } from '@isbp/ui/dropdown-menu';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
-import { useApiMutation } from '@isbp/ui/query';
+import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
+import { toast } from '@isbp/ui/sonner';
 import { Textarea } from '@isbp/ui/textarea';
 import {
+  BugIcon,
   CheckCircle2Icon,
   ChevronDownIcon,
+  ClipboardCheckIcon,
+  FilePenLineIcon,
+  FlagIcon,
   GavelIcon,
-  HandIcon,
-  PencilIcon,
+  HammerIcon,
   type LucideIcon,
+  RotateCcwIcon,
+  SearchIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useState } from 'react';
 import {
+  type ReplyArticle,
   type ResolutionCode,
   resolutionCodeSchema,
   type TicketDetail,
@@ -41,10 +48,37 @@ import {
   type UpdateTicketInput,
 } from '../../contracts';
 import { statusIcon } from '../components/badges';
+import { ArticlePicker } from '../components/pickers';
 import { INVALIDATE, ticketApi } from '../lib';
+import type { NextStep } from '../logic';
 import { NEEDS_CODE } from '../statuses';
 
 const CODES = resolutionCodeSchema.options;
+
+/** What a failed status change means for the person, with a way forward when there is one. */
+export function useTransitionError() {
+  const t = useTranslations('itsm.actions.errors');
+  const errorText = useErrorText();
+  return (err: unknown, onEditPlan?: () => void) => {
+    const fields =
+      err instanceof ApiError
+        ? ((err.details as { fields?: Record<string, string> } | undefined)?.fields ?? {})
+        : {};
+    const reason =
+      err instanceof ApiError ? (err.details as { reason?: string } | undefined)?.reason : undefined;
+    const editPlan = onEditPlan ? { action: { label: t('editPlan'), onClick: onEditPlan } } : {};
+    if (
+      err instanceof ApiError &&
+      err.code === 'VALIDATION_FAILED' &&
+      (fields.plannedStart || fields.plannedEnd)
+    )
+      toast.error(t('windowMissing'), editPlan);
+    else if (err instanceof ApiError && err.code === 'SCHEDULE_CONFLICT')
+      toast.error(t('windowPast'), editPlan);
+    else if (reason === 'acceptance_required') toast.error(t('acceptanceRequired'));
+    else toast.error(errorText(err));
+  };
+}
 
 export function useTransition(ticket: TicketDetail, onDone?: () => void) {
   const t = useTranslations('itsm.actions');
@@ -53,37 +87,62 @@ export function useTransition(ticket: TicketDetail, onDone?: () => void) {
     (api, body: TransitionInput) => api.post<TicketDetail>(`${ticketApi(ticket.reference)}/transition`, body),
     {
       invalidate: INVALIDATE,
-      success: (r) => (r.signOff ? t('sentForSignOff') : t('statusChanged', { status: ts(r.status) })),
+      silent: true,
+      success: (r) =>
+        r.signOff
+          ? t('sentForSignOff')
+          : r.status === 'authorization'
+            ? t('submitted')
+            : t('statusChanged', { status: ts(r.status) }),
       onSuccess: () => onDone?.(),
     },
   );
 }
 
-/** Resolve / fulfil / cancel: a resolution code is required, notes too unless cancelling. */
+/** The resolve dialog's starting point: "Send and resolve" brings the reply and the article it cites. */
+export interface ResolveIntent {
+  status: TicketStatus;
+  notes?: string;
+  article?: ReplyArticle | null;
+}
+
+/**
+ * Resolve / fulfil / cancel: a resolution code is required, notes too unless cancelling. Resolving can record the
+ * knowledge article that solved it (linked to the ticket).
+ */
 export function ResolveDialog({
   ticket,
-  status,
+  intent,
   onOpenChange,
+  onResolved,
 }: {
   ticket: TicketDetail;
-  status: TicketStatus | null;
+  intent: ResolveIntent | null;
   onOpenChange: (open: boolean) => void;
+  onResolved?: () => void;
 }) {
   const t = useTranslations('itsm.actions.resolve');
   const tr = useTranslations('itsm.resolution');
   const tc = useTranslations('common');
   const id = useId();
+  const status = intent?.status ?? null;
   const [code, setCode] = useState<ResolutionCode | ''>('');
   const [notes, setNotes] = useState('');
+  const [article, setArticle] = useState<ReplyArticle | null>(null);
   const [touched, setTouched] = useState(false);
   const open = status !== null;
   useEffect(() => {
-    if (!open) return;
-    setCode(status === 'cancelled' ? '' : 'solved');
-    setNotes('');
+    if (!intent) return;
+    setCode(intent.status === 'cancelled' ? '' : 'solved');
+    setNotes(intent.notes ?? '');
+    setArticle(intent.article ?? null);
     setTouched(false);
-  }, [open, status]);
-  const transition = useTransition(ticket, () => onOpenChange(false));
+  }, [intent]);
+  const onError = useTransitionError();
+  const transition = useTransition(ticket, () => {
+    onOpenChange(false);
+    onResolved?.();
+  });
   const cancelling = status === 'cancelled';
   const kind = cancelling ? 'cancel' : status === 'fulfilled' ? 'fulfil' : 'resolve';
   const missingCode = !code;
@@ -108,11 +167,15 @@ export function ResolveDialog({
             e.preventDefault();
             setTouched(true);
             if (missingCode || missingNotes || !status) return;
-            transition.mutate({
-              status,
-              resolutionCode: code as ResolutionCode,
-              resolutionNotes: notes.trim(),
-            });
+            transition.mutate(
+              {
+                status,
+                resolutionCode: code as ResolutionCode,
+                resolutionNotes: notes.trim(),
+                ...(article && !cancelling ? { articleId: article.id } : {}),
+              },
+              { onError: (err) => onError(err) },
+            );
           }}
         >
           <div className="grid gap-2">
@@ -159,6 +222,22 @@ export function ResolveDialog({
               </p>
             )}
           </div>
+          {!cancelling && (
+            <div className="grid gap-2">
+              <Label htmlFor={`${id}-article`}>{t('article')}</Label>
+              <ArticlePicker
+                id={`${id}-article`}
+                value={article}
+                onChange={(a) =>
+                  setArticle(a ? { id: a.id, reference: a.reference ?? '', title: a.title } : null)
+                }
+                aria-describedby={`${id}-article-hint`}
+              />
+              <p id={`${id}-article-hint`} className="text-xs text-muted-foreground">
+                {t('articleHint')}
+              </p>
+            </div>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {tc('cancel')}
@@ -263,82 +342,87 @@ export function EditDialog({
   );
 }
 
-/** Status menu, resolve/fulfil, assign to me, edit and (changes) submit for approval. */
-export function ActionBar({ ticket }: { ticket: TicketDetail }) {
-  const t = useTranslations('itsm.actions');
-  const ts = useTranslations('itsm.status');
-  const { user } = usePlatform();
-  const [resolving, setResolving] = useState<TicketStatus | null>(null);
-  const [editing, setEditing] = useState(false);
-  const transition = useTransition(ticket);
-  const assign = useApiMutation(
-    (api) => api.post<TicketDetail>(`${ticketApi(ticket.reference)}/assign-to-me`),
-    { invalidate: INVALIDATE, success: t('assignedToMe') },
-  );
-  const transitions = ticket.viewer.transitions;
-  const finish = transitions.find((s) => s === 'resolved' || s === 'fulfilled');
-  const canSubmit = ticket.type === 'change' && transitions.includes('authorization');
-  const menu = transitions.filter((s) => s !== 'authorization');
-  const go = (status: TicketStatus) => {
-    if (NEEDS_CODE.includes(status)) setResolving(status);
-    else transition.mutate({ status });
-  };
-  const item = (s: TicketStatus) => {
-    const Icon: LucideIcon = statusIcon(s);
-    return (
-      <DropdownMenuItem
-        key={s}
-        onSelect={() => go(s)}
-        variant={s === 'cancelled' || s === 'rejected' ? 'destructive' : 'default'}
-      >
-        <Icon aria-hidden />
-        {ticket.signOff && s === 'in_progress' ? t('withdrawResolution') : ts(s)}
-      </DropdownMenuItem>
-    );
-  };
+const NEXT_ICON: Record<NextStep['key'], LucideIcon> = {
+  resolve: CheckCircle2Icon,
+  fulfil: CheckCircle2Icon,
+  reopen: RotateCcwIcon,
+  startInvestigating: SearchIcon,
+  markKnownError: BugIcon,
+  closeProblem: CheckCircle2Icon,
+  submitForApproval: GavelIcon,
+  revise: FilePenLineIcon,
+  startImplementation: HammerIcon,
+  finishImplementation: ClipboardCheckIcon,
+  closeChange: FlagIcon,
+};
 
+/** The next lifecycle step as the page's primary button (and a hint when it can't be taken yet). */
+export function NextStepButton({
+  step,
+  pending,
+  disabledHint,
+  onClick,
+}: {
+  step: NextStep;
+  pending: boolean;
+  /** Why it can't be taken now (e.g. waiting for the requester's acceptance). */
+  disabledHint?: string | null;
+  onClick: () => void;
+}) {
+  const t = useTranslations('itsm.actions.next');
+  const Icon = NEXT_ICON[step.key];
   return (
-    <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label={t('label')}>
-      {menu.length > 0 && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" loading={transition.isPending && !resolving}>
-              {t('changeStatus')}
-              <ChevronDownIcon aria-hidden />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-52">
-            <DropdownMenuLabel>{t('moveTo')}</DropdownMenuLabel>
-            {menu.map(item)}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-      {finish && (
-        <Button onClick={() => setResolving(finish)}>
-          <CheckCircle2Icon aria-hidden />
-          {t(finish === 'fulfilled' ? 'fulfilButton' : 'resolveButton')}
-        </Button>
-      )}
-      {canSubmit && (
-        <Button onClick={() => transition.mutate({ status: 'authorization' })} loading={transition.isPending}>
-          <GavelIcon aria-hidden />
-          {t('submitForApproval')}
-        </Button>
-      )}
-      {ticket.viewer.canEdit && ticket.assignee?.id !== user.id && (
-        <Button variant="outline" onClick={() => assign.mutate(undefined)} loading={assign.isPending}>
-          <HandIcon aria-hidden />
-          {t('assignToMe')}
-        </Button>
-      )}
-      {ticket.viewer.canEdit && (
-        <Button variant="ghost" onClick={() => setEditing(true)}>
-          <PencilIcon aria-hidden />
-          {t('editButton')}
-        </Button>
-      )}
-      <ResolveDialog ticket={ticket} status={resolving} onOpenChange={(o) => !o && setResolving(null)} />
-      <EditDialog ticket={ticket} open={editing} onOpenChange={setEditing} />
-    </div>
+    <span className="inline-flex flex-wrap items-center gap-2">
+      {disabledHint && <span className="text-sm text-muted-foreground">{disabledHint}</span>}
+      <Button onClick={onClick} loading={pending} disabled={Boolean(disabledHint)}>
+        <Icon aria-hidden />
+        {t(step.key)}
+      </Button>
+    </span>
   );
 }
+
+/** "Other status": the side exits of the lifecycle (on hold, cancel, back to draft…). */
+export function StatusMenu({
+  ticket,
+  statuses,
+  pending,
+  onSelect,
+}: {
+  ticket: TicketDetail;
+  statuses: readonly TicketStatus[];
+  pending: boolean;
+  onSelect: (status: TicketStatus) => void;
+}) {
+  const t = useTranslations('itsm.actions');
+  const ts = useTranslations('itsm.status');
+  if (!statuses.length) return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" loading={pending}>
+          {t('otherStatus')}
+          <ChevronDownIcon aria-hidden />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-52">
+        <DropdownMenuLabel>{t('moveTo')}</DropdownMenuLabel>
+        {statuses.map((s) => {
+          const Icon: LucideIcon = statusIcon(s);
+          return (
+            <DropdownMenuItem
+              key={s}
+              onSelect={() => onSelect(s)}
+              variant={s === 'cancelled' || s === 'rejected' ? 'destructive' : 'default'}
+            >
+              <Icon aria-hidden />
+              {ticket.signOff && s === 'in_progress' ? t('withdrawResolution') : ts(s)}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export { NEEDS_CODE };

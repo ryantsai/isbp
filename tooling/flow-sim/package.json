@@ -1,0 +1,28 @@
+{
+  "name": "@isbp/flow-sim",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Flow simulator: runs the product's user flows many times with random data against a running stack and reports what broke",
+  "scripts": {
+    "sim": "tsx src/cli.ts",
+    "stack": "bash stack.sh",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "ioredis": "^6.0.0",
+    "pg": "catalog:"
+  },
+  "devDependencies": {
+    "@isbp/eslint-config": "workspace:*",
+    "@isbp/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

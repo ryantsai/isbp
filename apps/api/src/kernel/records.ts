@@ -21,7 +21,11 @@ import type { FastifyBaseLogger } from 'fastify';
 import { currentPrincipal } from './context';
 import type { ModuleRegistry } from './modules';
 
-/** Resolver calls are capped so one slow module can't stall a page of links. */
+/**
+ * Resolver calls that only *display* records are capped so one slow module can't stall a page of links. Calls whose
+ * answer decides something (who may read a record, whether it exists, approval facts) wait for the real answer: a
+ * timeout there would turn a busy module into "not found" or a wrong route.
+ */
 const RESOLVE_TIMEOUT_MS = 2_000;
 
 export interface RecordTypeEntry {
@@ -31,8 +35,18 @@ export interface RecordTypeEntry {
   def: RecordTypeDef;
 }
 
-const timeout = <T>(p: Promise<T>, fallback: T) =>
-  Promise.race([p, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), RESOLVE_TIMEOUT_MS))]);
+const timeout = <T>(p: Promise<T>, fallback: T, onTimeout: () => void) => {
+  let timer: NodeJS.Timeout | undefined;
+  return Promise.race([
+    p,
+    new Promise<T>((resolve) => {
+      timer = setTimeout(() => {
+        onTimeout();
+        resolve(fallback);
+      }, RESOLVE_TIMEOUT_MS);
+    }),
+  ]).finally(() => clearTimeout(timer));
+};
 
 /** Sees every record (existence checks without a person, e.g. sync writes): never used to return data. */
 const SYSTEM_READER: AuthContext = {
@@ -66,6 +80,8 @@ export class RecordRegistry {
       core: () => ModuleContext;
       /** Soft-deletes a record's attachments (wired to the file store). */
       forgetFiles: (ref: RecordRef, tx: Db) => Promise<void>;
+      /** Refuses with `IN_USE` while open work or live settings still use the record (`ReferenceRegistry`). */
+      assertUnused: (ref: RecordRef, tx: Db) => Promise<void>;
     },
   ) {}
 
@@ -109,7 +125,11 @@ export class RecordRegistry {
     };
   }
 
-  async resolve(refs: readonly RecordRef[], auth: AuthContext): Promise<Map<string, ResolvedRecord>> {
+  async resolve(
+    refs: readonly RecordRef[],
+    auth: AuthContext,
+    opts: { wait?: boolean } = {},
+  ): Promise<Map<string, ResolvedRecord>> {
     const byType = new Map<string, Set<string>>();
     for (const r of refs) {
       const ids = byType.get(r.type) ?? new Set<string>();
@@ -123,13 +143,17 @@ export class RecordRegistry {
         const resolver = e?.module.records?.[e.def.type];
         if (!e || !resolver) return;
         try {
-          const summaries = await timeout(
-            resolver.resolve([...idSet], this.deps.registry.context(e.moduleId), auth),
-            [],
-          );
+          const pending = resolver.resolve([...idSet], this.deps.registry.context(e.moduleId), auth);
+          const summaries = opts.wait
+            ? await pending
+            : await timeout(pending, [], () =>
+                this.deps.logger.warn({ type, count: idSet.size }, 'record resolver timed out; showing none'),
+              );
           for (const s of summaries)
             if (idSet.has(s.id)) out.set(formatRecordRef({ type, id: s.id }), this.toResolved(e, s));
         } catch (err) {
+          // A decision must not read a module's failure as "not found": let it surface.
+          if (opts.wait) throw err;
           this.deps.logger.warn({ err, type }, 'record resolver failed');
         }
       }),
@@ -147,15 +171,10 @@ export class RecordRegistry {
         const e = this.usable(type);
         const resolver = e?.module.records?.[e.def.type];
         if (!e || !resolver?.facts) return;
-        try {
-          const facts = await timeout(
-            resolver.facts([...idSet], this.deps.registry.context(e.moduleId)),
-            new Map<string, Record<string, unknown>>(),
-          );
-          for (const [id, f] of facts) if (idSet.has(id)) out.set(formatRecordRef({ type, id }), f);
-        } catch (err) {
-          this.deps.logger.warn({ err, type }, 'record facts failed');
-        }
+        // Facts decide (routing, existence, picker filters): a module's failure surfaces instead of reading as
+        // "no facts", which would route an approval wrongly.
+        const facts = await resolver.facts([...idSet], this.deps.registry.context(e.moduleId));
+        for (const [id, f] of facts) if (idSet.has(id)) out.set(formatRecordRef({ type, id }), f);
       }),
     );
     return out;
@@ -167,15 +186,16 @@ export class RecordRegistry {
    */
   async readable(refs: readonly RecordRef[], auth: AuthContext | null): Promise<Set<string>> {
     if (!refs.length) return new Set();
-    if (auth) return new Set((await this.resolve(refs, auth)).keys());
+    if (auth) return new Set((await this.resolve(refs, auth, { wait: true })).keys());
     const found = new Set((await this.facts(refs)).keys());
     const rest = refs.filter((r) => !found.has(formatRecordRef(r)));
-    if (rest.length) for (const key of (await this.resolve(rest, SYSTEM_READER)).keys()) found.add(key);
+    if (rest.length)
+      for (const key of (await this.resolve(rest, SYSTEM_READER, { wait: true })).keys()) found.add(key);
     return found;
   }
 
   async get(ref: RecordRef, auth: AuthContext): Promise<ResolvedRecord | null> {
-    return (await this.resolve([ref], auth)).get(formatRecordRef(ref)) ?? null;
+    return (await this.resolve([ref], auth, { wait: true })).get(formatRecordRef(ref)) ?? null;
   }
 
   async search(
@@ -194,6 +214,7 @@ export class RecordRegistry {
           const hits = await timeout(
             resolver.search(q, this.deps.registry.context(e.moduleId), opts.auth, limit),
             [],
+            () => this.deps.logger.warn({ type: e.type }, 'record search timed out; showing none'),
           );
           return hits.slice(0, limit).map((s) => this.toResolved(e, s));
         } catch (err) {
@@ -366,6 +387,7 @@ export class RecordRegistry {
 
   async forget(ref: RecordRef, opts: { tx?: Db } = {}): Promise<void> {
     const run = async (tx: Db) => {
+      await this.deps.assertUnused(ref, tx);
       await tx.delete(recordLinks).where(this.touches(ref));
       await this.deps.forgetFiles(ref, tx);
     };

@@ -2,6 +2,7 @@
 
 import { cn } from '@isbp/ui';
 import { Badge } from '@isbp/ui/badge';
+import { StatusBadge } from '@isbp/ui/status';
 import {
   ArchiveIcon,
   BanIcon,
@@ -117,15 +118,26 @@ export const ASSET_STATUS: Record<AssetStatus, { tone: Tone; icon: LucideIcon }>
 };
 
 /** Lifecycle status: icon + text + tone (never colour alone). */
-export function AssetStatusBadge({ status, className }: { status: AssetStatus; className?: string }) {
+export function AssetStatusBadge({
+  status,
+  className,
+  animate,
+}: {
+  status: AssetStatus;
+  className?: string;
+  /** Cross-fade when the status changes in place (the asset page header). */
+  animate?: boolean;
+}) {
   const t = useTranslations('itam.status');
   const s = ASSET_STATUS[status] ?? ASSET_STATUS.ordered;
-  const Icon = s.icon;
   return (
-    <Badge variant="outline" className={cn(TONE[s.tone], className)}>
-      <Icon aria-hidden />
-      {t(status)}
-    </Badge>
+    <StatusBadge
+      tone={s.tone}
+      icon={s.icon}
+      label={t(status)}
+      changeKey={animate ? status : undefined}
+      className={className}
+    />
   );
 }
 

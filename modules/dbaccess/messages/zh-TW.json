@@ -6,13 +6,13 @@
   "nav": {
     "group": "資料庫存取",
     "mine": "我的資料庫存取",
-    "grants": "存取",
+    "grants": "存取權總覽",
     "reviews": "存取審查",
     "servers": "伺服器"
   },
   "portal": {
-    "request": "申請資料庫存取",
-    "requestDescription": "在 SQL Server、Oracle 或 PostgreSQL 資料庫上取得限時的角色。"
+    "request": "直接存取資料庫",
+    "requestDescription": "供報表與資料修正使用，可在 SQL Server、Oracle 或 PostgreSQL 上取得限時的角色。"
   },
   "systemRoles": {
     "dbaccess-requester": {
@@ -21,24 +21,24 @@
     },
     "dbaccess-dba": {
       "name": "資料庫存取管理員",
-      "description": "設定伺服器與可申請的角色、執行盤點同步、檢視所有存取、撤銷存取、納管未受管理的存取並重試佈建"
+      "description": "設定伺服器與可申請的角色、執行盤點同步、檢視所有存取、撤銷存取、將無申請紀錄的存取指派給人員並重試佈建"
     },
     "dbaccess-auditor": {
       "name": "資料庫存取稽核員",
-      "description": "檢視所有資料庫存取、帳戶、偏差與存取審查"
+      "description": "檢視所有資料庫存取、帳號、偏差與存取審查"
     },
     "dbaccess-review-manager": {
       "name": "資料庫存取審查管理員",
-      "description": "執行存取審查活動：啟動、追蹤、結束與匯出"
+      "description": "執行存取審查：啟動、追蹤、結束與匯出"
     }
   },
   "permissions": {
     "selfRequest": "申請資料庫角色並管理自己的資料庫存取",
     "serversManage": "設定伺服器與可申請的角色，執行盤點同步",
-    "grantsRead": "檢視所有資料庫存取、帳戶、未受管理的存取與孤立帳戶",
-    "grantsManage": "撤銷資料庫存取、納管未受管理的存取並重試佈建",
-    "reviewsRead": "檢視資料庫存取審查活動及其報告",
-    "reviewsManage": "執行資料庫存取審查活動"
+    "grantsRead": "檢視所有資料庫存取、帳號、無申請紀錄的存取與無對應人員的帳號",
+    "grantsManage": "撤銷資料庫存取、將無申請紀錄的存取指派給人員並重試佈建",
+    "reviewsRead": "檢視資料庫存取審查及其報告",
+    "reviewsManage": "執行資料庫存取審查"
   },
   "settings": {
     "retrySeconds": "佈建重試間隔（秒）",
@@ -53,7 +53,7 @@
   "taskTypes": {
     "sync": {
       "name": "資料庫存取：盤點同步",
-      "description": "讀取伺服器的帳戶、角色與成員資格，並回報未受管理的存取"
+      "description": "讀取伺服器的帳號、角色與成員資格，並回報無申請紀錄的存取"
     }
   },
   "notifications": {
@@ -70,7 +70,7 @@
     "grant_ready": {
       "label": "我的資料庫存取已就緒",
       "title": "您的存取已就緒：{role}",
-      "body": "{server} 上的帳戶 {account} 已取得 {role}{permanent, select, yes {。} other {，期限至 {expiresAt}。}}請至「我的資料庫存取」檢視一次性密碼。"
+      "body": "{server} 上的帳號 {account} 已取得 {role}{permanent, select, yes {。} other {，期限至 {expiresAt}。}}請至「我的資料庫存取」檢視一次性密碼。"
     },
     "grant_expiring": {
       "label": "我的資料庫存取即將到期",
@@ -118,11 +118,11 @@
     "grant_revoked": "已撤銷資料庫角色（已驗證）",
     "grant_expired": "資料庫存取已到期",
     "grant_extended": "延長資料庫存取",
-    "grant_adopted": "納管未受管理的資料庫存取",
+    "grant_adopted": "將無申請紀錄的資料庫存取指派給人員",
     "grant_retried": "重試資料庫佈建",
-    "account_created": "建立資料庫帳戶",
-    "account_enabled": "重新啟用資料庫帳戶",
-    "account_disabled": "停用資料庫帳戶",
+    "account_created": "建立資料庫帳號",
+    "account_enabled": "重新啟用資料庫帳號",
+    "account_disabled": "停用資料庫帳號",
     "credential_revealed": "顯示一次性資料庫密碼",
     "review_created": "建立資料庫存取審查",
     "review_started": "啟動資料庫存取審查",
@@ -187,8 +187,8 @@
   },
   "source": {
     "request": "申請",
-    "adopted": "納管",
-    "unmanaged": "未受管理的存取"
+    "adopted": "已指派給人員",
+    "unmanaged": "無申請紀錄的存取"
   },
   "reviewStatus": {
     "scheduled": "已排程",
@@ -218,7 +218,7 @@
     "never": "從未同步",
     "now": "立即同步",
     "nowFor": "立即同步：{name}",
-    "done": "{name}：{accounts} 個帳戶、{roles} 個角色、{unmanaged} 筆未受管理",
+    "done": "{name}：{accounts} 個帳號、{roles} 個角色、{unmanaged} 筆無申請紀錄",
     "failed": "無法同步 {name}：{message}"
   },
   "reason": {
@@ -227,13 +227,13 @@
   },
   "reveal": {
     "title": "您的資料庫密碼",
-    "description": "密碼於建立帳戶時產生，只會顯示一次，絕不以電子郵件寄送。",
-    "confirm": "密碼只會顯示一次，且僅在帳戶建立後 7 天內有效。請先準備好密碼管理工具再顯示。",
+    "description": "密碼於建立帳號時產生，只會顯示一次，絕不以電子郵件寄送。",
+    "confirm": "密碼只會顯示一次，且僅在帳號建立後 7 天內有效。請先準備好密碼管理工具再顯示。",
     "show": "顯示密碼",
     "server": "伺服器",
-    "account": "帳戶",
+    "account": "帳號",
     "password": "密碼",
-    "copyAccount": "複製帳戶名稱",
+    "copyAccount": "複製帳號名稱",
     "copyPassword": "複製密碼",
     "copied": "已複製",
     "onceWarning": "請立即存入密碼管理工具。密碼無法再次顯示；若遺失，可請 DBA 重設。",
@@ -246,21 +246,21 @@
     "pending": "{count, plural, other {# 筆申請等待簽核}}",
     "access": "{count, plural, =0 {您的存取} other {您的存取（#）}}",
     "empty": "您目前沒有任何資料庫存取",
-    "emptyHint": "申請資料庫角色：由您的主管與角色擁有者核准後，系統會自動設定您的帳戶。",
+    "emptyHint": "申請資料庫角色：由您的主管與角色擁有者核准後，系統會自動設定您的帳號。",
     "history": "歷程",
-    "account": "帳戶",
+    "account": "帳號",
     "role": "資料庫角色",
     "until": "期限",
     "permanent": "無期限",
     "requestRef": "申請單",
     "failedHint": "此存取設定失敗。已通知 DBA，將會重試。",
-    "provisioningHint": "正在伺服器上設定您的帳戶，約需一分鐘。",
+    "provisioningHint": "正在伺服器上設定您的帳號，約需一分鐘。",
     "revealPassword": "顯示密碼",
     "passwordShown": "密碼",
     "extend": "申請延長",
     "relinquish": "交還",
     "relinquishTitle": "要交還 {role} 嗎？",
-    "relinquishDescription": "角色會立即從您的帳戶移除。之後仍可再次申請。",
+    "relinquishDescription": "角色會立即從您的帳號移除。之後仍可再次申請。",
     "relinquished": "正在移除您的存取",
     "owned": {
       "title": "您擁有的角色的存取",
@@ -276,11 +276,11 @@
     "extendTitle": "申請延長",
     "extendDescription": "選擇新的結束日期，並說明為何仍需要此存取。",
     "myAccess": "我的資料庫存取",
-    "steps": "步驟",
+    "steps": "進度",
     "step": {
-      "choose": "選擇角色",
-      "details": "期限與原因",
-      "review": "確認並送出"
+      "choose": "權限",
+      "details": "詳細資料",
+      "review": "確認"
     },
     "search": "搜尋角色、資料庫或伺服器…",
     "server": "伺服器",
@@ -309,13 +309,7 @@
     "justificationPlaceholder": "例如：財務團隊的月結報表。",
     "justificationHint": "簽核者會閱讀這段說明。如有相關專案、工單或變更，請一併註明。",
     "until": "至 {date}",
-    "whoApproves": "由誰核准",
-    "approver": {
-      "manager": "您的主管",
-      "owner": "角色擁有者：{owners}",
-      "security": "資訊安全（高風險角色）"
-    },
-    "afterApproval": "核准後，系統會自動建立或更新您的帳戶並通知您。產生的密碼只會向您顯示一次。",
+    "afterApproval": "核准後，系統會自動建立或更新您的帳號並通知您。產生的密碼只會向您顯示一次。",
     "send": "送出申請",
     "sent": "{count, plural, other {已送出 # 筆申請}}",
     "errors": {
@@ -327,7 +321,6 @@
   },
   "requestPage": {
     "notFound": "此申請不存在，或您無權檢視。",
-    "back": "我的資料庫存取",
     "cancel": "撤回申請",
     "cancelled": "已撤回申請",
     "statusHint": {
@@ -342,7 +335,7 @@
     "pathHidden": "您無法檢視簽核路徑。",
     "waitingFor": "目前在「{step}」等待",
     "andMore": "以及另外 {count} 人",
-    "decide": "前往我的簽核決定",
+    "decide": "處理此申請",
     "details": "詳細資料",
     "role": "資料庫角色",
     "server": "伺服器",
@@ -354,11 +347,18 @@
     "justification": "原因",
     "access": "存取",
     "openMyAccess": "開啟我的資料庫存取",
-    "path": "簽核路徑"
+    "path": "簽核路徑",
+    "step": {
+      "approved": "已由 {names} 核准 · {date}",
+      "rejected": "已由 {names} 退回 · {date}",
+      "waiting": "等待 {names}",
+      "skipped": "此申請不需要這個步驟",
+      "later": "下一步：上方步驟完成後"
+    }
   },
   "grant": {
     "title": "資料庫存取",
-    "account": "帳戶",
+    "account": "帳號",
     "role": "資料庫角色",
     "server": "引擎",
     "source": "來源",
@@ -375,19 +375,20 @@
     "retryStarted": "正在重試",
     "revoke": "撤銷",
     "revokeTitle": "要撤銷此存取嗎？",
-    "revokeDescription": "角色會立即從 {person} 的帳戶移除，並告知對方原因。",
-    "revokeStarted": "正在撤銷存取"
+    "revokeDescription": "角色會立即從 {person} 的帳號移除，並告知對方原因。",
+    "revokeStarted": "正在撤銷存取",
+    "retried": "{count, plural, other {已重試 # 次}}"
   },
   "access": {
-    "title": "存取",
-    "description": "透過平台授予的所有資料庫角色、各伺服器上的帳戶，以及沒有授權可說明的存取。",
+    "title": "存取權總覽",
+    "description": "透過平台授予的所有資料庫角色、各伺服器上的帳號，以及沒有授權可說明的存取。",
     "tabs": {
-      "grants": "授權",
-      "accounts": "帳戶",
-      "unmanaged": "未受管理的存取"
+      "grants": "已授予的存取",
+      "accounts": "帳號",
+      "unmanaged": "無申請紀錄"
     },
     "grantsTable": "資料庫授權",
-    "search": "搜尋人員、帳戶或角色…",
+    "search": "搜尋人員、帳號或角色…",
     "grantee": "人員",
     "role": "角色",
     "risk": "風險",
@@ -404,21 +405,21 @@
     "allRisks": "任何風險",
     "sources": {
       "request": "申請",
-      "adopted": "納管",
-      "unmanaged": "未受管理"
+      "adopted": "已指派給人員",
+      "unmanaged": "無申請紀錄"
     },
     "empty": "沒有符合的存取",
     "emptyHint": "請調整篩選條件。",
-    "unmanagedHint": "上次同步發現、但沒有任何授權可說明的可申請角色成員資格。請為正確的人員設定結束日期並納管，或予以撤銷。"
+    "unmanagedHint": "上次同步發現、但沒有任何申請可說明的可申請角色成員。請將其指派給正確的人員並設定結束日期，或予以撤銷。"
   },
   "accounts": {
-    "table": "資料庫帳戶",
-    "search": "搜尋帳戶…",
-    "account": "帳戶",
+    "table": "資料庫帳號",
+    "search": "搜尋帳號…",
+    "account": "帳號",
     "server": "伺服器",
     "person": "人員",
-    "orphan": "孤立帳戶",
-    "service": "服務帳戶",
+    "orphan": "無對應人員",
+    "service": "服務帳號",
     "state": "狀態",
     "enabled": "已啟用",
     "disabled": "已停用",
@@ -426,87 +427,86 @@
     "roles": "角色",
     "lastLogin": "上次登入",
     "allServers": "所有伺服器",
-    "allAccounts": "所有帳戶",
-    "orphansOnly": "僅孤立帳戶",
+    "allAccounts": "所有帳號",
+    "orphansOnly": "僅無對應人員的帳號",
     "matchedOnly": "已對應人員",
-    "empty": "沒有帳戶",
-    "emptyHint": "同步伺服器後即會顯示帳戶。"
+    "empty": "沒有帳號",
+    "emptyHint": "同步伺服器後即會顯示帳號。"
   },
   "unmanaged": {
-    "title": "未受管理的存取",
-    "empty": "沒有未受管理的存取",
-    "emptyHint": "可申請角色的每個成員資格都有對應的授權。",
+    "title": "無申請紀錄的存取",
+    "empty": "沒有無申請紀錄的存取",
+    "emptyHint": "可申請角色的每個成員都有對應的申請。",
     "memberOf": "擁有",
     "looksLike": "看起來是 {name}",
     "seen": "發現於",
-    "adopt": "納管",
+    "adopt": "指派給人員",
     "revoke": "撤銷",
-    "adoptTitle": "納管 {account}",
+    "adoptTitle": "將 {account} 指派給人員",
     "adoptDescription": "將此存取記錄為正確人員的授權並設定結束日期。之後它會與其他存取一樣到期、接受審查及撤銷。",
     "person": "人員",
     "until": "存取期限",
     "untilHint": "若角色允許，留空即為無期限。",
     "note": "備註",
-    "adopted": "已納管存取",
+    "adopted": "已指派存取",
     "revokeTitle": "要撤銷 {account} 嗎？",
-    "revokeDescription": "會從伺服器上的帳戶移除該角色，帳戶本身則保留。",
+    "revokeDescription": "會從伺服器上的帳號移除該角色，帳號本身則保留。",
     "revokeStarted": "正在撤銷存取"
   },
   "servers": {
     "title": "伺服器",
-    "description": "由平台管理帳戶與角色的資料庫伺服器，以及其最近同步與偏差狀況。",
+    "description": "由平台管理帳號與角色的資料庫伺服器，以及其最近同步與偏差狀況。",
     "connections": "資料庫連線",
     "empty": "尚無伺服器",
-    "emptyHint": "請從下方選擇一個管理用途的連線，開始管理其帳戶。",
+    "emptyHint": "請從下方選擇一個管理用途的連線，開始管理其帳號。",
     "connectionMissing": "連線已移除",
     "roles": "可申請的角色",
-    "liveGrants": "目前授權",
-    "accounts": "帳戶",
-    "unmanaged": "未受管理",
-    "orphans": "孤立帳戶",
-    "failed": "失敗",
+    "liveGrants": "擁有存取的人員",
     "lastSync": "上次同步：",
     "open": "開啟",
     "unconfigured": "尚未管理的管理用途連線",
-    "unconfiguredHint": "管理員會在「資料庫連線」中登錄管理用途的連線。開始管理其帳戶後，即可將其角色設為可申請。",
-    "manage": "管理帳戶",
-    "notManaged": "不管理 MySQL 帳戶",
-    "disabled": "已停用"
+    "unconfiguredHint": "管理員會在「資料庫連線」中登錄管理用途的連線。開始管理其帳號後，即可將其角色設為可申請。",
+    "manage": "管理帳號",
+    "notManaged": "不管理 MySQL 帳號",
+    "disabled": "已停用",
+    "attention": "需要處理",
+    "attentionHint": "無申請紀錄 {unmanaged} · 無對應人員 {orphans} · 失敗 {failed}。",
+    "review": "檢視"
   },
   "serverForm": {
-    "createTitle": "管理伺服器上的帳戶",
+    "createTitle": "管理伺服器上的帳號",
     "createDescription": "{connection} 的設定。完成後請同步伺服器，以選擇可申請的角色。",
     "editTitle": "{name} 的設定",
-    "editDescription": "新帳戶會依照這些設定；現有帳戶保留原名稱。",
+    "editDescription": "新帳號會依照這些設定；現有帳號保留原名稱。",
     "displayName": "顯示名稱",
     "environment": "環境",
     "pattern": {
-      "label": "帳戶名稱格式",
-      "preview": "您的帳戶會是 {name}。可用代碼：'{username}' 與 '{email_local}'。",
+      "label": "帳號名稱格式",
+      "preview": "您的帳號會是 {name}。可用代碼：'{username}' 與 '{email_local}'。",
       "empty": "請輸入格式。",
       "invalid": "只能使用英文字母、數字、_ 與代碼。",
-      "no_token": "請加入代碼，讓每個人員都有自己的帳戶。",
+      "no_token": "請加入代碼，讓每個人員都有自己的帳號。",
       "too_long": "最多 60 個字元。"
     },
-    "authMode": "新帳戶的登入方式",
+    "authMode": "新帳號的登入方式",
     "domain": "Windows 網域",
     "passwordLength": "密碼長度",
     "passwordHint": "介於 {min} 到 {max} 個字元之間（Oracle 最多 30 個）。",
-    "externalHint": "帳戶向伺服器的外部目錄（LDAP、Kerberos 或 Microsoft Entra ID）驗證，不會產生密碼。",
+    "externalHint": "帳號向伺服器的外部目錄（LDAP、Kerberos 或 Microsoft Entra ID）驗證，不會產生密碼。",
     "ownerGroup": "DBA 群組",
     "ownerGroupHint": "此伺服器佈建失敗時會通知此群組。",
     "noGroup": "不指定群組",
     "autoSync": "每晚自動同步",
     "nameRequired": "請輸入顯示名稱。",
     "domainRequired": "Windows 登入需要網域。",
-    "create": "管理帳戶",
+    "create": "管理帳號",
     "saved": "已儲存伺服器"
   },
   "server": {
     "servers": "伺服器",
     "notFound": "此伺服器不存在。",
     "back": "所有伺服器",
-    "summary": "連線 {connection} · 帳戶命名 {pattern} · {auth}",
+    "summary": "連線 {connection} · 帳號名稱例如 {pattern} · {auth}",
     "connectionMissing": "已移除",
     "settings": "設定",
     "lastSync": "上次同步：",
@@ -514,7 +514,7 @@
     "tabs": {
       "roles": "可申請的角色（{count}）",
       "inventory": "盤點",
-      "unmanaged": "未受管理（{count}）"
+      "unmanaged": "無申請紀錄（{count}）"
     },
     "rolesHint": "人員可在此伺服器上申請的角色，以及其擁有者（簽核者）、風險與期限。",
     "addRole": "將角色設為可申請",
@@ -533,7 +533,7 @@
     "edit": "編輯",
     "editRole": "編輯 {role}",
     "inventoryHint": "截至上次同步的角色與成員。",
-    "seeAccounts": "檢視帳戶",
+    "seeAccounts": "檢視帳號",
     "inventoryTable": "伺服器上的角色",
     "noInventory": "尚無盤點",
     "database": "資料庫",
@@ -581,28 +581,28 @@
   },
   "reviews": {
     "title": "存取審查",
-    "description": "由角色擁有者或主管確認誰仍需要資料庫存取的審查活動。",
-    "new": "新增審查活動",
+    "description": "由角色擁有者或主管確認誰仍需要資料庫存取。",
+    "new": "新增存取審查",
     "awaiting": "等待您審查",
-    "awaitingCount": "{count, plural, other {# 筆授權}}待決定 · 期限 {due}",
+    "awaitingCount": "{count} 筆待決定 · 期限 {due}",
     "views": {
       "scheduled": "已排程",
       "active": "進行中",
       "closed": "已結束"
     },
-    "name": "審查活動",
+    "name": "存取審查",
     "status": "狀態",
     "due": "期限",
     "policy": "未決定的存取",
     "progress": "進度",
     "progressText": "已決定 {done}／{items} · 保留 {kept} · 撤銷 {revoked}",
     "empty": "沒有存取審查",
-    "emptyHint": "您參與的審查活動會顯示在這裡。",
-    "emptyHintManager": "啟動審查活動，請擁有者確認誰仍需要存取。"
+    "emptyHint": "您參與的存取審查會顯示在這裡和「我的工作」。",
+    "emptyHintManager": "啟動存取審查，請擁有者確認誰仍需要存取。"
   },
   "reviewForm": {
     "title": "新增存取審查",
-    "description": "活動開始時會擷取範圍內的有效授權，並指派給審查者。",
+    "description": "審查開始時會列出範圍內的存取，並分派給審查者。",
     "name": "名稱",
     "namePlaceholder": "2027 年第 1 季資料庫存取審查",
     "servers": "伺服器",
@@ -616,7 +616,7 @@
     "recurrence": "重複",
     "nameRequired": "請輸入名稱（至少 3 個字元）。",
     "dueAfterStart": "期限必須晚於開始日期。",
-    "create": "建立審查活動",
+    "create": "開始存取審查",
     "created": "已建立 {name}"
   },
   "review": {
@@ -624,34 +624,20 @@
     "back": "存取審查",
     "summary": "期限 {due} · {policy} · 審查者：{reviewers}",
     "export": "匯出 CSV",
-    "close": "結束審查活動",
-    "closeTitle": "要結束此審查活動嗎？",
-    "closeDescription": "{pending, plural, =0 {所有授權皆已決定。} other {有 # 筆授權尚未決定。}}未決定的存取將依政策處理：{policy}。撤銷會立即開始，且審查活動將變為唯讀。",
-    "closed": "已結束審查活動",
-    "readOnly": "此審查活動已結束：決定無法再變更。",
-    "totals": "總計",
-    "tiles": {
-      "items": "範圍內的授權",
-      "pending": "未決定",
-      "kept": "保留",
-      "revoked": "撤銷"
-    },
+    "close": "結束審查",
+    "closeTitle": "要結束此存取審查嗎？",
+    "closeDescription": "{pending, plural, =0 {所有存取皆已決定。} other {有 # 筆存取尚未決定。}}未決定的存取將依規則處理：{policy}。撤銷會立即開始，且此審查將變為唯讀。",
+    "closed": "已結束存取審查",
+    "readOnly": "此審查已結束：決定無法再變更。",
     "views": {
-      "mine": "等待我",
-      "undecided": "未決定",
-      "decided": "已決定",
+      "todo": "待處理",
+      "done": "已完成",
       "all": "全部"
     },
-    "items": "待審查的授權",
-    "search": "搜尋人員、帳戶或角色…",
-    "person": "人員",
-    "access": "存取",
-    "risk": "風險",
-    "expires": "結束",
+    "items": "待審查的存取",
+    "search": "搜尋人員、帳號或角色…",
     "permanent": "無期限",
-    "reviewer": "審查者",
     "unassigned": "審查管理者",
-    "decision": "決定",
     "outcome": {
       "kept": "已保留",
       "revoked": "已撤銷"
@@ -660,22 +646,39 @@
     "revoke": "撤銷",
     "keepFor": "保留 {person} 的存取",
     "revokeFor": "撤銷 {person} 的存取",
-    "keepSelected": "保留所選項目",
-    "revokeSelected": "撤銷所選項目",
-    "revokeTitle": "{count, plural, other {要撤銷 # 筆授權嗎？}}",
-    "revokeDescription": "請說明原因。審查活動結束時會移除存取。",
-    "decided": "{count, plural, other {已儲存 # 項決定}}",
+    "keepSelected": "保留 {count} 筆",
+    "revokeSelected": "撤銷 {count} 筆",
+    "revokeTitle": "{count, plural, other {要撤銷 # 筆存取嗎？}}",
+    "revokeDescription": "請說明原因。審查結束時會移除存取。",
     "empty": {
-      "mine": "沒有等待您處理的項目",
-      "undecided": "全部皆已決定",
-      "decided": "尚未有任何決定",
-      "all": "此審查活動沒有授權"
-    }
+      "todo": "沒有待決定的項目",
+      "done": "尚未有任何決定",
+      "all": "此審查沒有存取項目"
+    },
+    "scope": {
+      "label": "審查範圍",
+      "mine": "由我審查",
+      "everyone": "所有人"
+    },
+    "granted": "{date} 授予",
+    "grantedFor": "{date} 授予，原因：「{reason}」",
+    "endsOn": "{date} 到期",
+    "lastSignIn": "上次登入",
+    "neverSignedIn": "從未登入",
+    "reviewerIs": "審查者：{name}",
+    "decisionFor": "{person} 的決定",
+    "kept": "{count, plural, other {已保留 # 筆存取}}",
+    "revoked": "{count, plural, other {已將 # 筆標記為審查結束時撤銷}}",
+    "progressLabel": "{name} 的進度",
+    "progressValue": "已決定 {done}／{items}",
+    "progressSummary": "保留 {kept} · 撤銷 {revoked} · 待決定 {pending}",
+    "allDone": "全部完成，謝謝！沒有其他等待您處理的項目。",
+    "allDoneHint": "在審查結束前（期限 {due}），仍可在「已完成」中變更決定。"
   },
   "taskConfig": {
     "server": "要同步的伺服器",
     "placeholder": "選擇伺服器…",
-    "hint": "讀取帳戶、角色與成員資格，並回報未受管理的存取。"
+    "hint": "讀取帳號、角色與成員資格，並回報無申請紀錄的存取。"
   },
   "userSlot": {
     "title": "資料庫存取",
@@ -692,6 +695,11 @@
     "pending": "{count, plural, other {# 筆待決定}} · 期限 {due}",
     "expiring": "即將到期的存取",
     "ends": "{date} 到期",
-    "extend": "延長"
+    "extend": "延長",
+    "expiringDescription": "{count, plural, other {您有 # 筆資料庫存取即將到期。}}"
+  },
+  "work": {
+    "reviews": "資料庫存取審查",
+    "toDecide": "{count, plural, other {# 項存取權待決定}}"
   }
 }

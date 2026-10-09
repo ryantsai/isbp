@@ -23,7 +23,7 @@
     "optional": "(optional)",
     "authentication": "Authentication",
     "apiKey": "Technician API key",
-    "apiKeyHint": "Generated in ServiceDesk Plus by the technician ISBP acts as.",
+    "apiKeyHint": "Generated in ServiceDesk Plus by the technician IS Big Platform acts as.",
     "stored": "Stored. Leave empty to keep it.",
     "advanced": "Advanced",
     "assetEndpoints": "Asset product type APIs",
@@ -33,15 +33,15 @@
       "title": "Set up access",
       "builds": "For ServiceDesk Plus build {target}; build {minimum} or later is required (its asset API).",
       "https": "Prefer HTTPS. For a plain-HTTP server, turn on “Allow insecure HTTP” for this connection: the API key then travels unencrypted, so keep that traffic inside a trusted network.",
-      "technician": "Create a dedicated technician (for example svc-isbp) whose roles may view and edit only the modules you sync: requests, problems, changes, assets, solutions. Every change ISBP makes appears in ServiceDesk Plus under this technician.",
+      "technician": "Create a dedicated technician (for example svc-isbp) whose roles may view and edit only the modules you sync: requests, problems, changes, assets, solutions. Every change IS Big Platform makes appears in ServiceDesk Plus under this technician.",
       "apiKey": "Sign in as that technician, open the profile menu, choose Generate API Key (Generate Authtoken in some builds), set an expiry date and paste the key here. Renew it before it expires.",
-      "certificates": "If the server uses a certificate from an internal certificate authority, ask the ISBP operator to trust that authority (NODE_EXTRA_CA_CERTS).",
-      "throttling": "ServiceDesk Plus may throttle API URLs (“…requests within N minutes was violated”). ISBP waits and retries; on build 14500 or later an administrator can raise or disable the limit.",
+      "certificates": "If the server uses a certificate from an internal certificate authority, ask the IS Big Platform operator to trust that authority (NODE_EXTRA_CA_CERTS).",
+      "throttling": "ServiceDesk Plus may throttle API URLs (“…requests within N minutes was violated”). IS Big Platform waits and retries; on build 14500 or later an administrator can raise or disable the limit.",
       "webhookTitle": "Optional: sync within seconds",
       "webhook": "In Admin → Developer Space → Webhooks, add a webhook that POSTs to the webhook URL of this connection, with the custom header X-ISBP-Webhook-Secret set to its secret and a JSON payload.",
       "webhookBody": "Use this payload, one webhook per module (request, problem or change). In place of ID, type $ and pick the record’s ID field:",
       "trigger": "In Admin → Automation → Custom Triggers, for requests, problems and changes, add a trigger for created or edited records whose action runs that webhook. Assets and solutions have no custom triggers: they sync on the schedule.",
-      "webhookNote": "A webhook only tells ISBP which record changed: ISBP reads it again through the API. Scheduled syncs keep running, so a missed webhook is caught up."
+      "webhookNote": "A webhook only tells IS Big Platform which record changed: IS Big Platform reads it again through the API. Scheduled syncs keep running, so a missed webhook is caught up."
     }
   }
 }

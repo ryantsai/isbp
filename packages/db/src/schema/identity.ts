@@ -45,6 +45,8 @@ export type NotificationPreferences = Record<string, { inApp?: boolean; email?: 
 export interface UserPreferences {
   theme?: 'light' | 'dark' | 'system';
   sidebarCollapsed?: boolean;
+  /** Sidebar groups the person keeps open (navigation ids). */
+  navExpanded?: string[];
   notifications?: NotificationPreferences;
 }
 

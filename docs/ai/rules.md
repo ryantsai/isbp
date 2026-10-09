@@ -72,7 +72,8 @@ in an event handler, a job (`ctx.jobs.enqueue`) or the worker, never inside the 
 idempotent: delivery is at-least-once.
 
 **R15. Deleting a linkable record MUST call `ctx.records.forget(ref, { tx })`** in the same transaction (it drops
-its links and attachments).
+its links and attachments, and refuses with `IN_USE` while open requests or live settings still use the record). Open
+work of your module that names another module's record or a group MUST be reported by a `references` finder.
 
 ## Security and authorization
 
@@ -259,3 +260,22 @@ text in en, zh-TW and ja-JP (what a kind keeps as plain text, in the installer's
 through the kinds' checks, a person's apply and a rollback (decision 89). _Check:_
 `apps/api/test/unit/packages.test.ts` passes, and an integration test installs it, finds `ready: true`, applies it
 and rolls it back.
+
+**R56. Code MUST NOT exist for one process.** A process (form, approval workflow, process actions, form assignment)
+is configuration that administrators or the assistant build, and a process pack ships it (R55). When a process can't
+be built, add the missing **building block** (a field type, a rule, a process action, a task type), **record type**
+(a module) or **connector**, in a form any process could use, then build the process from it (terms and decision 91:
+`docs/architecture.md` §1). _Check:_ the new code is named after what it does, not after the process or organisation
+that asked for it; a second, different process could use it; nothing in the code names a company, site, form number or
+person.
+
+## Navigation and My work
+
+**R57. Sidebar entries MUST be gated on the permission of the people who work in the page, and work that waits for
+one person MUST be a `manifest.work` source.** A self-service permission everyone holds (`<id>.self.use`, a default
+member role) never shows an entry: the person's part (an item to check, a review to decide, a task) reaches them on My
+work, with the notification linking to the same item. A work provider answers for the caller only and returns a
+count without loading items when `limit` is 0. _Why:_ a sidebar of empty lists teaches people to ignore it, and "is
+anything waiting for me?" must have one answer. _Check:_ no `navigation` entry uses a permission of a
+`grantByDefault` role unless it is a personal entry (Knowledge, My devices) or has a `check`; an integration test per provider shows the
+person their own items and nobody else's.

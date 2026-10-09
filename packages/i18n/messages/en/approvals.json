@@ -36,7 +36,9 @@
     "rejectedToast": "Rejected — the requester has been told why",
     "fieldsTitle": "To fill in",
     "fieldsHint": "Kept with your decision and shown on the request. Fields marked * are needed to approve.",
-    "fieldsOptionalHint": "Optional when you reject; kept with your decision and shown on the request."
+    "fieldsOptionalHint": "Optional when you reject; kept with your decision and shown on the request.",
+    "approvedNamed": "{subject} approved",
+    "rejectedNamed": "{subject} rejected"
   },
   "delegate": {
     "title": "Hand this approval to someone else",
@@ -57,6 +59,14 @@
     "timeline": "History",
     "approve": "Approve",
     "reject": "Reject",
-    "delegate": "Hand over"
-  }
+    "delegate": "Hand over",
+    "alreadyDecided": "Already decided by {name}",
+    "noLongerWaiting": "This is no longer waiting for you",
+    "path": "Who will approve it",
+    "waitingForYou": "Waiting for you",
+    "workflowDetails": "Workflow details"
+  },
+  "requestedBy": "Requested by {name}",
+  "loadFailed": "Couldn't load your approvals",
+  "retry": "Retry"
 }

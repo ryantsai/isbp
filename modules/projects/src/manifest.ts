@@ -104,7 +104,11 @@ const proposalGraph: WorkflowGraph = {
             {
               id: 'manager',
               type: 'approval',
-              name: { en: "Owner's manager", 'zh-TW': '負責人的主管', 'ja-JP': '責任者の上長' },
+              name: {
+                en: "Project manager's line manager",
+                'zh-TW': '專案經理的直屬主管',
+                'ja-JP': 'プロジェクト マネージャーの上長',
+              },
               approvers: [{ type: 'manager', fallback: { type: 'role', roleKey: 'projects-pmo' } }],
               mode: 'any',
               sla: { dueHours: 72, remindHours: 48, onBreach: 'notify' },
@@ -143,24 +147,33 @@ export const manifest = defineManifest({
   dependsOn: [],
   navigation: [
     {
+      // Shown to project members and the people who run projects (`check`); assigned tasks are on My work.
       id: 'portfolio',
       label: 'projects.nav.portfolio',
       href: '/projects',
       icon: 'folder-kanban',
       permission: PERMISSIONS.use,
       section: 'main',
-      group: 'projects.nav.group',
       order: 52,
+      check: true,
+      tabs: [
+        {
+          id: 'my-tasks',
+          label: 'projects.nav.myTasks',
+          href: '/projects/my-tasks',
+          icon: 'list-todo',
+          permission: PERMISSIONS.use,
+        },
+      ],
     },
+  ],
+  work: [
     {
-      id: 'my-tasks',
-      label: 'projects.nav.myTasks',
-      href: '/projects/my-tasks',
+      key: 'tasks',
+      label: 'projects.work.tasks',
+      kind: 'task',
       icon: 'list-todo',
-      permission: PERMISSIONS.use,
-      section: 'main',
-      group: 'projects.nav.group',
-      order: 53,
+      href: '/projects/my-tasks',
     },
   ],
   permissions: [

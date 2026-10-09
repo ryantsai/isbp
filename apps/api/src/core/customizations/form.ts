@@ -610,7 +610,8 @@ export const formKind: CustomizationHandler<FormValue> = {
     switch (change.op) {
       case 'create': {
         assertRecordTypesOffered(v!.schema, null, auth);
-        const created = await svc.create(
+        // The `*Row` writes: the kind only needs the ids, not the views the admin API returns.
+        const created = await svc.createRow(
           {
             key: v!.key,
             name: v!.name,
@@ -620,7 +621,7 @@ export const formKind: CustomizationHandler<FormValue> = {
           },
           auth,
         );
-        await svc.update(
+        await svc.updateRow(
           created.id,
           {
             draft: v!.schema,
@@ -630,7 +631,7 @@ export const formKind: CustomizationHandler<FormValue> = {
           },
           auth,
         );
-        await svc.publish(created.id, auth);
+        await svc.publishRow(created.id, auth);
         return { id: created.id };
       }
       case 'update': {
@@ -640,7 +641,7 @@ export const formKind: CustomizationHandler<FormValue> = {
         // An unchanged schema keeps the draft as it is (someone may be editing it in the builder).
         const publish = !live.published || schemaChanged(live.schema, v!.schema);
         if (publish) assertRecordTypesOffered(v!.schema, f.draft, auth);
-        await svc.update(
+        await svc.updateRow(
           id,
           {
             name: v!.name,
@@ -654,7 +655,7 @@ export const formKind: CustomizationHandler<FormValue> = {
           },
           auth,
         );
-        if (publish) await svc.publish(id, auth);
+        if (publish) await svc.publishRow(id, auth);
         return { id };
       }
       case 'archive':

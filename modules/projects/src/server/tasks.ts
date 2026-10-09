@@ -58,7 +58,7 @@ import {
   todayIn,
   weekStart,
 } from '../model';
-import { accessFor, type ProjectAccess, visibleProjects } from './access';
+import { accessFor, memberOf, type ProjectAccess, seesAll, visibleProjects } from './access';
 import type { ProjectService } from './projects';
 import {
   type ActivityKind,
@@ -1423,14 +1423,24 @@ export class TaskService {
   /* ───────────── search and records ───────────── */
 
   /** Tasks the caller can see, by reference or title (empty query: my open tasks, then recent ones). */
-  async searchTasks(query: string, auth: AuthContext, limit: number) {
+  /**
+   * Tasks matching `query` that the caller may see. `membersOnly` (the command palette) keeps to the projects the
+   * caller works on (or the whole portfolio for those who see it), not every internal project they may open.
+   */
+  async searchTasks(query: string, auth: AuthContext, limit: number, opts: { membersOnly?: boolean } = {}) {
     const q = query.trim();
     const me = auth.user?.id;
     const rows = await this.ctx.db
       .select({ task: tasks, key: projects.key, projectName: projects.name, project: projects })
       .from(tasks)
       .innerJoin(projects, eq(projects.id, tasks.projectId))
-      .where(and(visibleProjects(auth), q ? this.textFilter(q) : undefined))
+      .where(
+        and(
+          visibleProjects(auth),
+          !opts.membersOnly || seesAll(auth) ? undefined : me ? memberOf(me) : sql`false`,
+          q ? this.textFilter(q) : undefined,
+        ),
+      )
       .orderBy(
         ...(q
           ? []

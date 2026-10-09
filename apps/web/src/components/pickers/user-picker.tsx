@@ -25,7 +25,10 @@ export interface PickedUser {
   email?: string;
 }
 
-/** Async person picker (server-side search). Single selection; `value` carries the display name. */
+/**
+ * Async person picker (server-side search). Single selection; `value` carries the display name. Name it with `id`
+ * plus a `<Label htmlFor>`, or with `aria-label` / `aria-labelledby`.
+ */
 export function UserPicker({
   value,
   onChange,
@@ -34,6 +37,9 @@ export function UserPicker({
   status = 'active',
   id,
   className,
+  'aria-label': ariaLabel,
+  'aria-labelledby': labelledBy,
+  'aria-describedby': describedBy,
 }: {
   value: PickedUser | null;
   onChange: (user: PickedUser | null) => void;
@@ -42,8 +48,12 @@ export function UserPicker({
   status?: string;
   id?: string;
   className?: string;
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+  'aria-describedby'?: string;
 }) {
   const t = useTranslations('common');
+  const tu = useTranslations('users.picker');
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -68,6 +78,9 @@ export function UserPicker({
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            aria-label={ariaLabel}
+            aria-labelledby={labelledBy}
+            aria-describedby={describedBy}
             className="w-full justify-between font-normal"
           >
             {value ? (
@@ -85,7 +98,7 @@ export function UserPicker({
           <button
             type="button"
             onClick={() => onChange(null)}
-            aria-label={t('remove')}
+            aria-label={tu('clear', { name: value.displayName })}
             className="absolute top-1/2 right-8 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
           >
             <XIcon className="size-3.5" />
@@ -94,7 +107,12 @@ export function UserPicker({
       </div>
       <PopoverContent className="w-(--radix-popover-trigger-width) min-w-72 p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput value={q} onValueChange={setQ} placeholder={t('searchPlaceholder')} />
+          <CommandInput
+            value={q}
+            onValueChange={setQ}
+            placeholder={t('searchPlaceholder')}
+            aria-label={tu('search')}
+          />
           <CommandList>
             <CommandEmpty>{isFetching ? t('loading') : t('noResults')}</CommandEmpty>
             <CommandGroup>

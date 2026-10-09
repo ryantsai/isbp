@@ -16,13 +16,15 @@ export const manifest = defineManifest({
   icon: 'megaphone',
   navigation: [
     {
+      // Readers get announcements as "News" on Home; the list is for the people who write them.
       id: 'feed',
       label: 'announcements.nav.feed',
       href: '/announcements',
       icon: 'megaphone',
-      permission: 'announcements.posts.read',
+      permission: 'announcements.posts.manage',
       section: 'main',
-      order: 10,
+      parent: 'itsm.service-desk',
+      order: 90,
     },
   ],
   permissions: [

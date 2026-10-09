@@ -1,35 +1,31 @@
 'use client';
 
 import { useCan } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { EmptyState } from '@isbp/ui/empty-state';
-import { AnimatedNumber, Stagger, StaggerItem } from '@isbp/ui/motion';
-import { PageHeader } from '@isbp/ui/page-header';
-import { useApiQuery } from '@isbp/ui/query';
+import { ErrorState } from '@isbp/ui/empty-state';
+import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
+import { problemOf, useRunProblemText } from '@isbp/ui/run-detail';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { StatTile } from '@isbp/ui/stat-tile';
 import {
   ActivityIcon,
   ArrowRightIcon,
   CalendarClockIcon,
   CircleCheckIcon,
   CircleXIcon,
-  GaugeIcon,
-  HistoryIcon,
   LoaderCircleIcon,
-  type LucideIcon,
-  PlusIcon,
-  TimerIcon,
+  PlayIcon,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useId, useMemo } from 'react';
-import { CHART_SERIES, type ChartSeries, type Dashboard } from '../../contracts';
-import { RunStatusText } from '../badges';
+import { CHART_SERIES, type ChartSeries, type Dashboard, type RunDetail } from '../../contracts';
 import { ChartFrame, DataTableView, Legend, type SeriesDef, StackedColumns } from '../charts';
-import { jobHref, runHref, useDurationMs } from '../lib';
+import { INVALIDATE, jobHref, runHref, useDurationMs } from '../lib';
+import { SchedulerHeader } from '../section-header';
 
 /** Fixed categorical order: colours never move between series. */
 const SERIES_COLOR: Record<ChartSeries, string> = {
@@ -40,59 +36,6 @@ const SERIES_COLOR: Record<ChartSeries, string> = {
   skipped: 'bg-muted-foreground/40',
   active: 'bg-chart-1',
 };
-
-function Kpi({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  href,
-  tone,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: ReactNode;
-  hint?: string;
-  href?: string;
-  tone?: 'warning' | 'destructive';
-}) {
-  const body = (
-    <div className="flex h-full items-start justify-between gap-3 rounded-xl border bg-card px-4 py-4 shadow-xs transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md motion-reduce:group-hover:translate-y-0">
-      <div className="min-w-0 space-y-1">
-        <p className="truncate text-sm text-muted-foreground">{label}</p>
-        <p className="text-2xl font-semibold tracking-tight">{value}</p>
-        {hint && <p className="truncate text-xs text-muted-foreground">{hint}</p>}
-      </div>
-      <span
-        className={cn(
-          'grid size-9 shrink-0 place-items-center rounded-lg',
-          tone === 'destructive'
-            ? 'bg-destructive/10 text-destructive dark:bg-destructive/20'
-            : tone === 'warning'
-              ? 'bg-warning/15 text-warning-foreground'
-              : 'bg-primary/10 text-primary',
-        )}
-        aria-hidden
-      >
-        <Icon className="size-4" />
-      </span>
-    </div>
-  );
-  return (
-    <StaggerItem className="h-full min-w-0">
-      {href ? (
-        <Link
-          href={href}
-          className="group block h-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          {body}
-        </Link>
-      ) : (
-        body
-      )}
-    </StaggerItem>
-  );
-}
 
 function ListCard({
   title,
@@ -139,16 +82,109 @@ function ListCard({
   );
 }
 
-/** Monitoring: KPIs, runs per hour by status, upcoming runs, failing and slowest jobs. */
+/** What's failing first, each with why in plain words and what to do: open it or run it again. */
+function FailingJobs({ failing }: { failing: Dashboard['failing'] }) {
+  const t = useTranslations('scheduler');
+  const problemText = useRunProblemText();
+  const router = useRouter();
+  const canRun = useCan('scheduler.jobs.run');
+  const id = useId();
+  const run = useApiMutation((api, jobId: string) => api.post<RunDetail>(`/scheduler/jobs/${jobId}/run`), {
+    invalidate: INVALIDATE,
+    success: t('job.runQueued'),
+    onSuccess: (r) => router.push(runHref(r.id)),
+  });
+  return (
+    <Card className="min-w-0" role="region" aria-labelledby={id}>
+      <CardHeader>
+        <CardTitle id={id} className="flex items-center gap-2">
+          {failing.length > 0 ? (
+            <CircleXIcon className="size-4 text-destructive" aria-hidden />
+          ) : (
+            <CircleCheckIcon className="size-4 text-success" aria-hidden />
+          )}
+          {t('overview.failing')}
+        </CardTitle>
+        <CardDescription>
+          {failing.length > 0 ? t('overview.failingHint') : t('overview.noFailing')}
+        </CardDescription>
+        {failing.length > 0 && (
+          <CardAction>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/scheduler/jobs?view=failing">
+                {t('overview.viewAll')}
+                <ArrowRightIcon />
+              </Link>
+            </Button>
+          </CardAction>
+        )}
+      </CardHeader>
+      {failing.length > 0 && (
+        <CardContent>
+          <ul className="divide-y" aria-labelledby={id}>
+            {failing.map((f) => {
+              const p = f.lastFailure ? problemOf(f.lastFailure.problem, f.lastFailure.error) : null;
+              const reason = p ? problemText(p) : null;
+              return (
+                <li
+                  key={f.job.id}
+                  className="flex min-w-0 flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between"
+                >
+                  <div className="min-w-0 space-y-0.5 text-sm">
+                    <Link href={jobHref(f.job.id)} className="font-medium wrap-anywhere hover:underline">
+                      {f.job.name}
+                    </Link>
+                    {reason && <p className="wrap-anywhere">{reason.title}</p>}
+                    <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                      <span className="font-medium text-destructive">
+                        {t('overview.streak', { count: f.streak })}
+                      </span>
+                      {f.lastFailure && (
+                        <Link href={runHref(f.lastFailure.runId)} className="hover:underline">
+                          {t('overview.lastFailed')} <RelativeTime date={f.lastFailure.at} />
+                        </Link>
+                      )}
+                      {!f.enabled && <span>· {t('jobs.disabled')}</span>}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    {f.lastFailure && (
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={runHref(f.lastFailure.runId)}>{t('overview.seeRun')}</Link>
+                      </Button>
+                    )}
+                    {canRun && f.enabled && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        loading={run.isPending && run.variables === f.job.id}
+                        onClick={() => run.mutate(f.job.id)}
+                        aria-label={t('overview.runNowJob', { job: f.job.name })}
+                      >
+                        <PlayIcon /> {t('job.runNow')}
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+/** Monitoring: failing jobs first, three key figures, runs per hour, what comes next and what is slow. */
 export default function OverviewPage() {
   const t = useTranslations('scheduler');
   const format = useFormatter();
   const duration = useDurationMs();
-  const canCreate = useCan('scheduler.jobs.create');
   const {
     data: d,
     isLoading,
     error,
+    refetch,
   } = useApiQuery<Dashboard>('/scheduler/dashboard', undefined, {
     refetchInterval: 30_000,
   });
@@ -163,48 +199,29 @@ export default function OverviewPage() {
     return out;
   }, [d]);
 
-  const header = (
-    <PageHeader
-      title={t('overview.title')}
-      description={t('overview.description')}
-      actions={
-        <>
-          <Button variant="outline" asChild>
-            <Link href="/scheduler/runs">
-              <HistoryIcon /> {t('nav.runs')}
-            </Link>
-          </Button>
-          {canCreate && (
-            <Button asChild>
-              <Link href="/scheduler/jobs/new">
-                <PlusIcon /> {t('jobs.new')}
-              </Link>
-            </Button>
-          )}
-        </>
-      }
-    />
-  );
+  const header = <SchedulerHeader description={t('overview.description')} />;
 
-  if (error)
+  if (error && !d)
     return (
       <>
         {header}
-        <EmptyState icon={<ActivityIcon />} title={t('overview.unavailable')} />
+        <ErrorState error={error} onRetry={() => refetch()} kind="section" />
       </>
     );
 
   const pct = (v: number | null) =>
     v === null ? '—' : format.number(v / 100, { style: 'percent', maximumFractionDigits: 1 });
   const hourLabel = (iso: string) => format.dateTime(new Date(iso), { hour: '2-digit', minute: '2-digit' });
+  const time = (iso: string | Date) => format.dateTime(new Date(iso), { hour: '2-digit', minute: '2-digit' });
 
   return (
     <>
       {header}
       {isLoading || !d ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }, (_, i) => (
+          <Skeleton className="h-28 rounded-xl" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {Array.from({ length: 3 }, (_, i) => (
               <Skeleton key={i} className="h-24 rounded-xl" />
             ))}
           </div>
@@ -212,51 +229,37 @@ export default function OverviewPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          <Stagger
-            className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-            role="group"
-            aria-label={t('overview.kpis')}
-          >
-            <Kpi
-              icon={ActivityIcon}
+          <FailingJobs failing={d.failing} />
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" role="group" aria-label={t('overview.kpis')}>
+            <StatTile
+              icon={<ActivityIcon />}
               label={t('overview.kpi.runs24h')}
-              value={<AnimatedNumber value={d.kpis.runs24h} />}
+              value={d.kpis.runs24h}
               hint={t('overview.kpi.jobsHint', { enabled: d.kpis.enabledJobs, total: d.kpis.jobs })}
               href="/scheduler/runs?hours=24"
             />
-            <Kpi
-              icon={CircleCheckIcon}
+            <StatTile
+              icon={<CircleCheckIcon />}
+              tone="success"
               label={t('overview.kpi.successRate24h')}
               value={pct(d.kpis.successRate24h)}
-              hint={t('overview.kpi.successHint')}
+              hint={t('overview.kpi.successHint7d', { rate: pct(d.kpis.successRate7d) })}
+              href="/scheduler/runs?hours=24&view=failed"
             />
-            <Kpi
-              icon={GaugeIcon}
-              label={t('overview.kpi.successRate7d')}
-              value={pct(d.kpis.successRate7d)}
-              hint={t('overview.kpi.successHint')}
-            />
-            <Kpi
-              icon={CircleXIcon}
-              label={t('overview.kpi.failingJobs')}
-              value={<AnimatedNumber value={d.kpis.failingJobs} />}
-              hint={t('overview.kpi.failingHint')}
-              href="/scheduler/jobs?view=failing"
-              tone={d.kpis.failingJobs > 0 ? 'destructive' : undefined}
-            />
-            <Kpi
-              icon={LoaderCircleIcon}
+            <StatTile
+              icon={<LoaderCircleIcon />}
+              tone="info"
               label={t('overview.kpi.runningNow')}
-              value={<AnimatedNumber value={d.kpis.runningNow} />}
+              value={d.kpis.runningNow}
+              hint={
+                d.kpis.avgDurationMs24h !== null
+                  ? t('overview.kpi.avgHint', { duration: duration(d.kpis.avgDurationMs24h) })
+                  : undefined
+              }
               href="/scheduler/runs?view=active"
             />
-            <Kpi
-              icon={TimerIcon}
-              label={t('overview.kpi.avgDuration')}
-              value={duration(d.kpis.avgDurationMs24h)}
-              hint={t('overview.kpi.avgDurationHint')}
-            />
-          </Stagger>
+          </div>
 
           <ChartFrame
             title={t('overview.hourly')}
@@ -298,7 +301,7 @@ export default function OverviewPage() {
             }
           />
 
-          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
             <ListCard
               title={t('overview.upcoming')}
               description={t('overview.upcomingHint')}
@@ -306,11 +309,8 @@ export default function OverviewPage() {
               empty={!d.upcoming.length}
               emptyText={t('overview.noUpcoming')}
             >
-              {d.upcoming.slice(0, 10).map((u) => (
-                <li
-                  key={`${u.job.id}-${u.at}`}
-                  className="flex min-w-0 items-center justify-between gap-3 py-2 text-sm"
-                >
+              {d.upcoming.map((u) => (
+                <li key={u.job.id} className="flex min-w-0 items-center justify-between gap-3 py-2 text-sm">
                   <Link
                     href={jobHref(u.job.id)}
                     className="flex min-w-0 items-center gap-2 font-medium hover:underline"
@@ -318,48 +318,17 @@ export default function OverviewPage() {
                     <CalendarClockIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                     <span className="truncate">{u.job.name}</span>
                   </Link>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                  <span className="shrink-0 text-right text-xs text-muted-foreground tabular-nums">
                     <time
-                      dateTime={u.at}
+                      dateTime={String(u.at)}
                       title={format.dateTime(new Date(u.at), { dateStyle: 'medium', timeStyle: 'short' })}
                     >
-                      {format.dateTime(new Date(u.at), { hour: '2-digit', minute: '2-digit' })}
+                      {t('overview.nextAt', { time: time(u.at) })}
                     </time>
+                    {u.count > 1 && (
+                      <span className="block">{t('overview.runsIn24h', { count: u.count })}</span>
+                    )}
                   </span>
-                </li>
-              ))}
-            </ListCard>
-            <ListCard
-              title={t('overview.failing')}
-              description={t('overview.failingHint')}
-              href="/scheduler/jobs?view=failing"
-              empty={!d.failing.length}
-              emptyText={t('overview.noFailing')}
-            >
-              {d.failing.map((f) => (
-                <li key={f.job.id} className="grid min-w-0 gap-0.5 py-2 text-sm">
-                  <span className="flex min-w-0 items-center justify-between gap-2">
-                    <Link href={jobHref(f.job.id)} className="min-w-0 truncate font-medium hover:underline">
-                      {f.job.name}
-                    </Link>
-                    <span className="shrink-0 text-xs font-medium text-destructive">
-                      {t('overview.streak', { count: f.streak })}
-                    </span>
-                  </span>
-                  {f.lastFailure && (
-                    <span className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                      <Link href={runHref(f.lastFailure.runId)} className="hover:underline">
-                        <RunStatusText status={f.lastFailure.status} />
-                      </Link>
-                      <RelativeTime date={f.lastFailure.at} />
-                      {!f.enabled && <span>· {t('jobs.disabled')}</span>}
-                    </span>
-                  )}
-                  {f.lastFailure?.error && (
-                    <span className="line-clamp-2 text-xs wrap-anywhere text-muted-foreground">
-                      {f.lastFailure.error}
-                    </span>
-                  )}
                 </li>
               ))}
             </ListCard>

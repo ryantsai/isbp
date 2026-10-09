@@ -29,7 +29,7 @@ export function ListTab({ project }: { project: ProjectDetail }) {
   const today = localToday(user.timezone);
   const { state, set, str, query } = useTaskFilters();
   const [, openTask] = useSearchParam('task');
-  const { data, isLoading, isFetching } = useApiQuery<Page<TaskListItem>>('/projects/tasks', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<TaskListItem>>('/projects/tasks', {
     project: project.key,
     page: state.page,
     pageSize: state.pageSize,
@@ -191,6 +191,8 @@ export function ListTab({ project }: { project: ProjectDetail }) {
         sort={state.sort ?? 'reference'}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(r) => r.id}
         onRowClick={(r) => openTask(r.reference)}
         onPageChange={(page) => set({ page })}

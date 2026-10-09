@@ -92,6 +92,36 @@ export function HealthBadge({
   );
 }
 
+/**
+ * A project's health, or "Not assessed yet" for a proposal nobody has assessed (no default "On track" before the
+ * work started).
+ */
+export function ProjectHealthBadge({
+  project,
+  className,
+  plain,
+}: {
+  project: { status: string; health: ProjectHealth; healthNote: string | null };
+  className?: string;
+  plain?: boolean;
+}) {
+  const t = useTranslations('projects.health');
+  if (project.status === 'proposed' && !project.healthNote)
+    return (
+      <span
+        className={cn(
+          'inline-flex w-fit shrink-0 items-center gap-1 text-xs font-medium whitespace-nowrap text-muted-foreground',
+          !plain && 'rounded-md bg-muted px-2 py-0.5',
+          className,
+        )}
+      >
+        <CircleDashedIcon className="size-3.5" aria-hidden />
+        {t('notAssessed')}
+      </span>
+    );
+  return <HealthBadge health={project.health} className={className} plain={plain} />;
+}
+
 const TASK_STATUS: Record<TaskStatus, { variant: Variant; icon: LucideIcon }> = {
   backlog: { variant: 'muted', icon: CircleDashedIcon },
   todo: { variant: 'secondary', icon: CircleIcon },
@@ -212,9 +242,11 @@ export function DueDate({
   const format = useFormatter();
   if (!date) return null;
   const overdue = date < today && (!status || !isClosed(status));
+  // Dates in another year say which year ("Jan 17, 2027"), not just the day.
+  const otherYear = date.slice(0, 4) !== today.slice(0, 4);
   const text = format.dateTime(
     dateValue(date),
-    long ? { dateStyle: 'medium' } : { month: 'short', day: 'numeric' },
+    long || otherYear ? { dateStyle: 'medium' } : { month: 'short', day: 'numeric' },
   );
   return (
     <span

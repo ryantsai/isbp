@@ -7,8 +7,8 @@ import { overflowing, settle } from './helpers';
  * page in builtin mode with the guided templates, a template builds a change set (a custom field on groups), the
  * change set page shows the dry run and the proposed value, the admin applies it and rolls it back again (which
  * also leaves the demo data as it was), the change sets list finds it, and the panel and pages are accessible
- * (light and dark) and fit a 375 px screen. The "Approval process" template proposes a workflow and the form using it
- * as one change set; once applied, its page links to the form. Runs as the seeded admin.
+ * (light and dark) and fit a 375 px screen. The "Request process" template proposes a workflow and the form using it
+ * as one change set, shown as one process in plain words; once applied, its page links to the form. Runs as the seeded admin.
  *   E2E_BASE_URL=http://localhost:3000 pnpm e2e assistant
  */
 
@@ -55,7 +55,7 @@ test('the assistant opens from any page and offers guided templates without a ch
     await expect(panel.getByRole('heading', { name: 'Guided templates' })).toBeVisible();
     await expect(panel.getByRole('button', { name: /Custom field/ }).first()).toBeVisible();
     await expect(panel.getByRole('button', { name: /Approval chain/ }).first()).toBeVisible();
-    await expect(panel.getByRole('button', { name: /Approval process/ }).first()).toBeVisible();
+    await expect(panel.getByRole('button', { name: /Request process/ }).first()).toBeVisible();
     await expect(panel.getByRole('textbox', { name: 'Message to the assistant' })).toHaveCount(0);
     await panel.getByRole('button', { name: 'Close the assistant' }).click();
     await expect(panel).toBeHidden();
@@ -75,7 +75,7 @@ test('a guided template builds a change set, which is dry-run, applied and rolle
   await panel.getByRole('combobox', { name: 'Add it to' }).click();
   await page.getByRole('option', { name: 'Groups', exact: true }).click();
   await panel.getByRole('textbox', { name: 'Label', exact: true }).fill(fieldLabel);
-  await panel.getByRole('button', { name: 'Prepare the change' }).click();
+  await panel.getByRole('button', { name: 'Prepare for review' }).click();
 
   // The change lands in a new change set; the card links to its page.
   const added = panel.getByText(/^Added to CS-\d{5}\.$/);
@@ -89,15 +89,18 @@ test('a guided template builds a change set, which is dry-run, applied and rolle
   await expect(page).toHaveURL(/\/assistant\/change-sets\/[0-9a-f-]{36}$/);
   changeSet = { reference, path: new URL(page.url()).pathname };
 
-  // The change set page: title from the item, the dry run passed, the proposed value.
+  // The change set page: title from the item, ready to apply, the proposed value under Technical details.
   const h1 = page.getByRole('heading', { level: 1 });
   await expect(h1).toContainText(fieldLabel);
   await expect(h1).toContainText(reference);
   await expect(page.getByText('Draft', { exact: true }).first()).toBeVisible();
   const item = page.getByRole('article', { name: new RegExp(fieldLabel) });
   await expect(item.getByText('Create', { exact: true })).toBeVisible();
-  await expect(item.getByText('Dry run passed')).toBeVisible();
-  const value = item.getByRole('region', { name: 'Proposed value' });
+  await expect(item.getByText('Ready to apply')).toBeVisible();
+  // No ids or property names in the normal view.
+  await expect(item.getByText('entityType', { exact: true })).toHaveCount(0);
+  await item.getByRole('button', { name: 'Technical details' }).click();
+  const value = item.getByRole('region', { name: 'Technical details' });
   await expect(value.getByText('entityType', { exact: true })).toBeVisible();
   await expect(value.getByText('core.group', { exact: true })).toBeVisible();
   await expect(value.getByText('field', { exact: true })).toBeVisible();
@@ -215,10 +218,10 @@ test('the approval-process template builds a form with its own approval, and the
   await page.goto('/');
   const panel = await openAssistant(page);
   await panel
-    .getByRole('button', { name: /Approval process/ })
+    .getByRole('button', { name: /Request process/ })
     .first()
     .click();
-  await expect(panel.getByRole('heading', { name: 'Approval process' })).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'Request process' })).toBeVisible();
 
   // The form: records people pick (CIs), a question, then who approves (manager → the CIs' groups → the CAB).
   await panel.getByRole('textbox', { name: 'Form name', exact: true }).fill(name);
@@ -238,7 +241,7 @@ test('the approval-process template builds a form with its own approval, and the
   await panel.getByRole('combobox', { name: 'Group', exact: true }).click();
   await page.getByRole('option', { name: 'Change Advisory Board' }).click();
   await expectAccessible(page, 'approval-process template');
-  await panel.getByRole('button', { name: 'Prepare the change' }).click();
+  await panel.getByRole('button', { name: 'Prepare for review' }).click();
 
   // One change set with both: the workflow, then the form that refers to it.
   const added = panel.getByText(/^Added to CS-\d{5}\.$/);
@@ -253,6 +256,14 @@ test('the approval-process template builds a form with its own approval, and the
   await expect(page.getByRole('heading', { level: 1 })).toContainText(name);
   await expect(page.getByRole('article')).toHaveCount(2);
   await expect(page.getByRole('article', { name: new RegExp(`${name} – approval`) })).toBeVisible();
+  // Grouped as one process, each change in plain words: the form's questions and audience, who approves.
+  await expect(page.getByRole('heading', { name: 'Changes by process' })).toBeVisible();
+  await expect(page.getByText('1 process', { exact: true })).toBeVisible();
+  const formCard = page.getByRole('article', { name: new RegExp(`^Change 2: ${name}$`) });
+  await expect(formCard.getByText('2 questions, for everyone.')).toBeVisible();
+  await expect(
+    formCard.getByText(/^Approval: the requester’s manager → Support group of “Servers” → /),
+  ).toBeVisible();
 
   await page.getByRole('button', { name: 'Apply', exact: true }).click();
   const apply = page.getByRole('alertdialog', { name: `Apply ${reference}?` });
@@ -260,9 +271,12 @@ test('the approval-process template builds a form with its own approval, and the
   await expect(apply).toBeHidden();
   await expect(page.getByText(`${reference} was applied`).first()).toBeVisible();
 
-  // Ready to use: the form's own page, for the people who request.
+  // Ready to use: the form's own page, for the people who request, and the way to add rules or actions.
   const live = page.getByRole('region', { name: 'Ready to use' });
   await expect(live).toBeVisible();
+  await expect(
+    live.getByRole('link', { name: `Add rules or actions in the form builder: ${name}` }),
+  ).toHaveAttribute('href', /^\/admin\/forms\//);
   const open = live.getByRole('link', { name: `Open the form: ${name}` });
   await expect(open).toHaveAttribute('href', /^\/requests\/forms\/e2e-server-change-/);
   await expectAccessible(page, 'applied change set with its links');
@@ -322,8 +336,12 @@ test('the assistant panel and change set pages fit a 375px screen', async ({ pag
   await page.goto('/');
   const panel = await openAssistant(page);
   await expect(panel.getByRole('heading', { name: 'Guided templates' })).toBeVisible();
+  // Measure the panel once its opening animation has finished, not mid-way.
+  await panel.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)));
   const box = await panel.boundingBox();
-  expect(box?.width, 'the panel takes the full width on phones').toBeGreaterThanOrEqual(370);
+  // The page's width without a scrollbar: Chromium on Linux draws a classic one, phones overlay it.
+  const usable = await page.evaluate(() => document.documentElement.clientWidth);
+  expect(box?.width, 'the panel takes the full width on phones').toBeGreaterThanOrEqual(usable - 5);
   await settle(page);
   let { overflow, offenders } = await overflowing(page);
   expect(overflow, `panel ${offenders.join(' | ')}`).toBeLessThanOrEqual(1);

@@ -58,6 +58,7 @@
     },
     "divider": { "name": "区切り線", "description": "セクション間の線" }
   },
+  "showKeys": "フィールド キーを表示",
   "badges": {
     "required": "必須",
     "conditionalWhen": "表示条件: {condition}",
@@ -83,6 +84,9 @@
     "keyHint": "回答の保存先です。英小文字で始め、英字、数字、_ のみ使用できます。",
     "keyLocked": "ロック済み: このキーで回答が保存されています。",
     "keyAuto": "英語のラベルから生成",
+    "moreOptions": "その他のオプション",
+    "advanced": "詳細設定",
+    "conditional": "条件付きで表示",
     "help": "ヘルプ テキスト",
     "helpHint": "フィールドの下に表示されます。",
     "placeholder": "プレースホルダー",
@@ -108,7 +112,9 @@
     "maxLength": "最大文字数",
     "pattern": "パターン",
     "patternHint": "回答全体が一致する必要がある正規表現です。",
-    "patternPresets": "プリセット",
+    "format": "形式",
+    "formatAny": "任意のテキスト",
+    "formatCustom": "カスタム パターン (正規表現)",
     "patternTest": "値を入力して試す…",
     "patternMatches": "一致",
     "patternNoMatch": "不一致",
@@ -125,6 +131,7 @@
     "checkedByDefault": "既定でチェック",
     "visibleWhen": "次の場合にのみこのフィールドを表示…",
     "visibleWhenHint": "非表示のフィールドはスキップされ、保存されません。",
+    "visibleWhenEmpty": "条件なし: このフィールドは常に表示されます。",
     "noOtherFields": "先に別のフィールドを追加してください。条件では、このフィールドと他のフィールドの回答を比較します。",
     "text": "テキスト",
     "dividerHint": "区切り線に編集できる内容はありませんが、表示条件は設定できます。",
@@ -137,7 +144,8 @@
       "where": "次の条件に一致するレコードのみ…",
       "whereHint": "レコード自身のデータで選択肢を絞り込みます (例: 本番環境の構成アイテムのみ)。サーバーでも確認されます。",
       "chooseTypeFirst": "先にレコードの種類を選択してください。",
-      "noFacts": "これらの種類には絞り込みに使えるデータがありません。"
+      "noFacts": "これらの種類には絞り込みに使えるデータがありません。",
+      "whereEmpty": "条件なし: これらの種類のどのレコードでも選択できます。"
     },
     "rows": {
       "min": "最小行数",
@@ -187,9 +195,17 @@
   },
   "custom": {
     "title": "カスタム フィールド",
-    "description": "ユーザー、グループ、部署にフィールドを追加します。値はレコードごとに保存され、詳細ページに表示され、絞り込みにも使用できます。",
+    "description": "ユーザー、グループ、部署、およびチケットや資産などのモジュールのレコードにフィールドを追加します。値はレコードごとに保存され、詳細ページに表示され、絞り込みにも使用できます。",
     "noAccess": "カスタム フィールドを管理するアクセス許可がありません。",
     "entities": "レコードの種類",
+    "plural": {
+      "itsm": { "ticket": "チケット" },
+      "cmdb": { "ci": "構成アイテム" },
+      "itam": { "asset": "ハードウェア資産", "contract": "契約" },
+      "alm": { "application": "アプリケーション" },
+      "isms": { "asset": "情報資産" },
+      "projects": { "task": "タスク", "project": "プロジェクト" }
+    },
     "listTitle": "{entity}のフィールド",
     "listDescription": "ドラッグして、レコードのフォームでの表示順を変更します。",
     "showArchived": "アーカイブ済みを表示",

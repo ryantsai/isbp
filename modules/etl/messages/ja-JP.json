@@ -4,10 +4,11 @@
     "description": "パラメーター化 SQL とストアド プロシージャから REST エンドポイントを作成し、データベース間で ETL パイプラインを実行します"
   },
   "nav": {
-    "group": "データ API と ETL",
+    "group": "データと自動化",
     "endpoints": "データ API",
     "pipelines": "パイプライン",
-    "logs": "呼び出しログ"
+    "logs": "呼び出しログ",
+    "apiSections": "データ API のセクション"
   },
   "systemRoles": {
     "etl-viewer": {
@@ -146,7 +147,7 @@
     "tiles": {
       "calls": "呼び出し数",
       "errorRate": "エラー率",
-      "p95": "p95 レイテンシ",
+      "p95": "応答時間 (95% の呼び出し)",
       "cacheHits": "キャッシュ ヒット"
     },
     "errorsHint": "{count, plural, other {エラー # 件}}",
@@ -241,7 +242,10 @@
       "versions": "バージョン",
       "docs": "ドキュメント",
       "links": "リンクとファイル"
-    }
+    },
+    "publishNeedsTest": "公開するには、現在の下書きのテストに成功する必要があります。",
+    "testDraft": "下書きをテスト",
+    "editNewVersion": "新しいバージョンとして編集"
   },
   "editor": {
     "statement": "ステートメント",
@@ -277,7 +281,8 @@
     "save": "下書きを保存",
     "saved": "下書きを保存しました",
     "fixFields": "強調表示されたフィールドを修正してください。",
-    "paramsList": "パラメーター: {list}"
+    "paramsList": "パラメーター: {list}",
+    "catalogFailed": "{name} のテーブルを読み取れません: オートコンプリートはオフです"
   },
   "params": {
     "title": "パラメーター",
@@ -462,7 +467,7 @@
   },
   "pipelines": {
     "title": "パイプライン",
-    "description": "データベース接続間の ETL: ソース クエリ、ターゲット テーブル、列マッピング、固定の変換。",
+    "description": "あるデータベースのデータを別のデータベースのテーブルにコピーします (手動またはスケジュール)。",
     "search": "パイプラインを検索…",
     "new": "新しいパイプライン",
     "newTitle": "新しいパイプライン",
@@ -511,7 +516,11 @@
       "runs": "実行履歴",
       "definition": "定義",
       "links": "リンクとファイル"
-    }
+    },
+    "seeLastRun": "前回の実行を表示",
+    "onSchedule": "スケジュールで実行:",
+    "openJob": "スケジュール ジョブを開く",
+    "lastScheduled": "前回のスケジュール実行"
   },
   "pipelineEditor": {
     "source": "ソース",
@@ -611,7 +620,12 @@
       "info": "情報",
       "warn": "警告",
       "error": "エラー"
-    }
+    },
+    "runAgain": "再実行",
+    "details": "詳細",
+    "jobRun": "スケジュール ジョブが開始",
+    "watermarkLabel": "ウォーターマーク",
+    "watermarkRange": "{from} → {to}"
   },
   "links": {
     "unavailable": "リンクとファイルは使用できません",
@@ -628,5 +642,8 @@
   "customizations": {
     "pipeline": "ETL パイプライン",
     "endpoint": "データ API"
+  },
+  "results": {
+    "pipeline": "{written} 行を書き込み (読み取り {read}、拒否 {rejected})"
   }
 }

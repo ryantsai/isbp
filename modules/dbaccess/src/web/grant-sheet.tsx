@@ -100,7 +100,7 @@ function GrantDetail({ id }: { id: string }) {
                 {data.request.reference}
               </Link>,
             )}
-          {row(t('attempts'), String(data.attempts))}
+          {data.attempts > 1 && row(t('attempts'), t('retried', { count: data.attempts - 1 }))}
         </dl>
         {data.endNote && (
           <p className="rounded-lg border-l-2 border-muted-foreground/40 bg-muted/40 px-3 py-2 text-sm">

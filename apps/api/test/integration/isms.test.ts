@@ -542,6 +542,17 @@ describe('stocktakes', () => {
     );
     expect((await get('custodian', `/stocktakes/${st.reference}`)).status).toBe(404);
     expect((await get('mgr2', '/stocktake-items/mine')).body.items).toHaveLength(1);
+    // My work shows the manager their part (one row per stocktake, opening their items); nobody else gets it.
+    const work = (await h.call(s.mgr2!, 'GET', '/api/v1/me/work')).body as LooseJson;
+    const checks = work.sections.find((x: LooseJson) => x.source === 'isms.stocktake-checks');
+    expect(checks).toMatchObject({ kind: 'review', count: 1 });
+    expect(checks.items[0]).toMatchObject({
+      title: 'Site 2 hardware',
+      href: `/isms/stocktakes/${st.reference}?mine=true`,
+      detail: { key: 'isms.work.toCheck', params: { count: 1 } },
+    });
+    const others = (await h.call(s.custodian!, 'GET', '/api/v1/me/work')).body as LooseJson;
+    expect(others.sections.find((x: LooseJson) => x.source === 'isms.stocktake-checks')).toBeUndefined();
   });
 
   it('records items: confirmed, changed (applied to the asset), missing with a note; only by the asset’s manager', async () => {

@@ -4,7 +4,6 @@
     "description": "身分識別、存取控制、稽核，以及所有其他模組賴以建構的模組系統。"
   },
   "nav": {
-    "dashboard": "儀表板",
     "users": "人員",
     "groups": "群組",
     "departments": "部門",
@@ -12,22 +11,39 @@
     "audit": "稽核日誌",
     "modules": "模組",
     "identity": "登入提供者",
-    "sectionMain": "工作區",
-    "sectionAdmin": "系統管理",
-    "approvals": "簽核",
     "requests": "申請",
-    "applications": "應用程式",
+    "applications": "應用程式存取權",
     "apiClients": "API 用戶端",
-    "workflows": "工作流程",
+    "workflows": "簽核流程",
     "forms": "表單",
     "customFields": "自訂欄位",
     "notifications": "通知",
-    "groupIdentity": "身分識別",
-    "groupAccess": "存取權",
-    "groupAutomation": "自動化",
-    "groupPlatform": "平台",
     "ai": "AI",
-    "databases": "資料庫連線"
+    "databases": "資料庫連線",
+    "home": "首頁",
+    "myWork": "我的工作",
+    "admin": "系統管理",
+    "main": "主要導覽",
+    "keywords": {
+      "myWork": "簽核, 待辦事項, 收件匣, 工作, 審查"
+    },
+    "about": {
+      "users": "帳號、到職與離職",
+      "groups": "共用角色與工作的團隊",
+      "departments": "組織圖與成本中心",
+      "roles": "誰能做什麼，以及人員可申請的存取權",
+      "applications": "由平台管理角色的業務應用程式",
+      "apiClients": "讓其他系統呼叫平台的金鑰",
+      "identity": "單一登入與目錄同步",
+      "forms": "人員填寫的申請表單及後續處理",
+      "workflows": "誰核准什麼，以及核准順序",
+      "customFields": "人員、工單、資產等的額外欄位",
+      "notifications": "電子郵件、聊天與 Webhook 通道",
+      "databases": "其他功能讀取與變更的資料庫",
+      "ai": "模型、預算與 AI 可執行的工作",
+      "modules": "啟用或停用功能，以及功能設定",
+      "audit": "所有變更與登入紀錄，可偵測竄改"
+    }
   },
   "permissions": {
     "usersRead": "檢視人員及其個人資料",
@@ -47,8 +63,8 @@
     "modulesManage": "啟用、停用及設定模組",
     "idpRead": "檢視登入提供者",
     "idpManage": "設定登入提供者及目錄同步",
-    "workflowsRead": "檢視工作流程與進行中的簽核",
-    "workflowsManage": "設計、發佈與管理工作流程",
+    "workflowsRead": "檢視簽核流程與進行中的簽核",
+    "workflowsManage": "設計、發佈與管理簽核流程",
     "formsRead": "檢視申請表單",
     "formsManage": "建立並發佈表單",
     "customFieldsRead": "檢視自訂欄位",
@@ -124,12 +140,12 @@
       "description": "授予每位啟用中使用者的基本存取權"
     },
     "workflow-admin": {
-      "name": "工作流程管理員",
+      "name": "簽核流程管理員",
       "description": "設計簽核流程、表單、自訂欄位與通知通道"
     },
     "application-manager": {
       "name": "應用程式存取管理員",
-      "description": "管理應用程式的角色與權限（指派時限定於單一應用程式）"
+      "description": "在應用程式存取權中管理應用程式的角色與權限（指派時限定於單一應用程式）"
     },
     "database-admin": {
       "name": "資料庫連線管理員",
@@ -137,7 +153,7 @@
     },
     "configuration-viewer": {
       "name": "組態檢視者",
-      "description": "檢視工作流程、表單、自訂欄位、角色與模組設定，並提出變更建議"
+      "description": "檢視簽核流程、表單、自訂欄位、角色與模組設定，並提出變更建議"
     }
   },
   "entities": {
@@ -161,7 +177,7 @@
     },
     "formSubmission": {
       "name": "表單送出",
-      "description": "用於附加此工作流程的表單。條件可使用每個送出的值（data.欄位代碼）。"
+      "description": "核准使用此簽核流程的表單所送出的申請。條件可使用表單的答案。"
     }
   },
   "notifications": {
@@ -191,7 +207,7 @@
       "body": "{comment}"
     },
     "workflow_fyi": {
-      "label": "工作流程動態（僅供參考）",
+      "label": "簽核流程動態（僅供參考）",
       "title": "通知：{subject}",
       "body": "{message}"
     },
@@ -325,7 +341,10 @@
   "taskTypes": {
     "assignForm": {
       "name": "指派表單",
-      "description": "每個週期（日、週、月、季或年）請一位人員或一個群組在期限前填寫表單，例如每月巡檢、年度審查。"
+      "description": "每個週期（日、週、月、季或年）請一位人員或一個群組在期限前填寫表單，例如每月巡檢、年度審查。",
+      "label": "{period, select, day {每天} week {每週} month {每月} quarter {每季} year {每年} other {每個 {period}}}將「{form}」指派給{assignee}",
+      "assigned": "已指派「{title}」",
+      "alreadyAssigned": "{period} 已指派"
     }
   },
   "customizations": {
@@ -340,7 +359,7 @@
       "label": "簽核鏈",
       "description": "為需要簽核的事項設定一或兩個簽核步驟；第二個步驟可設定為僅在金額超過上限時才需要。",
       "trigger": "需要簽核的事項",
-      "name": "工作流程名稱",
+      "name": "簽核流程名稱",
       "firstApprover": "第一位簽核者",
       "approverManager": "申請人的主管",
       "approverDepartmentHead": "申請人所屬部門的主管",
@@ -355,7 +374,7 @@
       "conditionFactHelp": "申請中的值，例如代碼為 amount 的表單問題請填 data.amount。",
       "conditionAmount": "上限",
       "isDefault": "用於此類的所有申請",
-      "isDefaultHelp": "設為預設工作流程。表單會自行選擇工作流程，因此表單簽核請勿開啟此選項。",
+      "isDefaultHelp": "設為預設簽核流程。表單會自行選擇簽核流程，因此表單簽核請勿開啟此選項。",
       "stepManager": "主管簽核",
       "stepDepartmentHead": "部門主管簽核",
       "stepGroup": "群組簽核",
@@ -385,8 +404,8 @@
       "optionsHelp": "每行一個選項。"
     },
     "approvalProcess": {
-      "label": "申請與簽核流程",
-      "description": "附帶簽核的申請表單：問題（包含申請人選取的紀錄，例如組態項目）、簽核人員，並可選擇在申請核准後建立變更。",
+      "label": "申請流程",
+      "description": "表單、由誰簽核，以及核准後的處理",
       "name": "表單名稱",
       "category": "類別",
       "recordType": "申請人選取的紀錄",
@@ -403,16 +422,39 @@
       "recordGroupFact": "紀錄中的群組",
       "groupApproves": "再由一個群組簽核",
       "group": "群組",
-      "createChange": "申請核准後建立變更",
-      "createChangeHelp": "變更會連結到所選的組態項目。表單包含兩個日期（開始與結束）時，變更會送出至其本身的簽核流程，必要時包含 CAB。",
       "stepManager": "主管簽核",
       "stepRecordGroup": "支援群組簽核",
       "stepGroup": "群組簽核",
       "workflowSuffix": "簽核",
-      "actionName": "建立變更"
+      "actionName": "建立變更",
+      "categoryNew": "其他…",
+      "newCategory": "新類別",
+      "audience": "可使用表單的人員",
+      "audienceHelp": "若表單要選取紀錄，請選擇能檢視這些紀錄的人員：其他人會找不到可選的項目。",
+      "audienceEveryone": "所有人",
+      "audienceGroups": "特定群組的成員",
+      "audienceGroupKeys": "群組",
+      "recordPersonApproves": "再由所選紀錄中的負責人簽核",
+      "recordPersonFact": "紀錄中的人員",
+      "afterApproval": "申請核准後",
+      "afterApprovalHelp": "之後可在表單設計工具中新增更多規則與動作。變更會連結到所選的組態項目。",
+      "afterNothing": "不做其他處理",
+      "afterChange": "建立變更",
+      "afterTicket": "建立工單",
+      "afterNotify": "通知群組",
+      "ticketCategory": "工單類別",
+      "ticketGroup": "處理工單的群組",
+      "notifyGroups": "要通知的群組",
+      "stepRecordPerson": "紀錄負責人簽核",
+      "actionTicketName": "建立工單",
+      "actionNotifyName": "通知群組"
     },
     "links": {
       "openForm": "開啟表單"
     }
+  },
+  "work": {
+    "approvals": "簽核",
+    "forms": "待填寫的表單"
   }
 }

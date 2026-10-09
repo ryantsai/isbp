@@ -1,13 +1,16 @@
 import type {
   createCustomFieldSchema,
   createFormSchema,
+  formBuilderPreviewInputSchema,
   formListQuerySchema,
+  processChecksInputSchema,
   submissionQuerySchema,
   updateCustomFieldSchema,
   updateFormSchema,
 } from '@isbp/contracts';
 import { formatRequestNumber } from '@isbp/contracts';
 import {
+  applications,
   customFields,
   type FormAudience,
   formSubmissions,
@@ -15,6 +18,10 @@ import {
   forms,
   groupMembers,
   groups,
+  roleAssignments,
+  rolePermissions,
+  roles,
+  users,
   workflowDefinitions,
 } from '@isbp/db/schema';
 import {
@@ -29,13 +36,29 @@ import {
   isField,
   localize,
   type ModuleContext,
+  PermissionSet,
   validateFields,
   validateForm,
   type WorkflowCompletion,
 } from '@isbp/sdk/server';
-import { and, asc, count, desc, eq, ilike, inArray, isNull, max, or, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  countDistinct,
+  desc,
+  eq,
+  gt,
+  ilike,
+  inArray,
+  isNull,
+  max,
+  or,
+  sql,
+} from 'drizzle-orm';
 import type { z } from 'zod';
 import { canonicalJson } from '../../kernel/crypto';
+import { EVERYONE_GROUP_KEY, PLATFORM_APP_KEY } from '../../kernel/rbac';
 import {
   fieldValidationError,
   recordFieldFacts,
@@ -45,9 +68,11 @@ import {
 import { maskFormSecrets, publicFormSchema } from '../../kernel/process-actions';
 import { getKernel } from '../kernel-ref';
 import { likePattern, pageOffset } from '../util';
+import { approverFields } from './approval-preview';
 import { FormAssignmentService } from './form-assignments';
 import { peopleById, ref } from './people';
 import { accessOf } from './request-access';
+import { NO_APPROVAL_PATH, requestPath } from './request-path';
 import { InstanceViews } from './workflows';
 
 export const FORM_SUBMISSION_TRIGGER = 'core.form-submission';
@@ -408,8 +433,9 @@ export class FormService {
     };
   }
 
-  async create(input: z.output<typeof createFormSchema>, auth: AuthContext) {
-    const row = await this.ctx.transaction(async (tx) => {
+  /** Creates the form (audited) and returns its row, without reading the view back (`create` does). */
+  async createRow(input: z.output<typeof createFormSchema>, auth: AuthContext): Promise<FormRow> {
+    return this.ctx.transaction(async (tx) => {
       const [f] = await tx
         .insert(forms)
         .values({
@@ -429,6 +455,10 @@ export class FormService {
       );
       return f!;
     });
+  }
+
+  async create(input: z.output<typeof createFormSchema>, auth: AuthContext) {
+    const row = await this.createRow(input, auth);
     return this.get(row.id);
   }
 
@@ -449,9 +479,28 @@ export class FormService {
       throw httpErrors.badRequest('Choose a form-submission workflow');
   }
 
-  async update(id: string, input: z.output<typeof updateFormSchema>, auth: AuthContext) {
+  /** Saves the form's details and draft (audited), without reading the view back (`update` does). */
+  async updateRow(id: string, input: z.output<typeof updateFormSchema>, auth: AuthContext): Promise<void> {
     const before = await this.find(id);
     await this.assertWorkflow(input.workflowDefinitionId);
+    // The workflow a form names applies at once (it isn't versioned with the form): a live form may only switch to
+    // one that can run, or every new request would fail.
+    if (
+      input.workflowDefinitionId &&
+      input.workflowDefinitionId !== before.workflowDefinitionId &&
+      before.publishedVersion !== null
+    ) {
+      const [w] = await this.db
+        .select({ v: workflowDefinitions.publishedVersion })
+        .from(workflowDefinitions)
+        .where(eq(workflowDefinitions.id, input.workflowDefinitionId));
+      if (!w || w.v === null)
+        throw new HttpError(
+          409,
+          ErrorCodes.WORKFLOW_NOT_CONFIGURED,
+          'Publish the workflow before a live form uses it',
+        );
+    }
     if (input.draft) {
       const elements = input.draft.elements;
       assertRecordFieldTypes(
@@ -501,10 +550,20 @@ export class FormService {
           { tx },
         );
     });
+  }
+
+  async update(id: string, input: z.output<typeof updateFormSchema>, auth: AuthContext) {
+    await this.updateRow(id, input, auth);
     return this.get(id);
   }
 
   async publish(id: string, auth: AuthContext) {
+    await this.publishRow(id, auth);
+    return this.get(id);
+  }
+
+  /** Publishes the draft as the next version (audited), without reading the view back (`publish` does). */
+  async publishRow(id: string, auth: AuthContext): Promise<void> {
     const f = await this.find(id);
     if (f.archivedAt)
       throw new HttpError(409, ErrorCodes.INVALID_STATE, 'Archived forms cannot be published');
@@ -548,7 +607,6 @@ export class FormService {
         { tx },
       );
     });
-    return this.get(id);
   }
 
   async setArchived(id: string, archived: boolean) {
@@ -568,6 +626,179 @@ export class FormService {
         { tx },
       );
     });
+  }
+
+  /* ───────────── building a process ───────────── */
+
+  /**
+   * "Before you publish": whether the audience can see the records the form's record fields offer (through the
+   * audience itself — Everyone or its groups), and how many people the approval's groups and roles hold.
+   */
+  async processChecks(input: z.output<typeof processChecksInputSchema>) {
+    const records = getKernel().records;
+    const audienceKeys = input.audience.type === 'groups' ? input.audience.groupKeys : [];
+    const now = new Date();
+    const live = or(isNull(roleAssignments.expiresAt), gt(roleAssignments.expiresAt, now));
+    const [granted, platformRoles] = await Promise.all([
+      this.db
+        .select({ groupKey: groups.key, permission: rolePermissions.permission })
+        .from(roleAssignments)
+        .innerJoin(groups, eq(groups.id, roleAssignments.groupId))
+        .innerJoin(roles, eq(roles.id, roleAssignments.roleId))
+        .innerJoin(
+          applications,
+          and(eq(applications.id, roles.applicationId), eq(applications.key, PLATFORM_APP_KEY)),
+        )
+        .innerJoin(rolePermissions, eq(rolePermissions.roleId, roles.id))
+        .where(and(inArray(groups.key, [EVERYONE_GROUP_KEY, ...audienceKeys]), live)),
+      this.db
+        .select({
+          key: roles.key,
+          name: roles.name,
+          moduleId: roles.moduleId,
+          permission: rolePermissions.permission,
+        })
+        .from(roles)
+        .innerJoin(
+          applications,
+          and(eq(applications.id, roles.applicationId), eq(applications.key, PLATFORM_APP_KEY)),
+        )
+        .innerJoin(rolePermissions, eq(rolePermissions.roleId, roles.id)),
+    ]);
+    const permsOf = (key: string) =>
+      new PermissionSet(
+        granted.filter((g) => g.groupKey === key).map((g) => ({ p: g.permission, s: 'g' as const })),
+      );
+    const everyone = permsOf(EVERYONE_GROUP_KEY);
+    const audienceGroups = audienceKeys.length
+      ? await this.db
+          .select({ key: groups.key, name: groups.name })
+          .from(groups)
+          .where(inArray(groups.key, audienceKeys))
+      : [];
+    // The narrowest roles first: those naming the permission itself before wildcards (`alm.*`, then `*`), then the
+    // ones with fewer permissions — the role to give people is usually a viewer role.
+    const size = new Map<string, number>();
+    for (const r of platformRoles) size.set(r.key, (size.get(r.key) ?? 0) + 1);
+    const rolesWith = (permission: string) => {
+      const out = new Map<string, { key: string; name: string; moduleId: string | null; rank: number }>();
+      for (const r of platformRoles) {
+        if (!new PermissionSet([{ p: r.permission, s: 'g' }]).hasAny(permission)) continue;
+        const rank = r.permission === permission ? 0 : r.permission === '*' ? 2 : 1;
+        const had = out.get(r.key);
+        if (!had || rank < had.rank) out.set(r.key, { key: r.key, name: r.name, moduleId: r.moduleId, rank });
+      }
+      return [...out.values()]
+        .sort(
+          (a, b) =>
+            a.rank - b.rank ||
+            (size.get(a.key) ?? 0) - (size.get(b.key) ?? 0) ||
+            a.name.localeCompare(b.name),
+        )
+        .map(({ rank: _rank, ...role }) => role);
+    };
+    const recordChecks = [...new Set(input.recordTypes)].flatMap((type) => {
+      const entry = records.entry(type);
+      if (!entry) return [];
+      const permission = entry.def.permission;
+      const helps = rolesWith(permission);
+      const viaEveryone = everyone.hasAny(permission);
+      const groupsWithout = viaEveryone
+        ? []
+        : audienceGroups.filter((g) => !permsOf(g.key).hasAny(permission));
+      const covered =
+        viaEveryone ||
+        (input.audience.type === 'groups' && audienceGroups.length > 0 && !groupsWithout.length);
+      return [
+        {
+          type,
+          reach: covered ? ('all' as const) : helps.length ? ('some' as const) : ('none' as const),
+          groupsWithout: input.audience.type === 'groups' ? groupsWithout : [],
+          roles: helps,
+        },
+      ];
+    });
+
+    const groupKeys = [...new Set(input.groupKeys)];
+    const roleKeys = [...new Set(input.roleKeys)];
+    const [groupRows, roleRows] = await Promise.all([
+      groupKeys.length
+        ? this.db
+            .select({ key: groups.key, name: groups.name, members: countDistinct(users.id) })
+            .from(groups)
+            .leftJoin(groupMembers, eq(groupMembers.groupId, groups.id))
+            .leftJoin(users, and(eq(users.id, groupMembers.userId), eq(users.status, 'active')))
+            .where(inArray(groups.key, groupKeys))
+            .groupBy(groups.key, groups.name)
+        : Promise.resolve([]),
+      roleKeys.length
+        ? this.db
+            .select({
+              key: roles.key,
+              name: roles.name,
+              moduleId: roles.moduleId,
+              holders: sql<number>`count(distinct coalesce(${roleAssignments.userId}::text, ${groupMembers.userId}::text))::int`,
+            })
+            .from(roles)
+            .innerJoin(
+              applications,
+              and(eq(applications.id, roles.applicationId), eq(applications.key, PLATFORM_APP_KEY)),
+            )
+            .leftJoin(roleAssignments, and(eq(roleAssignments.roleId, roles.id), live))
+            .leftJoin(groupMembers, eq(groupMembers.groupId, roleAssignments.groupId))
+            .where(inArray(roles.key, roleKeys))
+            .groupBy(roles.key, roles.name, roles.moduleId)
+        : Promise.resolve([]),
+    ]);
+    return {
+      records: recordChecks,
+      groups: groupRows.map((g) => ({ key: g.key, name: g.name, members: Number(g.members) })),
+      roles: roleRows.map((r) => ({
+        key: r.key,
+        name: r.name,
+        moduleId: r.moduleId,
+        holders: Number(r.holders),
+      })),
+    };
+  }
+
+  /**
+   * "Who will approve this?" while building: the unsaved questions and approval, answered with sample values, as
+   * `asUserId` (default: you). Answers that aren't valid yet are left out, and so are records you can't read.
+   */
+  async builderPreview(id: string, input: z.output<typeof formBuilderPreviewInputSchema>, auth: AuthContext) {
+    const f = await this.find(id);
+    if (!input.graph?.steps.length) return { steps: [] };
+    const schema = input.draft;
+    const { values } = validateFields(formFields(schema), input.data);
+    for (const k of Object.keys(await this.referenceErrors(schema, values, auth))) delete values[k];
+    const facts = await this.workflowFacts(
+      { ...f, category: input.category === undefined ? f.category : input.category },
+      schema,
+      values,
+    );
+    const result = await getKernel().workflows.preview(
+      FORM_SUBMISSION_TRIGGER,
+      { facts, requesterId: input.asUserId ?? auth.user!.id },
+      { graph: input.graph },
+    );
+    if (!result) return { steps: [] };
+    const people = await peopleById(
+      this.db,
+      result.steps.flatMap((s) => [...s.people, ...(s.counted ?? []).map((c) => c.id)]),
+    );
+    return {
+      steps: result.steps.map((s) => ({
+        id: s.id,
+        name: s.name,
+        type: s.type,
+        outcome: s.outcome,
+        people: s.people.map((pid) => ref(people, pid)!),
+        ...(s.counted
+          ? { counted: s.counted.map((c) => ({ person: ref(people, c.id)!, approvedAt: c.approvedAt })) }
+          : {}),
+      })),
+    };
   }
 
   /* ───────────── portal side ───────────── */
@@ -678,8 +909,9 @@ export class FormService {
     if (!result) return { steps: [] };
     const people = await peopleById(
       this.db,
-      result.steps.flatMap((s) => s.people),
+      result.steps.flatMap((s) => [...s.people, ...(s.counted ?? []).map((c) => c.id)]),
     );
+    const dependsOn = await approverFields(this.ctx, result.definition.id);
     return {
       steps: result.steps.map((s) => ({
         id: s.id,
@@ -687,6 +919,10 @@ export class FormService {
         type: s.type,
         outcome: s.outcome,
         people: s.people.map((id) => ref(people, id)!),
+        ...(s.counted
+          ? { counted: s.counted.map((c) => ({ person: ref(people, c.id)!, approvedAt: c.approvedAt })) }
+          : {}),
+        dependsOn: dependsOn.get(s.id) ?? [],
       })),
     };
   }
@@ -945,6 +1181,13 @@ export class FormService {
       .from(formSubmissions)
       .where(eq(formSubmissions.number, number));
     return sub ? this.submission(sub.id, auth) : null;
+  }
+
+  /** The approval path of a request by its number, as the requester sees it; null when the viewer can't see it. */
+  async pathByNumber(number: number, auth: AuthContext) {
+    const sub = await this.byNumber(number, auth);
+    if (!sub) return null;
+    return sub.workflow ? requestPath(this.ctx, sub.workflow.id, auth) : NO_APPROVAL_PATH;
   }
 
   async cancel(id: string, reason: string | null | undefined, auth: AuthContext) {

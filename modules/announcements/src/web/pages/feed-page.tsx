@@ -6,70 +6,81 @@ import { cn } from '@isbp/ui';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
+import { rememberOpenedRow, takeOpenedRow } from '@isbp/ui/lib/list-memory';
+import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@isbp/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { ChevronLeftIcon, ChevronRightIcon, MegaphoneIcon, PinIcon, PlusIcon } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Post } from '../../contracts';
 import { PostEditor } from '../post-editor';
-import { severityBar, SeverityBadge } from '../severity';
+import { PostStatusBadge, severityBar, SeverityBadge } from '../severity';
 import { WindowLabel } from '../window-label';
 
+const FEED = '/announcements';
 type View = 'current' | 'drafts' | 'archive';
 
-function PostCard({ post, index }: { post: Post; index: number }) {
+function PostCard({ post, highlight }: { post: Post; highlight?: boolean }) {
   const t = useTranslations('announcements');
   return (
-    <motion.li
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.3, delay: Math.min(index, 8) * 0.04, ease: [0.22, 1, 0.36, 1] }}
+    <Link
+      href={`${FEED}/${post.id}`}
+      onClick={() => rememberOpenedRow(FEED, post.id)}
+      className="group relative flex overflow-hidden rounded-xl border bg-card shadow-xs transition-[translate,box-shadow] duration-(--motion-base) hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none motion-reduce:hover:translate-y-0"
     >
-      <Link
-        href={`/announcements/${post.id}`}
-        className="group relative flex overflow-hidden rounded-xl border bg-card shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:hover:translate-y-0"
-      >
-        <span className={cn('w-1 shrink-0', severityBar(post.severity))} aria-hidden />
-        <div className="min-w-0 flex-1 space-y-2 p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <SeverityBadge severity={post.severity} />
-            {post.pinned && (
-              <Badge variant="outline" className="gap-1">
-                <PinIcon /> {t('pinned')}
-              </Badge>
-            )}
-            {post.status === 'draft' && <Badge variant="muted">{t('status.draft')}</Badge>}
-            {post.status === 'pending' && <Badge variant="warning">{t('status.pending')}</Badge>}
-            {post.status === 'archived' && <Badge variant="muted">{t('status.archived')}</Badge>}
-            <span className="ml-auto text-xs text-muted-foreground">
-              <RelativeTime date={post.publishedAt ?? post.updatedAt} />
-            </span>
-          </div>
-          <h2 className="text-base font-semibold tracking-tight group-hover:underline">{post.title}</h2>
-          {post.body && <p className="line-clamp-2 text-sm text-muted-foreground">{post.body}</p>}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <WindowLabel startsAt={post.startsAt} endsAt={post.endsAt} />
-            {post.author && (
-              <span className="text-xs text-muted-foreground">
-                {t('by', { name: post.author.displayName })}
-              </span>
-            )}
-          </div>
+      <span className={cn('w-1 shrink-0', severityBar(post.severity))} aria-hidden />
+      {highlight && <span aria-hidden className="highlight-flash pointer-events-none absolute inset-0" />}
+      <div className="min-w-0 flex-1 space-y-2 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <SeverityBadge severity={post.severity} />
+          {post.pinned && (
+            <Badge variant="outline" className="gap-1">
+              <PinIcon aria-hidden /> {t('pinned')}
+            </Badge>
+          )}
+          {post.status !== 'published' && <PostStatusBadge status={post.status} />}
+          <span className="ml-auto text-xs text-muted-foreground">
+            <RelativeTime date={post.publishedAt ?? post.updatedAt} />
+          </span>
         </div>
-      </Link>
-    </motion.li>
+        <h2 className="text-base font-semibold tracking-tight wrap-break-word group-hover:underline">
+          {post.title}
+        </h2>
+        {post.body && <p className="line-clamp-2 text-sm text-muted-foreground">{post.body}</p>}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <WindowLabel startsAt={post.startsAt} endsAt={post.endsAt} />
+          {post.author && (
+            <span className="text-xs text-muted-foreground">
+              {t('by', { name: post.author.displayName })}
+            </span>
+          )}
+        </div>
+      </div>
+    </Link>
   );
+}
+
+/** The post a person opened (or just wrote) flashes once when they come back to the feed. */
+function useReturnHighlight() {
+  const [id, setId] = useState<string | null>(null);
+  useEffect(() => {
+    const opened = takeOpenedRow(FEED);
+    if (opened) setId(opened);
+  }, []);
+  useEffect(() => {
+    if (!id) return;
+    const timer = setTimeout(() => setId(null), 1200);
+    return () => clearTimeout(timer);
+  }, [id]);
+  return id;
 }
 
 export default function FeedPage() {
@@ -79,16 +90,48 @@ export default function FeedPage() {
   const [state, set] = useListState({ pageSize: 10 });
   const view = ((state.view as View) ?? 'current') satisfies View;
   const [writing, setWriting] = useState(false);
-  const { data, isLoading } = useApiQuery<Page<Post>>('/announcements/posts', {
-    view,
-    q: state.q,
-    page: state.page,
-    pageSize: state.pageSize,
-  });
+  const highlight = useReturnHighlight();
+  const { data, isLoading, isPlaceholderData, error, refetch } = useApiQuery<Page<Post>>(
+    '/announcements/posts',
+    { view, q: state.q, page: state.page, pageSize: state.pageSize },
+  );
   const pages = Math.max(1, Math.ceil((data?.total ?? 0) / state.pageSize));
 
+  // Another tab, search or page shows a new list (no motion); posts added, edited or removed while the same list
+  // is on screen animate in and out. While the next page loads, the previous one stays.
+  const listKey = `${view}|${state.q ?? ''}|${state.page}`;
+  const [shownKey, setShownKey] = useState(listKey);
+  if (data && !isPlaceholderData && shownKey !== listKey) setShownKey(listKey);
+
+  const views: View[] = canManage ? ['current', 'drafts', 'archive'] : ['current', 'archive'];
+
+  const content =
+    error && !data ? (
+      <ErrorState kind="list" error={error} onRetry={() => refetch()} className="rounded-xl border" />
+    ) : isLoading || !data ? (
+      <div className="space-y-3" aria-busy="true">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-28 w-full rounded-xl" />
+        ))}
+      </div>
+    ) : data.items.length ? (
+      <AnimatedList key={shownKey}>
+        {data.items.map((p) => (
+          <AnimatedItem key={p.id} className="pb-3">
+            <PostCard post={p} highlight={p.id === highlight} />
+          </AnimatedItem>
+        ))}
+      </AnimatedList>
+    ) : (
+      <EmptyState
+        icon={<MegaphoneIcon />}
+        title={state.q ? t('empty.search') : t(`empty.${view}`)}
+        className="rounded-xl border border-dashed"
+      />
+    );
+
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <PageHeader
         title={t('meta.name')}
         description={t('meta.description')}
@@ -100,70 +143,58 @@ export default function FeedPage() {
           )
         }
       />
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs value={view} onValueChange={(v) => set({ view: v === 'current' ? undefined : v })}>
+      {/* A reading column, aligned with the page title like every other page. */}
+      <Tabs
+        value={view}
+        onValueChange={(v) => set({ view: v === 'current' ? undefined : v })}
+        className="max-w-3xl gap-4"
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <TabsList>
-            <TabsTrigger value="current">{t('views.current')}</TabsTrigger>
-            {canManage && <TabsTrigger value="drafts">{t('views.drafts')}</TabsTrigger>}
-            <TabsTrigger value="archive">{t('views.archive')}</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <SearchInput value={state.q ?? ''} onChange={(q) => set({ q })} placeholder={t('search')} />
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-3">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-28 w-full rounded-xl" />
-          ))}
-        </div>
-      ) : data?.items.length ? (
-        <ul className="space-y-3">
-          <AnimatePresence mode="popLayout" initial={false}>
-            {data.items.map((p, i) => (
-              <PostCard key={p.id} post={p} index={i} />
+            {views.map((v) => (
+              <TabsTrigger key={v} value={v}>
+                {t(`views.${v}`)}
+              </TabsTrigger>
             ))}
-          </AnimatePresence>
-        </ul>
-      ) : (
-        <EmptyState
-          icon={<MegaphoneIcon />}
-          title={t(`empty.${view}`)}
-          className="rounded-xl border border-dashed"
-        />
-      )}
-
-      {pages > 1 && (
-        <div className="mt-4 flex items-center justify-end gap-2 text-sm text-muted-foreground">
-          <Button
-            variant="outline"
-            size="icon-sm"
-            disabled={state.page <= 1}
-            onClick={() => set({ page: state.page - 1 })}
-            aria-label={t('previous')}
-          >
-            <ChevronLeftIcon />
-          </Button>
-          <span className="tabular-nums">
-            {state.page} / {pages}
-          </span>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            disabled={state.page >= pages}
-            onClick={() => set({ page: state.page + 1 })}
-            aria-label={t('next')}
-          >
-            <ChevronRightIcon />
-          </Button>
+          </TabsList>
+          <SearchInput value={state.q ?? ''} onChange={(q) => set({ q })} placeholder={t('search')} />
         </div>
-      )}
+        {/* Each tab only filters the same list. */}
+        {views.map((v) => (
+          <TabsContent key={v} value={v} className="min-w-0">
+            {content}
+          </TabsContent>
+        ))}
 
-      <PostEditor
-        open={writing}
-        onOpenChange={setWriting}
-        onSaved={(p) => router.push(`/announcements/${p.id}`)}
-      />
+        {pages > 1 && (
+          <nav
+            aria-label={t('pagination')}
+            className="flex items-center justify-end gap-2 text-sm text-muted-foreground"
+          >
+            <Button
+              variant="outline"
+              size="icon-sm"
+              disabled={state.page <= 1}
+              onClick={() => set({ page: state.page - 1 })}
+              aria-label={t('previous')}
+            >
+              <ChevronLeftIcon />
+            </Button>
+            <span className="tabular-nums">{t('pageOf', { page: state.page, pages })}</span>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              disabled={state.page >= pages}
+              onClick={() => set({ page: state.page + 1 })}
+              aria-label={t('next')}
+            >
+              <ChevronRightIcon />
+            </Button>
+          </nav>
+        )}
+      </Tabs>
+
+      <PostEditor open={writing} onOpenChange={setWriting} onSaved={(p) => router.push(`${FEED}/${p.id}`)} />
     </div>
   );
 }

@@ -141,6 +141,7 @@ const p1: Condition = { fact: 'ticket.priority', op: 'eq', value: 1 };
 export const POLICIES = [
   {
     name: 'Critical incidents (24×7)',
+    label: t3('Critical incidents (24×7)', '重大事件（24×7）', '重大インシデント (24×7)'),
     description: 'P1 incidents are worked around the clock.',
     ticketTypes: ['incident' as const],
     condition: p1,
@@ -152,6 +153,7 @@ export const POLICIES = [
   },
   {
     name: 'Incidents',
+    label: t3('Incidents', '事件', 'インシデント'),
     description: 'Business-hours targets by priority; the clock stops while a ticket is on hold.',
     ticketTypes: ['incident' as const],
     condition: null,
@@ -163,6 +165,7 @@ export const POLICIES = [
   },
   {
     name: 'Service requests',
+    label: t3('Service requests', '服務請求', 'サービス要求'),
     description: 'Four business hours to respond, three business days to fulfil.',
     ticketTypes: ['service_request' as const],
     condition: null,

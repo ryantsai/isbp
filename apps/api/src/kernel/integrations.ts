@@ -208,6 +208,15 @@ export class SyncRegistry {
           });
         await this.validate(e, input);
         const ctx = this.registry.context(e.moduleId);
+        if (input.id && input.expectedUpdatedAt) {
+          // Optimistic check in the caller's transaction (run it at repeatable read to also catch edits
+          // that commit after this read: Postgres then refuses the write with a serialization failure).
+          const current = await e.adapter.read(input.id, { ...ctx, db: opts.tx });
+          if (current && Date.parse(current.updatedAt) !== Date.parse(input.expectedUpdatedAt))
+            throw new HttpError(409, ErrorCodes.CONFLICT, `${entity} ${input.id} changed since it was read`, {
+              reason: 'changed',
+            });
+        }
         const { id } = await e.adapter.write(input, opts, ctx);
         // Read back in the same transaction: what the module stored, normalizations included.
         const record = await e.adapter.read(id, { ...ctx, db: opts.tx });

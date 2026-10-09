@@ -1,11 +1,13 @@
 'use client';
 
-import { localize } from '@isbp/sdk';
+import { type LocalizedText, localize } from '@isbp/sdk';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
+import { FadeIn } from '@isbp/ui/motion';
 import { DateTime } from '@isbp/ui/relative-time';
 import { CheckCircle2Icon, FileInputIcon, SirenIcon, StampIcon, StarIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
+import { useState } from 'react';
 import type { TicketDetail } from '../../contracts';
 import { SlaChip } from '../components/badges';
 
@@ -43,24 +45,46 @@ export function MajorBanner() {
   );
 }
 
-/** Response and resolution timers: label, due time and state (the latest target per metric). */
+/** An SLA policy's name in the viewer's language (names may be plain text or localized). */
+function usePolicyName() {
+  const locale = useLocale();
+  return (name: unknown) =>
+    typeof name === 'string'
+      ? name
+      : name && typeof name === 'object'
+        ? localize(name as LocalizedText, locale)
+        : '';
+}
+
+/**
+ * Response and resolution timers in one line under the title: metric, state ("2h 10m left") and due time; the policy
+ * that set them is in the tooltip. Only the latest target per metric.
+ */
 export function SlaTimers({ ticket }: { ticket: TicketDetail }) {
   const t = useTranslations('itsm');
+  const policyName = usePolicyName();
   const latest = (['response', 'resolution'] as const)
     .map((m) => ticket.slas.filter((s) => s.metric === m && s.status !== 'cancelled').at(-1))
     .filter((s): s is NonNullable<typeof s> => Boolean(s));
   if (!latest.length) return null;
   return (
-    <ul className="flex flex-wrap gap-3" aria-label={t('slas.title')}>
-      {latest.map((s) => (
-        <li key={s.id} className="grid min-w-44 gap-1 rounded-lg border bg-card px-3 py-2 shadow-xs">
-          <span className="text-xs font-medium text-muted-foreground">{t(`slaMetric.${s.metric}`)}</span>
-          <SlaChip sla={s} className="w-fit" />
-          <span className="text-xs text-muted-foreground">
-            {s.stoppedAt ? t('slas.stopped') : t('slas.due')} <DateTime date={s.stoppedAt ?? s.dueAt} />
-          </span>
-        </li>
-      ))}
+    <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1.5" aria-label={t('slas.title')}>
+      {latest.map((s) => {
+        const policy = policyName(s.policy.label ?? s.policy.name);
+        return (
+          <li
+            key={s.id}
+            className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs"
+            title={policy ? t('slas.policy', { name: policy }) : undefined}
+          >
+            <span className="font-medium text-foreground">{t(`slaMetric.${s.metric}`)}</span>
+            <SlaChip sla={s} />
+            <span className="text-muted-foreground">
+              {s.stoppedAt ? t('slas.stopped') : t('slas.due')} <DateTime date={s.stoppedAt ?? s.dueAt} />
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -68,9 +92,12 @@ export function SlaTimers({ ticket }: { ticket: TicketDetail }) {
 /** Resolution code, notes and the requester's rating once the ticket is resolved. */
 export function ResolutionCard({ ticket }: { ticket: TicketDetail }) {
   const t = useTranslations('itsm');
-  if (!ticket.resolutionCode && !ticket.resolutionNotes) return null;
+  const resolved = Boolean(ticket.resolutionCode || ticket.resolutionNotes);
+  // It expands in when the ticket gets resolved while the page is open, not on every visit.
+  const [resolvedAtOpen] = useState(resolved);
+  if (!resolved) return null;
   const waiting = Boolean(ticket.signOff);
-  return (
+  const card = (
     <Card
       className={waiting ? 'gap-3 border-warning/40 bg-warning/10' : 'gap-3 border-success/30 bg-success/5'}
     >
@@ -115,6 +142,7 @@ export function ResolutionCard({ ticket }: { ticket: TicketDetail }) {
       </CardContent>
     </Card>
   );
+  return resolvedAtOpen ? card : <FadeIn>{card}</FadeIn>;
 }
 
 /** Service-request answers from the catalog form. */

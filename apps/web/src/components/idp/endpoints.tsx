@@ -80,7 +80,7 @@ export function EndpointList({
             <li key={key} className="flex items-center gap-2 rounded-md border bg-muted/40 py-1 pr-1 pl-3">
               <div className="min-w-0 flex-1">
                 <div className="text-[11px] text-muted-foreground">{label}</div>
-                <div className="truncate font-mono text-xs" title={value}>
+                <div className="font-mono text-xs break-all" title={value}>
                   {value}
                 </div>
               </div>

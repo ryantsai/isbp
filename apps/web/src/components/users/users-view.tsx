@@ -51,7 +51,7 @@ export function UsersView() {
     subtree: state.departmentId ? (state.subtree as string | undefined) : undefined,
     attr,
   };
-  const { data, isLoading, isFetching } = useApiQuery<Page<UserSummary>>('/users', query);
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<UserSummary>>('/users', query);
   const filtered = Boolean(state.q || state.status || state.authSource || state.departmentId || attr.length);
 
   const columns = useMemo<DataTableColumn<UserSummary>[]>(
@@ -93,7 +93,7 @@ export function UsersView() {
         id: 'status',
         header: t('columns.status'),
         meta: { sortKey: 'status' },
-        cell: ({ row }) => <UserStatusBadge status={row.original.status} />,
+        cell: ({ row }) => <UserStatusBadge status={row.original.status} quiet />,
       },
       {
         id: 'source',
@@ -141,6 +141,8 @@ export function UsersView() {
         sort={state.sort}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(u) => u.id}
         onRowClick={(u) => router.push(`/admin/users/${u.id}`)}
         onPageChange={(page) => set({ page })}

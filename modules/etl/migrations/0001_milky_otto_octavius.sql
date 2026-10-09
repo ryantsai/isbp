@@ -1,0 +1,1 @@
+ALTER TABLE "etl"."pipeline_runs" ADD COLUMN "problem" jsonb;

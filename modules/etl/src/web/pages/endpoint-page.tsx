@@ -4,20 +4,19 @@ import type { WebPageProps } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useListState } from '@isbp/ui/data-table';
-import { EmptyState } from '@isbp/ui/empty-state';
-import { FadeIn } from '@isbp/ui/motion';
+import { ErrorState } from '@isbp/ui/empty-state';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
-  ArrowLeftIcon,
   DatabaseZapIcon,
-  FileQuestionIcon,
+  FlaskConicalIcon,
+  PencilIcon,
   RocketIcon,
   Trash2Icon,
   UnplugIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -62,7 +61,7 @@ export default function EndpointPage({ params }: WebPageProps) {
         <Skeleton className="h-72 w-full rounded-xl" />
       </div>
     );
-  if (error || !endpoint) return <EmptyState icon={<FileQuestionIcon />} title={t('endpoint.notFound')} />;
+  if (error || !endpoint) return <ErrorState error={error} kind="page" />;
 
   const canManage = endpoint.viewer.canManage;
   const visible = TABS.filter((tab) => tab !== 'test' || canManage);
@@ -70,52 +69,71 @@ export default function EndpointPage({ params }: WebPageProps) {
   const period: StatsPeriod = state.period === '7d' ? '7d' : '24h';
   const publishable =
     canManage && endpoint.draftTested && (endpoint.latestVersion === null || endpoint.draftChanged);
+  // A draft that differs from the published version (or was never published) needs a passing test first.
+  const needsTest = !endpoint.draftTested && (endpoint.latestVersion === null || endpoint.draftChanged);
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href="/etl">
-          <ArrowLeftIcon /> {t('endpoints.title')}
-        </Link>
-      </Button>
-
-      <FadeIn y={4} className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <DatabaseZapIcon className="size-6" aria-hidden />
+      <DetailHeader
+        className="pb-0"
+        back={{ href: '/etl', label: t('endpoints.title'), highlight: endpoint.id }}
+        icon={<DatabaseZapIcon />}
+        reference={
+          <span className="flex min-w-0 flex-wrap items-center gap-2">
+            <MethodBadge method={endpoint.method} />
+            <code className="min-w-0 font-mono text-xs wrap-anywhere">{dataUrl(endpoint.slug)}</code>
           </span>
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <p className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <MethodBadge method={endpoint.method} />
-              <code className="min-w-0 font-mono text-xs wrap-anywhere">{dataUrl(endpoint.slug)}</code>
-            </p>
-            <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{endpoint.name}</h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <EndpointStatusBadge status={endpoint.status} />
-              {endpoint.latestVersion !== null && (
-                <span className="font-mono text-xs text-muted-foreground">
-                  {t('endpoint.latest', { version: endpoint.latestVersion })}
-                </span>
-              )}
-              {endpoint.latestVersion !== null && endpoint.draftChanged && <DraftBadge />}
-              <ConnectionLabel connection={endpoint.connection} className="text-sm" />
-            </div>
-            {endpoint.description && (
-              <p className="max-w-3xl text-sm text-muted-foreground">{endpoint.description}</p>
+        }
+        title={endpoint.name}
+        status={
+          <>
+            <EndpointStatusBadge status={endpoint.status} />
+            {endpoint.latestVersion !== null && (
+              <span className="font-mono text-xs text-muted-foreground">
+                {t('endpoint.latest', { version: endpoint.latestVersion })}
+              </span>
             )}
-          </div>
-        </div>
-        {canManage && (
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setDeleting(true)}>
-              <Trash2Icon /> {t('endpoint.delete')}
+            {endpoint.latestVersion !== null && endpoint.draftChanged && <DraftBadge />}
+            <ConnectionLabel connection={endpoint.connection} className="text-sm" />
+          </>
+        }
+        meta={
+          <>
+            {canManage && !publishable && needsTest && (
+              <span className="block">{t('endpoint.publishNeedsTest')}</span>
+            )}
+            {endpoint.description && <span className="mt-1 block max-w-3xl">{endpoint.description}</span>}
+          </>
+        }
+        primaryAction={
+          canManage &&
+          (publishable ? (
+            <Button onClick={() => setPublishing(true)}>
+              <RocketIcon /> {t('endpoint.publish')}
             </Button>
-            <Button onClick={() => (publishable ? setPublishing(true) : set({ tab: 'test' }))}>
-              <RocketIcon /> {publishable ? t('endpoint.publish') : t('endpoint.testToPublish')}
+          ) : needsTest ? (
+            <Button onClick={() => set({ tab: 'test' })}>
+              <FlaskConicalIcon /> {t('endpoint.testDraft')}
             </Button>
-          </div>
-        )}
-      </FadeIn>
+          ) : (
+            <Button variant="outline" onClick={() => set({ tab: 'definition' })}>
+              <PencilIcon /> {t('endpoint.editNewVersion')}
+            </Button>
+          ))
+        }
+        menu={
+          canManage
+            ? [
+                {
+                  label: t('endpoint.delete'),
+                  icon: <Trash2Icon />,
+                  destructive: true,
+                  onSelect: () => setDeleting(true),
+                },
+              ]
+            : []
+        }
+      />
 
       {endpoint.connection?.status === 'missing' && (
         <p

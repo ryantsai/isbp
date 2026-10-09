@@ -112,7 +112,11 @@ function plain(v: Values): Values {
 }
 
 const disposalOnly = (from: string) =>
-  approvalRequired(from, 'disposed', 'An asset is disposed of only through the disposal approval in ISBP');
+  approvalRequired(
+    from,
+    'disposed',
+    'An asset is disposed of only through the disposal approval in IS Big Platform',
+  );
 
 /** An assignee needs a status in which an asset stays with a person (deployed, in repair, lost). */
 function assertKeepsAssignee(v: Values) {

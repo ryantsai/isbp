@@ -7,7 +7,7 @@
   "passwordRequired": "Your administrator asked you to choose a new password.",
   "passwordRequiredAction": "Change password",
   "commandPalette": {
-    "placeholder": "Type a command or search people, groups, roles…",
+    "placeholder": "Search tickets, requests, articles, people… or type a command",
     "navigate": "Go to",
     "actions": "Actions",
     "results": "Search results",
@@ -17,7 +17,37 @@
     "changeLanguage": "Change language",
     "signOut": "Sign out",
     "createUser": "Create a person",
-    "openApiDocs": "Open API documentation"
+    "openApiDocs": "Open API documentation",
+    "suggested": "Suggested",
+    "newRequest": "New request",
+    "reportProblem": "Report a problem",
+    "askIt": "Ask IT",
+    "askItAbout": "Ask IT about “{q}”",
+    "more": "Didn't find it?",
+    "searchKnowledge": "Search the knowledge base for “{q}”",
+    "types": {
+      "request": "Requests",
+      "ticket": "Tickets",
+      "article": "Articles",
+      "announcement": "Announcements",
+      "asset": "Assets",
+      "license": "Licences",
+      "contract": "Contracts",
+      "ci": "Configuration items",
+      "application": "Applications",
+      "release": "Releases",
+      "project": "Projects",
+      "task": "Tasks",
+      "account": "Shared accounts",
+      "endpoint": "Data APIs",
+      "pipeline": "Pipelines",
+      "job": "Scheduled jobs",
+      "change-set": "Change sets",
+      "user": "People",
+      "group": "Groups",
+      "role": "Roles",
+      "department": "Departments"
+    }
   },
   "theme": {
     "label": "Theme",
@@ -35,7 +65,7 @@
   "forbidden": "You don't have access to this page.",
   "notFoundTitle": "Page not found",
   "notFoundBody": "The page you're looking for doesn't exist or was moved.",
-  "goHome": "Go to dashboard",
+  "goHome": "Go to Home",
   "errorTitle": "Something went wrong",
   "errorBody": "An unexpected error occurred. The details have been logged.",
   "badgeCount": "{count, plural, one {# waiting} other {# waiting}}",
@@ -47,5 +77,8 @@
     "viewAll": "View all notifications",
     "empty": "You're all caught up.",
     "unread": "Unread:"
-  }
+  },
+  "openNavigationWork": "{count, plural, one {Open navigation (# waiting for you)} other {Open navigation (# waiting for you)}}",
+  "helpForPage": "Help for this page",
+  "userMenu": "Account menu: {name}"
 }

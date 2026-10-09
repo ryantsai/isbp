@@ -1,5 +1,6 @@
 import {
   changePasswordSchema,
+  changeUserGroupsSchema,
   createUserSchema,
   effectivePermissionsSchema,
   meSchema,
@@ -8,6 +9,10 @@ import {
   resetPasswordSchema,
   sessionInfoSchema,
   setUserStatusSchema,
+  transferOptionsQuerySchema,
+  transferOptionsSchema,
+  transferResultSchema,
+  transferUserSchema,
   updateMeSchema,
   updateUserSchema,
   userDetailSchema,
@@ -295,6 +300,51 @@ export function userRoutes(app: ModuleRouter, _ctx: ModuleContext, svc: UserServ
       await svc.update(req.params.id, req.body, req.auth);
       return svc.detail(req.params.id, req.auth);
     },
+  );
+
+  app.post(
+    '/users/:id/groups',
+    {
+      config: { permission: 'core.groups.manage', scoped: true },
+      schema: {
+        tags,
+        summary: 'Add a person to groups and take them out of others (one change)',
+        params: idParams,
+        body: changeUserGroupsSchema,
+        response: { 200: z.object({ added: z.number(), removed: z.number() }) },
+      },
+    },
+    async (req) => svc.changeGroups(req.params.id, req.body, req.auth),
+  );
+
+  app.get(
+    '/users/:id/transfer',
+    {
+      config: { permission: 'core.users.update', scoped: true },
+      schema: {
+        tags,
+        summary: 'What moving a person to a department suggests (manager, groups, roles to review)',
+        params: idParams,
+        querystring: transferOptionsQuerySchema,
+        response: { 200: transferOptionsSchema },
+      },
+    },
+    async (req) => svc.transferOptions(req.params.id, req.query.departmentId, req.auth),
+  );
+
+  app.post(
+    '/users/:id/transfer',
+    {
+      config: { permission: 'core.users.update', scoped: true },
+      schema: {
+        tags,
+        summary: 'Move a person to another department: manager, job title, groups and roles in one change',
+        params: idParams,
+        body: transferUserSchema,
+        response: { 200: transferResultSchema },
+      },
+    },
+    async (req) => svc.transfer(req.params.id, req.body, req.auth),
   );
 
   app.post(

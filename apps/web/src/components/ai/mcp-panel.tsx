@@ -17,6 +17,7 @@ import {
   TerminalIcon,
   WrenchIcon,
 } from 'lucide-react';
+import { Disclosure } from '@isbp/ui/motion';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useApiQuery } from '@/lib/api';
@@ -94,26 +95,6 @@ export function McpPanel() {
             </div>
             <p className="text-xs text-muted-foreground">{t('endpointHint')}</p>
           </div>
-          <div className="grid gap-1.5">
-            <h3 className="text-sm font-medium">{t('versions')}</h3>
-            <ul className="flex flex-wrap gap-1.5" aria-label={t('versions')}>
-              {MODERN.map((v) => (
-                <li key={v}>
-                  <Badge variant="success">
-                    <CircleCheckIcon aria-hidden /> {v} · {t('stateless')}
-                  </Badge>
-                </li>
-              ))}
-              {LEGACY.map((v) => (
-                <li key={v}>
-                  <Badge variant="muted">
-                    {v} · {t('legacy')}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-            <p className="text-xs text-muted-foreground">{t('versionsBody')}</p>
-          </div>
         </CardContent>
       </Card>
 
@@ -186,6 +167,38 @@ export function McpPanel() {
           </figure>
         </CardContent>
       </Card>
+
+      {/* Protocol internals: for whoever sets up an agent, not for deciding who may connect. */}
+      <Disclosure
+        summary={t('technical')}
+        className="rounded-xl border bg-card px-4 lg:col-span-2"
+        contentClassName="text-sm"
+      >
+        <div className="grid gap-4 pb-4">
+          <p className="text-muted-foreground">{t('transport')}</p>
+          <div className="grid gap-1.5">
+            <h3 className="text-sm font-medium">{t('versions')}</h3>
+            <ul className="flex flex-wrap gap-1.5" aria-label={t('versions')}>
+              {MODERN.map((v) => (
+                <li key={v}>
+                  <Badge variant="success">
+                    <CircleCheckIcon aria-hidden /> {v} · {t('stateless')}
+                  </Badge>
+                </li>
+              ))}
+              {LEGACY.map((v) => (
+                <li key={v}>
+                  <Badge variant="muted">
+                    {v} · {t('legacy')}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-muted-foreground">{t('versionsBody')}</p>
+          </div>
+          <p className="text-muted-foreground">{t('naming')}</p>
+        </div>
+      </Disclosure>
     </div>
   );
 }

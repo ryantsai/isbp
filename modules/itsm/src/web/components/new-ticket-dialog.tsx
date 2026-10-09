@@ -47,18 +47,20 @@ export function LevelSelect({
   value,
   onChange,
   id,
+  size,
   className,
 }: {
   kind: 'impact' | 'urgency';
   value: string;
   onChange: (v: string) => void;
   id?: string;
+  size?: 'sm' | 'default';
   className?: string;
 }) {
   const t = useTranslations('itsm');
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger id={id} className={className ?? 'w-full'}>
+      <SelectTrigger id={id} size={size} className={className ?? 'w-full'}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

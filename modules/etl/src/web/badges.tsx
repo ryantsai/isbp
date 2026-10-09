@@ -114,7 +114,7 @@ export function HttpStatus({ status, code }: { status: number; code?: string | n
   return (
     <span
       className={cn(
-        'inline-flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums',
+        'inline-flex w-fit flex-wrap items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums',
         ok ? TONE.success : TONE.destructive,
       )}
     >

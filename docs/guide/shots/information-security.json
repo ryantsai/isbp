@@ -34,7 +34,7 @@
   {
     "name": "information-security-review",
     "as": "admin",
-    "path": "/isms/reviews/ACR-00001",
+    "path": "/isms/reviews/ACR-00001?view=all",
     "waitFor": "main h1",
     "steps": [{ "wait": 800 }],
     "clip": null

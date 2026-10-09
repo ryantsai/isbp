@@ -26,21 +26,15 @@ import {
   FormMessage,
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
+import { Label } from '@isbp/ui/label';
+import { SavedIndicator } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Switch } from '@isbp/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import {
-  CircleCheckIcon,
-  CircleMinusIcon,
-  ExternalLinkIcon,
-  LayersIcon,
-  PlusIcon,
-  SlidersHorizontalIcon,
-} from 'lucide-react';
-import Link from 'next/link';
+import { CircleCheckIcon, CircleMinusIcon, LayersIcon, PlusIcon, SlidersHorizontalIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -92,7 +86,7 @@ function ModelsTab() {
   const [state, set] = useListState({ pageSize: 25 });
   const [editing, setEditing] = useState<Model | 'new' | null>(null);
   const category = (state.category as string | undefined) || undefined;
-  const { data, isLoading, isFetching } = useApiQuery<Page<Model>>('/itam/models', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<Model>>('/itam/models', {
     page: state.page,
     pageSize: state.pageSize,
     q: state.q,
@@ -184,6 +178,8 @@ function ModelsTab() {
         sort={state.sort}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(m) => m.id}
         onRowClick={(m) => setEditing(m)}
         onPageChange={(page) => set({ page })}
@@ -405,60 +401,124 @@ function ModelDialog({ model, onClose }: { model?: Model; onClose: () => void })
   );
 }
 
+const GENERAL = [
+  { key: 'currency', field: 'currency', label: 'currency', hint: 'currencyHint', kind: 'text' },
+  {
+    key: 'reminders.warrantyDays',
+    field: 'warrantyDays',
+    label: 'warrantyDays',
+    hint: 'warrantyDaysHint',
+    kind: 'number',
+  },
+  {
+    key: 'compliance.underUsedPercent',
+    field: 'underUsedPercent',
+    label: 'underUsed',
+    hint: 'underUsedHint',
+    kind: 'number',
+  },
+  { key: 'wipe.months', field: 'wipeMonths', label: 'wipeMonths', hint: 'wipeMonthsHint', kind: 'number' },
+  {
+    key: 'wipe.remindDays',
+    field: 'wipeRemindDays',
+    label: 'wipeRemindDays',
+    hint: 'wipeRemindDaysHint',
+    kind: 'number',
+  },
+] as const;
+
+/** The module's settings, edited in place for people who may change them (the same as Administration → Modules). */
 function GeneralTab() {
   const t = useTranslations('itam.settingsPage');
+  const tc = useTranslations('common');
   const { data } = useApiQuery<ItamSettings>('/itam/settings');
-  const rows = data
-    ? [
-        { label: t('currency'), value: data.currency, hint: t('currencyHint') },
-        {
-          label: t('warrantyDays'),
-          value: t('days', { days: data.warrantyDays }),
-          hint: t('warrantyDaysHint'),
-        },
-        { label: t('underUsed'), value: `${data.underUsedPercent}%`, hint: t('underUsedHint') },
-        {
-          label: t('wipeMonths'),
-          value: t('months', { months: data.wipeMonths }),
-          hint: t('wipeMonthsHint'),
-        },
-        {
-          label: t('wipeRemindDays'),
-          value: t('days', { days: data.wipeRemindDays }),
-          hint: t('wipeRemindDaysHint'),
-        },
-      ]
-    : [];
+  const [draft, setDraft] = useState<Record<string, string> | null>(null);
+  const [savedAt, setSavedAt] = useState<number | undefined>();
+  const values: Record<string, string> =
+    draft ?? (data ? Object.fromEntries(GENERAL.map((g) => [g.field, String(data[g.field])])) : {});
+  const save = useApiMutation(
+    (api, body: Record<string, unknown>) => api.put('/modules/itam/settings', { values: body }),
+    {
+      invalidate: ['/itam', '/modules'],
+      onSuccess: () => {
+        setDraft(null);
+        setSavedAt(Date.now());
+      },
+    },
+  );
+  const display = (g: (typeof GENERAL)[number]) =>
+    !data
+      ? ''
+      : g.field === 'underUsedPercent'
+        ? `${data.underUsedPercent}%`
+        : g.field === 'wipeMonths'
+          ? t('months', { months: data.wipeMonths })
+          : g.kind === 'number'
+            ? t('days', { days: data[g.field] as number })
+            : String(data[g.field]);
+  const editable = Boolean(data?.canEditSettings);
   return (
     <Card className="max-w-3xl">
       <CardHeader>
         <CardTitle>{t('generalTitle')}</CardTitle>
-        <CardDescription>{t('generalHint')}</CardDescription>
+        <CardDescription>{editable ? t('generalEditHint') : t('generalHint')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <dl className="divide-y">
-          {rows.map((r) => (
-            <div
-              key={r.label}
-              className="grid gap-1 py-3 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-4"
-            >
-              <dt className="text-sm font-medium">{r.label}</dt>
-              <dd className="min-w-0">
-                <span className="text-sm font-semibold">{r.value}</span>
-                <p className="text-xs text-muted-foreground">{r.hint}</p>
-              </dd>
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save.mutate(
+              Object.fromEntries(
+                GENERAL.map((g) => [
+                  g.key,
+                  g.kind === 'number' ? Number(values[g.field]) : values[g.field]!.trim().toUpperCase(),
+                ]),
+              ),
+            );
+          }}
+        >
+          <dl className="divide-y">
+            {GENERAL.map((g) => (
+              <div
+                key={g.key}
+                className="grid gap-1 py-3 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-4"
+              >
+                <dt className="text-sm font-medium">
+                  {editable ? <Label htmlFor={`itam-setting-${g.field}`}>{t(g.label)}</Label> : t(g.label)}
+                </dt>
+                <dd className="min-w-0 space-y-1">
+                  {editable ? (
+                    <Input
+                      id={`itam-setting-${g.field}`}
+                      inputMode={g.kind === 'number' ? 'numeric' : undefined}
+                      maxLength={g.field === 'currency' ? 3 : undefined}
+                      className="w-32"
+                      value={values[g.field] ?? ''}
+                      aria-describedby={`itam-setting-${g.field}-hint`}
+                      onChange={(e) => setDraft({ ...values, [g.field]: e.target.value })}
+                    />
+                  ) : (
+                    <span className="text-sm font-semibold">{display(g)}</span>
+                  )}
+                  <p id={`itam-setting-${g.field}-hint`} className="text-xs text-muted-foreground">
+                    {t(g.hint)}
+                  </p>
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {editable ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="submit" disabled={!draft} loading={save.isPending}>
+                {tc('save')}
+              </Button>
+              <SavedIndicator at={savedAt} />
             </div>
-          ))}
-        </dl>
-        {data?.canEditSettings ? (
-          <Button variant="outline" asChild>
-            <Link href="/admin/modules?module=itam">
-              <ExternalLinkIcon /> {t('editInAdmin')}
-            </Link>
-          </Button>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t('askAdmin')}</p>
-        )}
+          ) : (
+            <p className="text-sm text-muted-foreground">{t('askAdmin')}</p>
+          )}
+        </form>
       </CardContent>
     </Card>
   );

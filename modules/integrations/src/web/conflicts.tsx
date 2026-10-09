@@ -2,7 +2,7 @@
 
 import type { Page } from '@isbp/sdk';
 import { Button } from '@isbp/ui/button';
-import { DataTable, type DataTableColumn, type ListState } from '@isbp/ui/data-table';
+import { DataTable, type DataTableColumn, DataTableSummary, type ListState } from '@isbp/ui/data-table';
 import {
   Dialog,
   DialogContent,
@@ -47,6 +47,30 @@ function Value({
       : showValue(value);
   if (!text) return <span className="text-muted-foreground italic">{t('empty')}</span>;
   return <span className="line-clamp-6 whitespace-pre-wrap wrap-anywhere">{text}</span>;
+}
+
+/** "Changed by Mei Lin · 34 minutes ago" / "Changed in ServiceDesk Plus · 40 minutes ago". */
+function ChangeNote({
+  side,
+  system,
+  change,
+}: {
+  side: 'local' | 'remote';
+  system: string;
+  change: { at: string; by?: string | null } | null | undefined;
+}) {
+  const t = useTranslations('integrations.resolve');
+  if (!change) return null;
+  return (
+    <span className="text-xs text-muted-foreground">
+      {side === 'remote'
+        ? t('changedIn', { system })
+        : change.by
+          ? t('changedBy', { name: change.by })
+          : t('changedHere')}{' '}
+      · <RelativeTime date={change.at} />
+    </span>
+  );
 }
 
 /**
@@ -161,6 +185,11 @@ export function ResolveDialog({
                             {side === 'local' ? t('inIsbp') : t('inRemote', { system })}
                           </span>
                           <Value field={f} value={side === 'local' ? f.local : f.remote} people={people} />
+                          <ChangeNote
+                            side={side}
+                            system={system}
+                            change={side === 'local' ? data.localChange : data.remoteChange}
+                          />
                         </span>
                       </label>
                     ))}
@@ -169,6 +198,7 @@ export function ResolveDialog({
               );
             })}
             {data.local?.hidden && <p className="text-sm text-muted-foreground">{t('hiddenHint')}</p>}
+            {editable && <p className="text-xs text-muted-foreground">{t('keepBothHint')}</p>}
             {error && (
               <p role="alert" className="text-sm text-destructive">
                 {error}
@@ -229,12 +259,15 @@ export function ConflictsTable({
   const status: ConflictStatus = CONFLICT_STATUSES.includes(state.status as ConflictStatus)
     ? (state.status as ConflictStatus)
     : 'open';
-  const { data, isLoading, isFetching } = useApiQuery<Page<ConflictSummary>>('/integrations/conflicts', {
-    connectionId,
-    status,
-    page: state.page,
-    pageSize: state.pageSize,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<ConflictSummary>>(
+    '/integrations/conflicts',
+    {
+      connectionId,
+      status,
+      page: state.page,
+      pageSize: state.pageSize,
+    },
+  );
   const open = typeof state.conflict === 'string' ? state.conflict : null;
 
   const columns = useMemo<DataTableColumn<ConflictSummary>[]>(
@@ -242,12 +275,21 @@ export function ConflictsTable({
       {
         id: 'local',
         header: t('record'),
-        meta: { className: 'max-w-72' },
-        cell: ({ row }) => <LocalCell local={row.original.local} />,
+        meta: { className: 'max-w-72', wrap: true },
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <LocalCell local={row.original.local} wrap />
+            <DataTableSummary>
+              <ConflictStatusBadge status={row.original.status} />
+              <RelativeTime date={row.original.resolvedAt ?? row.original.createdAt} />
+            </DataTableSummary>
+          </div>
+        ),
       },
       {
         id: 'remote',
         header: t('remote'),
+        meta: { priority: 2 },
         cell: ({ row }) => (
           <span className="flex min-w-0 flex-col">
             <RemoteCell remoteRef={row.original.remoteRef} remoteUrl={row.original.remoteUrl} />
@@ -260,7 +302,7 @@ export function ConflictsTable({
       {
         id: 'fields',
         header: t('fields'),
-        meta: { className: 'hidden md:table-cell max-w-56', headerClassName: 'hidden md:table-cell' },
+        meta: { className: 'max-w-56', priority: 3 },
         cell: ({ row }) => (
           <span className="truncate font-mono text-xs">{row.original.fields.join(', ')}</span>
         ),
@@ -268,12 +310,13 @@ export function ConflictsTable({
       {
         id: 'status',
         header: tc('status'),
+        meta: { priority: 2 },
         cell: ({ row }) => <ConflictStatusBadge status={row.original.status} />,
       },
       {
         id: 'when',
         header: t('when'),
-        meta: { className: 'hidden sm:table-cell', headerClassName: 'hidden sm:table-cell' },
+        meta: { priority: 2 },
         cell: ({ row }) => (
           <span className="flex flex-col text-xs">
             <RelativeTime date={row.original.resolvedAt ?? row.original.createdAt} />
@@ -317,6 +360,8 @@ export function ConflictsTable({
       pageSize={state.pageSize}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(c) => c.id}
       onRowClick={(c) => set({ conflict: c.id, page: state.page })}
       onPageChange={(page) => set({ page })}

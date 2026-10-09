@@ -26,6 +26,8 @@ import ai from './ai.json';
 import records from './records.json';
 import databases from './databases.json';
 import assignments from './assignments.json';
+import work from './work.json';
+import admin from './admin.json';
 
 const messages: Messages = {
   common,
@@ -54,5 +56,7 @@ const messages: Messages = {
   records,
   databases,
   assignments,
+  work,
+  admin,
 };
 export default messages;

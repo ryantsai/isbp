@@ -69,11 +69,17 @@ describe('etl manifest', () => {
     expect(manifest.roles?.some((r) => r.grantByDefault)).toBe(false);
   });
 
-  it('puts three entries in the Data APIs & ETL group', () => {
-    expect(manifest.navigation?.map((n) => [n.href, n.icon, n.order, n.group, n.section])).toEqual([
-      ['/etl', 'database-zap', 56, 'etl.nav.group', 'main'],
-      ['/etl/pipelines', 'workflow', 57, 'etl.nav.group', 'main'],
-      ['/etl/logs', 'scroll-text', 58, 'etl.nav.group', 'main'],
+  it('heads the Data & automation group: Data APIs (with the call log as a tab) and Pipelines', () => {
+    const [group] = manifest.navigation ?? [];
+    expect([group?.id, group?.label, group?.href, group?.order]).toEqual([
+      'data',
+      'etl.nav.group',
+      '/etl',
+      56,
+    ]);
+    expect(group?.children?.map((n) => [n.href, n.icon, n.tabs?.map((t) => t.href) ?? []])).toEqual([
+      ['/etl', 'braces', ['/etl/logs']],
+      ['/etl/pipelines', 'workflow', []],
     ]);
   });
 
@@ -255,7 +261,15 @@ describe('catalogs', () => {
       const keys = [
         manifest.name,
         manifest.description!,
-        ...(manifest.navigation ?? []).flatMap((n) => [n.label, n.group!]),
+        ...(function navKeys(entries: NonNullable<typeof manifest.navigation> = []): string[] {
+          return entries.flatMap((n) => [
+            n.label,
+            ...(n.description ? [n.description] : []),
+            ...(n.keywords ? [n.keywords] : []),
+            ...navKeys(n.children),
+            ...navKeys(n.tabs),
+          ]);
+        })(manifest.navigation),
         ...(manifest.permissions ?? []).map((p) => p.description),
         ...(manifest.settings ?? []).flatMap((s) => [s.label, s.description!]),
         ...(manifest.records?.types ?? []).map((r) => r.name),

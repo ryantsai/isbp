@@ -19,11 +19,13 @@
  *     POST   /tickets/:ref/confirm          confirmSchema → ticketDetailSchema      (requester: fixed + CSAT)
  *     POST   /tickets/:ref/acceptance       acceptanceSchema → ticketDetailSchema   (change requester, in review)
  *     PATCH  /tickets/:ref/problem          updateProblemSchema → ticketDetailSchema
+ *     POST   /tickets/:ref/problem/article  knownErrorArticleSchema → knownErrorArticleResultSchema (201)
  *     PATCH  /tickets/:ref/change           updateChangeSchema → ticketDetailSchema
  *     GET    /queues                        → queueCountsSchema   (counts for the agent views)
  *
  *   Changes
- *     GET    /changes/calendar              calendarQuerySchema → { items: changeCalendarItemSchema[] }
+ *     GET    /changes/calendar              calendarQuerySchema → changeCalendarPageSchema
+ *                                           (keyset pages by planned start: `cursor` = the last page's nextCursor)
  *     GET    /changes/conflicts             conflictQuerySchema → { items: changeConflictSchema[] }
  *
  *   Lookups
@@ -33,8 +35,10 @@
  *
  *   Configuration (itsm.config.manage)
  *     POST   /categories · PATCH /categories/:id · DELETE /categories/:id
+ *     PUT    /categories/order              categoryOrderSchema → { items: categorySchema[] }   (one level)
  *     GET    /calendars · POST /calendars · PATCH /calendars/:id · DELETE /calendars/:id
  *     GET    /sla-policies · POST /sla-policies · PATCH /sla-policies/:id · DELETE /sla-policies/:id
+ *     PUT    /sla-policies/order            policyOrderSchema → { items: slaPolicySchema[] }   (evaluation order)
  *     GET    /catalog                       → { items: catalogItemSchema[] }  (published forms + fulfilment)
  *     PUT    /catalog/:formKey              upsertCatalogItemSchema → catalogItemSchema
  *     DELETE /catalog/:formKey
@@ -124,13 +128,14 @@ export const TRANSITIONS: Record<TicketType, Partial<Record<TicketStatus, Ticket
     fulfilled: ['in_progress', 'closed'],
   },
   problem: {
-    new: ['investigating', 'cancelled'],
+    new: ['investigating', 'known_error', 'cancelled'],
     investigating: ['known_error', 'resolved', 'cancelled'],
     known_error: ['investigating', 'resolved'],
     resolved: ['investigating', 'closed'],
   },
   change: {
-    draft: ['assessment', 'cancelled'],
+    // `authorization` from a draft: "Submit for approval" passes the assessment in the same step.
+    draft: ['assessment', 'authorization', 'cancelled'],
     assessment: ['draft', 'authorization', 'cancelled'],
     authorization: ['cancelled'],
     scheduled: ['implementing', 'cancelled'],
@@ -146,6 +151,9 @@ export const TRANSITIONS: Record<TicketType, Partial<Record<TicketStatus, Ticket
  */
 export const SIGN_OFF_TYPES: readonly TicketType[] = ['incident', 'service_request', 'problem'];
 export const SIGN_OFF_TRANSITIONS: readonly TicketStatus[] = ['in_progress', 'cancelled'];
+
+/** What the service desk's queues hold: problems and changes have their own pages and owners. */
+export const DESK_TYPES: readonly TicketType[] = ['incident', 'service_request'];
 
 /** Statuses where the ticket no longer needs work (closed for SLA, queues and "My requests"). */
 export const DONE_STATUSES: readonly TicketStatus[] = [
@@ -226,6 +234,8 @@ export const categoryRefSchema = z.object({
   key: z.string(),
   name: localizedTextSchema,
   path: z.string(),
+  /** Parents, top first, with their names in every language (the page shows the path in the viewer's). */
+  ancestors: z.array(z.object({ id, name: localizedTextSchema })).optional(),
 });
 export const ciRefSchema = z.object({
   id,
@@ -241,7 +251,8 @@ export type CiRef = z.input<typeof ciRefSchema>;
 export const slaSchema = z.object({
   id,
   metric: slaMetricSchema,
-  policy: z.object({ id, name: z.string() }),
+  /** `name` is the English name; `label` the name in every language it was given in (show this one). */
+  policy: z.object({ id, name: z.string(), label: localizedTextSchema }),
   status: slaStatusSchema,
   startedAt: dateTime,
   dueAt: dateTime,
@@ -280,6 +291,9 @@ export const ticketListItemSchema = z.object({
   /** Changes: planned window. */
   plannedStart: dateTime.nullable(),
   plannedEnd: dateTime.nullable(),
+  /** Changes: type and risk (null for other tickets). */
+  changeType: changeTypeSchema.nullable(),
+  risk: riskSchema.nullable(),
   /** `pending_approval` because its resolution waits for a sign-off (`itsm.resolution`). */
   awaitingSignOff: z.boolean(),
   createdAt: dateTime,
@@ -396,6 +410,8 @@ export const ticketQuerySchema = listQuerySchema.extend({
    */
   view: z.enum(['mine', 'assigned', 'groups', 'unassigned', 'all']).default('all'),
   type: ticketTypeSchema.optional(),
+  /** Comma-separated types (`incident,service_request`: the service desk's queues); `type` wins when both are set. */
+  types: z.string().max(100).optional(),
   /** Comma-separated statuses, or `open` / `done`. */
   status: z.string().max(300).optional(),
   priority: z.coerce.number().int().min(1).max(4).optional(),
@@ -404,7 +420,8 @@ export const ticketQuerySchema = listQuerySchema.extend({
   assigneeId: id.optional(),
   requesterId: id.optional(),
   ciId: id.optional(),
-  sla: z.enum(['breached', 'at_risk']).optional(),
+  /** `attention` = breached or at risk (sort by `slaDue` to see the most urgent first). */
+  sla: z.enum(['breached', 'at_risk', 'attention']).optional(),
   major: z.stringbool().optional(),
 });
 export type TicketQuery = z.input<typeof ticketQuerySchema>;
@@ -419,6 +436,8 @@ export const TICKET_SORT_KEYS = [
   'createdAt',
   'updatedAt',
   'resolvedAt',
+  /** The earliest due time of the ticket's breached or running SLA targets. */
+  'slaDue',
 ] as const;
 
 export const createTicketSchema = z.object({
@@ -440,6 +459,20 @@ export const createTicketSchema = z.object({
   attributes: z.record(z.string().max(64), z.unknown()).optional(),
   /** Records of any module to link the new ticket to (e.g. the asset it is about, the release a change deploys). */
   links: z.array(recordRefSchema).max(5).default([]),
+  /**
+   * Tickets to link the new one to, from its point of view (a problem raised from incidents:
+   * `{ target: 'INC-00120', type: 'caused_by', direction: 'incoming' }`). The caller must be able to read them.
+   */
+  ticketLinks: z
+    .array(
+      z.object({
+        target: z.string().trim().min(1).max(40),
+        type: linkTypeSchema,
+        direction: z.enum(['outgoing', 'incoming']).default('outgoing'),
+      }),
+    )
+    .max(20)
+    .default([]),
   change: z
     .object({
       changeType: changeTypeSchema.default('normal'),
@@ -483,6 +516,8 @@ export const transitionSchema = z.object({
   /** Required to resolve / fulfil / cancel. */
   resolutionCode: resolutionCodeSchema.optional(),
   resolutionNotes: z.string().trim().max(10_000).optional(),
+  /** Resolving: the knowledge article that solved it (linked to the ticket, shown in the timeline). */
+  articleId: id.optional(),
 });
 export type TransitionInput = z.input<typeof transitionSchema>;
 
@@ -511,7 +546,12 @@ export const confirmSchema = z.object({
   comment: z.string().trim().max(2_000).optional(),
 });
 
-export const createLinkSchema = z.object({ target: z.string().trim().min(1).max(40), type: linkTypeSchema });
+export const createLinkSchema = z.object({
+  target: z.string().trim().min(1).max(40),
+  type: linkTypeSchema,
+  /** `incoming`: the target points at this ticket (e.g. on a problem: the incident is `caused_by` it). */
+  direction: z.enum(['outgoing', 'incoming']).default('outgoing'),
+});
 
 export const updateProblemSchema = z
   .object({
@@ -521,6 +561,20 @@ export const updateProblemSchema = z
     kbArticleId: id.nullable(),
   })
   .partial();
+
+/**
+ * "Write the known-error article": the page sends the draft's text in the author's language (headings from its
+ * catalog, the problem's root cause and workaround); the article starts as a draft for agents.
+ */
+export const knownErrorArticleSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  summary: z.string().trim().max(500).optional(),
+  body: z.string().min(1).max(50_000),
+  locale: z.enum(['en', 'zh-TW', 'ja-JP']),
+});
+export const knownErrorArticleResultSchema = z.object({
+  article: z.object({ id, reference: z.string(), href: z.string() }),
+});
 
 export const updateChangeSchema = z
   .object({
@@ -559,12 +613,18 @@ export const activityQuerySchema = listQuerySchema.extend({
 
 /* ───────────────────────────── queues ───────────────────────────── */
 
+/**
+ * Open incidents and service requests per agent view (problems and changes have their own pages; drafts wait for
+ * nobody, so they never count).
+ */
 export const queueCountsSchema = z.object({
   assigned: z.number().int(),
   groups: z.number().int(),
   unassigned: z.number().int(),
   breached: z.number().int(),
   atRisk: z.number().int(),
+  /** Breached or at risk. */
+  attention: z.number().int(),
   mine: z.number().int(),
   majorOpen: z.number().int(),
   /** All open tickets the viewer can read (the "All open" queue). */
@@ -573,7 +633,17 @@ export const queueCountsSchema = z.object({
 
 /* ───────────────────────────── changes ───────────────────────────── */
 
-export const calendarQuerySchema = z.object({ from: dateTime, to: dateTime, ciId: id.optional() });
+/**
+ * Changes planned in a window (at most 400 days), ordered by planned start, then id. A page holds `limit` changes
+ * (1–500, 200 by default); `cursor` is the `nextCursor` of the page before (opaque: a malformed one is a 400).
+ */
+export const calendarQuerySchema = z.object({
+  from: dateTime,
+  to: dateTime,
+  ciId: id.optional(),
+  cursor: z.string().max(512).optional(),
+  limit: z.coerce.number().int().min(1).max(500).default(200),
+});
 export const changeCalendarItemSchema = z.object({
   id,
   reference: z.string(),
@@ -586,6 +656,11 @@ export const changeCalendarItemSchema = z.object({
   cis: z.array(z.object({ id, name: z.string() })),
   assignee: personRefSchema.nullable(),
   hasConflict: z.boolean(),
+});
+/** One page of the change calendar; `nextCursor` is null on the last page. */
+export const changeCalendarPageSchema = z.object({
+  items: z.array(changeCalendarItemSchema),
+  nextCursor: z.string().nullable(),
 });
 export const conflictQuerySchema = z.object({
   start: dateTime,
@@ -610,6 +685,13 @@ export const assignmentGroupSchema = z.object({
   key: z.string(),
   name: z.string(),
   memberCount: z.number().int(),
+  /** Active members who can work tickets. */
+  agentCount: z.number().int(),
+  /**
+   * A service desk group: a role of the group lets its members work tickets, or tickets, categories or catalog items
+   * are assigned to it (pickers list these first).
+   */
+  worksTickets: z.boolean(),
 });
 
 export const categorySchema = z.object({
@@ -641,7 +723,13 @@ export const upsertCategorySchema = z.object({
   ticketTypes: z.array(ticketTypeSchema).min(1),
   defaultGroupId: id.nullish(),
   active: z.boolean().default(true),
-  sortOrder: z.number().int().default(0),
+  /** Order among its siblings; omitted on create = after the last sibling. */
+  sortOrder: z.number().int().optional(),
+});
+/** The new order of a category's children (`parentId` null = the top level): every one of them, once. */
+export const categoryOrderSchema = z.object({
+  parentId: id.nullable(),
+  ids: z.array(id).min(1).max(1000),
 });
 
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -667,12 +755,24 @@ const target = z.object({
   responseMinutes: z.number().int().min(1).max(525_600),
   resolutionMinutes: z.number().int().min(1).max(525_600),
 });
+/** A policy's name in every language (`name` on the ticket's SLA rows stays the English text). */
+const policyNameSchema = localizedTextSchema.refine(
+  (t) => Object.values(t).every((v) => !v || v.length <= 200),
+  'At most 200 characters',
+);
+/** Why a policy never applies to a ticket type: the policy that matches those tickets first (null: no ticket can match). */
+export const policyReachSchema = z.object({
+  blocked: z.array(z.object({ type: ticketTypeSchema, by: id.nullable() })),
+});
 export const slaPolicySchema = z.object({
   id,
-  name: z.string(),
+  name: policyNameSchema,
   description: z.string().nullable(),
   ticketTypes: z.array(ticketTypeSchema),
-  /** Extra condition on ticket facts (`ticket.priority`, `ticket.categoryKey`, `ticket.major`, `ticket.channel`…). */
+  /**
+   * Extra condition on ticket facts (`ticket.priority`, `ticket.categoryKey`, `ticket.categoryKeys` — the category and
+   * its ancestors —, `ticket.major`, `ticket.channel`…).
+   */
   condition: conditionSchema.nullable(),
   /** Targets per priority (`'1'`…`'4'`). */
   targets: z.record(z.enum(['1', '2', '3', '4']), target),
@@ -680,13 +780,27 @@ export const slaPolicySchema = z.object({
   pauseStatuses: z.array(ticketStatusSchema),
   /** Warn at this share of the target (e.g. 0.75). */
   warnAt: z.number().min(0.1).max(0.99),
+  /** Evaluation order (lowest first); the settings page shows the position and offers Move up / Move down. */
   sortOrder: z.number().int(),
   active: z.boolean(),
+  /** Where the policy stands at its place in the order (null: its rules read facts that can't be checked). */
+  reach: policyReachSchema.nullable(),
 });
 export type SlaPolicy = z.input<typeof slaPolicySchema>;
 export const upsertSlaPolicySchema = slaPolicySchema
-  .omit({ id: true, calendar: true })
-  .extend({ calendarId: id, description: z.string().trim().max(1000).nullish() });
+  .omit({ id: true, calendar: true, reach: true, sortOrder: true, name: true })
+  .extend({
+    /** Plain text (English) or the name per language. */
+    name: z.union([z.string().trim().min(1).max(200), policyNameSchema]),
+    calendarId: id,
+    description: z.string().trim().max(1000).nullish(),
+    /** Omitted on create: placed before the first policy that would otherwise take all its tickets, else last. */
+    sortOrder: z.number().int().optional(),
+    /** Put the policy just before this one in the evaluation order (`null`: last). Wins over `sortOrder`. */
+    placeBefore: id.nullish(),
+  });
+/** The new evaluation order: every SLA policy, once. */
+export const policyOrderSchema = z.object({ ids: z.array(id).min(1).max(1000) });
 
 export const catalogItemSchema = z.object({
   formKey: z.string(),
@@ -748,14 +862,33 @@ export type OverviewReport = z.input<typeof overviewReportSchema>;
 
 /* ───────────────────────────── slots ───────────────────────────── */
 
+/** A knowledge article a reply cites (recorded as "Article used" when the agent resolves with that reply). */
+export interface ReplyArticle {
+  id: string;
+  reference: string;
+  title: string;
+}
+
 /** Props of `<Slot name="itsm.ticket.aside">` — e.g. Helpdesk AI's assist panel on the ticket page. */
 export interface TicketAsideSlotProps {
   ticket: TicketDetail;
   actions: {
-    /** Puts text into the reply composer (public comment), for the agent to review and send. */
-    insertReply(text: string): void;
+    /**
+     * Puts text into the reply composer (public comment), for the agent to review and send. Pass `article` when the
+     * text cites a knowledge article: "Send and resolve" then offers it as the article used.
+     */
+    insertReply(text: string, meta?: { article?: ReplyArticle }): void;
     /** Re-fetches the ticket after the slot changed it through the API. */
     refresh(): void;
+    /**
+     * Links another ticket to this one, from this ticket's point of view (e.g. on a problem
+     * `{ type: 'caused_by', direction: 'incoming' }`: "the incident is caused by this problem"). Resolves once saved
+     * (the ticket refreshes); rejects with the API error. `ticket.links` shows what is already linked.
+     */
+    linkTicket(
+      reference: string,
+      link: { type: LinkType; direction: 'outgoing' | 'incoming' },
+    ): Promise<void>;
   };
 }
 

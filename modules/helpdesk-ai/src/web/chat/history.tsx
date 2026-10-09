@@ -3,6 +3,7 @@
 import type { Page } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
+import { ErrorState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -21,7 +22,9 @@ export function ConversationHistory({
   onNew: () => void;
 }) {
   const t = useTranslations('helpdesk-ai');
-  const { data, isLoading } = useApiQuery<Page<Conversation>>('/helpdesk-ai/conversations', { pageSize: 30 });
+  const { data, isLoading, error, refetch } = useApiQuery<Page<Conversation>>('/helpdesk-ai/conversations', {
+    pageSize: 30,
+  });
   return (
     <nav aria-label={t('history.title')} className="flex h-full min-h-0 flex-col gap-3">
       <Button variant="outline" className="w-full justify-start" onClick={onNew}>
@@ -30,7 +33,9 @@ export function ConversationHistory({
       <h2 className="px-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
         {t('history.title')}
       </h2>
-      {isLoading ? (
+      {error && !data ? (
+        <ErrorState error={error} onRetry={() => void refetch()} kind="list" compact />
+      ) : isLoading ? (
         <div className="space-y-2">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-12 w-full rounded-lg" />

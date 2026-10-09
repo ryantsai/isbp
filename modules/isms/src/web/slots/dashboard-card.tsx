@@ -1,21 +1,32 @@
 'use client';
 
+import { useCan } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { ArrowRightIcon, KeyRoundIcon, ShieldCheckIcon } from 'lucide-react';
+import { ArrowRightIcon, ShieldCheckIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { Dashboard } from '../../contracts';
 import { ReviewStatusBadge } from '../badges';
-import { accountHref, reviewHref, stocktakeHref, useDay } from '../lib';
+import { reviewHref, stocktakeHref, useDay } from '../lib';
 
 /**
- * "Your work" on the home dashboard: assets by value (register readers), open stocktakes and the items waiting for
- * you, shared accounts whose password must be changed, and account reviews in progress. Nothing to show: no card.
+ * The home card for the people who run information security: assets by value, stocktakes and account reviews in
+ * progress. People who only take part (their checks, reviews and passwords to change) find those on My work, so they
+ * get no card here. Nothing to show: no card.
  */
 export default function IsmsDashboardCard() {
+  const readsAssets = useCan('isms.assets.read');
+  const runsStocktakes = useCan('isms.stocktakes.manage');
+  const readsReviews = useCan('isms.reviews.read');
+  const runsReviews = useCan('isms.reviews.manage');
+  if (!readsAssets && !runsStocktakes && !readsReviews && !runsReviews) return null;
+  return <IsmsOverviewCard />;
+}
+
+function IsmsOverviewCard() {
   const t = useTranslations('isms.dashboard');
   const day = useDay();
   const { data, isLoading } = useApiQuery<Dashboard>('/isms/dashboard');
@@ -28,12 +39,7 @@ export default function IsmsDashboardCard() {
       </Card>
     );
   if (!data) return null;
-  const empty =
-    !data.assets?.total &&
-    !data.stocktakes.length &&
-    !data.myStocktakeItems &&
-    !data.passwordDue.length &&
-    !data.reviews.length;
+  const empty = !data.assets?.total && !data.stocktakes.length && !data.reviews.length;
   if (empty) return null;
   const max = Math.max(1, ...(data.assets?.byValue.map((v) => v.count) ?? [1]));
   return (
@@ -43,9 +49,7 @@ export default function IsmsDashboardCard() {
           <ShieldCheckIcon aria-hidden className="size-4 text-primary" />
           {t('title')}
         </CardTitle>
-        <CardDescription>
-          {data.myStocktakeItems ? t('myItems', { count: data.myStocktakeItems }) : t('description')}
-        </CardDescription>
+        <CardDescription>{t('description')}</CardDescription>
         <CardAction>
           <Button asChild variant="ghost" size="sm">
             <Link href={data.assets ? '/isms' : '/isms/stocktakes'}>
@@ -56,23 +60,6 @@ export default function IsmsDashboardCard() {
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
-        {data.passwordDue.length > 0 && (
-          <div role="status" className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
-            <p className="flex items-center gap-2 font-medium text-destructive">
-              <KeyRoundIcon aria-hidden className="size-4" />
-              {t('passwordDue', { count: data.passwordDue.length })}
-            </p>
-            <ul className="mt-1 space-y-0.5">
-              {data.passwordDue.map((a) => (
-                <li key={a.id}>
-                  <Link href={accountHref(a.reference)} className="font-mono hover:underline">
-                    {a.accountName}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
         {data.assets && data.assets.total > 0 && (
           <section aria-labelledby="isms-dash-value" className="space-y-1.5">
             <h3 id="isms-dash-value" className="text-xs font-medium text-muted-foreground uppercase">

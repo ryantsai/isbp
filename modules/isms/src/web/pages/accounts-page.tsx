@@ -1,7 +1,7 @@
 'use client';
 
 import type { Page } from '@isbp/sdk';
-import { useCan } from '@isbp/sdk/web';
+import { useCan, usePlatform } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
@@ -10,13 +10,13 @@ import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Switch } from '@isbp/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { KeyRoundIcon, PlusIcon, SearchXIcon } from 'lucide-react';
+import { KeyRoundIcon, PlusIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
 import { ACCOUNT_VIEWS, type SharedAccountListItem } from '../../contracts';
-import { AccountFormSheet } from '../account-dialogs';
+import { AccountFormSheet, PasswordChangedDialog } from '../account-dialogs';
 import { PasswordDueBadge, SharedAccountStatusBadge } from '../badges';
 import { accountHref, useDay } from '../lib';
 
@@ -30,18 +30,26 @@ export default function AccountsPage() {
   const day = useDay();
   const mineId = useId();
   const canManage = useCan('isms.accounts.manage');
+  const canRead = useCan('isms.accounts.read');
+  // Custodians and members only see their accounts: no "Only mine" switch or status tabs for them.
+  const readsAll = canManage || canRead;
+  const { user } = usePlatform();
+  const [recording, setRecording] = useState<SharedAccountListItem | null>(null);
   const [state, set] = useListState({ pageSize: 25 });
   const [creating, setCreating] = useState(false);
   const view: View = ACCOUNT_VIEWS.includes(state.view as View) ? (state.view as View) : 'active';
   const mine = state.mine === 'true';
-  const { data, isLoading, isFetching } = useApiQuery<Page<SharedAccountListItem>>('/isms/accounts', {
-    page: state.page,
-    pageSize: state.pageSize,
-    sort: state.sort,
-    q: state.q,
-    view,
-    mine: mine ? 'true' : undefined,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<SharedAccountListItem>>(
+    '/isms/accounts',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      sort: state.sort,
+      q: state.q,
+      view,
+      mine: mine ? 'true' : undefined,
+    },
+  );
   const columns = useMemo<DataTableColumn<SharedAccountListItem>[]>(
     () => [
       {
@@ -112,8 +120,28 @@ export default function AccountsPage() {
             <SharedAccountStatusBadge status={row.original.status} />
           ),
       },
+      {
+        id: 'actions',
+        header: () => <span className="sr-only">{tc('actions')}</span>,
+        cell: ({ row }) =>
+          row.original.status === 'active' &&
+          row.original.passwordChange.due &&
+          (canManage || row.original.custodian?.id === user.id) ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
+                setRecording(row.original);
+              }}
+              aria-label={t('accounts.recordChangeFor', { account: row.original.accountName })}
+            >
+              {t('accounts.recordChange')}
+            </Button>
+          ) : null,
+      },
     ],
-    [t, day],
+    [t, tc, day, canManage, user.id],
   );
   const table = (
     <DataTable
@@ -126,6 +154,8 @@ export default function AccountsPage() {
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(a) => a.id}
       onRowClick={(a) => router.push(accountHref(a.reference))}
       onPageChange={(page) => set({ page })}
@@ -139,37 +169,44 @@ export default function AccountsPage() {
             placeholder={t('accounts.search')}
             className="sm:w-64"
           />
-          <div className="flex items-center gap-2">
-            <Switch
-              id={mineId}
-              checked={mine}
-              onCheckedChange={(v) => set({ mine: v ? 'true' : undefined })}
-            />
-            <label htmlFor={mineId} className="text-sm">
-              {t('accounts.onlyMine')}
-            </label>
-          </div>
-          {(state.q || mine) && (
-            <Button variant="ghost" size="sm" onClick={() => set({ q: undefined, mine: undefined })}>
-              {tc('clearFilters')}
-            </Button>
+          {readsAll && (
+            <div className="flex items-center gap-2">
+              <Switch
+                id={mineId}
+                checked={mine}
+                onCheckedChange={(v) => set({ mine: v ? 'true' : undefined })}
+              />
+              <label htmlFor={mineId} className="text-sm">
+                {t('accounts.onlyMine')}
+              </label>
+            </div>
           )}
         </>
       }
       empty={
-        <EmptyState
-          icon={state.q ? <SearchXIcon /> : <KeyRoundIcon />}
-          title={t('accounts.empty.title')}
-          description={t(`accounts.empty.${view}`)}
-          action={
-            canManage &&
-            view === 'active' && (
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon /> {t('accounts.new')}
-              </Button>
-            )
-          }
-        />
+        state.q || mine ? (
+          <EmptyState variant="filtered" onClearFilters={() => set({ q: undefined, mine: undefined })} />
+        ) : !readsAll ? (
+          <EmptyState
+            icon={<KeyRoundIcon />}
+            title={t('accounts.empty.participantTitle')}
+            description={t('accounts.empty.participant')}
+          />
+        ) : (
+          <EmptyState
+            icon={<KeyRoundIcon />}
+            title={t('accounts.empty.title')}
+            description={t(`accounts.empty.${view}`)}
+            action={
+              canManage &&
+              view === 'active' && (
+                <Button onClick={() => setCreating(true)}>
+                  <PlusIcon /> {t('accounts.new')}
+                </Button>
+              )
+            }
+          />
+        )
       }
     />
   );
@@ -186,24 +223,31 @@ export default function AccountsPage() {
           )
         }
       />
-      <Tabs
-        value={view}
-        onValueChange={(v) => set({ view: v === 'active' ? undefined : v })}
-        className="gap-4"
-      >
-        <TabsList className="max-w-full justify-start overflow-x-auto">
+      {!readsAll ? (
+        table
+      ) : (
+        <Tabs
+          value={view}
+          onValueChange={(v) => set({ view: v === 'active' ? undefined : v })}
+          className="gap-4"
+        >
+          <TabsList className="max-w-full justify-start overflow-x-auto">
+            {ACCOUNT_VIEWS.map((v) => (
+              <TabsTrigger key={v} value={v}>
+                {t(`accounts.views.${v}`)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
           {ACCOUNT_VIEWS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {t(`accounts.views.${v}`)}
-            </TabsTrigger>
+            <TabsContent key={v} value={v} className="min-w-0">
+              {view === v && table}
+            </TabsContent>
           ))}
-        </TabsList>
-        {ACCOUNT_VIEWS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {view === v && table}
-          </TabsContent>
-        ))}
-      </Tabs>
+        </Tabs>
+      )}
+      {recording && (
+        <PasswordChangedDialog account={recording} open onOpenChange={(o) => !o && setRecording(null)} />
+      )}
       {canManage && (
         <AccountFormSheet
           open={creating}

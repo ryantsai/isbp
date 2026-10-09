@@ -6,6 +6,7 @@ import {
   emptyWorkflowState,
   factsFromJsonSchema,
   simulateWorkflow,
+  splitRepeatApprovers,
   validateWorkflowGraph,
   type ApprovalStep,
   type WorkflowGraph,
@@ -311,5 +312,101 @@ describe('factsFromJsonSchema', () => {
       { path: 'durationDays', type: 'number' },
       { path: 'permanent', type: 'boolean' },
     ]);
+  });
+});
+
+describe('repeatApprovers', () => {
+  it('is optional and only takes ask or skip', () => {
+    expect(workflowGraphSchema.parse({ steps: [] }).repeatApprovers).toBeUndefined();
+    expect(workflowGraphSchema.parse({ steps: [], repeatApprovers: 'skip' }).repeatApprovers).toBe('skip');
+    expect(workflowGraphSchema.parse({ steps: [], repeatApprovers: 'ask' }).repeatApprovers).toBe('ask');
+    expect(workflowGraphSchema.safeParse({ steps: [], repeatApprovers: 'maybe' }).success).toBe(false);
+  });
+
+  it('survives a round trip of the stored graph', () => {
+    const graph = { steps: [], repeatApprovers: 'skip' };
+    expect(workflowGraphSchema.parse(JSON.parse(JSON.stringify(graph)))).toEqual(graph);
+  });
+
+  it('counts an earlier approval in a simulation only when the workflow skips repeats', () => {
+    const graph: WorkflowGraph = { steps: [approval('manager'), approval('owner')], repeatApprovers: 'skip' };
+    const decide = (step: ApprovalStep) =>
+      step.id === 'owner' ? { alreadyApprovedAt: 'manager' } : 'approved';
+    const skipped = simulateWorkflow(graph, {}, decide);
+    expect(skipped.outcome).toBe('approved');
+    expect(skipped.state.steps.owner).toEqual({
+      status: 'approved',
+      reason: 'already-approved',
+      from: 'manager',
+    });
+    expect(simulateWorkflow({ ...graph, repeatApprovers: 'ask' }, {}, decide).state.steps.owner).toEqual({
+      status: 'approved',
+    });
+  });
+
+  it('only counts an approval that came before the step', () => {
+    const graph: WorkflowGraph = { steps: [approval('manager'), approval('owner')], repeatApprovers: 'skip' };
+    const r = simulateWorkflow(graph, {}, (step) =>
+      step.id === 'manager' ? { alreadyApprovedAt: 'owner' } : 'approved',
+    );
+    expect(r.state.steps.manager).toEqual({ status: 'approved' });
+  });
+
+  describe('splitRepeatApprovers', () => {
+    const people = (...userIds: string[]) => userIds.map((userId) => ({ userId, delegatedFromId: null }));
+    const slots = [
+      { slot: 0, assignees: people('p') },
+      { slot: 1, assignees: people('q', 'r') },
+    ];
+    const repeat = new Map([['p', 'manager']]);
+    const askedIds = (r: ReturnType<typeof splitRepeatApprovers>) => r.asked.map((a) => a.assignee.userId);
+
+    it('asks everyone when nobody already approved', () => {
+      const r = splitRepeatApprovers(approval('x'), slots, new Map());
+      expect(r.counted).toEqual([]);
+      expect(askedIds(r)).toEqual(['p', 'q', 'r']);
+      expect(r.outcome).toBe('pending');
+    });
+
+    it('settles a first-answer step when one person already approved', () => {
+      const r = splitRepeatApprovers(approval('x', { mode: 'any' }), slots, repeat);
+      expect(r.outcome).toBe('approved');
+      expect(r.counted).toEqual([
+        { slot: 0, assignee: { userId: 'p', delegatedFromId: null }, fromStepId: 'manager' },
+      ]);
+      expect(r.asked).toEqual([]);
+    });
+
+    it('keeps the other slots asking when every slot must approve', () => {
+      const r = splitRepeatApprovers(approval('x', { mode: 'all' }), slots, repeat);
+      expect(r.outcome).toBe('pending');
+      expect(askedIds(r)).toEqual(['q', 'r']);
+    });
+
+    it('counts toward a quorum', () => {
+      const two = splitRepeatApprovers(approval('x', { mode: 'quorum', quorum: 2 }), slots, repeat);
+      expect(two.outcome).toBe('pending');
+      expect(askedIds(two)).toEqual(['q', 'r']);
+      expect(splitRepeatApprovers(approval('x', { mode: 'quorum', quorum: 1 }), slots, repeat).outcome).toBe(
+        'approved',
+      );
+    });
+
+    it('is settled when every slot already approved', () => {
+      const r = splitRepeatApprovers(
+        approval('x', { mode: 'all' }),
+        [{ slot: 0, assignees: people('p') }],
+        repeat,
+      );
+      expect(r).toMatchObject({ outcome: 'approved', asked: [] });
+    });
+
+    it('settles nothing without slots', () => {
+      expect(splitRepeatApprovers(approval('x'), [], repeat)).toEqual({
+        counted: [],
+        asked: [],
+        outcome: 'pending',
+      });
+    });
   });
 });

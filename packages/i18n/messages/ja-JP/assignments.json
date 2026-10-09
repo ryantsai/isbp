@@ -32,7 +32,7 @@
     "due": "期限 {date}",
     "assignedBy": "{name} が割り当て",
     "scheduled": "スケジュールされたジョブが作成",
-    "group": "{group} に割り当て済み: どのメンバーでも記入できます。",
+    "group": "{group} に割り当て: どのメンバーでも記入できます。",
     "done": "この ToDo は完了しています:",
     "doneBy": "この ToDo は {name} が完了しています:",
     "cancelled": "この ToDo はキャンセルされました。フォームを送信しても ToDo は完了しません。",

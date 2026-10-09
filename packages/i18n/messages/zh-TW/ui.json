@@ -7,7 +7,8 @@
     "next": "下一頁",
     "empty": "目前沒有任何資料。",
     "selectAll": "選取此頁的所有列",
-    "selectRow": "選取此列"
+    "selectRow": "選取此列",
+    "refreshFailed": "無法重新整理此清單，目前顯示先前載入的結果。"
   },
   "search": {
     "clear": "清除搜尋"
@@ -21,7 +22,7 @@
     "max": "請輸入最多 {max}",
     "pattern": "格式不符",
     "option": "請從選項中選擇",
-    "email": "請輸入有效的電子郵件地址",
+    "email": "請輸入電子郵件地址，例如 name@example.com",
     "url": "請輸入以 https:// 開頭的網址",
     "date": "請輸入有效的日期",
     "user": "請選擇人員",
@@ -33,7 +34,8 @@
   "localized": {
     "languages": "語言",
     "filled": "{language}（已填寫）",
-    "missing": "{language}（未填寫，將顯示英文或其他語言）"
+    "missing": "{language}（未填寫）",
+    "fallback": "未填寫的語言會顯示英文或其他已填寫的語言。"
   },
   "person": {
     "search": "搜尋人員…",
@@ -53,14 +55,14 @@
   },
   "conditions": {
     "match": "符合",
-    "all": "所有規則",
-    "any": "任一規則",
-    "addRule": "新增規則",
-    "removeRule": "移除規則",
+    "all": "全部條件",
+    "any": "任一條件",
+    "addCondition": "新增條件",
+    "removeCondition": "移除條件 {n}",
     "fact": "欄位",
     "op": "運算子",
     "value": "值",
-    "noRules": "尚無規則，條件永遠成立。",
+    "noConditions": "尚無條件：一律適用。",
     "ops": {
       "eq": "等於",
       "neq": "不等於",
@@ -73,6 +75,12 @@
       "contains": "包含",
       "empty": "為空白",
       "notEmpty": "已填寫"
+    },
+    "dateOps": {
+      "gt": "晚於",
+      "gte": "等於或晚於",
+      "lt": "早於",
+      "lte": "等於或早於"
     },
     "valuePlaceholder": "值",
     "listPlaceholder": "多個值以逗號分隔",
@@ -87,7 +95,9 @@
     "offsetDays": "加在日期上的天數（負數表示之前）",
     "days": "天",
     "offsetText": "{offset} 天",
-    "today": "今天"
+    "today": "今天",
+    "useToday": "與今天比較",
+    "pickDate": "改為選擇日期"
   },
   "rows": {
     "row": "第 {n} 列",
@@ -167,5 +177,224 @@
   },
   "formErrors": {
     "title": "請檢查表單"
+  },
+  "close": "關閉",
+  "saved": "已儲存",
+  "error": {
+    "listTitle": "無法載入此清單",
+    "title": "無法載入此內容",
+    "retry": "重試",
+    "forbiddenTitle": "您沒有存取此內容的權限",
+    "forbiddenDescription": "如有需要，請向管理員申請存取權限。",
+    "notFoundTitle": "找不到此項目",
+    "notFoundDescription": "可能已被移除，或連結有誤。"
+  },
+  "empty": {
+    "filteredTitle": "沒有符合篩選條件的結果",
+    "filteredDescription": "請嘗試其他篩選條件或搜尋字詞。",
+    "clearFilters": "清除篩選"
+  },
+  "filters": {
+    "button": "篩選",
+    "buttonCount": "篩選（已套用 {count} 個）",
+    "title": "篩選",
+    "description": "變更會立即套用到清單。",
+    "applied": "已套用的篩選",
+    "remove": "移除篩選：{label}",
+    "clearAll": "全部清除",
+    "done": "顯示結果"
+  },
+  "detail": {
+    "more": "更多動作"
+  },
+  "stepper": {
+    "label": "進度",
+    "progress": "第 {current} 步，共 {total} 步",
+    "completed": "已完成",
+    "current": "目前步驟"
+  },
+  "unsaved": {
+    "title": "要捨棄變更嗎？",
+    "description": "您有尚未儲存的變更，關閉後這些變更將會遺失。",
+    "keep": "繼續編輯",
+    "discard": "捨棄"
+  },
+  "validation": {
+    "required": "此欄位為必填",
+    "invalid": "此值無效",
+    "number": "請輸入數字",
+    "date": "請輸入有效的日期",
+    "tooShort": "請至少輸入 {min} 個字元",
+    "tooLong": "最多可輸入 {max} 個字元",
+    "atLeast": "請輸入 {min} 以上的值",
+    "above": "請輸入大於 {min} 的值",
+    "atMost": "請輸入 {max} 以下的值",
+    "below": "請輸入小於 {max} 的值",
+    "chooseOne": "請至少選擇一項",
+    "chooseAtLeast": "請至少選擇 {min} 項",
+    "chooseAtMost": "最多可選擇 {max} 項",
+    "email": "請輸入電子郵件地址，例如 name@example.com",
+    "url": "請輸入網址，例如 https://example.com",
+    "format": "格式不符",
+    "option": "請從選項中選擇",
+    "multipleOf": "請輸入 {divisor} 的倍數"
+  },
+  "problem": {
+    "technicalDetails": "技術詳細資訊"
+  },
+  "loading": "載入中",
+  "runProblem": {
+    "theConnection": "資料庫連線",
+    "theService": "Web 服務",
+    "openConnection": "開啟連線",
+    "retrying": "第 {attempt} 次嘗試失敗，將於 {time} 重試",
+    "db_host_not_found": {
+      "title": "找不到 {connection} 的伺服器",
+      "hint": "主機名稱無法解析。請檢查連線中的主機，或確認伺服器是否已改名或搬移。"
+    },
+    "db_refused": {
+      "title": "{connection} 的伺服器拒絕連線",
+      "hint": "該主機與連接埠上沒有資料庫在接聽。請檢查連線的連接埠，並確認資料庫服務正在執行。"
+    },
+    "db_unreachable": {
+      "title": "無法連到 {connection} 的伺服器",
+      "hint": "網路連線失敗或逾時。請確認伺服器已啟動，且平台能連到它（防火牆、VPN）。"
+    },
+    "db_login": {
+      "title": "資料庫拒絕了 {connection} 的登入",
+      "hint": "使用者名稱或密碼錯誤、已過期或已鎖定。請更新連線中的認證資訊。"
+    },
+    "db_timeout": {
+      "title": "資料庫回應過慢（{connection}）",
+      "hint": "陳述式已達時間上限。請稍後再試，或詢問資料庫負責人伺服器是否忙碌、查詢是否需要索引。"
+    },
+    "db_permission": {
+      "title": "{connection} 的登入帳號沒有執行此動作的權限",
+      "hint": "請資料庫負責人授予連線的登入帳號存取所用資料表的權限。"
+    },
+    "db_object_missing": {
+      "title": "{connection} 中缺少資料表或常式",
+      "hint": "陳述式使用的資料表、檢視或程序不存在或已改名。請檢查陳述式或所用的資料表。"
+    },
+    "db_sql": {
+      "title": "資料庫無法執行陳述式",
+      "hint": "SQL 有語法錯誤。請檢查陳述式。"
+    },
+    "db_data": {
+      "title": "有值不符合目標資料表",
+      "hint": "有值過長或型別不符合欄位。請檢查對應與轉換。"
+    },
+    "db_constraint": {
+      "title": "資料庫拒絕了違反規則的資料列",
+      "hint": "索引鍵重複，或參照的資料列不存在。請檢查索引鍵與寫入的資料。"
+    },
+    "db_read_only": {
+      "title": "{connection} 為唯讀",
+      "hint": "寫入需要允許寫入的連線。請改用其他連線，或洽詢系統管理員。"
+    },
+    "db_other": {
+      "title": "資料庫傳回錯誤（{connection}）",
+      "hint": "技術詳細資料中有伺服器的訊息。"
+    },
+    "connection_disabled": {
+      "title": "連線 {connection} 已停用",
+      "hint": "系統管理員已停用此連線。請在「資料庫連線」重新啟用，或改用其他連線。"
+    },
+    "http_status": {
+      "title": "{host} 回應 {status}，而不是 {expected}",
+      "hint": "{class, select, server {服務端發生問題，通常會自行恢復，請稍後再試。} other {請檢查網址、認證資訊與要求內容。}}"
+    },
+    "http_unreachable": {
+      "title": "無法連到 {host}",
+      "hint": "位址無法解析或伺服器沒有回應。請檢查網址，並確認服務已啟動。"
+    },
+    "http_timeout": {
+      "title": "{host} 未在時限內回應",
+      "hint": "服務緩慢或已停止。請稍後再試，或延長要求的時限。"
+    },
+    "blocked": {
+      "title": "不允許此位址",
+      "hint": "除非系統管理員允許該主機，否則平台不會呼叫私人或內部位址。"
+    },
+    "timeout": {
+      "title": "執行超過 {seconds, number} 秒的時限",
+      "hint": "請在作業設定中延長時限，或縮小工作量。"
+    },
+    "cancelled": {
+      "title": "執行已取消",
+      "hint": "有人停止了執行，或在開始前就已取消。"
+    },
+    "lost": {
+      "title": "執行期間背景工作程序停止回應",
+      "hint": "平台重新啟動或背景工作程序停止。請再執行一次；若持續發生，請系統管理員檢查背景工作程序。"
+    },
+    "script_exit": {
+      "title": "指令碼以錯誤碼 {code} 結束",
+      "hint": "記錄中有指令碼本身的訊息。"
+    },
+    "sandbox_unavailable": {
+      "title": "目前無法執行指令碼",
+      "hint": "尚未設定指令碼執行器或執行器無法使用。請洽詢系統管理員。"
+    },
+    "remote_auth": {
+      "title": "{connection} 拒絕了儲存的認證資訊",
+      "hint": "請更新連線中的認證資訊，然後測試連線。"
+    },
+    "remote_rejected": {
+      "title": "另一個系統拒絕了此變更",
+      "hint": "技術詳細資料中有它的訊息。"
+    },
+    "remote_rate_limited": {
+      "title": "另一個系統正在限制要求",
+      "hint": "暫停一段時間後會自動繼續。"
+    },
+    "not_found": {
+      "title": "此執行處理的項目已不存在",
+      "hint": "它已被刪除。請編輯作業改選其他項目，或刪除作業。"
+    },
+    "invalid": {
+      "title": "此工作的設定已不再有效",
+      "hint": "請編輯後重新儲存，表單會標示要修正的地方。"
+    },
+    "other": {
+      "title": "執行失敗",
+      "hint": "技術詳細資料中有錯誤內容。"
+    }
+  },
+  "runLog": {
+    "title": "記錄",
+    "live": "{count} 行 · 即時",
+    "lines": "{count} 行",
+    "follow": "自動捲動",
+    "copy": "複製",
+    "download": "下載",
+    "copied": "已複製記錄",
+    "copyFailed": "無法複製記錄",
+    "waiting": "等待第一行記錄…",
+    "empty": "沒有任何記錄。",
+    "noMatch": "此層級沒有記錄。",
+    "filter": "顯示的記錄",
+    "filters": {
+      "all": "所有記錄",
+      "problems": "警告與錯誤",
+      "errors": "僅錯誤"
+    },
+    "levels": {
+      "info": "資訊",
+      "warn": "警告",
+      "error": "錯誤"
+    }
+  },
+  "inUse": {
+    "title": "仍在使用中的項目",
+    "summary": "仍被「{first}」{more, plural, =0 {} other {等 # 個以上項目}}使用。",
+    "more": "…以及其他項目",
+    "kind": {
+      "request": "申請",
+      "approval": "簽核",
+      "todo": "待辦事項",
+      "work": "進行中的工作",
+      "setting": "設定"
+    }
   }
 }

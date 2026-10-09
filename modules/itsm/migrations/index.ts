@@ -17,6 +17,11 @@ export const migrations: Migration[] = [
     hash: '02396aa4b37d3f01615f407040895fbd48b049ae3c0fe4184af0e5c750c7f683',
     sql: 'ALTER TABLE "itsm"."changes" ADD COLUMN "acceptance" varchar(12);--> statement-breakpoint\nALTER TABLE "itsm"."changes" ADD COLUMN "acceptance_note" text;--> statement-breakpoint\nALTER TABLE "itsm"."changes" ADD COLUMN "acceptance_at" timestamp with time zone;--> statement-breakpoint\nALTER TABLE "itsm"."changes" ADD COLUMN "acceptance_by" uuid;--> statement-breakpoint\nALTER TABLE "itsm"."tickets" ADD COLUMN "sign_off_instance_id" uuid;--> statement-breakpoint\nALTER TABLE "itsm"."changes" ADD CONSTRAINT "changes_acceptance_by_users_id_fk" FOREIGN KEY ("acceptance_by") REFERENCES "core"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint\nCREATE INDEX "tickets_sign_off_idx" ON "itsm"."tickets" USING btree ("sign_off_instance_id") WHERE "itsm"."tickets"."sign_off_instance_id" is not null;',
   },
+  {
+    tag: '0003_spotty_sir_ram',
+    hash: '6e086490988eb94b40370e57966a1f996caef8f16531574493a8af378d27cffb',
+    sql: 'ALTER TABLE "itsm"."sla_policies" ADD COLUMN "label" jsonb;',
+  },
 ];
 
 export default migrations;

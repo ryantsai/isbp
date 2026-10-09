@@ -9,13 +9,13 @@ import {
   UsersRoundIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useFormatter, useNow, useTranslations } from 'next-intl';
+import { useNow, useTranslations } from 'next-intl';
 import { useId } from 'react';
 import { AssignmentDueBadge, useShortDate } from './assignment-badges';
 
 /**
- * The to-do a form is being filled in for, above the form: "Monthly server room inspection — due 31 Oct", the note,
- * and whether sending the form completes it (or why it won't: done, cancelled, not yours).
+ * The to-do a form is being filled in for, above the form: its title, when it is due (once), who may fill it in, and
+ * that sending the form completes it. Or why it can't be (done, cancelled, not yours).
  */
 export function AssignmentBanner({
   assignment,
@@ -27,7 +27,6 @@ export function AssignmentBanner({
   const t = useTranslations('assignments.banner');
   const now = useNow({ updateInterval: 60_000 });
   const short = useShortDate();
-  const format = useFormatter();
   const uid = useId();
   if (notFound)
     return (
@@ -81,27 +80,19 @@ export function AssignmentBanner({
         <AssignmentDueBadge dueAt={assignment.dueAt} now={now} />
       </div>
       <h2 id={uid} className="text-base font-semibold [overflow-wrap:anywhere]">
-        {assignment.title} — {t('due', { date: short(assignment.dueAt, now) })}
+        {assignment.title}
       </h2>
-      {assignment.note && <p className="whitespace-pre-line [overflow-wrap:anywhere]">{assignment.note}</p>}
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        {group && (
-          <span className="inline-flex items-center gap-1">
-            <UsersRoundIcon className="size-3.5" aria-hidden />
-            {t('group', { group })}
-          </span>
-        )}
-        <span>
-          {assignment.createdBy
-            ? t('assignedBy', { name: assignment.createdBy.displayName })
-            : assignment.source.type === 'job'
-              ? t('scheduled')
-              : null}
-        </span>
-        <time dateTime={assignment.dueAt}>
-          {format.dateTime(new Date(assignment.dueAt), { dateStyle: 'full', timeStyle: 'short' })}
-        </time>
+      <p className="text-muted-foreground">
+        <time dateTime={assignment.dueAt}>{t('due', { date: short(assignment.dueAt, now) })}</time>
+        {assignment.createdBy && <> · {t('assignedBy', { name: assignment.createdBy.displayName })}</>}
       </p>
+      {assignment.note && <p className="whitespace-pre-line [overflow-wrap:anywhere]">{assignment.note}</p>}
+      {group && (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <UsersRoundIcon className="size-3.5" aria-hidden />
+          {t('group', { group })}
+        </p>
+      )}
       <p className="font-medium">{t('willComplete')}</p>
     </section>
   );

@@ -43,10 +43,11 @@ devices.
 
 Start here each morning, or before a budget or audit meeting, to see what needs attention.
 
-1. Go to **Assets → Asset overview**.
+1. Go to **Assets → Overview**.
 2. Read the figures at the top: **Assets**, **Deployed**, **In stock** (with how many are on order), **In repair**,
-   **Book value**, **Warranties ending in 30 days**, **Non-compliant licences** and **Contracts renewing in 90
-   days**. Each figure opens the matching filtered list.
+   **Book value**, **Warranties ending in 30 days**, **Non-compliant licences**, **Installs needing action**
+   (software without a licence or not allowed, for asset managers) and **Contracts renewing in 90 days**. Each
+   figure opens the matching filtered list.
 3. Look at the charts: **Assets by category and status**, **Assets by status** and **Spend by vendor** (the yearly
    cost of active contracts and licences, plus hardware bought in the last 12 months). Use **View as** → **Table**
    to read the numbers as a table, for example to copy them into a report.
@@ -58,34 +59,39 @@ In the demo, **Adobe Acrobat Pro** is listed under **Licences out of compliance*
 
 ![The asset overview with key figures, charts and what needs attention](../../../apps/web/public/help/en/assets-overview.jpg)
 
-> **Tip:** Asset managers also get an **Asset attention** card on the **Dashboard**, with non-compliant licences,
+> **Tip:** Asset managers also get an **Asset attention** card on **Home**, with non-compliant licences,
 > contracts renewing in 30 days and warranties ending in 30 days.
 
 ## Register a device
 
 Register a device when it is ordered or when it arrives, so it can be tracked from the first day.
 
-1. Go to **Assets → Hardware** and select **New asset**.
-2. Under **Identity**, enter the **Name** (for example `TPE-LT-0042`), the **Category**, the **Model** and the
-   **Serial number** as printed on the device. Each serial number can be registered only once.
-3. Choose the **Status**: **In stock** or **Ordered**. Ordered devices move to stock when they arrive.
-4. Optionally choose **Deploy to (optional)** to hand it to someone straight away.
-5. Under **Location**, enter the location and department. For servers and network gear, pick the **CMDB
-   configuration item** this device is.
-6. Under **Purchase and warranty**, enter the vendor, purchase date, purchase cost, currency, invoice number and
-   **Warranty ends**.
-7. Save.
+1. Go to **Assets → Hardware** and select **New asset**. The form opens at the side.
+2. Choose the **Category** first, then the **Model**: the list shows only models of that category, and says how long
+   the model lasts (or when it retires, once you enter the purchase date).
+3. Enter the **Name** (for example `TPE-LT-0042`) and the **Serial number** as printed on the device. Each serial
+   number can be registered only once.
+4. To hand it to someone straight away, choose **Assign to (optional)**: the form then says "It will be deployed to
+   …". Otherwise choose the **Status**: **In stock** or **Ordered** (ordered devices move to stock when they arrive).
+5. Under **Location**, enter the location and department. For servers, network gear, storage and printers, pick the
+   **CMDB configuration item** this device is (the field shows only for those categories).
+6. Optionally open **Purchase details (optional)** and enter the vendor, invoice number, purchase date, cost,
+   currency and **Warranty ends**.
+7. Select **Save**.
 
-**What happens next:** the device gets an asset tag such as `AST-00042` and its history starts with "Registered".
-Status changes and assignment have their own actions on the asset page. To plan a replacement date, select
-**Edit** later and set **Retire on**; left empty, it is the purchase date plus the model's lifespan.
+**What happens next:** the device gets an asset tag such as `AST-00042`, its page opens, and its history starts with
+"Registered". To plan a replacement date, select **Edit** later and set **Retire on**; left empty, it is the purchase
+date plus the model's lifespan.
 
 ## Assign a device and take it back
 
-Use this when you hand a laptop to a new hire, swap a broken phone, or take a loaner back.
+Use this when you hand a laptop to a new hire, swap a broken phone, or take a loaner back. The asset page shows one
+main button for the next step: **Assign** for a device in stock, **Return** for a deployed one, **Record data wipe**
+while a wipe is pending and **Request disposal** for a retired one. Everything else (**Reassign**, **Change status**,
+**Record data wipe**, **Request disposal…**) is under **More** (⋯).
 
 1. Open the device from **Assets → Hardware** (the **In stock** tab lists what you can hand out).
-2. Select **Assign** (or **Reassign** if someone already has it).
+2. Select **Assign** (or **More → Reassign** if someone already has it).
 3. Choose the **Person**, add a **Note (optional)** and select **Assign**.
 
 **What happens next:** the device becomes **Deployed**, the person is notified ("Devices assigned to me") and finds
@@ -95,12 +101,16 @@ To take it back, select **Return**, choose **Return to** (**In stock** or **In r
 example missing accessories) and select **Return**. History records "Returned by …".
 
 Devices that store data (laptops, desktops, phones, tablets, servers, storage) get a data wipe when they come back:
-leave **Schedule a data wipe** on and, if the data must be kept for a while, set **Keep the data until**. The wipe is
-due 2 months after that date (or after today; an administrator sets the months under **Administration → Modules**).
-The device shows **Wipe by …**, then **Wipe due …** a week before and **Wipe overdue since …** after it, the asset
-managers are reminded, and **Assets → Hardware** filters by **Data wipe**. When the storage is wiped, select
-**Record data wipe**, choose the **Method** (for example **Factory reset** for a phone), and optionally **Wiped at**,
-**Wiped by** and a **Note**; the **Data wipe** card and the history show who wiped it, when and how.
+leave **Schedule a data wipe** on and, if someone still needs the files (a leaver's handover, for example), set
+**Keep the data until (optional)**. The dialog shows the date the wipe is due, for example "Wipe due by Dec 9, 2026
+(2 months after the data is no longer needed)"; an administrator sets the months under **Administration → Asset
+settings**. The device shows **Wipe by …**, then **Wipe due …** a week before and **Wipe overdue since …** after it,
+the asset managers are reminded, and **Assets → Hardware** filters by **Data wipe**.
+
+If the storage is already wiped, tick **Already wiped? Record it now** in the **Return** dialog: the **Record data
+wipe** dialog follows. Otherwise, when it is wiped, select **Record data wipe**, choose the **Method** (for example
+**Factory reset** for a phone), and optionally **Wiped at** (empty means now), **Wiped by** and a **Note**; the
+**Data wipe** card and the history show who wiped it, when and how.
 
 Request forms can do both for you: the **Assign a device** and **Take back a device** actions hand over or take back
 the device picked in the form (or by IT at an approval step), with the request (for example the signed
@@ -112,8 +122,9 @@ confidentiality agreement) linked from the device's history.
 
 Every device follows the same lifecycle, so the counts on the overview stay trustworthy.
 
-1. Open the device and select **Change status**.
-2. Choose the **New status**, add a note and select **Change status**.
+1. Open the device and select **More → Change status**.
+2. Choose the **New status**, add a note and select **Change status**. **Deployed** isn't offered: deploying a device
+   is **Assign**, because it needs a person.
 
 | Current status | Can move to                                                |
 | -------------- | ---------------------------------------------------------- |
@@ -130,7 +141,7 @@ status, the dialog tells you that the person will no longer be its assignee.
 
 The asset page has five tabs: **Overview**, **Software** (installed software and licence seats), **Contracts**
 (support and maintenance contracts that cover it), **History** (every step, who made it and when) and **Links &
-files**.
+files**. The tab you open is part of the address, so a link can open the **History** tab directly.
 
 ## Read a device's book value
 
@@ -150,13 +161,14 @@ every device in the default currency (TWD unless an administrator changed it).
 A device that leaves the company for good must be approved first, and devices that can hold company data and still
 have a book value or are under five years old need information security's sign-off that the storage was wiped or destroyed.
 
-1. Make sure the device is **Retired** (use **Change status**).
-2. Select **Request disposal**.
-3. Fill in **How will it be disposed of?**, for example "wipe the SSD and send it to the certified recycler". Under
+1. Open the device. For a **Retired** device, select **Request disposal**; for one **In stock** or **In repair**,
+   select **More → Request disposal…**: the request retires it first (the dialog says so). A device someone still has
+   must be returned first.
+2. Fill in **How will it be disposed of?**, for example "wipe the SSD and send it to the certified recycler". Under
    **Who will approve it**, the dialog lists the approval steps and people of the disposal workflow in use. When
    information security signs off too (by default for a laptop, desktop, server, storage device, phone or tablet that
    still has a book value or is under five years old), the dialog reminds you.
-4. Select **Request disposal**.
+3. Select **Request disposal**.
 
 **What happens next:**
 
@@ -188,7 +200,8 @@ The devices stay **Deployed** until you collect them. Then open each one and sel
 
 Record what the company owns so you can compare it with what is used.
 
-1. Go to **Assets → Software** and select **New licence**.
+1. Go to **Assets → Software**. Its tabs are **Licences**, **Approved list** and **Installed**: what you own, what
+   may be installed and what devices report. On **Licences**, select **New licence**.
 2. Enter the **Product** (installs reported by inventory tools are matched by this name), the publisher and
    vendor, the **Licence type** (**Per user**, **Per device**, **Concurrent**, **Site** or **Subscription**), and
    **Entitlements** (leave it empty for unlimited or site licences).
@@ -210,7 +223,12 @@ Before a true-up, a renewal or an audit by a publisher, check whether usage matc
 2. Open a licence. **Entitlement and usage** shows **Entitled**, **Assigned**, **Unlicensed installs** and
    **Available**, and a sentence explaining the compliance state.
 3. Open the **Installations** tab and turn on **Only unlicensed** to see devices running the product without a
-   seat. Select **Assign licence** on a row to give that device (per-device licences) or its user a seat.
+   seat. Select **Assign licence** on a row to give that device (per-device licences) or its user a seat. When no
+   seat is free, the row says "No free seat: reclaim or buy more first" instead.
+4. To free seats, open the **Seats** tab and turn on **Only seats to reclaim**. It lists seats whose holder left or is
+   suspended, whose device was retired or lost, or (when inventory tools report the product) on which no device of
+   theirs has reported it for 90 days, with the reason. Select **Reclaim** on a row, or select several rows and
+   **Reclaim …**. An over-deployed licence links to this list ("Show seats to reclaim").
 
 | Compliance        | Meaning                                                                                         |
 | ----------------- | ----------------------------------------------------------------------------------------------- |
@@ -239,21 +257,29 @@ product).
 ## Review discovered software
 
 Inventory tools name products their own way: a laptop may report "Microsoft Office 365 ProPlus" for the **Microsoft
-365 E3** licence we own. Review those names regularly so compliance counts every install, and import a CSV export
-when a tool can't call the API.
+365 E3** licence we own. Review those names regularly so compliance counts every install, decide about software that
+isn't allowed, and import a CSV export when a tool can't call the API.
 
-1. Go to **Assets → Discovery**. You need the **Asset manager** or **Asset administrator** role.
-2. On **To review**, check the discovered titles that match no licence's product, most widespread first, with their
-   **Devices** and **Last seen**.
-3. Open a title's actions (the ⋯ button at the end of its row) and choose:
+1. Go to **Assets → Software → Installed**. You need the **Asset manager** or **Asset administrator** role.
+2. On **No licence**, check the discovered titles that match no licence's product, most widespread first, with their
+   **Devices** and **Last seen**. Free and open-source software on the approved list doesn't show here.
+3. On a title's row, choose:
    - **Map to licence**: choose the **Licence** and select **Map**. Installs reported under this title now count as
      that licence's product on every device, now and in later reports; the device's **Software** tab shows
-     "Reported as …".
-   - **Ignore**: for software that needs no licence. The installs stay on the devices; the title leaves the list.
-4. **Mapped & ignored** lists the decisions. Select the bin next to one to remove it: a mapped title goes back to
+     "Reported as …". A device that reports both the title and the licence's product keeps both, and removing the
+     mapping restores every install at once.
+   - **Needs no licence**: for software that needs none. The installs stay on the devices; the title leaves the list.
+   - **More** (⋯) → **Allow…** or **Block…**: add the title to the approved list.
+4. **Not allowed** lists installs on devices in use that the approved list doesn't cover for the device's department
+   (**Not on the approved list**) and blocked ones (**Blocked**). On a row:
+   - **Allow…** opens the approved-list form for the device's department (choose **Whole company** there if it is
+     allowed everywhere) with no licence type chosen: pick it.
+   - **Ask to remove** raises a service desk request, in your name, to uninstall it from that device, linked to the
+     device, with the device's user in the description.
+5. **Mapped & ignored** lists the decisions. Select **Remove** next to one to undo it: a mapped title goes back to
    the name the tool reported.
-5. **Recent reports** lists every device report with its **Source** (**Inventory tool** or **CSV import**), the
-   changes and who reported it.
+6. **Reports** lists every device report with its **Source** (**Inventory tool** or **CSV import**), the changes and
+   who reported it.
 
 To import an inventory tool's export, select **Import CSV**, choose the **CSV file**, check the summary (rows,
 devices and skipped lines) and select **Import … devices**. The dialog lists the columns:
@@ -270,29 +296,27 @@ One row per installed product, after a header row; commas, semicolons or tabs se
 
 **What happens next:** each device in the file is a complete report, exactly like an inventory tool's: products it no
 longer lists are removed from that device (installs recorded by hand are kept), and licence compliance is
-recomputed. Devices that aren't registered in Assets are listed, so you can register them and import again. Every
-report and every decision is recorded in the audit log.
+recomputed. Two reports for the same device are applied one after the other. Devices that aren't registered in Assets
+are listed, so you can register them and import again. Every report and every decision is recorded in the audit log.
 
-In the demo, **7-Zip** is already ignored, and a few laptops still report **Microsoft Office 365 ProPlus**: map it to
-**Microsoft 365 E3**.
+In the demo, **7-Zip** is already marked as needing no licence, and a few laptops still report **Microsoft Office 365
+ProPlus**: map it to **Microsoft 365 E3**. Two laptops run **WinRAR** (not on the list) and one runs **uTorrent**
+(blocked): ask to remove it.
 
-**Keep the approved software list.** **Assets → Approved software** is the software whitelist: each entry allows (or
+**Keep the approved list.** **Assets → Software → Approved list** is the software allow list: each entry allows (or
 blocks) a title, optionally one **Version** (empty for any), for the **Whole company** or some **Departments**,
-optionally **Valid until** a date for short-term use, with its **Licence type**, the licence or contract it is used
-under and the request it was approved with. Asset managers select **Add software** (or, on **To review**, **Add to
-approved list** or **Block** in a title's actions); everyone with access to software sees the list, and **Export CSV**
-downloads it in the whitelist layout. Once the list has an allowed entry, **Discovery → Not approved** lists the
-installs on devices in use that no entry covers for the device's department (**Not on the approved list**) and the
-blocked ones (**Blocked**); the device's **Software** tab shows the same labels, and the home dashboard counts them.
-A software install request form can add the title for you with the **Approve software** action. In the demo, two
-laptops run **WinRAR** (not on the list) and one runs **uTorrent** (blocked).
+optionally **Valid until** a date for short-term use, with its **Licence type** (always chosen, never assumed), the
+licence or contract it is used under and the request it was approved with. Asset managers select **Add software**;
+everyone with access to software sees the list, and **Export CSV** downloads it in the allow-list layout. The
+device's **Software** tab shows the same labels as **Not allowed**, and the home dashboard counts them. A software
+install request form can add the title for you with the **Approve software** action.
 
 ## Keep contracts and renewals on track
 
 Support, maintenance, lease and subscription contracts renew or lapse on fixed dates. Assets reminds you in time
 and keeps the signed document with the contract.
 
-1. Go to **Assets → Contracts** and select **New contract**.
+1. Go to **Assets → Contracts** (its tabs are **Contracts** and **Vendors**) and select **New contract**.
 2. Enter the title, vendor, **Kind**, start and end dates, the **Notice period** (days before the end when the
    reminder goes out), whether it **Auto-renews**, the cost and billing, and the **Owner**, who receives the
    renewal reminders. Choose **Save as a draft (no reminders until it is activated)** if it isn't signed yet; later
@@ -318,8 +342,8 @@ notice period, and has `Dell-ProSupport-Plus-signed.pdf` attached.
 
 ## Track vendors and spend
 
-1. Go to **Assets → Vendors** to see each vendor's contact, how many contracts, licences and assets you have with
-   them, and the **Annual spend**.
+1. Go to **Assets → Contracts → Vendors** to see each vendor's contact, how many contracts, licences and assets you
+   have with them, and the **Annual spend**.
 2. Select a vendor to see its contracts, licences and the hardware bought from it in the last 12 months.
 3. Asset managers and contract managers can add one with **New vendor**. Contacts appear on contracts and in
    renewal reminders.
@@ -328,11 +352,12 @@ notice period, and has `Dell-ProSupport-Plus-signed.pdf` attached.
 
 Models set the depreciation lifespan of the devices bought as them, so keep them right.
 
-1. Go to **Administration → Assets**. On the **Models** tab select **New model**.
+1. Go to **Administration → Asset settings**. On the **Models** tab select **New model**.
 2. Enter the **Manufacturer**, **Model name**, **Category**, **Part number** and **Lifespan (months)** (leave it
    empty for the category default). Turn off **Available for new assets** for models you no longer buy.
-3. The **General** tab shows the **Default currency**, the **Warranty reminder window** (default 30 days) and the
-   **Under-used threshold**. A platform administrator changes these in **Administration → Modules**.
+3. The **General** tab holds the **Default currency**, the **Warranty reminder window** (default 30 days), the
+   **Under-used threshold** and the data-wipe months and reminder days. Platform administrators change them right
+   there and select **Save**; others see the values.
 
 You need the **Asset manager**, **Contract manager** or **Asset administrator** role to see this page.
 
@@ -341,10 +366,11 @@ You need the **Asset manager**, **Contract manager** or **Asset administrator** 
 Every employee can see the devices and personal software licences IT has given them, and report a problem with one
 in a few clicks. Point people here when they ask "which laptop do I have?".
 
-1. Go to **Requests** and, under **What do you need?**, select **My devices**.
+1. Select **My devices** in the sidebar (it is also a card under **Requests → What do you need?**).
 2. Each device shows its **Asset tag**, **Serial number**, **Yours since** and **Warranty**. Personal software
    licences are listed below.
-3. To report a problem with a device, select **Report a problem** on it.
+3. To report a problem with a device, select **Report a problem** on it. Below the list, **Tell the service desk**
+   and **Request something** cover a device that is missing, wrong or not yours, or a new one.
 
 **What happens next:** the **Report an issue** page opens with the device already linked. The person describes the
 problem and selects **Send to the service desk**. The new ticket carries a link to the asset, so the agent sees
@@ -385,7 +411,7 @@ administrator can keep hardware in step with it through the Integrations Hub.
 - The lifecycle still applies. A device marked disposed in ServiceDesk Plus is **not** disposed in ISBP: the sync
   refuses it and reports an error. Use **Request disposal** here so the approval happens (see [Approvals can't be skipped from outside](integrations.md#approvals-cant-be-skipped-from-outside)).
 
-In the demo, the **Assets ↔ assets** sync profile links hardware with the stand-in **Contoso ServiceDesk Plus** in
+In the demo, the **Assets ↔ assets** sync rule links hardware with the stand-in **Contoso ServiceDesk Plus** in
 both directions; where both sides changed the same field, the ServiceDesk Plus value wins. Setting up connections,
 mappings and conflict rules is covered in the [Integrations guide](integrations.md).
 

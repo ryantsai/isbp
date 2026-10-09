@@ -8,7 +8,16 @@ import { formatCiNumber } from '@isbp/module-cmdb/model';
 import type { AuthContext, ModuleContext } from '@isbp/sdk/server';
 import { aliasedTable, and, asc, desc, eq, gt, inArray, lt, ne } from 'drizzle-orm';
 import type { z } from 'zod';
-import type { activitySchema, ticketDetailSchema, ticketListItemSchema } from '../contracts';
+import type {
+  activitySchema,
+  changeTypeSchema,
+  riskSchema,
+  ticketDetailSchema,
+  ticketListItemSchema,
+} from '../contracts';
+
+type ChangeType = z.infer<typeof changeTypeSchema>;
+type Risk = z.infer<typeof riskSchema>;
 import { canRead, viewerOf } from './access';
 import { categoryMap, categoryRef, groupsByIds, peopleByIds, personRef } from './lookups';
 import { isDone, refOf } from './rules';
@@ -37,6 +46,8 @@ export interface ListRow {
   ticket: TicketRow;
   plannedStart: Date | null;
   plannedEnd: Date | null;
+  changeType?: ChangeType | null;
+  risk?: Risk | null;
 }
 
 /** Conflicting changes: same CI, overlapping window, still going ahead. */
@@ -83,7 +94,7 @@ export class TicketReader {
     const slaBy = new Map<string, SlaRow[]>();
     for (const s of slaRows) slaBy.set(s.ticketId, [...(slaBy.get(s.ticketId) ?? []), s]);
     return Promise.all(
-      rows.map(async ({ ticket: t, plannedStart, plannedEnd }) => ({
+      rows.map(async ({ ticket: t, plannedStart, plannedEnd, changeType, risk }) => ({
         id: t.id,
         type: t.type,
         number: t.number,
@@ -102,6 +113,8 @@ export class TicketReader {
         sla: await this.badge(t, slaBy.get(t.id) ?? [], now),
         plannedStart: plannedStart,
         plannedEnd: plannedEnd,
+        changeType: t.type === 'change' ? (changeType ?? null) : null,
+        risk: t.type === 'change' ? (risk ?? null) : null,
         awaitingSignOff: Boolean(t.signOffInstanceId) && t.status === 'pending_approval',
         createdAt: t.createdAt,
         updatedAt: t.updatedAt,
@@ -114,12 +127,23 @@ export class TicketReader {
     const [change] =
       t.type === 'change'
         ? await this.ctx.db
-            .select({ plannedStart: changes.plannedStart, plannedEnd: changes.plannedEnd })
+            .select({
+              plannedStart: changes.plannedStart,
+              plannedEnd: changes.plannedEnd,
+              changeType: changes.changeType,
+              risk: changes.risk,
+            })
             .from(changes)
             .where(eq(changes.ticketId, t.id))
         : [];
     const [item] = await this.listItems([
-      { ticket: t, plannedStart: change?.plannedStart ?? null, plannedEnd: change?.plannedEnd ?? null },
+      {
+        ticket: t,
+        plannedStart: change?.plannedStart ?? null,
+        plannedEnd: change?.plannedEnd ?? null,
+        changeType: change?.changeType ?? null,
+        risk: change?.risk ?? null,
+      },
     ]);
     return item!;
   }
@@ -177,16 +201,16 @@ export class TicketReader {
 
   async slasOf(t: TicketRow, now = new Date()) {
     const rows = await this.ctx.db
-      .select({ sla: ticketSlas, policyName: slaPolicies.name })
+      .select({ sla: ticketSlas, policyName: slaPolicies.name, policyLabel: slaPolicies.label })
       .from(ticketSlas)
       .innerJoin(slaPolicies, eq(slaPolicies.id, ticketSlas.policyId))
       .where(eq(ticketSlas.ticketId, t.id))
       .orderBy(asc(ticketSlas.metric));
     return Promise.all(
-      rows.map(async ({ sla, policyName }) => ({
+      rows.map(async ({ sla, policyName, policyLabel }) => ({
         id: sla.id,
         metric: sla.metric,
-        policy: { id: sla.policyId, name: policyName },
+        policy: { id: sla.policyId, name: policyName, label: policyLabel ?? { en: policyName } },
         status: sla.status,
         startedAt: sla.startedAt,
         dueAt: sla.dueAt,

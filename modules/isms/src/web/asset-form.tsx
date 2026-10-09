@@ -12,6 +12,14 @@ import {
   FormLabel,
   FormMessage,
 } from '@isbp/ui/form';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
@@ -25,14 +33,23 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
+import { Disclosure } from '@isbp/ui/motion';
+import { StatusBadge } from '@isbp/ui/status';
 import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
-import { useId, useMemo } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { type FieldValues, useForm, type UseFormReturn, useWatch } from 'react-hook-form';
 import { z } from 'zod';
-import { type Asset, type AssetClass, CIA_LEVELS, type CreateAssetInput, type Guidance } from '../contracts';
+import {
+  ASSET_STATUSES,
+  type Asset,
+  type AssetClass,
+  CIA_LEVELS,
+  type CreateAssetInput,
+  type Guidance,
+  type UpdateAssetInput,
+} from '../contracts';
 import { assetValue } from '../model';
-import { ValueBadge } from './badges';
 import {
   attributesPayload,
   CustomFieldsSection,
@@ -99,7 +116,7 @@ function CiaChooser({
 }: {
   label: string;
   hint: string;
-  value: number;
+  value: number | null;
   onChange: (v: number) => void;
   guidance: Guidance['c'] | undefined;
   error?: string;
@@ -108,7 +125,11 @@ function CiaChooser({
   const t = useTranslations('isms.assetForm');
   const name = useId();
   return (
-    <fieldset className="min-w-0 space-y-2" aria-describedby={`${name}-hint`}>
+    <fieldset
+      className="min-w-0 space-y-2"
+      aria-describedby={`${name}-hint`}
+      aria-invalid={error ? true : undefined}
+    >
       <legend className="text-sm font-medium">{label}</legend>
       <p id={`${name}-hint`} className="text-xs text-muted-foreground">
         {hint}
@@ -189,9 +210,28 @@ function AssetForm({
           .number<string>()
           .int(t('assetForm.quantityInvalid'))
           .min(0, t('assetForm.quantityInvalid')),
-        confidentiality: z.number().int().min(1).max(4),
-        integrity: z.number().int().min(1).max(4),
-        availability: z.number().int().min(1).max(4),
+        // No default score: the value drives risk and stocktakes, so each of C, I and A is chosen on purpose.
+        confidentiality: z
+          .number()
+          .int()
+          .min(1)
+          .max(4)
+          .nullable()
+          .refine((v) => v !== null, t('assetForm.scoreRequired')),
+        integrity: z
+          .number()
+          .int()
+          .min(1)
+          .max(4)
+          .nullable()
+          .refine((v) => v !== null, t('assetForm.scoreRequired')),
+        availability: z
+          .number()
+          .int()
+          .min(1)
+          .max(4)
+          .nullable()
+          .refine((v) => v !== null, t('assetForm.scoreRequired')),
         classificationId: z.string(),
         notes: z.string().max(5000),
         attributes: z.record(z.string(), z.unknown()),
@@ -217,9 +257,9 @@ function AssetForm({
       model: asset?.model ?? '',
       version: asset?.version ?? '',
       quantity: String(asset?.quantity ?? 1),
-      confidentiality: asset?.confidentiality ?? 1,
-      integrity: asset?.integrity ?? 1,
-      availability: asset?.availability ?? 1,
+      confidentiality: asset?.confidentiality ?? null,
+      integrity: asset?.integrity ?? null,
+      availability: asset?.availability ?? null,
       classificationId: asset?.classification?.id ?? NONE,
       notes: asset?.notes ?? '',
       attributes: asset?.attributes ?? {},
@@ -231,7 +271,29 @@ function AssetForm({
     name: ['classId', 'confidentiality', 'integrity', 'availability'],
   });
   const klass: AssetClass | undefined = taxonomy?.classes.find((x) => x.id === classId);
-  const value = assetValue(c, i, a);
+  const scored = c !== null && i !== null && a !== null;
+  const value = scored ? assetValue(c, i, a) : null;
+  // Which score sets the value, in words ("because integrity is 3").
+  const because = scored
+    ? DIMENSIONS.filter(
+        ([name]) => ({ confidentiality: c, integrity: i, availability: a })[name] === value,
+      ).map(([name]) => t(`fields.${name}`))
+    : [];
+  const labels = useMemo(
+    () => [...(taxonomy?.labels ?? [])].filter((l) => !l.archived).sort((x, y) => x.rank - y.rank),
+    [taxonomy],
+  );
+  // The classification scale is the confidentiality scale (C4 = the most restricted label): suggest it from C,
+  // until the person picks a classification themselves.
+  const [classificationTouched, setClassificationTouched] = useState(Boolean(asset?.classification));
+  const suggested =
+    c !== null && labels.length
+      ? labels[Math.min(labels.length - 1, Math.max(0, Math.round(((4 - c) * (labels.length - 1)) / 3)))]
+      : undefined;
+  useEffect(() => {
+    if (!classificationTouched && suggested) form.setValue('classificationId', suggested.id);
+  }, [classificationTouched, suggested, form]);
+  const detailsOpenByDefault = !asset && (klass?.code === 'HW' || klass?.code === 'SW');
 
   const save = useApiMutation(
     (api, body: CreateAssetInput) =>
@@ -261,9 +323,9 @@ function AssetForm({
       model: v.model.trim() || null,
       version: v.version.trim() || null,
       quantity: v.quantity,
-      confidentiality: v.confidentiality,
-      integrity: v.integrity,
-      availability: v.availability,
+      confidentiality: v.confidentiality!,
+      integrity: v.integrity!,
+      availability: v.availability!,
       classificationId: orNull(v.classificationId),
       notes: v.notes.trim() || null,
       ...(fields.length ? { attributes: attributesPayload(fields, v.attributes) } : {}),
@@ -296,7 +358,7 @@ function AssetForm({
     name: 'classId' | 'subclassId' | 'siteId' | 'managerGroupId' | 'classificationId',
     label: string,
     options: { value: string; label: string }[],
-    opts: { none?: string; onChange?: (v: string) => void; hint?: string } = {},
+    opts: { none?: string; onChange?: (v: string) => void; hint?: React.ReactNode } = {},
   ) => (
     <FormField
       control={form.control}
@@ -356,18 +418,14 @@ function AssetForm({
               (klass?.subclasses ?? []).map((x) => ({ value: x.id, label: localized(x.name) })),
               { none: t('assetForm.noSubclass') },
             )}
-            {select(
-              'siteId',
-              t('fields.site'),
-              sites.map((x) => ({ value: x.id, label: `${x.code} · ${x.name}` })),
-              { hint: asset ? t('assetForm.numberKept') : t('assetForm.numberHint') },
-            )}
-            {select(
-              'classificationId',
-              t('fields.classification'),
-              (taxonomy?.labels ?? []).map((x) => ({ value: x.id, label: localized(x.name) })),
-              { none: t('assetForm.noClassification') },
-            )}
+            <div className="sm:col-span-2">
+              {select(
+                'siteId',
+                t('fields.site'),
+                sites.map((x) => ({ value: x.id, label: `${x.code} · ${x.name}` })),
+                { hint: asset ? t('assetForm.numberKept') : t('assetForm.numberHint') },
+              )}
+            </div>
           </fieldset>
 
           <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -396,6 +454,71 @@ function AssetForm({
               (groups?.items ?? []).map((g) => ({ value: g.id, label: g.name })),
               { none: t('assetForm.noGroup') },
             )}
+          </fieldset>
+
+          <section aria-labelledby="isms-cia-heading" className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3
+                id="isms-cia-heading"
+                className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+              >
+                {t('assetForm.cia')}
+              </h3>
+              <p className="flex flex-wrap items-center gap-2 text-sm" aria-live="polite">
+                {t('fields.value')}
+                <StatusBadge
+                  tone={value === null ? 'muted' : value >= 4 ? 'warning' : 'neutral'}
+                  label={value === null ? t('assetForm.notScored') : t('value.badge', { value })}
+                  changeKey={String(value)}
+                />
+                {value !== null && (
+                  <span className="text-xs text-muted-foreground">
+                    {t('assetForm.because', { dimensions: because.join(', '), value })}
+                  </span>
+                )}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {klass ? t('assetForm.ciaHint') : t('assetForm.ciaPickClass')}
+            </p>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {DIMENSIONS.map(([name, dim]) => (
+                <FormField
+                  key={name}
+                  control={form.control}
+                  name={name}
+                  render={({ field, fieldState }) => (
+                    <CiaChooser
+                      label={t(`fields.${name}`)}
+                      hint={t(`assetForm.${name}Hint`)}
+                      value={field.value}
+                      onChange={field.onChange}
+                      guidance={klass?.guidance[dim]}
+                      error={fieldState.error?.message}
+                    />
+                  )}
+                />
+              ))}
+            </div>
+            {select(
+              'classificationId',
+              t('fields.classification'),
+              labels.map((x) => ({ value: x.id, label: localized(x.name) })),
+              {
+                none: t('assetForm.noClassification'),
+                onChange: () => setClassificationTouched(true),
+                hint:
+                  !classificationTouched && suggested
+                    ? t('assetForm.classificationSuggested')
+                    : t('assetForm.classificationHint'),
+              },
+            )}
+          </section>
+
+          <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {t('assetForm.usersAndPlace')}
+            </legend>
             <FormField
               control={form.control}
               name="userIds"
@@ -421,6 +544,7 @@ function AssetForm({
                   <FormControl>
                     <Input placeholder={t('assetForm.usersTextPlaceholder')} {...field} />
                   </FormControl>
+                  <FormDescription>{t('assetForm.usersTextHint')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -428,63 +552,31 @@ function AssetForm({
             <div className="sm:col-span-2">{text('location', t('fields.location'))}</div>
           </fieldset>
 
-          <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              {t('assetForm.details')}
-            </legend>
-            {text('brand', t('fields.brand'))}
-            {text('model', t('fields.model'))}
-            {text('version', t('fields.version'))}
-            <FormField
-              control={form.control}
-              name="quantity"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.quantity')}</FormLabel>
-                  <FormControl>
-                    <Input inputMode="numeric" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </fieldset>
-
-          <section aria-labelledby="isms-cia-heading" className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3
-                id="isms-cia-heading"
-                className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-              >
-                {t('assetForm.cia')}
-              </h3>
-              <p className="flex items-center gap-2 text-sm" aria-live="polite">
-                {t('fields.value')} <ValueBadge value={value} />
-              </p>
+          <Disclosure
+            key={detailsOpenByDefault ? 'open' : 'closed'}
+            summary={t('assetForm.details')}
+            defaultOpen={detailsOpenByDefault || Boolean(asset?.brand || asset?.model || asset?.version)}
+            triggerClassName="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+          >
+            <div className="grid grid-cols-1 gap-4 pt-3 sm:grid-cols-2">
+              {text('brand', t('fields.brand'))}
+              {text('model', t('fields.model'))}
+              {text('version', t('fields.version'))}
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem className="min-w-0">
+                    <FormLabel>{t('fields.quantity')}</FormLabel>
+                    <FormControl>
+                      <Input inputMode="numeric" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-            <p className="text-xs text-muted-foreground">
-              {klass ? t('assetForm.ciaHint') : t('assetForm.ciaPickClass')}
-            </p>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              {DIMENSIONS.map(([name, dim]) => (
-                <FormField
-                  key={name}
-                  control={form.control}
-                  name={name}
-                  render={({ field, fieldState }) => (
-                    <CiaChooser
-                      label={t(`fields.${name}`)}
-                      hint={t(`assetForm.${name}Hint`)}
-                      value={field.value}
-                      onChange={field.onChange}
-                      guidance={klass?.guidance[dim]}
-                      error={fieldState.error?.message}
-                    />
-                  )}
-                />
-              ))}
-            </div>
-          </section>
+          </Disclosure>
 
           <FormField
             control={form.control}
@@ -516,5 +608,99 @@ function AssetForm({
         </SheetFooter>
       </form>
     </Form>
+  );
+}
+
+/**
+ * Mark an asset missing or disposed of (or back in use) outside a stocktake, with a note for its history. Deleting
+ * would lose that history.
+ */
+export function ChangeStatusDialog({
+  asset,
+  onOpenChange,
+}: {
+  asset: Asset;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const t = useTranslations('isms');
+  const tc = useTranslations('common');
+  const errorText = useErrorText();
+  const name = useId();
+  const [status, setStatus] = useState<(typeof ASSET_STATUSES)[number]>(
+    asset.status === 'active' ? 'missing' : 'active',
+  );
+  const [note, setNote] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const save = useApiMutation(
+    (api, body: UpdateAssetInput) => api.patch<Asset>(`/isms/assets/${asset.id}`, body),
+    { invalidate: INVALIDATE, success: t('asset.statusChanged'), silent: true },
+  );
+  const needsNote = status !== 'active';
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent closeLabel={tc('close')}>
+        <DialogHeader>
+          <DialogTitle>{t('asset.changeStatusTitle', { number: asset.number })}</DialogTitle>
+          <DialogDescription>{asset.name}</DialogDescription>
+        </DialogHeader>
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">{t('fields.status')}</legend>
+          {ASSET_STATUSES.map((s) => (
+            <label
+              key={s}
+              htmlFor={`${name}-${s}`}
+              className="flex cursor-pointer items-start gap-2 rounded-md border p-2.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50"
+            >
+              <input
+                id={`${name}-${s}`}
+                type="radio"
+                name={name}
+                checked={status === s}
+                disabled={s === asset.status}
+                onChange={() => setStatus(s)}
+                className="mt-0.5 size-4 accent-primary"
+              />
+              <span>
+                <span className="font-medium">{t(`assetStatus.${s}`)}</span>
+                <span className="block text-xs text-muted-foreground">{t(`asset.statusHints.${s}`)}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        <div className="grid gap-1.5">
+          <Label htmlFor={`${name}-note`}>
+            {needsNote ? t('asset.statusNoteRequired') : t('asset.statusNote')}
+          </Label>
+          <Textarea id={`${name}-note`} rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+        {error && (
+          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {tc('cancel')}
+          </Button>
+          <Button
+            type="button"
+            loading={save.isPending}
+            disabled={status === asset.status}
+            onClick={async () => {
+              setError(null);
+              if (needsNote && !note.trim()) return setError(t('asset.statusNoteMissing'));
+              try {
+                await save.mutateAsync({ status, statusNote: note.trim() || null });
+                onOpenChange(false);
+              } catch (err) {
+                setError(errorText(err));
+              }
+            }}
+          >
+            {t('asset.changeStatusSubmit')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

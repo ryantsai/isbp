@@ -94,7 +94,8 @@ test('the seeded change shows its runbook attachment and the linked project task
   await expect(
     page.getByRole('region', { name: /Attachments/ }).getByText('core-switch-upgrade-runbook.md'),
   ).toBeVisible();
-  const links = page.getByRole('region', { name: /Linked records/ });
+  // On a ticket the linked records sit in the "Related" panel.
+  const links = page.getByRole('region', { name: /^Related$|Linked records/ });
   await expect(links.getByText('Replace core switch tpe-sw-core-01')).toBeVisible();
 });
 

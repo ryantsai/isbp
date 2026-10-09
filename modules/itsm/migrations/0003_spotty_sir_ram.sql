@@ -1,0 +1,1 @@
+ALTER TABLE "itsm"."sla_policies" ADD COLUMN "label" jsonb;

@@ -7,19 +7,23 @@ import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
-import { EmptyState } from '@isbp/ui/empty-state';
-import { AnimatedNumber, FadeIn, Stagger, StaggerItem } from '@isbp/ui/motion';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
+import { Disclosure } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
+import { SectionTabs } from '@isbp/ui/section-tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { StatTile } from '@isbp/ui/stat-tile';
 import {
+  ArrowDownIcon,
   CheckIcon,
   CircleCheckIcon,
   CircleDashedIcon,
   CoinsIcon,
+  LockIcon,
   MessagesSquareIcon,
   MessageCircleIcon,
   SettingsIcon,
@@ -32,7 +36,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useMemo } from 'react';
-import type { Conversation, Overview } from '../../contracts';
+import type { Conversation, Overview, PendingTriage } from '../../contracts';
 import { DailyChart } from '../insights/daily-chart';
 import { ModeBadge } from '../shared';
 
@@ -41,42 +45,22 @@ const ALL = '__all__';
 
 const pct = (n: number) => `${Math.round(n)}%`;
 
+/** A KPI tile; a rate without data yet reads "—". */
 function Kpi({
   icon,
   label,
   value,
   format,
   hint,
-  empty,
 }: {
   icon: ReactNode;
   label: string;
   value: number | null;
   format?: (n: number) => string;
   hint?: string;
-  empty: string;
 }) {
   return (
-    <StaggerItem>
-      <Card className="h-full gap-3 py-4">
-        <CardContent className="flex items-start justify-between gap-3 px-4">
-          <div className="min-w-0 space-y-1">
-            <p className="truncate text-sm text-muted-foreground">{label}</p>
-            <p className="text-2xl font-semibold tracking-tight">
-              {value === null ? (
-                <span className="text-muted-foreground">{empty}</span>
-              ) : (
-                <AnimatedNumber value={value} format={format} />
-              )}
-            </p>
-            {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-          </div>
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4">
-            {icon}
-          </span>
-        </CardContent>
-      </Card>
-    </StaggerItem>
+    <StatTile icon={icon} label={label} value={value ?? '—'} format={format} hint={hint} className="h-full" />
   );
 }
 
@@ -102,8 +86,20 @@ function Outcome({ c }: { c: Conversation }) {
   );
 }
 
-/** Accuracy, deflection and cost of Helpdesk AI, plus recent conversations for review. */
+/**
+ * Accuracy, deflection and cost of Helpdesk AI, the triage suggestions still waiting for an agent, and (for
+ * Helpdesk AI's reviewers) recent conversations. Service desk report readers see the metrics read-only, with the
+ * "Service desk | AI insights" tabs of the reports section.
+ */
 export default function InsightsPage() {
+  const t = useTranslations('helpdesk-ai');
+  const canReview = useCan('helpdesk-ai.insights.read');
+  const canReports = useCan('itsm.reports.read');
+  if (!canReview && !canReports) return <EmptyState icon={<LockIcon />} title={t('insights.forbidden')} />;
+  return <Insights canReview={canReview} canReports={canReports} />;
+}
+
+function Insights({ canReview, canReports }: { canReview: boolean; canReports: boolean }) {
   const t = useTranslations('helpdesk-ai');
   const format = useFormatter();
   const router = useRouter();
@@ -111,8 +107,14 @@ export default function InsightsPage() {
   const [state, set] = useListState({ pageSize: 10 });
   const days = PERIODS.includes(String(state.days) as (typeof PERIODS)[number]) ? Number(state.days) : 30;
   const status = typeof state.status === 'string' ? state.status : undefined;
-  const { data, isLoading, isFetching } = useApiQuery<Overview>('/helpdesk-ai/insights/overview', { days });
-  const list = useApiQuery<Page<Conversation>>('/helpdesk-ai/conversations', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Overview>(
+    '/helpdesk-ai/insights/overview',
+    {
+      days,
+    },
+  );
+  const pending = useApiQuery<PendingTriage>('/helpdesk-ai/insights/pending', { days });
+  const list = useApiQuery<Page<Conversation>>(canReview ? '/helpdesk-ai/conversations' : null, {
     scope: 'all',
     page: state.page,
     pageSize: state.pageSize,
@@ -229,8 +231,19 @@ export default function InsightsPage() {
           </>
         }
       />
+      {canReports && (
+        <SectionTabs
+          label={t('insights.sections')}
+          items={[
+            { href: '/itsm/reports', label: t('insights.serviceDesk') },
+            { href: '/helpdesk-ai', label: t('insights.title'), match: 'exact' },
+          ]}
+        />
+      )}
 
-      {isLoading || !data ? (
+      {error && !data ? (
+        <ErrorState error={error} onRetry={() => void refetch()} kind="page" />
+      ) : isLoading || !data ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
@@ -241,13 +254,12 @@ export default function InsightsPage() {
         <div
           className={isFetching ? 'space-y-6 opacity-70 transition-opacity' : 'space-y-6 transition-opacity'}
         >
-          <Stagger className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Kpi
               icon={<WandSparklesIcon />}
               label={t('kpi.acceptance')}
               value={tri!.acceptanceRate === null ? null : tri!.acceptanceRate * 100}
               format={pct}
-              empty="—"
               hint={t('kpi.acceptanceHint', {
                 accepted: tri!.applied + tri!.partiallyApplied + tri!.autoApplied,
                 decided: tri!.applied + tri!.partiallyApplied + tri!.autoApplied + tri!.dismissed,
@@ -258,14 +270,12 @@ export default function InsightsPage() {
               label={t('kpi.deflection')}
               value={conv!.deflectionRate === null ? null : conv!.deflectionRate * 100}
               format={pct}
-              empty="—"
               hint={t('kpi.deflectionHint', { deflected: conv!.deflected, escalated: conv!.escalated })}
             />
             <Kpi
               icon={<MessagesSquareIcon />}
               label={t('kpi.conversations')}
               value={conv!.total}
-              empty="—"
               hint={t('kpi.conversationsHint', { open: conv!.open })}
             />
             <Kpi
@@ -273,13 +283,12 @@ export default function InsightsPage() {
               label={t('kpi.cost')}
               value={data.usage.costUsd}
               format={money}
-              empty="—"
               hint={t('kpi.costHint', { calls: data.usage.calls })}
             />
-          </Stagger>
+          </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <FadeIn delay={0.05} className="min-w-0 xl:col-span-2">
+            <div className="min-w-0 xl:col-span-2">
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle>{t('chart.title')}</CardTitle>
@@ -289,9 +298,9 @@ export default function InsightsPage() {
                   <DailyChart data={data.daily} />
                 </CardContent>
               </Card>
-            </FadeIn>
+            </div>
 
-            <FadeIn delay={0.1} className="min-w-0">
+            <div className="min-w-0">
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle>{t('config.title')}</CardTitle>
@@ -301,12 +310,6 @@ export default function InsightsPage() {
                   <dl className="grid grid-cols-1 gap-3 text-sm">
                     <ConfigRow label={t('config.mode')}>
                       <ModeBadge ai={data.ai} />
-                    </ConfigRow>
-                    <ConfigRow label={t('config.embeddings')}>
-                      <span className="truncate font-mono text-xs">{data.ai.embeddings}</span>
-                    </ConfigRow>
-                    <ConfigRow label={t('config.vectorStore')}>
-                      {t(`config.store.${data.ai.vectorStore === 'pgvector' ? 'pgvector' : 'portable'}`)}
                     </ConfigRow>
                     <ConfigRow label={t('config.triage')}>
                       <OnOff on={data.settings.triageEnabled} />
@@ -333,17 +336,32 @@ export default function InsightsPage() {
                     </ConfigRow>
                   </dl>
                   {canConfigure && (
-                    <Button variant="link" className="mt-3 h-auto px-0" asChild>
-                      <Link href="/admin/ai">{t('insights.configure')} →</Link>
-                    </Button>
+                    <>
+                      {/* Engine details matter to whoever configures AI, not to the people reading the numbers. */}
+                      <Disclosure summary={t('config.technical')} className="mt-3 border-t pt-1">
+                        <dl className="grid grid-cols-1 gap-3 pb-1 text-sm">
+                          <ConfigRow label={t('config.embeddings')}>
+                            <span className="truncate font-mono text-xs">{data.ai.embeddings}</span>
+                          </ConfigRow>
+                          <ConfigRow label={t('config.vectorStore')}>
+                            {t(
+                              `config.store.${data.ai.vectorStore === 'pgvector' ? 'pgvector' : 'portable'}`,
+                            )}
+                          </ConfigRow>
+                        </dl>
+                      </Disclosure>
+                      <Button variant="link" className="mt-2 h-auto px-0" asChild>
+                        <Link href="/admin/ai">{t('insights.configure')} →</Link>
+                      </Button>
+                    </>
                   )}
                 </CardContent>
               </Card>
-            </FadeIn>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <FadeIn delay={0.12} className="min-w-0">
+            <div className="min-w-0">
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle>{t('breakdown.title')}</CardTitle>
@@ -374,7 +392,7 @@ export default function InsightsPage() {
                         </span>
                         <span className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
                           <span
-                            className="block h-full rounded-full bg-chart-1 transition-[width] duration-500"
+                            className="block h-full rounded-full bg-chart-1 transition-[width] duration-200 ease-move motion-reduce:transition-none"
                             style={{ width: `${(n / maxStatus) * 100}%` }}
                           />
                         </span>
@@ -382,14 +400,21 @@ export default function InsightsPage() {
                       </li>
                     ))}
                   </ul>
+                  {(pending.data?.total ?? 0) > 0 && (
+                    <Button variant="link" size="sm" className="mt-2 h-auto px-0" asChild>
+                      <a href="#hai-pending">
+                        <ArrowDownIcon /> {t('breakdown.showPending')}
+                      </a>
+                    </Button>
+                  )}
                   <p className="mt-4 text-xs text-muted-foreground">
                     {t('breakdown.kbDrafts', { count: data.kbDrafts })}
                   </p>
                 </CardContent>
               </Card>
-            </FadeIn>
+            </div>
 
-            <FadeIn delay={0.15} className="min-w-0">
+            <div className="min-w-0">
               <Card className="h-full">
                 <CardHeader>
                   <CardTitle>{t('usage.title')}</CardTitle>
@@ -451,12 +476,18 @@ export default function InsightsPage() {
                   )}
                 </CardContent>
               </Card>
-            </FadeIn>
+            </div>
           </div>
         </div>
       )}
 
-      <FadeIn delay={0.18}>
+      {pending.error && !pending.data ? (
+        <ErrorState error={pending.error} onRetry={() => void pending.refetch()} compact />
+      ) : (
+        <PendingCard data={pending.data} />
+      )}
+
+      {canReview && (
         <section aria-labelledby="hai-recent" className="space-y-3">
           <div className="space-y-1">
             <h2 id="hai-recent" className="text-lg font-semibold tracking-tight">
@@ -474,6 +505,8 @@ export default function InsightsPage() {
             sort={state.sort}
             loading={list.isLoading}
             fetching={list.isFetching}
+            error={list.error}
+            onRetry={() => void list.refetch()}
             onPageChange={(page) => set({ page })}
             onPageSizeChange={(pageSize) => set({ pageSize })}
             onSortChange={(sort) => set({ sort })}
@@ -506,8 +539,74 @@ export default function InsightsPage() {
             empty={<EmptyState icon={<MessagesSquareIcon />} title={t('table.empty')} />}
           />
         </section>
-      </FadeIn>
+      )}
     </div>
+  );
+}
+
+/** Open tickets whose triage suggestion is still waiting for an agent: each one a link to act on it. */
+function PendingCard({ data }: { data: PendingTriage | undefined }) {
+  const t = useTranslations('helpdesk-ai');
+  const format = useFormatter();
+  if (!data) return null;
+  return (
+    <section id="hai-pending" aria-labelledby="hai-pending-title" className="scroll-mt-20 space-y-3">
+      <div className="space-y-1">
+        <h2 id="hai-pending-title" className="text-lg font-semibold tracking-tight">
+          {t('pending.title')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t('pending.description')}</p>
+      </div>
+      {data.items.length ? (
+        <Card className="gap-0 py-0">
+          <ul className="divide-y">
+            {data.items.map((p) => {
+              const suggested = [
+                p.suggestion.categoryPath,
+                p.suggestion.assignmentGroupName,
+                p.suggestion.priority ? `P${p.suggestion.priority}` : null,
+              ].filter(Boolean);
+              return (
+                <li
+                  key={p.insightId}
+                  className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm"
+                >
+                  <Link
+                    href={p.href}
+                    className="min-w-0 flex-1 basis-64 truncate rounded-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  >
+                    <span className="font-mono text-xs text-muted-foreground">{p.reference}</span>
+                    {p.title && <> {p.title}</>}
+                  </Link>
+                  <span
+                    className="min-w-0 basis-56 truncate text-muted-foreground"
+                    title={suggested.join(' · ')}
+                  >
+                    <span className="sr-only">{t('pending.suggested')}: </span>
+                    {suggested.join(' · ')}
+                  </span>
+                  {p.confidence !== null && (
+                    <span className="w-28 shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {t('pending.confidence')} {format.number(p.confidence, { style: 'percent' })}
+                    </span>
+                  )}
+                  <RelativeTime date={p.createdAt} className="shrink-0 text-xs text-muted-foreground" />
+                </li>
+              );
+            })}
+          </ul>
+          {data.total > data.items.length && (
+            <p className="border-t px-4 py-2.5 text-xs text-muted-foreground">
+              {t('pending.more', { count: data.total - data.items.length })}
+            </p>
+          )}
+        </Card>
+      ) : (
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CircleCheckIcon className="size-4 text-success" aria-hidden /> {t('pending.empty')}
+        </p>
+      )}
+    </section>
   );
 }
 

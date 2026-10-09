@@ -22,7 +22,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo } from 'react';
 import { CHANGE_SET_STATUSES, type ChangeSetStatus, changeSetHref } from '../../contracts';
 import { StatusBadge, ToneText } from '../badges';
 import {
@@ -30,19 +30,19 @@ import {
   CHANGE_SETS_PATH,
   type ChangeSetSummaryDto,
   isOpenStatus,
+  PACKS_HREF,
   STATUS_PATH,
   useKindLabel,
 } from '../lib';
-import { PackageDialog } from '../package-dialog';
 
 const ALL = '__all__';
 const SCOPES = ['mine', 'all'] as const;
 type Scope = (typeof SCOPES)[number];
 
-/** Dry-run readiness of an open change set (ready, or not yet); closed sets show nothing. */
+/** Whether an open change set can be applied as it is; applied, rolled back and discarded sets show nothing. */
 function Readiness({ cs }: { cs: ChangeSetSummaryDto }) {
   const t = useTranslations('assistant.list.readiness');
-  if (!isOpenStatus(cs.status)) return <span className="text-muted-foreground">—</span>;
+  if (!isOpenStatus(cs.status)) return null;
   if (cs.itemCount === 0)
     return <ToneText meta={{ icon: CircleDashedIcon, tone: 'muted' }} label={t('empty')} />;
   return cs.ready ? (
@@ -61,7 +61,11 @@ export default function ChangeSetsPage() {
   const id = useId();
   const canReadAll = useCan('assistant.change-sets.read');
   const [state, set] = useListState({ pageSize: 25 });
-  const [packages, setPackages] = useState(false);
+  // `?packages=1` (older links, the navigation's "Process packs") opens the process packs page.
+  const wantsPacks = state.packages === '1';
+  useEffect(() => {
+    if (wantsPacks) router.replace(PACKS_HREF);
+  }, [wantsPacks, router]);
   const scope: Scope = canReadAll && state.scope === 'all' ? 'all' : 'mine';
   const status = CHANGE_SET_STATUSES.includes(state.status as ChangeSetStatus)
     ? (state.status as ChangeSetStatus)
@@ -70,14 +74,17 @@ export default function ChangeSetsPage() {
   const filtered = Boolean(status || q);
   const kinds = useApiQuery<AssistantStatusDto>(STATUS_PATH);
   const kindLabel = useKindLabel(kinds.data?.kinds);
-  const { data, isLoading, isFetching } = useApiQuery<Page<ChangeSetSummaryDto>>(CHANGE_SETS_PATH, {
-    scope,
-    status,
-    q,
-    page: state.page,
-    pageSize: state.pageSize,
-    sort: state.sort,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<ChangeSetSummaryDto>>(
+    CHANGE_SETS_PATH,
+    {
+      scope,
+      status,
+      q,
+      page: state.page,
+      pageSize: state.pageSize,
+      sort: state.sort,
+    },
+  );
 
   const columns = useMemo<DataTableColumn<ChangeSetSummaryDto>[]>(
     () => [
@@ -123,12 +130,17 @@ export default function ChangeSetsPage() {
         meta: { className: 'hidden tabular-nums md:table-cell', headerClassName: 'hidden md:table-cell' },
         cell: ({ row }) => row.original.itemCount,
       },
-      {
-        id: 'readiness',
-        header: t('columns.readiness'),
-        meta: { className: 'hidden sm:table-cell', headerClassName: 'hidden sm:table-cell' },
-        cell: ({ row }) => <Readiness cs={row.original} />,
-      },
+      // Readiness only means something for drafts and sets in review.
+      ...(status && !isOpenStatus(status)
+        ? []
+        : [
+            {
+              id: 'readiness',
+              header: t('columns.readiness'),
+              meta: { className: 'hidden sm:table-cell', headerClassName: 'hidden sm:table-cell' },
+              cell: ({ row }: { row: { original: ChangeSetSummaryDto } }) => <Readiness cs={row.original} />,
+            },
+          ]),
       {
         id: 'author',
         header: t('columns.author'),
@@ -156,7 +168,7 @@ export default function ChangeSetsPage() {
         cell: ({ row }) => <RelativeTime date={row.original.updatedAt} className="text-sm" />,
       },
     ],
-    [t, tc, kindLabel],
+    [t, tc, kindLabel, status],
   );
 
   const table = (
@@ -170,6 +182,8 @@ export default function ChangeSetsPage() {
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(r) => r.id}
       onRowClick={(r) => router.push(changeSetHref(r.id))}
       onPageChange={(page) => set({ page })}
@@ -217,12 +231,13 @@ export default function ChangeSetsPage() {
         title={t('title')}
         description={t('description')}
         actions={
-          <Button variant="outline" onClick={() => setPackages(true)}>
-            <PackageIcon /> {t('fromPackage')}
+          <Button variant="outline" asChild>
+            <Link href={PACKS_HREF}>
+              <PackageIcon /> {t('installPack')}
+            </Link>
           </Button>
         }
       />
-      <PackageDialog open={packages} onOpenChange={setPackages} />
       <div className="grid min-w-0 grid-cols-1 gap-6">
         {canReadAll ? (
           <Tabs value={scope} onValueChange={(v) => set({ scope: v === 'mine' ? undefined : v })}>

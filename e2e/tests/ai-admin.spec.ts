@@ -35,6 +35,11 @@ test('AI admin: status hero and tabs in the URL', async ({ page, request }) => {
     await expect(page.getByRole('heading', { name: 'Features use retrieval and templates' })).toBeVisible();
     await expect(page.getByText(/No data leaves the platform/)).toBeVisible();
   }
+  // Deployment internals sit behind "Technical details" (collapsed).
+  const technical = page.getByRole('button', { name: 'Technical details' }).first();
+  await expect(technical).toHaveAttribute('aria-expanded', 'false');
+  await technical.click();
+  await expect(technical).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByText('Vector store').first()).toBeVisible();
 
   const tabs = page.getByRole('tablist', { name: 'AI settings' });
@@ -55,6 +60,12 @@ test('AI admin: status hero and tabs in the URL', async ({ page, request }) => {
   await tabs.getByRole('tab', { name: 'Index' }).click();
   await expect(page).toHaveURL(/\?tab=index$/);
   await expect(page.getByText('Indexed content')).toBeVisible();
+
+  await tabs.getByRole('tab', { name: 'Outside agents (MCP)' }).click();
+  await expect(page).toHaveURL(/\?tab=mcp$/);
+  await expect(page.getByText('Connect Claude Code')).toBeVisible();
+  // Protocol revisions are technical details (collapsed), not the decision this tab supports.
+  await expect(page.locator('[aria-hidden="true"]').getByText('Protocol revisions')).toBeAttached();
 
   await tabs.getByRole('tab', { name: 'Models' }).click();
   await expect(page).toHaveURL(/\/admin\/ai$/);
@@ -97,7 +108,13 @@ test('AI admin tabs have no serious accessibility violations (light and dark)', 
   test.setTimeout(150_000);
   for (const scheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
-    for (const path of ['/admin/ai', '/admin/ai?tab=privacy', '/admin/ai?tab=usage', '/admin/ai?tab=index']) {
+    for (const path of [
+      '/admin/ai',
+      '/admin/ai?tab=privacy',
+      '/admin/ai?tab=usage',
+      '/admin/ai?tab=index',
+      '/admin/ai?tab=mcp',
+    ]) {
       await page.goto(path);
       await page.evaluate((s) => localStorage.setItem('theme', s), scheme);
       await page.reload();

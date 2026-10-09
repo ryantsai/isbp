@@ -77,7 +77,7 @@ export function DecisionDialog({
     {
       invalidate: INVALIDATE,
       silent: true,
-      success: t(decision === 'approve' ? 'approvedToast' : 'rejectedToast'),
+      success: t(decision === 'approve' ? 'approvedNamed' : 'rejectedNamed', { subject }),
       onSuccess: () => {
         onOpenChange(false);
         setComment('');

@@ -32,27 +32,30 @@ export default function PipelinesPage() {
   const canManage = useCan('etl.pipelines.manage');
   const [state, set] = useListState({ pageSize: 25 });
   const view: View = VIEWS.includes(state.view as View) ? (state.view as View) : 'all';
-  const { data, isLoading, isFetching } = useApiQuery<Page<PipelineSummary>>('/etl/pipelines', {
-    page: state.page,
-    pageSize: state.pageSize,
-    sort: state.sort,
-    q: state.q,
-    status: view === 'failed' || view === 'running' ? (view as RunStatus) : undefined,
-    enabled: view === 'disabled' ? 'false' : undefined,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<PipelineSummary>>(
+    '/etl/pipelines',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      sort: state.sort,
+      q: state.q,
+      status: view === 'failed' || view === 'running' ? (view as RunStatus) : undefined,
+      enabled: view === 'disabled' ? 'false' : undefined,
+    },
+  );
 
   const columns = useMemo<DataTableColumn<PipelineSummary>[]>(
     () => [
       {
         id: 'name',
         header: t('fields.name'),
-        meta: { sortKey: 'name', className: 'max-w-72' },
+        meta: { sortKey: 'name', className: 'max-w-72', wrap: true },
         cell: ({ row }) => (
           <span className="flex min-w-0 flex-col">
             <Link
               href={pipelineHref(row.original.id)}
               onClick={(e) => e.stopPropagation()}
-              className="truncate font-medium outline-none hover:underline focus-visible:underline"
+              className="font-medium wrap-anywhere outline-none hover:underline focus-visible:underline"
             >
               {row.original.name}
             </Link>
@@ -67,7 +70,7 @@ export default function PipelinesPage() {
       {
         id: 'flow',
         header: t('pipelines.flow'),
-        meta: { className: 'hidden max-w-96 lg:table-cell', headerClassName: 'hidden lg:table-cell' },
+        meta: { className: 'max-w-96', priority: 2 },
         cell: ({ row }) => (
           <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm">
             <ConnectionLabel connection={row.original.source} className="max-w-56" />
@@ -80,13 +83,14 @@ export default function PipelinesPage() {
       {
         id: 'mode',
         header: t('fields.mode'),
-        meta: { className: 'hidden md:table-cell', headerClassName: 'hidden md:table-cell' },
+        meta: { priority: 3 },
         cell: ({ row }) =>
           `${t(`writeMode.${row.original.mode}`)}${row.original.incremental ? ` · ${t('pipelines.incremental')}` : ''}`,
       },
       {
         id: 'lastRun',
         header: t('pipelines.lastRun'),
+        meta: { className: 'whitespace-normal' },
         cell: ({ row }) => {
           const r = row.original.lastRun;
           if (!r) return <span className="text-muted-foreground">{t('pipelines.never')}</span>;
@@ -105,7 +109,7 @@ export default function PipelinesPage() {
       {
         id: 'owner',
         header: t('fields.owner'),
-        meta: { className: 'hidden max-w-44 xl:table-cell', headerClassName: 'hidden xl:table-cell' },
+        meta: { className: 'max-w-44', priority: 3 },
         cell: ({ row }) =>
           row.original.owner ? (
             <span className="flex min-w-0 items-center gap-2">
@@ -135,6 +139,8 @@ export default function PipelinesPage() {
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(p) => p.id}
       onRowClick={(p) => router.push(pipelineHref(p.id))}
       onPageChange={(page) => set({ page })}

@@ -6,7 +6,8 @@
   "nav": {
     "group": "アプリケーション",
     "applications": "アプリケーション",
-    "releases": "リリース カレンダー"
+    "releases": "リリース カレンダー",
+    "sections": "アプリケーションのセクション"
   },
   "entities": {
     "application": "アプリケーション",
@@ -97,10 +98,10 @@
     "low": "低"
   },
   "disposition": {
-    "tolerate": "維持 (Tolerate)",
-    "invest": "投資 (Invest)",
-    "migrate": "移行 (Migrate)",
-    "eliminate": "廃止 (Eliminate)"
+    "tolerate": "現状維持",
+    "invest": "投資",
+    "migrate": "置き換え・移行",
+    "eliminate": "廃止"
   },
   "hosting": {
     "on_prem": "オンプレミス",
@@ -142,7 +143,7 @@
     "rolled_back": "ロールバック済み"
   },
   "source": {
-    "manual": "ユーザーが記録",
+    "manual": "手動で記録",
     "api": "API で記録"
   },
   "duration": {
@@ -158,7 +159,7 @@
     "name": "名前",
     "stage": "ステージ",
     "criticality": "重要度",
-    "disposition": "方針 (TIME)",
+    "disposition": "投資判断",
     "hosting": "ホスティング",
     "businessOwner": "ビジネス オーナー",
     "technicalOwner": "技術オーナー",
@@ -197,7 +198,7 @@
     "new": "新しいアプリケーション",
     "search": "コードまたは名前で検索…",
     "summary": "ポートフォリオの概要",
-    "deploymentsWeek": "デプロイ · 過去 7 日間",
+    "deploymentsWeek": "過去 7 日間のデプロイ",
     "failedOrRolledBack": "失敗またはロールバック",
     "upcoming": "今後 14 日間のリリース",
     "views": {
@@ -215,7 +216,9 @@
     "emptyMine": "担当しているアプリケーションはありません",
     "emptyFiltered": "フィルターに一致する項目はありません。",
     "emptyHint": "オーナーである、またはチームに所属しているアプリケーションがここに表示されます。",
-    "liveCount": "{count, plural, other {# 件のアプリケーション}}"
+    "liveCount": "{count, plural, other {# 件のアプリケーション}}",
+    "deploymentsWeekHint": "成功 {succeeded} 回 · 失敗またはロールバック {failed} 回",
+    "upcomingHint": "リリース カレンダーを開く"
   },
   "form": {
     "createTitle": "新しいアプリケーション",
@@ -285,7 +288,7 @@
   },
   "dora": {
     "title": "デリバリー メトリック",
-    "description": "本番、過去 {days} 日間 (DORA)",
+    "description": "本番、過去 {days} 日間",
     "viewAs": "表示形式",
     "chart": "グラフ",
     "table": "表",
@@ -303,7 +306,13 @@
     "weekOf": "週",
     "weeklyCaption": "週ごとの本番デプロイ数",
     "samplesLead": "{count, plural, =0 {リリース データなし} other {# 件のリリースの中央値}}",
-    "samplesRestore": "{count, plural, =0 {復旧が必要な失敗なし} other {# 回の復旧の中央値}}"
+    "samplesRestore": "{count, plural, =0 {復旧が必要な失敗なし} other {# 回の復旧の中央値}}",
+    "tileHints": {
+      "frequency": "バージョンが本番に届く頻度",
+      "failureRate": "失敗またはロールバックした本番デプロイの割合",
+      "leadTime": "リリースの作成から本番への最初のデプロイまでの時間",
+      "restore": "失敗した本番デプロイの修復にかかった時間"
+    }
   },
   "deployments": {
     "label": "デプロイ",
@@ -327,7 +336,7 @@
     "emptyHint": "次のバージョンを計画すると、準備状況とデプロイを追跡できます。"
   },
   "changes": {
-    "none": "変更なし",
+    "none": "変更未リンク",
     "inWindow": "現在期間内",
     "outsideWindow": "現在期間外",
     "noWindow": "予定期間なし"
@@ -336,8 +345,8 @@
     "title": "本番の準備状況",
     "allPass": "すべてのチェックに合格: 本番にデプロイできます。",
     "progressLong": "{total} 件中 {passed} 件のチェックに合格",
-    "progress": "{passed}/{total} 準備完了",
-    "ready": "準備完了",
+    "progress": "{passed}/{total} チェック",
+    "ready": "すべてのチェックに合格",
     "summaryTitle": "{total} 件中 {passed} 件の準備チェックに合格",
     "passed": "合格",
     "notPassed": "未合格",
@@ -348,17 +357,21 @@
       "production": "本番デプロイの失敗なし"
     },
     "details": {
-      "noChange": "CAB が承認した (スケジュール済みまたは実施中の) 変更をリンクしてください。",
+      "noChange": "CAB が承認し、スケジュール済みの変更をリンクしてください。",
       "testedIn": "{environments} で成功しました。",
       "notTested": "まずこのバージョンをテストまたはステージング環境にデプロイしてください。",
       "notesWritten": "リリース ノートがあります。",
       "noNotes": "利用者向けのリリース ノートを記述してください。",
       "noFailures": "このバージョンの本番デプロイで失敗はありません。",
-      "failures": "このバージョンの本番デプロイが {count} 回失敗しました。"
+      "failures": "このバージョンの本番デプロイが {count} 回失敗しました。",
+      "changeNotYet": "CAB の承認とスケジュールが必要です。変更を開いて申請または確認してください。"
     },
     "raiseChange": "変更を起票",
     "allChanges": "リンクされた変更",
-    "policyNow": "今すぐ本番にデプロイする場合"
+    "policyNow": "本番の前に",
+    "openChange": "{reference} を開く",
+    "recordTest": "テスト デプロイを記録",
+    "writeNotes": "リリース ノートを書く"
   },
   "policy": {
     "notProduction": "{environment} は本番ではないため、変更は不要です。",
@@ -367,21 +380,26 @@
     "warnOutsideWindow": "変更は承認済みですが、現在は予定期間外です。デプロイは警告付きで記録されます。",
     "reason": {
       "no_change": "承認済みの変更がありません: 変更を指定するか、リリースにリンクしてください。",
-      "change_not_approved": "変更はまだ承認されていません: スケジュール済みまたは実施中である必要があります。",
+      "change_not_approved": "変更はまだ承認されていません: CAB の承認とスケジュールが必要です。",
       "outside_window": "現在は変更の予定期間外です。"
     },
-    "rule": "本番デプロイには、CAB が承認した (スケジュール済みまたは実施中の) 変更が必要です。ここで指定するか、リリースにリンクしてください。",
-    "ruleWithWindow": "本番デプロイには、CAB が承認した (スケジュール済みまたは実施中の) 変更が必要で、その予定期間内に行う必要があります。",
+    "rule": "本番デプロイには、CAB が承認し、スケジュール済みの変更が必要です。ここで指定するか、リリースにリンクしてください。",
+    "ruleWithWindow": "本番デプロイには、CAB が承認し、スケジュール済みの変更が必要で、その予定期間内に行う必要があります。",
     "namedNotFound": "この番号の変更はありません。",
-    "raiseChange": "変更を起票"
+    "raiseChange": "変更を起票",
+    "needs": {
+      "no_change": "本番には承認済みの変更が必要です。変更を起票するか、リリースにリンクしてください。",
+      "change_not_approved": "本番には、CAB が承認し、スケジュール済みの変更が必要です。",
+      "outside_window": "本番デプロイは変更の予定期間内に行う必要があります。"
+    }
   },
   "deploy": {
     "title": "デプロイを記録",
     "description": "{name} のデプロイを記録します。本番デプロイは変更ポリシーでチェックされます。",
     "chooseEnvironment": "環境を選択",
     "outcome": "結果",
-    "changeReference": "変更 (省略可)",
-    "changeHint": "本番の場合: CAB が承認した変更。リリースに変更がリンクされていれば省略できます。",
+    "changeReference": "変更番号",
+    "changeHint": "本番には必要です (リリースに変更がリンクされている場合を除く)。",
     "policyCheck": "変更ポリシー",
     "linkedChanges": "このリリースにリンクされた変更",
     "overrideWithReason": "理由を入力してオーバーライド",
@@ -397,7 +415,14 @@
     "reasonTooShort": "理由は 10 文字以上で入力してください。",
     "record": "デプロイを記録",
     "recordWithOverride": "オーバーライドして記録",
-    "recorded": "{version} の {environment} へのデプロイを記録しました"
+    "recorded": "{version} の {environment} へのデプロイを記録しました",
+    "change": "変更",
+    "linkedChange": "リリースにリンクされた変更",
+    "noChange": "変更なし",
+    "otherChange": "別の変更…",
+    "blockedExplain": "このデプロイはまだ記録できません。本番に必要なものは上の変更ポリシーに表示されています。",
+    "blockedOverride": "変更ポリシーがこのデプロイを拒否しています (上記参照)。どうしてもデプロイする場合は、理由を入力してオーバーライドしてください。",
+    "linkedOne": "{reference} (リリースにリンク済み)"
   },
   "release": {
     "notFound": "このリリースは存在しないか、表示するアクセス許可がありません",
@@ -418,7 +443,8 @@
     "notYet": "未デプロイ",
     "noNotes": "リリース ノートはまだありません。",
     "deployments": "デプロイ ({count})",
-    "raiseChangeTitle": "{app} {version} を本番にデプロイ"
+    "raiseChangeTitle": "{app} {version} を本番にデプロイ",
+    "moveToStatus": "「{status}」にする"
   },
   "releaseForm": {
     "createTitle": "{name} の新しいリリース",
@@ -466,7 +492,7 @@
     "repoDuplicate": "このリポジトリはすでに登録されています。",
     "nameRequired": "名前を入力してください。",
     "lifecycle": "ライフサイクル",
-    "lifecycleHint": "ステージ、TIME の方針、アプリケーションのライフサイクルを区切る日付。",
+    "lifecycleHint": "ステージ、投資判断 (Gartner TIME)、アプリケーションのライフサイクルを区切る日付。",
     "lifecycleSaved": "ライフサイクルを保存しました"
   },
   "calendar": {
@@ -482,7 +508,8 @@
     "month": "月",
     "weekOf": "{range} の週",
     "count": "{count, plural, =0 {リリースなし} other {# 件のリリース}}",
-    "nothingPlanned": "今週予定されているリリースはありません。"
+    "nothingPlanned": "今週予定されているリリースはありません。",
+    "nothingPlannedRange": "{range}: 予定なし"
   },
   "ciRelated": {
     "title": "アプリケーション",
@@ -541,7 +568,7 @@
     "criticality": "重要度",
     "hosting": "ホスティング",
     "dataClassification": "データ分類",
-    "disposition": "方針 (TIME)",
+    "disposition": "投資判断",
     "ownerId": "技術オーナー",
     "businessOwnerId": "ビジネス オーナー",
     "teamGroup": "デリバリー チーム",

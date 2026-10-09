@@ -1,4 +1,5 @@
 import { groups, users } from '@isbp/db/schema';
+import type { Locale } from '@isbp/sdk';
 import {
   type AuthContext,
   type Db,
@@ -29,6 +30,7 @@ import {
   redactConfig,
   type RunStatus,
   sealConfig,
+  problemOfRun,
 } from '../model';
 import { cronError, firstRun, isValidTimezone } from '../schedule';
 import { CREATE, groupsOf, JobAccess, MANAGE, personOf } from './access';
@@ -121,9 +123,10 @@ export class JobService {
   private async taskInfo(
     job: Pick<JobRow, 'type' | 'config'>,
     available: Map<string, { name: string; icon: string | null }>,
+    locale?: Locale,
   ): Promise<TaskInfo> {
     const type = available.get(job.type);
-    const d = await this.ctx.taskTypes.describe(job.type, job.config, { db: this.ctx.db });
+    const d = await this.ctx.taskTypes.describe(job.type, job.config, { db: this.ctx.db, locale });
     return {
       name: type?.name ?? job.type,
       icon: type?.icon ?? null,
@@ -137,7 +140,8 @@ export class JobService {
     return new Map(this.ctx.taskTypes.list().map((t) => [t.type, { name: t.name, icon: t.icon }]));
   }
 
-  async summaries(rows: JobRow[]): Promise<JobSummaryOut[]> {
+  /** `locale`: the reader's language, for the task's label ("Assign … every month"). */
+  async summaries(rows: JobRow[], locale?: Locale): Promise<JobSummaryOut[]> {
     if (!rows.length) return [];
     const ids = rows.map((r) => r.id);
     const personIds = [...new Set(rows.map((r) => r.ownerId).filter((x): x is string => Boolean(x)))];
@@ -184,6 +188,9 @@ export class JobService {
               finishedAt: lr.finishedAt,
               durationMs: lr.durationMs,
               summary: lr.summary,
+              summaryParams: lr.summaryParams ?? null,
+              error: lr.error,
+              problem: problemOfRun(lr),
             }
           : null;
         return {
@@ -193,7 +200,7 @@ export class JobService {
           name: j.name,
           description: j.description,
           type: j.type,
-          task: await this.taskInfo(j, types),
+          task: await this.taskInfo(j, types, locale),
           trigger: {
             kind: j.triggerKind,
             cron: j.cron,
@@ -272,7 +279,7 @@ export class JobService {
       this.ctx.db.select({ total: count() }).from(jobs).where(cond),
     ]);
     return {
-      items: await this.summaries(rows),
+      items: await this.summaries(rows, auth.user?.locale),
       total: totals[0]?.total ?? 0,
       page: q.page,
       pageSize: q.pageSize,
@@ -281,7 +288,7 @@ export class JobService {
 
   async detail(id: string, auth: AuthContext): Promise<JobDetailOut> {
     const job = await this.row(id);
-    const [summary] = await this.summaries([job]);
+    const [summary] = await this.summaries([job], auth.user?.locale);
     const weekAgo = new Date(Date.now() - 7 * 86_400_000);
     const [ups, downs, [counts], creator] = await Promise.all([
       this.ctx.db

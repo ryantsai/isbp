@@ -33,10 +33,10 @@ const reviewGraph: WorkflowGraph = {
       mode: 'any',
       sla: { dueHours: 72, remindHours: 24, onBreach: 'notify' },
       instructions: {
-        en: 'Open the change set, review each change and its dry run, then approve to apply it with your permissions.',
-        'zh-TW': '請開啟變更集，檢閱每項變更及其試行結果，核准後將以您的權限套用。',
+        en: 'Open the change set, review each change and whether it can be applied, then approve to apply it with your permissions.',
+        'zh-TW': '請開啟變更集，檢閱每項變更及其預先檢查結果，核准後將以您的權限套用。',
         'ja-JP':
-          '変更セットを開き、各変更とそのドライ ランの結果を確認してください。承認すると、あなたの権限で適用されます。',
+          '変更セットを開き、各変更とその事前チェックの結果を確認してください。承認すると、あなたの権限で適用されます。',
       },
     },
   ],
@@ -57,11 +57,25 @@ export const manifest = defineManifest({
     {
       id: 'change-sets',
       label: 'assistant.nav.changeSets',
+      description: 'assistant.nav.changeSetsAbout',
       href: '/assistant/change-sets',
       icon: 'git-pull-request-arrow',
       permission: 'assistant.agent.use',
       section: 'admin',
-      order: 5,
+      area: 'automation',
+      order: 24,
+    },
+    {
+      // Ready-made processes (built-in change-set packages), installed as a draft change set.
+      id: 'packages',
+      label: 'assistant.nav.packages',
+      description: 'assistant.nav.packagesAbout',
+      href: '/assistant/packs',
+      icon: 'package-open',
+      permission: 'assistant.agent.use',
+      section: 'admin',
+      area: 'automation',
+      order: 25,
     },
   ],
   permissions: [

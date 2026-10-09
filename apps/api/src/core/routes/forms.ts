@@ -1,6 +1,8 @@
 import {
+  approvalPreviewSchema,
   createCustomFieldSchema,
   createFormSchema,
+  formBuilderPreviewInputSchema,
   customFieldEntitySchema,
   customFieldQuerySchema,
   customFieldSchema,
@@ -11,6 +13,8 @@ import {
   processActionCatalogInputSchema,
   processActionCatalogQuerySchema,
   processActionCatalogSchema,
+  processChecksInputSchema,
+  processChecksSchema,
   reorderCustomFieldsSchema,
   submissionQuerySchema,
   submissionSummarySchema,
@@ -82,6 +86,36 @@ export function formRoutes(app: ModuleRouter, formsSvc: FormService, fields: Cus
       },
     },
     async (req) => formsSvc.update(req.params.id, req.body, req.auth),
+  );
+
+  app.post(
+    '/forms/checks',
+    {
+      config: manage,
+      schema: {
+        tags,
+        summary:
+          'Before you publish: whether the audience can see the records offered, and who the approval’s groups and roles hold',
+        body: processChecksInputSchema,
+        response: { 200: processChecksSchema },
+      },
+    },
+    async (req) => formsSvc.processChecks(req.body),
+  );
+
+  app.post(
+    '/forms/:id/preview',
+    {
+      config: manage,
+      schema: {
+        tags,
+        summary: 'Who would approve sample answers to the unsaved form and approval (nothing is saved)',
+        params: idParams,
+        body: formBuilderPreviewInputSchema,
+        response: { 200: approvalPreviewSchema },
+      },
+    },
+    async (req) => formsSvc.builderPreview(req.params.id, req.body, req.auth),
   );
 
   app.post(

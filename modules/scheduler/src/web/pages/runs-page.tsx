@@ -1,11 +1,11 @@
 'use client';
 
 import { useListState } from '@isbp/ui/data-table';
-import { PageHeader } from '@isbp/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { useTranslations } from 'next-intl';
 import type { RunView } from '../../contracts';
 import { RunsTable } from '../runs-table';
+import { SchedulerHeader } from '../section-header';
 
 const VIEWS: RunView[] = ['all', 'failed', 'active'];
 
@@ -16,7 +16,7 @@ export default function RunsPage() {
   const view: RunView = VIEWS.includes(state.view as RunView) ? (state.view as RunView) : 'all';
   return (
     <>
-      <PageHeader title={t('runs.title')} description={t('runs.description')} />
+      <SchedulerHeader description={t('runs.description')} />
       <Tabs
         value={view}
         onValueChange={(v) => set({ view: v === 'all' ? undefined : v, status: undefined })}

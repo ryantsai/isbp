@@ -392,15 +392,15 @@ export class ProjectService {
   }
 
   async detail(ref: string, auth: AuthContext) {
-    const { project } = await this.load(ref, auth);
+    const { project: found } = await this.load(ref, auth);
     const today = todayIn(auth.user?.timezone);
     const monday = weekStart(today);
     const [[row], stats, memberRows, milestoneRows, [kpi], [blocked], updates, labels, settings, hasTasks] =
       await Promise.all([
-        this.selectSummaries(auth).where(eq(projects.id, project.id)),
-        this.stats([project.id], today),
-        this.memberList(project),
-        this.milestoneList(project.id),
+        this.selectSummaries(auth).where(eq(projects.id, found.id)),
+        this.stats([found.id], today),
+        this.memberList(found),
+        this.milestoneList(found.id),
         this.ctx.db
           .select({
             doneThisWeek:
@@ -409,7 +409,7 @@ export class ProjectService {
               ),
           })
           .from(tasks)
-          .where(eq(tasks.projectId, project.id)),
+          .where(eq(tasks.projectId, found.id)),
         this.ctx.db
           .execute<{ n: number }>(
             sql`
@@ -417,7 +417,7 @@ export class ProjectService {
             from ${tasks} t
             join ${taskDependencies} d on d.task_id = t.id
             join ${tasks} dep on dep.id = d.depends_on_id
-           where t.project_id = ${project.id}
+           where t.project_id = ${found.id}
              and t.status not in ('done', 'cancelled')
              and dep.status not in ('done', 'cancelled')`,
           )
@@ -425,24 +425,28 @@ export class ProjectService {
         this.ctx.db
           .select()
           .from(projectUpdates)
-          .where(eq(projectUpdates.projectId, project.id))
+          .where(eq(projectUpdates.projectId, found.id))
           .orderBy(desc(projectUpdates.createdAt))
           .limit(20),
         this.ctx.db
           .execute<{ label: string }>(
-            sql`select distinct unnest(${tasks.labels}) as label from ${tasks} where ${tasks.projectId} = ${project.id} order by 1 limit 200`,
+            sql`select distinct unnest(${tasks.labels}) as label from ${tasks} where ${tasks.projectId} = ${found.id} order by 1 limit 200`,
           )
           .then((r) => r.rows.map((x) => x.label)),
         this.settings(),
-        this.hasTasks(project.id),
+        this.hasTasks(found.id),
       ]);
-    const access = accessFor(project, row!.myRole, auth, { hasTasks });
+    // Everything below comes from this one read of the project row: the status and the approval change
+    // together when a proposal is approved, so mixing two reads could show "active" with a pending approval.
+    if (!row) throw notFound('project');
+    const project = row.project;
+    const access = accessFor(project, row.myRole, auth, { hasTasks });
     const people = await peopleByIds(
       this.ctx.db,
       updates.map((u) => u.authorId),
     );
-    const s = stats.get(project.id)!;
-    const summary = this.toSummary(row!, s);
+    const s = stats.get(found.id)!;
+    const summary = this.toSummary(row, s);
     const open = TASK_STATUSES.filter((x) => !CLOSED.includes(x)).reduce((n, x) => n + s.counts[x], 0);
     return {
       ...summary,
@@ -450,7 +454,7 @@ export class ProjectService {
       healthUpdatedAt: project.healthUpdatedAt,
       attributes: project.attributes,
       createdAt: project.createdAt,
-      members: memberRows,
+      members: memberRows.map((m) => ({ ...m, isOwner: m.userId === project.ownerId })),
       milestones: milestoneRows,
       kpis: {
         overdue: s.overdue,

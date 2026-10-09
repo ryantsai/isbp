@@ -10,6 +10,8 @@ import {
   HttpError,
   type ModuleContext,
   type NotificationParam,
+  type RunProblem,
+  runProblemOf,
   type TaskContext,
   type TaskOutcome,
 } from '@isbp/sdk/server';
@@ -70,7 +72,7 @@ interface Wake {
 
 type AttemptResult =
   | { ok: true; outcome: TaskOutcome }
-  | { ok: false; status: 'failed' | 'timed_out' | 'cancelled'; error: string };
+  | { ok: false; status: 'failed' | 'timed_out' | 'cancelled'; error: string; problem: RunProblem };
 
 /** A one-line, credential-free reason for the run list (database and HTTP failures include the server's text). */
 export function errorText(err: unknown): string {
@@ -85,6 +87,9 @@ export function errorText(err: unknown): string {
   if (err instanceof Error) return err.message.slice(0, 2_000) || err.name;
   return String(err).slice(0, 2_000);
 }
+
+/** `etl.results.pipeline`: a catalog key, not text. */
+export const SUMMARY_KEY = /^[a-z][\w-]*(\.[\w-]+)+$/i;
 
 const isTimeout = (err: unknown) => err instanceof Error && err.name === 'TimeoutError';
 
@@ -206,7 +211,8 @@ export class Engine {
               skipReason: 'missed',
               maxAttempts: job.maxAttempts,
               finishedAt: now,
-              summary: `Missed ${plan.missedCount} scheduled run(s)`,
+              summary: 'scheduler.results.missed',
+              summaryParams: { count: plan.missedCount },
             })
             .onConflictDoNothing({ target: [runs.jobId, runs.scheduledFor] })
             .returning({ id: runs.id });
@@ -246,7 +252,12 @@ export class Engine {
       const done = await this.finishAttempt(
         r.id,
         r.attempt,
-        { ok: false, status: 'failed', error: 'Worker lost: no heartbeat for 2 minutes' },
+        {
+          ok: false,
+          status: 'failed',
+          error: 'Worker lost: no heartbeat for 2 minutes',
+          problem: { kind: 'lost', params: {} },
+        },
         { requireStaleHeartbeat: cutoff },
       );
       if (done) n++;
@@ -313,7 +324,12 @@ export class Engine {
       if (!job) return { kind: 'ignored' as const };
       const now = new Date();
       if (run.cancelRequested) {
-        await this.close(tx, run, { status: 'cancelled', error: 'Cancelled before it started', now });
+        await this.close(tx, run, {
+          status: 'cancelled',
+          error: 'Cancelled before it started',
+          problem: { kind: 'cancelled', params: {} },
+          now,
+        });
         return { kind: 'done' as const, status: 'cancelled' as const };
       }
       const busy = await tx
@@ -338,7 +354,7 @@ export class Engine {
         await this.close(tx, run, {
           status: 'skipped',
           skipReason: 'overlap',
-          summary: 'Skipped: the previous run was still going',
+          summary: 'scheduler.results.skippedOverlap',
           now,
         });
         await appendLog(tx, run.id, [
@@ -445,7 +461,9 @@ export class Engine {
       stopped.catch(() => undefined);
       const outcome = await Promise.race([work, stopped]);
       if (state.reason) throw controller.signal.reason;
-      log.push(`Succeeded in ${Date.now() - started} ms${outcome.summary ? `: ${outcome.summary}` : ''}`);
+      // A summary that is an i18n key is for the UI; the log keeps plain text only.
+      const plain = outcome.summary && !SUMMARY_KEY.test(outcome.summary) ? `: ${outcome.summary}` : '';
+      log.push(`Succeeded in ${Date.now() - started} ms${plain}`);
       return { ok: true, outcome };
     } catch (err) {
       const why = state.reason;
@@ -459,8 +477,16 @@ export class Engine {
             : why === 'lost'
               ? 'The run was taken over (no heartbeat)'
               : errorText(err);
+      const problem: RunProblem =
+        why === 'timeout'
+          ? { kind: 'timeout', params: { seconds: job.timeoutSeconds } }
+          : why === 'cancelled'
+            ? { kind: 'cancelled', params: {} }
+            : why === 'lost'
+              ? { kind: 'lost', params: {} }
+              : runProblemOf(err);
       log.push(error, status === 'cancelled' ? 'warn' : 'error');
-      return { ok: false, status, error };
+      return { ok: false, status, error, problem };
     } finally {
       clearTimeout(timeout);
       clearInterval(heartbeat);
@@ -476,6 +502,7 @@ export class Engine {
     opts: {
       status: RunStatus;
       error?: string | null;
+      problem?: RunProblem | null;
       summary?: string | null;
       skipReason?: 'missed' | 'overlap';
       now: Date;
@@ -484,7 +511,13 @@ export class Engine {
   ): Promise<number | null> {
     const attempts = run.attempts.map((a) =>
       a.attempt === run.attempt && a.finishedAt === null
-        ? { ...a, finishedAt: opts.now.toISOString(), status: opts.status, error: opts.error ?? null }
+        ? {
+            ...a,
+            finishedAt: opts.now.toISOString(),
+            status: opts.status,
+            error: opts.error ?? null,
+            problem: opts.problem ?? null,
+          }
         : a,
     );
     const current = attempts.find((a) => a.attempt === run.attempt);
@@ -497,7 +530,9 @@ export class Engine {
         finishedAt: opts.now,
         durationMs,
         error: opts.error ?? null,
+        problem: opts.problem ?? null,
         summary: opts.outcome?.summary ?? opts.summary ?? null,
+        summaryParams: opts.outcome?.summaryParams ?? null,
         metrics: opts.outcome?.metrics ?? {},
         href: opts.outcome?.href ?? null,
         attempts,
@@ -570,7 +605,7 @@ export class Engine {
         const next = new Date(now.getTime() + delay * 1_000);
         const attempts = run.attempts.map((a) =>
           a.attempt === run.attempt && a.finishedAt === null
-            ? { ...a, finishedAt: now.toISOString(), status, error: result.error }
+            ? { ...a, finishedAt: now.toISOString(), status, error: result.error, problem: result.problem }
             : a,
         );
         await tx
@@ -580,6 +615,7 @@ export class Engine {
             attempt: run.attempt + 1,
             attempts,
             error: result.error,
+            problem: result.problem,
             nextAttemptAt: next,
             wakeAt: next,
             heartbeatAt: null,
@@ -596,7 +632,7 @@ export class Engine {
         return { done: true };
       }
 
-      await this.close(tx, run, { status, error: result.error, now });
+      await this.close(tx, run, { status, error: result.error, problem: result.problem, now });
       if (status === 'cancelled') return { done: true };
       const streak = job.failureStreak + 1;
       const autoDisable = job.enabled && job.autoDisableAfter > 0 && streak >= job.autoDisableAfter;

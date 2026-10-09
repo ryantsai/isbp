@@ -1,7 +1,7 @@
 'use client';
 
 import type { Page } from '@isbp/sdk';
-import { useApi, type WebPageProps } from '@isbp/sdk/web';
+import { useApi, useCan, type WebPageProps } from '@isbp/sdk/web';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,276 +13,234 @@ import {
   AlertDialogTitle,
 } from '@isbp/ui/alert-dialog';
 import { Button } from '@isbp/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
-import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { useListState } from '@isbp/ui/data-table';
+import { DecisionDone, DecisionProgress, DecisionViews } from '@isbp/ui/decision-list';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Switch } from '@isbp/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { ArrowLeftIcon, BadgeCheckIcon, DownloadIcon, FileQuestionIcon, XCircleIcon } from 'lucide-react';
-import Link from 'next/link';
+import { BadgeCheckIcon, ClipboardCheckIcon, DownloadIcon, XCircleIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useId, useMemo, useState } from 'react';
-import { STOCKTAKE_ITEM_VIEWS, type Stocktake, type StocktakeItem } from '../../contracts';
-import { ProgressBar, ResultBadge, StocktakeStatusBadge, ValueBadge } from '../badges';
-import { apiUrl, assetHref, INVALIDATE, useDay, useLocalized } from '../lib';
-import { RecordItemDialog, SignOffDialog } from '../stocktake-dialogs';
+import { useState } from 'react';
+import { STOCKTAKE_RESULTS, type Stocktake, type StocktakeItem } from '../../contracts';
+import { StocktakeStatusBadge } from '../badges';
+import { apiUrl, download, INVALIDATE, useDay } from '../lib';
+import { SignOffDialog } from '../stocktake-dialogs';
+import { StocktakeItemList } from '../stocktake-items';
 
-type View = (typeof STOCKTAKE_ITEM_VIEWS)[number];
+const VIEWS = ['todo', 'done', 'all'] as const;
+type View = (typeof VIEWS)[number];
+type Result = (typeof STOCKTAKE_RESULTS)[number];
 
-/** One stocktake: progress, the items (yours first), recording, export and sign-off. */
+/** One stocktake: progress, the viewer's assets first ("Is this still right?"), export and sign-off. */
 export default function StocktakePage({ params }: WebPageProps) {
   const t = useTranslations('isms');
   const tc = useTranslations('common');
   const api = useApi();
   const day = useDay();
   const locale = useLocale();
-  const localized = useLocalized();
   const ref = params.ref ?? '';
-  const mineId = useId();
-  const [state, set] = useListState({ pageSize: 50 });
-  const view: View = STOCKTAKE_ITEM_VIEWS.includes(state.view as View) ? (state.view as View) : 'all';
-  const mine = state.mine === 'true';
-  const {
-    data: st,
-    isLoading,
-    error,
-  } = useApiQuery<Stocktake>(`/isms/stocktakes/${encodeURIComponent(ref)}`);
-  const items = useApiQuery<Page<StocktakeItem>>(st ? `/isms/stocktakes/${st.reference}/items` : null, {
+  const readsAssets = useCan('isms.assets.read');
+  const managesStocktakes = useCan('isms.stocktakes.manage');
+  const signsOff = useCan('isms.stocktakes.signoff');
+  const readsAll = readsAssets || managesStocktakes || signsOff;
+  const [state, set] = useListState({ pageSize: 25 });
+  const st = useApiQuery<Stocktake>(`/isms/stocktakes/${encodeURIComponent(ref)}`);
+  const s = st.data;
+  const participant = Boolean(s && s.viewer.mineTotal > 0);
+  const view: View = VIEWS.includes(state.view as View)
+    ? (state.view as View)
+    : state.mine === 'true' || (s && s.viewer.pendingForMe > 0)
+      ? 'todo'
+      : 'all';
+  // `?mine=true` (notifications, My work) or a participant's default: their own assets.
+  const mine = state.mine === 'true' || (state.mine !== 'false' && participant);
+  const result = STOCKTAKE_RESULTS.includes(state.result as Result) ? (state.result as Result) : undefined;
+  const items = useApiQuery<Page<StocktakeItem>>(s ? `/isms/stocktakes/${s.reference}/items` : null, {
     page: state.page,
     pageSize: state.pageSize,
     q: state.q,
-    view,
+    view: view === 'todo' ? 'pending' : view === 'done' ? (result ?? 'done') : 'all',
     mine: mine ? 'true' : undefined,
   });
-  const [recording, setRecording] = useState<StocktakeItem | null>(null);
   const [signing, setSigning] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const signOff = useApiMutation(
-    (_a, note: string | null) => api.post<Stocktake>(`/isms/stocktakes/${st!.reference}/sign-off`, { note }),
+    (_a, note: string | null) => api.post<Stocktake>(`/isms/stocktakes/${s!.reference}/sign-off`, { note }),
     { invalidate: INVALIDATE, success: t('stocktake.signedOff'), onSuccess: () => setSigning(false) },
   );
-  const cancel = useApiMutation(() => api.post<Stocktake>(`/isms/stocktakes/${st!.reference}/cancel`, {}), {
+  const cancel = useApiMutation(() => api.post<Stocktake>(`/isms/stocktakes/${s!.reference}/cancel`, {}), {
     invalidate: INVALIDATE,
     success: t('stocktake.cancelled'),
     onSuccess: () => setCancelling(false),
   });
 
-  const columns = useMemo<DataTableColumn<StocktakeItem>[]>(
-    () => [
-      {
-        id: 'number',
-        header: t('fields.number'),
-        size: 120,
-        meta: { className: 'font-mono text-xs text-muted-foreground' },
-        cell: ({ row }) =>
-          row.original.assetId ? (
-            <Link href={assetHref(row.original.snapshot.number)} className="hover:underline">
-              {row.original.snapshot.number}
-            </Link>
-          ) : (
-            row.original.snapshot.number
-          ),
-      },
-      {
-        id: 'name',
-        header: t('fields.name'),
-        meta: { className: 'max-w-56' },
-        cell: ({ row }) => (
-          <span className="block min-w-0">
-            <span className="block truncate font-medium">{row.original.snapshot.name}</span>
-            <span className="block truncate text-xs text-muted-foreground">
-              {localized(row.original.snapshot.className)} · {row.original.snapshot.location ?? '—'}
-            </span>
-          </span>
-        ),
-      },
-      {
-        id: 'value',
-        header: t('fields.value'),
-        meta: { className: 'hidden md:table-cell', headerClassName: 'hidden md:table-cell' },
-        cell: ({ row }) => <ValueBadge value={row.original.snapshot.value} />,
-      },
-      {
-        id: 'assignee',
-        header: t('fields.manager'),
-        meta: { className: 'hidden max-w-44 lg:table-cell', headerClassName: 'hidden lg:table-cell' },
-        cell: ({ row }) => (
-          <span className="block truncate">
-            {row.original.assignee?.displayName ?? row.original.assigneeGroup?.name ?? (
-              <span className="text-muted-foreground">—</span>
-            )}
-          </span>
-        ),
-      },
-      {
-        id: 'result',
-        header: t('fields.result'),
-        cell: ({ row }) => (
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <ResultBadge result={row.original.result} />
-            {row.original.note && (
-              <span className="block max-w-56 truncate text-xs text-muted-foreground">
-                {row.original.note}
-              </span>
-            )}
-          </span>
-        ),
-      },
-      {
-        id: 'actions',
-        header: () => <span className="sr-only">{tc('actions')}</span>,
-        cell: ({ row }) =>
-          row.original.canRecord && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                setRecording(row.original);
-              }}
-              aria-label={t('record.openFor', { number: row.original.snapshot.number })}
-            >
-              {row.original.result ? t('record.change') : t('record.open')}
-            </Button>
-          ),
-      },
-    ],
-    [t, tc, localized],
-  );
-
-  if (isLoading) return <Skeleton className="h-72 w-full rounded-xl" />;
-  if (error || !st) return <EmptyState icon={<FileQuestionIcon />} title={t('stocktake.notFound')} />;
-  const p = st.progress;
-  const table = (
-    <DataTable
-      label={t('stocktake.items')}
-      columns={columns}
-      data={items.data?.items ?? []}
-      total={items.data?.total ?? 0}
-      page={state.page}
-      pageSize={state.pageSize}
-      loading={items.isLoading}
-      fetching={items.isFetching}
-      getRowId={(i) => i.id}
-      onPageChange={(page) => set({ page })}
-      onPageSizeChange={(pageSize) => set({ pageSize })}
-      toolbar={
-        <>
-          <SearchInput
-            value={state.q ?? ''}
-            onChange={(q) => set({ q })}
-            placeholder={t('stocktake.search')}
-            className="sm:w-64"
-          />
-          <div className="flex items-center gap-2">
-            <Switch
-              id={mineId}
-              checked={mine}
-              onCheckedChange={(v) => set({ mine: v ? 'true' : undefined })}
-            />
-            <label htmlFor={mineId} className="text-sm">
-              {t('stocktake.onlyMine')}
-            </label>
-          </div>
-        </>
-      }
-      empty={<EmptyState icon={<BadgeCheckIcon />} title={t('stocktake.noItems')} />}
-    />
-  );
+  if (st.isLoading) return <Skeleton className="h-72 w-full rounded-xl" />;
+  if (st.error) return <ErrorState kind="page" error={st.error} onRetry={() => st.refetch()} />;
+  if (!s) return <EmptyState icon={<ClipboardCheckIcon />} title={t('stocktake.notFound')} />;
+  const p = s.progress;
+  const open = s.status === 'open';
+  const canSignOff = s.viewer.canSignOff && open;
+  const filtered = Boolean(state.q || result);
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href="/isms/stocktakes">
-          <ArrowLeftIcon /> {t('stocktakes.title')}
-        </Link>
-      </Button>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <p className="font-mono text-sm text-muted-foreground">{st.reference}</p>
-          <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{st.name}</h1>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <StocktakeStatusBadge status={st.status} overdue={st.overdue} />
-            <span>{t('stocktakes.dueOn', { date: day(st.dueOn) })}</span>
-            {st.recurrence !== 'none' && <span>· {t(`recurrence.${st.recurrence}`)}</span>}
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Button variant="outline" asChild>
-            <a href={apiUrl(`/isms/stocktakes/${st.reference}/export.csv`, { locale })} download>
-              <DownloadIcon /> {t('stocktake.export')}
-            </a>
-          </Button>
-          {st.viewer.canManage && (st.status === 'open' || st.status === 'scheduled') && (
-            <Button variant="outline" onClick={() => setCancelling(true)}>
-              <XCircleIcon /> {t('stocktake.cancel')}
-            </Button>
-          )}
-          {st.viewer.canSignOff && st.status === 'open' && (
+      <DetailHeader
+        back={{ href: '/isms/stocktakes', label: t('stocktakes.title'), highlight: s.id }}
+        icon={<ClipboardCheckIcon />}
+        reference={s.reference}
+        title={s.name}
+        status={<StocktakeStatusBadge status={s.status} overdue={s.overdue} />}
+        meta={[
+          t('stocktakes.dueOn', { date: day(s.dueOn) }),
+          s.recurrence !== 'none' ? t(`recurrence.${s.recurrence}`) : null,
+          s.createdBy ? t('stocktake.runBy', { name: s.createdBy.displayName }) : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+        primaryAction={
+          canSignOff ? (
             <Button onClick={() => setSigning(true)} disabled={p.done < p.total}>
               <BadgeCheckIcon /> {t('stocktake.signOff')}
             </Button>
-          )}
-        </div>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('fields.progress')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <ProgressBar
-            done={p.done}
-            total={p.total}
-            label={t('stocktakes.progressLabel', { name: st.name })}
-          />
-          <p className="text-sm text-muted-foreground">
-            {t('stocktake.summary', { ...p.byResult, pending: p.total - p.done })}
-          </p>
-          {st.viewer.canSignOff && st.status === 'open' && p.done < p.total && (
-            <p className="text-sm text-muted-foreground">{t('stocktake.signOffWhenDone')}</p>
-          )}
-          {st.signedOffBy && (
-            <p className="text-sm">
-              {t('stocktake.signedOffBy', { name: st.signedOffBy.displayName })}
-              {st.signOffNote ? ` — ${st.signOffNote}` : ''}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-      {st.status === 'scheduled' ? (
-        <p className="text-sm text-muted-foreground">{t('stocktake.scheduled', { date: day(st.startOn) })}</p>
-      ) : (
-        <Tabs
-          value={view}
-          onValueChange={(v) => set({ view: v === 'all' ? undefined : v })}
-          className="gap-4"
-        >
-          <TabsList className="max-w-full justify-start overflow-x-auto">
-            {STOCKTAKE_ITEM_VIEWS.map((v) => (
-              <TabsTrigger key={v} value={v}>
-                {t(`stocktake.views.${v}`)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {STOCKTAKE_ITEM_VIEWS.map((v) => (
-            <TabsContent key={v} value={v} className="min-w-0">
-              {view === v && table}
-            </TabsContent>
-          ))}
-        </Tabs>
-      )}
-      <RecordItemDialog
-        stocktake={st.reference}
-        item={recording}
-        onOpenChange={(o) => !o && setRecording(null)}
+          ) : undefined
+        }
+        menu={[
+          {
+            id: 'export',
+            label: t('stocktake.export'),
+            icon: <DownloadIcon />,
+            onSelect: () => download(apiUrl(`/isms/stocktakes/${s.reference}/export.csv`, { locale })),
+          },
+          ...(s.viewer.canManage && (open || s.status === 'scheduled')
+            ? [
+                {
+                  id: 'cancel',
+                  label: t('stocktake.cancel'),
+                  icon: <XCircleIcon />,
+                  destructive: true,
+                  onSelect: () => setCancelling(true),
+                },
+              ]
+            : []),
+        ]}
       />
+      <DecisionProgress
+        done={p.done}
+        total={p.total}
+        label={t('stocktakes.progressLabel', { name: s.name })}
+        valueText={t('stocktake.progressValue', { done: p.done, total: p.total })}
+        summary={t('stocktake.summary', { ...p.byResult, pending: p.total - p.done })}
+      >
+        {canSignOff && p.done < p.total && (
+          <p className="text-sm text-muted-foreground">{t('stocktake.signOffWhenDone')}</p>
+        )}
+        {s.viewer.canSignOff && open && p.total > 0 && p.done === p.total && (
+          <p className="text-sm font-medium">{t('stocktake.readyToSignOff')}</p>
+        )}
+        {s.signedOffBy && (
+          <p className="text-sm">
+            {t('stocktake.signedOffBy', { name: s.signedOffBy.displayName })}
+            {s.signOffNote ? ` — ${s.signOffNote}` : ''}
+          </p>
+        )}
+      </DecisionProgress>
+      {s.status === 'scheduled' ? (
+        <p className="text-sm text-muted-foreground">{t('stocktake.scheduled', { date: day(s.startOn) })}</p>
+      ) : (
+        <>
+          {open && participant && mine && s.viewer.pendingForMe === 0 && view === 'todo' && (
+            <DecisionDone title={t('stocktake.allDone')} description={t('stocktake.allDoneHint')} />
+          )}
+          <DecisionViews
+            value={view}
+            onValueChange={(v) => set({ view: v, result: undefined })}
+            label={t('stocktake.items')}
+            views={[
+              {
+                value: 'todo',
+                label: t('stocktake.views.todo'),
+                count: mine ? s.viewer.pendingForMe : p.total - p.done,
+              },
+              { value: 'done', label: t('stocktake.views.done') },
+              { value: 'all', label: t('stocktake.views.all') },
+            ]}
+            actions={
+              <>
+                {participant && readsAll && (
+                  <Select
+                    value={mine ? 'mine' : 'everyone'}
+                    onValueChange={(v) => set({ mine: v === 'mine' ? 'true' : 'false' })}
+                  >
+                    <SelectTrigger className="w-full sm:w-44" aria-label={t('stocktake.scope.label')}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mine">{t('stocktake.scope.mine')}</SelectItem>
+                      <SelectItem value="everyone">{t('stocktake.scope.everyone')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+                {view === 'done' && (
+                  <Select
+                    value={result ?? 'any'}
+                    onValueChange={(v) => set({ result: v === 'any' ? undefined : v })}
+                  >
+                    <SelectTrigger className="w-full sm:w-40" aria-label={t('fields.result')}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">{t('stocktake.anyResult')}</SelectItem>
+                      {STOCKTAKE_RESULTS.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {t(`stocktakeResult.${r}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <SearchInput
+                  value={state.q ?? ''}
+                  onChange={(q) => set({ q })}
+                  placeholder={t('stocktake.search')}
+                  className="sm:w-56"
+                />
+              </>
+            }
+          >
+            <StocktakeItemList
+              label={t('stocktake.items')}
+              items={items.data?.items ?? []}
+              stocktakeOf={() => s.reference}
+              showAssignee={!mine}
+              selectable={open}
+              loading={items.isLoading}
+              error={items.error}
+              onRetry={() => items.refetch()}
+              total={items.data?.total}
+              page={state.page}
+              pageSize={state.pageSize}
+              onPageChange={(page) => set({ page })}
+              empty={
+                filtered ? (
+                  <EmptyState
+                    variant="filtered"
+                    onClearFilters={() => set({ q: undefined, result: undefined })}
+                  />
+                ) : (
+                  <EmptyState variant="compact" title={t(`stocktake.empty.${view}`)} />
+                )
+              }
+            />
+          </DecisionViews>
+        </>
+      )}
       <SignOffDialog
         open={signing}
         onOpenChange={setSigning}
-        title={t('stocktake.signOffTitle', { reference: st.reference })}
+        title={t('stocktake.signOffTitle', { reference: s.reference })}
         description={t('stocktake.signOffDescription')}
         onConfirm={(note) => signOff.mutate(note)}
         pending={signOff.isPending}
@@ -290,7 +248,7 @@ export default function StocktakePage({ params }: WebPageProps) {
       <AlertDialog open={cancelling} onOpenChange={setCancelling}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('stocktake.cancelTitle', { reference: st.reference })}</AlertDialogTitle>
+            <AlertDialogTitle>{t('stocktake.cancelTitle', { reference: s.reference })}</AlertDialogTitle>
             <AlertDialogDescription>{t('stocktake.cancelDescription')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

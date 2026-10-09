@@ -7,7 +7,8 @@
     "next": "Next page",
     "empty": "Nothing here yet.",
     "selectAll": "Select all rows on this page",
-    "selectRow": "Select row"
+    "selectRow": "Select row",
+    "refreshFailed": "Couldn't refresh this list. Showing the results loaded earlier."
   },
   "search": {
     "clear": "Clear search"
@@ -21,7 +22,7 @@
     "max": "Enter at most {max}",
     "pattern": "This doesn't match the expected format",
     "option": "Choose one of the options",
-    "email": "Enter a valid email address",
+    "email": "Enter an email address, like name@example.com",
     "url": "Enter a web address starting with https://",
     "date": "Enter a valid date",
     "user": "Choose a person",
@@ -33,7 +34,8 @@
   "localized": {
     "languages": "Languages",
     "filled": "{language} (filled in)",
-    "missing": "{language} (missing — English or another language is shown)"
+    "missing": "{language} (missing)",
+    "fallback": "Languages left empty show English, or another language that is filled in."
   },
   "person": {
     "search": "Search people…",
@@ -53,14 +55,14 @@
   },
   "conditions": {
     "match": "Match",
-    "all": "all rules",
-    "any": "any rule",
-    "addRule": "Add rule",
-    "removeRule": "Remove rule",
+    "all": "all conditions",
+    "any": "any condition",
+    "addCondition": "Add condition",
+    "removeCondition": "Remove condition {n}",
     "fact": "Field",
     "op": "Operator",
     "value": "Value",
-    "noRules": "No rules yet — the condition is always true.",
+    "noConditions": "No conditions yet: this always applies.",
     "ops": {
       "eq": "is",
       "neq": "is not",
@@ -73,6 +75,12 @@
       "contains": "contains",
       "empty": "is empty",
       "notEmpty": "is filled in"
+    },
+    "dateOps": {
+      "gt": "is after",
+      "gte": "is on or after",
+      "lt": "is before",
+      "lte": "is on or before"
     },
     "valuePlaceholder": "Value",
     "listPlaceholder": "Values, comma-separated",
@@ -87,7 +95,9 @@
     "offsetDays": "Days to add to the date (negative: before)",
     "days": "days",
     "offsetText": "{offset} days",
-    "today": "Today"
+    "today": "Today",
+    "useToday": "Compare with today",
+    "pickDate": "Choose a date instead"
   },
   "rows": {
     "row": "Row {n}",
@@ -167,5 +177,224 @@
   },
   "formErrors": {
     "title": "Please check the form"
+  },
+  "close": "Close",
+  "saved": "Saved",
+  "error": {
+    "listTitle": "Couldn't load this list",
+    "title": "Couldn't load this",
+    "retry": "Retry",
+    "forbiddenTitle": "You don't have access to this",
+    "forbiddenDescription": "If you need it, ask an administrator for access.",
+    "notFoundTitle": "Not found",
+    "notFoundDescription": "It may have been removed, or the link is wrong."
+  },
+  "empty": {
+    "filteredTitle": "No results match these filters",
+    "filteredDescription": "Try other filters or a different search.",
+    "clearFilters": "Clear filters"
+  },
+  "filters": {
+    "button": "Filters",
+    "buttonCount": "Filters ({count} applied)",
+    "title": "Filters",
+    "description": "Changes apply to the list right away.",
+    "applied": "Applied filters",
+    "remove": "Remove filter: {label}",
+    "clearAll": "Clear all",
+    "done": "Show results"
+  },
+  "detail": {
+    "more": "More actions"
+  },
+  "stepper": {
+    "label": "Progress",
+    "progress": "Step {current} of {total}",
+    "completed": "completed",
+    "current": "current step"
+  },
+  "unsaved": {
+    "title": "Discard changes?",
+    "description": "You have changes that aren't saved yet. If you close this, they're lost.",
+    "keep": "Keep editing",
+    "discard": "Discard"
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalid": "This value isn't valid",
+    "number": "Enter a number",
+    "date": "Enter a valid date",
+    "tooShort": "Enter at least {min} characters",
+    "tooLong": "Enter at most {max} characters",
+    "atLeast": "Enter {min} or more",
+    "above": "Enter more than {min}",
+    "atMost": "Enter {max} or less",
+    "below": "Enter less than {max}",
+    "chooseOne": "Choose at least one",
+    "chooseAtLeast": "Choose at least {min}",
+    "chooseAtMost": "Choose at most {max}",
+    "email": "Enter an email address, like name@example.com",
+    "url": "Enter a web address, like https://example.com",
+    "format": "This doesn't match the expected format",
+    "option": "Choose one of the options",
+    "multipleOf": "Enter a multiple of {divisor}"
+  },
+  "problem": {
+    "technicalDetails": "Technical details"
+  },
+  "loading": "Loading",
+  "runProblem": {
+    "theConnection": "the database connection",
+    "theService": "The web service",
+    "openConnection": "Open connection",
+    "retrying": "Attempt {attempt} failed — retrying at {time}",
+    "db_host_not_found": {
+      "title": "The server of {connection} couldn't be found",
+      "hint": "Its host name doesn't resolve. Check the host in the connection, or whether the server was renamed or moved."
+    },
+    "db_refused": {
+      "title": "The server of {connection} refused the connection",
+      "hint": "No database is listening on that host and port. Check the port in the connection and that the database service is running."
+    },
+    "db_unreachable": {
+      "title": "The server of {connection} couldn't be reached",
+      "hint": "The network connection failed or timed out. Check that the server is up and reachable from the platform (firewall, VPN)."
+    },
+    "db_login": {
+      "title": "The database refused the login of {connection}",
+      "hint": "The user name or password is wrong, expired or locked. Update the credentials in the connection."
+    },
+    "db_timeout": {
+      "title": "The database took too long to answer ({connection})",
+      "hint": "The statement hit its time limit. Try again later, or ask the database owner whether the server is busy or the query needs an index."
+    },
+    "db_permission": {
+      "title": "The login of {connection} isn't allowed to do this",
+      "hint": "Ask the database owner to give the connection's login access to the tables it uses."
+    },
+    "db_object_missing": {
+      "title": "A table or routine is missing in {connection}",
+      "hint": "The statement uses a table, view or procedure that doesn't exist or was renamed. Check the statement or the tables it uses."
+    },
+    "db_sql": {
+      "title": "The database couldn't run the statement",
+      "hint": "The SQL has a syntax error. Check the statement."
+    },
+    "db_data": {
+      "title": "A value didn't fit the target table",
+      "hint": "A value is too long or has the wrong type for its column. Check the mapping and the transforms."
+    },
+    "db_constraint": {
+      "title": "The database refused rows that break one of its rules",
+      "hint": "A key is duplicated or a referenced row is missing. Check the keys and the data being written."
+    },
+    "db_read_only": {
+      "title": "{connection} is read-only",
+      "hint": "Writing needs a connection that allows it. Pick another connection or ask an administrator."
+    },
+    "db_other": {
+      "title": "The database returned an error ({connection})",
+      "hint": "The technical details show the server's message."
+    },
+    "connection_disabled": {
+      "title": "The connection {connection} is turned off",
+      "hint": "An administrator turned it off. Turn it on again in Database connections, or use another connection."
+    },
+    "http_status": {
+      "title": "{host} answered {status} instead of {expected}",
+      "hint": "{class, select, server {The service had a problem on its side. It usually recovers: try again later.} other {Check the address, the credentials and the request.}}"
+    },
+    "http_unreachable": {
+      "title": "{host} couldn't be reached",
+      "hint": "The address doesn't resolve or the server didn't answer. Check the URL and that the service is up."
+    },
+    "http_timeout": {
+      "title": "{host} didn't answer in time",
+      "hint": "The service is slow or down. Try again later, or allow more time for the request."
+    },
+    "blocked": {
+      "title": "The address isn't allowed",
+      "hint": "The platform doesn't call private or internal addresses unless an administrator allows the host."
+    },
+    "timeout": {
+      "title": "The run took longer than its limit of {seconds, number} s",
+      "hint": "Allow more time in the job's settings, or make the work smaller."
+    },
+    "cancelled": {
+      "title": "The run was cancelled",
+      "hint": "Someone stopped it, or it was cancelled before it started."
+    },
+    "lost": {
+      "title": "The worker stopped responding during the run",
+      "hint": "The platform restarted or a worker stopped. Run it again; if it keeps happening, ask an administrator to check the workers."
+    },
+    "script_exit": {
+      "title": "The script ended with error code {code}",
+      "hint": "The log shows the script's own message."
+    },
+    "sandbox_unavailable": {
+      "title": "Scripts can't run right now",
+      "hint": "No script runner is set up or it isn't available. Ask an administrator."
+    },
+    "remote_auth": {
+      "title": "{connection} refused the stored credentials",
+      "hint": "Update the credentials in the connection, then test it."
+    },
+    "remote_rejected": {
+      "title": "The other system refused the change",
+      "hint": "The technical details show its message."
+    },
+    "remote_rate_limited": {
+      "title": "The other system is limiting requests",
+      "hint": "The work continues by itself after a pause."
+    },
+    "not_found": {
+      "title": "What this run works on no longer exists",
+      "hint": "It was deleted. Edit the job to pick another one, or delete the job."
+    },
+    "invalid": {
+      "title": "The settings of this work aren't valid any more",
+      "hint": "Edit it and save again: the form shows what to fix."
+    },
+    "other": {
+      "title": "The run failed",
+      "hint": "The technical details show the error."
+    }
+  },
+  "runLog": {
+    "title": "Log",
+    "live": "{count, plural, one {# line} other {# lines}} · live",
+    "lines": "{count, plural, one {# line} other {# lines}}",
+    "follow": "Follow",
+    "copy": "Copy",
+    "download": "Download",
+    "copied": "Log copied",
+    "copyFailed": "Couldn't copy the log",
+    "waiting": "Waiting for the first lines…",
+    "empty": "Nothing was logged.",
+    "noMatch": "No lines at this level.",
+    "filter": "Show lines",
+    "filters": {
+      "all": "All lines",
+      "problems": "Warnings and errors",
+      "errors": "Errors only"
+    },
+    "levels": {
+      "info": "Info",
+      "warn": "Warning",
+      "error": "Error"
+    }
+  },
+  "inUse": {
+    "title": "Still used by",
+    "summary": "Still used by {first}{more, plural, =0 {} other { and # more}}.",
+    "more": "…and others",
+    "kind": {
+      "request": "Request",
+      "approval": "Approval",
+      "todo": "To do",
+      "work": "Open work",
+      "setting": "Setting"
+    }
   }
 }

@@ -4,7 +4,8 @@ import { manifest } from '../manifest';
 /** Pages served at /helpdesk-ai/* and the module's contributions to other modules' pages. */
 export default defineWebModule(manifest, {
   routes: [
-    { path: '/', load: () => import('./pages/insights-page'), permission: 'helpdesk-ai.insights.read' },
+    // Helpdesk AI's reviewers or service desk report readers (`itsm.reports.read`): the page checks either.
+    { path: '/', load: () => import('./pages/insights-page') },
     { path: '/chat', load: () => import('./pages/chat-page'), permission: 'helpdesk-ai.chat.use' },
     {
       path: '/conversations/:id',
@@ -26,7 +27,7 @@ export default defineWebModule(manifest, {
     },
     {
       slot: 'knowledge.home.assist',
-      load: () => import('./chat/ask-it-card'),
+      load: () => import('./chat/ask-it-card').then((m) => ({ default: m.KnowledgeAskItCard })),
       permission: 'helpdesk-ai.chat.use',
     },
   ],

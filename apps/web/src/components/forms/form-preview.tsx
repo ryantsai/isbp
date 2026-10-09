@@ -25,8 +25,9 @@ import {
   useMessages,
   useTranslations,
 } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
+import { Disclosure } from '@isbp/ui/motion';
 import { Segmented } from '@/components/roles/segmented';
 import { FormIconTile } from './form-meta';
 
@@ -70,6 +71,7 @@ function PreviewForm({
   description,
   icon,
   onResult,
+  onValues,
 }: {
   elements: readonly FormElement[];
   rules?: readonly FormRule[];
@@ -77,6 +79,7 @@ function PreviewForm({
   description: LocalizedText;
   icon: string;
   onResult: (r: Result | null) => void;
+  onValues?: (values: Record<string, unknown>) => void;
 }) {
   const locale = useLocale();
   const t = useTranslations('forms.preview');
@@ -87,6 +90,11 @@ function PreviewForm({
   );
   const resolver = useFormResolver(schema);
   const form = useForm({ resolver, defaultValues: defaultFieldValues(fields) });
+  const watched = useWatch({ control: form.control });
+  const answers = JSON.stringify(watched ?? {});
+  useEffect(() => {
+    onValues?.(JSON.parse(answers) as Record<string, unknown>);
+  }, [answers, onValues]);
   const submit = form.handleSubmit(
     (values) => onResult({ ok: true, values: values as Record<string, FieldValue> }),
     (errors) => onResult({ ok: false, count: Object.keys(errors).length }),
@@ -132,19 +140,26 @@ function PreviewForm({
   );
 }
 
-/** The form exactly as people will see it, in any language, with a dry-run submit (fields and rules). */
+/**
+ * The form exactly as people will see it, in any language, with a dry-run submit (fields and rules). `aside` shows
+ * next to it (the builder: who would approve the sample answers, what happens next), `onValues` gets the answers.
+ */
 export function FormPreview({
   elements,
   rules,
   name,
   description,
   icon,
+  aside,
+  onValues,
 }: {
   elements: readonly FormElement[];
   rules?: readonly FormRule[];
   name: LocalizedText;
   description: LocalizedText;
   icon: string;
+  aside?: ReactNode;
+  onValues?: (values: Record<string, unknown>) => void;
 }) {
   const t = useTranslations('forms.preview');
   const current = useLocale() as Locale;
@@ -222,39 +237,53 @@ export function FormPreview({
                 description={description}
                 icon={icon}
                 onResult={setResult}
+                onValues={onValues}
               />
             </NextIntlClientProvider>
           )}
         </div>
-        <Card className="@3xl:sticky @3xl:top-20">
-          <CardHeader>
-            <CardTitle className="text-base">{t('resultTitle')}</CardTitle>
-            <CardDescription>{t('resultDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent aria-live="polite">
-            {result === null ? (
-              <p className="text-sm text-muted-foreground">{t('resultEmpty')}</p>
-            ) : result.ok ? (
-              <motion.div
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="grid gap-3"
+        <div className="grid min-w-0 gap-4 @3xl:sticky @3xl:top-20">
+          {aside}
+          <Card>
+            <CardContent className="pt-0">
+              <Disclosure
+                defaultOpen={!aside}
+                summary={
+                  <span className="grid gap-0.5">
+                    <span className="text-sm font-semibold">{t('resultTitle')}</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {t('resultDescription')}
+                    </span>
+                  </span>
+                }
               >
-                <Badge variant="success" className="text-sm">
-                  <CircleCheckIcon aria-hidden /> {t('resultValid')}
-                </Badge>
-                <pre className="max-h-96 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs leading-relaxed">
-                  {JSON.stringify(result.values, null, 2)}
-                </pre>
-                <p className="text-xs text-muted-foreground">{t('resultNote')}</p>
-              </motion.div>
-            ) : (
-              <Badge variant="destructive" className="text-sm">
-                <TriangleAlertIcon aria-hidden /> {t('resultInvalid', { count: result.count })}
-              </Badge>
-            )}
-          </CardContent>
-        </Card>
+                <div aria-live="polite" className="pb-2">
+                  {result === null ? (
+                    <p className="text-sm text-muted-foreground">{t('resultEmpty')}</p>
+                  ) : result.ok ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="grid gap-3"
+                    >
+                      <Badge variant="success" className="text-sm">
+                        <CircleCheckIcon aria-hidden /> {t('resultValid')}
+                      </Badge>
+                      <pre className="max-h-96 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs leading-relaxed">
+                        {JSON.stringify(result.values, null, 2)}
+                      </pre>
+                      <p className="text-xs text-muted-foreground">{t('resultNote')}</p>
+                    </motion.div>
+                  ) : (
+                    <Badge variant="destructive" className="text-sm">
+                      <TriangleAlertIcon aria-hidden /> {t('resultInvalid', { count: result.count })}
+                    </Badge>
+                  )}
+                </div>
+              </Disclosure>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

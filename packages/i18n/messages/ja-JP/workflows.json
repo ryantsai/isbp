@@ -46,7 +46,47 @@
     "subjectUser_departmentCode": "対象者の部署",
     "post_severity": "お知らせの種類",
     "post_pinned": "ピン留め",
-    "post_hasWindow": "期間あり"
+    "post_hasWindow": "期間あり",
+    "data": "回答",
+    "records": "選択したレコード",
+    "change_type": "変更の種類",
+    "change_risk": "リスク",
+    "change_impact": "影響度 (1 高 … 3 低)",
+    "change_ciCount": "構成アイテムの数",
+    "change_durationHours": "期間 (時間)",
+    "change_criticalCis": "重大な構成アイテムを含む",
+    "ticket_type": "チケットの種類",
+    "ticket_category": "カテゴリ",
+    "ticket_priority": "優先度 (1 緊急 … 4 低)",
+    "ticket_impact": "影響度 (1 高 … 3 低)",
+    "ticket_urgency": "緊急度 (1 高 … 3 低)",
+    "ticket_major": "重大インシデント",
+    "ticket_groupKey": "割り当てグループ",
+    "ticket_resolutionCode": "解決方法",
+    "ticket_ciCount": "構成アイテムの数",
+    "ticket_ciCriticality": "構成アイテムの最高重要度",
+    "ticket_criticalCis": "重大な構成アイテムを含む",
+    "kinds": "変更する設定の種類",
+    "modules": "モジュール",
+    "itemCount": "変更の数",
+    "destructive": "アーカイブまたは削除を含む",
+    "title": "タイトル",
+    "role_risk": "リスク レベル",
+    "role_approverIds": "承認者",
+    "role_environment": "環境",
+    "role_permanent": "無期限のアクセス",
+    "role_days": "期間 (日)",
+    "article_audience": "対象ユーザー",
+    "article_locale": "言語",
+    "article_categoryKey": "カテゴリ",
+    "asset_category": "資産のカテゴリ",
+    "asset_dataBearing": "データを保持",
+    "asset_bookValue": "簿価",
+    "asset_ageMonths": "経過月数",
+    "project_budgetHours": "予定工数 (時間)",
+    "project_priority": "優先度",
+    "project_departmentId": "部署",
+    "project_memberCount": "メンバーの数"
   },
   "factValues": {
     "role_riskLevel": {
@@ -63,6 +103,75 @@
       "info": "情報",
       "maintenance": "メンテナンス",
       "incident": "障害"
+    },
+    "change_type": {
+      "standard": "標準",
+      "normal": "通常",
+      "emergency": "緊急"
+    },
+    "change_risk": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "ticket_type": {
+      "incident": "インシデント",
+      "service_request": "サービス要求",
+      "problem": "問題",
+      "change": "変更"
+    },
+    "ticket_resolutionCode": {
+      "solved": "解決済み",
+      "workaround": "回避策",
+      "user_error": "ユーザーの操作ミス",
+      "duplicate": "重複",
+      "no_fault_found": "障害なし",
+      "not_reproducible": "再現不可",
+      "cancelled_by_requester": "申請者による取り消し"
+    },
+    "ticket_ciCriticality": {
+      "critical": "重大",
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "role_risk": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "role_environment": {
+      "production": "本番",
+      "staging": "ステージング",
+      "test": "テスト",
+      "development": "開発"
+    },
+    "article_audience": {
+      "everyone": "全員",
+      "agents": "サービス デスク担当者"
+    },
+    "article_locale": {
+      "en": "English",
+      "zh-TW": "繁體中文",
+      "ja-JP": "日本語"
+    },
+    "asset_category": {
+      "laptop": "ノート PC",
+      "desktop": "デスクトップ PC",
+      "monitor": "モニター",
+      "phone": "携帯電話",
+      "tablet": "タブレット",
+      "server": "サーバー",
+      "network": "ネットワーク機器",
+      "storage": "ストレージ",
+      "printer": "プリンター",
+      "peripheral": "周辺機器",
+      "other": "その他"
+    },
+    "project_priority": {
+      "high": "高",
+      "medium": "中",
+      "low": "低"
     }
   },
   "timeline": {
@@ -83,17 +192,19 @@
       "notified": "{step}: {count} 人に通知",
       "completed": "完了: {outcome, select, approved {承認} rejected {却下} cancelled {取り下げ} other {{outcome}}}",
       "cancelled": "{actor} さんが申請を取り下げ",
-      "other": "{type}"
+      "other": "{type}",
+      "task_already_approved": "{actor} の前の承認を {step} に引き継ぎ"
     },
     "reasons": {
       "condition": "条件に一致しない",
       "no-approver": "承認者がいない",
-      "cancelled": "キャンセル"
+      "cancelled": "キャンセル",
+      "already-approved": "{step} で承認済み"
     }
   },
   "list": {
     "title": "ワークフロー",
-    "description": "アクセス申請、フォーム、モジュールの承認ルートです。公開した変更は新しい申請から適用されます。",
+    "description": "誰が何を承認するか。フォームの承認はフォームと一緒に作成します。組み込みの承認は、アクセスや変更などのモジュールのレコードについて判断します。",
     "tabs": {
       "definitions": "ワークフロー",
       "instances": "実行中と履歴"
@@ -102,12 +213,12 @@
     "showArchived": "アーカイブ済みを表示",
     "new": "新しいワークフロー",
     "newFor": "新規",
-    "required": "常に実行",
+    "required": "必須",
     "optional": "任意",
     "usesDefault": "使用中: {name}",
     "perForm": "フォームごとにワークフローを選択します。",
     "noDefault": "未使用 — 既定を選ぶまで承認は不要です。",
-    "empty": "このトリガーのワークフローはまだありません。",
+    "empty": "承認が設定されていません: 承認なしで進みます。",
     "default": "既定",
     "system": "組み込み",
     "archived": "アーカイブ済み",
@@ -126,7 +237,22 @@
       "blank": "空のワークフロー",
       "cancel": "キャンセル",
       "submit": "作成して開く",
-      "created": "ワークフローを作成しました"
+      "created": "ワークフローを作成しました",
+      "formHint": "フォームの承認はフォームから作成するのが簡単です。フォームを開いて [承認] タブを使ってください。"
+    },
+    "on": "オン",
+    "off": "オフ",
+    "inUse": "使用中",
+    "setUp": "承認を設定",
+    "formsTitle": "フォームの承認",
+    "formsDescription": "各フォームが独自の承認を指定します。フォームの [承認] タブで作成・変更します。",
+    "formsEmpty": "承認があるフォームはまだありません。",
+    "usedByForms": "使用中のフォーム: {names}",
+    "usedByNoForm": "どのフォームでも使用されていません",
+    "builtInTitle": "組み込みの承認",
+    "builtInDescription": "プラットフォームの各領域で必要な判断です。必須のものは常に実行され、それ以外は設定すると実行されます。",
+    "areas": {
+      "access": "アクセス"
     }
   },
   "instances": {
@@ -175,7 +301,7 @@
     "more": "その他の操作",
     "makeDefault": "新しい申請に使用",
     "clearDefault": "使用を停止 (承認不要)",
-    "defaultCleared": "このトリガーの承認をオフにしました",
+    "defaultCleared": "{name} の承認をオフにしました",
     "restore": "復元",
     "archive": "アーカイブ",
     "zoomOut": "縮小",
@@ -259,7 +385,9 @@
       "pickGroupFact": "グループを保持するフィールドを選択",
       "noGroupFacts": "グループを保持するフィールドはまだありません。「フォームのフィールドを使用」で、レコード フィールド (例: 構成アイテムとそのサポート グループ) のあるフォームを選択してください。",
       "each": "それぞれに個別に依頼する",
-      "eachHint": "フィールド内のグループまたはユーザーごとに承認を求めます。「全員」と組み合わせると、それぞれが承認する必要があります (例: 選択した各 CI の所有グループ)。"
+      "eachHint": "フィールド内のグループまたはユーザーごとに承認を求めます。「全員」と組み合わせると、それぞれが承認する必要があります (例: 選択した各 CI の所有グループ)。",
+      "removeApprover": "承認者 {name} を削除",
+      "removeFallback": "代わりの承認者 {name} を削除"
     },
     "editor": {
       "legend": "ステップの設定",
@@ -283,6 +411,7 @@
       "name": "ステップ名",
       "when": "条件",
       "whenHint": "条件に一致しない申請ではこのステップをスキップします。",
+      "whenEmpty": "このステップを実行するために申請が満たす条件を追加してください。",
       "onlySometimes": "特定の場合のみこのステップを実行",
       "approvers": "承認者",
       "approversHint": "1 行が 1 人の承認者です。グループやロールは 1 人として数え、メンバーの誰でも回答できます。",
@@ -345,7 +474,26 @@
       "recipients": "通知先",
       "recipientsHint": "アプリ内通知 (希望すればメールも) が届きます。",
       "addRecipient": "通知先を追加",
-      "message": "メッセージ"
+      "message": "メッセージ",
+      "always": "常に実行",
+      "summary": {
+        "due": "{hours} 時間以内",
+        "remind": "{hours} 時間後にリマインダー",
+        "breach": {
+          "notify": "期限後にリマインダー",
+          "escalate": "期限後にエスカレーション",
+          "approve": "期限後に自動承認",
+          "reject": "期限後に自動却下"
+        },
+        "noDeadline": "期限なし",
+        "nobody": {
+          "reject": "承認者が見つからない場合: 却下",
+          "skip": "承認者が見つからない場合: ステップをスキップ"
+        },
+        "selfAllowed": "申請者による承認可",
+        "noHandover": "引き継ぎ不可",
+        "fields": "{count, plural, other {# 個のフィールド}}"
+      }
     },
     "test": {
       "intro": "例の値と判断でワークフローを試します。保存や送信は行われません。",
@@ -364,9 +512,35 @@
         "skipped": "スキップ",
         "active": "待機中",
         "waiting": "未到達"
-      }
+      },
+      "tryAs": "このユーザーとして試す",
+      "tryAsHint": "ユーザーを選択",
+      "enterYourself": "値を自分で入力",
+      "alreadyAt": "{step} で承認済み"
     },
-    "recordFact": "{field}: {fact}"
+    "recordFact": "{field}: {fact}",
+    "stepActionsFor": "{name} のオプション",
+    "startHint": "キャンバスの + で最初のステップを追加します。",
+    "autoName": {
+      "generic": "承認",
+      "manager": "上長の承認",
+      "managerLevel": "{level} 階層上の上長の承認",
+      "departmentHead": "部門長の承認",
+      "named": "{name}の承認",
+      "requester": "申請者の確認"
+    },
+    "editInForm": "フォームの [承認] タブで、フォームの質問とこの承認をまとめて確認できます。",
+    "archiveTitle": "{name} をアーカイブしますか?",
+    "archiveBody": "新しい申請では使用できなくなります。進行中の申請は続行されます。後で復元できます。",
+    "archiveBodyUsed": "{count, plural, other {# 件のフォームまたはロールがこれを使用しており、}}別の承認を選ぶまで承認が見つからなくなります。進行中の申請は続行されます。",
+    "activity": "アクティビティ",
+    "activityDescription": "この承認を変更または公開したユーザー (新しい順)。",
+    "repeatApprovers": {
+      "title": "同じ人が前のステップで承認済みの場合",
+      "ask": "もう一度承認を依頼する",
+      "skip": "前の承認を引き継ぐ",
+      "hint": "前の承認を引き継ぐ: 後のステップでその人に再度依頼せず、前の承認をそのステップの承認として扱います。"
+    }
   },
   "changePreview": {
     "invalid": "この提案は描画できません。グラフが有効なワークフローではありません。",

@@ -302,7 +302,10 @@ export const slaPolicies = itsmSchema.table(
   'sla_policies',
   {
     id: id(),
+    /** English (or the first filled-in language): search, audit and readers of the plain name. */
     name: varchar('name', { length: 200 }).notNull(),
+    /** The name in every language; null for policies saved before names were localized (then `name` is English). */
+    label: jsonb('label').$type<LocalizedText>(),
     description: text('description'),
     ticketTypes: text('ticket_types').array().$type<TicketType[]>().notNull(),
     condition: jsonb('condition').$type<Condition>(),

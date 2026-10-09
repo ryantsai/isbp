@@ -4,7 +4,7 @@ import type { AiConfigInfo, AiStatusInfo } from '@isbp/contracts';
 import { cn } from '@isbp/ui';
 import { Badge } from '@isbp/ui/badge';
 import { Card, CardContent } from '@isbp/ui/card';
-import { FadeIn } from '@isbp/ui/motion';
+import { Disclosure, duration, ease, FadeIn } from '@isbp/ui/motion';
 import { Skeleton } from '@isbp/ui/skeleton';
 import {
   CircleCheckIcon,
@@ -24,7 +24,10 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useId } from 'react';
 import { modelLabel, useUsd } from './ai-meta';
 
-/** Top of Administration → AI: the mode features run in, the embedder and vector store, and spend. */
+/**
+ * Top of Administration → AI: the mode features run in, whether data leaves the platform, and spend. The embedding
+ * model and vector store sit behind "Technical details".
+ */
 export function StatusHero({ status, config }: { status?: AiStatusInfo; config?: AiConfigInfo }) {
   const t = useTranslations('ai.status');
   if (!status || !config)
@@ -113,29 +116,38 @@ export function StatusHero({ status, config }: { status?: AiStatusInfo; config?:
             </div>
           </div>
 
-          <dl className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <Fact icon={<SparklesIcon />} label={t('embeddings')}>
-              <span className="font-mono text-sm break-all">{status.embeddings.model}</span>
-              <span className="block text-xs text-muted-foreground">
-                {status.embeddings.provider === 'builtin'
-                  ? t('embeddingsBuiltin', { dimensions: status.embeddings.dimensions })
-                  : status.embeddings.dimensions
-                    ? t('embeddingsExternal', { dimensions: status.embeddings.dimensions })
-                    : t('embeddingsExternalNoDims')}
-              </span>
-            </Fact>
-            <Fact icon={<DatabaseIcon />} label={t('vectorStore')}>
-              <span className="text-sm font-medium">
-                {status.vectorStore === 'pgvector' ? t('pgvector') : t('portable')}
-              </span>
-              <span className="block text-xs text-muted-foreground">
-                {status.vectorStore === 'pgvector' ? t('pgvectorHint') : t('portableHint')}
-              </span>
-            </Fact>
+          <dl className="grid grid-cols-1 gap-3 sm:max-w-sm">
             <Fact icon={<WalletIcon />} label={t('spend')}>
               <Spend spent={config.spentThisMonthUsd} budget={config.monthlyBudgetUsd} />
             </Fact>
           </dl>
+          {/* How search works underneath: for whoever deploys and supports the platform. */}
+          <Disclosure
+            summary={t('technical')}
+            triggerClassName="w-fit text-muted-foreground"
+            className="border-t pt-2"
+          >
+            <dl className="grid grid-cols-1 gap-3 pt-2 md:grid-cols-2">
+              <Fact icon={<SparklesIcon />} label={t('embeddings')}>
+                <span className="font-mono text-sm break-all">{status.embeddings.model}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {status.embeddings.provider === 'builtin'
+                    ? t('embeddingsBuiltin', { dimensions: status.embeddings.dimensions })
+                    : status.embeddings.dimensions
+                      ? t('embeddingsExternal', { dimensions: status.embeddings.dimensions })
+                      : t('embeddingsExternalNoDims')}
+                </span>
+              </Fact>
+              <Fact icon={<DatabaseIcon />} label={t('vectorStore')}>
+                <span className="text-sm font-medium">
+                  {status.vectorStore === 'pgvector' ? t('pgvector') : t('portable')}
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {status.vectorStore === 'pgvector' ? t('pgvectorHint') : t('portableHint')}
+                </span>
+              </Fact>
+            </dl>
+          </Disclosure>
         </CardContent>
       </Card>
     </FadeIn>
@@ -201,7 +213,7 @@ function Spend({ spent, budget }: { spent: number; budget: number }) {
           )}
           initial={{ width: 0 }}
           animate={{ width: `${percent}%` }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: duration.slow, ease: ease.enter }}
         />
       </div>
       <span

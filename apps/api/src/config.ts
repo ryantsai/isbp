@@ -35,6 +35,8 @@ const schema = z
     LOGIN_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
     LOGIN_LOCK_MINUTES: z.coerce.number().positive().default(15),
     RATE_LIMIT_MAX: z.coerce.number().int().positive().default(1200),
+    // Multiplies every route's own limit (such as 60 uploads a minute). 1 in production: the flow simulator raises it.
+    RATE_LIMIT_ROUTE_SCALE: z.coerce.number().positive().max(1000).default(1),
 
     WORKER_CONCURRENCY: z.coerce.number().int().positive().default(10),
     API_DOCS: bool.optional(),

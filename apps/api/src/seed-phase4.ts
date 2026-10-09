@@ -11,7 +11,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import { apiClients, dbConnections, users } from '@isbp/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import pg from 'pg';
 import { ApiClientService } from './core/services/applications';
 import { runWithContext } from './kernel/context';
@@ -487,11 +487,27 @@ export async function seedPhase4Links(kernel: Kernel) {
 
   if (kernel.registry.get('etl')) {
     const { pipelines } = await import('@isbp/module-etl/schema');
-    const rows = await kernel.db.select({ id: pipelines.id, name: pipelines.name }).from(pipelines);
+    const rows = await kernel.db
+      .select({
+        id: pipelines.id,
+        name: pipelines.name,
+        source: dbConnections.id,
+        sourceName: dbConnections.name,
+      })
+      .from(pipelines)
+      .leftJoin(dbConnections, eq(dbConnections.id, pipelines.sourceConnectionId));
     const idOf = (name: string) => rows.find((r) => r.name === name)?.id;
     const customers = idOf('Customer dimension');
     const sales = idOf('Daily sales to warehouse');
     const crm = idOf('CRM accounts to warehouse');
+    const { pipelineRuns } = await import('@isbp/module-etl/schema');
+    /** The pipeline's scheduled runs came from this job (its page links to the job instead of offering "Schedule"). */
+    const linkRuns = (pipelineId: string, jobId: string) =>
+      kernel.db
+        .update(pipelineRuns)
+        .set({ taskJobId: jobId })
+        .where(and(eq(pipelineRuns.pipelineId, pipelineId), eq(pipelineRuns.trigger, 'schedule')));
+    const crmSource = rows.find((r) => r.id === crm);
     if (customers) {
       const id = await seedJob(ctx, {
         name: 'Customer dimension refresh',
@@ -506,9 +522,11 @@ export async function seedPhase4Links(kernel: Kernel) {
       await seedRunHistory(ctx, id, {
         days: 14,
         durationMs: [8_000, 25_000],
-        summary: (n) => `${395 + (n % 9)} rows written`,
+        summary: () => 'etl.results.pipeline',
+        summaryParams: (n) => ({ written: 395 + (n % 9), read: 395 + (n % 9), rejected: 0 }),
         metrics: (n) => ({ rowsRead: 395 + (n % 9), rowsWritten: 395 + (n % 9), rowsRejected: 0 }),
       });
+      await linkRuns(customers, id);
       created++;
     }
     if (sales) {
@@ -527,10 +545,12 @@ export async function seedPhase4Links(kernel: Kernel) {
         durationMs: [12_000, 90_000],
         failureRate: 0.04,
         errors: ['DATABASE_ERROR 57014: canceling statement due to statement timeout'],
-        summary: (n) => `${40 + (n % 60)} rows written`,
+        summary: () => 'etl.results.pipeline',
+        summaryParams: (n) => ({ written: 40 + (n % 60), read: 40 + (n % 60), rejected: 0 }),
         metrics: (n) => ({ rowsRead: 40 + (n % 60), rowsWritten: 40 + (n % 60), rowsRejected: 0 }),
         timeouts: 1,
       });
+      await linkRuns(sales, id);
       created++;
     }
     if (crm) {
@@ -547,8 +567,11 @@ export async function seedPhase4Links(kernel: Kernel) {
         days: 14,
         failLast: 4,
         errors: ['DATABASE_ERROR ENOTFOUND: getaddrinfo ENOTFOUND mysql-crm-01.corp.contoso.example'],
+        // The source connection can't be found: the run page names it and links to it.
+        connection: crmSource?.source ? { id: crmSource.source, name: crmSource.sourceName ?? '' } : null,
         durationMs: [1_000, 4_000],
       });
+      await linkRuns(crm, id);
       created++;
     }
   }
@@ -556,7 +579,13 @@ export async function seedPhase4Links(kernel: Kernel) {
   if (kernel.registry.get('dbaccess')) {
     const { servers } = await import('@isbp/module-dbaccess/schema');
     const rows = await kernel.db
-      .select({ id: servers.id, name: servers.displayName, key: dbConnections.key })
+      .select({
+        id: servers.id,
+        name: servers.displayName,
+        key: dbConnections.key,
+        connectionId: dbConnections.id,
+        connectionName: dbConnections.name,
+      })
       .from(servers)
       .innerJoin(dbConnections, eq(dbConnections.id, servers.connectionId));
     for (const s of rows) {
@@ -574,7 +603,11 @@ export async function seedPhase4Links(kernel: Kernel) {
         days: 14,
         durationMs: [2_000, 9_000],
         ...(unreachable
-          ? { failLast: 2, errors: [`DATABASE_ERROR ENOTFOUND: the server ${s.name} could not be reached`] }
+          ? {
+              failLast: 2,
+              errors: [`DATABASE_ERROR ENOTFOUND: the server ${s.name} could not be reached`],
+              connection: { id: s.connectionId, name: s.connectionName },
+            }
           : {}),
         summary: (n) => `${12 + (n % 3)} accounts, ${4} roles, ${n % 2} unmanaged`,
       });

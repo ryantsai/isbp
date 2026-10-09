@@ -209,7 +209,7 @@ export function StackedColumns<K extends string>({
                   className="flex w-full flex-col-reverse overflow-hidden rounded-t-[3px]"
                   initial={{ height: 0 }}
                   animate={{ height: `${(total / max) * 100}%` }}
-                  transition={{ duration: 0.5, delay: i * 0.015, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.18, delay: Math.min(i * 0.005, 0.07), ease: [0.22, 1, 0.36, 1] }}
                   aria-hidden
                 >
                   {parts.map((s) => (
@@ -226,7 +226,14 @@ export function StackedColumns<K extends string>({
         </ul>
         <div className="flex gap-[2px] px-0.5 pt-1 text-[11px] text-muted-foreground sm:gap-1" aria-hidden>
           {buckets.map((b, i) => (
-            <span key={b.key} className="min-w-0 flex-1 overflow-visible text-center whitespace-nowrap">
+            <span
+              key={b.key}
+              className={cn(
+                'min-w-0 flex-1 overflow-visible text-center whitespace-nowrap',
+                // Every other label on a phone, so they don't run into each other.
+                i % (tickEvery * 2) !== 0 && 'max-sm:invisible',
+              )}
+            >
               {i % tickEvery === 0 ? b.label : ''}
             </span>
           ))}

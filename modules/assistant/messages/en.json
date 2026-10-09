@@ -4,7 +4,10 @@
     "description": "An AI agent that customises the platform with change sets people review, apply and roll back"
   },
   "nav": {
-    "changeSets": "Change sets"
+    "changeSets": "Change sets",
+    "changeSetsAbout": "Review, apply and roll back prepared changes",
+    "packages": "Process packs",
+    "packagesAbout": "Ready-made processes to install as a change"
   },
   "systemRoles": {
     "assistant-user": {
@@ -96,6 +99,7 @@
   },
   "panel": {
     "open": "Assistant",
+    "openHint": "Assistant — change settings with AI",
     "close": "Close the assistant",
     "title": "Assistant",
     "description": "Describe what you want or pick a template. The assistant works as you, with your permissions, and asks before it applies anything.",
@@ -110,7 +114,8 @@
     "noKinds": "There is nothing you can customise yet",
     "noKindsHint": "Without an AI model, the assistant offers guided templates for configuration you can see, such as approval workflows or request forms. Ask an administrator for access to what you need, or to set up a model so you can also ask for everyday work.",
     "noTools": "There is nothing the assistant can do for you yet",
-    "noToolsHint": "The assistant works through the platform’s tools and configuration with your permissions, and your roles don’t include any of them yet. Ask an administrator for the access you need."
+    "noToolsHint": "The assistant works through the platform’s tools and configuration with your permissions, and your roles don’t include any of them yet. Ask an administrator for the access you need.",
+    "descriptionBuiltin": "Pick a template and answer a few questions. You review what it prepares before anything changes."
   },
   "chat": {
     "log": "Conversation with the assistant",
@@ -166,9 +171,9 @@
   "card": {
     "title": "Change set {reference}",
     "items": "{count, plural, =0 {No changes yet} one {# change} other {# changes}}",
-    "ready": "Ready",
+    "ready": "Ready to apply",
     "notReady": "Not ready",
-    "failing": "{count, plural, one {# failing} other {# failing}}",
+    "failing": "{count, plural, other {# can’t be applied}}",
     "needsApprover": "{count, plural, one {# needs a reviewer} other {# need a reviewer}}",
     "unchecked": "Not checked yet",
     "open": "Review and apply",
@@ -176,9 +181,8 @@
   },
   "templates": {
     "title": "Guided templates",
-    "intro": "Pick what you want to change and answer a few questions. I prepare a change set for you to review.",
     "back": "All templates",
-    "build": "Prepare the change",
+    "build": "Prepare for review",
     "nothingLive": "Nothing changes yet: the change goes into a change set that you review and apply.",
     "needsReviewer": "You can prepare this change; applying it needs someone with the permission, so request a review.",
     "loadError": "The questions couldn’t be loaded.",
@@ -187,7 +191,8 @@
     "startNew": "Start a new change set",
     "noTemplates": "No guided templates for what you can change",
     "noTemplatesHint": "An administrator can configure an AI chat model in Administration → AI so you can describe other changes in your own words.",
-    "withoutTemplates": "Without an AI chat model, these have no guided template: {kinds}."
+    "withoutTemplates": "Without an AI chat model, these have no guided template: {kinds}. An administrator can set up a model in Administration → AI so you can describe them in your own words.",
+    "whyNot": "Why can’t I change other things here?"
   },
   "list": {
     "title": "Change sets",
@@ -203,11 +208,11 @@
       "changeSet": "Change set",
       "kinds": "Changes to",
       "items": "Changes",
-      "readiness": "Dry run",
+      "readiness": "Ready",
       "author": "Prepared by"
     },
     "readiness": {
-      "ready": "Ready",
+      "ready": "Ready to apply",
       "notReady": "Not ready",
       "empty": "Empty"
     },
@@ -218,27 +223,9 @@
     "emptyFiltered": "No change sets match",
     "emptyFilteredHint": "Try another status or search.",
     "liveCount": "{count, plural, one {# change set} other {# change sets}}",
-    "fromPackage": "From a package"
+    "installPack": "Install a process pack"
   },
   "packages": {
-    "title": "New change set from a package",
-    "description": "Install a built-in package that a module ships, or import a package file exported from another environment. Either becomes a draft change set: nothing is live until someone applies it.",
-    "tabsLabel": "Where the package comes from",
-    "builtin": {
-      "tab": "Built-in packages",
-      "listLabel": "Built-in packages",
-      "meta": "{count, plural, one {# change} other {# changes}} · {module}",
-      "kinds": "Changes to: {kinds}",
-      "install": "Install",
-      "installed": "{reference} created from the package",
-      "needsReviewer": "You can prepare it, but applying it needs someone with more permissions (or a review).",
-      "missingModules": "Needs modules that aren’t enabled: {modules}",
-      "unknownKinds": "Needs kinds of configuration this platform doesn’t have: {kinds}",
-      "unreadable": "Preparing it needs permissions you don’t hold: {permissions}",
-      "unsupported": "Some of its changes aren’t supported here.",
-      "empty": "No built-in packages",
-      "emptyHint": "None of the enabled modules ships one. You can still import a package file."
-    },
     "file": {
       "tab": "Import a file",
       "hint": "Choose a change-set package (.json), for example one exported from a change set in another environment. Its changes are checked like any proposal; nothing is created if one fails.",
@@ -259,7 +246,7 @@
       "unsupported": "This package doesn’t fit this platform. Nothing was created:",
       "missingModules": "Modules that aren’t enabled: {modules}",
       "unknownKinds": "Kinds of configuration this platform doesn’t have: {kinds}",
-      "forbidden": "Preparing these changes needs permissions you don’t hold: {permissions}.",
+      "forbidden": "Preparing these changes needs access you don’t have: {permissions}.",
       "tooLarge": "The package is larger than 4 MB.",
       "more": "{count, plural, one {and # more} other {and # more}}"
     }
@@ -280,7 +267,7 @@
     "createdBy": "Prepared by {name}",
     "appliedBy": "Applied by {name}",
     "rolledBackBy": "Rolled back by {name}",
-    "checked": "Dry run finished",
+    "checked": "Checked again",
     "refreshed": "The change set now uses the current versions",
     "actions": {
       "apply": "Apply",
@@ -295,8 +282,8 @@
     },
     "missing": {
       "title": "You can’t apply this change set yourself",
-      "body": "Applying it needs {permissions}. Request a review: an approver who holds them applies it.",
-      "bodyInReview": "Applying it needs {permissions}. An approver who holds them applies it when they approve the review."
+      "body": "Applying it needs {permissions}. Request a review: an approver with that access applies it.",
+      "bodyInReview": "Applying it needs {permissions}. An approver with that access applies it when they approve the review."
     },
     "rollbackBlocked": {
       "notReversible": "Some changes can’t be undone automatically (a delete), so this change set can’t be rolled back here.",
@@ -311,14 +298,32 @@
     "live": {
       "title": "Ready to use",
       "body": "What this change set made is live. Share these links with the people who use it.",
-      "link": "{label}: {object}"
+      "link": "{label}: {object}",
+      "builder": "Add rules or actions in the form builder",
+      "builderFor": "Add rules or actions in the form builder: {name}"
     },
     "stats": {
       "items": "Changes",
-      "kinds": "Changes to",
-      "result": "Dry run",
-      "checked": "Last dry run",
+      "result": "Ready to apply",
+      "checked": "Last checked",
       "updated": "Updated"
+    },
+    "itemsByProcess": "Changes by process",
+    "orderHint": "Numbers show the order the changes apply in.",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "outline": "Outline",
+    "groups": {
+      "shared": "Shared by several processes",
+      "sharedHint": "Groups, categories and other settings that more than one process uses. They apply first.",
+      "other": "Other changes",
+      "otherHint": "Changes that aren’t part of a request process."
+    },
+    "next": {
+      "title": "Next steps",
+      "groups": "{count, plural, one {Add members to the group this change set created: its approvals and checklists reach nobody until you do.} other {Add members to the # groups this change set created: their approvals and checklists reach nobody until you do.}}",
+      "members": "{count, plural, one {# member} other {# members}}",
+      "noMembers": "No members yet"
     }
   },
   "lastError": {
@@ -328,7 +333,7 @@
     "noApprover": "The review was approved without a person who could apply it. Apply it yourself, or request a review again.",
     "stale": "Someone changed {items} after this change set was prepared. Refresh it, review the differences, then try again.",
     "staleGeneric": "Someone changed the configuration after this change set was prepared. Refresh it, review the differences, then try again.",
-    "forbidden": "Applying it needed permissions the person applying doesn’t hold: {permissions}.",
+    "forbidden": "Applying it needed access the person applying doesn’t have: {permissions}.",
     "privilege": "Applying it would grant permissions the person applying doesn’t hold.",
     "validation": "A change didn’t pass validation.",
     "validationItem": "“{label}” didn’t pass validation.",
@@ -337,8 +342,8 @@
     "item": "In “{label}”."
   },
   "actionErrors": {
-    "validation": "Some changes fail their dry run. Fix or remove them first.",
-    "forbidden": "This needs permissions you don’t hold: {permissions}.",
+    "validation": "Some changes can’t be applied. Fix or remove them first.",
+    "forbidden": "This needs access you don’t have: {permissions}.",
     "stale": "Someone changed {items} after this change set was prepared. Refresh it and review the differences first.",
     "notReversible": "Some changes can’t be undone automatically."
   },
@@ -354,39 +359,45 @@
   "item": {
     "position": "Change {n}:",
     "ref": "Reference name",
-    "refTarget": "The object created by “{ref}” in this change set",
-    "target": "Object",
-    "createdId": "Created",
-    "openObject": "Open the object",
+    "refTarget": "Created by “{ref}” in this change set",
+    "target": "Target",
+    "createdId": "Created ID",
     "remove": "Remove “{label}”",
     "removeTitle": "Remove this change?",
-    "removeBody": "“{label}” is removed from {reference}. Later changes that refer to it fail their dry run until they are fixed.",
-    "removeConfirm": "Remove",
-    "removed": "Change removed",
-    "stale": "This object changed after the change was proposed. Review the differences below, then refresh the change set to accept the current version as the base.",
+    "removeBody": "“{label}” is removed from {reference}.",
+    "removeConfirm": "{count, plural, one {Remove} other {Remove # changes}}",
+    "removed": "{count, plural, one {Change removed} other {# changes removed}}",
+    "stale": "Someone changed this after the change was proposed. Review the differences below, then refresh the change set to use the current version.",
     "refresh": "Refresh",
     "note": "Note",
     "changes": "Differences: current → proposed",
     "changesApplied": "Differences: before → after",
-    "proposedValue": "Proposed value",
     "preview": "Preview",
     "previewFailed": "This preview couldn’t be shown.",
-    "currentUnavailable": "The current object can’t be read, so the whole proposed value is shown.",
-    "archiveNote": "Applying archives this object. Rolling back restores it.",
-    "archiveDone": "This object was archived.",
-    "deleteNote": "Applying deletes this object. A delete can’t be rolled back.",
-    "deleteDone": "This object was deleted.",
+    "currentUnavailable": "What it is now can’t be read, so the whole proposed value is shown.",
+    "archiveNote": "Applying archives it. Rolling back restores it.",
+    "archiveDone": "It was archived.",
+    "deleteNote": "Applying deletes it. A delete can’t be rolled back.",
+    "deleteDone": "It was deleted.",
     "check": {
       "unchecked": "Not checked yet",
-      "ok": "Dry run passed",
-      "failing": "Dry run failed",
-      "failingWith": "Dry run failed: {reason}",
-      "needsApprover": "Needs someone with more permissions to apply it",
-      "needsPermission": "Needs someone with {permission} to apply it",
+      "ok": "Ready to apply",
+      "failing": "Can’t be applied",
+      "failingWith": "Can’t be applied: {reason}",
+      "needsApprover": "Needs someone with more access to apply it",
+      "needsPermission": "Needs {permission} to apply it",
       "issues": "Problems",
       "applied": "Applied",
       "rolledBack": "Rolled back"
-    }
+    },
+    "openKind": "Open the {kind}",
+    "technical": {
+      "title": "Technical details",
+      "kind": "Type"
+    },
+    "showDetails": "Show details of “{label}”",
+    "hideDetails": "Hide details of “{label}”",
+    "removeWithDependents": "{count, plural, one {“{label}” is removed, and so is the change that depends on it:} other {“{label}” is removed, and so are the # changes that depend on it:}}"
   },
   "diff": {
     "label": "Differences from {before} to {after}",
@@ -413,17 +424,17 @@
   },
   "apply": {
     "title": "Apply {reference}?",
-    "body": "Every change is applied in one transaction with your permissions: if one fails, nothing is applied. You can roll it back afterwards.",
+    "body": "{count, plural, one {The change is applied with your permissions. You can roll it back afterwards.} other {All # changes are applied together, with your permissions: if one fails, none is. You can roll them back afterwards.}}",
     "inReview": "This change set is in review. Applying it now cancels the review.",
-    "notReady": "Some changes didn’t pass their dry run, so applying will probably fail.",
+    "notReady": "Some changes can’t be applied as they are, so applying will probably fail.",
     "destructiveTitle": "Archives and deletes",
-    "destructiveConfirm": "{count, plural, one {I understand that # object will be archived or deleted} other {I understand that # objects will be archived or deleted}}",
+    "destructiveConfirm": "{count, plural, one {I understand that one of these changes archives or deletes something} other {I understand that # of these changes archive or delete something}}",
     "confirm": "Apply",
     "done": "{reference} was applied"
   },
   "submit": {
     "title": "Request a review of {reference}",
-    "body": "An approver reviews the changes and their dry run. Approving applies the change set with the approver’s permissions.",
+    "body": "An approver reviews the changes and whether they can be applied. Approving applies the change set with the approver’s permissions.",
     "note": "Note for the reviewer (optional)",
     "confirm": "Request review",
     "done": "Review requested"
@@ -436,10 +447,18 @@
   },
   "rollback": {
     "title": "Roll back {reference}?",
-    "body": "Every change is undone in one transaction, in reverse order: updates go back to their earlier values, archived objects are restored and created ones are removed. Objects someone changed since can’t be rolled back.",
+    "body": "Every change is undone together, in reverse order. If someone has changed one of them since, nothing is rolled back.",
     "reason": "Reason (optional, kept in the audit log)",
     "confirm": "Roll back",
-    "done": "{reference} was rolled back"
+    "done": "{reference} was rolled back",
+    "what": "Rolling back:",
+    "undo": {
+      "create": "Removes the {kind} “{label}”",
+      "update": "Puts the {kind} “{label}” back as it was",
+      "archive": "Restores the {kind} “{label}”",
+      "delete": "Can’t bring back the {kind} “{label}”"
+    },
+    "more": "{count, plural, one {and # more change} other {and # more changes}}"
   },
   "discard": {
     "title": "Discard {reference}?",
@@ -466,5 +485,72 @@
     "openChangeSet": "Open the change set",
     "alreadyDecided": "This was already decided. The conversation shows what happened.",
     "alreadyExpired": "This expired when the conversation moved on. Ask the assistant again if you still want it."
+  },
+  "packs": {
+    "title": "Process packs",
+    "description": "Ready-made processes: request forms, who approves them and the checklists they assign. Installing one prepares a change set you review first: nothing is live until it’s applied.",
+    "back": "Change sets",
+    "tabsLabel": "Where the pack comes from",
+    "tabs": {
+      "builtin": "Built-in",
+      "file": "Import a file"
+    },
+    "listLabel": "Built-in process packs",
+    "from": "From {module}",
+    "review": "Review before installing",
+    "installed": "{reference} is ready for your review",
+    "groupsToFill": "{count, plural, one {# group you fill in after installing} other {# groups you fill in after installing}}",
+    "needsReviewer": "You can install it, but applying it needs someone with more access (or a review).",
+    "missingModules": "Needs modules that aren’t enabled: {modules}",
+    "unknownKinds": "Needs kinds of configuration this platform doesn’t have: {kinds}",
+    "unreadable": "Installing it needs access you don’t have: {permissions}",
+    "unsupported": "Some of its changes aren’t supported here.",
+    "empty": "No process packs",
+    "emptyHint": "None of the enabled modules ships one. You can still import a file.",
+    "contents": {
+      "title": "What it creates",
+      "processes": "{count, plural, one {# process} other {# processes}}",
+      "groups": "Groups you fill in after installing ({count})",
+      "groupsHint": "They are created empty: add their members on each group’s page once the pack is applied.",
+      "other": "Shared and other changes ({count})"
+    }
+  },
+  "counts": {
+    "processes": "{count, plural, one {# process} other {# processes}}",
+    "other": "{kind}: {count}",
+    "kinds": {
+      "core_group": "{count, plural, one {# group} other {# groups}}",
+      "core_form": "{count, plural, one {# request form} other {# request forms}}",
+      "core_workflow": "{count, plural, one {# approval workflow} other {# approval workflows}}",
+      "core_custom-field": "{count, plural, one {# custom field} other {# custom fields}}",
+      "core_role": "{count, plural, one {# role} other {# roles}}",
+      "itsm_category": "{count, plural, one {# ticket category} other {# ticket categories}}",
+      "scheduler_job": "{count, plural, one {# scheduled job} other {# scheduled jobs}}"
+    }
+  },
+  "describe": {
+    "form": "{questions, plural, =0 {No questions} one {# question} other {# questions}}, for {audience}.",
+    "everyone": "everyone",
+    "approval": "Approval: {steps}.",
+    "noApproval": "No approval: a request goes ahead as soon as it’s sent.",
+    "noApprovalSteps": "No approval steps yet.",
+    "approvalNamed": "Approval: the approval workflow “{name}”.",
+    "approvalExisting": "Approval: an existing approval workflow.",
+    "actions": "{on, select, submitted {When sent} approved {After approval} rejected {If rejected} other {Then}}: {actions}.",
+    "workflowFor": "Approves requests made with {forms}.",
+    "workflowTrigger": "Approves: {trigger}.",
+    "inSomeCases": "{step} (only in some cases)",
+    "recordFact": "{fact} of “{field}”",
+    "fieldValue": "the person in “{field}”",
+    "groupMembers": "Created without members: add them after applying.",
+    "approver": {
+      "manager": "{level, select, 1 {the requester’s manager} other {the requester’s manager, {level} levels up}}",
+      "departmentHead": "the head of the requester’s department",
+      "requester": "the requester",
+      "role": "people with the role {name}",
+      "someGroup": "a group",
+      "somePerson": "a person",
+      "fallback": "{rule}, otherwise {fallback}"
+    }
   }
 }

@@ -5,7 +5,7 @@
  * the link's `rev` (optimistic concurrency with anything that slipped past the lock).
  */
 import { type Db, ErrorCodes, HttpError, type RemoteRecord, type SyncRecord } from '@isbp/sdk/server';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { decideField, newerSide, sameValue, type Snapshot } from '../merge';
 import { type CountKey, isEmpty, type LogRef, matchesFilter, safeHttpUrl } from '../model';
 import {
@@ -543,51 +543,108 @@ async function mergeLinked(
 
   const writes = Object.keys(plan.localWrites);
   const newConflict = plan.conflicts.length > 0;
-  await s.ctx.transaction(async (tx) => {
-    if (writes.length) {
-      const { record } = await s.ctx.sync.write(
-        s.profile.entity,
-        { id: local.id, values: plan.localWrites },
-        { auth: s.agent, tx, source: sourceOf(s, after) },
-      );
-      agreeOnStored(plan.snap, writes, record);
+  try {
+    await s.ctx.transaction(async (tx) => {
+      if (writes.length) {
+        // The local write must not overwrite an edit made since `local` was read: the record must still be
+        // at that version (an edit committed before this transaction's snapshot), and at repeatable read an
+        // edit that commits during the transaction fails the write too. Either way: merge again.
+        await tx.execute(sql`set transaction isolation level repeatable read`);
+        const { record } = await s.ctx.sync.write(
+          s.profile.entity,
+          { id: local.id, values: plan.localWrites, expectedUpdatedAt: local.updatedAt },
+          { auth: s.agent, tx, source: sourceOf(s, after) },
+        );
+        agreeOnStored(plan.snap, writes, record);
+      }
+      const [row] = await tx
+        .update(links)
+        .set({
+          snapshot: plan.snap,
+          remoteVersion: after.version,
+          ...remoteColumns(after),
+          ...localColumns(local),
+          state: newConflict || open ? 'conflict' : 'ok',
+          lastError: null,
+          lastSyncedAt: new Date(),
+          rev: link.rev + 1,
+        })
+        .where(and(eq(links.id, link.id), eq(links.rev, link.rev)))
+        .returning({ id: links.id });
+      if (!row) throw new StaleLink();
+      if (newConflict || (open && plan.refreshed.length))
+        await saveConflict(s, tx, link, local, after, plan, open);
+    });
+  } catch (err) {
+    if (!localChangedMeanwhile(err)) throw err;
+    if (attempt >= 3) throw new StaleLink();
+    const fresh = await s.ctx.sync.read(s.profile.entity, local.id);
+    if (!fresh) {
+      await orphan(s, link, 'local');
+      return 'orphaned';
     }
-    const [row] = await tx
-      .update(links)
-      .set({
-        snapshot: plan.snap,
-        remoteVersion: after.version,
-        ...remoteColumns(after),
-        ...localColumns(local),
-        state: newConflict || open ? 'conflict' : 'ok',
-        lastError: null,
-        lastSyncedAt: new Date(),
-        rev: link.rev + 1,
-      })
-      .where(and(eq(links.id, link.id), eq(links.rev, link.rev)))
-      .returning({ id: links.id });
-    if (!row) throw new StaleLink();
-    if (newConflict || (open && plan.refreshed.length))
-      await saveConflict(s, tx, link, local, after, plan, open);
-  });
+    if (plan.pushed.length) {
+      count(s, 'pushed');
+      s.log.info(`Pushed to ${after.ref}`, {
+        ...ref,
+        fields: fieldLabels(
+          s,
+          plan.pushed.map((p) => p.row.m.local),
+        ),
+      });
+    }
+    s.log.info(`${fresh.ref ?? fresh.title} changed meanwhile; merging again`, ref);
+    return mergeLinked(s, link, fresh, after, opts, attempt + 1);
+  }
 
   if (writes.length) {
     count(s, 'updated');
-    s.log.info(`Updated ${local.ref ?? local.title} from ${remote.ref}: ${writes.join(', ')}`, ref);
+    s.log.info(`Updated ${local.ref ?? local.title} from ${remote.ref}`, {
+      ...ref,
+      fields: fieldLabels(s, writes),
+    });
   }
   if (plan.pushed.length) {
     count(s, 'pushed');
-    s.log.info(`Pushed ${plan.pushed.map((p) => p.row.m.local).join(', ')} to ${after.ref}`, ref);
+    s.log.info(`Pushed to ${after.ref}`, {
+      ...ref,
+      fields: fieldLabels(
+        s,
+        plan.pushed.map((p) => p.row.m.local),
+      ),
+    });
   }
   if (newConflict) {
     count(s, 'conflicts');
-    s.log.warn(`Conflict on ${plan.conflicts.map((c) => c.field).join(', ')} (${after.ref})`, ref);
+    s.log.warn(`Conflict (${after.ref})`, {
+      ...ref,
+      fields: fieldLabels(
+        s,
+        plan.conflicts.map((c) => c.field),
+      ),
+    });
   }
   if (!writes.length && !plan.pushed.length && !newConflict) {
     count(s, 'skipped');
     return 'unchanged';
   }
   return newConflict ? 'conflict' : writes.length ? 'updated' : 'pushed';
+}
+
+/** The fields a log line is about, as their labels: the run page lists them in the reader's language. */
+function fieldLabels(s: Session, keys: readonly string[]): (string | Record<string, string>)[] {
+  return keys.map((k) => s.localFields.find((f) => f.key === k)?.label ?? k);
+}
+
+/** The local record changed between reading it and writing it (optimistic check or serialization failure). */
+function localChangedMeanwhile(err: unknown): boolean {
+  if (err instanceof HttpError)
+    return (
+      err.code === ErrorCodes.CONFLICT &&
+      (err.details as { reason?: string } | undefined)?.reason === 'changed'
+    );
+  const e = err as { code?: unknown; cause?: { code?: unknown } } | null;
+  return e?.code === '40001' || e?.cause?.code === '40001';
 }
 
 /**
@@ -778,6 +835,18 @@ async function pushLinked(s: Session, link: LinkRow): Promise<Outcome> {
     const back = after.values[p.row.m.remote];
     snap[p.row.m.local] = { l: p.local, r: back === undefined ? p.sent : back };
   }
+  // The answer can carry a remote change this push did not make (an edit that landed meanwhile). It is not applied yet,
+  // so its version must not be taken as seen: the next pull would skip the record. A merge applies those fields instead.
+  const unseen = s.rows.some((r) => {
+    const v = after.values[r.m.remote];
+    return (
+      r.pull &&
+      v !== undefined &&
+      !pushed.some((p) => p.row === r) &&
+      !sameValue(r.rf.type, v, snap[r.m.local]?.r ?? null)
+    );
+  });
+  if (unseen) return mergeLinked(s, { ...link, snapshot: snap }, local, after, {}, 1);
   const [row] = await s.ctx.db
     .update(links)
     .set({
@@ -794,10 +863,13 @@ async function pushLinked(s: Session, link: LinkRow): Promise<Outcome> {
     .returning();
   if (!row) throw new StaleLink();
   count(s, 'pushed');
-  s.log.info(
-    `Pushed ${pushed.map((p) => p.row.m.local).join(', ')} of ${local.ref ?? local.title} to ${after.ref}`,
-    ref,
-  );
+  s.log.info(`Pushed ${local.ref ?? local.title} to ${after.ref}`, {
+    ...ref,
+    fields: fieldLabels(
+      s,
+      pushed.map((p) => p.row.m.local),
+    ),
+  });
   await syncComments(s, row);
   return 'pushed';
 }

@@ -7,7 +7,6 @@ import {
   idpSchema,
   idpTestResultSchema,
   moduleInfoSchema,
-  type NavItem,
   navigationSchema,
   okSchema,
   searchResponseSchema,
@@ -25,12 +24,13 @@ import {
   pageSchema,
   type ServerModule,
 } from '@isbp/sdk/server';
-import { and, count, desc, eq, gt, gte, ilike, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gt, isNull, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { auditHash } from '../../kernel/audit';
 import { getKernel } from '../kernel-ref';
+import { auditWhere, refsFor, resolveRefs } from '../services/audit';
 import type { IdpService } from '../services/idp';
-import { likePattern, pageOffset } from '../util';
+import { pageOffset } from '../util';
 
 const idParams = z.object({ id: z.uuid() });
 
@@ -75,28 +75,7 @@ export function platformRoutes(app: ModuleRouter, ctx: ModuleContext, idps: IdpS
     },
     async (req) => {
       const q = req.query;
-      const where = and(
-        q.actorId ? eq(auditLogs.actorId, q.actorId) : undefined,
-        q.action
-          ? q.action.endsWith('*')
-            ? ilike(auditLogs.action, `${q.action.slice(0, -1)}%`)
-            : eq(auditLogs.action, q.action)
-          : undefined,
-        q.moduleId ? eq(auditLogs.moduleId, q.moduleId) : undefined,
-        q.entityType ? eq(auditLogs.entityType, q.entityType) : undefined,
-        q.entityId ? eq(auditLogs.entityId, q.entityId) : undefined,
-        q.outcome ? eq(auditLogs.outcome, q.outcome) : undefined,
-        q.category ? eq(auditLogs.category, q.category) : undefined,
-        q.from ? gte(auditLogs.occurredAt, new Date(q.from)) : undefined,
-        q.to ? lte(auditLogs.occurredAt, new Date(q.to)) : undefined,
-        q.q
-          ? or(
-              ilike(auditLogs.actorName, likePattern(q.q)),
-              ilike(auditLogs.entityLabel, likePattern(q.q)),
-              ilike(auditLogs.action, likePattern(q.q)),
-            )
-          : undefined,
-      );
+      const where = await auditWhere(ctx.db, q, req.userRow?.locale);
       const [rows, [total]] = await Promise.all([
         ctx.db
           .select()
@@ -107,7 +86,13 @@ export function platformRoutes(app: ModuleRouter, ctx: ModuleContext, idps: IdpS
           .offset(pageOffset(q.page, q.pageSize)),
         ctx.db.select({ n: count() }).from(auditLogs).where(where),
       ]);
-      return { items: rows.map(auditDto), total: total!.n, page: q.page, pageSize: q.pageSize };
+      const refs = await resolveRefs(ctx.db, rows);
+      return {
+        items: rows.map((r) => ({ ...auditDto(r), refs: refsFor(r, refs) })),
+        total: total!.n,
+        page: q.page,
+        pageSize: q.pageSize,
+      };
     },
   );
 
@@ -125,7 +110,7 @@ export function platformRoutes(app: ModuleRouter, ctx: ModuleContext, idps: IdpS
     async (req) => {
       const [row] = await ctx.db.select().from(auditLogs).where(eq(auditLogs.seq, req.params.seq));
       if (!row) throw httpErrors.notFound('Audit record not found');
-      return auditDto(row);
+      return { ...auditDto(row), refs: refsFor(row, await resolveRefs(ctx.db, [row])) };
     },
   );
 
@@ -154,7 +139,7 @@ export function platformRoutes(app: ModuleRouter, ctx: ModuleContext, idps: IdpS
     const state = kernel.registry.stateOf(m.manifest.id);
     const values = await kernel.settings.publicValues(m.manifest);
     const countNav = (entries: NavEntry[] = []): number =>
-      entries.reduce((n, e) => n + 1 + countNav(e.children), 0);
+      entries.reduce((n, e) => n + 1 + countNav(e.children) + countNav(e.tabs), 0);
     return {
       id: m.manifest.id,
       name: m.manifest.name,
@@ -386,43 +371,12 @@ export function platformRoutes(app: ModuleRouter, ctx: ModuleContext, idps: IdpS
     {
       schema: {
         tags: ['Platform'],
-        summary: 'Navigation for the current user (enabled modules × permissions)',
+        summary:
+          'The sidebar for the current user (enabled modules × permissions) and the Administration hub entries',
         response: { 200: navigationSchema },
       },
     },
-    async (req) => {
-      const visible = (e: NavEntry) => !e.permission || req.auth.permissions.hasAny(e.permission);
-      const toItem =
-        (moduleId: string) =>
-        (e: NavEntry): NavItem => ({
-          id: `${moduleId}.${e.id}`,
-          label: e.label,
-          href: e.href,
-          icon: e.icon,
-          section: e.section ?? 'main',
-          group: e.group,
-          badge: e.badge,
-          order: e.order ?? 100,
-          moduleId,
-          children: e.children?.filter(visible).map(toItem(moduleId)),
-        });
-      const items = kernel.registry
-        .enabledModules()
-        .flatMap((m) => (m.manifest.navigation ?? []).filter(visible).map(toItem(m.manifest.id)))
-        .sort((a, b) => a.order - b.order);
-      // A group stays together at the position of its first entry, even when modules' orders interleave.
-      const rank = new Map<string, number>();
-      for (const i of items)
-        if (i.group && !rank.has(`${i.section}:${i.group}`)) rank.set(`${i.section}:${i.group}`, i.order);
-      const rankOf = (i: (typeof items)[number]) =>
-        i.group ? rank.get(`${i.section}:${i.group}`)! : i.order;
-      // Two groups starting at the same order stay apart too (ties go by group key, ungrouped entries first).
-      const groupOf = (i: (typeof items)[number]) => i.group ?? '';
-      items.sort(
-        (a, b) => rankOf(a) - rankOf(b) || groupOf(a).localeCompare(groupOf(b)) || a.order - b.order,
-      );
-      return { items };
-    },
+    async (req) => kernel.navigation(req.auth),
   );
 
   app.get(

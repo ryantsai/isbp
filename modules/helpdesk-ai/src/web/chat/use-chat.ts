@@ -1,7 +1,7 @@
 'use client';
 
 import type { ErrorBody } from '@isbp/sdk';
-import { useApi, usePlatform } from '@isbp/sdk/web';
+import { ApiError, type ApiClient, useApi, usePlatform } from '@isbp/sdk/web';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { useLocale } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -32,6 +32,26 @@ export interface PendingTurn {
 
 const LIST = '/helpdesk-ai/conversations';
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** After a failed escalation: the conversation's ticket, if one was raised (waits briefly while one is). */
+async function raisedTicket(api: ApiClient, id: string, err: unknown): Promise<EscalateResult | null> {
+  const inProgress =
+    err instanceof ApiError &&
+    (err.details as { reason?: string } | undefined)?.reason === 'escalation_in_progress';
+  for (const wait of inProgress ? [0, 1_500, 3_000] : [0]) {
+    if (wait) await sleep(wait);
+    const fresh = await api.get<ConversationDetail>(`${LIST}/${id}`).catch(() => null);
+    if (fresh?.status === 'escalated' && fresh.ticketId && fresh.ticketRef)
+      return {
+        ticket: { id: fresh.ticketId, reference: fresh.ticketRef, href: `/itsm/tickets/${fresh.ticketRef}` },
+        conversation: fresh,
+        warning: null,
+      };
+  }
+  return null;
+}
+
 /**
  * Conversation state for the chat UI: the stored messages plus the turn in flight, streamed over
  * Server-Sent Events from `POST /conversations/:id/messages` (`fetch` + `ReadableStream`, CSRF header).
@@ -51,8 +71,17 @@ export function useChat(conversationId: string | null, onCreated: (id: string) =
   const refresh = useApiMutation(async () => undefined, { invalidate: [LIST], silent: true });
   const resolve = useApiMutation((a, id: string) => a.post(`${LIST}/${id}/resolve`), { invalidate: [LIST] });
   const escalate = useApiMutation(
-    (a, v: { id: string; proposal: TicketProposal }) =>
-      a.post<EscalateResult>(`${LIST}/${v.id}/escalate`, v.proposal),
+    async (a, v: { id: string; proposal: TicketProposal }) => {
+      try {
+        return await a.post<EscalateResult>(`${LIST}/${v.id}/escalate`, v.proposal);
+      } catch (err) {
+        // The ticket may exist although the request failed (a dropped connection, a raise still finishing):
+        // show "Ticket … was raised" rather than an error, and never invite a second ticket.
+        const raised = await raisedTicket(a, v.id, err);
+        if (raised) return raised;
+        throw err;
+      }
+    },
     { invalidate: [LIST] },
   );
 
@@ -158,6 +187,7 @@ export function useChat(conversationId: string | null, onCreated: (id: string) =
     conversation: detail,
     loading: !!conversationId && query.isLoading && !detail,
     loadError: query.error,
+    reload: () => void query.refetch(),
     messages: stored,
     /** The question, shown until the server copy arrives. */
     pendingQuestion: mine && count <= mine.base ? mine.question : null,

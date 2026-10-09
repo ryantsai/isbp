@@ -37,6 +37,7 @@ import { getKernel } from '../kernel-ref';
 import { likePattern, pageOffset } from '../util';
 import { peopleById, ref } from './people';
 import { InstanceViews } from './workflows';
+import { NO_APPROVAL_PATH, requestPath } from './request-path';
 
 export const ACCESS_REQUEST_TRIGGER = 'core.access-request';
 
@@ -222,7 +223,7 @@ export class AccessRequestService {
     if (!result) return { steps: [] };
     const people = await peopleById(
       this.db,
-      result.steps.flatMap((s) => s.people),
+      result.steps.flatMap((s) => [...s.people, ...(s.counted ?? []).map((c) => c.id)]),
     );
     return {
       steps: result.steps.map((s) => ({
@@ -231,6 +232,9 @@ export class AccessRequestService {
         type: s.type,
         outcome: s.outcome,
         people: s.people.map((id) => ref(people, id)!),
+        ...(s.counted
+          ? { counted: s.counted.map((c) => ({ person: ref(people, c.id)!, approvedAt: c.approvedAt })) }
+          : {}),
       })),
     };
   }
@@ -682,6 +686,18 @@ export class AccessRequestService {
     return req ? this.get(req.id, auth) : null;
   }
 
+  /** The approval path of any workflow instance the viewer may see (requesters, approvers, workflow readers). */
+  instancePath(instanceId: string, auth: AuthContext) {
+    return requestPath(this.ctx, instanceId, auth);
+  }
+
+  /** The approval path of a request by its number, as the requester sees it; null when the viewer can't see it. */
+  async pathByNumber(number: number, auth: AuthContext) {
+    const req = await this.byNumber(number, auth);
+    if (!req) return null;
+    return req.workflow ? requestPath(this.ctx, req.workflow.id, auth) : NO_APPROVAL_PATH;
+  }
+
   async list(q: z.output<typeof accessRequestQuerySchema>, auth: AuthContext) {
     const me = auth.user!.id;
     let scope;
@@ -746,13 +762,13 @@ export class AccessRequestService {
              ar.workflow_instance_id, null::jsonb as fulfilment, null::text as kind_key
         from core.access_requests ar join core.roles r on r.id = ar.role_id
        where (ar.requester_id = ${me} or ar.beneficiary_id = ${me}) and ${accessStatus}
-         ${like ? sql`and r.name ilike ${like}` : sql``}
+         ${like ? sql`and (r.name ilike ${like} or ('REQ-' || lpad(ar.number::text, 5, '0')) ilike ${like})` : sql``}
       union all
       select 'form' as kind, fs.id::text, fs.number, fs.status, fs.created_at, fs.updated_at,
              fs.workflow_instance_id, fs.fulfilment, null::text
         from core.form_submissions fs join core.forms f on f.id = fs.form_id
        where fs.submitted_by = ${me} and ${formStatus}
-         ${like ? sql`and (f.name->>'en' ilike ${like} or f.name->>'zh-TW' ilike ${like} or f.name->>'ja-JP' ilike ${like} or fs.fulfilment->>'reference' ilike ${like})` : sql``}
+         ${like ? sql`and (f.name->>'en' ilike ${like} or f.name->>'zh-TW' ilike ${like} or f.name->>'ja-JP' ilike ${like} or fs.fulfilment->>'reference' ilike ${like} or ('REQ-' || lpad(fs.number::text, 5, '0')) ilike ${like})` : sql``}
       union all
       select 'module' as kind, pi.entity_id, null::bigint, pi.state, pi.created_at, pi.updated_at,
              null::uuid, null::jsonb, pi.kind

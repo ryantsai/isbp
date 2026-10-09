@@ -1,0 +1,4 @@
+{
+  "extends": "@isbp/tsconfig/node.json",
+  "include": ["src", "test"]
+}

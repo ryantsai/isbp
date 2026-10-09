@@ -36,12 +36,28 @@ export function accessRoutes(app: ModuleRouter, svc: AccessService) {
       config: { permission: 'core.roles.read' },
       schema: {
         tags,
-        summary: 'List roles',
-        querystring: z.object({ q: z.string().max(200).optional() }),
-        response: { 200: z.object({ items: z.array(roleSchema) }) },
+        summary: 'List roles (every role; with `pageSize`, one page and the total)',
+        querystring: z.object({
+          q: z.string().max(200).optional(),
+          page: z.coerce.number().int().min(1).optional(),
+          pageSize: z.coerce.number().int().min(1).max(200).optional(),
+        }),
+        response: {
+          200: z.object({
+            items: z.array(roleSchema),
+            total: z.number().int().optional(),
+            page: z.number().int().optional(),
+            pageSize: z.number().int().optional(),
+          }),
+        },
       },
     },
-    async (req) => ({ items: await svc.listRoles(req.query) }),
+    async (req) => {
+      const { page, pageSize } = req.query;
+      if (!pageSize) return { items: await svc.listRoles(req.query) };
+      const { items, total } = await svc.listRolesPage(req.query, page ?? 1, pageSize);
+      return { items, total, page: page ?? 1, pageSize };
+    },
   );
 
   app.post(

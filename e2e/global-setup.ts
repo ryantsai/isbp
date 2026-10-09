@@ -15,7 +15,7 @@ export default async function globalSetup(config: FullConfig) {
     throw new Error(`Admin login failed (${login.status()}): is the stack running and seeded?`);
   const { csrfToken } = (await login.json()) as { csrfToken: string };
   await api.patch('/api/v1/me', {
-    data: { locale: 'en', preferences: { theme: 'light', sidebarCollapsed: false } },
+    data: { locale: 'en', preferences: { theme: 'light', sidebarCollapsed: false, navExpanded: [] } },
     headers: { 'x-csrf-token': csrfToken },
   });
   mkdirSync('.auth', { recursive: true });

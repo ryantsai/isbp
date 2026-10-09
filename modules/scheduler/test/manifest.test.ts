@@ -42,7 +42,7 @@ describe('scheduler manifest', () => {
     const labels: (string | undefined)[] = [
       manifest.name,
       manifest.description,
-      ...manifest.navigation.flatMap((n) => [n.label, n.group]),
+      ...manifest.navigation.flatMap((n) => [n.label, ...(n.tabs ?? []).map((t) => t.label)]),
       ...manifest.permissions.map((p) => p.description),
       ...manifest.settings.flatMap((s) => [s.label, s.description]),
       ...manifest.taskTypes.flatMap((t) => [t.name, t.description]),

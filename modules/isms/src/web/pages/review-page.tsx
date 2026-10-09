@@ -13,69 +13,127 @@ import {
   AlertDialogTitle,
 } from '@isbp/ui/alert-dialog';
 import { Button } from '@isbp/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
-import { DataTable, type DataTableColumn, type DataTableSelection, useListState } from '@isbp/ui/data-table';
+import { useListState } from '@isbp/ui/data-table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
-import { EmptyState } from '@isbp/ui/empty-state';
+  DecisionDone,
+  DecisionList,
+  type DecisionOption,
+  DecisionProgress,
+  DecisionViews,
+} from '@isbp/ui/decision-list';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RecordValues } from '@isbp/ui/record-picker';
 import { SearchInput } from '@isbp/ui/search-input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
+import { toast } from '@isbp/ui/sonner';
 import {
-  ArrowLeftIcon,
   BadgeCheckIcon,
-  ChevronDownIcon,
+  BanIcon,
+  CheckIcon,
   DownloadIcon,
-  FileQuestionIcon,
   FileUpIcon,
   ListChecksIcon,
   PlusIcon,
   SendIcon,
   TicketIcon,
+  Trash2Icon,
+  TriangleAlertIcon,
   Undo2Icon,
+  UserCheckIcon,
   XCircleIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
-import { REVIEW_ITEM_VIEWS, type Review, type ReviewItem } from '../../contracts';
-import { AccountStateText, DecisionBadge, PrivilegeBadge, ProgressBar, ReviewStatusBadge } from '../badges';
-import { apiUrl, INVALIDATE, useDay } from '../lib';
+import { REVIEW_DECISIONS, type Review, type ReviewItem } from '../../contracts';
+import { AccountStateText, DecisionBadge, PrivilegeBadge, ReviewStatusBadge } from '../badges';
+import { apiUrl, download, INVALIDATE, useDay } from '../lib';
 import { AddAccountDialog, DecideDialog, ImportAccountsDialog } from '../review-dialogs';
 import { SignOffDialog } from '../stocktake-dialogs';
 
-type View = (typeof REVIEW_ITEM_VIEWS)[number];
-const NO_SELECTION: DataTableSelection = {};
+const VIEWS = ['todo', 'done', 'all'] as const;
+type View = (typeof VIEWS)[number];
+type Decision = (typeof REVIEW_DECISIONS)[number];
+const FILTERS = [...REVIEW_DECISIONS, 'admin'] as const;
+type Filter = (typeof FILTERS)[number];
 
-/** One account review: the accounts and decisions, import, completion, sign-off, tickets and export. */
+/** The account and what the reviewer needs to decide about it, with a warning when the decision isn't done yet. */
+function AccountSummary({ item }: { item: ReviewItem }) {
+  const t = useTranslations('isms');
+  const day = useDay();
+  const who = item.userName ?? item.user?.displayName;
+  // Recorded as done, yet the latest import still lists the account as enabled: what an auditor looks for.
+  const stillEnabled =
+    item.decision !== null && item.decision !== 'keep' && item.doneOn && item.accountStatus === 'enabled';
+  return (
+    <div className="grid min-w-0 gap-1">
+      <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="font-mono font-medium wrap-break-word">{item.accountName}</span>
+        <PrivilegeBadge privilege={item.privilege} />
+      </p>
+      <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+        {who && <span className="wrap-break-word">{who}</span>}
+        {item.user && item.userName && item.user.displayName !== item.userName && (
+          <span className="wrap-break-word">({item.user.displayName})</span>
+        )}
+        <AccountStateText state={item.accountStatus} />
+        {item.detail && <span className="wrap-break-word">{item.detail}</span>}
+      </p>
+      {item.decision && item.decision !== 'keep' && (
+        <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+          {item.doneOn ? (
+            <span className="text-muted-foreground">{t('review.doneOn', { date: day(item.doneOn) })}</span>
+          ) : (
+            <span className="font-medium text-warning-foreground">{t('review.notDoneYet')}</span>
+          )}
+          {item.ticket &&
+            (item.ticket.href ? (
+              <Link href={item.ticket.href} className="underline">
+                {t('review.ticket', { reference: item.ticket.reference })}
+              </Link>
+            ) : (
+              <span>{t('review.ticket', { reference: item.ticket.reference })}</span>
+            ))}
+        </p>
+      )}
+      {stillEnabled && (
+        <p className="inline-flex items-center gap-1 text-xs font-medium text-warning-foreground">
+          <TriangleAlertIcon className="size-3.5" aria-hidden />
+          {t(`review.stillEnabled.${item.decision as 'disable' | 'delete'}`)}
+        </p>
+      )}
+      {item.note && <p className="text-xs wrap-break-word text-muted-foreground">{item.note}</p>}
+    </div>
+  );
+}
+
+/** One account review: the accounts with Keep / Disable / Delete inline, then sending for sign-off. */
 export default function ReviewPage({ params }: WebPageProps) {
   const t = useTranslations('isms');
   const tc = useTranslations('common');
   const api = useApi();
   const day = useDay();
   const locale = useLocale();
-  const [state, set] = useListState({ pageSize: 50 });
-  const view: View = REVIEW_ITEM_VIEWS.includes(state.view as View) ? (state.view as View) : 'all';
-  const {
-    data: r,
-    isLoading,
-    error,
-  } = useApiQuery<Review>(`/isms/reviews/${encodeURIComponent(params.ref ?? '')}`);
+  const [state, set] = useListState({ pageSize: 25 });
+  const review = useApiQuery<Review>(`/isms/reviews/${encodeURIComponent(params.ref ?? '')}`);
+  const r = review.data;
+  const view: View = VIEWS.includes(state.view as View)
+    ? (state.view as View)
+    : r?.viewer.canDecide && r.progress.decided < r.progress.total
+      ? 'todo'
+      : 'all';
+  const filter = FILTERS.includes(state.filter as Filter) ? (state.filter as Filter) : undefined;
   const items = useApiQuery<Page<ReviewItem>>(r ? `/isms/reviews/${r.reference}/items` : null, {
     page: state.page,
     pageSize: state.pageSize,
     q: state.q,
-    view,
+    view: view === 'todo' ? 'undecided' : view === 'done' ? (filter ?? 'decided') : (filter ?? 'all'),
   });
-  const [selection, setSelection] = useState<DataTableSelection>(NO_SELECTION);
-  const [deciding, setDeciding] = useState<ReviewItem[]>([]);
-  const [dialog, setDialog] = useState<'import' | 'add' | 'signoff' | 'cancel' | null>(null);
+  const [dating, setDating] = useState<{ items: ReviewItem[]; decision: 'disable' | 'delete' } | null>(null);
+  const [dialog, setDialog] = useState<'import' | 'add' | 'signoff' | 'cancel' | 'tickets' | null>(null);
   const post = (path: string, body?: Record<string, unknown>) =>
     api.post<Review>(`/isms/reviews/${r?.reference}/${path}`, body ?? {});
   const done = { invalidate: INVALIDATE, onSuccess: () => setDialog(null) };
@@ -86,286 +144,270 @@ export default function ReviewPage({ params }: WebPageProps) {
     success: t('review.signedOff'),
   });
   const cancel = useApiMutation(() => post('cancel'), { ...done, success: t('review.cancelled') });
+  const keep = useApiMutation(
+    (_a, list: ReviewItem[]) =>
+      api.post(`/isms/reviews/${r?.reference}/decisions`, {
+        itemIds: list.map((i) => i.id),
+        decision: 'keep',
+      }),
+    {
+      invalidate: INVALIDATE,
+      onSuccess: (_res, list) =>
+        toast.success(
+          list.length === 1
+            ? t('decide.kept', { account: list[0]!.accountName })
+            : t('decide.keptMany', { count: list.length }),
+        ),
+    },
+  );
   const tickets = useApiMutation(
     () => api.post<{ raised: number; failed: number }>(`/isms/reviews/${r?.reference}/tickets`, {}),
-    { invalidate: INVALIDATE, success: (res) => t('review.ticketsRaised', res) },
+    { ...done, success: (res) => t('review.ticketsRaised', res) },
+  );
+  const toTicket = useApiQuery<Page<ReviewItem>>(
+    dialog === 'tickets' && r ? `/isms/reviews/${r.reference}/items` : null,
+    { view: 'needs_ticket', pageSize: 50 },
+  );
+  const busy = useMemo(
+    () => new Set<string>(keep.isPending ? (keep.variables ?? []).map((i) => i.id) : []),
+    [keep.isPending, keep.variables],
   );
 
-  const canDecide = Boolean(r?.viewer.canDecide);
-  const columns = useMemo<DataTableColumn<ReviewItem>[]>(
-    () => [
-      {
-        id: 'account',
-        header: t('fields.account'),
-        meta: { className: 'max-w-48 font-mono text-sm' },
-        cell: ({ row }) => <span className="block truncate">{row.original.accountName}</span>,
-      },
-      {
-        id: 'user',
-        header: t('fields.userName'),
-        meta: { className: 'hidden max-w-52 sm:table-cell', headerClassName: 'hidden sm:table-cell' },
-        cell: ({ row }) => (
-          <span className="block min-w-0">
-            <span className="block truncate">
-              {row.original.userName ?? row.original.user?.displayName ?? '—'}
-            </span>
-            {row.original.user &&
-              row.original.userName &&
-              row.original.user.displayName !== row.original.userName && (
-                <span className="block truncate text-xs text-muted-foreground">
-                  {row.original.user.displayName}
-                </span>
-              )}
-            {row.original.detail && (
-              <span className="block truncate text-xs text-muted-foreground">{row.original.detail}</span>
-            )}
-          </span>
-        ),
-      },
-      {
-        id: 'privilege',
-        header: t('fields.privilege'),
-        meta: { className: 'hidden md:table-cell', headerClassName: 'hidden md:table-cell' },
-        cell: ({ row }) => <PrivilegeBadge privilege={row.original.privilege} />,
-      },
-      {
-        id: 'state',
-        header: t('fields.accountState'),
-        meta: { className: 'hidden lg:table-cell', headerClassName: 'hidden lg:table-cell' },
-        cell: ({ row }) => <AccountStateText state={row.original.accountStatus} />,
-      },
-      {
-        id: 'decision',
-        header: t('fields.decision'),
-        cell: ({ row }) => (
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <DecisionBadge decision={row.original.decision} />
-            {row.original.doneOn && (
-              <span className="text-xs text-muted-foreground">
-                {t('review.doneOn', { date: day(row.original.doneOn) })}
-              </span>
-            )}
-            {row.original.decision && row.original.decision !== 'keep' && !row.original.doneOn && (
-              <span className="text-xs text-warning-foreground">{t('review.notDoneYet')}</span>
-            )}
-            {row.original.ticket &&
-              (row.original.ticket.href ? (
-                <Link href={row.original.ticket.href} className="text-xs underline">
-                  {row.original.ticket.reference}
-                </Link>
-              ) : (
-                <span className="text-xs">{row.original.ticket.reference}</span>
-              ))}
-          </span>
-        ),
-      },
-      {
-        id: 'note',
-        header: t('fields.note'),
-        meta: { className: 'hidden max-w-56 xl:table-cell', headerClassName: 'hidden xl:table-cell' },
-        cell: ({ row }) => (
-          <span className="block truncate text-sm text-muted-foreground">{row.original.note ?? ''}</span>
-        ),
-      },
-      {
-        id: 'actions',
-        header: () => <span className="sr-only">{tc('actions')}</span>,
-        cell: ({ row }) =>
-          canDecide && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDeciding([row.original]);
-              }}
-              aria-label={t('decide.openFor', { account: row.original.accountName })}
-            >
-              {t('decide.open')}
-            </Button>
-          ),
-      },
-    ],
-    [t, tc, day, canDecide],
-  );
-
-  if (isLoading) return <Skeleton className="h-72 w-full rounded-xl" />;
-  if (error || !r) return <EmptyState icon={<FileQuestionIcon />} title={t('review.notFound')} />;
+  if (review.isLoading) return <Skeleton className="h-72 w-full rounded-xl" />;
+  if (review.error) return <ErrorState kind="page" error={review.error} onRetry={() => review.refetch()} />;
+  if (!r) return <EmptyState icon={<UserCheckIcon />} title={t('review.notFound')} />;
   const p = r.progress;
-  const selected = (items.data?.items ?? []).filter((i) => selection[i.id]);
-  const table = (
-    <DataTable
-      label={t('review.items')}
-      columns={columns}
-      data={items.data?.items ?? []}
-      total={items.data?.total ?? 0}
-      page={state.page}
-      pageSize={state.pageSize}
-      loading={items.isLoading}
-      fetching={items.isFetching}
-      getRowId={(i) => i.id}
-      selectable={canDecide}
-      selection={selection}
-      onSelectionChange={setSelection}
-      onPageChange={(page) => set({ page })}
-      onPageSizeChange={(pageSize) => set({ pageSize })}
-      toolbar={
-        <>
-          <SearchInput
-            value={state.q ?? ''}
-            onChange={(q) => set({ q })}
-            placeholder={t('review.search')}
-            className="sm:w-64"
-          />
-          {canDecide && selected.length > 0 && (
-            <Button size="sm" variant="secondary" onClick={() => setDeciding(selected)}>
-              {t('decide.selected', { count: selected.length })}
-            </Button>
-          )}
-        </>
-      }
-      empty={
-        <EmptyState
-          icon={<ListChecksIcon />}
-          title={t('review.noItems')}
-          description={canDecide ? t('review.noItemsHint') : undefined}
-        />
-      }
-    />
-  );
+  const canDecide = r.viewer.canDecide;
+  const allDecided = p.total > 0 && p.decided === p.total;
+  const options: DecisionOption<Decision>[] = [
+    { value: 'keep', label: t('reviewDecision.keep'), icon: <CheckIcon /> },
+    { value: 'disable', label: t('reviewDecision.disable'), icon: <BanIcon /> },
+    { value: 'delete', label: t('reviewDecision.delete'), icon: <Trash2Icon />, destructive: true },
+  ];
+  const filtered = Boolean(state.q || filter);
+  const raise = r.viewer.canRaiseTickets && r.viewer.ticketsToRaise > 0;
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href="/isms/reviews">
-          <ArrowLeftIcon /> {t('reviews.title')}
-        </Link>
-      </Button>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <p className="font-mono text-sm text-muted-foreground">{r.reference}</p>
-          <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{r.target}</h1>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <ReviewStatusBadge status={r.status} overdue={r.overdue} />
-            <span>{t('review.reviewer', { name: r.reviewer?.displayName ?? '—' })}</span>
-            <span>· {t('stocktakes.dueOn', { date: day(r.dueOn) })}</span>
-            {r.recurrence !== 'none' && <span>· {t(`recurrence.${r.recurrence}`)}</span>}
-          </div>
-          {r.targetRef && <RecordValues refs={[r.targetRef]} />}
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Button variant="outline" asChild>
-            <a href={apiUrl(`/isms/reviews/${r.reference}/export.csv`, { locale })} download>
-              <DownloadIcon /> {t('review.export')}
-            </a>
-          </Button>
-          {canDecide && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  {t('review.accounts')} <ChevronDownIcon />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => setDialog('import')}>
-                  <FileUpIcon /> {t('review.import')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setDialog('add')}>
-                  <PlusIcon /> {t('review.add')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          {r.viewer.canRaiseTickets && p.byDecision.disable + p.byDecision.delete > 0 && (
-            <Button variant="outline" loading={tickets.isPending} onClick={() => tickets.mutate(undefined)}>
-              <TicketIcon /> {t('review.raiseTickets')}
-            </Button>
-          )}
-          {canDecide && (
+      <DetailHeader
+        back={{ href: '/isms/reviews', label: t('reviews.title'), highlight: r.id }}
+        icon={<UserCheckIcon />}
+        reference={r.reference}
+        title={r.target}
+        status={<ReviewStatusBadge status={r.status} overdue={r.overdue} />}
+        meta={
+          <span className="grid gap-1">
+            <span>
+              {[
+                t('review.reviewer', { name: r.reviewer?.displayName ?? '—' }),
+                t('stocktakes.dueOn', { date: day(r.dueOn) }),
+                r.recurrence !== 'none' ? t(`recurrence.${r.recurrence}`) : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+            {r.targetRef && <RecordValues refs={[r.targetRef]} />}
+          </span>
+        }
+        primaryAction={
+          canDecide ? (
             <Button
-              disabled={p.decided < p.total || !p.total}
+              disabled={!allDecided}
               loading={complete.isPending}
               onClick={() => complete.mutate(undefined)}
             >
               <SendIcon /> {t('review.complete')}
             </Button>
-          )}
-          {r.status === 'completed' && (r.viewer.canSignOff || r.viewer.canManage) && (
-            <Button variant="outline" loading={reopen.isPending} onClick={() => reopen.mutate(undefined)}>
-              <Undo2Icon /> {t('review.reopen')}
-            </Button>
-          )}
-          {r.viewer.canSignOff && (
+          ) : r.viewer.canSignOff ? (
             <Button onClick={() => setDialog('signoff')}>
               <BadgeCheckIcon /> {t('review.signOff')}
             </Button>
-          )}
-          {r.viewer.canManage && r.status !== 'signed_off' && r.status !== 'cancelled' && (
-            <Button variant="ghost" onClick={() => setDialog('cancel')}>
-              <XCircleIcon /> {t('review.cancel')}
-            </Button>
-          )}
-        </div>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('fields.progress')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <ProgressBar
-            done={p.decided}
-            total={p.total}
-            label={t('reviews.progressLabel', { target: r.target })}
-          />
-          <p className="text-sm text-muted-foreground">
-            {t('review.summary', { ...p.byDecision, undecided: p.total - p.decided })}
+          ) : undefined
+        }
+        actions={
+          raise
+            ? [
+                {
+                  id: 'tickets',
+                  label: t('review.raiseTickets', { count: r.viewer.ticketsToRaise }),
+                  icon: <TicketIcon />,
+                  onSelect: () => setDialog('tickets'),
+                },
+              ]
+            : []
+        }
+        menu={[
+          {
+            id: 'export',
+            label: t('review.export'),
+            icon: <DownloadIcon />,
+            onSelect: () => download(apiUrl(`/isms/reviews/${r.reference}/export.csv`, { locale })),
+          },
+          ...(canDecide
+            ? [
+                {
+                  id: 'import',
+                  label: t('review.import'),
+                  icon: <FileUpIcon />,
+                  onSelect: () => setDialog('import'),
+                },
+                { id: 'add', label: t('review.add'), icon: <PlusIcon />, onSelect: () => setDialog('add') },
+              ]
+            : []),
+          ...(r.status === 'completed' && (r.viewer.canSignOff || r.viewer.canManage)
+            ? [
+                {
+                  id: 'reopen',
+                  label: t('review.reopen'),
+                  icon: <Undo2Icon />,
+                  onSelect: () => reopen.mutate(undefined),
+                },
+              ]
+            : []),
+          ...(r.viewer.canManage && r.status !== 'signed_off' && r.status !== 'cancelled'
+            ? [
+                {
+                  id: 'cancel',
+                  label: t('review.cancel'),
+                  icon: <XCircleIcon />,
+                  destructive: true,
+                  onSelect: () => setDialog('cancel'),
+                },
+              ]
+            : []),
+        ]}
+      />
+      <DecisionProgress
+        done={p.decided}
+        total={p.total}
+        label={t('reviews.progressLabel', { target: r.target })}
+        valueText={t('review.progressValue', { done: p.decided, total: p.total })}
+        summary={t('review.summary', { ...p.byDecision, undecided: p.total - p.decided })}
+      >
+        {canDecide && !allDecided && p.total > 0 && (
+          <p className="text-sm text-muted-foreground">{t('review.completeWhenDone')}</p>
+        )}
+        {r.status === 'completed' && (
+          <p className="text-sm">
+            {t('review.waitingSignOff', {
+              name: r.completedBy?.displayName ?? r.reviewer?.displayName ?? '',
+            })}
           </p>
-          {canDecide && p.decided < p.total && (
-            <p className="text-sm text-muted-foreground">{t('review.completeWhenDone')}</p>
-          )}
-          {r.status === 'completed' && <p className="text-sm">{t('review.waitingSignOff')}</p>}
-          {r.signedOffBy && (
-            <p className="text-sm">
-              {t('review.signedOffBy', { name: r.signedOffBy.displayName })}
-              {r.signOffNote ? ` — ${r.signOffNote}` : ''}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        )}
+        {r.signedOffBy && (
+          <p className="text-sm">
+            {t('review.signedOffBy', { name: r.signedOffBy.displayName })}
+            {r.signOffNote ? ` — ${r.signOffNote}` : ''}
+          </p>
+        )}
+      </DecisionProgress>
       {r.status === 'scheduled' ? (
         <p className="text-sm text-muted-foreground">{t('review.scheduled', { date: day(r.startOn) })}</p>
       ) : (
-        <Tabs
-          value={view}
-          onValueChange={(v) => set({ view: v === 'all' ? undefined : v })}
-          className="gap-4"
-        >
-          <TabsList className="max-w-full justify-start overflow-x-auto">
-            {REVIEW_ITEM_VIEWS.map((v) => (
-              <TabsTrigger key={v} value={v}>
-                {t(`review.views.${v}`)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {REVIEW_ITEM_VIEWS.map((v) => (
-            <TabsContent key={v} value={v} className="min-w-0">
-              {view === v && table}
-            </TabsContent>
-          ))}
-        </Tabs>
+        <>
+          {canDecide && allDecided && view === 'todo' && (
+            <DecisionDone title={t('review.allDecided')} description={t('review.allDecidedHint')} />
+          )}
+          <DecisionViews
+            value={view}
+            onValueChange={(v) => set({ view: v, filter: undefined })}
+            label={t('review.items')}
+            views={[
+              { value: 'todo', label: t('review.views.todo'), count: p.total - p.decided },
+              { value: 'done', label: t('review.views.done') },
+              { value: 'all', label: t('review.views.all') },
+            ]}
+            actions={
+              <>
+                {view !== 'todo' && (
+                  <Select
+                    value={filter ?? 'any'}
+                    onValueChange={(v) => set({ filter: v === 'any' ? undefined : v })}
+                  >
+                    <SelectTrigger className="w-full sm:w-44" aria-label={t('review.filter')}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">{t('review.anyDecision')}</SelectItem>
+                      {FILTERS.map((f) => (
+                        <SelectItem key={f} value={f}>
+                          {f === 'admin' ? t('review.views.admin') : t(`reviewDecision.${f}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <SearchInput
+                  value={state.q ?? ''}
+                  onChange={(q) => set({ q })}
+                  placeholder={t('review.search')}
+                  className="sm:w-56"
+                />
+              </>
+            }
+          >
+            <DecisionList<ReviewItem, Decision>
+              label={t('review.items')}
+              items={items.data?.items ?? []}
+              getId={(i) => i.id}
+              renderItem={(i) => <AccountSummary item={i} />}
+              options={options}
+              decisionOf={(i) => i.decision}
+              canDecide={() => canDecide}
+              renderResult={(i) => <DecisionBadge decision={i.decision} />}
+              optionLabel={(o, i) => t(`decide.for.${o.value}`, { account: i.accountName })}
+              groupLabel={(i) => t('decide.groupFor', { account: i.accountName })}
+              bulkLabel={(o, count) => t(`decide.selected.${o.value}`, { count })}
+              onDecide={(list, decision) => {
+                if (decision === 'keep') keep.mutate(list);
+                else setDating({ items: list, decision });
+              }}
+              busy={busy}
+              selectable={canDecide}
+              loading={items.isLoading}
+              error={items.error}
+              onRetry={() => items.refetch()}
+              total={items.data?.total}
+              page={state.page}
+              pageSize={state.pageSize}
+              onPageChange={(page) => set({ page })}
+              empty={
+                filtered ? (
+                  <EmptyState
+                    variant="filtered"
+                    onClearFilters={() => set({ q: undefined, filter: undefined })}
+                  />
+                ) : p.total === 0 ? (
+                  <EmptyState
+                    icon={<ListChecksIcon />}
+                    title={t('review.noItems')}
+                    description={canDecide ? t('review.noItemsHint') : undefined}
+                    action={
+                      canDecide ? (
+                        <Button variant="outline" onClick={() => setDialog('import')}>
+                          <FileUpIcon /> {t('review.import')}
+                        </Button>
+                      ) : undefined
+                    }
+                  />
+                ) : (
+                  <EmptyState variant="compact" title={t(`review.empty.${view}`)} />
+                )
+              }
+            />
+          </DecisionViews>
+        </>
       )}
-      <DecideDialog
-        // A fresh form for every set of accounts (it starts from their current decision).
-        key={deciding.map((i) => i.id).join(',')}
-        review={r.reference}
-        items={deciding}
-        onOpenChange={(o) => {
-          if (!o) {
-            setDeciding([]);
-            setSelection(NO_SELECTION);
-          }
-        }}
-      />
+      {dating && (
+        <DecideDialog
+          // A fresh form for every set of accounts (it starts from their current date and note).
+          key={`${dating.decision}:${dating.items.map((i) => i.id).join(',')}`}
+          review={r.reference}
+          items={dating.items}
+          decision={dating.decision}
+          onOpenChange={(o) => !o && setDating(null)}
+        />
+      )}
       {canDecide && (
         <>
           <ImportAccountsDialog
@@ -388,6 +430,34 @@ export default function ReviewPage({ params }: WebPageProps) {
         onConfirm={(note) => signOff.mutate({ note })}
         pending={signOff.isPending}
       />
+      <AlertDialog open={dialog === 'tickets'} onOpenChange={(o) => setDialog(o ? 'tickets' : null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t('review.ticketsTitle', { count: r.viewer.ticketsToRaise })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>{t('review.ticketsDescription')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="max-h-48 list-disc space-y-0.5 overflow-y-auto pl-5 text-sm">
+            {(toTicket.data?.items ?? []).map((i) => (
+              <li key={i.id} className="wrap-break-word">
+                {t(`review.ticketLine.${i.decision as 'disable' | 'delete'}`, { account: i.accountName })}
+              </li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                tickets.mutate(undefined);
+              }}
+            >
+              {t('review.raiseTickets', { count: r.viewer.ticketsToRaise })}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={dialog === 'cancel'} onOpenChange={(o) => setDialog(o ? 'cancel' : null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

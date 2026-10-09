@@ -160,6 +160,7 @@ function RoleRow({
 export function AppRolesPanel({ app }: { app: Application }) {
   const t = useTranslations('applications.roles');
   const errorText = useErrorText();
+  const tr = useTranslations('roles');
   const router = useRouter();
   const pathname = usePathname();
   const canManage = useCan('core.applications.manage', { recordType: 'application', recordId: app.id });
@@ -275,6 +276,9 @@ export function AppRolesPanel({ app }: { app: Application }) {
                 <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
                 {t('deleteWarning', { count: shownDeleting?.assignmentCount ?? 0 })}
               </p>
+            )}
+            {shownDeleting?.requestable && (
+              <p className="text-sm text-muted-foreground">{tr('detail.deleteRequested')}</p>
             )}
           </ConfirmDialog>
         </>

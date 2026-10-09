@@ -1,6 +1,8 @@
 'use client';
 
+import type { RunProblem } from '@isbp/sdk';
 import { useApiQuery } from '@isbp/ui/query';
+import { problemOf, useResultText, useRunProblemText } from '@isbp/ui/run-detail';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { JobRef, LookupItem, TaskTypes } from '../contracts';
@@ -107,4 +109,29 @@ export function localTimeZone(): string {
   } catch {
     return 'UTC';
   }
+}
+
+/**
+ * A run's result in the reader's language: why it failed (plain words), or what it did ("12 rows written") from the
+ * key and values the task stored.
+ */
+export function useRunResult() {
+  const resultText = useResultText();
+  const problemText = useRunProblemText();
+  return useCallback(
+    (run: {
+      status: string;
+      summary: string | null;
+      summaryParams?: Record<string, string | number> | null;
+      error: string | null;
+      problem?: RunProblem | null;
+    }) => {
+      if (run.error && (run.status === 'failed' || run.status === 'timed_out' || run.status === 'retrying')) {
+        const p = problemOf(run.problem, run.error);
+        if (p) return { text: problemText(p).title, failed: true };
+      }
+      return { text: resultText(run.summary, run.summaryParams), failed: false };
+    },
+    [resultText, problemText],
+  );
 }

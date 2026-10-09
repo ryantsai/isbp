@@ -67,6 +67,14 @@ function sse(body: unknown): { event: string; data: LooseJson }[] {
     .filter((e): e is { event: string; data: LooseJson } => !!e);
 }
 
+/** Tickets raised from Ask IT with this title. */
+const chatTickets = async (title: string) =>
+  (
+    await h.kernel.db.execute<{ n: number }>(
+      sql`select count(*)::int as n from itsm.tickets where title = ${title} and channel = 'chat'`,
+    )
+  ).rows[0]!.n;
+
 const insightOf = async (ticketId: string) =>
   (
     await h.kernel.db.execute<{ status: string; data: LooseJson; confidence: number; mode: string }>(
@@ -320,6 +328,69 @@ describe('agent features in builtin mode', () => {
   });
 });
 
+describe('assist panel by ticket type and state', () => {
+  it('on a problem, lists open and resolved incidents like it, to link them to it', async () => {
+    const problem = await h.call(s.admin!, 'POST', `${ITSM}/tickets`, {
+      type: 'problem',
+      title: 'VPN keeps disconnecting every few minutes',
+      description: 'Home workers lose the VPN tunnel every few minutes.',
+    });
+    expect(problem.status).toBe(201);
+    const assist = await h.call(s.admin!, 'GET', `${HAI}/tickets/${problem.body.id}/assist`);
+    expect(assist.status).toBe(200);
+    expect(assist.body.triage).toBeNull();
+    const similar = assist.body.similar as LooseJson[];
+    expect(similar.every((x) => x.type === 'incident' && x.similarity >= 0.25)).toBe(true);
+    const open = similar.filter((x) => x.status);
+    expect(open.length).toBeGreaterThan(0);
+    expect(similar.some((x) => !x.status && x.resolutionCode === 'solved')).toBe(true);
+    // Open ones come first.
+    expect(similar.findIndex((x) => !x.status)).toBeGreaterThanOrEqual(open.length);
+
+    // What the panel's "Link to this problem" does (through ITSM's slot action).
+    const linked = await h.call(s.admin!, 'POST', `${ITSM}/tickets/${problem.body.reference}/links`, {
+      target: open[0].reference,
+      type: 'caused_by',
+      direction: 'incoming',
+    });
+    expect(linked.status).toBe(200);
+    expect(linked.body.links.map((l: LooseJson) => l.ticket.reference)).toContain(open[0].reference);
+  });
+
+  it('shows a change only its summary: no triage, similar tickets or articles', async () => {
+    const change = await h.call(s.admin!, 'POST', `${ITSM}/tickets`, {
+      type: 'change',
+      title: 'Upgrade the VPN gateway',
+      description: 'The VPN keeps disconnecting; upgrade the gateway firmware.',
+    });
+    expect(change.status).toBe(201);
+    const assist = await h.call(s.admin!, 'GET', `${HAI}/tickets/${change.body.id}/assist`);
+    expect(assist.body).toMatchObject({ triage: null, similar: [], articles: [] });
+  });
+
+  it('leaves out weak matches and never offers triage on a finished ticket', async () => {
+    const raised = await h.call(s.alice!, 'POST', `${ITSM}/tickets`, {
+      title: 'VPN keeps dropping every few minutes',
+      description: 'The VPN tunnel drops at home.',
+    });
+    await eventually(
+      () => insightOf(raised.body.id),
+      (r) => !!r,
+    );
+    const before = await h.call(s.agent!, 'GET', `${HAI}/tickets/${raised.body.id}/assist`);
+    expect(before.body.triage).not.toBeNull();
+    for (const x of [...before.body.similar, ...before.body.articles])
+      expect(x.similarity).toBeGreaterThanOrEqual(0.25);
+    await h.call(s.agent!, 'POST', `${ITSM}/tickets/${raised.body.reference}/transition`, {
+      status: 'resolved',
+      resolutionCode: 'solved',
+      resolutionNotes: 'Switched the VPN protocol to TCP.',
+    });
+    const after = await h.call(s.agent!, 'GET', `${HAI}/tickets/${raised.body.id}/assist`);
+    expect(after.body.triage).toBeNull();
+  });
+});
+
 describe('virtual agent (builtin mode)', () => {
   let conversation: string;
 
@@ -346,12 +417,17 @@ describe('virtual agent (builtin mode)', () => {
       .filter((e) => e.event === 'delta')
       .map((e) => e.data.text)
       .join('');
-    expect(text).toContain('VPN keeps disconnecting');
+    // The articles are the citations (shown as cards), not repeated in the text.
+    expect(text).toBe("Here's what I found in the knowledge base:");
+    expect(citations[0].title).toBe('VPN keeps disconnecting');
     const proposal = events.find((e) => e.event === 'proposal')!.data;
     expect(proposal).toMatchObject({
       title: 'My VPN keeps disconnecting every few minutes',
       type: 'incident',
     });
+    // A plain-text draft: what the user said, and the article in words.
+    expect(proposal.description).not.toMatch(/\*\*|^- /m);
+    expect(proposal.description).toContain(`“VPN keeps disconnecting” (${vpnArticle})`);
 
     const detail = await h.call(s.alice!, 'GET', `${HAI}/conversations/${conversation}`);
     expect(detail.body).toMatchObject({
@@ -361,6 +437,26 @@ describe('virtual agent (builtin mode)', () => {
     });
     expect(detail.body.messages.map((m: LooseJson) => m.role)).toEqual(['user', 'assistant']);
     expect(detail.body.messages[1].citations[0].reference).toBe(vpnArticle);
+  });
+
+  it('answers a follow-up question on a conversation that already has a title', async () => {
+    const res = await h.app.inject({
+      method: 'POST',
+      url: `${HAI}/conversations/${conversation}/messages`,
+      payload: { content: 'It still drops after switching to TCP' },
+      headers: { cookie: s.alice!.cookie, 'x-csrf-token': s.alice!.csrf },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(sse(res.body).at(-1)).toMatchObject({ event: 'done' });
+    const detail = await h.call(s.alice!, 'GET', `${HAI}/conversations/${conversation}`);
+    expect(detail.body).toMatchObject({
+      status: 'open',
+      title: 'My VPN keeps disconnecting every few minutes',
+      messageCount: 4,
+    });
+    expect(detail.body.messages.map((m: LooseJson) => m.content)).toContain(
+      'It still drops after switching to TCP',
+    );
   });
 
   it('escalating raises a ticket owned by the user (channel chat) and links it', async () => {
@@ -382,14 +478,204 @@ describe('virtual agent (builtin mode)', () => {
       requester: { id: ids.alice },
       title: 'VPN disconnects every few minutes',
     });
+    expect(res.body.warning).toBeNull();
+    // A retry returns the ticket that was raised: never a second ticket, never an error.
     const again = await h.call(s.alice!, 'POST', `${HAI}/conversations/${conversation}/escalate`, {
       title: 'Duplicate',
       description: '',
       urgency: 3,
       type: 'incident',
     });
-    expect(again.body.error.code).toBe('INVALID_STATE');
+    expect(again.status).toBe(200);
+    expect(again.body.ticket.reference).toBe(res.body.ticket.reference);
+    expect(await chatTickets('Duplicate')).toBe(0);
+    const detail = await h.call(s.alice!, 'GET', `${HAI}/conversations/${conversation}`);
+    expect(
+      detail.body.messages.filter((m: LooseJson) => m.content.includes(res.body.ticket.reference)),
+    ).toHaveLength(1);
     expect((await h.call(s.alice!, 'POST', `${HAI}/conversations/${conversation}/resolve`)).status).toBe(409);
+  });
+
+  describe('when something fails after the ticket was raised', () => {
+    /** A conversation with one answer and its proposal, ready to escalate. */
+    async function asked(content: string) {
+      const { id } = (await h.call(s.alice!, 'POST', `${HAI}/conversations`, {})).body;
+      await h.app.inject({
+        method: 'POST',
+        url: `${HAI}/conversations/${id}/messages`,
+        payload: { content },
+        headers: { cookie: s.alice!.cookie, 'x-csrf-token': s.alice!.csrf },
+      });
+      return id as string;
+    }
+    const proposal = (title: string) => ({
+      title,
+      description: 'Still broken.',
+      urgency: 2,
+      type: 'incident',
+    });
+
+    /** Makes writes to `table` fail when `when` holds (`times` times, or always), like a dropped connection would. */
+    async function failing(table: string, when: string, times: number | 'always') {
+      const qualified = table.includes('.') ? table : `helpdesk_ai.${table}`;
+      await h.kernel.db.execute(sql.raw(`create sequence if not exists helpdesk_ai.test_fail_seq`));
+      await h.kernel.db.execute(sql.raw(`alter sequence helpdesk_ai.test_fail_seq restart with 1`));
+      await h.kernel.db.execute(
+        sql.raw(`create or replace function helpdesk_ai.test_fail() returns trigger language plpgsql as $$
+          begin
+            if (${when}) and (${times === 'always' ? 'true' : `nextval('helpdesk_ai.test_fail_seq') <= ${times}`}) then
+              raise exception 'injected failure';
+            end if;
+            return new;
+          end $$`),
+      );
+      await h.kernel.db.execute(
+        sql.raw(
+          `create trigger test_fail before insert or update on ${qualified} for each row execute function helpdesk_ai.test_fail()`,
+        ),
+      );
+      return () => h.kernel.db.execute(sql.raw(`drop trigger if exists test_fail on ${qualified}`));
+    }
+
+    it('raises exactly one ticket when the same conversation is escalated twice at once', async () => {
+      const id = await asked('My headset microphone is muted in calls');
+      const [a, b] = await Promise.all(
+        [0, 1].map(() =>
+          h.call(s.alice!, 'POST', `${HAI}/conversations/${id}/escalate`, proposal('Headset muted')),
+        ),
+      );
+      const ok = [a!, b!].filter((r) => r.status === 200);
+      expect(ok.length).toBeGreaterThanOrEqual(1);
+      for (const r of [a!, b!])
+        if (r.status !== 200) expect([r.status, r.body.error.code]).toEqual([409, 'INVALID_STATE']);
+      expect(new Set(ok.map((r) => r.body.ticket.reference)).size).toBe(1);
+      expect(await chatTickets('Headset muted')).toBe(1);
+      // A later retry returns that same ticket.
+      const retry = await h.call(
+        s.alice!,
+        'POST',
+        `${HAI}/conversations/${id}/escalate`,
+        proposal('Headset muted'),
+      );
+      expect(retry.body.ticket.reference).toBe(ok[0]!.body.ticket.reference);
+    });
+
+    it('retries the step after createTicket and answers 200 with the ticket', async () => {
+      const id = await asked('My laptop dock stopped charging');
+      const restore = await failing('messages', 'true', 1);
+      try {
+        const res = await h.call(
+          s.alice!,
+          'POST',
+          `${HAI}/conversations/${id}/escalate`,
+          proposal('Dock not charging'),
+        );
+        expect(res.status).toBe(200);
+        expect(res.body).toMatchObject({
+          warning: null,
+          conversation: { status: 'escalated', ticketRef: res.body.ticket.reference },
+        });
+        const detail = await h.call(s.alice!, 'GET', `${HAI}/conversations/${id}`);
+        expect(detail.body.messages.at(-1).content).toContain(res.body.ticket.reference);
+        expect(await chatTickets('Dock not charging')).toBe(1);
+      } finally {
+        await restore();
+      }
+    });
+
+    it('still links the ticket (200 + warning) when the history entry keeps failing; a retry adds it', async () => {
+      const id = await asked('The office printer prints blank pages');
+      const restore = await failing('messages', 'true', 'always');
+      let reference: string;
+      try {
+        const res = await h.call(
+          s.alice!,
+          'POST',
+          `${HAI}/conversations/${id}/escalate`,
+          proposal('Blank pages'),
+        );
+        expect(res.status).toBe(200);
+        reference = res.body.ticket.reference;
+        expect(res.body).toMatchObject({
+          warning: 'not_recorded',
+          conversation: { status: 'escalated', ticketRef: reference },
+        });
+      } finally {
+        await restore();
+      }
+      const retry = await h.call(
+        s.alice!,
+        'POST',
+        `${HAI}/conversations/${id}/escalate`,
+        proposal('Blank pages'),
+      );
+      expect(retry.body).toMatchObject({ warning: null, ticket: { reference } });
+      const detail = await h.call(s.alice!, 'GET', `${HAI}/conversations/${id}`);
+      expect(detail.body.messages.at(-1).content).toContain(reference);
+      expect(await chatTickets('Blank pages')).toBe(1);
+    });
+
+    it('finds the ticket an interrupted request raised but could not link, instead of raising another', async () => {
+      const id = await asked('My second monitor flickers');
+      // Linking fails every time: the request still answers 200, the conversation stays without its ticket.
+      const restore = await failing('conversations', 'new.ticket_ref is not null', 'always');
+      let reference: string;
+      try {
+        const res = await h.call(
+          s.alice!,
+          'POST',
+          `${HAI}/conversations/${id}/escalate`,
+          proposal('Monitor flickers'),
+        );
+        expect(res.status).toBe(200);
+        expect(res.body.warning).toBe('not_recorded');
+        reference = res.body.ticket.reference;
+      } finally {
+        await restore();
+      }
+      const stuck = await h.call(s.alice!, 'GET', `${HAI}/conversations/${id}`);
+      expect(stuck.body).toMatchObject({ status: 'escalated', ticketRef: null });
+
+      const retry = await h.call(
+        s.alice!,
+        'POST',
+        `${HAI}/conversations/${id}/escalate`,
+        proposal('Monitor flickers'),
+      );
+      expect(retry.status).toBe(200);
+      expect(retry.body).toMatchObject({
+        warning: null,
+        ticket: { reference },
+        conversation: { status: 'escalated', ticketRef: reference },
+      });
+      expect(await chatTickets('Monitor flickers')).toBe(1);
+    });
+
+    it('reopens the conversation when ITSM could not raise the ticket, so the user can try again', async () => {
+      const id = await asked('Teams crashes on start');
+      const restore = await failing('itsm.tickets', 'true', 'always');
+      try {
+        const failed = await h.call(
+          s.alice!,
+          'POST',
+          `${HAI}/conversations/${id}/escalate`,
+          proposal('Teams crashes'),
+        );
+        expect(failed.status).toBeGreaterThanOrEqual(500);
+      } finally {
+        await restore();
+      }
+      const detail = await h.call(s.alice!, 'GET', `${HAI}/conversations/${id}`);
+      expect(detail.body).toMatchObject({ status: 'open', ticketRef: null });
+      const retry = await h.call(
+        s.alice!,
+        'POST',
+        `${HAI}/conversations/${id}/escalate`,
+        proposal('Teams crashes'),
+      );
+      expect(retry.status).toBe(200);
+      expect(await chatTickets('Teams crashes')).toBe(1);
+    });
   });
 
   it('"that solved it" closes a conversation as deflected', async () => {
@@ -551,6 +837,27 @@ describe('permissions', () => {
     expect(post.statusCode).toBe(404);
     expect((await h.call(s.alice!, 'GET', `${HAI}/conversations?scope=all`)).status).toBe(403);
     expect((await h.call(s.alice!, 'GET', `${HAI}/insights/overview`)).status).toBe(403);
+  });
+
+  it('gives service desk report readers the metrics and waiting suggestions, but not the conversations', async () => {
+    // The agent holds itsm.reports.read (Service desk agent role), not helpdesk-ai.insights.read.
+    const overview = await h.call(s.agent!, 'GET', `${HAI}/insights/overview?days=7`);
+    expect(overview.status).toBe(200);
+    expect((await h.call(s.agent!, 'GET', `${HAI}/conversations?scope=all`)).status).toBe(403);
+    const pending = await h.call(s.agent!, 'GET', `${HAI}/insights/pending?days=7`);
+    expect(pending.status).toBe(200);
+    expect(pending.body.total).toBeGreaterThanOrEqual(1);
+    for (const p of pending.body.items) {
+      expect(p.reference).toMatch(/^(INC|SR)-\d{5}$/);
+      expect(p.title).toEqual(expect.any(String));
+    }
+    // Suggestions already applied or on finished tickets aren't waiting.
+    const refs = pending.body.items.map((p: LooseJson) => p.ticketId);
+    const decided = await h.kernel.db.execute<{ ticket_id: string }>(
+      sql`select ticket_id from helpdesk_ai.insights where kind = 'triage' and status <> 'suggested'`,
+    );
+    for (const r of decided.rows) expect(refs).not.toContain(r.ticket_id);
+    expect((await h.call(s.alice!, 'GET', `${HAI}/insights/pending`)).status).toBe(403);
   });
 
   it('gives insights readers the metrics and every conversation for review', async () => {

@@ -267,6 +267,7 @@ graph.steps run in order. Step types:
 Approver rules: { "type": "manager", "level"?: 1-5 } (the requester's manager; 2 = the manager's manager), { "type": "department-head" }, { "type": "group", "groupKey" }, { "type": "role", "roleKey" }, { "type": "user", "userId" }, { "type": "fact", "fact": "<path to a user id or a list of them>" }, { "type": "fact", "fact": "<path to a group key or list>", "kind": "group" } (the members of that group or groups, e.g. records.cis.ownerGroup = the support groups of the CIs picked in a form's record field "cis"; reference.recordTypes marks the facts that hold group keys or user ids), { "type": "requester" } (notify steps only). Any rule may carry a "fallback" rule used when it resolves to nobody (a CI without a support group).
 Conditions: { "fact", "op", "value" } with op eq | neq | gt | gte | lt | lte | in | nin (value is a list) | contains | empty | notEmpty (no value); combine with { "all": [...] }, { "any": [...] }, { "not": {...} }. Facts are the trigger's facts (reference.triggers[].facts, e.g. role.riskLevel, requester.departmentCode); for core.form-submission, a form's answers are data.<fieldKey> (data.amount) and the facts of the records picked in its record fields are records.<fieldKey>.<fact> (records.cis.criticality eq "critical": a list per fact for multiple fields, matched by eq/in on any element). reference.forms lists the published forms with their field keys (and record types), reference.recordTypes every record type's facts with their values. { "fact", "op", "valueFact" } compares with another fact instead of a value. Triggers with customFieldEntity also get the subject's custom fields: attributes.<key>, and records.<key>.<fact> for record custom fields (reference.triggers[].customFieldFacts).
 Step fields (approval steps): fields [...] are what the approver fills in with the decision — the "filled in by IT" part of a paper form (evaluation result, handling notes, completion date, wipe time, review checklist). The same field model as a form's fields (core.form: { key, type, label, help?, required?, options?, validation?, defaultValue?, visibleWhen?, record? }; visibleWhen reads the step's other fields by key), at most 20, unique keys. fieldsRequiredOn: "approve" (default: required fields are needed to approve, optional when rejecting) | "both". Values are validated like form answers, stored with the decision, shown on the request, and become facts steps.<stepId>.<key> for the steps AFTER that step (conditions and approver rules, e.g. { "fact": "steps.it-review.result", "op": "eq", "value": "needs-cab" } or { "type": "fact", "fact": "steps.it-review.handler" } for a user field) — never for the step itself, earlier steps or parallel branches beside it; a step id used this way must start with a letter. Forms' process actions see them too: {{steps.<stepId>.<key>}} in text templates. With several approvers on a step, the latest decision's value counts.
+graph.repeatApprovers (optional, default "ask"): what happens when someone already approved an earlier step of the same request. "ask" asks them again at every step. "skip" counts that earlier approval instead, so they are not asked again: the step records it as approved, and a step whose approvers all approved earlier completes without asking anyone. Rejections never count, and a delegate's approval counts for the person who decided it.
 Every name, instructions and message is LocalizedText: give "en", "zh-TW" and "ja-JP". Step and branch ids are short unique slugs (letters, digits, - and _), e.g. "manager", "it-assets".
 Use only group and role keys from reference.groups and reference.roles; find people with core.find_users.
 isDefault: the default workflow decides every request of its trigger that does not name a workflow; a required trigger always keeps exactly one. Forms name their workflow themselves (core.form's workflowId), so form-submission workflows rarely need to be the default.
@@ -435,9 +436,9 @@ const deviceReturnExample: WorkflowValue = {
 /** Default binding as the value asks; a required trigger keeps its only default (check() refuses that). */
 async function bindDefault(svc: WorkflowAdminService, ctx: ModuleContext, id: string, wanted: boolean) {
   const d = (await findDefinition(ctx.db, id))!;
-  if (wanted && !d.isDefault) await svc.makeDefault(id);
+  if (wanted && !d.isDefault) await svc.makeDefaultRow(id);
   else if (!wanted && d.isDefault && !getKernel().workflows.trigger(d.triggerKey)?.def.required)
-    await svc.clearDefault(id);
+    await svc.clearDefaultRow(id);
 }
 
 const TEMPLATE_TEXTS = [
@@ -582,9 +583,9 @@ export const workflowKind: CustomizationHandler<WorkflowValue> = {
       for (const issue of await new WorkflowAdminService(ctx).issues(v.graph))
         issues.push(graphIssue(paths, issue));
       if (trigger?.def.facts) {
-        const t = (await new WorkflowAdminService(ctx).triggers()).find((x) => x.key === v.triggerKey);
+        const declared = new WorkflowAdminService(ctx).triggerFacts(v.triggerKey);
         const roots = new Set([
-          ...(t?.facts.map((f) => f.path.split('.')[0]) ?? []),
+          ...(declared?.map((f) => f.path.split('.')[0]) ?? []),
           // Custom fields of the trigger's subject come along (`ctx.fields.facts`).
           ...(trigger.def.customFieldEntity ? ['attributes', 'records'] : []),
           // What approvers fill in (`fields`): checked against the graph by the `stepFact` issue above.
@@ -630,16 +631,17 @@ export const workflowKind: CustomizationHandler<WorkflowValue> = {
     switch (change.op) {
       case 'create': {
         assertStepRecordTypes(v!.graph, null, auth);
-        const created = await svc.create(
+        // The `*Row` writes: the kind only needs the ids, not the views the admin API returns.
+        const created = await svc.createRow(
           { name: v!.name, description: v!.description ?? null, triggerKey: v!.triggerKey },
           auth,
         );
-        await svc.update(
+        await svc.updateRow(
           created.id,
           { name: v!.name, description: v!.description ?? null, draft: v!.graph },
           auth,
         );
-        await svc.publish(created.id, auth);
+        await svc.publishRow(created.id, auth);
         await bindDefault(svc, ctx, created.id, v!.isDefault);
         return { id: created.id };
       }
@@ -650,12 +652,12 @@ export const workflowKind: CustomizationHandler<WorkflowValue> = {
         // An unchanged graph keeps the draft as it is (someone may be editing it in the builder).
         const publish = !live.published || canonicalJson(live.graph) !== canonicalJson(v!.graph);
         if (publish) assertStepRecordTypes(v!.graph, d.draft, auth);
-        await svc.update(
+        await svc.updateRow(
           id,
           { name: v!.name, description: v!.description ?? null, draft: publish ? v!.graph : undefined },
           auth,
         );
-        if (publish) await svc.publish(id, auth);
+        if (publish) await svc.publishRow(id, auth);
         await bindDefault(svc, ctx, id, v!.isDefault);
         return { id };
       }

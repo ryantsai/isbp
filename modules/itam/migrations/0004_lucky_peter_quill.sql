@@ -1,0 +1,3 @@
+DROP INDEX "itam"."software_installations_asset_product_uq";--> statement-breakpoint
+CREATE UNIQUE INDEX "software_installations_asset_title_uq" ON "itam"."software_installations" USING btree ("asset_id",lower(coalesce("reported_as", "product")));--> statement-breakpoint
+CREATE INDEX "software_installations_asset_product_idx" ON "itam"."software_installations" USING btree ("asset_id",lower("product"));

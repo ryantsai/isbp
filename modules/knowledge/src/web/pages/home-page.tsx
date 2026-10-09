@@ -4,20 +4,18 @@ import type { Page } from '@isbp/sdk';
 import { Slot, useCan, usePlatform } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { Kbd } from '@isbp/ui/kbd';
-import { FadeIn, Stagger, StaggerItem } from '@isbp/ui/motion';
+import { distance, duration, ease, FadeIn } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
 import {
   ArrowLeftIcon,
-  ArrowRightIcon,
   FlameIcon,
   HistoryIcon,
   LifeBuoyIcon,
-  NotebookPenIcon,
   PlusIcon,
   SearchIcon,
   SearchXIcon,
@@ -35,6 +33,7 @@ import {
   CategoryIcon,
   ClassificationBadge,
   InternalBadge,
+  KnowledgeSections,
   LocaleChip,
   LOCALE_LANG,
   useCategoryName,
@@ -59,6 +58,7 @@ function SearchPanel({ query, onQuery }: { query: string; onQuery: (q: string) =
   const t = useTranslations('knowledge.home');
   const locale = useLocale();
   const { enabledModules } = usePlatform();
+  const canReport = useCan('itsm.tickets.create') && enabledModules.includes('itsm');
   const [draft, setDraft] = useState(query);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -87,7 +87,7 @@ function SearchPanel({ query, onQuery }: { query: string; onQuery: (q: string) =
   }, [draft, query]);
 
   const q = query.trim();
-  const { data, isFetching, isLoading } = useApiQuery<SearchResult>(
+  const { data, isFetching, isLoading, error, refetch } = useApiQuery<SearchResult>(
     q.length >= 2 ? '/knowledge/search' : null,
     { q, limit: 8, locale },
   );
@@ -127,7 +127,7 @@ function SearchPanel({ query, onQuery }: { query: string; onQuery: (q: string) =
             placeholder={t('searchPlaceholder')}
             aria-describedby={hintId}
             aria-controls="kb-search-results"
-            className="h-12 w-full rounded-xl border border-input bg-background pr-11 pl-12 text-base shadow-xs outline-none transition-[box-shadow,border-color] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [&::-webkit-search-cancel-button]:hidden"
+            className="h-12 w-full rounded-xl border border-input bg-background pr-11 pl-12 text-base shadow-xs outline-none transition-[box-shadow,border-color] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none [&::-webkit-search-cancel-button]:hidden"
           />
           {draft && (
             <button
@@ -150,7 +150,7 @@ function SearchPanel({ query, onQuery }: { query: string; onQuery: (q: string) =
 
       <div id="kb-search-results" aria-busy={isFetching}>
         <p className="sr-only" role="status" aria-live="polite">
-          {q.length >= 2 && !isLoading ? t('resultCount', { count: items.length }) : ''}
+          {q.length >= 2 && !isLoading && !error ? t('resultCount', { count: items.length }) : ''}
         </p>
         {q.length >= 2 &&
           (isLoading ? (
@@ -159,8 +159,15 @@ function SearchPanel({ query, onQuery }: { query: string; onQuery: (q: string) =
                 <Skeleton key={i} className="h-16 rounded-lg" />
               ))}
             </div>
+          ) : error && !data ? (
+            <ErrorState
+              error={error}
+              onRetry={() => refetch()}
+              title={t('searchFailed')}
+              className="rounded-xl border"
+            />
           ) : items.length ? (
-            <FadeIn y={4} className="rounded-xl border bg-card p-1.5 shadow-xs">
+            <FadeIn className="rounded-xl border bg-card p-1.5 shadow-xs">
               <ul ref={listRef} aria-label={t('results')} className="grid gap-0.5">
                 {items.map((item) => (
                   <li key={item.id}>
@@ -190,10 +197,10 @@ function SearchPanel({ query, onQuery }: { query: string; onQuery: (q: string) =
             <EmptyState
               icon={<SearchXIcon />}
               title={t('noResults', { query: q })}
-              description={t('noResultsHint')}
+              description={canReport ? t('noResultsHint') : t('noResultsHintOther')}
               className="rounded-xl border border-dashed"
               action={
-                enabledModules.includes('itsm') ? (
+                canReport ? (
                   <Button asChild variant="outline">
                     <Link href="/itsm/report">
                       <LifeBuoyIcon /> {t('reportIssue')}
@@ -211,7 +218,7 @@ function SearchPanel({ query, onQuery }: { query: string; onQuery: (q: string) =
 function CategoryGrid({ onPick }: { onPick: (key: string) => void }) {
   const t = useTranslations('knowledge.home');
   const locale = useLocale();
-  const { data, isLoading } = useApiQuery<{ items: Category[] }>('/knowledge/categories');
+  const { data, isLoading, error, refetch } = useApiQuery<{ items: Category[] }>('/knowledge/categories');
   const items = (data?.items ?? []).filter((c) => !c.parentId);
   return (
     <section aria-labelledby="kb-categories" className="grid gap-3">
@@ -224,10 +231,12 @@ function CategoryGrid({ onPick }: { onPick: (key: string) => void }) {
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
         </div>
+      ) : error && !data ? (
+        <ErrorState error={error} onRetry={() => refetch()} className="rounded-xl border" />
       ) : (
-        <Stagger className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {items.map((c) => (
-            <StaggerItem key={c.id} className="min-w-0">
+            <li key={c.id} className="min-w-0">
               <Link
                 href={`/knowledge?category=${encodeURIComponent(c.key)}`}
                 onClick={(e) => {
@@ -235,10 +244,10 @@ function CategoryGrid({ onPick }: { onPick: (key: string) => void }) {
                   e.preventDefault();
                   onPick(c.key);
                 }}
-                className="group flex h-full min-w-0 flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs outline-none transition-all hover:-translate-y-0.5 hover:border-ring/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:hover:translate-y-0"
+                className="group flex h-full min-w-0 flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs outline-none transition-[translate,box-shadow,border-color] duration-(--motion-fast) ease-move hover:-translate-y-0.5 hover:border-ring/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
               >
                 <span className="flex items-center justify-between gap-2">
-                  <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-105 motion-reduce:group-hover:scale-100 [&_svg]:size-5">
+                  <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary [&_svg]:size-5">
                     <CategoryIcon name={c.icon} />
                   </span>
                   <span className="text-xs text-muted-foreground tabular-nums">
@@ -254,9 +263,9 @@ function CategoryGrid({ onPick }: { onPick: (key: string) => void }) {
                   )}
                 </span>
               </Link>
-            </StaggerItem>
+            </li>
           ))}
-        </Stagger>
+        </ul>
       )}
     </section>
   );
@@ -268,7 +277,7 @@ function ArticleRow({ a, rank }: { a: ArticleListItem; rank?: number }) {
     <li>
       <Link
         href={a.href}
-        className="group flex min-w-0 items-start gap-3 px-4 py-3 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50"
+        className="group flex min-w-0 items-start gap-3 px-4 py-3 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 motion-reduce:transition-none"
       >
         {rank !== undefined ? (
           <span className="mt-0.5 w-5 shrink-0 text-right text-sm font-semibold text-muted-foreground tabular-nums">
@@ -289,7 +298,7 @@ function ArticleRow({ a, rank }: { a: ArticleListItem; rank?: number }) {
           </span>
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {a.category && <span>{categoryName(a.category)}</span>}
-            <LocaleChip locale={a.locale} />
+            <LocaleChip locale={a.locale} foreignOnly />
             <RelativeTime date={a.updatedAt} />
             <ArticleStats views={a.views} helpful={a.helpfulCount} notHelpful={a.notHelpfulCount} />
           </span>
@@ -313,7 +322,7 @@ function ArticleList({
   ranked?: boolean;
 }) {
   const t = useTranslations('knowledge.home');
-  const { data, isLoading } = useApiQuery<Page<ArticleListItem>>('/knowledge/articles', {
+  const { data, isLoading, error, refetch } = useApiQuery<Page<ArticleListItem>>('/knowledge/articles', {
     status: 'published',
     collapse: true,
     sort,
@@ -335,6 +344,8 @@ function ArticleList({
               <Skeleton key={i} className="h-16 rounded-none" />
             ))}
           </div>
+        ) : error && !data ? (
+          <ErrorState error={error} onRetry={() => refetch()} kind="list" compact className="px-4" />
         ) : data?.items.length ? (
           <ul className="divide-y">
             {data.items.map((a, i) => (
@@ -355,7 +366,7 @@ function CategoryView({ categoryKey, onBack }: { categoryKey: string; onBack: ()
   const [state, set] = useListState({ pageSize: 20 });
   const cats = useApiQuery<{ items: Category[] }>('/knowledge/categories');
   const category = cats.data?.items.find((c) => c.key === categoryKey);
-  const { data, isLoading } = useApiQuery<Page<ArticleListItem>>('/knowledge/articles', {
+  const { data, isLoading, error, refetch } = useApiQuery<Page<ArticleListItem>>('/knowledge/articles', {
     status: 'published',
     collapse: true,
     category: categoryKey,
@@ -376,7 +387,7 @@ function CategoryView({ categoryKey, onBack }: { categoryKey: string; onBack: ()
           <CategoryIcon name={category?.icon} />
         </span>
         <div className="min-w-0">
-          <h2 id="kb-category-title" className="truncate text-xl font-semibold tracking-tight">
+          <h2 id="kb-category-title" className="text-xl font-semibold tracking-tight wrap-break-word">
             {category ? localize(category.name, locale) : categoryKey}
           </h2>
           {category?.description && (
@@ -391,6 +402,8 @@ function CategoryView({ categoryKey, onBack }: { categoryKey: string; onBack: ()
               <Skeleton key={i} className="h-16 rounded-none" />
             ))}
           </div>
+        ) : error && !data ? (
+          <ErrorState error={error} onRetry={() => refetch()} kind="list" />
         ) : data?.items.length ? (
           <ul className="divide-y">
             {data.items.map((a) => (
@@ -430,7 +443,10 @@ function CategoryView({ categoryKey, onBack }: { categoryKey: string; onBack: ()
 
 const ASSIST_PROPS: KnowledgeHomeAssistSlotProps = {};
 
-/** Self-service home: search, Helpdesk AI's assist slot, categories, popular and recent articles. */
+/**
+ * Self-service home: search, Helpdesk AI's assist slot, categories, popular and recent articles. Writers and category
+ * managers reach Manage and Categories through the section tabs under the header.
+ */
 export default function HomePage() {
   const t = useTranslations('knowledge');
   const canWrite = useCan('knowledge.articles.write');
@@ -440,78 +456,63 @@ export default function HomePage() {
   const searching = query.trim().length >= 2;
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8">
+    <div>
       <PageHeader
         title={t('meta.name')}
         description={t('home.description')}
         actions={
           canWrite && (
-            <>
-              <Button variant="outline" asChild>
-                <Link href="/knowledge/manage">
-                  <NotebookPenIcon /> {t('nav.manage')}
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="/knowledge/new">
-                  <PlusIcon /> {t('newArticle')}
-                </Link>
-              </Button>
-            </>
+            <Button asChild>
+              <Link href="/knowledge/new">
+                <PlusIcon /> {t('newArticle')}
+              </Link>
+            </Button>
           )
         }
-        className="pb-0"
       />
-      <SearchPanel query={query} onQuery={(q) => set({ q: q || undefined, category: undefined })} />
+      <KnowledgeSections />
+      {/* A reading page: narrower than lists, but on the same left edge as every other page. */}
+      <div className="grid max-w-6xl gap-8">
+        <SearchPanel query={query} onQuery={(q) => set({ q: q || undefined, category: undefined })} />
 
-      <AnimatePresence mode="wait" initial={false}>
-        {!searching && (
-          <motion.div
-            key={category ?? 'home'}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="grid gap-8"
-          >
-            {category ? (
-              <CategoryView categoryKey={category} onBack={() => set({ category: undefined })} />
-            ) : (
-              <>
-                <Slot<KnowledgeHomeAssistSlotProps> name="knowledge.home.assist" props={ASSIST_PROPS} />
-                <CategoryGrid onPick={(key) => set({ category: key })} />
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                  <ArticleList
-                    id="kb-popular"
-                    title={t('home.popular')}
-                    icon={<FlameIcon aria-hidden />}
-                    sort="-views"
-                    ranked
-                  />
-                  <ArticleList
-                    id="kb-recent"
-                    title={t('home.recent')}
-                    icon={<HistoryIcon aria-hidden />}
-                    sort="-updatedAt"
-                  />
-                </div>
-                {canWrite && (
-                  <Link
-                    href="/knowledge/manage"
-                    className="group inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
-                  >
-                    {t('home.manageHint')}
-                    <ArrowRightIcon
-                      className="size-4 transition-transform group-hover:translate-x-0.5"
-                      aria-hidden
+        {/* Switching between the topics and one topic fades the new view in; the first view doesn't animate. */}
+        <AnimatePresence mode="wait" initial={false}>
+          {!searching && (
+            <motion.div
+              key={category ?? 'home'}
+              initial={{ opacity: 0, y: distance.content }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, transition: { duration: 0 } }}
+              transition={{ duration: duration.base, ease: ease.enter }}
+              className="grid gap-8"
+            >
+              {category ? (
+                <CategoryView categoryKey={category} onBack={() => set({ category: undefined })} />
+              ) : (
+                <>
+                  <Slot<KnowledgeHomeAssistSlotProps> name="knowledge.home.assist" props={ASSIST_PROPS} />
+                  <CategoryGrid onPick={(key) => set({ category: key })} />
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <ArticleList
+                      id="kb-popular"
+                      title={t('home.popular')}
+                      icon={<FlameIcon aria-hidden />}
+                      sort="-views"
+                      ranked
                     />
-                  </Link>
-                )}
-              </>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+                    <ArticleList
+                      id="kb-recent"
+                      title={t('home.recent')}
+                      icon={<HistoryIcon aria-hidden />}
+                      sort="-updatedAt"
+                    />
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

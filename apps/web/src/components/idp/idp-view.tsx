@@ -115,9 +115,9 @@ export function IdpView() {
           />
         </Card>
       ) : (
-        <Stagger className="grid items-stretch gap-4 lg:grid-cols-2">
+        <Stagger className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
           {items.map((p) => (
-            <StaggerItem key={p.id} className="h-full">
+            <StaggerItem key={p.id} className="h-full min-w-0">
               <IdpCard
                 idp={p}
                 onEdit={() => setForm({ open: true, choice: choiceOf(p), provider: p })}

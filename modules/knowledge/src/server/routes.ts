@@ -2,6 +2,8 @@ import { type AuthContext, type ModuleContext, type ModuleRouter, pageSchema } f
 import { z } from 'zod';
 import {
   articleCardSchema,
+  articleCountsQuerySchema,
+  articleCountsSchema,
   articleLocaleSchema,
   articleListItemSchema,
   articleQuerySchema,
@@ -14,6 +16,8 @@ import {
   feedbackResultSchema,
   searchQuerySchema,
   searchResultSchema,
+  submitOutcomeQuerySchema,
+  submitOutcomeSchema,
   updateArticleSchema,
   updateCategorySchema,
   versionSchema,
@@ -66,6 +70,36 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       },
     },
     async (req) => svc.list(req.query, req.auth),
+  );
+
+  app.get(
+    '/articles/counts',
+    {
+      config: { permission: [READ, WRITE] },
+      schema: {
+        tags,
+        summary:
+          'Articles per management tab (my drafts, in review, published, retired, review due) with the list filters',
+        querystring: articleCountsQuerySchema,
+        response: { 200: articleCountsSchema },
+      },
+    },
+    async (req) => svc.counts(req.query, req.auth),
+  );
+
+  app.get(
+    '/articles/submit-outcome',
+    {
+      config: { permission: [READ, WRITE] },
+      schema: {
+        tags,
+        summary:
+          'What submitting an article with these facts would do for you: publish it, send it to an editor, or start the approval workflow',
+        querystring: submitOutcomeQuerySchema,
+        response: { 200: submitOutcomeSchema },
+      },
+    },
+    async (req) => ({ outcome: await svc.submitOutcomeFor(req.query, req.auth) }),
   );
 
   app.post(

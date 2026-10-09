@@ -11,6 +11,7 @@ import {
   kbDraftSchema,
   overviewQuerySchema,
   overviewSchema,
+  pendingTriageSchema,
   postMessageSchema,
   replyDraftSchema,
   statusSchema,
@@ -22,12 +23,11 @@ import {
 import { formatSse } from '../lib/sse';
 import { aiInfo, AssistService, readSettings, toTriageDto } from './assist';
 import { ChatService } from './chat';
-import { overview } from './insights';
+import { overview, pendingTriage, requireMetrics } from './insights';
 
 const idParams = z.object({ id: z.uuid() });
 const ASSIST = 'helpdesk-ai.assist.use';
 const CHAT = 'helpdesk-ai.chat.use';
-const INSIGHTS = 'helpdesk-ai.insights.read';
 const HEARTBEAT_MS = 15_000;
 
 /** REST API mounted at /api/v1/helpdesk-ai. */
@@ -263,17 +263,44 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
 
   /* ───────────────────────────── insights ───────────────────────────── */
 
+  // Metrics are for Helpdesk AI's reviewers and for service desk report readers (`itsm.reports.read`, read-only):
+  // a route can require only one permission, so it asks for one everyone has and the handler checks either.
+  const metrics = { permission: CHAT, scoped: true } as const;
+  const insightTags = ['Helpdesk AI · insights'];
+
   app.get(
     '/insights/overview',
     {
-      config: { permission: INSIGHTS },
+      config: metrics,
       schema: {
-        tags: ['Helpdesk AI · insights'],
+        tags: insightTags,
         summary: 'Triage acceptance, deflection, KB drafts and AI cost over a period',
+        description: 'Needs `helpdesk-ai.insights.read` or `itsm.reports.read`.',
         querystring: overviewQuerySchema,
         response: { 200: overviewSchema },
       },
     },
-    async (req) => overview(ctx, req.query.days, req.auth),
+    async (req) => {
+      requireMetrics(req.auth);
+      return overview(ctx, req.query.days, req.auth);
+    },
+  );
+
+  app.get(
+    '/insights/pending',
+    {
+      config: metrics,
+      schema: {
+        tags: insightTags,
+        summary: 'Triage suggestions still waiting for an agent on open tickets, newest first',
+        description: 'Needs `helpdesk-ai.insights.read` or `itsm.reports.read`.',
+        querystring: overviewQuerySchema,
+        response: { 200: pendingTriageSchema },
+      },
+    },
+    async (req) => {
+      requireMetrics(req.auth);
+      return pendingTriage(ctx, req.query.days, req.auth);
+    },
   );
 }

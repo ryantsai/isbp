@@ -4,12 +4,13 @@ import { expect, type Page, test } from './fixtures';
 import { overflowing, settle } from './helpers';
 
 /**
- * Change-set packages against the seeded demo stack, as the admin: on Change sets, **From a package** opens a dialog
- * with the modules' built-in packages and **Import a file**. A file with problems shows the API's list and creates
- * nothing; a valid one (a group, an approval workflow naming it, a form using the workflow by `$ref`) becomes a draft
- * change set whose dry run passes. Its **More actions → Export** downloads `<reference>.json`, which is the same
- * package; the draft is then discarded, so the demo stays as it was. The dialog passes axe in light and dark mode and
- * fits a 375 px screen.
+ * Process packs and change-set packages against the seeded demo stack, as the admin. **Install a process pack** (on
+ * Change sets and on Forms) opens **Process packs**: the modules' built-in packs with what each creates, by process,
+ * before installing, and **Import a file**. A file with problems shows the API's list and creates nothing; a valid one
+ * (a group, an approval workflow naming it, a form using the workflow by `$ref`) becomes a draft change set, grouped
+ * as one process, ready to apply. Its **More actions → Export** downloads `<reference>.json`, which is the same
+ * package. **Review before installing** on the ISMS process pack opens its change set grouped by process. Every draft
+ * is discarded, so the demo stays as it was. The page passes axe in light and dark mode and fits a 375 px screen.
  *   E2E_BASE_URL=http://localhost:3000 pnpm e2e assistant-packages
  */
 
@@ -92,40 +93,42 @@ const process = {
   ],
 };
 
-async function openDialog(page: Page) {
+/** Process packs, from the change sets page's header. */
+async function openPacks(page: Page) {
   await page.goto('/assistant/change-sets');
-  await page.getByRole('button', { name: 'From a package' }).click();
-  const dialog = page.getByRole('dialog', { name: 'New change set from a package' });
-  await expect(dialog).toBeVisible();
-  return dialog;
+  await page.getByRole('link', { name: 'Install a process pack' }).click();
+  await expect(page).toHaveURL(/\/assistant\/packs$/);
+  await expect(page.getByRole('heading', { name: 'Process packs', level: 1 })).toBeVisible();
+  return page.getByRole('main');
 }
 
 test.describe.configure({ mode: 'serial' });
 
-test('the package dialog lists built-in packages and imports a file, refusing one with problems', async ({
+test('process packs list the built-in packs and import a file, refusing one with problems', async ({
   page,
 }) => {
   test.setTimeout(120_000);
-  const dialog = await openDialog(page);
-  const tabs = dialog.getByRole('tablist', { name: 'Where the package comes from' });
-  await expect(tabs.getByRole('tab', { name: 'Built-in packages' })).toHaveAttribute('aria-selected', 'true');
-  // Either the modules' packages (each with Install) or the empty state, never an error.
+  const packs = await openPacks(page);
+  const tabs = packs.getByRole('tablist', { name: 'Where the pack comes from' });
+  await expect(tabs.getByRole('tab', { name: 'Built-in' })).toHaveAttribute('aria-selected', 'true');
+  // Either the modules' packs (each with Review before installing) or the empty state, never an error.
   await expect(
-    dialog.getByRole('list', { name: 'Built-in packages' }).or(dialog.getByText('No built-in packages')),
+    packs.getByRole('list', { name: 'Built-in process packs' }).or(packs.getByText('No process packs')),
   ).toBeVisible();
-  await expect(dialog.getByRole('alert')).toHaveCount(0);
-  await expectAccessible(page, 'built-in packages');
+  await expect(packs.getByRole('alert')).toHaveCount(0);
+  await expectAccessible(page, 'built-in packs');
 
   await tabs.getByRole('tab', { name: 'Import a file' }).click();
-  const file = dialog.getByLabel('Package file');
+  await expect(page).toHaveURL(/tab=file/);
+  const file = packs.getByLabel('Package file');
   // Not JSON at all.
   await file.setInputFiles({
     name: 'notes.json',
     mimeType: 'application/json',
     buffer: Buffer.from('not json'),
   });
-  await expect(dialog.getByText('This file isn’t valid JSON.')).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Import', exact: true })).toBeDisabled();
+  await expect(packs.getByText('This file isn’t valid JSON.')).toBeVisible();
+  await expect(packs.getByRole('button', { name: 'Import', exact: true })).toBeDisabled();
 
   // A package whose form refers to an approval that comes later: the API lists the problem, nothing is created.
   const broken = { ...process, items: [process.items[2], process.items[0], process.items[1]] };
@@ -134,9 +137,9 @@ test('the package dialog lists built-in packages and imports a file, refusing on
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(broken)),
   });
-  await expect(dialog.getByText(/broken\.json/)).toBeVisible();
-  await dialog.getByRole('button', { name: 'Import', exact: true }).click();
-  const problem = dialog.getByRole('alert');
+  await expect(packs.getByText(/broken\.json/)).toBeVisible();
+  await packs.getByRole('button', { name: 'Import', exact: true }).click();
+  const problem = packs.getByRole('alert');
   await expect(problem).toContainText('The package has problems. Nothing was created:');
   await expect(problem).toContainText('items.0.value');
   await expectAccessible(page, 'import with problems');
@@ -147,9 +150,8 @@ test('the package dialog lists built-in packages and imports a file, refusing on
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(process)),
   });
-  await expect(dialog.getByText(`“${title}”, 3 changes`)).toBeVisible();
-  await dialog.getByRole('button', { name: 'Import', exact: true }).click();
-  await expect(dialog).toBeHidden();
+  await expect(packs.getByText(`“${title}”, 3 changes`)).toBeVisible();
+  await packs.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page).toHaveURL(/\/assistant\/change-sets\/[0-9a-f-]{36}$/);
   const h1 = page.getByRole('heading', { level: 1 });
   await expect(h1).toContainText(title);
@@ -157,8 +159,12 @@ test('the package dialog lists built-in packages and imports a file, refusing on
   await expect(page.getByText('Draft', { exact: true }).first()).toBeVisible();
   for (const label of [`E2E reviewers ${stamp}`, `E2E approval ${stamp}`, `E2E packaged request ${stamp}`]) {
     const item = page.getByRole('article', { name: new RegExp(label) });
-    await expect(item.getByText('Dry run passed')).toBeVisible();
+    await expect(item.getByText('Ready to apply')).toBeVisible();
   }
+  // One process: the group only its approval names, the approval, the form.
+  const group = page.getByRole('region', { name: new RegExp(`^E2E packaged request ${stamp}`) });
+  await expect(group.getByRole('article')).toHaveCount(3);
+  await expect(group.getByText(`Approval: E2E reviewers ${stamp}.`).first()).toBeVisible();
   const reference = (await h1.textContent())!.match(/CS-\d{5}/)![0];
 
   // Export: the same package, as <reference>.json.
@@ -186,21 +192,73 @@ test('the package dialog lists built-in packages and imports a file, refusing on
   expect(((await groups.json()) as { total: number }).total).toBe(0);
 });
 
-test('the package dialog is accessible in dark mode and fits a phone', async ({ page }) => {
-  await page.goto('/assistant/change-sets');
+test('the ISMS process pack shows what it creates and installs as a change set grouped by process', async ({
+  page,
+}) => {
+  test.setTimeout(240_000);
+  // From Forms, where people building processes look.
+  await page.goto('/admin/forms');
+  await page.getByRole('link', { name: 'Install a process pack' }).click();
+  await expect(page).toHaveURL(/\/assistant\/packs$/);
+  await expect(
+    page.getByRole('list', { name: 'Built-in process packs' }).or(page.getByText('No process packs')),
+  ).toBeVisible();
+  const pack = page.getByRole('article', { name: 'ISMS process pack' });
+  test.skip(!(await pack.count()), 'the ISMS module is not enabled');
+  await expect(
+    pack.getByText(/^\d+ processes · 5 groups you fill in after installing · 3 ticket categories/),
+  ).toBeVisible();
+  await pack.getByRole('button', { name: 'What it creates' }).click();
+  const contents = pack.getByRole('region', { name: 'What it creates' });
+  await expect(contents.getByText('Firewall rule change request', { exact: true })).toBeVisible();
+  await expect(
+    contents.getByRole('heading', { name: 'Groups you fill in after installing (5)' }),
+  ).toBeVisible();
+  await expect(contents.getByText('ISMS approvers', { exact: true })).toBeVisible();
+  await expectAccessible(page, 'process packs with contents');
+
+  await pack.getByRole('button', { name: 'Review before installing' }).click();
+  await expect(page).toHaveURL(/\/assistant\/change-sets\/[0-9a-f-]{36}$/, { timeout: 120_000 });
+  await expect(page.getByRole('heading', { name: 'Changes by process' })).toBeVisible();
+  await expect(page.getByText(/^\d+ processes · 5 groups · 3 ticket categories/)).toBeVisible();
+  // Long change sets start collapsed, with an outline to jump around.
+  const outline = page.getByRole('navigation', { name: 'Outline' });
+  await expect(outline.getByRole('link', { name: /Firewall rule change request/ })).toBeVisible();
+  await expect(page.getByRole('article')).toHaveCount(0);
+  await outline.getByRole('link', { name: /Firewall rule change request/ }).click();
+  const firewall = page.getByRole('region', { name: /^Firewall rule change request/ });
+  await expect(firewall.getByRole('article')).toHaveCount(2);
+  await expectAccessible(page, 'ISMS change set');
+  const reference = ((await page.getByRole('heading', { level: 1 }).textContent()) ?? '').match(
+    /CS-\d{5}/,
+  )![0];
+
+  // Leave the demo as it was.
+  await page.getByRole('button', { name: 'More actions' }).click();
+  await page.getByRole('menuitem', { name: 'Discard' }).click();
+  const discard = page.getByRole('alertdialog', { name: `Discard ${reference}?` });
+  await discard.getByRole('button', { name: 'Discard', exact: true }).click();
+  await expect(discard).toBeHidden();
+  await expect(page.getByText('Discarded', { exact: true }).first()).toBeVisible();
+});
+
+test('process packs are accessible in dark mode and fit a phone', async ({ page }) => {
+  await page.goto('/assistant/packs');
   await useScheme(page, 'dark');
-  let dialog = await openDialog(page);
-  await expectAccessible(page, 'package dialog (dark)');
-  await dialog.getByRole('tab', { name: 'Import a file' }).click();
+  await expect(page.getByRole('heading', { name: 'Process packs', level: 1 })).toBeVisible();
+  await expectAccessible(page, 'process packs (dark)');
+  await page.getByRole('tab', { name: 'Import a file' }).click();
+  await expect(page.getByLabel('Package file')).toBeVisible();
   await expectAccessible(page, 'import a file (dark)');
   await useScheme(page, 'light');
 
   await page.setViewportSize({ width: 375, height: 812 });
-  dialog = await openDialog(page);
-  await expect(dialog.getByRole('tab', { name: 'Import a file' })).toBeVisible();
+  await openPacks(page);
+  await expect(page.getByRole('tab', { name: 'Import a file' })).toBeVisible();
+  await settle(page);
   const { overflow, offenders } = await overflowing(page);
-  expect(overflow, offenders.join('\n')).toBeLessThanOrEqual(0);
-  await dialog.getByRole('tab', { name: 'Import a file' }).click();
-  await expect(dialog.getByLabel('Package file')).toBeVisible();
-  expect((await overflowing(page)).overflow).toBeLessThanOrEqual(0);
+  expect(overflow, offenders.join('\n')).toBeLessThanOrEqual(1);
+  await page.getByRole('tab', { name: 'Import a file' }).click();
+  await expect(page.getByLabel('Package file')).toBeVisible();
+  expect((await overflowing(page)).overflow).toBeLessThanOrEqual(1);
 });

@@ -6,17 +6,18 @@ import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { CodeEditor } from '@isbp/ui/code-editor';
 import { useListState } from '@isbp/ui/data-table';
-import { EmptyState } from '@isbp/ui/empty-state';
-import { FadeIn } from '@isbp/ui/motion';
+import { ErrorState } from '@isbp/ui/empty-state';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
+import { RelativeTime } from '@isbp/ui/relative-time';
+import { RunProblemBanner } from '@isbp/ui/run-detail';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { StatTile } from '@isbp/ui/stat-tile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
-  ArrowLeftIcon,
   ArrowRightIcon,
   CalendarClockIcon,
   CirclePauseIcon,
-  FileQuestionIcon,
   LoaderCircleIcon,
   PlayIcon,
   Trash2Icon,
@@ -30,7 +31,7 @@ import { useEffect, useId, useState } from 'react';
 import { parseTransform, type PipelineDetail, type RunDto } from '../../contracts';
 import { ConnectionLabel, RunStatusBadge, TONE, ToneBadge } from '../badges';
 import { ConfirmDialog } from '../confirm-dialog';
-import { INVALIDATE, runHref, scheduleHref } from '../lib';
+import { INVALIDATE, pipelineHref, runHref, scheduleHref } from '../lib';
 import { PipelineEditor } from '../pipeline/editor';
 import { RunsTable } from '../pipeline/runs-table';
 import { LinksAndFiles } from '../record-panels';
@@ -155,78 +156,99 @@ export default function PipelinePage({ params }: WebPageProps) {
         <Skeleton className="h-72 w-full rounded-xl" />
       </div>
     );
-  if (error || !p) return <EmptyState icon={<FileQuestionIcon />} title={t('pipeline.notFound')} />;
+  if (error || !p) return <ErrorState error={error} kind="page" />;
 
   const visible = TABS.filter((tab) => tab !== 'definition' || p.viewer.canManage);
   const tab: Tab = visible.includes(state.tab as Tab) ? (state.tab as Tab) : 'overview';
   const missing = p.source?.status === 'missing' || p.target?.status === 'missing';
-  const tiles = [
-    { key: 'runs', value: format.number(p.stats.runs) },
-    { key: 'succeeded', value: format.number(p.stats.succeeded) },
-    { key: 'failed', value: format.number(p.stats.failed) },
-    { key: 'rowsWritten', value: format.number(p.stats.rowsWritten) },
-  ];
+  const lastFailed = p.lastRun?.status === 'failed';
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href="/etl/pipelines">
-          <ArrowLeftIcon /> {t('pipelines.title')}
-        </Link>
-      </Button>
-
-      <FadeIn y={4} className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <WorkflowIcon className="size-6" aria-hidden />
+      <DetailHeader
+        className="pb-0"
+        back={{ href: '/etl/pipelines', label: t('pipelines.title'), highlight: p.id }}
+        icon={<WorkflowIcon />}
+        reference={
+          <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <ConnectionLabel connection={p.source} />
+            <ArrowRightIcon className="size-3.5 shrink-0" aria-hidden />
+            <span className="sr-only">{t('pipelines.into')}</span>
+            <ConnectionLabel connection={p.target} />
+            <span className="font-mono text-xs">{p.targetTable}</span>
           </span>
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <p className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-              <ConnectionLabel connection={p.source} />
-              <ArrowRightIcon className="size-3.5 shrink-0" aria-hidden />
-              <span className="sr-only">{t('pipelines.into')}</span>
-              <ConnectionLabel connection={p.target} />
-              <span className="font-mono text-xs">{p.targetTable}</span>
-            </p>
-            <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{p.name}</h1>
-            <div className="flex flex-wrap items-center gap-2">
-              {p.lastRun ? (
-                <RunStatusBadge status={p.lastRun.status} />
-              ) : (
-                <span className="text-sm text-muted-foreground">{t('pipelines.never')}</span>
-              )}
-              {!p.enabled && (
-                <ToneBadge tone="muted" icon={CirclePauseIcon} label={t('pipelines.disabled')} />
-              )}
-              <span className="text-sm text-muted-foreground">
-                {t(`writeMode.${p.mode}`)}
-                {p.incremental ? ` · ${t('pipelines.incremental')}` : ''}
-                {p.owner ? ` · ${t('pipeline.ownedBy', { name: p.owner.displayName })}` : ''}
-              </span>
-            </div>
-            {p.description && <p className="max-w-3xl text-sm text-muted-foreground">{p.description}</p>}
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          {p.viewer.canManage && (
-            <Button variant="outline" onClick={() => setDeleting(true)}>
-              <Trash2Icon /> {t('pipeline.delete')}
-            </Button>
-          )}
-          {enabledModules.includes('scheduler') && p.viewer.canRun && (
-            <Button variant="outline" asChild>
-              <Link href={scheduleHref(p)}>
-                <CalendarClockIcon /> {t('pipeline.schedule')}
-              </Link>
-            </Button>
-          )}
-          {p.viewer.canRun && (
+        }
+        title={p.name}
+        status={
+          <>
+            {p.lastRun ? (
+              <RunStatusBadge status={p.lastRun.status} />
+            ) : (
+              <span className="text-sm text-muted-foreground">{t('pipelines.never')}</span>
+            )}
+            {!p.enabled && <ToneBadge tone="muted" icon={CirclePauseIcon} label={t('pipelines.disabled')} />}
+          </>
+        }
+        meta={
+          <>
+            {t(`writeMode.${p.mode}`)}
+            {p.incremental ? ` · ${t('pipelines.incremental')}` : ''}
+            {p.owner ? ` · ${t('pipeline.ownedBy', { name: p.owner.displayName })}` : ''}
+            {p.description && <span className="mt-1 block max-w-3xl">{p.description}</span>}
+          </>
+        }
+        primaryAction={
+          p.viewer.canRun && (
             <Button onClick={() => run.mutate(p.id)} loading={run.isPending} disabled={active || !p.enabled}>
               <PlayIcon /> {t('pipeline.runNow')}
             </Button>
-          )}
-        </div>
-      </FadeIn>
+          )
+        }
+        actions={
+          enabledModules.includes('scheduler') && p.viewer.canRun && !p.schedule
+            ? [{ label: t('pipeline.schedule'), icon: <CalendarClockIcon />, href: scheduleHref(p) }]
+            : []
+        }
+        menu={
+          p.viewer.canManage
+            ? [
+                {
+                  label: t('pipeline.delete'),
+                  icon: <Trash2Icon />,
+                  destructive: true,
+                  onSelect: () => setDeleting(true),
+                },
+              ]
+            : []
+        }
+      />
+
+      {lastFailed && p.lastRun && (
+        <RunProblemBanner
+          problem={p.lastRun.problem}
+          error={p.lastRun.error}
+          actions={
+            <Button asChild size="sm" variant="outline">
+              <Link href={runHref(p.id, p.lastRun.id)}>{t('pipeline.seeLastRun')}</Link>
+            </Button>
+          }
+        />
+      )}
+      {p.schedule && enabledModules.includes('scheduler') && (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          <CalendarClockIcon className="size-4 shrink-0" aria-hidden />
+          <span>{t('pipeline.onSchedule')}</span>
+          <Link
+            href={`/scheduler/jobs/${p.schedule.jobId}`}
+            className="font-medium text-primary hover:underline"
+          >
+            {t('pipeline.openJob')}
+          </Link>
+          <span>
+            · {t('pipeline.lastScheduled')} <RelativeTime date={p.schedule.lastRunAt} />
+          </span>
+        </p>
+      )}
 
       {missing && (
         <p
@@ -255,7 +277,9 @@ export default function PipelinePage({ params }: WebPageProps) {
 
       <Tabs
         value={tab}
-        onValueChange={(v) => set({ tab: v === 'overview' ? undefined : v, page: undefined })}
+        onValueChange={(v) =>
+          set({ tab: v === 'overview' ? undefined : v, page: undefined, status: undefined })
+        }
       >
         <TabsList className="max-w-full overflow-x-auto">
           {visible.map((v) => (
@@ -267,16 +291,20 @@ export default function PipelinePage({ params }: WebPageProps) {
         <TabsContent value="overview" className="grid min-w-0 gap-6">
           {tab === 'overview' && (
             <>
-              <dl className="grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label={t('pipeline.last30')}>
-                {tiles.map((tile) => (
-                  <div key={tile.key} className="min-w-0 rounded-xl border bg-card p-4 shadow-xs">
-                    <dt className="truncate text-xs text-muted-foreground">
-                      {t(`pipeline.tiles.${tile.key}`)}
-                    </dt>
-                    <dd className="mt-1 truncate text-2xl font-semibold tracking-tight">{tile.value}</dd>
-                  </div>
-                ))}
-              </dl>
+              <div
+                className="grid grid-cols-2 gap-3 xl:grid-cols-4"
+                role="group"
+                aria-label={t('pipeline.last30')}
+              >
+                <StatTile label={t('pipeline.tiles.runs')} value={p.stats.runs} />
+                <StatTile label={t('pipeline.tiles.succeeded')} value={p.stats.succeeded} />
+                <StatTile
+                  label={t('pipeline.tiles.failed')}
+                  value={p.stats.failed}
+                  href={p.stats.failed > 0 ? `${pipelineHref(p.id)}?tab=runs&status=failed` : undefined}
+                />
+                <StatTile label={t('pipeline.tiles.rowsWritten')} value={p.stats.rowsWritten} />
+              </div>
               <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-2">
                 <DefinitionSummary pipeline={p} />
                 <Card className="min-w-0">
@@ -294,7 +322,13 @@ export default function PipelinePage({ params }: WebPageProps) {
           )}
         </TabsContent>
         <TabsContent value="runs" className="min-w-0">
-          {tab === 'runs' && <RunsTable pipelineId={p.id} pageSize={25} />}
+          {tab === 'runs' && (
+            <RunsTable
+              pipelineId={p.id}
+              pageSize={25}
+              status={typeof state.status === 'string' ? state.status : undefined}
+            />
+          )}
         </TabsContent>
         {p.viewer.canManage && (
           <TabsContent value="definition" className="min-w-0">

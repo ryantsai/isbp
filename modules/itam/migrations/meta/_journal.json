@@ -29,6 +29,13 @@
       "when": 1791457033684,
       "tag": "0003_nebulous_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791525192488,
+      "tag": "0004_lucky_peter_quill",
+      "breakpoints": true
     }
   ]
 }

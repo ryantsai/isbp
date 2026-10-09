@@ -25,7 +25,7 @@ export function ReleasesTable({ code, onNew }: { code: string; onNew?: () => voi
   const router = useRouter();
   const [state, set] = useListState({ pageSize: 25 });
   const status = (state.rstatus as string | undefined) || undefined;
-  const { data, isLoading, isFetching } = useApiQuery<Page<ReleaseSummary>>(
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<ReleaseSummary>>(
     `/alm/applications/${code}/releases`,
     {
       status,
@@ -114,6 +114,8 @@ export function ReleasesTable({ code, onNew }: { code: string; onNew?: () => voi
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(r) => r.id}
       onRowClick={(r) => router.push(releaseHref(code, r.version))}
       onPageChange={(page) => set({ page })}

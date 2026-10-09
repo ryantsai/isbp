@@ -280,7 +280,7 @@ export function PasswordChangedDialog({
   open,
   onOpenChange,
 }: {
-  account: SharedAccount;
+  account: Pick<SharedAccount, 'reference' | 'accountName'>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -436,6 +436,70 @@ export function ReviewAccountDialog({
             }}
           >
             {t('submit')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Put one more person on the account's list (account managers). */
+export function AddPersonDialog({
+  account,
+  onOpenChange,
+}: {
+  account: SharedAccount;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const t = useTranslations('isms.account');
+  const tc = useTranslations('common');
+  const errorText = useErrorText();
+  const id = useId();
+  const [person, setPerson] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const save = useApiMutation(
+    (api, userId: string) =>
+      api.patch<SharedAccount>(`/isms/accounts/${account.reference}`, {
+        memberIds: [...account.members.map((m) => m.user.id), userId],
+      }),
+    { invalidate: INVALIDATE, success: t('personAdded'), silent: true },
+  );
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent closeLabel={tc('close')}>
+        <DialogHeader>
+          <DialogTitle>{t('addPersonTitle', { account: account.accountName })}</DialogTitle>
+          <DialogDescription>{t('addPersonDescription')}</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-1.5">
+          <Label htmlFor={id}>{t('person')}</Label>
+          <PersonField id={id} value={person} onChange={setPerson} invalid={Boolean(error)} />
+        </div>
+        {error && (
+          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {tc('cancel')}
+          </Button>
+          <Button
+            type="button"
+            disabled={!person}
+            loading={save.isPending}
+            onClick={async () => {
+              if (!person) return;
+              setError(null);
+              try {
+                await save.mutateAsync(person);
+                onOpenChange(false);
+              } catch (err) {
+                setError(errorText(err));
+              }
+            }}
+          >
+            {t('addPerson')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -12,6 +12,7 @@
   "PRIVILEGE_ESCALATION": "您只能授予自己擁有的權限。",
   "SELF_LOCKOUT": "此操作會讓您無法使用自己的帳號或權限。",
   "SYSTEM_ROLE_READONLY": "系統角色由其模組管理，無法變更。",
+  "ROLE_HAS_HISTORY": "已有人申請過此存取權，相關紀錄必須保留，因此無法刪除。請改為關閉「人員可以申請此角色」並移除其成員。",
   "SYSTEM_GROUP": "無法以此方式變更系統群組。",
   "SYSTEM_MODULE": "無法停用系統模組。",
   "MODULE_DEPENDENCY": "其他模組相依於此模組，請先變更那些模組。",
@@ -75,6 +76,7 @@
   "CONFLICT_RESOLVED": "已有人解決了此衝突。",
   "INSECURE_HTTP": "此連線使用未加密的 HTTP。請改用 HTTPS，或為此連線開啟「允許不安全的 HTTP」。",
   "CHANGE_SET_STALE": "變更集準備完成後，有人修改了此設定。請重新整理變更集並再次檢閱後重試。",
+  "CHANGE_SET_BUSY": "目前有其他變更集正在套用或預先檢查，請稍後再試。",
   "PACKAGE_UNSUPPORTED": "此套件需要尚未啟用的模組，或本平台沒有的設定類型。",
   "PROCESS_ACTION_FORBIDDEN": "您無法新增或變更此動作：需要您沒有的權限。",
   "PROCESS_ACTION_UNAVAILABLE": "此動作無法使用，其模組可能已停用。"

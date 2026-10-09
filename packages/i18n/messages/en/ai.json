@@ -39,7 +39,8 @@
     "spendPercent": "{percent} of the monthly budget",
     "budgetUsed": "{percent} of the budget used",
     "budgetNear": "{percent} used, almost spent",
-    "budgetSpent": "Budget spent: AI calls are refused until next month"
+    "budgetSpent": "Budget spent: AI calls are refused until next month",
+    "technical": "Technical details"
   },
   "models": {
     "provider": "Provider",
@@ -324,10 +325,10 @@
   },
   "mcp": {
     "endpoint": "Endpoint",
-    "description": "Claude Code, Claude Desktop and IDE agents use ISBP’s tools and customisation kinds over the Model Context Protocol, with the same permission checks and audit log as the assistant.",
+    "description": "Claude Code, Claude Desktop and IDE agents can use ISBP over the Model Context Protocol, with the same permission checks and audit log as the assistant.",
     "endpointUrl": "MCP endpoint URL",
     "copyEndpoint": "Copy the MCP endpoint URL",
-    "endpointHint": "Streamable HTTP with JSON responses and no sessions. Requests from other websites are refused.",
+    "endpointHint": "Requests from other websites are refused.",
     "versions": "Protocol revisions",
     "stateless": "stateless",
     "legacy": "with initialize",
@@ -338,14 +339,17 @@
     "clientsEmpty": "No API client may use MCP yet. Give one the permission in Administration → API clients.",
     "manageClients": "Manage API clients",
     "offered": "What agents get",
-    "offeredTools": "Tools: every non-destructive tool the API client may use, named module__tool and marked read-only or not.",
-    "offeredResources": "Resources: the customisation kinds the client may read (isbp://customizations), each kind’s schema and guide, and its objects with their versions.",
+    "offeredTools": "Tools: everything the API client may do that can’t destroy data. Read-only tools are marked as such.",
+    "offeredResources": "Settings: the settings it may change, with their current values and a guide, so an agent can propose changes.",
     "offeredChangeSets": "Changes become change sets: an agent proposes, and nothing is live until a person reviews and applies it in ISBP.",
     "offeredNoDestructive": "Destructive tools need a person’s confirmation in ISBP, so they aren’t offered.",
     "connect": "Connect Claude Code",
     "connectBody": "Run this command in a terminal, then replace the placeholder with the API key of a client that may use MCP.",
     "command": "Command",
     "copyCommand": "Copy the command",
-    "placeholderHint": "The key is a placeholder: never paste a real key into shared notes or chats."
+    "placeholderHint": "The key is a placeholder: never paste a real key into shared notes or chats.",
+    "technical": "Technical details",
+    "transport": "Transport: Streamable HTTP with JSON responses and no sessions.",
+    "naming": "Tools are named module__tool. The settings an agent may change are listed under isbp://customizations, each with its schema, guide and objects."
   }
 }

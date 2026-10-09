@@ -1,7 +1,7 @@
 'use client';
 
-import type { Condition, ConditionOp, ConditionValue } from '@isbp/sdk';
-import { ArrowLeftRightIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { type Condition, type ConditionOp, type ConditionValue, TODAY_FACT } from '@isbp/sdk';
+import { ArrowLeftRightIcon, PlusIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useId } from 'react';
@@ -33,6 +33,12 @@ const NO_VALUE: ConditionOp[] = ['empty', 'notEmpty'];
 const LIST_OPS: ConditionOp[] = ['in', 'nin'];
 /** Operators that can compare a fact with another fact (`valueFact`). */
 const COMPARE_OPS: ConditionOp[] = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte'];
+/** Operators with their own wording for dates ("is after", "is on or before"). */
+const DATE_OPS: ConditionOp[] = ['gt', 'gte', 'lt', 'lte'];
+
+/** The translation key of an operator for a fact of this type. */
+const opKey = (op: ConditionOp, type: FactOption['type'] | undefined) =>
+  type === 'date' && DATE_OPS.includes(op) ? `dateOps.${op}` : `ops.${op}`;
 
 function opsFor(type: FactOption['type'] | undefined): ConditionOp[] {
   switch (type) {
@@ -48,7 +54,7 @@ function opsFor(type: FactOption['type'] | undefined): ConditionOp[] {
   }
 }
 
-/** The builder edits one level: "match all/any of these rules". Nested input is flattened. */
+/** The builder edits one level: "match all/any of these conditions". Nested input is flattened. */
 export function toGroup(condition: Condition | null | undefined): Group {
   if (!condition) return { mode: 'all', rules: [] };
   if ('all' in condition || 'any' in condition) {
@@ -82,11 +88,14 @@ export function useConditionText(facts: readonly FactOption[]) {
         }
         if ('not' in c) return t('not', { condition: walk(c.not) });
         const fact = facts.find((f) => f.path === c.fact);
+        const op = t(opKey(c.op, fact?.type));
         const days = c.valueOffsetDays;
         const offset = days ? ` ${t('offsetText', { offset: `${days > 0 ? '+' : ''}${days}` })}` : '';
         if (c.valueFact) {
-          const other = facts.find((f) => f.path === c.valueFact)?.label ?? c.valueFact;
-          return `${fact?.label ?? c.fact} ${t(`ops.${c.op}`)} ${other}${offset}`;
+          const other =
+            facts.find((f) => f.path === c.valueFact)?.label ??
+            (c.valueFact === TODAY_FACT ? t('today') : c.valueFact);
+          return `${fact?.label ?? c.fact} ${op} ${other}${offset}`;
         }
         const valueText = (v: ConditionValue | undefined) => {
           if (v === true) return t('true');
@@ -99,7 +108,7 @@ export function useConditionText(facts: readonly FactOption[]) {
           : Array.isArray(c.value)
             ? c.value.map(valueText).join(', ')
             : valueText(c.value);
-        return `${fact?.label ?? c.fact} ${t(`ops.${c.op}`)}${value ? ` ${value}` : ''}${offset}`;
+        return `${fact?.label ?? c.fact} ${op}${value ? ` ${value}` : ''}${offset}`;
       }
       return walk(root);
     },
@@ -117,6 +126,7 @@ function OtherFactSelect({
 }: {
   fact: FactOption | undefined;
   rule: Rule;
+  /** The facts it may be compared with (today is left out when it has its own button). */
   facts: readonly FactOption[];
   onChange: (path: string) => void;
 }) {
@@ -257,24 +267,54 @@ function OffsetInput({
   );
 }
 
+/** The value "Today" (`valueFact: 'today'`) in place of a date, with a button back to a fixed date. */
+function TodayValue({ label, onClear }: { label: string; onClear: () => void }) {
+  const t = useTranslations('ui.conditions');
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-muted/40 pr-1 pl-3 text-sm shadow-xs"
+    >
+      <span className="truncate">{t('today')}</span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-7"
+        aria-label={t('pickDate')}
+        title={t('pickDate')}
+        onClick={onClear}
+      >
+        <XIcon />
+      </Button>
+    </div>
+  );
+}
+
 /**
- * Builds "match all/any of these rules" conditions over a list of facts. Facts can also be typed in
- * freely (any dotted path), so the builder never blocks advanced cases.
+ * Builds "match all/any of these conditions" over a list of facts. Facts can also be typed in freely (any dotted
+ * path), so the builder never blocks advanced cases. Date facts compare with a date, with **Today** (when `facts`
+ * includes the reserved `today` fact) or with another field.
  */
 export function ConditionBuilder({
   value,
   onChange,
   facts,
+  emptyText,
   className,
 }: {
   value: Condition | null | undefined;
   onChange: (value: Condition | undefined) => void;
   facts: readonly FactOption[];
+  /** What having no conditions means here ("No conditions: runs for every request."). */
+  emptyText?: string;
   className?: string;
 }) {
   const t = useTranslations('ui.conditions');
   const uid = useId();
   const group = toGroup(value);
+  const todayOffered = facts.some((f) => f.path === TODAY_FACT);
   const emit = (g: Group) => onChange(fromGroup(g));
   const update = (i: number, patch: Partial<Rule>) =>
     emit({
@@ -311,12 +351,20 @@ export function ConditionBuilder({
           </Select>
         </div>
       )}
-      {!group.rules.length && <p className="text-sm text-muted-foreground">{t('noRules')}</p>}
+      {!group.rules.length && (
+        <p className="text-sm text-muted-foreground">{emptyText ?? t('noConditions')}</p>
+      )}
       <ul className="grid gap-2">
         <AnimatePresence initial={false}>
           {group.rules.map((rule, i) => {
             const fact = facts.find((f) => f.path === rule.fact);
             const ops = opsFor(fact?.type);
+            const compares = COMPARE_OPS.includes(rule.op);
+            // A date compared with today: its own button and value box rather than "another field".
+            const todayButton = todayOffered && fact?.type === 'date' && compares && rule.fact !== TODAY_FACT;
+            const isToday = rule.valueFact === TODAY_FACT;
+            const otherFacts = todayButton ? facts.filter((f) => f.path !== TODAY_FACT) : facts;
+            const comparesField = Boolean(rule.valueFact) && !isToday;
             return (
               <motion.li
                 key={`${uid}-${i}`}
@@ -324,7 +372,7 @@ export function ConditionBuilder({
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, height: 0 }}
-                className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-start gap-2 rounded-lg border bg-card/60 p-2 @lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto]"
+                className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-start gap-2 rounded-lg border bg-card/60 p-2 @2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto]"
               >
                 <Select
                   value={rule.fact || undefined}
@@ -339,7 +387,7 @@ export function ConditionBuilder({
                     });
                   }}
                 >
-                  <SelectTrigger aria-label={t('fact')} className="col-span-2 w-full @lg:col-span-1">
+                  <SelectTrigger aria-label={t('fact')} className="col-span-2 w-full @2xl:col-span-1">
                     <SelectValue placeholder={t('fact')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -355,8 +403,8 @@ export function ConditionBuilder({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="@lg:order-last"
-                  aria-label={t('removeRule')}
+                  className="@2xl:order-last"
+                  aria-label={t('removeCondition', { n: i + 1 })}
                   onClick={() => emit({ ...group, rules: group.rules.filter((_, j) => j !== i) })}
                 >
                   <Trash2Icon />
@@ -368,59 +416,79 @@ export function ConditionBuilder({
                   <SelectContent>
                     {(ops.includes(rule.op) ? ops : [rule.op, ...ops]).map((op) => (
                       <SelectItem key={op} value={op}>
-                        {t(`ops.${op}`)}
+                        {t(opKey(op, fact?.type))}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <div className="col-span-2 flex min-w-0 items-start gap-1 @lg:col-span-1">
-                  <div className="min-w-0 flex-1">
-                    {rule.valueFact ? (
-                      <OtherFactSelect
-                        fact={fact}
-                        rule={rule}
-                        facts={facts}
-                        onChange={(path) => update(i, { valueFact: path })}
-                      />
-                    ) : (
-                      <ValueInput
-                        fact={fact}
-                        rule={rule}
-                        label={t('value')}
-                        onChange={(v) => update(i, { value: v })}
-                      />
+                {/* The value, then its extras (days to add, compare with a field); the extras wrap when narrow. */}
+                <div className="col-span-2 flex min-w-0 flex-wrap items-start gap-1 @2xl:col-span-1">
+                  <div className="flex min-w-36 flex-1 items-start gap-1">
+                    <div className="min-w-0 flex-1">
+                      {isToday && todayButton ? (
+                        <TodayValue label={t('value')} onClear={() => update(i, { valueFact: undefined })} />
+                      ) : rule.valueFact ? (
+                        <OtherFactSelect
+                          fact={fact}
+                          rule={rule}
+                          facts={otherFacts}
+                          onChange={(path) => update(i, { valueFact: path })}
+                        />
+                      ) : (
+                        <ValueInput
+                          fact={fact}
+                          rule={rule}
+                          label={t('value')}
+                          onChange={(v) => update(i, { value: v })}
+                        />
+                      )}
+                    </div>
+                    {todayButton && !rule.valueFact && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="shrink-0 px-2.5"
+                        aria-label={t('useToday')}
+                        title={t('useToday')}
+                        onClick={() => update(i, { valueFact: TODAY_FACT })}
+                      >
+                        {t('today')}
+                      </Button>
                     )}
                   </div>
-                  {fact?.type === 'date' && COMPARE_OPS.includes(rule.op) && (
-                    <OffsetInput
-                      value={rule.valueOffsetDays}
-                      onChange={(valueOffsetDays) => update(i, { valueOffsetDays })}
-                    />
-                  )}
-                  {COMPARE_OPS.includes(rule.op) && facts.length > 1 && fact?.type !== 'boolean' && (
-                    <Button
-                      type="button"
-                      variant={rule.valueFact ? 'secondary' : 'ghost'}
-                      size="icon"
-                      aria-pressed={Boolean(rule.valueFact)}
-                      aria-label={t('compareWithField')}
-                      title={t('compareWithField')}
-                      onClick={() =>
-                        update(
-                          i,
-                          rule.valueFact
-                            ? { valueFact: undefined }
-                            : {
-                                valueFact:
-                                  facts.find((f) => f.path !== rule.fact && (!fact || f.type === fact.type))
-                                    ?.path ?? facts.find((f) => f.path !== rule.fact)?.path,
-                              },
-                        )
-                      }
-                    >
-                      <ArrowLeftRightIcon />
-                    </Button>
-                  )}
+                  <div className="flex shrink-0 items-start gap-1 empty:hidden">
+                    {fact?.type === 'date' && compares && (
+                      <OffsetInput
+                        value={rule.valueOffsetDays}
+                        onChange={(valueOffsetDays) => update(i, { valueOffsetDays })}
+                      />
+                    )}
+                    {compares && otherFacts.some((f) => f.path !== rule.fact) && fact?.type !== 'boolean' && (
+                      <Button
+                        type="button"
+                        variant={comparesField ? 'secondary' : 'ghost'}
+                        size="icon"
+                        aria-pressed={comparesField}
+                        aria-label={t('compareWithField')}
+                        title={t('compareWithField')}
+                        onClick={() =>
+                          update(
+                            i,
+                            comparesField
+                              ? { valueFact: undefined }
+                              : {
+                                  valueFact:
+                                    otherFacts.find(
+                                      (f) => f.path !== rule.fact && (!fact || f.type === fact.type),
+                                    )?.path ?? otherFacts.find((f) => f.path !== rule.fact)?.path,
+                                },
+                          )
+                        }
+                      >
+                        <ArrowLeftRightIcon />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </motion.li>
             );
@@ -447,7 +515,7 @@ export function ConditionBuilder({
           }
         >
           <PlusIcon />
-          {t('addRule')}
+          {t('addCondition')}
         </Button>
       </div>
     </div>

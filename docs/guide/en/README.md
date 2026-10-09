@@ -7,7 +7,7 @@ you how to sign in, find your way around the screen, and which guide to read for
 ## What you can do here
 
 - [Sign in](#sign-in) with your company account or a local account
-- [Find your way around](#find-your-way-around): the sidebar, search, notifications, language and theme
+- [Find your way around](#find-your-way-around): the sidebar, Home, My work, search and notifications
 - [Get help from the assistant](#get-help-from-the-assistant) on any page
 - [Choose the guide for your role](#choose-the-guide-for-your-role)
 - [Find help when you're stuck](#find-help-when-youre-stuck)
@@ -40,7 +40,7 @@ You sign in when you open ISBP in a browser for the first time on a device, or a
 4. Select **Keep me signed in on this device** only on a device that only you use.
 5. Select **Sign in**.
 
-**What happens next:** you land on the **Dashboard**, or on the page you were opening (for example a link from an
+**What happens next:** you land on **Home**, or on the page you were opening (for example a link from an
 email). Your language, theme and time zone follow you to every device.
 
 If IT gave you a password (a new local account, or a password they set for you), ISBP first opens **Profile &
@@ -56,31 +56,45 @@ your **New password** twice, and select **Change password**. You then go on to t
 
 ## Find your way around
 
-![The dashboard with the sidebar on the left and the header at the top](../../../apps/web/public/help/en/readme-dashboard.jpg)
+![Home with the sidebar on the left and the header at the top](../../../apps/web/public/help/en/readme-dashboard.jpg)
 
-**The sidebar** on the left lists the pages you can use. It has two parts:
+**The sidebar** on the left lists the pages you can use, in three parts:
 
-| Part               | What's in it                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Workspace**      | For everyone: **Dashboard**, **Approvals**, **Requests**, **Announcements**, **Ask IT**, **Knowledge**, **Projects** and **Database access**. Depending on your roles, also **Service desk**, **Configuration items**, **Assets**, **Applications**, **Data APIs & ETL** and **Scheduled jobs**                                                                                                                                                              |
-| **Administration** | **Change sets** for everyone who uses the assistant. For administrators: **Identity** (**People**, **Groups**, **Departments**), **Access** (**Roles & access**, **Applications**, **API clients**), **Automation** (**Workflows**, **Forms**, **Custom fields**, **Notifications**, **AI**), **Platform** (**Audit log**, **Modules**, **Database connections**, **Sign-in providers**), the **Service desk** and **Assets** settings, and **Integrations** |
+| Part               | What's in it                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Your pages**     | For everyone: **Home**, **My work**, **Requests**, **My devices** and **Knowledge**. **My database access** when you hold database access, and **Projects** when you're a member of a project                                                                                                                                                                                                    |
+| **Areas**          | Depending on your roles, one row per area: **Service desk**, **Assets**, **Applications**, **Information security**, **Projects**, **Data & automation** and **Database access**. Select an area to open or close its pages (for example **Service desk** › **Tickets**, **Problems**, **Changes**, **Reports**). The area you're in opens by itself, and ISBP remembers the areas you keep open |
+| **Administration** | If you administer something: one **Administration** row that opens a page with every setting you may change, in **People & access**, **Requests & automation**, **Module settings**, **Integrations** and **Platform**. With only one or two administration pages (for example **People** and **Departments**), you see them in the sidebar instead                                              |
 
-The number next to **Approvals** is how many decisions are waiting for you. On a small screen, open the sidebar
-with **Open navigation** (the menu button at the top left); on a large screen, **Toggle sidebar** at the bottom of
-the sidebar makes it narrow.
+The number next to **My work** is how many things are waiting for you: approvals, forms to fill in and reviews. On a
+small screen, open the sidebar with **Open navigation** (the menu button at the top left; a dot on it means something
+is waiting for you). On a large screen, **Toggle sidebar** at the bottom of the sidebar makes it narrow; each area is
+then an icon that opens a menu of its pages.
+
+**Home** is your start page. It shows what needs you (**Needs you**), **Your open requests**, buttons for what people
+come for (**Ask IT**, **Report a problem**, **Request something**, **My devices**) and the latest **News** from IT.
+People who run an area also see its cards there, such as the service desk queue. When nothing is waiting, it says
+**All clear: nothing is waiting for you.**
+
+**My work** lists everything waiting for you in one place, the most urgent first: **To decide** (approvals), **To
+do** (forms to fill in, changes to accept, fixes to confirm, passwords to change), **To check** (access reviews and
+stocktake checks) and **Tasks** (your project tasks). Each line opens the item itself. See
+[What's waiting for you](employees.md#see-whats-waiting-for-you).
 
 **The header** at the top has, from left to right:
 
-- **Search or jump to…** — opens the command palette (or press **⌘ K** on a Mac, **Ctrl K** on Windows). Type a
-  page name to go there, or at least two letters to search people, requests, tickets, knowledge articles, assets,
-  projects and other records you're allowed to see. **Actions** switch the theme or language and sign you out.
-- **Assistant** (the sparkles button) — opens the [assistant](#get-help-from-the-assistant).
+- **Search or jump to…** — opens the command palette (or press **⌘ K** on a Mac, **Ctrl K** on Windows; on a phone,
+  select the magnifier). Type a page name to go there, a reference such as `REQ-01020` or `INC-00042`, or at least two
+  letters to search requests, tickets, knowledge articles, assets, people and other records you're allowed to see.
+  Results are grouped by kind. When nothing fits, choose **Search the knowledge base for "…"** or **Ask IT about
+  "…"** (it opens with your words as the question).
+- **Assistant** (the sparkles button) — opens the [assistant](#get-help-from-the-assistant), if you have it.
+- **Help for this page** (the question mark) — opens the guide for the area you're in.
 - **Notifications** (the bell) — the latest notifications for you, with **Mark all as read** and **View all
-  notifications**. A notification opens the record it's about.
-- **Theme** — **Light**, **Dark** or **System** (follows your device).
-- **Language** — **English**, **繁體中文（台灣）** or **日本語**. Notifications and emails also use your language.
-- **Your avatar** (the user menu) — your name and email, **Profile & preferences**, **Help** (this guide),
-  **API documentation** and **Sign out**.
+  notifications**. A notification opens the record it's about; an approval notification opens that decision.
+- **Your avatar** (the user menu) — your name and email, **Profile & preferences**, **Help**, **Theme** (**Light**,
+  **Dark** or **System**), **Language** (**English**, **繁體中文（台灣）** or **日本語**) and **Sign out**.
+  Notifications and emails also use your language. People who manage API clients also see **API documentation**.
 
 ![The command palette opened from the search box](../../../apps/web/public/help/en/readme-command-palette.jpg)
 
@@ -124,11 +138,11 @@ IT services, use **Ask IT** instead: it's available to everyone. See [Assistant 
 
 ## Find help when you're stuck
 
-- **Help in the user menu.** Choose your picture at the top right, then **Help**, to open this guide in your
-  language. Links between guides open the other guide at the right section.
+- **Help for this page.** Select the question mark in the header to open the guide for the area you're in, or
+  choose your picture at the top right, then **Help**. Links between guides open the other guide at the right section.
 - **This guide is in the knowledge base.** Every guide is also an article in the knowledge base category **Using IS
   Big Platform**, in your language. Open **Knowledge** in the sidebar and search, or search from the header.
-- **Ask IT.** Open **Ask IT** in the sidebar (or **Ask a question** on the **Requests** page) and describe your
+- **Ask IT.** Select **Ask IT** on **Home** (or **Ask a question** on the **Requests** page) and describe your
   problem in your own words. It answers from the knowledge base, including this guide, and prepares a ticket for you
   to confirm if it can't help. See [Ask IT](employees.md#ask-it-before-you-raise-a-ticket).
 - **Can't see a page?** You probably don't have the role for it. **Profile & preferences → My access** shows the roles

@@ -27,9 +27,9 @@
   },
   "purposes": {
     "data": "資料",
-    "admin": "帳戶管理",
+    "admin": "帳號管理",
     "dataHint": "資料 API、ETL 管線與 SQL 作業。",
-    "adminHint": "建立帳戶並授予角色（資料庫存取權）。資料 API 永遠無法使用。"
+    "adminHint": "建立帳號並授予角色（資料庫存取權）。資料 API 永遠無法使用。"
   },
   "status": {
     "ok": "已連線",
@@ -78,17 +78,17 @@
     "passwordStored": "已儲存。留白即保留。",
     "passwordClear": "移除已儲存的密碼",
     "domain": "Windows 網域",
-    "domainHint": "用於以服務帳戶進行 SQL Server Windows 驗證（NTLM）。",
+    "domainHint": "用於以服務帳號進行 SQL Server Windows 驗證（NTLM）。",
     "purposes": "用途",
     "purposesError": "請至少選擇一種用途。",
     "readOnly": "唯讀",
-    "readOnlyHint": "拒絕寫入，並在引擎支援時以唯讀交易執行查詢。SQL Server 則依登入帳戶的權限控管。",
+    "readOnlyHint": "拒絕寫入，並在引擎支援時以唯讀交易執行查詢。SQL Server 則依登入帳號的權限控管。",
     "enabled": "已啟用",
     "advanced": "限制",
     "poolMax": "每個處理程序的連線數",
     "timeout": "陳述式逾時（秒）",
     "maxRows": "每次結果的最大列數",
-    "leastPrivilege": "請使用只具備必要權限的專用登入帳戶：資料 API 用唯讀帳戶，帳戶管理只授予角色管理權限。",
+    "leastPrivilege": "請使用只具備必要權限的專用登入帳號：資料 API 用唯讀帳號，帳號管理只授予角色管理權限。",
     "validation": {
       "name": "請輸入名稱。",
       "key": "請使用 2 至 64 個小寫英文字母、數字與連字號，並以字母開頭。",
@@ -111,7 +111,7 @@
   },
   "catalog": {
     "title": "目錄：{name}",
-    "description": "此連線的登入帳戶可看到的資料表、檢視與常式。",
+    "description": "此連線的登入帳號可看到的資料表、檢視與常式。",
     "search": "篩選資料表與常式",
     "tables": "資料表與檢視",
     "routines": "預存程序與函式",
@@ -121,7 +121,7 @@
     "table": "資料表",
     "procedure": "預存程序",
     "function": "函式",
-    "empty": "此登入帳戶看不到任何物件。",
+    "empty": "此登入帳號看不到任何物件。",
     "noMatch": "沒有符合「{q}」的項目。",
     "truncated": "目錄過大，只顯示前 20,000 個項目。",
     "columns": "{count, plural, other {# 個欄位}}",

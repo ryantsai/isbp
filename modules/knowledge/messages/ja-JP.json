@@ -24,7 +24,7 @@
   },
   "permissions": {
     "read": "公開済みのセルフサービス記事の閲覧",
-    "readInternal": "社内向け (エージェント専用) 記事の閲覧",
+    "readInternal": "社内向け (サービス デスク担当者専用) 記事の閲覧",
     "write": "下書きの作成、自分の下書きの編集とレビューへの提出",
     "publish": "記事の公開、廃止、復元、およびすべての記事の編集",
     "manageCategories": "ナレッジ カテゴリの作成、編集、削除",
@@ -47,7 +47,7 @@
   "workflows": {
     "publish": {
       "name": "ナレッジ記事の公開",
-      "description": "記事を公開する前の任意のレビュー。条件には article.audience、article.locale、article.categoryKey を使用できます。"
+      "description": "記事を公開する前の任意のレビュー。条件には、対象ユーザー、言語、カテゴリを使用できます。"
     }
   },
   "notifications": {
@@ -96,7 +96,7 @@
   },
   "audience": {
     "everyone": "全員",
-    "agents": "エージェントのみ"
+    "agents": "サービス デスク担当者のみ"
   },
   "audienceHint": {
     "everyone": "セルフサービス: ナレッジ ベースを閲覧できるすべてのユーザー。",
@@ -111,7 +111,7 @@
   },
   "toast": {
     "published": "記事を公開しました",
-    "submitted": "提出しました — 編集者が公開します",
+    "submitted": "レビューに提出しました — 編集者が公開します",
     "sentForApproval": "承認に回しました — 承認されると公開されます",
     "retired": "記事を廃止しました",
     "draft": "記事を下書きに戻しました",
@@ -122,6 +122,12 @@
     "helpfulShare": "{percent}% が役に立ったと回答"
   },
   "newArticle": "新しい記事",
+  "sections": {
+    "label": "ナレッジ ベースのセクション",
+    "browse": "参照",
+    "manage": "管理",
+    "categories": "カテゴリ"
+  },
   "home": {
     "description": "回答や手順ガイドを検索するか、トピックから参照します。",
     "searchLabel": "どのようなことでお困りですか?",
@@ -130,9 +136,11 @@
     "searchHintEscape": "検索をクリア",
     "clear": "検索をクリア",
     "results": "検索結果",
+    "searchFailed": "ナレッジ ベースを検索できませんでした",
     "resultCount": "{count, plural, =0 {記事が見つかりません} other {# 件の記事が見つかりました}}",
     "noResults": "「{query}」に一致する記事はありません",
     "noResultsHint": "別の言葉で試すか、問題を報告してください。サポートします。",
+    "noResultsHintOther": "別の言葉で検索するか、トピックから探してください。",
     "reportIssue": "問題を報告",
     "keywordMode": "キーワードの一致を表示しています。",
     "categories": "トピックから探す",
@@ -142,7 +150,6 @@
     "empty": "まだ記事がありません。",
     "emptyCategory": "このカテゴリにはまだ公開済みの記事がありません。",
     "allCategories": "すべてのトピック",
-    "manageHint": "記事の作成とレビュー",
     "previous": "前へ",
     "next": "次へ",
     "pageOf": "{page} / {pages} ページ"
@@ -156,7 +163,7 @@
     "language": "言語",
     "stats": "表示回数とフィードバック",
     "translations": "他の言語",
-    "generatedFrom": "{reference} から生成された下書き",
+    "generatedFrom": "{reference} を基に作成",
     "tools": "記事の操作",
     "translate": "翻訳",
     "history": "{count, plural, other {履歴 (# バージョン)}}",
@@ -173,7 +180,7 @@
     "bannerRetired": "この記事は廃止されており、検索に表示されません。復元すると編集して再公開できます。",
     "bannerReviewDue": "この記事のレビュー期限は {date} でした。内容が正しいことを確認してから、新しいレビュー日を設定してください。",
     "deleteTitle": "この記事を削除しますか?",
-    "deleteDescription": "{reference} とそのバージョン履歴は完全に削除されます。履歴を残すには廃止してください。",
+    "deleteDescription": "「{title}」({reference}) とそのバージョン履歴は完全に削除されます。履歴を残すには廃止してください。",
     "syncedFrom": "{reference} から同期",
     "fromGuide": "この記事は IS Big Platform ユーザー ガイドの一部で、プラットフォームと一緒に更新されます。ここで編集した内容は、新しいバージョンのガイドが提供されると置き換えられます。"
   },
@@ -187,7 +194,10 @@
     "send": "フィードバックを送信",
     "thanksYes": "ありがとうございます。お役に立ててうれしいです。",
     "thanksNo": "お知らせいただきありがとうございます。",
-    "thanksComment": "ありがとうございます。作成者にコメントが届きます。"
+    "thanksComment": "ありがとうございます。作成者にコメントが届きます。",
+    "stillStuck": "解決しない場合:",
+    "askIt": "IT に質問",
+    "reportIssue": "問題を報告"
   },
   "versions": {
     "title": "バージョン履歴",
@@ -203,6 +213,7 @@
     "description": "記事の作成、レビュー、最新状態の維持。",
     "noAccess": "ナレッジ記事を作成するアクセス許可が必要です。",
     "search": "タイトル、概要、KB 番号で検索…",
+    "tabsLabel": "状態別の記事",
     "tabs": {
       "mine": "自分の下書き",
       "review": "レビュー中",
@@ -242,7 +253,7 @@
     "newTitle": "新しい記事",
     "editTitle": "記事の編集",
     "translateTitle": "新しい翻訳",
-    "hint": "Markdown で記述します。下書きはいつでも保存でき、準備ができたらレビューに提出します。",
+    "hint": "下書きはいつでも保存できます。公開されるまで読者には表示されません。",
     "publishedHint": "この記事は公開中です。保存すると変更が新しいバージョンとして公開されます。",
     "cannotEdit": "この記事は現在の状態では編集できません。",
     "title": "タイトル",
@@ -253,6 +264,18 @@
     "preview": "プレビュー",
     "previewEmpty": "プレビューする内容がまだありません。",
     "markdownHint": "Markdown: ## 見出し、1. 番号付き手順、| 表 |、**太字**、[リンク](/requests)。HTML は表示されません。",
+    "format": {
+      "label": "書式",
+      "heading": "見出し",
+      "bold": "太字",
+      "bulleted": "箇条書き",
+      "numbered": "番号付きリスト",
+      "link": "リンク",
+      "withShortcut": "{label} (Ctrl+{key} / ⌘{key})",
+      "headingText": "見出し",
+      "boldText": "太字のテキスト",
+      "linkText": "リンク テキスト"
+    },
     "category": "カテゴリ",
     "noCategory": "カテゴリなし",
     "tags": "タグ",
@@ -261,7 +284,10 @@
     "tagsFull": "タグは最大 {max} 個です",
     "removeTag": "タグ {tag} を削除",
     "audience": "対象",
+    "moreSettings": "その他の設定",
+    "moreSettingsSummary": "{language} · {tags, plural, =0 {タグなし} other {タグ # 個}}",
     "language": "言語",
+    "languageHint": "この記事の言語 (既定はご自分の言語)。",
     "translationOf": "翻訳元",
     "translationOfNone": "翻訳ではありません",
     "translationOfSearch": "記事を検索…",
@@ -271,9 +297,13 @@
     "translationOfSet": "読者はこの記事とその翻訳を切り替えられます。",
     "reviewAt": "レビュー期限",
     "reviewAtHint": "この日に、記事を確認するよう所有者に通知されます。",
+    "attachmentsLater": "保存後に添付ファイルを追加できます。",
     "saveDraft": "下書きを保存",
-    "saveAndSubmit": "保存して提出",
-    "submitHint": "提出された記事は編集者が公開します (または承認ワークフローが判断します)。",
+    "outcome": {
+      "publish": "選択した対象にすぐに公開されます。",
+      "review": "公開前に編集者がレビューします。",
+      "approval": "先に承認に回り、承認されると公開されます。"
+    },
     "publishUpdate": "更新を公開",
     "toast": {
       "saved": "変更を保存しました",
@@ -304,8 +334,10 @@
     "icon": "アイコン",
     "iconHint": "lucide のアイコン名 (例: key-round、wifi、printer)。",
     "sortOrder": "並び順",
+    "sortOrderHint": "数字が小さいほど、ナレッジのホームで先に表示されます。",
     "parent": "親カテゴリ",
     "noParent": "なし (最上位)",
+    "under": "{parent} の下",
     "articles": "記事数",
     "empty": "カテゴリはまだありません。",
     "created": "カテゴリを作成しました",
@@ -313,6 +345,7 @@
     "deleted": "カテゴリを削除しました",
     "editLabel": "{name} を編集",
     "deleteLabel": "{name} を削除",
+    "rowActions": "{name} の操作",
     "deleteTitle": "このカテゴリを削除しますか?",
     "deleteDescription": "「{name}」を削除します。記事が残っているカテゴリは削除できません。",
     "errors": {

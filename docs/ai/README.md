@@ -40,6 +40,10 @@ change.
 
 ## Decision tree: "where does my change go?"
 
+- A new IT process (a form, who approves, what happens after, a recurring checklist) → **configuration, not code**:
+  build it on the admin pages or with the assistant, or ship it as a **process pack** (R55). Only when it can't be
+  built: add the missing **building block**, **record type** or **connector** below, in a form any process could use
+  (R56; terms in `docs/architecture.md` §1).
 - A new business capability with its own data → a **new module** (`pnpm create-module <id>`, see
   [module-anatomy.md](module-anatomy.md)).
 - React to something another module does → **consume its event** (`manifest.events.consumes` + handler). Names

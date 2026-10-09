@@ -30,7 +30,7 @@ export default defineWebModule(manifest, {
       load: () => import('./slots/user-access'),
       permission: PERMISSIONS.request,
     },
-    // Reviews awaiting me and my access ending soon, on the home dashboard.
+    // My database access ending soon, on Home (reviews awaiting me are on My work).
     {
       slot: 'core.dashboard.work',
       load: () => import('./slots/dashboard-work'),

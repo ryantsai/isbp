@@ -184,7 +184,7 @@ export function CallBars({
                 />
               )}
               <motion.span
-                className={cn('block w-full bg-chart-1', b.errors === 0 && 'rounded-t-sm')}
+                className={cn('block w-full bg-chart-5', b.errors === 0 && 'rounded-t-sm')}
                 initial={reduce ? false : { height: 0 }}
                 animate={{ height: b.calls - b.errors > 0 ? Math.max(ok, 2) : 0 }}
                 transition={{ duration: 0.4, delay: i * 0.01 }}

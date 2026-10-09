@@ -414,7 +414,8 @@ describe('core.assign-form (Scheduled Jobs)', () => {
       task({ scheduledFor: new Date('2026-10-31T16:30:00Z'), timeZone: 'Asia/Taipei' }),
     );
     expect(first).toMatchObject({
-      summary: 'Assigned Server room inspection 2026-11',
+      summary: 'core.taskTypes.assignForm.assigned',
+      summaryParams: { title: 'Server room inspection 2026-11' },
       metrics: { created: 1 },
     });
     const [row] = await h.kernel.db
@@ -443,7 +444,11 @@ describe('core.assign-form (Scheduled Jobs)', () => {
       config,
       task({ scheduledFor: new Date('2026-11-15T01:00:00Z'), timeZone: 'Asia/Taipei', attempt: 2 }),
     );
-    expect(again).toMatchObject({ summary: 'Already assigned for 2026-11', metrics: { created: 0 } });
+    expect(again).toMatchObject({
+      summary: 'core.taskTypes.assignForm.alreadyAssigned',
+      summaryParams: { period: '2026-11' },
+      metrics: { created: 0 },
+    });
     const next = await core.taskTypes.run(
       'core.assign-form',
       { ...config, due: { type: 'days', days: 7 } },
@@ -482,10 +487,14 @@ describe('core.assign-form (Scheduled Jobs)', () => {
       .validate('core.assign-form', config, await authOf(h.ids.outsider))
       .catch((e: unknown) => e)) as LooseJson;
     expect(refused.statusCode).toBe(403);
+    // The group's name, not its key, in the reader's language.
     expect(await core.taskTypes.describe('core.assign-form', config)).toEqual({
-      label: 'Assign “Server room inspection” to group it-ops, each month',
+      label: 'Assign “Server room inspection” to IT operations, every month',
       href: `/admin/forms/${ids.form}?tab=assignments`,
     });
+    expect((await core.taskTypes.describe('core.assign-form', config, { locale: 'zh-TW' })).label).toBe(
+      '每月將「機房巡檢」指派給IT operations',
+    );
   });
 
   it('runs as a scheduled job and is offered to the assistant’s scheduler.job kind', async () => {

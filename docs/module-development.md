@@ -18,6 +18,11 @@ are no special cases. This guide builds one end to end.
 | **Server part** | `defineServerModule(manifest, { routes, events, jobs, ai, search, seed, migrations })`                                                                                                                             |
 | **Web part**    | `defineWebModule(manifest, { routes })` — pages served at `/<module-id>/*`                                                                                                                                         |
 
+Before you start: an organisation's process (a form, its approvals and what happens after) is configuration, not a
+module. A module is for a **record type** (a kind of thing kept and looked after over time), a **connector** to
+another system, or a **building block** every process can use (process actions, task types). See "Configuration and
+code" in [architecture.md §1](architecture.md#configuration-and-code-processes-building-blocks-record-types-connectors).
+
 ## 2. Create a module
 
 ```bash
@@ -500,20 +505,21 @@ adds `slots: [{ slot: 'itsm.ticket.aside', load: () => import('./ticket-assist')
 
 Pages are client components that receive `{ params }`. Use the same building blocks as core pages:
 
-| Import                      | Provides                                                                                                                                                                                 |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@isbp/ui/query`            | `useApiQuery(path, query)`, `useApiMutation(fn, { invalidate, success })`, `applyServerErrors`                                                                                           |
-| `@isbp/sdk/web`             | `useCan(permission)`, `usePlatform()` (user, permissions), `useApi()` (CSRF-aware fetch)                                                                                                 |
-| `@isbp/ui/data-table`       | Server-side `DataTable` + `useListState()` (paging/sort/filters kept in the URL)                                                                                                         |
-| `@isbp/ui/*`                | Button, Dialog, Sheet, Form (React Hook Form), Select, Tabs, Badge, Card, EmptyState, PageHeader, SearchInput, RelativeTime, motion primitives (`FadeIn`, `Stagger`, `AnimatedNumber`) … |
-| `@isbp/ui/form-renderer`    | `FormFields`, `FormAnswers`, `useFieldsResolver` — render and validate admin-defined fields/forms exactly like the API                                                                   |
-| `@isbp/ui/workflow-diagram` | `WorkflowDiagram` — show an approval path with live step states (pair it with `GET /workflow-instances/{id}`)                                                                            |
-| `@isbp/ui/person-picker`    | `PersonPicker`, `usePeople` — pick colleagues (works for every signed-in user)                                                                                                           |
-| `@isbp/ui/localized-input`  | `LocalizedInput` — text admins write in en / zh-TW / ja-JP                                                                                                                               |
+| Import                      | Provides                                                                                                                                                                                                                                                                         |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@isbp/ui/query`            | `useApiQuery(path, query)`, `useApiMutation(fn, { invalidate, success })`, `applyServerErrors`                                                                                                                                                                                   |
+| `@isbp/sdk/web`             | `useCan(permission)`, `usePlatform()` (user, permissions), `useApi()` (CSRF-aware fetch)                                                                                                                                                                                         |
+| `@isbp/ui/data-table`       | Server-side `DataTable` + `useListState()` (paging/sort/filters kept in the URL)                                                                                                                                                                                                 |
+| `@isbp/ui/*`                | Button, Dialog, Sheet, Form (React Hook Form), Select, Tabs, Card, EmptyState/ErrorState, PageHeader/DetailHeader, SectionTabs, FilterBar, StatusBadge, StatTile, Meter, SearchInput, RelativeTime, motion (`FadeIn`, `AnimatedList`, `Collapse`, `Stepper`, `AnimatedNumber`) … |
+| `@isbp/ui/form-renderer`    | `FormFields`, `FormAnswers`, `useFieldsResolver` — render and validate admin-defined fields/forms exactly like the API                                                                                                                                                           |
+| `@isbp/ui/workflow-diagram` | `WorkflowDiagram` — show an approval path with live step states (pair it with `GET /workflow-instances/{id}`)                                                                                                                                                                    |
+| `@isbp/ui/person-picker`    | `PersonPicker`, `usePeople` — pick colleagues (works for every signed-in user)                                                                                                                                                                                                   |
+| `@isbp/ui/localized-input`  | `LocalizedInput` — text admins write in en / zh-TW / ja-JP                                                                                                                                                                                                                       |
 
-UX conventions: `PageHeader` on every page, skeletons while loading, `EmptyState` for empty results,
-advanced options behind a disclosure, permission-gated actions (`useCan`), and motion via
-`motion/react` (the app's `MotionConfig` already honours `prefers-reduced-motion`).
+UX conventions (docs/ai/ui-guidelines.md): `PageHeader`/`DetailHeader` on every page, skeletons while loading,
+`ErrorState` when a request fails and `EmptyState` for empty results, advanced options behind a `Disclosure`,
+permission-gated actions (`useCan`), and motion through the shared `@isbp/ui/motion` components (they honour
+`prefers-reduced-motion`).
 
 ### i18n
 
@@ -565,8 +571,9 @@ without a chat model, and optionally a preview slot `assistant.preview.<module>.
 
 A module that comes with a whole process to set up (forms, approval workflows, groups, scheduled jobs) can ship it
 as a **built-in package**: `manifest.customizationPackages` plus `defineServerModule({ customizationPackages })`
-returning an `isbp.change-set-package` built for the installer's language. Administrators install it from Change sets
-→ **From a package** as one draft change set. See `docs/ai/recipes.md` §28.
+returning an `isbp.change-set-package` built for the installer's language. Administrators read what it creates and
+install it on **Process packs** (`/assistant/packs`; **Install a process pack** on Forms and Change sets) as one draft
+change set. See `docs/ai/recipes.md` §28.
 
 ## 7. Checklist before shipping a module
 

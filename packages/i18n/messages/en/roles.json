@@ -37,7 +37,93 @@
       "roles": "Roles",
       "audit": "Audit log",
       "modules": "Modules",
-      "idp": "Sign-in providers"
+      "idp": "Sign-in providers",
+      "access-requests": "Access requests",
+      "ai": "AI",
+      "api-clients": "API clients",
+      "applications": "Application access",
+      "custom-fields": "Custom fields",
+      "databases": "Database connections",
+      "forms": "Forms",
+      "mcp": "Outside agents (MCP)",
+      "notifications": "Notifications",
+      "role-query": "Role Query API",
+      "workflows": "Workflows"
+    },
+    "alm": {
+      "apps": "Applications",
+      "deployments": "Deployments",
+      "releases": "Releases",
+      "repositories": "Repositories"
+    },
+    "announcements": {
+      "posts": "Announcements"
+    },
+    "assistant": {
+      "agent": "Built-in agent",
+      "change-sets": "Settings changes"
+    },
+    "cmdb": {
+      "cis": "Configuration items",
+      "classes": "CI classes",
+      "services": "Business services"
+    },
+    "dbaccess": {
+      "grants": "Database access",
+      "reviews": "Access reviews",
+      "self": "Own database access",
+      "servers": "Database servers"
+    },
+    "etl": {
+      "endpoints": "Data APIs",
+      "pipelines": "Pipelines"
+    },
+    "helpdesk-ai": {
+      "assist": "Agent assistance",
+      "chat": "Ask IT",
+      "insights": "Insights"
+    },
+    "integrations": {
+      "conflicts": "Sync conflicts",
+      "connections": "Connections"
+    },
+    "isms": {
+      "accounts": "Shared accounts",
+      "assets": "Information assets",
+      "config": "Information security settings",
+      "reviews": "Account reviews",
+      "self": "Own tasks",
+      "stocktakes": "Stocktakes"
+    },
+    "itam": {
+      "assets": "Assets",
+      "config": "Asset settings",
+      "contracts": "Contracts",
+      "hardware": "Hardware",
+      "licenses": "Licences",
+      "self": "Own devices",
+      "software": "Software"
+    },
+    "itsm": {
+      "changes": "Changes",
+      "config": "Service desk settings",
+      "problems": "Problems",
+      "reports": "Reports",
+      "tickets": "Tickets"
+    },
+    "knowledge": {
+      "articles": "Articles",
+      "categories": "Categories"
+    },
+    "projects": {
+      "portfolio": "Portfolio",
+      "projects": "Projects",
+      "tasks": "Tasks"
+    },
+    "scheduler": {
+      "jobs": "Scheduled jobs",
+      "scripts": "Scripts",
+      "sql": "SQL steps"
     }
   },
   "permissions": {
@@ -61,7 +147,10 @@
     "patternHint": "module.resource.action — use * for any segment, e.g. core.users.* or *.*.read.",
     "patternInvalid": "That isn’t a valid pattern. Use module.resource.action with optional * wildcards.",
     "patternExists": "This role already has that pattern.",
-    "patternNotHeld": "You can only grant permissions you hold yourself."
+    "patternNotHeld": "You can only grant permissions you hold yourself.",
+    "everything": "Everything",
+    "everythingIn": "Everything in {name}",
+    "impliedByName": "Included by “{name}”"
   },
   "form": {
     "createTitle": "New role",
@@ -218,7 +307,15 @@
     "grant": "Grant",
     "noAssignments": "Not granted to anyone yet",
     "viewAll": "View all {count}",
-    "manageAssignments": "Manage assignments"
+    "manageAssignments": "Manage assignments",
+    "tabs": {
+      "permissions": "Permissions",
+      "activity": "Activity"
+    },
+    "showCodes": "Show permission codes",
+    "hideCodes": "Hide permission codes",
+    "activityHint": "Changes to this role, and who was granted it or lost it.",
+    "deleteRequested": "People can request this role. If anyone has requested it before, it can’t be deleted (the request history is kept): turn off “People can request this role” and remove its members instead."
   },
   "errors": {
     "escalation": "You can’t grant permissions you don’t hold yourself: {permissions}",
@@ -275,5 +372,24 @@
     "unsaved": "Unsaved changes",
     "reset": "Reset",
     "saved": "Request settings saved"
+  },
+  "list": {
+    "assigned": "{count, plural, =0 {Not granted} one {# grant} other {# grants}}",
+    "count": "{count, plural, one {# role} other {# roles}}",
+    "type": "Type",
+    "types": {
+      "all": "All roles",
+      "system": "System",
+      "custom": "Custom"
+    },
+    "requestable": "Requests",
+    "requestables": {
+      "all": "Requestable or not",
+      "yes": "People can request",
+      "no": "Not requestable"
+    },
+    "platform": "Platform administration",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all"
   }
 }

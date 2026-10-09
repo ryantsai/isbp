@@ -47,6 +47,7 @@ export function GroupPicker({
   className,
   invalid,
   describedBy,
+  'aria-label': ariaLabel,
 }: {
   value: PickedGroup | null;
   onChange: (group: PickedGroup | null) => void;
@@ -55,6 +56,8 @@ export function GroupPicker({
   className?: string;
   invalid?: boolean;
   describedBy?: string;
+  /** Without a `<Label htmlFor={id}>`, name the picker here. */
+  'aria-label'?: string;
 }) {
   const t = useTranslations('common');
   const tr = useTranslations('roles.groupPicker');
@@ -82,6 +85,7 @@ export function GroupPicker({
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            aria-label={ariaLabel}
             aria-invalid={invalid || undefined}
             aria-describedby={describedBy}
             className="w-full justify-between font-normal"

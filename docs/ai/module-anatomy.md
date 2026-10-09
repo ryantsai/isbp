@@ -112,14 +112,32 @@ export const manifest = defineManifest({
   dependsOn: [], // modules whose tables you read
   navigation: [
     {
-      id: 'home',
-      label: 'things.nav.home',
+      // One entry per area; its pages are children (one visible page shows as a plain row).
+      id: 'things',
+      label: 'things.nav.group',
       href: '/things',
       icon: 'box',
-      permission: 'things.items.read',
       section: 'main',
-      group: 'things.nav.group',
       order: 70,
+      children: [
+        {
+          id: 'home',
+          label: 'things.nav.home',
+          href: '/things',
+          icon: 'list',
+          permission: 'things.items.read',
+        },
+      ],
+    },
+    {
+      id: 'settings',
+      label: 'things.nav.settings',
+      description: 'things.nav.settingsAbout',
+      href: '/things/settings',
+      icon: 'box',
+      permission: 'things.items.manage',
+      section: 'admin',
+      area: 'modules',
     },
   ],
   permissions: [

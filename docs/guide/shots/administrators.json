@@ -1,5 +1,20 @@
 [
   {
+    "name": "administrators-hub",
+    "as": "admin",
+    "path": "/admin",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
+    "name": "administrators-add-person",
+    "as": "admin",
+    "path": "/admin/users?create=1",
+    "waitFor": "main h1",
+    "steps": [{ "wait": 1000 }],
+    "clip": "[role=\"dialog\"]"
+  },
+  {
     "name": "administrators-roles",
     "as": "admin",
     "path": "/admin/roles?tab=assignments",

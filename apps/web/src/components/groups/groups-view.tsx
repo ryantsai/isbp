@@ -46,7 +46,7 @@ export function GroupsView() {
     q: state.q,
     source: state.source as string | undefined,
   };
-  const { data, isLoading, isFetching } = useApiQuery<Page<Group>>('/groups', query);
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<Group>>('/groups', query);
   const filtered = Boolean(state.q || state.source);
 
   const columns = useMemo<DataTableColumn<Group>[]>(
@@ -179,6 +179,8 @@ export function GroupsView() {
         sort={state.sort}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(g) => g.id}
         onRowClick={(g) => router.push(`/admin/groups/${g.id}`)}
         onPageChange={(page) => set({ page })}

@@ -6,6 +6,8 @@ import { type Condition, type FieldDef, type FormElement, isField, localize } fr
 import { cn } from '@isbp/ui';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
+import { duration, ease, useReducedMotion } from '@isbp/ui/motion';
+import { Switch } from '@isbp/ui/switch';
 import { Hint } from '@isbp/ui/tooltip';
 import {
   ArrowDownIcon,
@@ -24,7 +26,8 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
+import { type ReactNode, useId, useState } from 'react';
+import { useShowFieldKeys } from '@/components/fields/field-keys';
 import { ElementTypeIcon } from '@/components/fields/field-types';
 import type { FieldIssue } from '@/components/fields/field-utils';
 
@@ -229,6 +232,10 @@ export interface CanvasItemProps {
   issues: readonly FieldIssue[];
   conditionText: (c: Condition) => string;
   locked: boolean;
+  /** Show the field's key under it ("Show field keys"). */
+  showKey: boolean;
+  /** Just added (or brought back by undo): a one-shot ring shows where it landed. */
+  fresh: boolean;
   drop: DropTarget | null;
   dimmed: boolean;
   onSelect: () => void;
@@ -245,6 +252,8 @@ function CanvasItem({
   issues,
   conditionText,
   locked,
+  showKey,
+  fresh,
   drop,
   dimmed,
   onSelect,
@@ -255,6 +264,7 @@ function CanvasItem({
   const t = useTranslations('forms.builder');
   const tf = useTranslations('fields');
   const locale = useLocale();
+  const reduce = useReducedMotion();
   const field = isField(el);
   const typeName = field ? tf(`types.${el.type}.name`) : tf(`display.${el.type}.name`);
   const name = (field ? localize(el.label, locale) : localize(el.text, locale)) || typeName;
@@ -286,6 +296,15 @@ function CanvasItem({
           issues.length > 0 && !selected && 'border-destructive/50',
         )}
       >
+        {fresh && !reduce && (
+          <motion.span
+            aria-hidden
+            className="pointer-events-none absolute -inset-px z-10 rounded-xl ring-[3px] ring-primary/70"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: duration.base, delay: 0.25, ease: ease.exit }}
+          />
+        )}
         <button
           type="button"
           ref={setActivatorNodeRef}
@@ -312,8 +331,8 @@ function CanvasItem({
           <span className="mt-2.5 flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
               <ElementTypeIcon type={el.type} size="sm" className="size-4 rounded [&_svg]:size-3" />
-              {field ? <code className="font-mono">{el.key}</code> : typeName}
-              {locked && <LockIcon className="size-3" aria-label={t('lockedKey')} />}
+              {field && showKey ? <code className="font-mono">{el.key}</code> : typeName}
+              {locked && showKey && <LockIcon className="size-3" aria-label={t('lockedKey')} />}
             </span>
             {el.visibleWhen && (
               <Badge variant="info" className="max-w-full font-normal">
@@ -442,6 +461,20 @@ function EndZone({ empty, active, onAddHint }: { empty: boolean; active: boolean
   );
 }
 
+/**
+ * Elements that appeared since the previous render (added, duplicated or restored by undo); none on the first render.
+ * Moving elements doesn't make them fresh.
+ */
+function useFreshIds(elements: readonly FormElement[]): ReadonlySet<string> {
+  const ids = elements.map((e) => e.id).join('|');
+  const [seen, setSeen] = useState({ ids, fresh: new Set<string>() as ReadonlySet<string> });
+  if (seen.ids !== ids) {
+    const before = new Set(seen.ids.split('|'));
+    setSeen({ ids, fresh: new Set(elements.map((e) => e.id).filter((id) => !before.has(id))) });
+  }
+  return seen.fresh;
+}
+
 /** The form being built, laid out like the real form (half-width fields side by side). */
 export function BuilderCanvas({
   elements,
@@ -473,6 +506,10 @@ export function BuilderCanvas({
   emptyAction: ReactNode;
 }) {
   const t = useTranslations('forms.builder');
+  const tf = useTranslations('fields');
+  const uid = useId();
+  const [showKeys, setShowKeys] = useShowFieldKeys();
+  const fresh = useFreshIds(elements);
   return (
     <section
       aria-label={t('canvas')}
@@ -481,6 +518,15 @@ export function BuilderCanvas({
         if (e.target === e.currentTarget) onSelect('');
       }}
     >
+      <div className="mx-auto mb-2 flex max-w-3xl justify-end">
+        <label
+          htmlFor={`${uid}-keys`}
+          className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground"
+        >
+          <Switch id={`${uid}-keys`} checked={showKeys} onCheckedChange={setShowKeys} />
+          {tf('showKeys')}
+        </label>
+      </div>
       <div className="mx-auto grid max-w-3xl gap-5 rounded-xl border bg-background p-4 shadow-xs sm:p-6">
         {header}
         <SortableContext items={elements.map((e) => e.id)} strategy={noSortingTransforms}>
@@ -496,6 +542,8 @@ export function BuilderCanvas({
                   issues={issues.get(el.id) ?? []}
                   conditionText={conditionText}
                   locked={lockedIds.has(el.id)}
+                  showKey={showKeys}
+                  fresh={fresh.has(el.id)}
                   drop={drop}
                   dimmed={draggingId === el.id}
                   onSelect={() => onSelect(el.id)}

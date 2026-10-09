@@ -45,7 +45,8 @@ export function registerErrorHandling(app: FastifyInstance) {
       return send(409, ErrorCodes.CONFLICT, 'A record with the same unique value already exists', {
         constraint: pg.constraint,
       });
-    if (pg?.code === '23503')
+    // 23001: a `restrict` foreign key refused a delete (23503 is the deferred/`no action` equivalent).
+    if (pg?.code === '23503' || pg?.code === '23001')
       return send(409, ErrorCodes.CONFLICT, 'The record is referenced by or references a missing record', {
         constraint: pg.constraint,
       });

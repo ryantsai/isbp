@@ -1,4 +1,12 @@
-import { ErrorCodes, HttpError, type ModuleContext, type SqlRow, type TableWriter } from '@isbp/sdk/server';
+import {
+  ErrorCodes,
+  HttpError,
+  type ModuleContext,
+  type RunProblem,
+  runProblemOf,
+  type SqlRow,
+  type TableWriter,
+} from '@isbp/sdk/server';
 import { eq, sql } from 'drizzle-orm';
 import {
   MAX_RUN_LOG_LINES,
@@ -49,6 +57,13 @@ class Stopped extends Error {
   constructor(readonly reason: 'cancelled' | 'aborted') {
     super(reason === 'cancelled' ? 'Cancelled by a person' : 'Stopped by Scheduled Jobs (timeout or cancel)');
   }
+}
+
+/** The plain explanation of a failed load, naming the connection that was being read or written. */
+async function problemOfFailure(ctx: ModuleContext, err: unknown, connectionId: string): Promise<RunProblem> {
+  if (err instanceof Stopped) return { kind: 'cancelled', params: {} };
+  const info = await ctx.databases.get(connectionId).catch(() => null);
+  return runProblemOf(err, { connection: info ? { id: info.id, name: info.name } : null });
 }
 
 function describeError(err: unknown): string {
@@ -134,6 +149,9 @@ export async function executeRun(ctx: ModuleContext, runId: string, opts: RunOpt
   let writer: TableWriter | null = null;
   let status: RunStatus = 'succeeded';
   let error: string | null = null;
+  let problem: RunProblem | null = null;
+  /** Which connection the work was on when it failed (named in the explanation, linked to be fixed). */
+  let phase: 'source' | 'target' = 'target';
   try {
     const columns = [...new Set(p.mappings.map((m) => m.target))];
     const target = `${p.targetSchema ? `${p.targetSchema}.` : ''}${p.targetTable}`;
@@ -156,6 +174,7 @@ export async function executeRun(ctx: ModuleContext, runId: string, opts: RunOpt
     const keys = p.mode === 'upsert' ? p.keyColumns : [];
     let batchNo = 0;
     let rejectionLines = 0;
+    phase = 'source';
     for await (const batch of ctx.databases.stream(p.sourceConnectionId, p.sourceSql, {
       purpose: 'data',
       params,
@@ -179,11 +198,14 @@ export async function executeRun(ctx: ModuleContext, runId: string, opts: RunOpt
           }
         }
       }
+      phase = 'target';
       if (good.length) counts.rowsWritten += await writer.write(good);
+      phase = 'source';
       log(`Batch ${batchNo}: ${batch.rows.length} read, ${good.length} written`);
       await flush();
     }
     if (state.stopped) throw state.stopped;
+    phase = 'target';
     if (rejectionLines >= MAX_REJECTION_LINES && counts.rowsRejected > rejectionLines)
       log(`${counts.rowsRejected - rejectionLines} more rows rejected`, 'warn');
     await writer.commit();
@@ -196,6 +218,11 @@ export async function executeRun(ctx: ModuleContext, runId: string, opts: RunOpt
     const cause = state.stopped ?? err;
     status = cause instanceof Stopped && cause.reason === 'cancelled' ? 'cancelled' : 'failed';
     error = describeError(cause);
+    problem = await problemOfFailure(
+      ctx,
+      cause,
+      phase === 'source' ? p.sourceConnectionId : p.targetConnectionId,
+    );
     log(status === 'cancelled' ? 'Cancelled: the load was rolled back' : `Failed: ${error}`, 'error');
     if (writer) await writer.rollback().catch(() => undefined);
   } finally {
@@ -213,6 +240,7 @@ export async function executeRun(ctx: ModuleContext, runId: string, opts: RunOpt
         ...counts,
         status,
         error,
+        problem,
         log: lines,
         finishedAt: finished,
         durationMs,

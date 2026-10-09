@@ -41,14 +41,22 @@ test('inventory: Finance ERP is listed, quick tabs filter by stage', async ({ pa
   await expect(page.getByRole('heading', { name: 'Applications', level: 1 })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Finance ERP' })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Portfolio summary' })).toBeVisible();
+  // Applications | Release calendar are the area's sections; the stage tabs carry their counts.
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Applications sections' })
+      .getByRole('link', { name: 'Release calendar' }),
+  ).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Sunsetting & retired' }).click();
+  await page.getByRole('tab', { name: /Sunsetting & retired/ }).click();
   await expect(page).toHaveURL(/view=sunset/);
   await expect(page.getByRole('link', { name: 'Intranet' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Finance ERP' })).toHaveCount(0);
 
-  await page.getByRole('tab', { name: 'All' }).click();
+  await page.getByRole('tab', { name: /^All/ }).click();
   await expect(page).not.toHaveURL(/view=/);
+  // The URL changes at once and the tab a render later (with its own table and search box): type into that one.
+  await expect(page.getByRole('tab', { name: /^All/ })).toHaveAttribute('aria-selected', 'true');
   await page.getByPlaceholder('Search by code or name…').fill('hr-portal');
   await expect(page.getByRole('link', { name: 'HR Portal' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Finance ERP' })).toHaveCount(0);
@@ -94,6 +102,8 @@ test('release page: erp 12.1.0 shows its readiness checklist and pipeline', asyn
   ])
     await expect(page.getByText(check)).toBeVisible();
   await expect(page.getByRole('list', { name: 'Release lifecycle' })).toBeVisible();
+  // Each open check offers its next step.
+  await expect(page.getByRole('link', { name: 'Open CHG-00011' })).toBeVisible();
   await expect(page.getByRole('list', { name: 'Environments this version reached' })).toContainText(
     'Staging',
   );
@@ -110,17 +120,29 @@ test('recording a test deployment works', async ({ page }) => {
   await expect(page.getByText('Recorded 12.1.0 on Test')).toBeVisible();
 });
 
+test('the ready notification opens Record deployment for production', async ({ page }) => {
+  await page.goto('/alm/hr-portal/releases/3.4.0?deploy=production');
+  const dialog = page.getByRole('dialog', { name: 'Record deployment' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('combobox', { name: 'Environment' })).toHaveText(/Production/);
+  await expect(dialog.getByRole('combobox', { name: 'Change' })).toHaveText(/CHG-00009/);
+  await page.keyboard.press('Escape');
+});
+
 test('a production deployment without a change explains the policy', async ({ page }) => {
   // The planned website release has no change linked.
   await page.goto('/alm/corp-web/releases/2026.10');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('2026.10');
   const dialog = await openDeployDialog(page, 'Production');
   await expect(dialog.getByText('No authorized change: name one or link it to the release.')).toBeVisible();
+  // The change window follows the planned date only while that evening is still ahead.
   await expect(dialog.getByRole('link', { name: 'Raise a change' })).toHaveAttribute(
     'href',
-    /\/itsm\/changes\?new=1&title=.+&link=alm\.release:/,
+    /\/itsm\/changes\?new=1&title=.+&link=alm\.release%3A[^&]+(&start=.+&end=.+)?$/,
   );
-  await expect(dialog.getByRole('button', { name: 'Record deployment' })).toBeDisabled();
+  // Recording is refused with the reason, not by a silently disabled button.
+  await dialog.getByRole('button', { name: 'Record deployment' }).click();
+  await expect(dialog.getByRole('alert')).toContainText('Override with a reason');
   // The admin may override; the option asks for a reason first.
   await dialog.getByRole('button', { name: 'Override with reason' }).click();
   await expect(dialog.getByLabel('Why must this deploy without an authorized change?')).toBeVisible();

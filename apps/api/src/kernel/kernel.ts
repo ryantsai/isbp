@@ -28,6 +28,7 @@ import { createFormsService, createPortalService } from './portal';
 import { QueueFactory } from './queues';
 import { RbacService } from './rbac';
 import { RecordRegistry } from './records';
+import { ReferenceRegistry } from './references';
 import { ReminderService } from './reminders';
 import { Sandbox } from './sandbox';
 import { SessionService, toSessionUser } from './sessions';
@@ -38,6 +39,8 @@ import { ProcessActionRegistry } from './process-actions';
 import { TaskTypeRegistry } from './task-types';
 import { installDefaultWorkflows } from './workflow/defaults';
 import { WorkflowEngine } from './workflow/engine';
+import { buildNavigation } from './navigation';
+import { WorkRegistry } from './work';
 
 export type Kernel = Awaited<ReturnType<typeof createKernel>>;
 
@@ -118,12 +121,14 @@ export async function createKernel(
     core,
     logger: logger.child({ component: 'files' }),
   });
+  const references = new ReferenceRegistry(registry);
   const records = new RecordRegistry({
     db,
     registry,
     logger: logger.child({ component: 'records' }),
     core,
     forgetFiles: (ref, tx) => files.forgetRecord(ref, tx),
+    assertUnused: (ref, tx) => references.assertUnused(ref, { tx, what: 'This record' }),
   });
   fields.recordFacts = (refs) => records.facts(refs);
   fields.readableRecords = (refs, auth) => records.readable(refs, auth);
@@ -239,7 +244,24 @@ export async function createKernel(
     return (await redis.ping()) === 'PONG';
   }
 
-  /** Federated search across enabled modules (each provider capped at 1.5s). */
+  const work = new WorkRegistry(registry, logger.child({ component: 'work' }));
+
+  /** The person's sidebar and Administration hub entries. */
+  function navigation(auth: AuthContext) {
+    return buildNavigation(
+      {
+        modules: registry.enabledModules(),
+        context: (id) => registry.context(id),
+        logger: logger.child({ component: 'navigation' }),
+      },
+      auth,
+    );
+  }
+
+  /**
+   * Federated search across enabled modules (each provider capped at 1.5s). Translations of one thing (hits sharing a
+   * `group`) collapse into the one in the viewer's language (else English); exact reference matches come first.
+   */
   async function search(query: string, auth: AuthContext, limit = 8) {
     const providers = registry.enabledModules().filter((m) => m.search);
     const results = await Promise.all(
@@ -256,7 +278,23 @@ export async function createKernel(
         }
       }),
     );
-    return results.flat();
+    const locale = auth.user?.locale ?? 'en';
+    const rank = (h: { locale?: string | null }) => (h.locale === locale ? 2 : h.locale === 'en' ? 1 : 0);
+    const out: (SearchHit & { moduleId: string })[] = [];
+    const byGroup = new Map<string, number>();
+    for (const h of results.flat()) {
+      if (!h.group) {
+        out.push(h);
+        continue;
+      }
+      const key = `${h.moduleId}:${h.group}`;
+      const at = byGroup.get(key);
+      if (at === undefined) {
+        byGroup.set(key, out.length);
+        out.push(h);
+      } else if (rank(h) > rank(out[at]!)) out[at] = h;
+    }
+    return out.sort((a, b) => Number(Boolean(b.exact)) - Number(Boolean(a.exact)));
   }
 
   async function close() {
@@ -300,6 +338,9 @@ export async function createKernel(
     migrate,
     ready,
     search,
+    navigation,
+    work,
+    references,
     close,
   };
 }

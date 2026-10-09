@@ -32,7 +32,9 @@
     "name": "名前 (省略可能)",
     "nameHint": "アクション本来の名前の代わりに申請に表示されます。",
     "when": "次の条件を満たす場合のみ…",
-    "whenHint": "条件がない場合、アクションは常に実行されます。条件がある場合は、その時点で申請 (回答、承認者の入力内容、申請者) が条件を満たすときだけ実行され、満たさないときはスキップとして表示されます。",
+    "whenHint": "その時点で申請 (回答、承認者の入力内容、申請者) が条件を満たすときだけ実行され、満たさないときはスキップとして表示されます。",
+    "whenEmpty": "条件なし: すべての申請で実行されます。",
+    "whenIncomplete": "すべての条件の値を入力してください。",
     "onlyWhen": "{condition} の場合のみ",
     "facts": {
       "requesterDepartment": "申請者の部署コード",
@@ -42,19 +44,29 @@
     "templatesHint": "テキスト フィールドには回答や申請の情報を含められます。[値の挿入] を使用してください。申請にない値は空欄になります。",
     "insert": "値の挿入",
     "insertFor": "{field} に値を挿入",
+    "example": "例: {text}",
     "valueGroups": {
       "answers": "回答",
       "records": "選択されたレコード",
       "request": "申請"
     },
     "values": {
-      "asShown": "{field} (表示テキスト)",
+      "recordName": "{field}: 名前",
+      "stored": "{field} (保存値)",
       "reference": "申請番号",
       "url": "申請へのリンク",
       "form": "フォーム名",
       "requesterName": "申請者の名前",
       "requesterEmail": "申請者のメール アドレス",
       "decidedBy": "承認者の名前"
+    },
+    "sample": {
+      "person": "山田 花子",
+      "approver": "佐藤 健",
+      "email": "alex.chen@example.com",
+      "form": "申請フォーム",
+      "record": "[{field}]",
+      "answer": "[{field}]"
     },
     "secretStored": "保存済みです。空欄の場合は現在の値を保持します。",
     "secretRemove": "削除",
@@ -143,13 +155,14 @@
     "descriptionLabel": "説明",
     "icon": "アイコン",
     "category": "カテゴリ",
-    "categoryPlaceholder": "例: hardware",
-    "categorySuggestions": "既存のカテゴリ:",
-    "submit": "作成してビルダーを開く",
+    "categoryNone": "カテゴリなし",
+    "categorySearch": "カテゴリを検索または追加…",
+    "categoryNew": "新しいカテゴリ「{name}」を追加",
+    "submit": "作成してフォーム デザイナーを開く",
     "created": "フォームを作成しました"
   },
   "builder": {
-    "title": "フォーム ビルダー",
+    "title": "フォーム デザイナー",
     "notFound": "フォームが見つかりません",
     "notFoundDescription": "削除されたか、リンクが間違っている可能性があります。",
     "fieldCount": "{count, plural, =0 {フィールドなし} other {# 個のフィールド}}",
@@ -189,16 +202,21 @@
       "archived": "公開する前にフォームを復元してください",
       "noFields": "公開する前にフィールドを 1 つ以上追加してください",
       "issues": "{count, plural, other {公開する前に # 件の問題を修正してください}}",
-      "workflow": "先に、関連付けた承認ワークフローを公開してください",
-      "upToDate": "バージョン {version} はこのフィールド構成と同じです。設定の変更は保存すると反映されます。"
+      "workflow": "承認がまだ公開されていません。承認の変更にはワークフロー管理者ロールが必要です",
+      "upToDate": "バージョン {version} はこのフィールド構成と同じです。設定の変更は保存すると反映されます。",
+      "approval": "{count, plural, other {公開する前に承認の # 件の問題を修正してください}}"
     },
     "tabs": {
-      "build": "作成",
+      "build": "質問",
       "preview": "プレビュー",
       "settings": "設定",
       "submissions": "申請",
       "rules": "ルール",
-      "actions": "アクション"
+      "actions": "アクション",
+      "approval": "承認",
+      "approvalChanged": "承認の変更はまだ公開されていません",
+      "buildGroup": "プロセスの作成",
+      "useGroup": "フォームの利用状況"
     },
     "palette": "要素の追加",
     "paletteHint": "フォームにドラッグするか、クリックして選択中の要素の下に追加します。",
@@ -245,7 +263,22 @@
     "tipDrag": "ハンドル (⋮⋮) をドラッグして並べ替えます。ハンドルにフォーカスして Space キーと方向キーでも操作できます。",
     "tipMove": "選択中の要素を移動",
     "tipUndo": "直前の変更を元に戻す",
-    "tipSave": "下書きを保存"
+    "tipSave": "下書きを保存",
+    "publishApprovalTitle": "承認を公開しますか?",
+    "publishApprovalBody": "質問は変更されていません。新しい申請には新しい承認が使われ、進行中の申請はそのままです。",
+    "publishWithApproval": "承認「{name}」も公開されます (バージョン {version})。",
+    "publishAnyway": "このまま公開",
+    "success": {
+      "title": "バージョン {version} を {audience} に公開しました",
+      "titleOff": "バージョン {version} を公開しました。フォームはオフになっているため、まだ誰も使えません。",
+      "everyone": "全員",
+      "groups": "{count, plural, other {# 個のグループ}}",
+      "copy": "リンクをコピー",
+      "copied": "リンクをコピーしました",
+      "copyFailed": "リンクをコピーできませんでした",
+      "open": "ポータルで開く",
+      "dismiss": "閉じる"
+    }
   },
   "preview": {
     "language": "プレビューの言語",
@@ -253,12 +286,21 @@
     "empty": "このフォームにはまだフィールドがありません。",
     "submit": "送信",
     "reset": "リセット",
-    "resultTitle": "送信を試す",
-    "resultDescription": "フォームに入力して送信し、検証を確認します。実際には送信されません。",
+    "resultTitle": "申請に保存される内容",
+    "resultDescription": "サンプルの回答を送信して、質問とルールを確認します。実際には送信されません。",
     "resultEmpty": "フォームを送信すると、保存される内容がここに表示されます。",
     "resultValid": "検証 OK — 送信できます",
     "resultInvalid": "{count, plural, other {# 個のフィールドを確認してください}}",
-    "resultNote": "非表示の条件付きフィールドは、サーバーと同じく除外されます。"
+    "resultNote": "非表示の条件付きフィールドは、サーバーと同じく除外されます。",
+    "whoTitle": "誰が承認しますか?",
+    "whoDescription": "サンプルの回答で、選択した申請者として表示します。実際には送信されません。",
+    "whoNone": "誰もいません。このフォームには承認がないため、申請は送信されるとすぐに進みます。",
+    "previewAs": "プレビューするユーザー",
+    "previewAsYou": "自分 ({name})",
+    "nextTitle": "この後の処理",
+    "nextNone": "ほかの処理はありません。申請は記録され、申請者は「自分の申請」で確認できます。",
+    "nextConditional": "(一部の場合のみ)",
+    "dependsOn": "「{field}」の回答によって決まります"
   },
   "settings": {
     "detailsTitle": "詳細",
@@ -267,7 +309,7 @@
     "description": "説明",
     "icon": "アイコン",
     "category": "カテゴリ",
-    "categoryHint": "申請ポータルのカタログでフォームをグループ化します。",
+    "categoryHint": "申請ポータルでフォームをグループ化します。ポータル標準のカテゴリは各ユーザーの言語で表示され、新しく追加したカテゴリは入力したとおりに表示されます。",
     "availabilityTitle": "公開範囲",
     "availabilityDescription": "このフォームを利用できるユーザーと、新しい申請を受け付けるかどうか。",
     "active": "申請を受け付ける",
@@ -297,7 +339,9 @@
     "issues": {
       "nameRequired": "少なくとも 1 つの言語で名前を入力してください",
       "groupsRequired": "グループを 1 つ以上選択するか、全員に公開してください"
-    }
+    },
+    "activityTitle": "アクティビティ",
+    "activityDescription": "このフォームを変更、公開、アーカイブしたユーザー (新しい順)。"
   },
   "submissions": {
     "title": "このフォームで送信された申請",
@@ -340,8 +384,10 @@
     "sheetHint": "回答がルールを満たさない場合、フォームは送信できず、このメッセージが表示されます。",
     "when": "適用条件 (省略可)",
     "whenHint": "この条件が成立する場合にのみルールを適用します。空の場合は常にチェックします。",
+    "whenEmpty": "条件なし: このルールは常に適用されます。",
     "require": "必須条件",
     "requireHint": "成立している必要がある条件です。フィールドを値または別のフィールドと比較します。",
+    "requireEmpty": "満たす必要がある条件を追加してください。",
     "message": "メッセージ",
     "messagePlaceholder": "例: 終了は開始より後にしてください",
     "messageHint": "ルールを満たさない場合に表示されます。利用者の各言語で入力してください。",
@@ -352,8 +398,48 @@
     "apply": "適用",
     "issues": {
       "requireEmpty": "回答が満たす必要のある条件を 1 つ以上追加してください",
+      "conditionIncomplete": "すべての条件の値を入力してください",
       "messageEmpty": "表示するメッセージを入力してください",
       "unknownField": "存在しないフィールドを参照しています"
     }
+  },
+  "approval": {
+    "title": "承認",
+    "noAccess": "これらの申請の承認者を表示するには、ワークフロー閲覧者またはワークフロー管理者ロールが必要です。",
+    "noAccessNamed": "申請は「{name}」で承認されます。表示や変更には、ワークフロー閲覧者またはワークフロー管理者ロールが必要です。",
+    "emptyTitle": "これらの申請は誰が承認しますか?",
+    "emptyDescription": "まだ誰もいません。申請は送信されるとすぐに進み、「承認後」のアクションもすぐに実行されます。",
+    "setUp": "承認を設定",
+    "setUpHint": "申請者の上長 (上長がいない場合は部門長) から始まります。ここで変更できます。",
+    "useExisting": "または既存の承認を使用",
+    "change": "使用する承認",
+    "pick": "承認を選択",
+    "none": "承認なし",
+    "notPublished": "未公開",
+    "defaultName": "{name}の承認",
+    "name": "承認の名前",
+    "statusNew": "新規: フォームと一緒に公開されます",
+    "statusChanged": "バージョン {version} を使用中 · 変更はフォームと一緒に公開されます",
+    "statusLive": "バージョン {version} を使用中",
+    "openDesigner": "ワークフロー デザイナーで開く",
+    "shared": "{count, plural, other {{names} もこの承認を使用しています。ここでの変更はそちらにも適用されます。}}",
+    "pendingLink": "このフォームは公開中です。公開すると、この承認が使われるようになります。",
+    "readOnly": "この承認は表示のみできます。変更にはワークフロー管理者ロールが必要です。",
+    "archived": "この承認はアーカイブされています。別の承認を選ぶか、ワークフロー デザイナーで復元してください。"
+  },
+  "checks": {
+    "title": "公開する前に確認してください",
+    "recordsNobody": "{type}のレコードを選択できるようにするロールがないため、「{field}」は常に空になります。",
+    "recordsSome": "このフォームを使えるユーザー全員が{type}のレコードを表示できるわけではありません ({roles} が必要)。そのため「{field}」で何も選択できないユーザーがいます。",
+    "recordsGroups": "{groups} のメンバーは、これらのグループからは {roles} を得られません。そのため「{field}」で{type}のレコードを選択できないメンバーがいる可能性があります。",
+    "limitAudience": "対象ユーザーを制限",
+    "otherType": "別のレコードの種類を選択",
+    "aStep": "このステップ",
+    "factNoFallback": "「{field}」が空の場合、「{step}」で承認者が見つからず、申請は却下されます。",
+    "addFallback": "代わりの承認者を追加",
+    "skipInstead": "代わりにステップをスキップ",
+    "groupEmpty": "グループ「{group}」には有効なメンバーがいないため、「{step}」で依頼できる人が見つかりません。",
+    "roleEmpty": "「{role}」を持つユーザーがいないため、「{step}」で依頼できる人が見つかりません。",
+    "openStep": "ステップを開く"
   }
 }

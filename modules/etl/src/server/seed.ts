@@ -6,7 +6,7 @@
  * history are synthetic (deterministic, two weeks, a few failures).
  */
 import { apiClients, groupMembers, groups, users } from '@isbp/db/schema';
-import type { DbConnectionInfo, ModuleContext } from '@isbp/sdk/server';
+import { type DbConnectionInfo, type ModuleContext, runProblemFromText } from '@isbp/sdk/server';
 import { asc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { endpointDefinitionSchema, type EndpointDefinitionInput, type ParamDefInput } from '../contracts';
 import type { ColumnInfo, EndpointDefinition, RunStatus, RunTrigger } from '../model';
@@ -739,6 +739,14 @@ async function seedPipelines(ctx: ModuleContext, list: SeedPipeline[], ownerId: 
         error:
           status === 'failed'
             ? (p.history.error ?? 'DATABASE_ERROR 57014: canceling statement due to statement timeout')
+            : null,
+        // Failures read the source: the explanation names its connection.
+        problem:
+          status === 'failed'
+            ? runProblemFromText(
+                p.history.error ?? 'DATABASE_ERROR 57014: canceling statement due to statement timeout',
+                { connection: { id: p.source.id, name: p.source.name } },
+              )
             : null,
         log,
         createdAt: new Date(t),

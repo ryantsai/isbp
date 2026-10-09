@@ -1,32 +1,34 @@
 {
   "meta": {
     "name": "Integrations",
-    "description": "Connections to outside systems, sync profiles with field mappings, two-way sync, runs, linked records and conflicts"
+    "description": "Connections to outside systems, sync rules with field mappings, two-way sync, runs, linked records and conflicts"
   },
   "nav": {
     "group": "Integrations",
-    "overview": "Integrations",
-    "conflicts": "Sync conflicts"
+    "overview": "Connections",
+    "conflicts": "Sync conflicts",
+    "overviewAbout": "Outside systems and what syncs with them",
+    "conflictsAbout": "Records changed on both sides that need a decision"
   },
   "systemRoles": {
     "integrations-viewer": {
       "name": "Integrations viewer",
-      "description": "See connections, sync profiles, runs, linked records and conflicts"
+      "description": "See connections, sync rules, runs, linked records and conflicts"
     },
     "integrations-admin": {
       "name": "Integrations administrator",
-      "description": "Set up connections and sync profiles for every syncable entity, run syncs and resolve conflicts"
+      "description": "Set up connections and sync rules for every syncable entity, run syncs and resolve conflicts"
     }
   },
   "permissions": {
-    "connectionsRead": "See connections, sync profiles, runs, linked records and conflicts",
-    "connectionsManage": "Add, edit and test connections, set up sync profiles and run syncs",
+    "connectionsRead": "See connections, sync rules, runs, linked records and conflicts",
+    "connectionsManage": "Add, edit and test connections, set up sync rules and run syncs",
     "conflictsResolve": "Resolve sync conflicts"
   },
   "taskTypes": {
     "sync": {
       "name": "Integration sync",
-      "description": "Runs a sync profile of the Integrations Hub: reads the outside system’s changes and pushes ISBP’s"
+      "description": "Runs a sync rule of the Integrations Hub: reads the outside system’s changes and pushes IS Big Platform’s"
     }
   },
   "notifications": {
@@ -47,9 +49,9 @@
     "connection_deleted": "Deleted an integration connection",
     "connection_secret_rotated": "Rotated a connection’s webhook secret",
     "connection_insecure_http_changed": "Changed whether a connection allows insecure HTTP",
-    "profile_created": "Created a sync profile",
-    "profile_updated": "Changed a sync profile",
-    "profile_deleted": "Deleted a sync profile",
+    "profile_created": "Created a sync rule",
+    "profile_updated": "Changed a sync rule",
+    "profile_deleted": "Deleted a sync rule",
     "run_requested": "Started a sync",
     "conflict_created": "A sync conflict was found",
     "conflict_resolved": "Resolved a sync conflict",
@@ -66,7 +68,8 @@
   "health": {
     "ok": "Working",
     "failing": "Failing",
-    "unknown": "Not checked"
+    "unknown": "Not checked",
+    "attention": "Working · needs attention"
   },
   "security": {
     "badge": "Not encrypted",
@@ -89,7 +92,7 @@
     "schedule": "Scheduled",
     "manual": "Manual",
     "webhook": "Webhook",
-    "event": "Change in ISBP"
+    "event": "Change in IS Big Platform"
   },
   "runKind": {
     "pull": "Pull",
@@ -110,29 +113,29 @@
     "dismissed": "Kept both"
   },
   "direction": {
-    "pull": "Into ISBP",
-    "push": "Out of ISBP",
+    "pull": "Into IS Big Platform",
+    "push": "Out of IS Big Platform",
     "both": "Both ways",
-    "pullHint": "Changes made in {system} are copied into ISBP. Edits in ISBP stay in ISBP.",
-    "pushHint": "Changes made in ISBP are sent to {system}. Edits in {system} are not copied back.",
+    "pullHint": "Changes made in {system} are copied into IS Big Platform. Edits in IS Big Platform stay in IS Big Platform.",
+    "pushHint": "Changes made in IS Big Platform are sent to {system}. Edits in {system} are not copied back.",
     "bothHint": "Changes on either side reach the other. When both change the same field, the conflict rule decides."
   },
   "policy": {
     "manual": "Ask a person",
     "remote": "{system} wins",
-    "local": "ISBP wins",
+    "local": "IS Big Platform wins",
     "newest": "Latest change wins",
     "manualHint": "Both values stay as they are and the conflict waits in the conflicts list. Other fields still sync.",
-    "remoteHint": "The value from {system} overwrites the one in ISBP.",
-    "localHint": "The value from ISBP is sent to {system}.",
+    "remoteHint": "The value from {system} overwrites the one in IS Big Platform.",
+    "localHint": "The value from IS Big Platform is sent to {system}.",
     "newestHint": "The side whose record was changed last wins."
   },
   "counts": {
     "read": "Read",
-    "created": "Created in ISBP",
-    "updated": "Updated in ISBP",
-    "pushed": "Pushed",
-    "remoteCreated": "Created remotely",
+    "created": "Created here",
+    "updated": "Updated here",
+    "pushed": "Sent",
+    "remoteCreated": "Created there",
     "linked": "Linked",
     "conflicts": "Conflicts",
     "skipped": "Unchanged or skipped",
@@ -155,11 +158,11 @@
   },
   "overview": {
     "title": "Integrations",
-    "description": "Connections to outside systems and what syncs between them and ISBP.",
+    "description": "Connections to outside systems and what syncs between them and IS Big Platform.",
     "add": "Add connection",
     "empty": "No connections yet",
     "emptyHint": "Add a connection to an outside system, then set up what syncs with it.",
-    "profiles": "Profiles",
+    "profiles": "Sync rules",
     "linked": "Linked records",
     "conflicts": "Open conflicts",
     "errors": "Errors",
@@ -168,12 +171,14 @@
     "unavailable": "Its connector module is not available.",
     "pickTitle": "Add a connection",
     "pickDescription": "Choose the kind of system to connect to.",
-    "noConnectors": "No connector is installed. Connector modules (such as ServiceDesk Plus or Azure DevOps) add systems you can connect to."
+    "noConnectors": "No connector is installed. Connector modules (such as ServiceDesk Plus or Azure DevOps) add systems you can connect to.",
+    "resolve": "Resolve",
+    "view": "View"
   },
   "connectionForm": {
     "createTitle": "Add a {connector} connection",
     "editTitle": "Edit {name}",
-    "description": "Settings of the outside system and the credentials ISBP uses.",
+    "description": "Settings of the outside system and the credentials IS Big Platform uses.",
     "name": "Connection name",
     "namePlaceholder": "Contoso service desk",
     "nameHint": "Shown in lists, run logs and on synced records.",
@@ -199,7 +204,7 @@
   },
   "webhook": {
     "title": "Webhook",
-    "description": "The outside system calls this address when records change; ISBP then reads them. Polling continues as a safety net.",
+    "description": "The outside system calls this address when records change; IS Big Platform then reads them. Polling continues as a safety net.",
     "notSupported": "This connector doesn’t use webhooks; changes are read on the schedule.",
     "url": "Webhook URL",
     "copyUrl": "Copy webhook URL",
@@ -220,14 +225,15 @@
       "sdp_cloud": "In ServiceDesk Plus Cloud: Admin → Automation → Webhooks. Add a custom header X-ISBP-Webhook-Secret with the secret and call the webhook from the business rules of requests, problems, changes and assets.",
       "sdp_server": "In ServiceDesk Plus: Admin → Automation → Custom Triggers or Webhooks. Add a custom header X-ISBP-Webhook-Secret with the secret.",
       "azdo_server": "In Azure DevOps Server: Project settings → Service hooks → Web Hooks. Choose the work item and Git events, enter the URL and add the HTTP header X-ISBP-Webhook-Secret:secret."
-    }
+    },
+    "setup": "Setup: instant updates (webhook)"
   },
   "connection": {
     "back": "Integrations",
     "notFound": "Connection not found",
     "tabs": {
       "overview": "Overview",
-      "profiles": "Sync profiles",
+      "profiles": "Sync rules",
       "runs": "Runs",
       "links": "Linked records",
       "conflicts": "Conflicts"
@@ -242,12 +248,12 @@
     "lastSync": "Last sync",
     "deleted": "Connection deleted",
     "deleteTitle": "Delete {name}?",
-    "deleteDescription": "Its sync profiles, links, runs and conflicts are deleted. No record is deleted, in ISBP or in the outside system."
+    "deleteDescription": "Its sync rules, links, runs and conflicts are deleted. No record is deleted, in IS Big Platform or in the outside system."
   },
   "profiles": {
-    "new": "New sync profile",
-    "empty": "No sync profiles yet",
-    "emptyHint": "A sync profile says what syncs with what: a kind of remote record with a kind of ISBP record, and how fields map.",
+    "new": "New sync rule",
+    "empty": "No sync rules yet",
+    "emptyHint": "A sync rule says what syncs with what: a kind of remote record with a kind of IS Big Platform record, and how fields map.",
     "run": "Run now",
     "runNamed": "Run {name} now",
     "runStarted": "Sync started",
@@ -261,22 +267,22 @@
     "noSchedule": "Not scheduled"
   },
   "editor": {
-    "eyebrow": "Sync profile · {system}",
-    "newTitle": "New sync profile",
-    "notFound": "Sync profile not found",
-    "readOnly": "You can see this profile but not change it: changing it needs the sync permission of its kind of record.",
+    "eyebrow": "Sync rule · {system}",
+    "newTitle": "New sync rule",
+    "notFound": "Sync rule not found",
+    "readOnly": "You can see this rule but not change it: changing it needs the sync permission of its kind of record.",
     "defaultName": "{remote} ↔ {local}",
     "what": "What syncs with what",
-    "whatHint": "Choose a kind of record in the outside system and the kind of ISBP record it becomes.",
-    "whatFixed": "These can’t change after the profile is created. Create another profile instead.",
-    "name": "Profile name",
+    "whatHint": "Choose a kind of record in the outside system and the kind of IS Big Platform record it becomes.",
+    "whatFixed": "These can’t change after the rule is created. Create another rule instead.",
+    "name": "Rule name",
     "nameRequired": "Enter a name.",
     "remoteObject": "In {system}",
     "chooseObject": "Choose a kind of record",
     "remoteScope": "Where",
     "chooseScope": "Choose where",
     "scopeRequired": "Choose where in the outside system.",
-    "localEntity": "In ISBP",
+    "localEntity": "In IS Big Platform",
     "chooseEntity": "Choose a kind of record",
     "suggested": "(suggested)",
     "noSyncPermission": "You don’t have the sync permission for this kind of record.",
@@ -285,86 +291,93 @@
     "searchContainer": "Search…",
     "searching": "Searching…",
     "noContainers": "Nothing found.",
-    "containerRequired": "Choose where in ISBP.",
+    "containerRequired": "Choose where in IS Big Platform.",
     "direction": "Direction",
     "directionHint": "Which way changes flow. Each field can narrow it further in the mapping.",
     "records": "Records",
     "recordsHint": "What happens to records that exist on only one side.",
-    "createLocal": "Create records in ISBP",
-    "createLocalHint": "New records in {system} are created in ISBP.",
+    "createLocal": "Create records in IS Big Platform",
+    "createLocalHint": "New records in {system} are created in IS Big Platform.",
     "createRemote": "Create records in {system}",
-    "createRemoteHint": "New ISBP records that pass the filter below are created in {system}.",
-    "createRemoteUnsupported": "{system} doesn’t let ISBP create these records.",
+    "createRemoteHint": "New IS Big Platform records that pass the filter below are created in {system}.",
+    "createRemoteUnsupported": "{system} doesn’t let IS Big Platform create these records.",
     "matchRule": "Match existing records",
     "matchRuleHint": "Records both sides already have are linked instead of duplicated when this field has the same value.",
-    "matchLocal": "Field in ISBP",
+    "matchLocal": "Field in IS Big Platform",
     "matchRemote": "Field in {system}",
     "noMatching": "Don’t match",
     "chooseRemoteField": "Choose a field",
     "pushFilter": "Which records to create",
-    "pushFilterHint": "Only ISBP records matching all conditions are created in {system}. No conditions: all of them.",
+    "pushFilterHint": "Only IS Big Platform records matching all conditions are created in {system}. No conditions: all of them.",
     "schedule": "Schedule",
     "interval": "Minutes between syncs",
     "intervalHint": "0 turns scheduled syncs off (webhooks, Run now and Scheduled Jobs still work).",
-    "intervalPush": "Changes are pushed as soon as they happen in ISBP.",
+    "intervalPush": "Changes are pushed as soon as they happen in IS Big Platform.",
     "intervalInvalid": "Enter a whole number from 0 to 1440.",
     "enabled": "Enabled",
-    "enabledHint": "When off, nothing syncs for this profile.",
+    "enabledHint": "When off, nothing syncs for this rule.",
     "conflicts": "Conflicts and comments",
     "conflictsHint": "When a field changed on both sides since the last sync.",
     "policy": "Conflict rule",
-    "policyOneWay": "With a one-way profile the source always wins: {system} for “Into ISBP”, ISBP for “Out of ISBP”.",
+    "policyOneWay": "With a one-way rule the source always wins: {system} for “Into IS Big Platform”, IS Big Platform for “Out of IS Big Platform”.",
     "comments": "Sync comments",
     "commentsHint": "New comments are copied both ways, each once, with their author. Internal notes stay internal in {system} too.",
     "commentsUnsupported": "Comments can’t sync for this pair.",
     "mapping": "Field mapping",
-    "mappingHint": "Which ISBP field matches which field in {system}. Values are converted (HTML ↔ Markdown, people by email, choices through value maps).",
+    "mappingHint": "Which IS Big Platform field matches which field in {system}. Values are converted (HTML ↔ Markdown, people by email, choices through value maps).",
     "mappingWaiting": "Choose what syncs with what first.",
     "preview": "Preview",
     "previewHint": "A dry run on the next changes. Nothing is written and the sync position doesn’t move.",
     "runPreview": "Preview",
     "fixIssues": "Fix the problems shown above.",
-    "create": "Create profile",
-    "created": "Sync profile created",
-    "saved": "Sync profile saved",
+    "create": "Create rule",
+    "created": "Sync rule created",
+    "saved": "Sync rule saved",
     "runNow": "Run now",
     "export": "Push existing records to {system}",
     "runStarted": "Sync started",
-    "deleted": "Sync profile deleted",
+    "deleted": "Sync rule deleted",
     "deleteTitle": "Delete {name}?",
-    "deleteDescription": "Its links, runs and conflicts are deleted; no record is deleted on either side. A new profile can link the records again.",
-    "insecureHint": "The server uses plain HTTP. If it can’t use HTTPS, turn on “Allow insecure HTTP” in the connection’s settings."
+    "deleteDescription": "Its links, runs and conflicts are deleted; no record is deleted on either side. A new rule can link the records again.",
+    "insecureHint": "The server uses plain HTTP. If it can’t use HTTPS, turn on “Allow insecure HTTP” in the connection’s settings.",
+    "lastRunLabel": "Last run:",
+    "errorsCount": "{count, plural, one {# record didn’t sync} other {# records didn’t sync}}",
+    "conflictsCount": "{count, plural, one {# conflict} other {# conflicts}}",
+    "viewRun": "View the run",
+    "neverRun": "Not run yet",
+    "nextRun": "next run"
   },
   "mapping": {
     "suggest": "Use suggested mapping",
     "add": "Add field",
     "empty": "No fields are mapped yet.",
-    "localField": "Field in ISBP, row {n}",
+    "localField": "Field in IS Big Platform, row {n}",
     "remoteField": "Field in {system}, row {n}",
     "directionOf": "Direction, row {n}",
-    "chooseLocal": "ISBP field",
+    "chooseLocal": "IS Big Platform field",
     "chooseRemote": "Remote field",
     "readOnly": "read-only",
     "values": "Values",
     "remove": "Remove row {n}",
     "dir": {
       "both": "Both ways",
-      "pull": "Into ISBP only",
-      "push": "Out of ISBP only"
+      "pull": "Only from {system}",
+      "push": "Only to {system}"
     },
     "valuesTitle": "Values of {local} ↔ {remote}",
-    "valuesDescription": "Which ISBP value each value from {system} becomes, and back.",
+    "valuesDescription": "Which IS Big Platform value each value from {system} becomes, and back.",
     "inSystem": "In {system}",
-    "inIsbp": "In ISBP",
+    "inIsbp": "In IS Big Platform",
     "remoteValue": "Remote value {n}",
-    "localValue": "ISBP value {n}",
+    "localValue": "IS Big Platform value {n}",
     "removeValue": "Remove value {n}",
     "addValue": "Add value",
-    "valuesHint": "One row per value and direction: several remote values can become the same ISBP value with “Into ISBP only” rows, and one row says what that ISBP value becomes when it goes out. Values that are the same on both sides (ignoring case) need no row; a value without a match is skipped and logged.",
+    "valuesHint": "One row per value and direction: several remote values can become the same IS Big Platform value with “Into IS Big Platform only” rows, and one row says what that IS Big Platform value becomes when it goes out. Values that are the same on both sides (ignoring case) need no row; a value without a match is skipped and logged.",
     "valueDirection": "Direction of value {n}",
     "direction": "Direction",
     "chooseValue": "Value",
-    "addMissing": "{count, plural, one {Add # value of {system}} other {Add # values of {system}}}"
+    "addMissing": "{count, plural, one {Add # value of {system}} other {Add # values of {system}}}",
+    "inRemoteHeader": "In {system}"
   },
   "filter": {
     "none": "No conditions: every record.",
@@ -386,42 +399,42 @@
     }
   },
   "issues": {
-    "unknown_local": "ISBP has no field “{field}”.",
+    "unknown_local": "IS Big Platform has no field “{field}”.",
     "unknown_remote": "The remote system has no field “{field}”.",
     "duplicate_local": "“{field}” is mapped twice.",
     "duplicate_remote": "“{field}” is mapped twice.",
     "incompatible": "A {local} field can’t be mapped to a {remote} field.",
-    "no_direction": "Nothing can sync this way: a field is read-only, or the profile goes the other way.",
-    "unknown_local_choice": "“{value}” is not a choice in ISBP.",
+    "no_direction": "Nothing can sync this way: a field is read-only, or the rule goes the other way.",
+    "unknown_local_choice": "“{value}” is not a choice in IS Big Platform.",
     "unknown_remote_choice": "“{value}” is not a choice in the remote system.",
-    "duplicate_value": "“{value}” comes into ISBP through two rows: make one of them “Out of ISBP only”.",
+    "duplicate_value": "“{value}” comes into IS Big Platform through two rows: make one of them “Out of IS Big Platform only”.",
     "match_unsupported": "Records can’t be matched on “{field}”.",
-    "required_unmapped": "Map “{field}”: ISBP needs it to create records.",
+    "required_unmapped": "Map “{field}”: IS Big Platform needs it to create records.",
     "remote_required_unmapped": "Map the remote field “{field}”: it’s needed to create records there.",
-    "create_local_needs_pull": "Creating records in ISBP needs a profile that syncs into ISBP.",
-    "create_remote_needs_push": "Creating remote records needs a profile that syncs out of ISBP.",
-    "create_unsupported": "The remote system doesn’t let ISBP create these records.",
+    "create_local_needs_pull": "Creating records in IS Big Platform needs a rule that syncs into IS Big Platform.",
+    "create_remote_needs_push": "Creating remote records needs a rule that syncs out of IS Big Platform.",
+    "create_unsupported": "The remote system doesn’t let IS Big Platform create these records.",
     "comments_unsupported": "Comments can’t sync for this pair.",
     "too_many": "Too many rows.",
     "unknown_object": "Unknown kind of remote record.",
     "scope_required": "Choose where in the remote system.",
-    "container_required": "Choose where in ISBP.",
+    "container_required": "Choose where in IS Big Platform.",
     "unknown_scope": "Not found in the remote system.",
     "unknown_container": "Not found, or you can’t see it.",
-    "duplicate_local_value": "“{value}” goes out of ISBP through two rows: make one of them “Into ISBP only”."
+    "duplicate_local_value": "“{value}” goes out of IS Big Platform through two rows: make one of them “Into IS Big Platform only”."
   },
   "preview": {
     "fromRemote": "{count, plural, one {The next change in {system}:} other {The next # changes in {system}:}}",
-    "fromLocal": "{count, plural, one {The first ISBP record:} other {The first # ISBP records:}}",
+    "fromLocal": "{count, plural, one {The first IS Big Platform record:} other {The first # IS Big Platform records:}}",
     "more": "More are waiting.",
     "nothingRemote": "No changes in {system} since the last sync.",
-    "nothingLocal": "No ISBP records to push.",
+    "nothingLocal": "No IS Big Platform records to push.",
     "empty": "(empty)",
     "becomes": "becomes",
     "actions": {
-      "create": "Create in ISBP",
+      "create": "Create in IS Big Platform",
       "link": "Link existing",
-      "update": "Update in ISBP",
+      "update": "Update in IS Big Platform",
       "push": "Update in {system}",
       "remoteCreate": "Create in {system}",
       "conflict": "Conflict",
@@ -429,7 +442,7 @@
       "orphan": "Deleted on one side"
     },
     "direction": {
-      "pull": "into ISBP",
+      "pull": "into IS Big Platform",
       "push": "to {system}",
       "conflict": "conflict"
     },
@@ -437,7 +450,7 @@
       "deleted": "deleted in the remote system",
       "orphaned": "deleted on one side earlier",
       "unchanged": "nothing changed",
-      "not_linked": "not linked, and creating in ISBP is off",
+      "not_linked": "not linked, and creating in IS Big Platform is off",
       "filtered": "doesn’t pass the filter",
       "parent_unlinked": "its parent isn’t linked yet",
       "unmappable": "{field} can’t be converted and would be skipped"
@@ -445,14 +458,14 @@
   },
   "runs": {
     "title": "Runs",
-    "run": "Profile",
+    "run": "Sync rule",
     "changes": "Changes",
     "countsLine": "{read} read · {written} written · {conflicts, plural, one {# conflict} other {# conflicts}} · {errors, plural, one {# error} other {# errors}}",
     "started": "Started",
     "allStatuses": "All statuses",
     "empty": "No runs yet",
     "emptyFiltered": "No runs match",
-    "emptyHint": "Runs appear when a profile syncs: on its schedule, on webhooks, on changes in ISBP, or with Run now."
+    "emptyHint": "Runs appear when a rule syncs: on its schedule, on webhooks, on changes in IS Big Platform, or with Run now."
   },
   "run": {
     "notFound": "Run not found",
@@ -463,7 +476,7 @@
     "openConnection": "Open the connection",
     "counts": "Counts",
     "details": "Details",
-    "profile": "Profile",
+    "profile": "Sync rule",
     "started": "Started",
     "finished": "Finished",
     "duration": "Duration",
@@ -480,15 +493,17 @@
       "info": "Info",
       "warn": "Warning",
       "error": "Error"
-    }
+    },
+    "problems": "{count, plural, one {# problem} other {# problems}}",
+    "openLink": "Find in linked records"
   },
   "links": {
     "title": "Linked records",
     "filter": "Filter by status",
     "search": "Search by reference or title",
-    "local": "In ISBP",
+    "local": "In IS Big Platform",
     "remote": "Remote record",
-    "profile": "Profile",
+    "profile": "Sync rule",
     "lastSynced": "Last synced",
     "notCreated": "Not created yet",
     "hidden": "A record you can’t see",
@@ -498,7 +513,7 @@
     "syncRequested": "Sync started",
     "relink": "Link to another record",
     "relinkTitle": "Link to another remote record",
-    "relinkDescription": "The ISBP record is linked to {ref} now. Enter the id of the remote record it should be linked to; it’s synced right away.",
+    "relinkDescription": "The IS Big Platform record is linked to {ref} now. Enter the id of the remote record it should be linked to; it’s synced right away.",
     "remoteId": "Remote record id",
     "remoteIdHint": "The record’s id in the outside system (not its display reference).",
     "relinked": "Record linked",
@@ -508,7 +523,7 @@
     "unlinked": "Unlinked",
     "empty": "No linked records yet",
     "emptyFiltered": "No linked records match",
-    "emptyHint": "Records are linked when a profile syncs them."
+    "emptyHint": "Records are linked when a rule syncs them."
   },
   "conflicts": {
     "title": "Sync conflicts",
@@ -524,7 +539,7 @@
     "viewFor": "View the conflict of {ref}",
     "emptyOpen": "No open conflicts",
     "empty": "No conflicts",
-    "emptyHint": "Conflicts appear when a profile asks a person to decide and both sides changed the same field."
+    "emptyHint": "Conflicts appear when a rule asks a person to decide and both sides changed the same field."
   },
   "resolve": {
     "title": "Resolve sync conflict",
@@ -532,13 +547,17 @@
     "hiddenRecord": "A record you can’t see",
     "hiddenHint": "You can’t see this record, so its values are hidden.",
     "base": "Last synced value",
-    "inIsbp": "Keep ISBP’s value",
+    "inIsbp": "Keep the value here",
     "inRemote": "Keep the value from {system}",
     "empty": "(empty)",
-    "keepBoth": "Keep both as they are",
+    "keepBoth": "Don’t sync this change",
     "apply": "Apply",
     "resolved": "Conflict resolved",
-    "dismissed": "Both values kept"
+    "dismissed": "Each side keeps its value",
+    "keepBothHint": "“Don’t sync this change”: each side keeps its own value; later changes sync normally.",
+    "changedBy": "Changed by {name}",
+    "changedHere": "Changed here",
+    "changedIn": "Changed in {system}"
   },
   "panel": {
     "title": "Synced with",
@@ -549,15 +568,33 @@
     "requested": "Sync started"
   },
   "taskConfig": {
-    "profile": "Sync profile",
-    "pick": "Choose a sync profile",
+    "profile": "Sync rule",
+    "pick": "Choose a sync rule",
     "loading": "Loading…",
     "option": "{profile} ({connection})",
     "disabled": "disabled",
-    "hint": "Runs the profile’s sync like Run now, with this job’s retries and alerts.",
+    "hint": "Runs the rule’s sync like Run now, with this job’s retries and alerts.",
     "open": "Open {name}"
   },
   "customizations": {
-    "profile": "Sync profile"
+    "profile": "Sync rule"
+  },
+  "attention": {
+    "title": "Needs attention",
+    "description": "Decide the conflicts and check the records that didn’t sync.",
+    "nothing": "Nothing needs attention: no open conflicts and no failed records.",
+    "conflicts": "{count, plural, one {# open conflict} other {# open conflicts}}",
+    "fieldsChanged": "Changed on both sides: {fields}",
+    "resolve": "Resolve",
+    "resolveFor": "Resolve the conflict of {ref}",
+    "allConflicts": "All {count} conflicts",
+    "failed": "{count, plural, one {# record didn’t sync} other {# records didn’t sync}}",
+    "allFailed": "All {count} records that didn’t sync",
+    "rules": "Sync rules whose last run had problems",
+    "viewRun": "View the run"
+  },
+  "results": {
+    "sync": "{read} read · {created} created · {updated} updated · {pushed} sent{conflicts, plural, =0 {} one { · # conflict} other { · # conflicts}}{errors, plural, =0 {} one { · # error} other { · # errors}}",
+    "alreadyRunning": "A sync of this rule was already running"
   }
 }

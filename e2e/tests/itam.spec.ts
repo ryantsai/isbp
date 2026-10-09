@@ -138,13 +138,13 @@ test('Discovery: map a discovered title to a licence, undo it, and import an inv
   page,
 }) => {
   await page.goto('/itam/discovery');
-  await expect(page.getByRole('heading', { name: 'Software discovery', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Software', level: 1 })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Software sections' })).toContainText('Installed');
   // The seed leaves an old Microsoft 365 title on a few devices; 7-Zip is ignored (free).
   const title = 'Microsoft Office 365 ProPlus';
   await expect(page.getByRole('row').filter({ hasText: title })).toBeVisible();
   await expect(page.getByRole('row').filter({ hasText: '7-Zip' })).toHaveCount(0);
-  await page.getByRole('button', { name: `Actions for ${title}` }).click();
-  await page.getByRole('menuitem', { name: 'Map to licence' }).click();
+  await page.getByRole('button', { name: `Map ${title} to a licence` }).click();
   const dialog = page.getByRole('dialog', { name: `Map “${title}” to a licence` });
   await dialog.getByRole('combobox', { name: 'Licence' }).click();
   await page.keyboard.type('Microsoft 365 E3');
@@ -160,7 +160,7 @@ test('Discovery: map a discovered title to a licence, undo it, and import an inv
   await page.getByRole('button', { name: `Remove the rule for ${title}` }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Remove' }).click();
   await expect(rule).toHaveCount(0);
-  await page.getByRole('tab', { name: 'To review' }).click();
+  await page.getByRole('tab', { name: 'No licence' }).click();
   await expect(page.getByRole('row').filter({ hasText: title })).toBeVisible();
 
   // A device the platform doesn't know changes nothing and is listed as not registered.
@@ -218,6 +218,9 @@ test('Assets pages have no accessibility violations (light and dark)', async ({ 
     await page.goto(`/itam/hardware/${laptop.tag}`);
     for (const tab of ['Software', 'History']) {
       await page.getByRole('tab', { name: tab }).click();
+      // The tab is kept in the URL: wait for that navigation (and the page title it re-renders) to land.
+      await expect(page).toHaveURL(new RegExp(`tab=${tab.toLowerCase()}`));
+      await expect(page).toHaveTitle(/\S/);
       await expectAccessible(page, `${scheme} asset ${tab}`);
     }
     await page.goto('/itam/vendors');
@@ -230,10 +233,9 @@ test('Assets pages have no accessibility violations (light and dark)', async ({ 
     await expectAccessible(page, `${scheme} discovery import dialog`);
     await page.keyboard.press('Escape');
     await page
-      .getByRole('button', { name: /^Actions for / })
+      .getByRole('button', { name: /^Map .* to a licence$/ })
       .first()
       .click();
-    await page.getByRole('menuitem', { name: 'Map to licence' }).click();
     await expect(page.getByRole('dialog', { name: /to a licence$/ })).toBeVisible();
     await expectAccessible(page, `${scheme} discovery map dialog`);
     await page.keyboard.press('Escape');

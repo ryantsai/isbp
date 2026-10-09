@@ -31,6 +31,7 @@ import {
 } from '../../contracts';
 import { TONE } from '../badges';
 import { INVALIDATE, sqlSchemaOf, useCatalog, useConnections } from '../lib';
+import { problemOfError, RunProblemBanner } from '@isbp/ui/run-detail';
 import { type Errors, ParamsEditor } from './params-editor';
 
 const EMPTY_CLIENTS: ApiClientRef[] = [];
@@ -185,7 +186,7 @@ export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
       <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="grid min-w-0 gap-6 xl:col-span-2">
           <Section title={t('editor.statement')} description={t(`editor.statementHint.${draft.kind}`)}>
-            <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid min-w-0 grid-cols-1 gap-4">
               <Field
                 id={`${id}-connection`}
                 label={t('fields.connection')}
@@ -211,6 +212,8 @@ export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
                   </SelectContent>
                 </Select>
               </Field>
+            </div>
+            <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
               <Field id={`${id}-method`} label={t('fields.method')}>
                 <Select value={draft.method} onValueChange={(v) => setDraft({ method: v as 'GET' | 'POST' })}>
                   <SelectTrigger id={`${id}-method`} className="w-full">
@@ -262,6 +265,23 @@ export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
                 <p id={`${id}-sql-hint`} className="text-xs text-muted-foreground">
                   {t('editor.sqlHint')}
                 </p>
+                {catalog.error && (
+                  <RunProblemBanner
+                    tone="warning"
+                    title={t('editor.catalogFailed', {
+                      name: connection?.name ?? endpoint.connection?.name ?? '',
+                    })}
+                    problem={problemOfError(
+                      catalog.error,
+                      draft.connectionId
+                        ? {
+                            id: draft.connectionId,
+                            name: connection?.name ?? endpoint.connection?.name ?? '',
+                          }
+                        : null,
+                    )}
+                  />
+                )}
                 {errors['draft.sql'] && <p className="text-xs text-destructive">{errors['draft.sql']}</p>}
                 <div
                   className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm"

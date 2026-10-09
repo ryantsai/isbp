@@ -30,7 +30,11 @@ import {
 import type { z } from 'zod';
 import {
   type ArticleAction,
+  type ArticleAudience,
+  type ArticleCounts,
+  type articleCountsQuerySchema,
   articleHref,
+  ARTICLE_LOCALES,
   type ArticleLocale,
   type articleQuerySchema,
   articleReference,
@@ -40,6 +44,7 @@ import {
   type feedbackInputSchema,
   parseArticleRef,
   parseClassificationLevels,
+  type SubmitOutcome,
   type updateArticleSchema,
 } from '../contracts';
 import {
@@ -80,6 +85,12 @@ export function viewerOf(auth: AuthContext): Viewer {
     write: auth.can(PERMISSIONS.write),
     publish: auth.can(PERMISSIONS.publish),
   };
+}
+
+/** The caller's language when it is an article language, else English: the default language of what they write. */
+export function authorLocale(auth: AuthContext): ArticleLocale {
+  const l = auth.user?.locale;
+  return (ARTICLE_LOCALES as readonly string[]).includes(l ?? '') ? (l as ArticleLocale) : 'en';
 }
 
 /** SQL twin of `canView` for list queries. */
@@ -238,12 +249,14 @@ export class ArticleService {
 
   /* ───────────── reads ───────────── */
 
-  async list(q: z.output<typeof articleQuerySchema>, auth: AuthContext) {
-    const v = viewerOf(auth);
-    if (q.status && q.status !== 'published' && !v.write && !v.publish)
-      throw httpErrors.forbidden('Only authors and editors can list unpublished articles');
-    if (q.owner === 'me' && !v.userId) return { items: [], total: 0, page: q.page, pageSize: q.pageSize };
-
+  /**
+   * The filters shared by the list and the management counts (visibility, category with its subcategories, audience,
+   * language, classification, text or KB number). `null` when nothing can match (unknown category).
+   */
+  private async filterWhere(
+    q: z.output<typeof articleCountsQuerySchema>,
+    v: Viewer,
+  ): Promise<SQL | undefined | null> {
     let categoryIds: string[] | null = null;
     if (q.category) {
       const isId = /^[0-9a-f-]{36}$/i.test(q.category);
@@ -251,7 +264,7 @@ export class ArticleService {
         .select({ id: categories.id })
         .from(categories)
         .where(isId ? eq(categories.id, q.category) : eq(categories.key, q.category));
-      if (!cat) return { items: [], total: 0, page: q.page, pageSize: q.pageSize };
+      if (!cat) return null;
       const children = await this.ctx.db
         .select({ id: categories.id })
         .from(categories)
@@ -259,15 +272,11 @@ export class ArticleService {
       categoryIds = [cat.id, ...children.map((c) => c.id)];
     }
     const ref = q.q ? parseArticleRef(q.q) : null;
-    const where = and(
+    return and(
       visibleWhere(v),
-      q.status ? eq(articles.status, q.status) : undefined,
       categoryIds ? inArray(articles.categoryId, categoryIds) : undefined,
       q.audience ? eq(articles.audience, q.audience) : undefined,
       q.locale ? eq(articles.locale, q.locale) : undefined,
-      q.owner === 'me' ? eq(articles.ownerId, v.userId!) : undefined,
-      q.reviewDue === true ? reviewDueSql : undefined,
-      q.tag ? sql`${articles.tags} @> array[${q.tag}]::text[]` : undefined,
       q.classification === 'none'
         ? sql`${articles.classification} is null`
         : q.classification
@@ -278,6 +287,23 @@ export class ArticleService {
           ? eq(articles.number, ref.number)
           : or(ilike(articles.title, likePattern(q.q)), ilike(articles.summary, likePattern(q.q)))
         : undefined,
+    );
+  }
+
+  async list(q: z.output<typeof articleQuerySchema>, auth: AuthContext) {
+    const v = viewerOf(auth);
+    if (q.status && q.status !== 'published' && !v.write && !v.publish)
+      throw httpErrors.forbidden('Only authors and editors can list unpublished articles');
+    if (q.owner === 'me' && !v.userId) return { items: [], total: 0, page: q.page, pageSize: q.pageSize };
+
+    const filters = await this.filterWhere(q, v);
+    if (filters === null) return { items: [], total: 0, page: q.page, pageSize: q.pageSize };
+    const where = and(
+      filters,
+      q.status ? eq(articles.status, q.status) : undefined,
+      q.owner === 'me' ? eq(articles.ownerId, v.userId!) : undefined,
+      q.reviewDue === true ? reviewDueSql : undefined,
+      q.tag ? sql`${articles.tags} @> array[${q.tag}]::text[]` : undefined,
     );
 
     // One article per translation group, preferring the caller's language, then English.
@@ -321,6 +347,66 @@ export class ArticleService {
     return { items: rows.map(toListItem), total: total!.n, page: q.page, pageSize: q.pageSize };
   }
 
+  /**
+   * Articles per management tab with the list's filters: the caller's drafts, in review, published, retired, and past
+   * their review date (editors see everyone's; authors their own, as the "Review due" tab shows them).
+   */
+  async counts(q: z.output<typeof articleCountsQuerySchema>, auth: AuthContext): Promise<ArticleCounts> {
+    const v = viewerOf(auth);
+    if (!v.write && !v.publish)
+      throw httpErrors.forbidden('Only authors and editors can count unpublished articles');
+    const none = { mine: 0, review: 0, published: 0, retired: 0, due: 0 };
+    const where = await this.filterWhere(q, v);
+    if (where === null) return none;
+    const me = v.userId ?? '00000000-0000-0000-0000-000000000000';
+    const [row] = await this.ctx.db
+      .select({
+        mine: sql<number>`count(*) filter (where ${articles.status} = 'draft' and ${articles.ownerId} = ${me})::int`,
+        review: sql<number>`count(*) filter (where ${articles.status} = 'in_review')::int`,
+        published: sql<number>`count(*) filter (where ${articles.status} = 'published')::int`,
+        retired: sql<number>`count(*) filter (where ${articles.status} = 'retired')::int`,
+        due: v.publish
+          ? sql<number>`count(*) filter (where ${reviewDueSql})::int`
+          : sql<number>`count(*) filter (where ${reviewDueSql} and ${articles.ownerId} = ${me})::int`,
+      })
+      .from(articles)
+      .where(where);
+    return row ?? none;
+  }
+
+  /**
+   * What submitting an article with these facts does for the caller (see `submitOutcomeSchema`): a dry run of the
+   * review workflow `submit` would start (`ctx.workflows.preview`), else whether they publish themselves.
+   */
+  async submitOutcome(
+    facts: { audience: ArticleAudience; locale: ArticleLocale; categoryKey: string | null },
+    auth: AuthContext,
+  ): Promise<SubmitOutcome> {
+    const v = this.viewer(auth);
+    const review = await this.ctx.workflows.preview(PUBLISH_TRIGGER, {
+      facts: { article: facts },
+      requesterId: v.userId,
+    });
+    if (review) return 'approval';
+    return v.publish ? 'publish' : 'review';
+  }
+
+  /** `submitOutcome` for a form that isn't saved yet (the editor's button says what will happen). */
+  async submitOutcomeFor(
+    input: { audience: ArticleAudience; locale?: ArticleLocale; categoryId?: string },
+    auth: AuthContext,
+  ): Promise<SubmitOutcome> {
+    const category = await this.category(input.categoryId ?? null);
+    return this.submitOutcome(
+      {
+        audience: input.audience,
+        locale: input.locale ?? authorLocale(auth),
+        categoryKey: category?.key ?? null,
+      },
+      auth,
+    );
+  }
+
   /** Full article for the caller (counts a view of published articles once per reader per day). */
   async get(ref: string, auth: AuthContext, opts: { countView?: boolean } = {}) {
     const row = await this.visible(ref, auth);
@@ -353,6 +439,7 @@ export class ArticleService {
         : Promise.resolve([]),
       this.ctx.files.list({ type: INDEX_TYPE, id: a.id }),
     ]);
+    const actions = availableActions(a, v);
     return {
       ...toListItem(r),
       body: a.body,
@@ -373,7 +460,13 @@ export class ArticleService {
       canEdit: canEdit(a, v),
       canPublish: v.publish,
       canDelete: canDelete(a, v),
-      actions: availableActions(a, v),
+      actions,
+      submitOutcome: actions.includes('submit')
+        ? await this.submitOutcome(
+            { audience: a.audience, locale: a.locale, categoryKey: r.c?.key ?? null },
+            auth,
+          )
+        : null,
       myFeedback: mine[0] ?? null,
       attachments: files.length,
     };
@@ -450,7 +543,6 @@ export class ArticleService {
   private async translationGroup(
     translationOf: string | null | undefined,
     selfId: string,
-    locale: ArticleLocale,
     auth: AuthContext,
   ): Promise<string | null> {
     if (!translationOf) return null;
@@ -462,6 +554,22 @@ export class ArticleService {
     if (!target || !canView(target, this.viewer(auth)))
       throw httpErrors.notFound('Original article not found');
     return target.translationGroupId;
+  }
+
+  /**
+   * The language of a new article written without one: the author's, unless it's a translation and its group already
+   * has that language, then the first language the group doesn't have yet.
+   */
+  private async defaultLocale(group: string | null, auth: AuthContext): Promise<ArticleLocale> {
+    const mine = authorLocale(auth);
+    if (!group) return mine;
+    const rows = await this.ctx.db
+      .select({ locale: articles.locale })
+      .from(articles)
+      .where(and(eq(articles.translationGroupId, group), ne(articles.status, 'retired')));
+    const taken = new Set(rows.map((r) => r.locale));
+    if (!taken.has(mine)) return mine;
+    return ARTICLE_LOCALES.find((l) => !taken.has(l)) ?? mine;
   }
 
   /** One article per language in a translation group (retired ones don't count). */
@@ -501,8 +609,9 @@ export class ArticleService {
     const id = uuidv7();
     await this.assertCategory(input.categoryId);
     await this.assertClassification(input.classification);
-    const group = await this.translationGroup(input.translationOf, id, input.locale, auth);
-    if (group) await this.assertLocaleFree(group, input.locale, id);
+    const group = await this.translationGroup(input.translationOf, id, auth);
+    const locale = input.locale ?? (await this.defaultLocale(group, auth));
+    if (group) await this.assertLocaleFree(group, locale, id);
     return this.ctx.transaction(async (tx) => {
       const [row] = await tx
         .insert(articles)
@@ -513,7 +622,7 @@ export class ArticleService {
           body: input.body,
           categoryId: input.categoryId ?? null,
           tags: [...new Set(input.tags)],
-          locale: input.locale,
+          locale,
           translationGroupId: group ?? id,
           audience: input.audience,
           status: 'draft',
@@ -606,24 +715,24 @@ export class ArticleService {
     return `${articleReference(a.number)} ${a.title}`;
   }
 
+  /** Refuses an edit the caller may not make in the article's state (409 for states that change, 403 otherwise). */
+  private assertEditable(row: ArticleRow, v: Viewer) {
+    if (canEdit(row, v)) return;
+    if (row.status === 'in_review' && row.reviewInstanceId)
+      throw new HttpError(
+        409,
+        ErrorCodes.INVALID_STATE,
+        'Withdraw the article from review before editing it',
+      );
+    if (row.status === 'retired')
+      throw new HttpError(409, ErrorCodes.INVALID_STATE, 'Restore the article to a draft before editing it');
+    throw httpErrors.forbidden();
+  }
+
   async update(ref: string, input: z.output<typeof updateArticleSchema>, auth: AuthContext) {
     const v = this.viewer(auth);
     const before = await this.visible(ref, auth);
-    if (!canEdit(before, v)) {
-      if (before.status === 'in_review' && before.reviewInstanceId)
-        throw new HttpError(
-          409,
-          ErrorCodes.INVALID_STATE,
-          'Withdraw the article from review before editing it',
-        );
-      if (before.status === 'retired')
-        throw new HttpError(
-          409,
-          ErrorCodes.INVALID_STATE,
-          'Restore the article to a draft before editing it',
-        );
-      throw httpErrors.forbidden();
-    }
+    this.assertEditable(before, v);
     await this.assertCategory(input.categoryId);
     if (input.classification !== undefined && input.classification !== before.classification)
       await this.assertClassification(input.classification);
@@ -639,12 +748,7 @@ export class ArticleService {
     if (input.reviewAt !== undefined) patch.reviewAt = input.reviewAt;
     if (input.classification !== undefined) patch.classification = input.classification;
     if (input.translationOf !== undefined) {
-      const group = await this.translationGroup(
-        input.translationOf,
-        before.id,
-        input.locale ?? before.locale,
-        auth,
-      );
+      const group = await this.translationGroup(input.translationOf, before.id, auth);
       patch.translationGroupId = group ?? before.id;
     }
     const groupAfter = patch.translationGroupId ?? before.translationGroupId;
@@ -662,6 +766,8 @@ export class ArticleService {
     const contentChanged = Boolean(changes.title || changes.summary || changes.body);
 
     return this.ctx.transaction(async (tx) => {
+      // Submitted, retired or deleted meanwhile (a submit racing this save): the rules apply to what is there now.
+      this.assertEditable(await this.lock(tx, before.id), v);
       const [row] = await tx.update(articles).set(patch).where(eq(articles.id, before.id)).returning();
       const a = row!;
       await this.ctx.audit.record(
@@ -685,9 +791,8 @@ export class ArticleService {
     });
   }
 
-  /** Lifecycle actions, checked against the rules for this caller. */
-  private async forAction(ref: string, action: ArticleAction, auth: AuthContext) {
-    const row = await this.visible(ref, auth);
+  /** A lifecycle action checked against the article's state and the caller's rights. */
+  private assertAction(row: ArticleRow, action: ArticleAction, auth: AuthContext) {
     const target = ACTION_TARGET[action];
     if (!canTransition(row.status, target)) throw invalidTransition(row.status, target);
     if (!availableActions(row, this.viewer(auth)).includes(action)) {
@@ -695,6 +800,31 @@ export class ArticleService {
         throw new HttpError(409, ErrorCodes.INVALID_STATE, 'An approval workflow decides on this article');
       throw httpErrors.forbidden();
     }
+  }
+
+  /** Lifecycle actions, checked against the rules for this caller (and again under a lock when they run). */
+  private async forAction(ref: string, action: ArticleAction, auth: AuthContext) {
+    const row = await this.visible(ref, auth);
+    this.assertAction(row, action, auth);
+    return row;
+  }
+
+  /**
+   * The article re-read and locked for the rest of the transaction. Two requests sent at once (a double click, two
+   * editors) both pass the checks made before their transactions; the lock makes the second wait for the first to
+   * commit, and its checks then run on what the first left (409), so nothing is published, versioned, audited or
+   * announced twice.
+   */
+  private async lock(tx: Db, id: string): Promise<ArticleRow> {
+    const [row] = await tx.select().from(articles).where(eq(articles.id, id)).for('update');
+    if (!row) throw httpErrors.notFound('Article not found');
+    return row;
+  }
+
+  /** `lock` plus the action's rules on the locked row. */
+  private async lockFor(tx: Db, id: string, action: ArticleAction, auth: AuthContext) {
+    const row = await this.lock(tx, id);
+    this.assertAction(row, action, auth);
     return row;
   }
 
@@ -704,14 +834,15 @@ export class ArticleService {
    * for a publisher.
    */
   async submit(ref: string, auth: AuthContext) {
-    const before = await this.forAction(ref, 'submit', auth);
-    if (!before.body.trim() || !before.title.trim())
-      throw new HttpError(400, ErrorCodes.VALIDATION_FAILED, 'Write the article before submitting it', {
-        issues: [{ path: 'body', message: 'Write the article before submitting it' }],
-      });
+    const { id } = await this.forAction(ref, 'submit', auth);
     const v = this.viewer(auth);
-    const category = await this.category(before.categoryId);
     return this.ctx.transaction(async (tx) => {
+      const before = await this.lockFor(tx, id, 'submit', auth);
+      if (!before.body.trim() || !before.title.trim())
+        throw new HttpError(400, ErrorCodes.VALIDATION_FAILED, 'Write the article before submitting it', {
+          issues: [{ path: 'body', message: 'Write the article before submitting it' }],
+        });
+      const category = await this.category(before.categoryId, tx);
       const review = await this.ctx.workflows.start(
         PUBLISH_TRIGGER,
         {
@@ -757,23 +888,32 @@ export class ArticleService {
 
   /** In review → published (publishers, when no approval workflow is deciding). */
   async publish(ref: string, auth: AuthContext) {
-    const before = await this.forAction(ref, 'publish', auth);
-    return this.ctx.transaction((tx) => this.markPublished(tx, before, auth.user?.id ?? null));
+    const { id } = await this.forAction(ref, 'publish', auth);
+    return this.ctx.transaction(async (tx) =>
+      this.markPublished(tx, await this.lockFor(tx, id, 'publish', auth), auth.user?.id ?? null),
+    );
   }
 
   /** Back to draft, cancelling the approval workflow if one is running. */
   async withdraw(ref: string, auth: AuthContext) {
-    const before = await this.forAction(ref, 'withdraw', auth);
-    return this.backToDraft(before, 'knowledge.article.withdrawn', 'Withdrawn by the author');
+    const { id } = await this.forAction(ref, 'withdraw', auth);
+    return this.backToDraft(id, 'withdraw', auth, 'knowledge.article.withdrawn', 'Withdrawn by the author');
   }
 
   async restore(ref: string, auth: AuthContext) {
-    const before = await this.forAction(ref, 'restore', auth);
-    return this.backToDraft(before, 'knowledge.article.restored', null);
+    const { id } = await this.forAction(ref, 'restore', auth);
+    return this.backToDraft(id, 'restore', auth, 'knowledge.article.restored', null);
   }
 
-  private async backToDraft(before: ArticleRow, action: string, cancelReason: string | null) {
+  private async backToDraft(
+    id: string,
+    via: 'withdraw' | 'restore',
+    auth: AuthContext,
+    action: string,
+    cancelReason: string | null,
+  ) {
     return this.ctx.transaction(async (tx) => {
+      const before = await this.lockFor(tx, id, via, auth);
       if (before.reviewInstanceId && cancelReason)
         await this.ctx.workflows.cancel(before.reviewInstanceId, cancelReason, { tx });
       const [row] = await tx
@@ -802,8 +942,9 @@ export class ArticleService {
   }
 
   async retire(ref: string, auth: AuthContext) {
-    const before = await this.forAction(ref, 'retire', auth);
+    const { id } = await this.forAction(ref, 'retire', auth);
     return this.ctx.transaction(async (tx) => {
+      const before = await this.lockFor(tx, id, 'retire', auth);
       const [row] = await tx
         .update(articles)
         .set({ status: 'retired' })
@@ -830,9 +971,15 @@ export class ArticleService {
     if (!canDelete(row, viewerOf(auth)))
       throw httpErrors.forbidden('Only drafts can be deleted by their author');
     await this.ctx.transaction(async (tx) => {
-      if (row.reviewInstanceId)
-        await this.ctx.workflows.cancel(row.reviewInstanceId, 'The article was deleted', { tx });
+      // Deleted (404) or submitted by its author (403) meanwhile: decided on what is there now.
+      const locked = await this.lock(tx, row.id);
+      if (!canDelete(locked, viewerOf(auth)))
+        throw httpErrors.forbidden('Only drafts can be deleted by their author');
+      if (locked.reviewInstanceId)
+        await this.ctx.workflows.cancel(locked.reviewInstanceId, 'The article was deleted', { tx });
       await tx.delete(articles).where(eq(articles.id, row.id));
+      // Its links (a problem's known-error article, linked tickets) and attachments go with it.
+      await this.ctx.records.forget({ type: INDEX_TYPE, id: row.id }, { tx });
       await this.ctx.audit.record(
         {
           action: 'knowledge.article.deleted',
@@ -915,8 +1062,11 @@ export class ArticleService {
     const href = articleHref(a.number);
     const params = { title: a.title, reference: articleReference(a.number) };
     await this.ctx.transaction(async (tx) => {
+      // At-least-once delivery, or a withdraw racing the decision: act only on the review that is still running.
+      const current = await tx.select().from(articles).where(eq(articles.id, a.id)).for('update');
+      if (current[0]?.status !== 'in_review' || current[0].reviewInstanceId !== result.instanceId) return;
       if (result.outcome === 'approved') {
-        await this.markPublished(tx, a, result.requesterId);
+        await this.markPublished(tx, current[0], result.requesterId);
         await this.ctx.notifications.notify(
           { type: 'knowledge.article.approved', recipients: [a.ownerId], params, href },
           { tx },
@@ -1215,7 +1365,14 @@ export class ArticleService {
     const v = viewerOf(auth);
     const ref = parseArticleRef(query);
     const rows = await this.ctx.db
-      .select({ id: articles.id, number: articles.number, title: articles.title, summary: articles.summary })
+      .select({
+        id: articles.id,
+        number: articles.number,
+        title: articles.title,
+        summary: articles.summary,
+        locale: articles.locale,
+        group: articles.translationGroupId,
+      })
       .from(articles)
       .where(
         and(
@@ -1232,9 +1389,13 @@ export class ArticleService {
       id: r.id,
       type: 'article',
       title: r.title,
-      subtitle: `${articleReference(r.number)} · ${r.summary}`.slice(0, 160),
+      subtitle: [articleReference(r.number), r.summary].filter(Boolean).join(' · ').slice(0, 160),
       href: articleHref(r.number),
       icon: 'book-open',
+      // Translations of one article are one hit: the platform shows the viewer's language.
+      group: r.group,
+      locale: r.locale,
+      exact: Boolean(ref && 'number' in ref),
     }));
   }
 

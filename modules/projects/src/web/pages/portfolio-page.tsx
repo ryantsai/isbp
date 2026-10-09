@@ -11,6 +11,7 @@ import { EmptyState } from '@isbp/ui/empty-state';
 import { Label } from '@isbp/ui/label';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
+import { ProjectsTabs } from '../section-tabs';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -35,7 +36,7 @@ import { useFormatter, useNow, useTranslations } from 'next-intl';
 import { type ReactNode, useId, useMemo, useState } from 'react';
 import { PERMISSIONS, type ProjectSummary } from '../../contracts';
 import {
-  HealthBadge,
+  ProjectHealthBadge,
   KeyBadge,
   ProgressBar,
   ProjectStatusBadge,
@@ -103,7 +104,7 @@ function ProjectCard({ project, today }: { project: ProjectSummary; today: strin
           </Link>
         </h2>
         <div className="flex min-w-0 items-center gap-2">
-          <HealthBadge health={project.health} />
+          <ProjectHealthBadge project={project} />
           {project.healthNote && project.health !== 'on_track' && (
             <span className="min-w-0 truncate text-xs text-muted-foreground">{project.healthNote}</span>
           )}
@@ -224,7 +225,7 @@ export default function PortfolioPage() {
         ? 'workload'
         : 'cards';
   const archived = state.archived === 'true';
-  const { data, isLoading, isFetching } = useApiQuery<Page<ProjectSummary>>(
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<ProjectSummary>>(
     layout === 'workload' ? null : '/projects/projects',
     {
       page: state.page,
@@ -271,7 +272,7 @@ export default function PortfolioPage() {
         id: 'health',
         header: t('columns.health'),
         meta: { sortKey: 'health' },
-        cell: ({ row }) => <HealthBadge health={row.original.health} plain />,
+        cell: ({ row }) => <ProjectHealthBadge project={row.original} plain />,
       },
       {
         id: 'progress',
@@ -358,6 +359,8 @@ export default function PortfolioPage() {
         sort={state.sort}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(p) => p.id}
         onRowClick={(p) => router.push(projectHref(p.key))}
         onPageChange={(page) => set({ page })}
@@ -435,6 +438,7 @@ export default function PortfolioPage() {
           )
         }
       />
+      <ProjectsTabs />
       <Tabs
         value={layout === 'workload' ? 'all' : filter}
         onValueChange={(v) =>

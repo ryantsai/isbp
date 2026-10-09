@@ -82,8 +82,10 @@ test('request access, see who will approve, get it approved in the inbox', async
   await p.goto('/requests');
   await p
     .getByRole('region', { name: 'What do you need?' })
-    .getByRole('link', { name: /Request access/ })
+    .getByRole('link', { name: /Access to an application/ })
     .click();
+  // The platform's own roles sit under a collapsed "Platform roles" group: open it before choosing one of them.
+  await p.getByRole('button', { name: /^Platform roles/ }).click();
   await p.getByRole('radio', { name: role }).click();
   await p.getByRole('button', { name: 'Continue' }).click();
   await p.getByRole('button', { name: '30 days' }).click();
@@ -96,7 +98,8 @@ test('request access, see who will approve, get it approved in the inbox', async
   await p.getByRole('button', { name: 'Send request' }).click();
   await expect(p).toHaveURL(/\/requests\/REQ-\d{5}$/);
   const reference = p.url().split('/').pop()!;
-  await expect(p.getByText('Waiting for approval')).toBeVisible();
+  // The status and the path both say it: the first match is the status under the title.
+  await expect(p.getByText('Waiting for approval').first()).toBeVisible();
 
   // The approver (admin is the manager and the role owner's fallback) decides in the inbox.
   for (let step = 0; step < 2; step++) {
@@ -121,7 +124,8 @@ test('request access, see who will approve, get it approved in the inbox', async
 
 test('rejecting requires a reason', async ({ page }) => {
   await page.goto('/approvals');
-  const first = page.getByRole('listitem').first();
+  // The first card of the inbox (the sidebar's own list items come first in the page).
+  const first = page.getByRole('list', { name: 'Waiting for me' }).getByRole('listitem').first();
   await expect(first).toBeVisible();
   await first.getByRole('button', { name: /^Reject/ }).click();
   const dialog = page.getByRole('dialog');
@@ -148,12 +152,12 @@ test('submit a form with conditional fields', async ({ browser, baseURL }) => {
   await expect(p.getByText('This field is required').first()).toBeVisible();
   await p.getByRole('combobox', { name: 'Laptop model' }).click();
   await p.getByRole('option', { name: 'Standard 14″' }).click();
-  await p.getByLabel('Estimated cost (USD)').fill('900');
+  await p.getByLabel('Estimated cost (TWD)').fill('27000');
   await p.getByLabel('Business justification').fill('Replacement for a broken laptop (e2e).');
   await p.getByRole('button', { name: 'Submit' }).click();
   await expect(p).toHaveURL(/\/requests\/REQ-\d{5}$/);
   await expect(p.getByText('Standard 14″')).toBeVisible();
-  await expect(p.getByText('Approval path')).toBeVisible();
+  await expect(p.getByText('Who will approve it').first()).toBeVisible();
   await helpdesk.close();
 });
 
@@ -195,7 +199,7 @@ test('workflow builder and a request page have no serious accessibility violatio
   };
   await page.goto(done.items[0]!.instance.subject.href);
   await expect(
-    page.getByText('Approval path').or(page.getByText("This request doesn't need approval.")),
+    page.getByText('Who will approve it').or(page.getByText("This request doesn't need approval.")),
   ).toBeVisible();
   await expectAccessible(page);
 });

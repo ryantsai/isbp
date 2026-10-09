@@ -170,3 +170,30 @@ function safeJson(text: string) {
     return text;
   }
 }
+
+/**
+ * Every item of a cursor-paged GET (`{ items, nextCursor }`): follows `nextCursor` until it is null. `url` is the
+ * request without its `cursor`. Throws on a page that isn't a 200, or when the cursor never ends.
+ */
+export async function everyPage(
+  h: Harness,
+  session: Session,
+  url: string,
+  opts: { maxPages?: number } = {},
+): Promise<{ items: LooseJson[]; pages: number }> {
+  const items: LooseJson[] = [];
+  const sep = url.includes('?') ? '&' : '?';
+  let cursor: string | null = null;
+  for (let pages = 1; ; pages++) {
+    const res = await h.call(
+      session,
+      'GET',
+      cursor ? `${url}${sep}cursor=${encodeURIComponent(cursor)}` : url,
+    );
+    if (res.status !== 200) throw new Error(`GET ${url} → ${res.status} ${JSON.stringify(res.body)}`);
+    items.push(...res.body.items);
+    cursor = res.body.nextCursor;
+    if (!cursor) return { items, pages };
+    if (pages >= (opts.maxPages ?? 100)) throw new Error(`${url}: more than ${pages} pages`);
+  }
+}

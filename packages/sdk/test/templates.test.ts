@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { jsonEscape, renderTemplate, renderTemplates, templatePaths, templateValue } from '../src/templates';
+import {
+  joinTemplate,
+  jsonEscape,
+  renderTemplate,
+  renderTemplates,
+  templatePaths,
+  templateSegments,
+  templateValue,
+} from '../src/templates';
 
 const context = {
   data: {
@@ -93,5 +101,35 @@ describe('templatePaths', () => {
       'data.a',
       'request.reference',
     ]);
+  });
+});
+
+describe('templateSegments', () => {
+  it('splits text and placeholders in order', () => {
+    expect(templateSegments('{{request.reference}}: {{ data.title }} for {{requester.displayName}}')).toEqual(
+      [
+        { path: 'request.reference' },
+        { text: ': ' },
+        { path: 'data.title' },
+        { text: ' for ' },
+        { path: 'requester.displayName' },
+      ],
+    );
+  });
+
+  it("keeps what isn't a plain path as text, merged with its neighbours", () => {
+    expect(templateSegments('a {{ not a path }} b {{x.y}}{{}}')).toEqual([
+      { text: 'a {{ not a path }} b ' },
+      { path: 'x.y' },
+      { text: '{{}}' },
+    ]);
+    expect(templateSegments('')).toEqual([]);
+    expect(templateSegments('no placeholders')).toEqual([{ text: 'no placeholders' }]);
+  });
+
+  it('round-trips through joinTemplate (spaces inside braces are dropped)', () => {
+    for (const t of ['{{a}}{{b.c}} and {{ d }}', 'line 1\n{{data.items}}\n', '{"t": "{{data.title}}"}'])
+      expect(renderTemplate(joinTemplate(templateSegments(t)), context)).toBe(renderTemplate(t, context));
+    expect(joinTemplate(templateSegments('x {{ data.title }} y'))).toBe('x {{data.title}} y');
   });
 });

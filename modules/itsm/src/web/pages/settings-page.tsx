@@ -26,7 +26,12 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader title={t('title')} description={t('description')} />
-      <Tabs value={tab} onValueChange={(v) => set({ tab: v === 'categories' ? undefined : v })}>
+      <Tabs
+        value={tab}
+        onValueChange={(v) =>
+          set({ tab: v === 'categories' ? undefined : v, edit: undefined, create: undefined })
+        }
+      >
         <TabsList>
           {TABS.map(({ id, icon: Icon }) => (
             <TabsTrigger key={id} value={id}>

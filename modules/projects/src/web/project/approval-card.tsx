@@ -3,27 +3,39 @@
 import type { WorkflowInstance } from '@isbp/contracts';
 import { localize, walkSteps } from '@isbp/sdk';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
+import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import type { FactOption } from '@isbp/ui/condition-builder';
+import { FadeIn } from '@isbp/ui/motion';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { StatusBadge } from '@isbp/ui/status';
 import { type StepRuntime, WorkflowDiagram } from '@isbp/ui/workflow-diagram';
-import { BanIcon, CheckCircle2Icon, ClockIcon, GavelIcon, XCircleIcon } from 'lucide-react';
+import {
+  BanIcon,
+  CheckCircle2Icon,
+  CircleDashedIcon,
+  ClockIcon,
+  GavelIcon,
+  type LucideIcon,
+  WorkflowIcon,
+  XCircleIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { PROJECT_PRIORITIES, type ProjectDetail } from '../../contracts';
 
 const OUTCOME: Record<
   'pending' | 'approved' | 'rejected' | 'cancelled',
-  { variant: 'info' | 'success' | 'destructive' | 'muted'; icon: ReactNode }
+  { tone: 'info' | 'success' | 'destructive' | 'muted'; icon: LucideIcon }
 > = {
-  pending: { variant: 'info', icon: <ClockIcon aria-hidden /> },
-  approved: { variant: 'success', icon: <CheckCircle2Icon aria-hidden /> },
-  rejected: { variant: 'destructive', icon: <XCircleIcon aria-hidden /> },
-  cancelled: { variant: 'muted', icon: <BanIcon aria-hidden /> },
+  pending: { tone: 'info', icon: ClockIcon },
+  approved: { tone: 'success', icon: CheckCircle2Icon },
+  rejected: { tone: 'destructive', icon: XCircleIcon },
+  cancelled: { tone: 'muted', icon: BanIcon },
 };
 
 function runtimeOf(instance: WorkflowInstance) {
@@ -44,12 +56,18 @@ function runtimeOf(instance: WorkflowInstance) {
   return { runtime, chosen };
 }
 
-/** Who the proposal waits for and the approval path (visible to the requester, owner and approvers). */
-function InstanceDetail({ instanceId }: { instanceId: string }) {
+/** The approval path (the workflow diagram) in a sheet: wide enough to read, out of the narrow aside. */
+function ApprovalPathSheet({
+  instance,
+  open,
+  onOpenChange,
+}: {
+  instance: WorkflowInstance;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const t = useTranslations('projects.approval');
   const tp = useTranslations('projects.priority');
-  const locale = useLocale();
-  const { data, isLoading, error } = useApiQuery<WorkflowInstance>(`/workflow-instances/${instanceId}`);
   const facts = useMemo<FactOption[]>(
     () => [
       { path: 'project.budgetHours', label: t('facts.budgetHours'), type: 'number' },
@@ -63,41 +81,84 @@ function InstanceDetail({ instanceId }: { instanceId: string }) {
     ],
     [t, tp],
   );
-  const rt = useMemo(() => (data ? runtimeOf(data) : null), [data]);
-  if (isLoading) return <Skeleton className="h-32 w-full rounded-lg" />;
-  if (error || !data || !rt) return <p className="text-sm text-muted-foreground">{t('detailsHidden')}</p>;
+  const rt = useMemo(() => runtimeOf(instance), [instance]);
   return (
-    <div className="grid gap-3">
-      {data.status === 'running' && data.currentSteps.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          {data.currentSteps.map((s) => localize(s.name, locale)).join(', ')}
-        </p>
-      )}
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-3xl">
+        <SheetHeader>
+          <SheetTitle>{t('pathTitle')}</SheetTitle>
+          <SheetDescription>{t('pathDescription')}</SheetDescription>
+        </SheetHeader>
+        <SheetBody>
+          <div className="relative overflow-x-auto rounded-xl border bg-muted/20 py-4 [background-image:radial-gradient(var(--color-border)_1px,transparent_1px)] [background-size:16px_16px]">
+            <WorkflowDiagram
+              graph={instance.graph}
+              names={{ ...instance.names, facts }}
+              runtime={rt.runtime}
+              chosen={rt.chosen}
+              outcome={instance.status}
+            />
+          </div>
+        </SheetBody>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/** "Waiting for Mei Lin · Project manager's line manager · sent 2 minutes ago · due in 3 days". */
+function InstanceDetail({ instanceId }: { instanceId: string }) {
+  const t = useTranslations('projects.approval');
+  const locale = useLocale();
+  const [showPath, setShowPath] = useState(false);
+  const { data, isLoading, error } = useApiQuery<WorkflowInstance>(`/workflow-instances/${instanceId}`);
+  if (isLoading) return <Skeleton className="h-16 w-full rounded-lg" />;
+  if (error || !data) return <p className="text-sm text-muted-foreground">{t('detailsHidden')}</p>;
+  const pending = data.tasks.filter((x) => x.status === 'pending');
+  const due = pending
+    .map((x) => x.dueAt)
+    .filter((d): d is string => Boolean(d))
+    .sort()[0];
+  const steps = data.currentSteps.map((st) => localize(st.name, locale)).join(', ');
+  return (
+    <div className="grid gap-2">
       {data.status === 'running' && data.pendingWith.length > 0 && (
-        <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          {t('waitingFor')}
-          {data.pendingWith.slice(0, 5).map((p) => (
-            <span key={p.id} className="inline-flex items-center gap-1 text-foreground">
-              <UserAvatar name={p.displayName} src={p.avatarUrl} className="size-5 text-[9px]" />
-              {p.displayName}
+        <FadeIn className="grid gap-1.5 text-sm">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-muted-foreground">{t('waitingFor')}</span>
+            {data.pendingWith.slice(0, 5).map((p) => (
+              <span key={p.id} className="inline-flex items-center gap-1 font-medium">
+                <UserAvatar name={p.displayName} src={p.avatarUrl} className="size-5 text-[9px]" />
+                {p.displayName}
+              </span>
+            ))}
+          </span>
+          <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+            {steps && <span>{steps}</span>}
+            <span>
+              · {t('sent')} <RelativeTime date={data.startedAt} />
             </span>
-          ))}
-        </p>
+            {due && (
+              <span>
+                · {t('due')} <RelativeTime date={due} />
+              </span>
+            )}
+          </span>
+        </FadeIn>
       )}
-      <div className="relative overflow-x-auto rounded-xl border bg-muted/20 py-4 [background-image:radial-gradient(var(--color-border)_1px,transparent_1px)] [background-size:16px_16px]">
-        <WorkflowDiagram
-          graph={data.graph}
-          names={{ ...data.names, facts }}
-          runtime={rt.runtime}
-          chosen={rt.chosen}
-          outcome={data.status}
-        />
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="link" size="sm" className="h-auto px-0" onClick={() => setShowPath(true)}>
+          <WorkflowIcon /> {t('showPath')}
+        </Button>
+        {data.myTaskId && (
+          <Link
+            href={`/approvals?task=${data.myTaskId}`}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            {t('decide')}
+          </Link>
+        )}
       </div>
-      {data.myTaskId && (
-        <Link href="/approvals" className="text-sm font-medium text-primary hover:underline">
-          {t('decide')}
-        </Link>
-      )}
+      <ApprovalPathSheet instance={data} open={showPath} onOpenChange={setShowPath} />
     </div>
   );
 }
@@ -109,6 +170,8 @@ export function ApprovalCard({ project }: { project: ProjectDetail }) {
   if (project.status !== 'proposed') return null;
   const status = approval?.status ?? null;
   const outcome = status ? OUTCOME[status] : null;
+  const needsApproval =
+    project.budgetHours !== null && project.budgetHours > project.settings.proposalThresholdHours;
   return (
     <Card className="min-w-0 gap-4">
       <CardHeader>
@@ -117,7 +180,7 @@ export function ApprovalCard({ project }: { project: ProjectDetail }) {
           {t('title')}
         </CardTitle>
         <CardDescription>
-          {project.budgetHours !== null && project.budgetHours > project.settings.proposalThresholdHours
+          {needsApproval
             ? t('needsManager', { threshold: project.settings.proposalThresholdHours })
             : t('automatic', { threshold: project.settings.proposalThresholdHours })}
         </CardDescription>
@@ -125,12 +188,14 @@ export function ApprovalCard({ project }: { project: ProjectDetail }) {
       <CardContent className="grid gap-3">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {outcome && status ? (
-            <Badge variant={outcome.variant}>
-              {outcome.icon}
-              {t(`status.${status}`)}
-            </Badge>
+            <StatusBadge
+              tone={outcome.tone}
+              icon={outcome.icon}
+              label={t(`status.${status}`)}
+              changeKey={status}
+            />
           ) : (
-            <Badge variant="muted">{t('notStarted')}</Badge>
+            <StatusBadge tone="muted" icon={CircleDashedIcon} label={t('notStarted')} changeKey="none" />
           )}
           {approval?.decidedAt && (
             <RelativeTime date={approval.decidedAt} className="text-xs text-muted-foreground" />
@@ -141,7 +206,9 @@ export function ApprovalCard({ project }: { project: ProjectDetail }) {
             {approval?.comment ? t('rejectedWith', { comment: approval.comment }) : t('rejected')}
           </p>
         )}
-        {!status && <p className="text-sm text-muted-foreground">{t('startHint')}</p>}
+        {!status && (
+          <p className="text-sm text-muted-foreground">{needsApproval ? t('submitHint') : t('startHint')}</p>
+        )}
         {approval?.instanceId && status === 'pending' && <InstanceDetail instanceId={approval.instanceId} />}
       </CardContent>
     </Card>

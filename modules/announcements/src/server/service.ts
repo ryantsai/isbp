@@ -40,6 +40,16 @@ export const currentCondition = (): SQL =>
 export class PostService {
   constructor(private readonly ctx: ModuleContext) {}
 
+  /**
+   * Reads the post again inside the transaction and holds it until commit, so two simultaneous requests
+   * (a double click, two tabs, an approval landing while the author withdraws) can't both act on it.
+   */
+  private async lock(tx: Db, id: string): Promise<Row> {
+    const [row] = await tx.select().from(posts).where(eq(posts.id, id)).for('update');
+    if (!row) throw httpErrors.notFound('Announcement not found');
+    return row;
+  }
+
   async find(id: string, canManage: boolean) {
     const [row] = await this.ctx.db
       .select({ post: posts, authorName: users.displayName })
@@ -212,9 +222,11 @@ export class PostService {
 
   /** Completion of the review workflow (delivered through the outbox; idempotent). */
   async onReviewCompleted(result: WorkflowCompletion) {
-    const [post] = await this.ctx.db.select().from(posts).where(eq(posts.id, result.subjectId));
-    if (!post || post.status !== 'pending' || post.reviewInstanceId !== result.instanceId) return;
+    const [current] = await this.ctx.db.select().from(posts).where(eq(posts.id, result.subjectId));
+    if (!current || current.status !== 'pending' || current.reviewInstanceId !== result.instanceId) return;
     await this.ctx.transaction(async (tx) => {
+      const [post] = await tx.select().from(posts).where(eq(posts.id, current.id)).for('update');
+      if (!post || post.status !== 'pending' || post.reviewInstanceId !== result.instanceId) return;
       if (result.outcome === 'approved') {
         await this.markPublished(tx, post);
         await this.ctx.notifications.notify(
@@ -258,12 +270,15 @@ export class PostService {
     if (before.status === 'pending')
       throw new HttpError(409, ErrorCodes.INVALID_STATE, 'Withdraw the post from review before editing it');
     if (input.pinned && !before.pinned && before.status === 'published') await this.assertPinCapacity(id);
-    const changes = this.ctx.audit.diff(
-      before as unknown as Record<string, unknown>,
-      input as Record<string, unknown>,
-    );
-    if (!Object.keys(changes).length) return before;
     return this.ctx.transaction(async (tx) => {
+      const locked = await this.lock(tx, id);
+      if (locked.status === 'pending')
+        throw new HttpError(409, ErrorCodes.INVALID_STATE, 'Withdraw the post from review before editing it');
+      const changes = this.ctx.audit.diff(
+        locked as unknown as Record<string, unknown>,
+        input as Record<string, unknown>,
+      );
+      if (!Object.keys(changes).length) return locked;
       const [row] = await tx.update(posts).set(input).where(eq(posts.id, id)).returning();
       await this.ctx.audit.record(
         {
@@ -284,12 +299,18 @@ export class PostService {
     });
   }
 
+  /** Idempotent: publishing a post that is already live (or in review) returns it unchanged. */
   async publish(id: string, requesterId: string | null) {
-    const [before] = await this.ctx.db.select().from(posts).where(eq(posts.id, id));
-    if (!before) throw httpErrors.notFound('Announcement not found');
-    if (before.status === 'published' || before.status === 'pending') return before;
-    if (before.pinned) await this.assertPinCapacity(id);
-    return this.ctx.transaction((tx) => this.goLiveOrReview(tx, before, requesterId));
+    const [current] = await this.ctx.db.select().from(posts).where(eq(posts.id, id));
+    if (!current) throw httpErrors.notFound('Announcement not found');
+    if (current.status === 'published' || current.status === 'pending') return current;
+    if (current.pinned) await this.assertPinCapacity(id);
+    return this.ctx.transaction(async (tx) => {
+      const before = await this.lock(tx, id);
+      // A simultaneous request published it (or sent it for review) first: publish once, notify once.
+      if (before.status === 'published' || before.status === 'pending') return before;
+      return this.goLiveOrReview(tx, before, requesterId);
+    });
   }
 
   /** Back to draft, closing the review. */
@@ -299,7 +320,10 @@ export class PostService {
     if (before.status !== 'pending' || !before.reviewInstanceId)
       throw new HttpError(409, ErrorCodes.INVALID_STATE, 'This post is not waiting for approval');
     return this.ctx.transaction(async (tx) => {
-      await this.ctx.workflows.cancel(before.reviewInstanceId!, 'Withdrawn by the author', { tx });
+      const locked = await this.lock(tx, id);
+      if (locked.status !== 'pending' || !locked.reviewInstanceId)
+        throw new HttpError(409, ErrorCodes.INVALID_STATE, 'This post is not waiting for approval');
+      await this.ctx.workflows.cancel(locked.reviewInstanceId, 'Withdrawn by the author', { tx });
       const [row] = await tx
         .update(posts)
         .set({ status: 'draft', reviewInstanceId: null })
@@ -343,7 +367,8 @@ export class PostService {
     if (!row) throw httpErrors.notFound('Announcement not found');
     if (row.status === 'pending') await this.withdraw(id);
     await this.ctx.transaction(async (tx) => {
-      await tx.delete(posts).where(eq(posts.id, id));
+      const deleted = await tx.delete(posts).where(eq(posts.id, id)).returning({ id: posts.id });
+      if (!deleted.length) throw httpErrors.notFound('Announcement not found');
       await this.ctx.audit.record(
         {
           action: 'announcements.post.deleted',

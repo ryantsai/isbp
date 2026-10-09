@@ -57,6 +57,11 @@ export const migrations: Migration[] = [
     hash: 'ddbcddb85b09bb56ec0056dbbc71d2c9db3109d029d12add61dd28397c95a654',
     sql: 'CREATE INDEX "scheduled_reminders_source_idx" ON "core"."scheduled_reminders" USING gin ("source" jsonb_path_ops);',
   },
+  {
+    tag: '0011_phase8_keep_request_history',
+    hash: 'c9c4227c9876e6675840261829236518ce08bcfe85e4d08ad88668e45b611b10',
+    sql: 'ALTER TABLE "core"."access_requests" DROP CONSTRAINT "access_requests_role_id_roles_id_fk";\n--> statement-breakpoint\nALTER TABLE "core"."access_requests" ADD CONSTRAINT "access_requests_role_id_roles_id_fk" FOREIGN KEY ("role_id") REFERENCES "core"."roles"("id") ON DELETE restrict ON UPDATE no action;',
+  },
 ];
 
 export default migrations;

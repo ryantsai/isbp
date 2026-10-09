@@ -1,21 +1,21 @@
 'use client';
 
 import type { Page } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
+import { FilterBar } from '@isbp/ui/filter-bar';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { HistoryIcon, SearchXIcon } from 'lucide-react';
+import { HistoryIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useMemo } from 'react';
 import { RUN_STATUSES, RUN_TRIGGERS, type RunSummary, type RunView } from '../contracts';
 import { RunStatusBadge, RunTriggerLabel } from './badges';
-import { jobHref, runHref, useDurationMs } from './lib';
+import { jobHref, runHref, useDurationMs, useRunResult } from './lib';
 
 const ALL = '__all__';
 const HOURS = ['24', '168', '720'] as const;
@@ -55,13 +55,13 @@ export function FilterSelect({
  */
 export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunView; label: string }) {
   const t = useTranslations('scheduler');
-  const tc = useTranslations('common');
   const format = useFormatter();
   const duration = useDurationMs();
+  const runResult = useRunResult();
   const router = useRouter();
   const [state, set] = useListState({ pageSize: 25 });
   const str = (k: string) => (state[k] as string | undefined) || undefined;
-  const { data, isLoading, isFetching } = useApiQuery<Page<RunSummary>>(
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<RunSummary>>(
     '/scheduler/runs',
     {
       page: state.page,
@@ -86,12 +86,12 @@ export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunVi
             {
               id: 'job',
               header: t('runs.job'),
-              meta: { sortKey: 'job', className: 'max-w-56' },
+              meta: { sortKey: 'job', className: 'max-w-56', wrap: true },
               cell: ({ row }) => (
                 <Link
                   href={jobHref(row.original.job.id)}
                   onClick={(e) => e.stopPropagation()}
-                  className="block truncate font-medium outline-none hover:underline focus-visible:underline"
+                  className="block font-medium wrap-anywhere outline-none hover:underline focus-visible:underline"
                 >
                   {row.original.job.name}
                 </Link>
@@ -116,7 +116,7 @@ export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunVi
       {
         id: 'scheduledFor',
         header: t('runs.scheduledFor'),
-        meta: { sortKey: 'scheduledFor', className: 'whitespace-nowrap' },
+        meta: { sortKey: 'scheduledFor', className: 'whitespace-nowrap', priority: 2 },
         cell: ({ row }) => (
           <span className="flex flex-col text-xs">
             <time dateTime={row.original.scheduledFor}>
@@ -130,52 +130,39 @@ export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunVi
         ),
       },
       {
+        id: 'summary',
+        header: t('runs.summary'),
+        meta: { className: 'max-w-80 text-xs', priority: 2 },
+        cell: ({ row }) => {
+          const r = runResult(row.original);
+          const attempts =
+            row.original.attempt > 1
+              ? t('runs.attemptOf', { attempt: row.original.attempt, max: row.original.maxAttempts })
+              : null;
+          return (
+            <span className="flex flex-col gap-0.5">
+              <span className={r.failed ? 'line-clamp-2' : 'line-clamp-2 text-muted-foreground'}>
+                {r.text || '—'}
+              </span>
+              {attempts && <span className="text-muted-foreground">{attempts}</span>}
+            </span>
+          );
+        },
+      },
+      {
         id: 'trigger',
         header: t('runs.trigger'),
-        meta: { className: 'hidden text-xs md:table-cell', headerClassName: 'hidden md:table-cell' },
+        meta: { className: 'text-xs', priority: 3 },
         cell: ({ row }) => <RunTriggerLabel trigger={row.original.trigger} />,
       },
       {
         id: 'durationMs',
         header: t('runs.duration'),
-        meta: {
-          sortKey: 'durationMs',
-          className: 'hidden text-xs tabular-nums sm:table-cell',
-          headerClassName: 'hidden sm:table-cell',
-        },
+        meta: { sortKey: 'durationMs', className: 'text-xs tabular-nums', priority: 3 },
         cell: ({ row }) => duration(row.original.durationMs),
       },
-      {
-        id: 'attempt',
-        header: t('runs.attempts'),
-        meta: {
-          className: 'hidden text-xs tabular-nums lg:table-cell',
-          headerClassName: 'hidden lg:table-cell',
-        },
-        cell: ({ row }) =>
-          row.original.maxAttempts > 1
-            ? t('runs.attemptOf', { attempt: row.original.attempt, max: row.original.maxAttempts })
-            : '—',
-      },
-      {
-        id: 'summary',
-        header: t('runs.summary'),
-        meta: {
-          className: 'hidden max-w-80 text-xs xl:table-cell',
-          headerClassName: 'hidden xl:table-cell',
-        },
-        cell: ({ row }) => (
-          <span
-            className={
-              row.original.error ? 'line-clamp-2 text-destructive' : 'line-clamp-2 text-muted-foreground'
-            }
-          >
-            {row.original.error ?? row.original.summary ?? '—'}
-          </span>
-        ),
-      },
     ],
-    [t, format, duration, jobId],
+    [t, format, duration, jobId, runResult],
   );
 
   return (
@@ -189,76 +176,105 @@ export function RunsTable({ jobId, view, label }: { jobId?: string; view?: RunVi
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(r) => r.id}
       onRowClick={(r) => router.push(runHref(r.id))}
       onPageChange={(page) => set({ page })}
       onPageSizeChange={(pageSize) => set({ pageSize })}
       onSortChange={(sort) => set({ sort })}
       toolbar={
-        <>
-          {!jobId && (
-            <SearchInput
-              value={state.q ?? ''}
-              onChange={(q) => set({ q })}
-              placeholder={t('runs.search')}
-              className="sm:w-64"
-            />
-          )}
-          {(!view || view === 'all') && (
-            <FilterSelect
-              value={str('status')}
-              onChange={(v) => set({ status: v })}
-              label={t('runs.status')}
-              allLabel={t('runs.allStatuses')}
-            >
-              {RUN_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {t(`runStatus.${s}`)}
-                </SelectItem>
-              ))}
-            </FilterSelect>
-          )}
-          <FilterSelect
-            value={str('trigger')}
-            onChange={(v) => set({ trigger: v })}
-            label={t('runs.trigger')}
-            allLabel={t('runs.allTriggers')}
-          >
-            {RUN_TRIGGERS.map((s) => (
-              <SelectItem key={s} value={s}>
-                {t(`runTrigger.${s}`)}
-              </SelectItem>
-            ))}
-          </FilterSelect>
-          <FilterSelect
-            value={str('hours')}
-            onChange={(v) => set({ hours: v })}
-            label={t('runs.period')}
-            allLabel={t('runs.anyTime')}
-          >
-            {HOURS.map((h) => (
-              <SelectItem key={h} value={h}>
-                {t(`runs.periods.h${h}`)}
-              </SelectItem>
-            ))}
-          </FilterSelect>
-          {filtered && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => set(Object.fromEntries(FILTER_KEYS.map((k) => [k, undefined])))}
-            >
-              {tc('clearFilters')}
-            </Button>
-          )}
-        </>
+        <FilterBar
+          search={
+            !jobId && (
+              <SearchInput
+                value={state.q ?? ''}
+                onChange={(q) => set({ q })}
+                placeholder={t('runs.search')}
+                className="sm:w-64"
+              />
+            )
+          }
+          filters={[
+            ...(!view || view === 'all'
+              ? [
+                  {
+                    id: 'status',
+                    label: t('runs.status'),
+                    primary: true,
+                    value: str('status') ? t(`runStatus.${str('status')}`) : undefined,
+                    onClear: () => set({ status: undefined }),
+                    control: (
+                      <FilterSelect
+                        value={str('status')}
+                        onChange={(v) => set({ status: v })}
+                        label={t('runs.status')}
+                        allLabel={t('runs.allStatuses')}
+                      >
+                        {RUN_STATUSES.map((st) => (
+                          <SelectItem key={st} value={st}>
+                            {t(`runStatus.${st}`)}
+                          </SelectItem>
+                        ))}
+                      </FilterSelect>
+                    ),
+                  },
+                ]
+              : []),
+            {
+              id: 'hours',
+              label: t('runs.period'),
+              primary: true,
+              value: str('hours') ? t(`runs.periods.h${str('hours')}`) : undefined,
+              onClear: () => set({ hours: undefined }),
+              control: (
+                <FilterSelect
+                  value={str('hours')}
+                  onChange={(v) => set({ hours: v })}
+                  label={t('runs.period')}
+                  allLabel={t('runs.anyTime')}
+                >
+                  {HOURS.map((h) => (
+                    <SelectItem key={h} value={h}>
+                      {t(`runs.periods.h${h}`)}
+                    </SelectItem>
+                  ))}
+                </FilterSelect>
+              ),
+            },
+            {
+              id: 'trigger',
+              label: t('runs.trigger'),
+              value: str('trigger') ? t(`runTrigger.${str('trigger')}`) : undefined,
+              onClear: () => set({ trigger: undefined }),
+              control: (
+                <FilterSelect
+                  value={str('trigger')}
+                  onChange={(v) => set({ trigger: v })}
+                  label={t('runs.trigger')}
+                  allLabel={t('runs.allTriggers')}
+                >
+                  {RUN_TRIGGERS.map((tr) => (
+                    <SelectItem key={tr} value={tr}>
+                      {t(`runTrigger.${tr}`)}
+                    </SelectItem>
+                  ))}
+                </FilterSelect>
+              ),
+            },
+          ]}
+          onClearAll={() => set(Object.fromEntries(FILTER_KEYS.map((k) => [k, undefined])))}
+        />
       }
       empty={
-        <EmptyState
-          icon={filtered ? <SearchXIcon /> : <HistoryIcon />}
-          title={t('runs.empty')}
-          description={filtered ? t('runs.emptyFiltered') : t('runs.emptyHint')}
-        />
+        filtered ? (
+          <EmptyState
+            variant="filtered"
+            onClearFilters={() => set(Object.fromEntries(FILTER_KEYS.map((k) => [k, undefined])))}
+          />
+        ) : (
+          <EmptyState icon={<HistoryIcon />} title={t('runs.empty')} description={t('runs.emptyHint')} />
+        )
       }
     />
   );

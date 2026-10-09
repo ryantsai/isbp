@@ -1,7 +1,7 @@
 import { listQuerySchema, localizedTextSchema } from '@isbp/sdk';
 import { z } from 'zod';
 import { dateTime, id } from './common';
-import { personRefSchema, workflowInstanceSummarySchema } from './workflows';
+import { instanceStatusSchema, personRefSchema, workflowInstanceSummarySchema } from './workflows';
 
 /** Human-friendly request number: `REQ-01042`. */
 export function formatRequestNumber(n: number): string {
@@ -149,6 +149,9 @@ export const accessRequestPreviewInputSchema = z.object({
   scopeType: z.enum(['global', 'department']).optional(),
 });
 
+/** A person whose approval of an earlier step counts for a later one: not asked again, given at `approvedAt`. */
+export const alreadyApprovedSchema = z.object({ person: personRefSchema, approvedAt: localizedTextSchema });
+
 /** The approval path a request would take, with the people each step would ask. */
 export const approvalPreviewSchema = z.object({
   steps: z.array(
@@ -156,8 +159,16 @@ export const approvalPreviewSchema = z.object({
       id: z.string(),
       name: localizedTextSchema,
       type: z.enum(['approval', 'notify']),
-      outcome: z.enum(['ask', 'skipped', 'no-approver', 'reject']),
+      outcome: z.enum(['ask', 'skipped', 'no-approver', 'reject', 'already-approved']),
       people: z.array(personRefSchema),
+      /** People whose approval of an earlier step counts (`repeatApprovers: 'skip'`): not asked again. */
+      counted: z.array(alreadyApprovedSchema).optional(),
+      /**
+       * The form fields the step's approvers come from (`data.<key>`), when every approver does: while those answers
+       * are empty, the step has nobody yet and "depends on" them rather than being unable to get an approver. Absent
+       * where no answer can matter (access requests, and steps without such approvers).
+       */
+      dependsOn: z.array(z.string()).optional(),
     }),
   ),
 });
@@ -175,3 +186,39 @@ export const portalEntrySchema = z.object({
   order: z.number(),
 });
 export type PortalEntry = z.input<typeof portalEntrySchema>;
+
+/**
+ * One approval step of a request's path, as the requester sees it: done (who decided, when), rejected, waiting (who
+ * is asked, since when, the earliest deadline), not reached yet (who would be asked now) or not needed.
+ */
+export const requestPathStepSchema = z.object({
+  id: z.string(),
+  name: localizedTextSchema,
+  state: z.enum(['done', 'rejected', 'current', 'upcoming', 'skipped']),
+  /** done/rejected: who decided. current: who is asked. upcoming: who would be asked, resolved now. */
+  people: z.array(personRefSchema),
+  decidedAt: dateTime.nullable(),
+  /** done/rejected: the comment the decision came with, when there was one (the requester sees it). */
+  comment: z.string().nullable(),
+  /** current: when the step started waiting. */
+  since: dateTime.nullable(),
+  /** current: the earliest deadline among its open tasks. */
+  dueAt: dateTime.nullable(),
+  /**
+   * skipped: `condition` (its condition didn't hold). upcoming: `no-approver` (nobody can be asked). done:
+   * `already-approved` when everyone who would decide already approved an earlier step (`repeatApprovers: 'skip'`).
+   */
+  reason: z.enum(['condition', 'no-approver', 'already-approved']).nullable(),
+  /** People whose approval of an earlier step counts for this step, with the step it was given at. */
+  alreadyApproved: z.array(alreadyApprovedSchema).optional(),
+});
+export type RequestPathStep = z.input<typeof requestPathStepSchema>;
+
+export const requestPathSchema = z.object({
+  /** The workflow's status; null when the request needs no approval. */
+  status: instanceStatusSchema.nullable(),
+  steps: z.array(requestPathStepSchema),
+  /** The step the request is waiting at, or the next one to come. */
+  nextStepId: z.string().nullable(),
+});
+export type RequestPath = z.input<typeof requestPathSchema>;

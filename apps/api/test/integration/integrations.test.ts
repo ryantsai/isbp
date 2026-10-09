@@ -50,6 +50,8 @@ interface Item {
 
 const store = new Map<string, Item>();
 let itemSeq = 0;
+/** Runs once right after the next read of that item: "someone edits it while the sync works on it". */
+let onRead: { id: string; fn: () => void } | null = null;
 
 const recordOf = (i: Item): SyncRecord => ({
   id: i.id,
@@ -144,7 +146,13 @@ const dataModule = defineServerModule(
         ],
         read: async (id) => {
           const i = store.get(id);
-          return i ? recordOf(i) : null;
+          const record = i ? recordOf(i) : null;
+          if (onRead?.id === id) {
+            const { fn } = onRead;
+            onRead = null;
+            fn();
+          }
+          return record;
         },
         readMany: async (ids) => ids.flatMap((id) => (store.get(id) ? [recordOf(store.get(id)!)] : [])),
         list: async ({ after, limit }) => {
@@ -237,6 +245,8 @@ const remote = {
   creates: 0,
   rateLimitNext: 0,
   changesCalls: 0,
+  /** Runs once after the next update is written and before its answer: "someone edits it meanwhile". */
+  onUpdate: null as ((t: Ticket) => void) | null,
 };
 
 function touch(t: Ticket) {
@@ -401,6 +411,9 @@ const remoteModule = defineServerModule(
             rest.body = `<p>${rest.body}</p>`;
           Object.assign(t.values, rest);
           touch(t);
+          const meanwhile = remote.onUpdate;
+          remote.onUpdate = null;
+          meanwhile?.(t);
           return asRecord(t);
         },
         comments: {
@@ -968,6 +981,31 @@ describe('sync', () => {
     expect(remote.updates).toBe(before + 1);
   });
 
+  it('applies a remote edit that lands while our push is answered: the answer does not hide it', async () => {
+    await settlePushes();
+    const raced = remoteCreate({ subject: 'Raced title', body: '<p>Before</p>' }).id;
+    await runPull(); // the new ticket becomes a local item
+    await settlePushes(); // its ISBP reference is pushed back first, so the next remote write is ours
+    const item = byTitle('Raced title')!;
+    const before = remote.updates;
+    // Someone renames it in the remote system right after our write: the write's answer already carries the new title.
+    remote.onUpdate = (t) => remoteEdit(t.id, { subject: 'Renamed while we pushed' });
+    await localEdit(item.id, { description: 'Edited in ISBP' });
+    expect(
+      await eventually(
+        async () => store.get(item.id)!.title,
+        (title) => title === 'Renamed while we pushed',
+      ),
+    ).toBe('Renamed while we pushed');
+    expect(remote.onUpdate).toBeNull();
+    await settlePushes();
+    expect(remote.updates).toBe(before + 1); // our push, and nothing pushed back for the title
+    expect((await linkOf(raced))!.remoteVersion).toBe(String(remote.tickets.get(raced)!.version));
+    const run = await runPull(); // the record is up to date on both sides
+    expect(run.counts).toMatchObject({ updated: 0, pushed: 0 });
+    expect(remote.updates).toBe(before + 1);
+  });
+
   it('merges independent edits on both sides field by field', async () => {
     await settlePushes();
     const child = byTitle('Child task')!;
@@ -1055,6 +1093,65 @@ describe('sync', () => {
     expect(again.status).toBe(409);
     expect(again.body.error.code).toBe('CONFLICT_RESOLVED');
     await settlePushes();
+  });
+
+  it('raises the conflict instead of overwriting an edit made in ISBP while the sync writes', async () => {
+    await settlePushes();
+    const solo = byTitle('Remote title')!;
+    remoteEdit(soloT, { subject: 'Remote again' });
+    onRead = {
+      id: solo.id,
+      fn: () => {
+        // Committed after the hub read the record and before it writes the remote title.
+        solo.title = 'Local again';
+        solo.updatedAt = new Date(Date.parse(solo.updatedAt) + 1000).toISOString();
+      },
+    };
+    const run = await runPull();
+    expect(onRead).toBeNull();
+    expect(run.counts.conflicts).toBe(1);
+    expect(store.get(solo.id)!.title).toBe('Local again'); // not lost
+    expect((await linkOf(soloT))!.state).toBe('conflict');
+    const list = await h.call(s.admin!, 'GET', `${API}/conflicts?status=open`);
+    const open = list.body.items.find((c: LooseJson) => c.local?.title === 'Local again');
+    const detail = await h.call(s.admin!, 'GET', `${API}/conflicts/${open.id}`);
+    expect(detail.body.details[0]).toMatchObject({
+      field: 'title',
+      local: 'Local again',
+      remote: 'Remote again',
+    });
+    const res = await h.call(s.admin!, 'POST', `${API}/conflicts/${open.id}/resolve`, {
+      choices: { title: 'local' },
+    });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(remote.tickets.get(soloT)!.values.subject).toBe('Local again');
+    await settlePushes();
+  });
+
+  it('refuses a sync write when the record changed since it was read', async () => {
+    const solo = byTitle('Local again')!;
+    const before = solo.updatedAt;
+    const stale = await h.kernel.db.transaction((tx) =>
+      ctx.sync
+        .write(
+          'itest-data.item',
+          { id: solo.id, values: { title: 'Stale write' }, expectedUpdatedAt: '2000-01-01T00:00:00.000Z' },
+          {
+            auth: hubAuth(),
+            tx: tx as never,
+            source: { connectionId: randomUUID(), connectionName: 'x', connector: 'x', remoteRef: 'x' },
+          },
+        )
+        .then(
+          () => null,
+          (err: unknown) => err,
+        ),
+    );
+    expect(stale).toBeInstanceOf(HttpError);
+    expect((stale as HttpError).code).toBe('CONFLICT');
+    expect((stale as HttpError).details).toEqual({ reason: 'changed' });
+    expect(store.get(solo.id)!.title).toBe('Local again');
+    expect(store.get(solo.id)!.updatedAt).toBe(before);
   });
 
   it('keeps an item error on the link, finishes the rest, and retries it next time', async () => {
@@ -1178,7 +1275,7 @@ describe('sync', () => {
     expect((await linkOf(t.id))!.state).toBe('orphaned');
     expect(store.has(local.id)).toBe(true);
 
-    const solo = byTitle('Remote title')!;
+    const solo = store.get((await linkOf(soloT))!.localId!)!;
     store.delete(solo.id);
     remoteEdit(soloT, { body: '<p>still here</p>' });
     await runPull();

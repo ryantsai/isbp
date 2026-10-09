@@ -223,6 +223,8 @@ export type ApprovalItem = z.input<typeof approvalItemSchema>;
 
 export const approvalQuerySchema = listQuerySchema.extend({
   status: z.enum(['pending', 'done']).default('pending'),
+  /** One task of mine, whatever its status (`/approvals?task=<id>` opens it; `status` is ignored). */
+  task: id.optional(),
 });
 
 export const decisionSchema = z.object({

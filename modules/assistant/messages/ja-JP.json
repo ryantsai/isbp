@@ -4,7 +4,10 @@
     "description": "変更セットでプラットフォームをカスタマイズする AI エージェント。変更はユーザーが確認、適用、ロールバックします"
   },
   "nav": {
-    "changeSets": "変更セット"
+    "changeSets": "変更セット",
+    "changeSetsAbout": "準備された変更の確認、適用、ロールバック",
+    "packages": "プロセス パック",
+    "packagesAbout": "変更としてインストールできる既製のプロセス"
   },
   "systemRoles": {
     "assistant-user": {
@@ -96,6 +99,7 @@
   },
   "panel": {
     "open": "アシスタント",
+    "openHint": "アシスタント — AI で設定を変更",
     "close": "アシスタントを閉じる",
     "title": "アシスタント",
     "description": "必要な内容を説明するか、テンプレートを選んでください。アシスタントはあなたとして、あなたのアクセス許可で動作し、何かを適用する前に必ず確認を求めます。",
@@ -110,7 +114,8 @@
     "noKinds": "カスタマイズできる項目はまだありません",
     "noKindsHint": "AI モデルがない場合、アシスタントは承認ワークフローや申請フォームなど、表示できる構成のガイド付きテンプレートを提供します。必要なアクセスを管理者に依頼するか、日常業務も依頼できるようにモデルの構成を依頼してください。",
     "noTools": "アシスタントがお手伝いできることはまだありません",
-    "noToolsHint": "アシスタントはあなたのアクセス許可で、プラットフォームのツールと構成を使って動作しますが、あなたのロールにはまだそのいずれも含まれていません。必要なアクセスを管理者に依頼してください。"
+    "noToolsHint": "アシスタントはあなたのアクセス許可で、プラットフォームのツールと構成を使って動作しますが、あなたのロールにはまだそのいずれも含まれていません。必要なアクセスを管理者に依頼してください。",
+    "descriptionBuiltin": "テンプレートを選んでいくつかの質問に答えます。何かが変更される前に、準備された内容を確認できます。"
   },
   "chat": {
     "log": "アシスタントとの会話",
@@ -166,9 +171,9 @@
   "card": {
     "title": "変更セット {reference}",
     "items": "{count, plural, =0 {変更はまだありません} other {# 件の変更}}",
-    "ready": "適用可能",
+    "ready": "適用できます",
     "notReady": "未準備",
-    "failing": "{count, plural, other {# 件が失敗}}",
+    "failing": "{count, plural, other {# 件は適用できません}}",
     "needsApprover": "{count, plural, other {# 件はレビュー担当者が適用}}",
     "unchecked": "未確認",
     "open": "確認して適用",
@@ -176,9 +181,8 @@
   },
   "templates": {
     "title": "ガイド付きテンプレート",
-    "intro": "変更したい項目を選び、いくつかの質問に答えてください。確認用の変更セットを準備します。",
     "back": "すべてのテンプレート",
-    "build": "変更を準備",
+    "build": "確認用に準備",
     "nothingLive": "この時点では何も変更されません。変更は変更セットに追加され、あなたが確認して適用します。",
     "needsReviewer": "この変更は準備できますが、適用にはアクセス許可を持つユーザーが必要です。レビューを依頼してください。",
     "loadError": "質問を読み込めませんでした。",
@@ -187,7 +191,8 @@
     "startNew": "新しい変更セットを開始",
     "noTemplates": "変更できる項目にガイド付きテンプレートがありません",
     "noTemplatesHint": "管理者が [管理] → [AI] で AI チャット モデルを構成すると、その他の変更もご自身の言葉で依頼できます。",
-    "withoutTemplates": "AI チャット モデルがない場合、次の項目にはガイド付きテンプレートがありません: {kinds}。"
+    "withoutTemplates": "AI チャット モデルがない場合、次の項目にはガイド付きテンプレートがありません: {kinds}。管理者が [管理] → [AI] でモデルを構成すると、ご自身の言葉で依頼できます。",
+    "whyNot": "ここで他の項目を変更できないのはなぜですか?"
   },
   "list": {
     "title": "変更セット",
@@ -203,11 +208,11 @@
       "changeSet": "変更セット",
       "kinds": "変更対象",
       "items": "変更数",
-      "readiness": "ドライ ラン",
+      "readiness": "適用可否",
       "author": "準備したユーザー"
     },
     "readiness": {
-      "ready": "適用可能",
+      "ready": "適用できます",
       "notReady": "未準備",
       "empty": "空"
     },
@@ -218,27 +223,9 @@
     "emptyFiltered": "一致する変更セットはありません",
     "emptyFilteredHint": "別の状態または検索語句をお試しください。",
     "liveCount": "{count, plural, other {# 件の変更セット}}",
-    "fromPackage": "パッケージから作成"
+    "installPack": "プロセス パックをインストール"
   },
   "packages": {
-    "title": "パッケージから変更セットを作成",
-    "description": "モジュールに付属する組み込みパッケージをインストールするか、別の環境からエクスポートしたパッケージ ファイルをインポートします。どちらも下書きの変更セットになり、誰かが適用するまで反映されません。",
-    "tabsLabel": "パッケージの取得元",
-    "builtin": {
-      "tab": "組み込みパッケージ",
-      "listLabel": "組み込みパッケージ",
-      "meta": "{count, plural, other {# 件の変更}} · {module}",
-      "kinds": "変更対象: {kinds}",
-      "install": "インストール",
-      "installed": "パッケージから {reference} を作成しました",
-      "needsReviewer": "準備はできますが、適用するには追加のアクセス許可を持つユーザー (またはレビュー) が必要です。",
-      "missingModules": "有効になっていないモジュールが必要です: {modules}",
-      "unknownKinds": "このプラットフォームにない構成の種類が必要です: {kinds}",
-      "unreadable": "準備するには、お持ちでないアクセス許可が必要です: {permissions}",
-      "unsupported": "一部の変更は、ここではサポートされていません。",
-      "empty": "組み込みパッケージはありません",
-      "emptyHint": "有効なモジュールはパッケージを提供していません。パッケージ ファイルはインポートできます。"
-    },
     "file": {
       "tab": "ファイルのインポート",
       "hint": "変更セット パッケージ (.json) を選択します (別の環境の変更セットからエクスポートしたファイルなど)。各変更は通常の提案と同様にチェックされ、1 つでも失敗すると何も作成されません。",
@@ -280,7 +267,7 @@
     "createdBy": "{name} が準備",
     "appliedBy": "{name} が適用",
     "rolledBackBy": "{name} がロールバック",
-    "checked": "ドライ ランが完了しました",
+    "checked": "再確認しました",
     "refreshed": "変更セットは現在のバージョンを使用するようになりました",
     "actions": {
       "apply": "適用",
@@ -295,8 +282,8 @@
     },
     "missing": {
       "title": "この変更セットを自分で適用することはできません",
-      "body": "適用には {permissions} が必要です。レビューを依頼してください。これらを持つ承認者が適用します。",
-      "bodyInReview": "適用には {permissions} が必要です。これらを持つ承認者がレビューを承認すると適用されます。"
+      "body": "適用には {permissions} が必要です。レビューを依頼してください。このアクセス許可を持つ承認者が適用します。",
+      "bodyInReview": "適用には {permissions} が必要です。このアクセス許可を持つ承認者がレビューを承認すると適用されます。"
     },
     "rollbackBlocked": {
       "notReversible": "一部の変更 (削除) は自動で元に戻せないため、ここではこの変更セットをロールバックできません。",
@@ -311,14 +298,32 @@
     "live": {
       "title": "すぐに使えます",
       "body": "この変更セットで作成したものは有効になりました。使う人にこれらのリンクを共有してください。",
-      "link": "{label}: {object}"
+      "link": "{label}: {object}",
+      "builder": "フォーム デザイナーでルールやアクションを追加",
+      "builderFor": "フォーム デザイナーでルールやアクションを追加: {name}"
     },
     "stats": {
       "items": "変更数",
-      "kinds": "変更対象",
-      "result": "ドライ ラン",
-      "checked": "前回のドライ ラン",
+      "result": "適用可否",
+      "checked": "前回の確認",
       "updated": "更新日時"
+    },
+    "itemsByProcess": "プロセスごとの変更",
+    "orderHint": "番号は変更が適用される順序です。",
+    "expandAll": "すべて展開",
+    "collapseAll": "すべて折りたたむ",
+    "outline": "アウトライン",
+    "groups": {
+      "shared": "複数のプロセスで共有",
+      "sharedHint": "複数のプロセスで使うグループ、カテゴリなどの設定です。最初に適用されます。",
+      "other": "その他の変更",
+      "otherHint": "申請プロセスに含まれない変更です。"
+    },
+    "next": {
+      "title": "次の手順",
+      "groups": "{count, plural, other {この変更セットで作成された # 個のグループにメンバーを追加してください。追加するまで、関連する承認やチェックリストは誰にも届きません。}}",
+      "members": "{count, plural, other {メンバー # 人}}",
+      "noMembers": "メンバーがまだいません"
     }
   },
   "lastError": {
@@ -328,7 +333,7 @@
     "noApprover": "レビューは承認されましたが、適用できるユーザーがいませんでした。自分で適用するか、もう一度レビューを依頼してください。",
     "stale": "変更セットの準備後に、{items} が変更されました。更新して差分を確認してから、もう一度お試しください。",
     "staleGeneric": "変更セットの準備後に、構成が変更されました。更新して差分を確認してから、もう一度お試しください。",
-    "forbidden": "適用には、適用したユーザーが持っていないアクセス許可が必要でした: {permissions}。",
+    "forbidden": "適用には、適用するユーザーが持っていないアクセス許可が必要でした: {permissions}。",
     "privilege": "適用すると、適用したユーザー自身が持っていないアクセス許可が付与されます。",
     "validation": "検証に合格しなかった変更があります。",
     "validationItem": "「{label}」が検証に合格しませんでした。",
@@ -337,8 +342,8 @@
     "item": "対象: 「{label}」"
   },
   "actionErrors": {
-    "validation": "一部の変更がドライ ランに失敗しています。先に修正するか削除してください。",
-    "forbidden": "この操作には、お持ちでないアクセス許可が必要です: {permissions}。",
+    "validation": "一部の変更は適用できません。先に修正するか削除してください。",
+    "forbidden": "これには、お持ちでないアクセス許可が必要です: {permissions}。",
     "stale": "変更セットの準備後に、{items} が変更されました。先に更新して差分を確認してください。",
     "notReversible": "一部の変更は自動で元に戻せません。"
   },
@@ -354,39 +359,45 @@
   "item": {
     "position": "変更 {n}:",
     "ref": "参照名",
-    "refTarget": "この変更セットの「{ref}」で作成されるオブジェクト",
-    "target": "オブジェクト",
-    "createdId": "作成済み",
-    "openObject": "オブジェクトを開く",
+    "refTarget": "この変更セットの「{ref}」で作成",
+    "target": "対象",
+    "createdId": "作成された ID",
     "remove": "「{label}」を削除",
     "removeTitle": "この変更を削除しますか?",
-    "removeBody": "「{label}」が {reference} から削除されます。これを参照する後続の変更は、修正されるまでドライ ランに失敗します。",
-    "removeConfirm": "削除",
-    "removed": "変更を削除しました",
-    "stale": "変更の提案後に、このオブジェクトが変更されました。下の差分を確認してから変更セットを更新し、現在のバージョンを基準として受け入れてください。",
+    "removeBody": "「{label}」が {reference} から削除されます。",
+    "removeConfirm": "{count, plural, =1 {削除} other {# 件の変更を削除}}",
+    "removed": "{count, plural, =1 {変更を削除しました} other {# 件の変更を削除しました}}",
+    "stale": "変更の提案後に、誰かがこれを変更しました。以下の差分を確認してから、変更セットを更新して現在のバージョンを使用してください。",
     "refresh": "更新",
     "note": "メモ",
     "changes": "差分: 現在 → 提案",
     "changesApplied": "差分: 適用前 → 適用後",
-    "proposedValue": "提案された値",
     "preview": "プレビュー",
     "previewFailed": "このプレビューを表示できませんでした。",
-    "currentUnavailable": "現在のオブジェクトを読み取れないため、提案された値全体を表示しています。",
-    "archiveNote": "適用すると、このオブジェクトはアーカイブされます。ロールバックすると復元されます。",
-    "archiveDone": "このオブジェクトはアーカイブされました。",
-    "deleteNote": "適用すると、このオブジェクトは削除されます。削除はロールバックできません。",
-    "deleteDone": "このオブジェクトは削除されました。",
+    "currentUnavailable": "現在の内容を読み取れないため、提案された値全体を表示しています。",
+    "archiveNote": "適用するとアーカイブされます。ロールバックすると復元されます。",
+    "archiveDone": "アーカイブされました。",
+    "deleteNote": "適用すると削除されます。削除はロールバックできません。",
+    "deleteDone": "削除されました。",
     "check": {
       "unchecked": "未確認",
-      "ok": "ドライ ランに合格",
-      "failing": "ドライ ランに失敗",
-      "failingWith": "ドライ ランに失敗: {reason}",
+      "ok": "適用できます",
+      "failing": "適用できません",
+      "failingWith": "適用できません: {reason}",
       "needsApprover": "適用には、より多くのアクセス許可を持つユーザーが必要です",
-      "needsPermission": "適用には {permission} を持つユーザーが必要です",
+      "needsPermission": "適用には {permission} が必要です",
       "issues": "問題",
       "applied": "適用済み",
       "rolledBack": "ロールバック済み"
-    }
+    },
+    "openKind": "{kind}を開く",
+    "technical": {
+      "title": "技術的な詳細",
+      "kind": "種類"
+    },
+    "showDetails": "「{label}」の詳細を表示",
+    "hideDetails": "「{label}」の詳細を非表示",
+    "removeWithDependents": "{count, plural, other {「{label}」と、それに依存する # 件の変更が削除されます:}}"
   },
   "diff": {
     "label": "{before} から {after} への差分",
@@ -413,17 +424,17 @@
   },
   "apply": {
     "title": "{reference} を適用しますか?",
-    "body": "すべての変更は、あなたのアクセス許可で 1 つのトランザクションとして適用されます。1 つでも失敗すると、何も適用されません。後でロールバックできます。",
+    "body": "{count, plural, other {# 件の変更はあなたの権限でまとめて適用されます。1 件でも失敗すると、どれも適用されません。後でロールバックできます。}}",
     "inReview": "この変更セットはレビュー中です。今すぐ適用すると、レビューは取り消されます。",
-    "notReady": "ドライ ランに合格していない変更があるため、適用は失敗する可能性が高いです。",
+    "notReady": "一部の変更はこのままでは適用できないため、適用はおそらく失敗します。",
     "destructiveTitle": "アーカイブと削除",
-    "destructiveConfirm": "{count, plural, other {# 個のオブジェクトがアーカイブまたは削除されることを理解しました}}",
+    "destructiveConfirm": "{count, plural, other {このうち # 件の変更がアーカイブまたは削除を行うことを理解しました}}",
     "confirm": "適用",
     "done": "{reference} を適用しました"
   },
   "submit": {
     "title": "{reference} のレビューを依頼",
-    "body": "承認者が変更とそのドライ ランの結果を確認します。承認されると、承認者のアクセス許可で変更セットが適用されます。",
+    "body": "承認者が変更とその事前チェックの結果を確認します。承認されると、承認者のアクセス許可で変更セットが適用されます。",
     "note": "レビュー担当者へのメモ (省略可能)",
     "confirm": "レビューを依頼",
     "done": "レビューを依頼しました"
@@ -436,10 +447,18 @@
   },
   "rollback": {
     "title": "{reference} をロールバックしますか?",
-    "body": "すべての変更が 1 つのトランザクションで逆の順序に元に戻されます。更新は以前の値に戻り、アーカイブされたオブジェクトは復元され、作成されたオブジェクトは削除されます。その後に変更されたオブジェクトはロールバックできません。",
+    "body": "すべての変更が逆の順序でまとめて元に戻されます。その後誰かが変更したものがある場合は、何もロールバックされません。",
     "reason": "理由 (省略可能、監査ログに記録されます)",
     "confirm": "ロールバック",
-    "done": "{reference} をロールバックしました"
+    "done": "{reference} をロールバックしました",
+    "what": "ロールバックの内容:",
+    "undo": {
+      "create": "{kind}「{label}」を削除します",
+      "update": "{kind}「{label}」を元の状態に戻します",
+      "archive": "{kind}「{label}」を復元します",
+      "delete": "削除された{kind}「{label}」は元に戻せません"
+    },
+    "more": "{count, plural, other {ほか # 件の変更}}"
   },
   "discard": {
     "title": "{reference} を破棄しますか?",
@@ -466,5 +485,72 @@
     "openChangeSet": "変更セットを開く",
     "alreadyDecided": "これはすでに判断済みです。結果は会話に表示されます。",
     "alreadyExpired": "会話が先に進んだため、期限切れになりました。必要な場合は、もう一度アシスタントに依頼してください。"
+  },
+  "packs": {
+    "title": "プロセス パック",
+    "description": "すぐに使えるプロセスです。申請フォーム、その承認者、割り当てられるチェックリストが含まれます。インストールすると、まず確認用の変更セットが準備され、適用されるまで何も有効になりません。",
+    "back": "変更セット",
+    "tabsLabel": "パックの取得元",
+    "tabs": {
+      "builtin": "組み込み",
+      "file": "ファイルのインポート"
+    },
+    "listLabel": "組み込みのプロセス パック",
+    "from": "{module} から",
+    "review": "インストール前に確認",
+    "installed": "{reference} を確認できます",
+    "groupsToFill": "{count, plural, other {# 個のグループ (インストール後にメンバーを追加)}}",
+    "needsReviewer": "インストールはできますが、適用するには追加のアクセス許可を持つユーザー (またはレビュー) が必要です。",
+    "missingModules": "有効になっていないモジュールが必要です: {modules}",
+    "unknownKinds": "このプラットフォームにない構成の種類が必要です: {kinds}",
+    "unreadable": "インストールするには、お持ちでないアクセス許可が必要です: {permissions}",
+    "unsupported": "一部の変更は、ここではサポートされていません。",
+    "empty": "プロセス パックはありません",
+    "emptyHint": "有効なモジュールはプロセス パックを提供していません。ファイルはインポートできます。",
+    "contents": {
+      "title": "作成される内容",
+      "processes": "{count, plural, other {# 個のプロセス}}",
+      "groups": "インストール後にメンバーを追加するグループ ({count})",
+      "groupsHint": "グループはメンバーなしで作成されます。パックを適用した後、各グループのページでメンバーを追加してください。",
+      "other": "共有およびその他の変更 ({count})"
+    }
+  },
+  "counts": {
+    "processes": "{count, plural, other {# 個のプロセス}}",
+    "other": "{kind}: {count}",
+    "kinds": {
+      "core_group": "{count, plural, other {# 個のグループ}}",
+      "core_form": "{count, plural, other {# 個の申請フォーム}}",
+      "core_workflow": "{count, plural, other {# 個の承認ワークフロー}}",
+      "core_custom-field": "{count, plural, other {# 個のカスタム フィールド}}",
+      "core_role": "{count, plural, other {# 個のロール}}",
+      "itsm_category": "{count, plural, other {# 個のチケット カテゴリ}}",
+      "scheduler_job": "{count, plural, other {# 個のスケジュール ジョブ}}"
+    }
+  },
+  "describe": {
+    "form": "{questions, plural, =0 {質問なし} other {質問 # 件}}、対象: {audience}。",
+    "everyone": "全員",
+    "approval": "承認: {steps}。",
+    "noApproval": "承認なし: 申請は送信されるとすぐに進みます。",
+    "noApprovalSteps": "承認ステップはまだありません。",
+    "approvalNamed": "承認: 承認ワークフロー「{name}」。",
+    "approvalExisting": "承認: 既存の承認ワークフロー。",
+    "actions": "{on, select, submitted {送信時} approved {承認後} rejected {却下時} other {その後}}: {actions}。",
+    "workflowFor": "{forms} で送信された申請を承認します。",
+    "workflowTrigger": "承認の対象: {trigger}。",
+    "inSomeCases": "{step} (一部の場合のみ)",
+    "recordFact": "「{field}」の{fact}",
+    "fieldValue": "「{field}」のユーザー",
+    "groupMembers": "メンバーなしで作成されます。適用後に追加してください。",
+    "approver": {
+      "manager": "{level, select, 1 {申請者の上長} other {申請者の {level} 階層上の上長}}",
+      "departmentHead": "申請者の部署の責任者",
+      "requester": "申請者",
+      "role": "ロール「{name}」を持つユーザー",
+      "someGroup": "グループ",
+      "somePerson": "ユーザー",
+      "fallback": "{rule} (いない場合は {fallback})"
+    }
   }
 }

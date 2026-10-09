@@ -20,9 +20,11 @@ createdAt(), updatedAt: updatedAt() }, (t) => [index(...)])`). Run `db:generate`
      `ctx.audit.diff(before, after)`.
    - `remove` calls `ctx.records.forget` for a linkable type (R15).
 4. **Routes:** one per operation, each with `config.permission` and full `schema`.
-5. **Web:** the list page uses `PageHeader` + `DataTable` + `useListState` + `SearchInput`, with an `EmptyState`
-   for none and none-matching. The detail page has a heading, tabs and the record panels (recipe 3). Create and
-   edit happen in a `Sheet`/`Dialog` form with `useApiMutation({ invalidate: ['/things/items'], success })`.
+5. **Web:** the list page uses `PageHeader` + `DataTable` (with the query's `error`/`refetch`) + `useListState` +
+   `FilterBar`/`SearchInput`, with an `EmptyState` for none (copy by whether the viewer can create) and
+   none-matching (`variant="filtered"`). The detail page has a `DetailHeader`, tabs and the record panels (recipe 3).
+   Create and edit happen in a `Sheet` (more than 4 fields) or `Dialog` form with
+   `useApiMutation({ invalidate: ['/things/items'], success })`.
 6. **i18n:** fields, statuses, empty states, toasts and audit labels go in all three catalogs.
 
 _See:_ `modules/alm/src/server/applications.ts`, `modules/alm/src/web/pages/inventory-page.tsx`.
@@ -155,6 +157,10 @@ slots: [
 The component's props are the host's contract (`UserOverviewSlotProps` from `@isbp/contracts`). It fetches from
 **your own** API and renders `null` when it has nothing to show, so it never leaves an empty card.
 
+Home hosts `core.dashboard.work` for the people who **own an area** (the service desk queue for agents, asset
+attention for asset managers: link to your overview page) and `core.home.news`. Something that waits for one person
+(a decision, a form, a check, a task) is not a card: put it on My work (recipe 29).
+
 _See:_ `modules/alm/src/web/slots/dashboard-work.tsx`, `modules/itam/src/web/slots/*`.
 
 ## 8. Requests portal: an entry and "My requests"
@@ -231,7 +237,10 @@ query.
 ## 11. Global search (command palette)
 
 `search: { entities: ['item'] }` in the manifest, and `search: async (q, ctx, auth, limit) => SearchHit[]` in the
-server definition. Return `[]` without permission, and hits `{ id, type, title, subtitle, href, icon }`.
+server definition. Return `[]` without permission, and hits `{ id, type, title, subtitle, href, icon, status? }`:
+`status` is an i18n key (`things.status.open`), never a raw code in `subtitle`; set `exact: true` when the query is the
+record's reference; give translations of one record the same `group` and their `locale`. Add a palette heading for a
+new `type` under `shell.commandPalette.types.<type>`.
 
 ## 12. Custom fields on your entity
 
@@ -448,9 +457,10 @@ defineServerModule(manifest, { …, customizations });
 ```
 
 3. Optional: a guided template for builtin mode (`templates: [{ id, label, description, fields, build }]`), and a
-   preview on the change set page: web slot `assistant.preview.<module>.<kind>` (`AssistantPreviewProps`). A template
+   preview on the change set page: web slot `assistant.preview.<module>.<kind>` (`AssistantPreviewProps`: the item,
+   its value and the change set's other `items`, so a preview can name what the same set creates). A template
    that needs objects of other kinds returns them in `before` with a `ref`, and refers to them as `"$ref:<ref>"`
-   (core's "Approval process" proposes a workflow, then the form using it). When people use your objects somewhere
+   (core's "Request process" proposes a workflow, then the form using it). When people use your objects somewhere
    else than their admin page, return `links: [{ href, label }]` from `get` (labels from your catalog in three
    languages, only while the object is usable): the applied change set and the agent's reply show them.
 4. Hold `check` to what your admin page refuses, not only what the API refuses, and leave permission problems to
@@ -628,8 +638,9 @@ _See:_ `modules/isms/src/model.ts` (`csvRecords`, `readCsvTable`, `toCsv`), `mod
 ## 28. Ship a ready-made process (a built-in change-set package)
 
 When your module comes with a whole process to set up — its request forms, approval workflows, groups, scheduled
-jobs, service desk categories — ship it as a **built-in package**. An administrator installs it from **Change sets →
-From a package**: it becomes one draft change set, dry-run like any other, applied (or sent for review) by a person
+jobs, service desk categories — ship it as a **built-in package**. An administrator reads what it creates, process by
+process, and installs it on **Process packs** (**Install a process pack** on Forms or Change sets): it becomes one draft
+change set, grouped by process and dry-run like any other, applied (or sent for review) by a person
 and rolled back in one step. Nothing you ship is live until then, and every item goes through its kind's checks.
 
 1. Declare it (name and description in your three catalogs):
@@ -716,3 +727,56 @@ defineServerModule(manifest, { …, customizationPackages: { processes: ({ local
 
 _See:_ `apps/api/test/integration/assistant-packages.test.ts` (a test module with packages),
 `modules/assistant/src/lib/packages.ts`, `docs/architecture.md` §15.8b, `docs/api.md` ("Change-set packages").
+
+## 29. Put what waits for people on My work (and keep the sidebar for the people who work there)
+
+My work (`/my-work`) is everyone's one place for "what needs me": approvals, forms to fill in, records to check,
+tasks. A module adds a **source**, and the platform shows its items on My work, on Home ("Needs you") and in the
+sidebar badge.
+
+1. Manifest: `work: [{ key: 'reviews', label: 'things.work.reviews', kind: 'review', icon: 'clipboard-check',
+permission: 'things.self.use', href: '/things/reviews' }]`. `kind` picks the section: `approval` (decide),
+   `todo` (fill in or do), `review` (check records), `task` (assigned work; listed, not counted in the badge).
+2. Server: `defineServerModule({ work: { reviews: async (auth, ctx, { limit }) => ({ count, items }) } })`. Answer
+   for `auth` only (the reviewer, the assignee, members of the assigned group), one or two indexed queries; with
+   `limit: 0` return just the count. Each item opens the item itself (`/things/reviews/REV-7?view=mine`), with plain
+   `title`/`subtitle` and an optional translated `detail: { key: 'things.work.toCheck', params: { count } }`.
+3. Navigation: gate sidebar entries on the permission of the people who run the area (`things.reviews.manage`), not
+   the self-service one everyone holds; participants reach their part from My work and the notification. Group your
+   pages as `children` of one entry, sub-pages behind section tabs as `tabs`, settings as `section: 'admin'` with an
+   `area` and a `description` (an Administration hub card). Show an entry only to people who take part (members of a
+   project) with `check: true` + `defineServerModule({ navigation: { [id]: (auth, ctx) => boolean } })`.
+4. Notify with an `href` that opens the item (the same as the work item's), so the bell and My work agree.
+
+_See:_ `modules/isms/src/server/work.ts` (stocktake checks, account reviews, password changes),
+`modules/dbaccess/src/server/work.ts`, `apps/api/src/core/work.ts` (approvals, assigned forms),
+`modules/projects/src/server/work.ts` (tasks and the "member of a project" check).
+
+## 30. Keep deletes from breaking open work (references)
+
+A group or a record must not disappear while something still needs it: a request in approval whose action notifies
+the group, an open to-do assigned to it, a ticket in its queue, a published form whose settings name a CI. The
+platform refuses such deletes with 409 `IN_USE` and lists what still uses it, so the administrator can resolve those
+first (decision 93).
+
+1. Your record deletes call `ctx.records.forget(ref, { tx })` in the deleting transaction (R15): it runs every
+   module's finders for the record (open requests whose answers name it, published forms whose settings do) and
+   refuses before anything is committed.
+2. When your module's **open work or live settings** name another module's record or a group, report them:
+   `defineServerModule({ references: { 'core.group': async (target, ctx, { tx, limit }) => [...] } })`, keyed by the
+   referenced type with its prefix (`*` answers for every record type). Read in `tx`, at most `limit` rows, one or two
+   indexed queries. Return `{ kind, label, href }`: `kind` is `request`, `approval`, `todo`, `work` (an open ticket, a
+   stocktake still in progress) or `setting` (a job or form whose next run would fail); `label` is a
+   reference and a name with no other words (`INC-00123 · VPN drops`, or localized text); `href` opens it.
+3. Report only what would break or be orphaned, and that an administrator can resolve (finish, reassign, cancel or
+   archive). Closed work and history never block a delete, and a column your
+   foreign key clears (`on delete set null`, e.g. an owner group) doesn't count.
+4. Settings kept as JSON name groups by id or by key: match them with
+   `sql\`jsonb_path_match(${col}, ${GROUP_JSONPATH}::jsonpath, ${groupPathVars(target)}::jsonb)\`` (a select option
+   that reads like the key doesn't match).
+5. UI: a confirm dialog shows `<InUseList error={mutation.error} />` (`@isbp/ui/in-use`); every error toast already
+   names the first use ("Still used by INC-00123 · VPN drops and 2 more.").
+
+_See:_ `apps/api/src/core/references.ts` (requests, approvals, to-dos, forms, approval processes),
+`modules/itsm/src/server/references.ts`, `modules/scheduler/src/server/references.ts`,
+`apps/api/test/integration/references.test.ts`.

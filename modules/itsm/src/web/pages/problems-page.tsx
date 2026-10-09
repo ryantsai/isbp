@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { TicketListItem } from '../../contracts';
-import { NewTicketDialog } from '../components/new-ticket-dialog';
+import { NewProblemDialog } from '../ticket/new-problem';
 import { CategorySelect } from '../components/pickers';
 import { type TicketColumn, useTicketColumns } from '../components/ticket-columns';
 import { ticketHref } from '../lib';
@@ -27,15 +27,7 @@ const STATUS: Record<View, string | undefined> = {
   done: 'done',
   all: undefined,
 };
-const COLUMNS: TicketColumn[] = [
-  'reference',
-  'title',
-  'status',
-  'priority',
-  'category',
-  'assignee',
-  'updated',
-];
+const COLUMNS: TicketColumn[] = ['ticket', 'status', 'priority', 'category', 'owner', 'updated'];
 
 /** Problems: root-cause investigations and known errors. */
 export default function ProblemsPage() {
@@ -45,7 +37,7 @@ export default function ProblemsPage() {
   const [state, set] = useListState({ pageSize: 25 });
   const [creating, setCreating] = useState(false);
   const view = (VIEWS as string[]).includes(String(state.view)) ? (state.view as View) : 'open';
-  const { data, isLoading, isFetching } = useApiQuery<Page<TicketListItem>>('/itsm/tickets', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<TicketListItem>>('/itsm/tickets', {
     type: 'problem',
     view: 'all',
     status: STATUS[view],
@@ -68,6 +60,8 @@ export default function ProblemsPage() {
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(r) => r.id}
       onRowClick={(r) => router.push(ticketHref(r.reference))}
       onPageChange={(page) => set({ page })}
@@ -122,7 +116,13 @@ export default function ProblemsPage() {
           </TabsContent>
         ))}
       </Tabs>
-      {canManage && <NewTicketDialog open={creating} onOpenChange={setCreating} types={['problem']} />}
+      {canManage && (
+        <NewProblemDialog
+          open={creating}
+          onOpenChange={setCreating}
+          onCreated={(ref) => router.push(ticketHref(ref))}
+        />
+      )}
     </>
   );
 }

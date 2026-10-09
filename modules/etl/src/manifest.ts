@@ -27,34 +27,38 @@ export const manifest = defineManifest({
   dependsOn: [],
   navigation: [
     {
-      id: 'endpoints',
-      label: 'etl.nav.endpoints',
+      // Scheduled jobs joins this group from its module (`parent`).
+      id: 'data',
+      label: 'etl.nav.group',
       href: '/etl',
       icon: 'database-zap',
-      permission: 'etl.endpoints.read',
       section: 'main',
-      group: 'etl.nav.group',
       order: 56,
-    },
-    {
-      id: 'pipelines',
-      label: 'etl.nav.pipelines',
-      href: '/etl/pipelines',
-      icon: 'workflow',
-      permission: 'etl.pipelines.read',
-      section: 'main',
-      group: 'etl.nav.group',
-      order: 57,
-    },
-    {
-      id: 'logs',
-      label: 'etl.nav.logs',
-      href: '/etl/logs',
-      icon: 'scroll-text',
-      permission: 'etl.endpoints.read',
-      section: 'main',
-      group: 'etl.nav.group',
-      order: 58,
+      children: [
+        {
+          id: 'endpoints',
+          label: 'etl.nav.endpoints',
+          href: '/etl',
+          icon: 'braces',
+          permission: 'etl.endpoints.read',
+          tabs: [
+            {
+              id: 'logs',
+              label: 'etl.nav.logs',
+              href: '/etl/logs',
+              icon: 'scroll-text',
+              permission: 'etl.endpoints.read',
+            },
+          ],
+        },
+        {
+          id: 'pipelines',
+          label: 'etl.nav.pipelines',
+          href: '/etl/pipelines',
+          icon: 'workflow',
+          permission: 'etl.pipelines.read',
+        },
+      ],
     },
   ],
   permissions: [

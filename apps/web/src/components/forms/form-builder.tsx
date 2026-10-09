@@ -16,18 +16,25 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import type { FormDetail, UpdateFormInput, WorkflowDefinitionSummary } from '@isbp/contracts';
+import type {
+  FormDetail,
+  UpdateFormInput,
+  WorkflowDefinition,
+  WorkflowDefinitionSummary,
+  WorkflowTrigger,
+} from '@isbp/contracts';
 import {
   type DisplayType,
   type FieldDef,
   type FieldType,
   type FormElement,
   type FormSchema,
+  findStep,
   formSchemaSchema,
   isField,
   localize,
 } from '@isbp/sdk';
-import { ApiError } from '@isbp/sdk/web';
+import { ApiError, useCan } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
@@ -70,6 +77,7 @@ import {
   Trash2Icon,
   TriangleAlertIcon,
   Undo2Icon,
+  UserCheckIcon,
   WorkflowIcon,
   XIcon,
 } from 'lucide-react';
@@ -109,6 +117,18 @@ import { FormRules, rulesIssues } from './form-rules';
 import { FormSettings, settingsIssues } from './form-settings';
 import { FormSubmissions } from './form-submissions';
 import { FormAssignments } from '@/components/assignments/form-assignments';
+import { useFieldFacts } from '@/components/workflows/field-facts';
+import { replaceStep } from '@/components/workflows/graph-ops';
+import {
+  useOptionalWorkflowEditor,
+  useWorkflowName,
+  WorkflowEditorError,
+} from '@/components/workflows/workflow-editor';
+import { FORM_TRIGGER } from '@/components/workflows/workflow-labels';
+import { FormApproval } from './form-approval';
+import { BuilderApprovalPreview } from './builder-preview';
+import { type CheckTab, type ProcessCheck, ProcessCheckList, useProcessChecks } from './process-checks';
+import { PublishSuccess } from './publish-success';
 import {
   type BuilderState,
   createElement,
@@ -119,7 +139,17 @@ import {
   useHistory,
 } from './use-builder';
 
-const TABS = ['build', 'rules', 'actions', 'preview', 'settings', 'submissions', 'assignments'] as const;
+/** Building tabs in the order of the process (questions → rules → approval → actions), then using it. */
+const TABS = [
+  'build',
+  'rules',
+  'approval',
+  'actions',
+  'preview',
+  'settings',
+  'submissions',
+  'assignments',
+] as const;
 type Tab = (typeof TABS)[number];
 
 function useMediaQuery(query: string) {
@@ -223,6 +253,10 @@ function FormBuilder({ form }: { form: FormDetail }) {
   const [announcement, setAnnouncement] = useState('');
   const [confirm, setConfirm] = useState<'publish' | 'archive' | 'leave' | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [justPublished, setJustPublished] = useState<number | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [previewValues, setPreviewValues] = useState<Record<string, unknown>>({});
+  const [stepFocus, setStepFocus] = useState<{ id: string; at: number } | null>(null);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const width = useWidth(rootRef);
@@ -260,9 +294,52 @@ function FormBuilder({ form }: { form: FormDetail }) {
     formSettingsIssues.length +
     ruleIssueCount +
     actionIssueCount;
+  /* ───────── the approval (the form's workflow, built on the Approval tab) ───────── */
+
+  const canReadWorkflows = useCan('core.workflows.read');
+  const workflowName = useWorkflowName();
+  const workflows = useApiQuery<{ items: WorkflowDefinitionSummary[] }>(
+    canReadWorkflows ? '/workflows' : null,
+    {
+      triggerKey: FORM_TRIGGER,
+    },
+  );
+  const triggers = useApiQuery<{ items: WorkflowTrigger[] }>(canReadWorkflows ? '/workflow-triggers' : null);
+  const formTrigger = triggers.data?.items.find((x) => x.key === FORM_TRIGGER);
+  const approvalQuery = useApiQuery<WorkflowDefinition>(
+    canReadWorkflows && state.workflowDefinitionId ? `/workflows/${state.workflowDefinitionId}` : null,
+  );
+  const approvalDef =
+    approvalQuery.data && approvalQuery.data.id === state.workflowDefinitionId
+      ? approvalQuery.data
+      : undefined;
+  const approval = useOptionalWorkflowEditor(approvalDef);
+  const attached = workflows.data?.items.find((w) => w.id === state.workflowDefinitionId);
+  const approvalPublished = (approvalDef ?? attached)?.publishedVersion != null;
+  const workflowDraftOnly = Boolean(
+    state.workflowDefinitionId && (approvalDef ?? attached) && !approvalPublished,
+  );
+  /** Publishing here publishes the approval too (when you may). */
+  const approvalNeedsPublish = Boolean(
+    approval && approval.canManage && !approval.def.archived && approval.unpublished,
+  );
+  // The workflow a form names applies at once: a live form only switches to it when it is published (on Publish).
+  const pendingLink =
+    form.publishedVersion !== null &&
+    state.workflowDefinitionId !== null &&
+    state.workflowDefinitionId !== (form.workflow?.id ?? null) &&
+    !approvalPublished;
+  const approvalIssueCount = approval?.issues.length ?? 0;
+
   const patch = useMemo(() => toPatch(state), [state]);
   const baseline = useMemo(() => canonical(toPatch(fromDetail(form))), [form]);
-  const dirty = canonical(patch) !== baseline;
+  /** What Save stores: a live form keeps its current workflow until the new one is published. */
+  const savable = useMemo(
+    () => (pendingLink ? { ...patch, workflowDefinitionId: form.workflow?.id ?? null } : patch),
+    [patch, pendingLink, form.workflow],
+  );
+  const formDirty = canonical(savable) !== baseline;
+  const dirty = formDirty || Boolean(approval?.dirty);
   const published = (form.published as FormSchema | null) ?? null;
   const publishedFields = useMemo(
     () => new Map((published?.elements ?? []).filter(isField).map((f) => [f.id, f])),
@@ -279,25 +356,59 @@ function FormBuilder({ form }: { form: FormDetail }) {
   const conditionText = useConditionText(facts);
   const selected = elements.find((e) => e.id === selectedId) ?? null;
 
-  const workflows = useApiQuery<{ items: WorkflowDefinitionSummary[] }>('/workflows', {
-    triggerKey: 'core.form-submission',
-  });
-  const attached = workflows.data?.items.find((w) => w.id === state.workflowDefinitionId);
-  const workflowDraftOnly = Boolean(
-    state.workflowDefinitionId && attached && attached.publishedVersion === null,
-  );
-
+  const formNeedsPublish = form.publishedVersion === null || draftChanged;
   const publishBlock: string | null = form.archived
     ? t('publishBlocked.archived')
     : !fields.length
       ? t('publishBlocked.noFields')
       : issueCount > 0
         ? t('publishBlocked.issues', { count: issueCount })
-        : workflowDraftOnly
-          ? t('publishBlocked.workflow')
-          : form.publishedVersion !== null && !draftChanged
-            ? t('publishBlocked.upToDate', { version: form.publishedVersion })
-            : null;
+        : approvalIssueCount > 0
+          ? t('publishBlocked.approval', { count: approvalIssueCount })
+          : workflowDraftOnly && !approvalNeedsPublish
+            ? t('publishBlocked.workflow')
+            : !formNeedsPublish && !approvalNeedsPublish && !pendingLink && !formDirty
+              ? t('publishBlocked.upToDate', { version: form.publishedVersion ?? 1 })
+              : null;
+
+  /* ───────── before you publish ───────── */
+
+  const dataFacts = useFieldFacts(fields, 'data');
+  const go = useCallback(
+    (to: CheckTab, target?: string) => {
+      setConfirm(null);
+      const params = new URLSearchParams(sp.toString());
+      if (to === 'build') params.delete('tab');
+      else params.set('tab', to);
+      router.replace(`/admin/forms/${form.id}${params.size ? `?${params}` : ''}`, { scroll: false });
+      if (to === 'build' && target) {
+        setSelectedId(target);
+        setFocusId(target);
+      }
+      if (to === 'approval' && target) setStepFocus({ id: target, at: Date.now() });
+    },
+    [router, sp, form.id],
+  );
+  const skipStep = useCallback(
+    (stepId: string) => {
+      if (!approval) return;
+      const step = findStep(approval.draft, stepId);
+      if (step?.type === 'approval')
+        approval.edit(replaceStep(approval.draft, { ...step, ifNoApprover: 'skip' }));
+    },
+    [approval],
+  );
+  const checks: ProcessCheck[] = useProcessChecks({
+    fields,
+    audience: state.audience,
+    graph: approval?.draft ?? null,
+    facts: dataFacts,
+    groupNames: approval?.def.names.groups ?? {},
+    enabled: !form.archived,
+    go,
+    skipStep: approval?.readOnly ? undefined : skipStep,
+  });
+  const checksOn = (tab: CheckTab) => checks.filter((c) => c.tab === tab);
 
   /* ───────── element operations ───────── */
 
@@ -543,13 +654,14 @@ function FormBuilder({ form }: { form: FormDetail }) {
     }
   };
 
-  const save = async (): Promise<boolean> => {
+  /** Saves the form's draft (`withLink`: also the approval it names, once that approval is published). */
+  const saveForm = async (opts: { withLink?: boolean } = {}): Promise<boolean> => {
     if (issueCount > 0) {
       toast.error(t('fixIssues', { count: issueCount }));
       revealFirstIssue();
       return false;
     }
-    const body = toPatch(state);
+    const body = opts.withLink ? toPatch(state) : savable;
     if (!formSchemaSchema.safeParse(body.draft).success) {
       toast.error(t('invalidDraft'));
       return false;
@@ -578,25 +690,65 @@ function FormBuilder({ form }: { form: FormDetail }) {
     }
   };
 
+  /** Saves the approval's draft (when changed); false after saying why it couldn't. */
+  const saveApproval = async (): Promise<boolean> => {
+    if (!approval?.dirty || approval.readOnly) return true;
+    try {
+      await approval.save();
+      return true;
+    } catch (err) {
+      toast.error(err instanceof WorkflowEditorError ? err.message : errorText(err));
+      setTab('approval');
+      return false;
+    }
+  };
+
+  const save = async (): Promise<boolean> => (await saveApproval()) && (!formDirty || (await saveForm()));
+
   const onSave = async () => {
     if (await save()) toast.success(t('saved'));
   };
 
+  /**
+   * One Publish for the whole process: the approval first (so the form never goes live naming an approval that
+   * can't run), then the form's draft and its new version.
+   */
   const onPublish = async () => {
-    if (dirty && !(await save())) return;
+    setPublishing(true);
     try {
-      const res = await publishMutation.mutateAsync(undefined);
-      setDetail(res);
+      if (approval && approvalNeedsPublish) {
+        try {
+          await approval.publish();
+        } catch (err) {
+          setConfirm(null);
+          toast.error(err instanceof WorkflowEditorError ? err.message : errorText(err));
+          setTab('approval');
+          return;
+        }
+      } else if (!(await saveApproval())) return;
+      const linkChanged = state.workflowDefinitionId !== (form.workflow?.id ?? null);
+      if ((formDirty || linkChanged) && !(await saveForm({ withLink: true }))) return;
+      let version = form.publishedVersion ?? 1;
+      if (formNeedsPublish) {
+        const res = await publishMutation.mutateAsync(undefined);
+        setDetail(res);
+        version = res.publishedVersion ?? 1;
+      }
       setConfirm(null);
-      toast.success(t('published', { version: res.publishedVersion ?? 1 }));
-      setAnnouncement(t('published', { version: res.publishedVersion ?? 1 }));
+      setJustPublished(version);
+      setAnnouncement(t('published', { version }));
     } catch (err) {
       setConfirm(null);
       if (err instanceof ApiError && err.code === 'WORKFLOW_NOT_CONFIGURED')
         toast.error(t('publishBlocked.workflow'));
       else toast.error(errorText(err));
+    } finally {
+      setPublishing(false);
     }
   };
+
+  /** The Approval tab names another workflow (or none); a new one is published with the form. */
+  const link = (id: string | null) => update((s) => ({ ...s, workflowDefinitionId: id }));
 
   // Latest values for the global shortcuts (refs are only touched in effects and handlers).
   const latest = useRef({ dirty, save: onSave, undo, redo, selectedId, move });
@@ -629,20 +781,21 @@ function FormBuilder({ form }: { form: FormDetail }) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  const unsaved = dirty || pendingLink;
   useEffect(() => {
-    if (!dirty) return;
+    if (!unsaved) return;
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [dirty]);
+  }, [unsaved]);
 
   /* ───────── render ───────── */
 
   const status = {
     publishedVersion: form.publishedVersion,
-    hasUnpublishedChanges: draftChanged,
+    hasUnpublishedChanges: draftChanged || pendingLink || approvalNeedsPublish,
     active: state.active,
     archived: form.archived,
   };
@@ -710,7 +863,7 @@ function FormBuilder({ form }: { form: FormDetail }) {
         <Link
           href="/admin/forms"
           onClick={(e) => {
-            if (!dirty) return;
+            if (!unsaved) return;
             e.preventDefault();
             setConfirm('leave');
           }}
@@ -772,7 +925,7 @@ function FormBuilder({ form }: { form: FormDetail }) {
             variant="outline"
             onClick={() => void onSave()}
             disabled={!dirty}
-            loading={saving && !publishMutation.isPending}
+            loading={(saving || approval?.busy === 'saving') && !publishing}
           >
             <SaveIcon /> {t('save')}
           </Button>
@@ -791,7 +944,7 @@ function FormBuilder({ form }: { form: FormDetail }) {
               </span>
             </Hint>
           ) : (
-            <Button onClick={() => setConfirm('publish')} loading={publishMutation.isPending}>
+            <Button onClick={() => setConfirm('publish')} loading={publishing}>
               <RocketIcon /> {t('publish')}
             </Button>
           )}
@@ -832,71 +985,108 @@ function FormBuilder({ form }: { form: FormDetail }) {
         </p>
       )}
 
+      <PublishSuccess
+        open={justPublished !== null}
+        version={justPublished ?? 1}
+        audience={
+          form.audience.type === 'everyone'
+            ? t('success.everyone')
+            : t('success.groups', { count: form.audience.groupKeys.length })
+        }
+        href={portalHref}
+        live={form.active && !form.archived}
+        onClose={() => setJustPublished(null)}
+      />
+
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="build">
-            <HammerIcon /> {t('tabs.build')}
-            {issues.size > 0 && (
-              <Badge variant="destructive" className="px-1.5 tabular-nums">
-                <TriangleAlertIcon aria-hidden />
-                {[...issues.values()].reduce((n, l) => n + l.length, 0)}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="rules">
-            <ShieldCheckIcon /> {t('tabs.rules')}
-            {ruleIssueCount > 0 ? (
-              <Badge variant="destructive" className="px-1.5 tabular-nums">
-                <TriangleAlertIcon aria-hidden />
-                {ruleIssueCount}
-              </Badge>
-            ) : (
-              state.rules.length > 0 && (
-                <Badge variant="muted" className="px-1.5 tabular-nums">
-                  {state.rules.length}
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+          <TabsList aria-label={t('tabs.buildGroup')}>
+            <TabsTrigger value="build">
+              <HammerIcon /> {t('tabs.build')}
+              {issues.size > 0 && (
+                <Badge variant="destructive" className="px-1.5 tabular-nums">
+                  <TriangleAlertIcon aria-hidden />
+                  {[...issues.values()].reduce((n, l) => n + l.length, 0)}
                 </Badge>
-              )
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="actions">
-            <WorkflowIcon /> {t('tabs.actions')}
-            {actionIssueCount > 0 ? (
-              <Badge variant="destructive" className="px-1.5 tabular-nums">
-                <TriangleAlertIcon aria-hidden />
-                {actionIssueCount}
-              </Badge>
-            ) : (
-              state.actions.length > 0 && (
-                <Badge variant="muted" className="px-1.5 tabular-nums">
-                  {state.actions.length}
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="rules">
+              <ShieldCheckIcon /> {t('tabs.rules')}
+              {ruleIssueCount > 0 ? (
+                <Badge variant="destructive" className="px-1.5 tabular-nums">
+                  <TriangleAlertIcon aria-hidden />
+                  {ruleIssueCount}
                 </Badge>
-              )
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="preview">
-            <EyeIcon /> {t('tabs.preview')}
-          </TabsTrigger>
-          <TabsTrigger value="settings">
-            <Settings2Icon /> {t('tabs.settings')}
-            {formSettingsIssues.length > 0 && (
-              <Badge variant="destructive" className="px-1.5 tabular-nums">
-                <TriangleAlertIcon aria-hidden />
-                {formSettingsIssues.length}
+              ) : (
+                state.rules.length > 0 && (
+                  <Badge variant="muted" className="px-1.5 tabular-nums">
+                    {state.rules.length}
+                  </Badge>
+                )
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="approval">
+              <UserCheckIcon /> {t('tabs.approval')}
+              {approvalIssueCount > 0 ? (
+                <Badge variant="destructive" className="px-1.5 tabular-nums">
+                  <TriangleAlertIcon aria-hidden />
+                  {approvalIssueCount}
+                </Badge>
+              ) : checksOn('approval').length > 0 ? (
+                <Badge variant="warning" className="px-1.5 tabular-nums">
+                  <TriangleAlertIcon aria-hidden />
+                  {checksOn('approval').length}
+                </Badge>
+              ) : (
+                approval?.unpublished &&
+                !approval.readOnly && (
+                  <span className="size-1.5 rounded-full bg-warning" aria-label={t('tabs.approvalChanged')} />
+                )
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="actions">
+              <WorkflowIcon /> {t('tabs.actions')}
+              {actionIssueCount > 0 ? (
+                <Badge variant="destructive" className="px-1.5 tabular-nums">
+                  <TriangleAlertIcon aria-hidden />
+                  {actionIssueCount}
+                </Badge>
+              ) : (
+                state.actions.length > 0 && (
+                  <Badge variant="muted" className="px-1.5 tabular-nums">
+                    {state.actions.length}
+                  </Badge>
+                )
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="preview">
+              <EyeIcon /> {t('tabs.preview')}
+            </TabsTrigger>
+            <TabsTrigger value="settings">
+              <Settings2Icon /> {t('tabs.settings')}
+              {formSettingsIssues.length > 0 && (
+                <Badge variant="destructive" className="px-1.5 tabular-nums">
+                  <TriangleAlertIcon aria-hidden />
+                  {formSettingsIssues.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+          <TabsList aria-label={t('tabs.useGroup')}>
+            <TabsTrigger value="submissions">
+              <InboxIcon /> {t('tabs.submissions')}
+              <Badge variant="muted" className="px-1.5 tabular-nums">
+                {form.submissionCount.toLocaleString(locale)}
               </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="submissions">
-            <InboxIcon /> {t('tabs.submissions')}
-            <Badge variant="muted" className="px-1.5 tabular-nums">
-              {form.submissionCount.toLocaleString(locale)}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="assignments">
-            <ClipboardCheckIcon /> {tAssign('tab')}
-          </TabsTrigger>
-        </TabsList>
+            </TabsTrigger>
+            <TabsTrigger value="assignments">
+              <ClipboardCheckIcon /> {tAssign('tab')}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="build">
+          <ProcessCheckList checks={checksOn('build')} className="mb-4" />
           <DndContext
             sensors={sensors}
             collisionDetection={collision}
@@ -984,6 +1174,24 @@ function FormBuilder({ form }: { form: FormDetail }) {
           />
         </TabsContent>
 
+        <TabsContent value="approval">
+          <FormApproval
+            form={form}
+            name={name}
+            fields={fields}
+            workflowId={state.workflowDefinitionId}
+            editor={approval}
+            loading={approvalQuery.isLoading || (Boolean(state.workflowDefinitionId) && !approvalDef)}
+            trigger={formTrigger}
+            workflows={workflows.data?.items ?? []}
+            pendingLink={pendingLink}
+            readOnly={form.archived}
+            focusStep={stepFocus}
+            checks={<ProcessCheckList checks={checksOn('approval')} />}
+            onLink={link}
+          />
+        </TabsContent>
+
         <TabsContent value="actions">
           <FormActions
             actions={state.actions}
@@ -992,6 +1200,7 @@ function FormBuilder({ form }: { form: FormDetail }) {
             loading={actionCatalog.loading}
             hasApproval={Boolean(state.workflowDefinitionId)}
             workflowId={state.workflowDefinitionId}
+            formName={state.name}
             readOnly={form.archived}
             onChange={(actions, tag) => update((s) => ({ ...s, actions }), tag)}
           />
@@ -1004,17 +1213,25 @@ function FormBuilder({ form }: { form: FormDetail }) {
             name={state.name}
             description={state.description}
             icon={state.icon}
+            onValues={setPreviewValues}
+            aside={
+              <BuilderApprovalPreview
+                formId={form.id}
+                draft={patch.draft!}
+                graph={state.workflowDefinitionId ? (approval?.draft ?? null) : null}
+                category={state.category.trim() || null}
+                values={previewValues}
+                actions={state.actions}
+                actionTypes={actionCatalog.items}
+                loading={Boolean(state.workflowDefinitionId) && canReadWorkflows && !approval}
+              />
+            }
           />
         </TabsContent>
 
         <TabsContent value="settings">
-          <FormSettings
-            form={form}
-            state={state}
-            onChange={(fn, tag) => update(fn, tag)}
-            workflows={workflows.data?.items ?? []}
-            workflowsLoading={workflows.isLoading}
-          />
+          <ProcessCheckList checks={checksOn('settings')} className="mb-4" />
+          <FormSettings form={form} state={state} onChange={(fn, tag) => update(fn, tag)} />
         </TabsContent>
 
         <TabsContent value="submissions">
@@ -1035,7 +1252,17 @@ function FormBuilder({ form }: { form: FormDetail }) {
         form={form}
         elements={elements}
         dirty={dirty}
-        loading={publishMutation.isPending || saving}
+        formNeedsPublish={formNeedsPublish}
+        approval={
+          approvalNeedsPublish && approval
+            ? {
+                name: approval.name || workflowName(approval.def.name),
+                version: (approval.def.publishedVersion ?? 0) + 1,
+              }
+            : null
+        }
+        checks={checks}
+        loading={publishing}
         onConfirm={() => void onPublish()}
       />
       <ConfirmDialog
@@ -1226,6 +1453,9 @@ function PublishDialog({
   form,
   elements,
   dirty,
+  formNeedsPublish,
+  approval,
+  checks,
   loading,
   onConfirm,
 }: {
@@ -1234,6 +1464,11 @@ function PublishDialog({
   form: FormDetail;
   elements: readonly FormElement[];
   dirty: boolean;
+  /** The questions changed (or were never published): a new form version goes live. */
+  formNeedsPublish: boolean;
+  /** The approval is published too: its name and the version it becomes. */
+  approval: { name: string; version: number } | null;
+  checks: readonly ProcessCheck[];
   loading: boolean;
   onConfirm: () => void;
 }) {
@@ -1251,37 +1486,52 @@ function PublishDialog({
     <ConfirmDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={t('publishTitle', { version: next })}
-      description={form.publishedVersion === null ? t('publishFirstBody') : t('publishBody')}
-      confirmLabel={dirty ? t('saveAndPublish') : t('publish')}
+      title={formNeedsPublish ? t('publishTitle', { version: next }) : t('publishApprovalTitle')}
+      description={
+        !formNeedsPublish
+          ? t('publishApprovalBody')
+          : form.publishedVersion === null
+            ? t('publishFirstBody')
+            : t('publishBody')
+      }
+      confirmLabel={checks.length ? t('publishAnyway') : dirty ? t('saveAndPublish') : t('publish')}
       loading={loading}
       onConfirm={onConfirm}
     >
-      {form.publishedVersion !== null && (
-        <ul className="grid gap-1.5 text-sm">
-          {added.length > 0 && (
-            <li>
-              <Badge variant="success">{t('diffAdded', { count: added.length })}</Badge>{' '}
-              <span className="text-muted-foreground">{list(added)}</span>
-            </li>
-          )}
-          {changed.length > 0 && (
-            <li>
-              <Badge variant="info">{t('diffChanged', { count: changed.length })}</Badge>{' '}
-              <span className="text-muted-foreground">{list(changed)}</span>
-            </li>
-          )}
-          {removed.length > 0 && (
-            <li>
-              <Badge variant="destructive">{t('diffRemoved', { count: removed.length })}</Badge>{' '}
-              <span className="text-muted-foreground">{list(removed)}</span>
-            </li>
-          )}
-          {!added.length && !changed.length && !removed.length && (
-            <li className="text-muted-foreground">{t('diffLayoutOnly')}</li>
-          )}
-        </ul>
-      )}
+      <div className="grid gap-3">
+        {formNeedsPublish && form.publishedVersion !== null && (
+          <ul className="grid gap-1.5 text-sm">
+            {added.length > 0 && (
+              <li>
+                <Badge variant="success">{t('diffAdded', { count: added.length })}</Badge>{' '}
+                <span className="text-muted-foreground">{list(added)}</span>
+              </li>
+            )}
+            {changed.length > 0 && (
+              <li>
+                <Badge variant="info">{t('diffChanged', { count: changed.length })}</Badge>{' '}
+                <span className="text-muted-foreground">{list(changed)}</span>
+              </li>
+            )}
+            {removed.length > 0 && (
+              <li>
+                <Badge variant="destructive">{t('diffRemoved', { count: removed.length })}</Badge>{' '}
+                <span className="text-muted-foreground">{list(removed)}</span>
+              </li>
+            )}
+            {!added.length && !changed.length && !removed.length && (
+              <li className="text-muted-foreground">{t('diffLayoutOnly')}</li>
+            )}
+          </ul>
+        )}
+        {approval && (
+          <p className="flex items-start gap-2 text-sm">
+            <UserCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            {t('publishWithApproval', { name: approval.name, version: approval.version })}
+          </p>
+        )}
+        <ProcessCheckList checks={checks} />
+      </div>
     </ConfirmDialog>
   );
 }

@@ -39,6 +39,9 @@ import {
   type confirmSchema,
   type createLinkSchema,
   type createTicketSchema,
+  DESK_TYPES,
+  type knownErrorArticleSchema,
+  type LinkType,
   DONE_STATUSES,
   formatTicketRef,
   parseTicketRef,
@@ -50,6 +53,7 @@ import {
   type TicketStatus,
   ticketStatusSchema,
   type TicketType,
+  ticketTypeSchema,
   type ticketQuerySchema,
   type transitionSchema,
   type updateChangeSchema,
@@ -70,8 +74,8 @@ import {
   portalState,
   refOf,
   RESOLVING_STATUSES,
+  requesterStatusKey,
   SOLVED_STATUSES,
-  statusLabelKey,
   statusTone,
   ticketHref,
 } from './rules';
@@ -93,7 +97,10 @@ import {
 import { SlaService } from './sla';
 import { viaOf } from './sync-support';
 
-export type CreateTicketData = z.output<typeof createTicketSchema>;
+type CreateTicketOutput = z.output<typeof createTicketSchema>;
+/** A parsed create request; `ticketLinks` may be left out by internal callers. */
+export type CreateTicketData = Omit<CreateTicketOutput, 'ticketLinks'> &
+  Partial<Pick<CreateTicketOutput, 'ticketLinks'>>;
 export type UpdateTicketData = z.output<typeof updateTicketSchema>;
 export type TransitionData = z.output<typeof transitionSchema>;
 export type TicketQueryData = z.output<typeof ticketQuerySchema>;
@@ -165,6 +172,13 @@ export interface NewTicket {
     testPlan: string;
   };
   problem?: { rootCause: string; workaround: string; knownError: boolean };
+}
+
+/** A knowledge article as a ticket names it. */
+export interface KbArticleRef {
+  id: string;
+  reference: string;
+  title: string;
 }
 
 export interface StatusOptions {
@@ -256,7 +270,8 @@ export class TicketService {
 
   /* ───────────────────────────── lists ───────────────────────────── */
 
-  private static readonly SORTS: Record<(typeof TICKET_SORT_KEYS)[number], AnyColumn> = {
+  private static readonly SORTS: Record<(typeof TICKET_SORT_KEYS)[number], AnyColumn | SQL> = {
+    slaDue: sql`(select min(${ticketSlas.dueAt}) from ${ticketSlas} where ${ticketSlas.ticketId} = ${tickets.id} and ${ticketSlas.status} in ('running', 'breached'))`,
     createdAt: tickets.createdAt,
     updatedAt: tickets.updatedAt,
     priority: tickets.priority,
@@ -283,6 +298,17 @@ export class TicketService {
     );
   }
 
+  private typesOf(value: string): TicketType[] {
+    const parsed = value
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => ticketTypeSchema.safeParse(s));
+    if (!parsed.length || parsed.some((p) => !p.success))
+      throw validation('types', `Unknown ticket type in "${value}"`);
+    return parsed.map((p) => p.data!);
+  }
+
   /** Filters shared by the list and its count (tickets table only). */
   private async listWhere(q: TicketQueryData, auth: AuthContext): Promise<SQL | undefined> {
     const me = auth.user?.id;
@@ -305,6 +331,7 @@ export class TicketService {
       }
     }
     if (q.type) conds.push(eq(tickets.type, q.type));
+    else if (q.types) conds.push(inArray(tickets.type, this.typesOf(q.types)));
     conds.push(this.statusFilter(q.status));
     if (q.priority) conds.push(eq(tickets.priority, q.priority));
     if (q.categoryId) {
@@ -324,7 +351,13 @@ export class TicketService {
       );
     if (q.sla) {
       conds.push(notInArray(tickets.status, [...DONE_STATUSES]));
-      conds.push(q.sla === 'breached' ? breachedSql() : atRiskSql());
+      conds.push(
+        q.sla === 'breached'
+          ? breachedSql()
+          : q.sla === 'at_risk'
+            ? atRiskSql()
+            : or(breachedSql(), atRiskSql()),
+      );
     }
     if (q.major !== undefined) conds.push(eq(tickets.major, q.major));
     if (q.q) {
@@ -347,7 +380,13 @@ export class TicketService {
     const direction = q.sort ? (q.sort.startsWith('-') ? desc : asc) : desc;
     const [rows, total] = await Promise.all([
       this.ctx.db
-        .select({ ticket: tickets, plannedStart: changes.plannedStart, plannedEnd: changes.plannedEnd })
+        .select({
+          ticket: tickets,
+          plannedStart: changes.plannedStart,
+          plannedEnd: changes.plannedEnd,
+          changeType: changes.changeType,
+          risk: changes.risk,
+        })
         .from(tickets)
         .leftJoin(changes, eq(changes.ticketId, tickets.id))
         .where(where)
@@ -359,7 +398,7 @@ export class TicketService {
     return { items: await this.reader.listItems(rows), total, page: q.page, pageSize: q.pageSize };
   }
 
-  /** Counts for the agent views (open tickets only). */
+  /** Counts for the agent views: open incidents and service requests (`queueCountsSchema`). */
   async queues(auth: AuthContext) {
     const me = auth.user?.id ?? null;
     const mine = await this.myGroupIds(me ?? undefined);
@@ -373,12 +412,19 @@ export class TicketService {
         unassigned: count(and(inMyGroups, isNull(tickets.assigneeId))),
         breached: count(breachedSql()),
         atRisk: count(atRiskSql()),
+        attention: count(or(breachedSql(), atRiskSql())),
         mine: count(me ? or(eq(tickets.requesterId, me), eq(tickets.requestedForId, me)) : sql`false`),
         majorOpen: count(eq(tickets.major, true)),
         open: count(undefined),
       })
       .from(tickets)
-      .where(and(notInArray(tickets.status, [...DONE_STATUSES]), visibilityFilter(auth)));
+      .where(
+        and(
+          notInArray(tickets.status, [...DONE_STATUSES, 'draft']),
+          inArray(tickets.type, [...DESK_TYPES]),
+          visibilityFilter(auth),
+        ),
+      );
     return row!;
   }
 
@@ -490,6 +536,14 @@ export class TicketService {
     // Linked records must be visible to the caller (e.g. "Report a problem" from their own device).
     for (const link of input.links)
       if (!(await this.ctx.records.get(link, auth))) throw httpErrors.notFound('Linked record not found');
+    // Tickets to link from the start (a problem created from its incidents): readable by the caller.
+    const others = await Promise.all(
+      (input.ticketLinks ?? []).map(async (l) => {
+        const other = await this.findRow(l.target);
+        if (!other || !canRead(other, auth)) throw httpErrors.notFound('Linked ticket not found');
+        return { ...l, other };
+      }),
+    );
 
     return this.ctx.transaction(async (tx) => {
       const ticket = await this.insertTicket(
@@ -532,6 +586,15 @@ export class TicketService {
       );
       const self = { type: type === 'change' ? 'itsm.change' : 'itsm.ticket', id: ticket.id };
       for (const link of input.links) await this.ctx.records.link(self, link, { tx });
+      const seen = new Set<string>();
+      for (const { other, type: linkType, direction } of others) {
+        if (seen.has(other.id)) continue;
+        seen.add(other.id);
+        const [source, target] = direction === 'incoming' ? [other, ticket] : [ticket, other];
+        const problem = linkProblem(linkType, source.type, target.type);
+        if (problem) throw new HttpError(409, ErrorCodes.RELATIONSHIP_INVALID, problem);
+        await this.insertLink(tx, { source, target, type: linkType }, actorOf(auth), auth);
+      }
       return ticket;
     });
   }
@@ -706,7 +769,7 @@ export class TicketService {
           reference,
           href: ticketHref(reference),
           state: fulfilmentState(t.status),
-          statusKey: statusLabelKey(t),
+          statusKey: requesterStatusKey(t),
           tone: statusTone(t.status),
         },
         { tx },
@@ -721,7 +784,7 @@ export class TicketService {
         reference,
         title: t.title,
         state: portalState(t.status),
-        statusKey: statusLabelKey(t),
+        statusKey: requesterStatusKey(t),
         tone: statusTone(t.status),
         href: ticketHref(reference),
         icon: t.type === 'incident' ? 'life-buoy' : 'package',
@@ -738,7 +801,22 @@ export class TicketService {
 
   /* ───────────────────────────── update ───────────────────────────── */
 
+  /**
+   * Edits fields. The new values are computed from the ticket as read; the write re-checks it under a row lock and,
+   * when someone changed it in between (two people setting impact and urgency at once), starts over from the fresh
+   * row — so the priority always follows the stored impact × urgency and nothing is lost.
+   */
   async update(refOrId: string, input: UpdateTicketData, auth: AuthContext): Promise<TicketRow> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.updateOnce(refOrId, input, auth);
+      } catch (err) {
+        if (!(err instanceof StaleTicket) || attempt >= 4) throw err;
+      }
+    }
+  }
+
+  private async updateOnce(refOrId: string, input: UpdateTicketData, auth: AuthContext): Promise<TicketRow> {
     const before = await this.workableRow(refOrId, auth);
     const actor = actorOf(auth);
     const set: Partial<typeof tickets.$inferInsert> = {};
@@ -849,6 +927,8 @@ export class TicketService {
     set.manualFields = [...manual];
 
     return this.ctx.transaction(async (tx) => {
+      const [locked] = await tx.select().from(tickets).where(eq(tickets.id, before.id)).for('update');
+      if (!locked || !sameEditableState(locked, before)) throw new StaleTicket();
       const [after] = await tx.update(tickets).set(set).where(eq(tickets.id, before.id)).returning();
       const t = after!;
       if (ciChange) {
@@ -969,16 +1049,22 @@ export class TicketService {
       });
     const actor = actorOf(auth);
     const me = auth.user?.id ?? null;
-    if (t.type === 'change' && t.status === 'assessment' && to === 'authorization')
+    if (t.type === 'change' && (t.status === 'assessment' || t.status === 'draft') && to === 'authorization')
       return this.submitChange(t, actor, me, input.note);
+    // The article that solved it: checked as the caller, linked to the ticket with the resolution.
+    const article =
+      input.articleId && SOLVED_STATUSES.includes(to)
+        ? await this.kbArticle(input.articleId, auth, 'articleId')
+        : null;
     // Resolving may need a sign-off first (`itsm.resolution`, when a workflow is bound).
     if (SOLVED_STATUSES.includes(to) && SIGN_OFF_TYPES.includes(t.type))
-      return this.resolveWithSignOff(t, to, input, actor, me);
+      return this.resolveWithSignOff(t, to, input, actor, me, article);
     const acceptance =
       t.type === 'change' && t.status === 'review' && to === 'closed'
         ? await this.acceptanceToClose(t)
         : null;
     return this.ctx.transaction(async (tx) => {
+      await this.lockAsRead(tx, t, to);
       if (signingOff) {
         // Withdrawn (back to work) or cancelled while waiting for the sign-off: the sign-off ends with it.
         await this.ctx.workflows.cancel(t.signOffInstanceId!, 'The resolution was withdrawn', { tx });
@@ -998,11 +1084,23 @@ export class TicketService {
         resolutionNotes: input.resolutionNotes ?? null,
         ...(signingOff ? { data: { signOff: 'withdrawn' } } : {}),
         ...(acceptance ? { data: { accepted: acceptance.accepted }, metadata: acceptance } : {}),
+        ...(article ? { data: { article } } : {}),
       });
+      if (article) await this.linkArticle(tx, t, article);
       if (t.type === 'change' && t.status === 'authorization' && to === 'cancelled') {
         const [c] = await tx.select().from(changes).where(eq(changes.ticketId, t.id));
         if (c?.approvalInstanceId)
           await this.ctx.workflows.cancel(c.approvalInstanceId, 'The change was cancelled', { tx });
+      }
+      // "Start implementation" on a change nobody owns: the person starting it owns it from now on.
+      if (t.type === 'change' && to === 'implementing' && !after.assigneeId && me) {
+        const [owned] = await tx
+          .update(tickets)
+          .set({ assigneeId: me, updatedAt: new Date() })
+          .where(eq(tickets.id, t.id))
+          .returning();
+        await this.recordAssignment(tx, after, owned!, actor, me);
+        return owned!;
       }
       // Post-implementation review: the requester is asked to accept the change.
       if (t.type === 'change' && to === 'review')
@@ -1015,6 +1113,25 @@ export class TicketService {
           me,
         );
       return after;
+    });
+  }
+
+  /**
+   * Locks the ticket for this transaction and checks it is still as `t` was read (status and sign-off): the read
+   * happened outside, so two people (or a person and a sync) acting at once would otherwise both pass the checks.
+   */
+  private async lockAsRead(tx: Db, t: TicketRow, to: TicketStatus): Promise<TicketRow> {
+    const [row] = await tx.select().from(tickets).where(eq(tickets.id, t.id)).for('update');
+    if (!row || row.status !== t.status || (row.signOffInstanceId ?? null) !== (t.signOffInstanceId ?? null))
+      throw this.staleTransition(row ?? t, to);
+    return row;
+  }
+
+  private staleTransition(t: TicketRow, to: TicketStatus) {
+    return new HttpError(409, ErrorCodes.INVALID_TRANSITION, 'Someone changed this ticket in the meantime', {
+      from: t.status,
+      to,
+      reason: 'changed',
     });
   }
 
@@ -1064,11 +1181,13 @@ export class TicketService {
     input: TransitionData,
     actor: Actor,
     me: string | null,
+    article: KbArticleRef | null = null,
   ): Promise<TicketRow> {
     const code = input.resolutionCode!;
     const facts = await this.resolutionFacts(t, code);
     const reference = refOf(t);
     return this.ctx.transaction(async (tx) => {
+      await this.lockAsRead(tx, t, to);
       const started = await this.ctx.workflows.start(
         'itsm.resolution',
         {
@@ -1089,7 +1208,9 @@ export class TicketService {
         note: input.note,
         resolutionCode: code,
         resolutionNotes: input.resolutionNotes ?? null,
+        ...(article ? { data: { article } } : {}),
       };
+      if (article) await this.linkArticle(tx, t, article);
       if (!started || started.status === 'approved') return this.applyStatus(tx, t, to, options);
       if (started.status === 'rejected') {
         // Nobody could sign off and the workflow declines: the ticket stays as it is.
@@ -1234,6 +1355,7 @@ export class TicketService {
     const verdict = input.accepted ? 'accepted' : 'problem';
     const note = input.note?.trim() || null;
     return this.ctx.transaction(async (tx) => {
+      await this.lockAsRead(tx, t, 'review');
       const [before] = await tx.select().from(changes).where(eq(changes.ticketId, t.id)).for('update');
       await tx
         .insert(changes)
@@ -1316,8 +1438,15 @@ export class TicketService {
     }
     if (to === 'in_progress' && !t.firstResponseAt) set.firstResponseAt = now;
     if (solved && !t.firstResponseAt) set.firstResponseAt = now;
-    const [after] = await tx.update(tickets).set(set).where(eq(tickets.id, t.id)).returning();
-    const row = after!;
+    // Only from the status the caller decided on: a concurrent change in between makes this a conflict (409), not a
+    // second "new → resolved" (the whole transaction rolls back).
+    const [after] = await tx
+      .update(tickets)
+      .set(set)
+      .where(and(eq(tickets.id, t.id), eq(tickets.status, from)))
+      .returning();
+    if (!after) throw this.staleTransition(t, to);
+    const row = after;
 
     await this.sla.onStatusChange(tx, t.id, from, to, now);
     if (
@@ -1325,9 +1454,9 @@ export class TicketService {
       (to === 'known_error' || (from === 'known_error' && to === 'investigating'))
     )
       await tx
-        .update(problems)
-        .set({ knownError: to === 'known_error' })
-        .where(eq(problems.ticketId, t.id));
+        .insert(problems)
+        .values({ ticketId: t.id, knownError: to === 'known_error' })
+        .onConflictDoUpdate({ target: problems.ticketId, set: { knownError: to === 'known_error' } });
 
     const resolving = RESOLVING_STATUSES.includes(to);
     await this.activity(tx, t.id, o.actor, {
@@ -1375,6 +1504,8 @@ export class TicketService {
         { tx },
       );
     if (to === 'closed') await this.ctx.events.publish('itsm.ticket.closed', ref, { tx });
+    if (row.type === 'problem' && to === 'known_error')
+      await this.ctx.events.publish('itsm.problem.known_error', ref, { tx });
     if (reopened) await this.ctx.events.publish('itsm.ticket.reopened', ref, { tx });
     if (solved && (row.type === 'incident' || row.type === 'service_request'))
       await this.notify(
@@ -1531,6 +1662,7 @@ export class TicketService {
     const actor = actorOf(auth);
     const me = auth.user?.id ?? null;
     return this.ctx.transaction(async (tx) => {
+      await this.lockAsRead(tx, t, 'in_progress');
       await this.activity(tx, t.id, actor, {
         kind: 'comment',
         public: true,
@@ -1564,6 +1696,7 @@ export class TicketService {
     const actor = actorOf(auth);
     const rated = csat && input.rating !== undefined;
     return this.ctx.transaction(async (tx) => {
+      await this.lockAsRead(tx, t, 'closed');
       if (rated)
         await tx
           .update(tickets)
@@ -1592,67 +1725,94 @@ export class TicketService {
   /* ───────────────────────────── links ───────────────────────────── */
 
   async addLink(refOrId: string, input: z.output<typeof createLinkSchema>, auth: AuthContext) {
-    const source = await this.workableRow(refOrId, auth);
-    const target = await this.findRow(input.target);
-    if (!target || !canRead(target, auth)) throw httpErrors.notFound('Linked ticket not found');
-    const invalid = (message: string) => new HttpError(409, ErrorCodes.RELATIONSHIP_INVALID, message);
-    if (target.id === source.id) throw invalid('A ticket cannot be linked to itself');
-    const problem = linkProblem(input.type, source.type, target.type);
-    if (problem) throw invalid(problem);
-    const existing = await this.ctx.db
+    const current = await this.workableRow(refOrId, auth);
+    const link = await this.checkLink(current, input, auth);
+    const actor = actorOf(auth);
+    await this.ctx.transaction(async (tx) => {
+      // Two people linking the same tickets at once: the second finds the first one's link.
+      await tx.select({ id: tickets.id }).from(tickets).where(eq(tickets.id, current.id)).for('update');
+      if (await this.linkExists(tx, link))
+        throw new HttpError(409, ErrorCodes.RELATIONSHIP_INVALID, 'These tickets are already linked');
+      await this.insertLink(tx, link, actor, auth);
+    });
+    return current;
+  }
+
+  private async linkExists(
+    db: Db,
+    { source, target, type }: { source: TicketRow; target: TicketRow; type: LinkType },
+  ) {
+    const rows = await db
       .select({ id: ticketLinks.id })
       .from(ticketLinks)
       .where(
         and(
-          eq(ticketLinks.type, input.type),
+          eq(ticketLinks.type, type),
           or(
             and(eq(ticketLinks.sourceId, source.id), eq(ticketLinks.targetId, target.id)),
-            isSymmetricLink(input.type) || input.type === 'parent_of' || input.type === 'duplicate_of'
+            isSymmetricLink(type) || type === 'parent_of' || type === 'duplicate_of'
               ? and(eq(ticketLinks.sourceId, target.id), eq(ticketLinks.targetId, source.id))
               : undefined,
           ),
         ),
       );
-    if (existing.length) throw invalid('These tickets are already linked');
-    const actor = actorOf(auth);
-    await this.ctx.transaction(async (tx) => {
-      const [link] = await tx
-        .insert(ticketLinks)
-        .values({
-          sourceId: source.id,
-          targetId: target.id,
-          type: input.type,
-          createdBy: auth.user?.id ?? null,
-        })
-        .returning();
-      const data = { linkId: link!.id, type: input.type, action: 'added' };
-      await this.activity(tx, source.id, actor, {
-        kind: 'link',
-        public: false,
-        data: { ...data, direction: 'outgoing', ticket: { id: target.id, reference: refOf(target) } },
-      });
-      await this.activity(tx, target.id, actor, {
-        kind: 'link',
-        public: false,
-        data: { ...data, direction: 'incoming', ticket: { id: source.id, reference: refOf(source) } },
-      });
-      await this.ctx.audit.record(
-        {
-          action: 'itsm.ticket.linked',
-          entityType: 'itsm.ticket',
-          entityId: source.id,
-          entityLabel: refOf(source),
-          metadata: { type: input.type, target: refOf(target) },
-        },
-        { tx },
-      );
-      await this.ctx.events.publish(
-        'itsm.ticket.updated',
-        { ...this.ref(source), changes: ['links'] },
-        { tx },
-      );
+    return rows.length > 0;
+  }
+
+  /**
+   * Checks a link from `current` (the ticket the person works) to another ticket they can read: `incoming` means the
+   * other ticket points at this one (on a problem: "this incident is caused by it").
+   */
+  private async checkLink(
+    current: TicketRow,
+    input: { target: string; type: LinkType; direction?: 'outgoing' | 'incoming' },
+    auth: AuthContext,
+  ) {
+    const other = await this.findRow(input.target);
+    if (!other || !canRead(other, auth)) throw httpErrors.notFound('Linked ticket not found');
+    const [source, target] = input.direction === 'incoming' ? [other, current] : [current, other];
+    const invalid = (message: string) => new HttpError(409, ErrorCodes.RELATIONSHIP_INVALID, message);
+    if (target.id === source.id) throw invalid('A ticket cannot be linked to itself');
+    const problem = linkProblem(input.type, source.type, target.type);
+    if (problem) throw invalid(problem);
+    const link = { source, target, type: input.type };
+    if (await this.linkExists(this.ctx.db, link)) throw invalid('These tickets are already linked');
+    return link;
+  }
+
+  private async insertLink(
+    tx: Db,
+    { source, target, type }: { source: TicketRow; target: TicketRow; type: LinkType },
+    actor: Actor,
+    auth: AuthContext,
+  ) {
+    const [link] = await tx
+      .insert(ticketLinks)
+      .values({ sourceId: source.id, targetId: target.id, type, createdBy: auth.user?.id ?? null })
+      .returning();
+    const data = { linkId: link!.id, type, action: 'added' };
+    await this.activity(tx, source.id, actor, {
+      kind: 'link',
+      public: false,
+      data: { ...data, direction: 'outgoing', ticket: { id: target.id, reference: refOf(target) } },
     });
-    return source;
+    await this.activity(tx, target.id, actor, {
+      kind: 'link',
+      public: false,
+      data: { ...data, direction: 'incoming', ticket: { id: source.id, reference: refOf(source) } },
+    });
+    await this.ctx.audit.record(
+      {
+        action: 'itsm.ticket.linked',
+        entityType: 'itsm.ticket',
+        entityId: source.id,
+        entityLabel: refOf(source),
+        metadata: { type, target: refOf(target) },
+      },
+      { tx },
+    );
+    for (const t of [source, target])
+      await this.ctx.events.publish('itsm.ticket.updated', { ...this.ref(t), changes: ['links'] }, { tx });
   }
 
   async removeLink(refOrId: string, linkId: string, auth: AuthContext) {
@@ -1733,10 +1893,10 @@ export class TicketService {
         data: { changes: Object.fromEntries(Object.keys(changesLog).map((k) => [k, changesLog[k]])) },
       });
       let row = t;
-      if (input.knownError && !before?.knownError && t.status === 'investigating') {
+      // Flagging a known error moves the problem there (it publishes `itsm.problem.known_error`).
+      if (input.knownError && !before?.knownError && (t.status === 'investigating' || t.status === 'new'))
         row = await this.applyStatus(tx, t, 'known_error', { actor, actorUserId: auth.user?.id ?? null });
-      }
-      if (input.knownError && !before?.knownError)
+      else if (input.knownError && !before?.knownError)
         await this.ctx.events.publish('itsm.problem.known_error', this.ref(t), { tx });
       await this.ctx.audit.record(
         {
@@ -1757,8 +1917,69 @@ export class TicketService {
     });
   }
 
+  /**
+   * "Write the known-error article": a knowledge draft for agents (through the knowledge module's AI tool, as the
+   * caller), linked to the problem as its article. The author reviews and publishes it in the knowledge base.
+   */
+  async writeKnownErrorArticle(
+    refOrId: string,
+    input: z.output<typeof knownErrorArticleSchema>,
+    auth: AuthContext,
+  ) {
+    const t = await this.workableRow(refOrId, auth);
+    if (t.type !== 'problem')
+      throw new HttpError(409, ErrorCodes.INVALID_STATE, 'This ticket is not a problem');
+    if (!auth.can('itsm.problems.manage'))
+      throw httpErrors.forbidden('Managing problems needs itsm.problems.manage');
+    const reference = refOf(t);
+    const draft = await this.ctx.ai.tools.invoke<{ id: string; reference: string; href: string }>(
+      'knowledge.create_draft',
+      {
+        title: input.title,
+        summary: input.summary,
+        body: input.body,
+        locale: input.locale,
+        audience: 'agents',
+        source: { type: 'itsm.problem', id: t.id, reference },
+      },
+      { auth },
+    );
+    const article = { id: draft.id, reference: draft.reference, title: input.title };
+    await this.ctx.transaction(async (tx) => {
+      await tx
+        .insert(problems)
+        .values({ ticketId: t.id, kbArticleId: article.id, kbArticle: article })
+        .onConflictDoUpdate({
+          target: problems.ticketId,
+          set: { kbArticleId: article.id, kbArticle: article },
+        });
+      await this.activity(tx, t.id, actorOf(auth), {
+        kind: 'field',
+        public: false,
+        data: { changes: { kbArticleId: [null, article.reference] } },
+      });
+      await this.linkArticle(tx, t, article);
+      await this.ctx.audit.record(
+        {
+          action: 'itsm.problem.updated',
+          entityType: 'itsm.ticket',
+          entityId: t.id,
+          entityLabel: `${reference} ${t.title}`,
+          changes: { kbArticleId: [null, article.id] },
+        },
+        { tx },
+      );
+      await this.ctx.events.publish(
+        'itsm.ticket.updated',
+        { ...this.ref(t), changes: ['kbArticleId'] },
+        { tx },
+      );
+    });
+    return { article: { id: draft.id, reference: draft.reference, href: draft.href } };
+  }
+
   /** The knowledge article (read through the knowledge module's AI tool, as the caller). */
-  private async kbArticle(id: string, auth: AuthContext) {
+  private async kbArticle(id: string, auth: AuthContext, field = 'kbArticleId'): Promise<KbArticleRef> {
     try {
       const a = await this.ctx.ai.tools.invoke<{ id: string; reference: string; title: string }>(
         'knowledge.get_article',
@@ -1767,8 +1988,17 @@ export class TicketService {
       );
       return { id: a.id, reference: a.reference, title: a.title };
     } catch {
-      throw validation('kbArticleId', 'Knowledge article not found');
+      throw validation(field, 'Knowledge article not found');
     }
+  }
+
+  /** "This article solved it": a platform link between the ticket and the article (idempotent). */
+  private async linkArticle(tx: Db, t: TicketRow, article: KbArticleRef) {
+    await this.ctx.records.link(
+      { type: t.type === 'change' ? 'itsm.change' : 'itsm.ticket', id: t.id },
+      { type: 'knowledge.article', id: article.id },
+      { tx },
+    );
   }
 
   /* ───────────────────────────── changes ───────────────────────────── */
@@ -1875,6 +2105,7 @@ export class TicketService {
     const reference = refOf(t);
     const facts = await this.changeFacts(t, c);
     return this.ctx.transaction(async (tx) => {
+      await this.lockAsRead(tx, t, 'authorization');
       let row = await this.applyStatus(tx, t, 'authorization', {
         actor,
         actorUserId: requesterId,
@@ -2003,22 +2234,20 @@ export class TicketService {
   /**
    * Classifies and routes a ticket (AI or agent). With `onlyEmpty`, category, group and assignee are
    * only filled when empty (a group that was only defaulted counts as empty until first triage), and
-   * impact/urgency only when the ticket was never triaged and nobody chose them.
+   * impact/urgency only when the ticket was never triaged and nobody chose them. Recomputed from the fresh row
+   * when the ticket changed while this ran (see `update`).
    */
-  async triage(
-    input: {
-      ticketId: string;
-      categoryId?: string;
-      impact?: number;
-      urgency?: number;
-      assignmentGroupId?: string;
-      assigneeId?: string;
-      onlyEmpty: boolean;
-      confidence?: number;
-      rationale?: string;
-    },
-    auth: AuthContext,
-  ) {
+  async triage(input: TriageInput, auth: AuthContext) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.triageOnce(input, auth);
+      } catch (err) {
+        if (!(err instanceof StaleTicket) || attempt >= 4) throw err;
+      }
+    }
+  }
+
+  private async triageOnce(input: TriageInput, auth: AuthContext) {
     const t = await this.findRow(input.ticketId);
     if (!t || !(auth.can('itsm.tickets.triage') || canWork(t, auth)))
       throw httpErrors.notFound('Ticket not found');
@@ -2092,6 +2321,9 @@ export class TicketService {
       name: actor.authorName ?? auth.user?.displayName ?? auth.principal.name,
     };
     const row = await this.ctx.transaction(async (tx) => {
+      const [locked] = await tx.select().from(tickets).where(eq(tickets.id, t.id)).for('update');
+      if (!locked || !sameEditableState(locked, t) || locked.triagedAt?.getTime() !== t.triagedAt?.getTime())
+        throw new StaleTicket();
       const [after] = await tx.update(tickets).set(set).where(eq(tickets.id, t.id)).returning();
       const a = after!;
       await this.activity(tx, t.id, actor, {
@@ -2224,7 +2456,8 @@ export class TicketService {
       id: t.id,
       type: 'ticket',
       title: `${refOf(t)} · ${t.title}`,
-      subtitle: t.status,
+      status: `itsm.status.${t.status}`,
+      exact: Boolean(ref && t.type === ref.type && t.number === ref.number),
       href: ticketHref(refOf(t)),
       icon: t.type === 'change' ? 'calendar-clock' : t.type === 'problem' ? 'bug' : 'life-buoy',
     }));
@@ -2267,6 +2500,47 @@ export class TicketService {
   static reference(t: { type: TicketType; number: number }) {
     return formatTicketRef(t.type, t.number);
   }
+}
+
+/** What a triage may set (AI suggestions or an agent), with the AI's confidence and rationale. */
+type TriageInput = {
+  ticketId: string;
+  categoryId?: string;
+  impact?: number;
+  urgency?: number;
+  assignmentGroupId?: string;
+  assigneeId?: string;
+  onlyEmpty: boolean;
+  confidence?: number;
+  rationale?: string;
+};
+
+/** The ticket changed between reading it and locking it: compute the edit again from the fresh row. */
+class StaleTicket extends Error {}
+
+/** What an edit is computed from: unchanged means the edit computed earlier still holds. */
+function sameEditableState(a: TicketRow, b: TicketRow) {
+  const keys = [
+    'status',
+    'title',
+    'description',
+    'impact',
+    'urgency',
+    'priority',
+    'priorityOverridden',
+    'categoryId',
+    'assignmentGroupId',
+    'assigneeId',
+    'requesterId',
+    'requestedForId',
+    'major',
+    'signOffInstanceId',
+  ] as const;
+  return (
+    keys.every((k) => a[k] === b[k]) &&
+    JSON.stringify(a.attributes) === JSON.stringify(b.attributes) &&
+    JSON.stringify(a.manualFields) === JSON.stringify(b.manualFields)
+  );
 }
 
 /** Open ticket with a breached timer. */

@@ -11,3 +11,14 @@ export function Skeleton({ className, ...props }: React.ComponentProps<'div'>) {
     />
   );
 }
+
+/** The generic page placeholder (title, description, a content block) while a page loads. */
+export function PageSkeleton({ className }: { className?: string }) {
+  return (
+    <div className={cn('space-y-4', className)} aria-busy="true">
+      <Skeleton className="h-8 w-56" />
+      <Skeleton className="h-4 w-96 max-w-full" />
+      <Skeleton className="h-64 w-full rounded-xl" />
+    </div>
+  );
+}

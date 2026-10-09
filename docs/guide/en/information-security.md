@@ -28,25 +28,25 @@ and who may use them, and the account reviews of our systems.
 
 ## Who can do what
 
-The roles below are granted in **Administration → Roles & access**. Everyone sees **Information security →
-Stocktakes**, **Shared accounts** and **Account reviews**, with only their own work in them. If you don't see
-**Information security → Information assets**, ask an administrator for one of the other roles.
+The roles below are granted in **Administration → Roles & access**. People who only take part (checking the assets
+they own in a stocktake, reviewing a system's accounts, looking after a shared account) find that work on **My work**
+and in their notifications; the **Information security** pages in the sidebar are for the other roles. If you don't
+see them and need them, ask an administrator.
 
-| Role                                   | What it allows                                                                                                                                         |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Information security participant**   | Everyone has it: check the assets you manage in stocktakes, decide the account reviews given to you, and see the shared accounts you look after or use |
-| **Information security viewer**        | Read and export the register, every stocktake, shared account and account review                                                                       |
-| **Information asset manager**          | Maintain the register (register, edit, delete, import, create from other records), and start, schedule and cancel stocktakes                           |
-| **Information security officer**       | Sign off stocktakes and account reviews, register and change shared accounts, start and cancel account reviews, and read the register                  |
-| **Information security administrator** | Everything in information security, including the classes, sites and classification labels                                                             |
+| Role                                   | What it allows                                                                                                                                      |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Information security participant**   | Everyone has it: check the assets you own in stocktakes, decide the account reviews given to you, and see the shared accounts you look after or use |
+| **Information security viewer**        | Read and export the register, every stocktake, shared account and account review                                                                    |
+| **Information asset manager**          | Maintain the register (register, edit, delete, import, create from other records), and start, schedule and cancel stocktakes                        |
+| **Information security officer**       | Sign off stocktakes and account reviews, register and change shared accounts, start and cancel account reviews, and read the register               |
+| **Information security administrator** | Everything in information security, including the classes, sites and classification labels                                                          |
 
 In the demo, the IT Administrators group holds **Information asset manager**, the Security Team **Information security
 officer**, the Network Team, DBA Team, Service Desk and the `auditor` user **Information security viewer**, and
 `admin` is the **Information security administrator**.
 
-> **Tip:** The **Information security** card on the **Dashboard** shows what needs you: the assets you manage that
-> need checking, the shared account passwords you must change, the stocktakes and account reviews in progress and,
-> if you can read the register, the assets by value.
+> **Tip:** **My work** lists what needs you here: **Stocktake checks** (the assets you own that need checking),
+> **Account reviews** given to you and **Passwords to change** for the shared accounts you look after.
 
 ## Score confidentiality, integrity and availability
 
@@ -55,8 +55,9 @@ see it), **Integrity** (the impact if it is wrong, incomplete or changed without
 (the impact if it can't be used). The **Asset value** is the highest of the three: an asset with scores 4, 1 and 2 has
 value 4. Nobody types the value in, so it can't be underestimated by mistake.
 
-What each score means depends on the asset's class. While you score an asset, the form shows the class's guidance
-next to each score; choose the highest score whose description fits. The default classes are:
+What each score means depends on the asset's type (its class). While you score an asset, the form shows the
+guidance next to each score; choose the highest score whose description fits. No score is chosen for you: the value
+reads **Not scored yet** until all three are. The default classes are:
 
 | Class           | Code | Sub-classes                                                                                       | How it is scored                                                                                                                                  |
 | --------------- | ---- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -67,7 +68,9 @@ next to each score; choose the highest score whose description fits. The default
 | **Services**    | `SV` | **Internal services**, **External services**                                                      | Confidentiality by the harm if details of how it works got out; integrity is always 1; availability by how long it may be down                    |
 
 Each asset can also carry a **Classification** label that says how its information must be handled: **Strictly
-Confidential**, **Customer Confidential**, **Confidential** or **Internal Use Only** by default. Administrators can
+Confidential**, **Customer Confidential**, **Confidential** or **Internal Use Only** by default. The labels follow the
+confidentiality scale (score 4 is the most restricted label), so the form suggests the label from the confidentiality
+score; change it if this asset needs another one. Administrators can
 change the classes, their guidance and the labels: see
 [Set up classes, sites and classification labels](#set-up-classes-sites-and-classification-labels).
 
@@ -76,23 +79,25 @@ change the classes, their guidance and the labels: see
 Register an asset when the organisation starts to depend on it: a new server, a new system's database, a contract, an
 outside service or a team. You need the **Information asset manager** role.
 
-1. Go to **Information security → Information assets** and select **Register an asset**.
-2. Under **Asset**, enter the **Asset name** (describe what it does, simply and clearly), and choose the **Class**,
-   **Sub-class**, **Site** and **Classification**.
-3. Under **Responsibility and location**, choose the **Asset manager** (a person) or the **Managing group**, the
-   **Asset users** (people), or describe them under **Users (departments or people, as text)** (for example "Finance
-   department"), and enter the **Location**.
-4. Under **Details**, enter the **Brand**, **Model**, **Version** and **Quantity** where they apply.
-5. Under **Confidentiality, integrity and availability**, choose a score for each, reading the guidance shown next
-   to it. **Asset value** shows the result as you choose.
-6. Add **Notes** and any additional fields your administrators added, then select **Register**.
+1. Go to **Information security → Information assets** and select **New asset**.
+2. Under **Asset**, enter the **Asset name** (describe what it does, simply and clearly), and choose the **Asset
+   type**, **Subtype** and **Site**.
+3. Under **Owner**, choose the **Owner** (a person) or the **Owning group**: they check it in stocktakes.
+4. Under **Confidentiality, integrity and availability**, choose a score for each, reading the guidance shown next
+   to it. **Asset value** shows the result as you choose and says which score sets it (for example "set by
+   Integrity"). Then check the **Classification**: it is suggested from the confidentiality score.
+5. Under **Who uses it and where it is**, choose the **People who use it**, or describe them under **Other users (as
+   text)** (for example "Finance department"), and enter the **Location**.
+6. Open **More details: brand, model, version, quantity** where they apply (it is open for hardware and software).
+7. Add **Notes** and any additional fields your administrators added, then select **Save**.
 
 **What happens next:** the asset gets its number (for example `HQ01HW0003`), its page opens and its history starts
-with "Registered". The asset manager, or the members of the managing group, check it in every stocktake that
-includes it.
+with "Registered". The owner, or the members of the owning group, check it in every stocktake that includes it.
 
-To change an asset, open it and select **Edit**, then **Save changes**. **Delete** removes it from the register with
-its links and attachments; its history stays in the audit log.
+To change an asset, open it and select **Edit**, then **Save changes**. To record that it is missing or was disposed
+of outside a stocktake, select **Change status…**, choose **Missing**, **Disposed** or **In use**, say when and how in
+the note and select **Change status**: the history keeps the note. **More → Delete** removes it from the register
+with its links and attachments (the audit log keeps the history); to keep the record, mark it disposed instead.
 
 ### How asset numbers are made
 
@@ -100,20 +105,21 @@ An asset number is the site code, the class code and the next number of that sit
 first hardware asset of the head office (`HQ01`). Each site and class has its own sequence. The number never changes,
 even if you later move the asset to another site or class, so labels and documents that carry it stay right.
 
-An asset's **Status** (**In use**, **Missing** or **Disposed**) isn't edited in the form: it changes when a
-stocktake is signed off, or through the **Status** column of a CSV import.
+An asset's **Status** (**In use**, **Missing** or **Disposed**) isn't edited in the form: it changes with **Change
+status…** on the asset's page, when a stocktake is signed off, or through the **Status** column of a CSV import.
 
 ## Find assets in the register
 
 1. Go to **Information security → Information assets**. The tabs **In use**, **Missing**, **Disposed** and **All**
    filter by status.
-2. Search by number or name, and narrow the list with the filters: **All classes**, **Any value** (for example
-   **Value 3 or more**), **All classifications**, **All sites**, **Any group** and **Any manager**. **Clear filters**
-   removes them.
+2. Search by number or name, and narrow the list with **All asset types** and **Any value** (for example **Value 3
+   or more**). **Filters** holds the others: **Classification**, **Site**, **Owning group** and **Owner** (on a phone,
+   every filter is there). Applied filters show as chips you can remove one by one, or all with **Clear all**.
 3. Sort by a column heading, and select an asset to open it.
 
-The list shows each asset's **Class**, its **C/I/A** scores, **Asset value**, **Classification**, **Asset manager**,
-**Site** and **Status**. The filters are in the page's address, so you can share a filtered list as a link.
+The list shows each asset's name and number, **Asset type**, **Asset value** (point at it to see the three scores),
+**Owner**, **Classification** and **Status**. The value is a neutral badge with a small gauge; only value 4 stands out.
+The filters are in the page's address, so you can share a filtered list as a link.
 
 In the demo, **Value 4 or more** lists the core firewall, the ERP database server, the customer order database and
 the internet connectivity.
@@ -127,12 +133,12 @@ the internet connectivity.
 
 Open an asset to see everything about it on three tabs:
 
-- **Overview**: **About this asset** (site, asset manager, managing group, users, location, brand, model, version,
+- **Overview**: **About this asset** (site, owner, owning group, users, location, brand, model, version,
   quantity, **Last verified** in a stocktake, and **Registered from** when it was created from another record), and
   **Value**, with each score, the class's guidance for that score, the **Asset value** and the **Classification**.
 - **History**: every change, who made it and when: **Registered**, **Updated**, **Imported**, **Updated in a
   stocktake** and **Status changed**, with the fields that changed.
-- **Links and files**: **Linked records** and **Attachments**. Select **Link record** to link the configuration
+- **Links & files**: **Linked records** and **Attachments**. Select **Link record** to link the configuration
   item, hardware asset, application or ticket this asset relates to, and **Upload** to attach a document, such as a
   risk assessment or a signed handling agreement.
 
@@ -140,7 +146,7 @@ Open an asset to see everything about it on three tabs:
 
 Request forms can let people pick information assets with a **Record** field (record type **Information asset**);
 the approval can route on the asset's **Asset value**, **Confidentiality**, **Integrity**, **Availability**,
-**Classification label**, **Asset manager**, **Managing group**, **Asset class code**, **Site code** or **Asset
+**Classification label**, **Owner**, **Managing group**, **Asset class code**, **Site code** or **Asset
 status**, for example to add the security officer for assets of value 4. Picking needs a role that can read the
 register. See [Let people pick records](processes.md#let-people-pick-records).
 
@@ -177,7 +183,8 @@ manager**, **Asset users**, **Location**, **Brand**, **Model**, **Version**, **Q
   site) and the three scores. Leave **Asset number** empty to number it automatically, or give an unused number of
   the right site and class (to keep the numbers of a paper register).
 - **Class**, **Sub-class**, **Site** and **Classification** take a code or a name in any language. **Asset manager**
-  takes a person's email, username or display name, or a group's name. **Confidentiality**, **Integrity** and
+  (the asset's owner; the column keeps the paper register's heading) takes a person's email, username or display
+  name, or a group's name. **Confidentiality**, **Integrity** and
   **Availability** are 1 to 4.
 - **Asset value** is always worked out from the scores. A file can have up to 2,000 rows.
 
@@ -190,16 +197,16 @@ applications, procedures in the knowledge base. Register them from there instead
 2. Choose the **Record type**: **Configuration items**, **Hardware assets**, **Software licences**, **Contracts**,
    **Applications** or **Knowledge articles** (only the types you can see are offered).
 3. Search and tick the records. Records already in the register say **Registered as …** and can't be ticked again.
-4. Under **The new assets**, choose the **Class**, **Sub-class**, **Site**, **Classification**, **Asset manager**
-   and the three scores they all get.
+4. Under **The new assets**, choose the **Asset type**, **Subtype**, **Site**, **Classification**, **Owner** and
+   the three scores they all get (none is chosen for you).
 5. Select **Register … assets**.
 
 **What happens next:** each record becomes an asset named after it, linked to it (**Registered from** on the asset
-page, and **Linked records** on both). Adjust each asset's scores and manager afterwards if they differ.
+page, and **Linked records** on both). Adjust each asset's scores and owner afterwards if they differ.
 
 ## Run a stocktake
 
-A stocktake (an asset inventory) checks that the register still matches reality: each asset's manager confirms it,
+A stocktake (an asset inventory) checks that the register still matches reality: each asset's owner confirms it,
 corrects it, or reports it missing or disposed, and a security officer signs off the result. Make it repeat every
 quarter or every year, and the next one is scheduled on its own.
 
@@ -214,45 +221,48 @@ You need the **Information asset manager** or **Information security officer** r
 1. Go to **Information security → Stocktakes** and select **New stocktake**.
 2. Enter the **Name**, the **Start date** (today, or a later date to schedule it), the **Due date** and whether it
    **Repeats**: **Once**, **Every quarter** or **Every year**.
-3. Choose the scope: tick classes under **Class** and sites under **Site**, add people under **Asset managers**
-   with **Add a manager**, and tick groups under **Managing group**. Leave a list empty to include everything. Assets
+3. Choose the scope: tick classes under **Class** and sites under **Site**, add people under **Owners** with **Add
+   an owner**, and tick groups under **Owning group**. Leave a list empty to include everything. Assets
    that are in use or missing are included.
 4. Select **Start**, or **Schedule** if it starts later.
 
-**What happens next:** every asset in scope becomes an item for its asset manager, or for the members of its managing
-group, and they are notified ("Stocktake …: … assets to check") with the due date. A scheduled stocktake shows "This
+**What happens next:** every asset in scope becomes an item for its owner, or for the members of its owning group,
+and they are notified ("Stocktake …: … assets to check") with the due date. A scheduled stocktake shows "This
 stocktake starts on …" and starts on its own that morning. A week before the due date, the managers with items left
 get a reminder; once it's overdue, they and the person who started it are told. When every item is recorded, the
-person who started it hears that it's ready to sign off.
+person who started it hears that it's ready to sign off. The owners also find their part on **My work** (**Stocktake
+checks**).
 
 ### Check the assets you manage
 
-When a stocktake starts, you get a notification for the assets you manage. Check each one where it is: in the data
+When a stocktake starts, you get a notification for the assets you own. Check each one where it is: in the data
 centre, on the shelf, in the document system.
 
-1. Go to **Information security → Stocktakes**. **Waiting for you** lists your assets that need checking, with the
-   stocktake and its due date. (Or open the stocktake, turn on **Only mine** and use the **To check** tab.)
-2. Select **Check** next to an asset.
-3. Choose the result:
-   - **Confirmed**: the register is right.
-   - **Changed**: correct the register now. Under **What is right now**, change the **Asset name**, **Location**,
-     **Users (departments or people, as text)**, **Brand**, **Model**, **Version** or **Quantity**.
-   - **Missing**: it can't be found. Add a **Note** saying what you did to find it.
-   - **Disposed**: it was disposed of. Add a **Note**, for example the disposal certificate's number.
-4. Select **Record**.
+1. Open the stocktake from the notification or from **My work** (**Stocktake checks**). It opens on **To check** with
+   your assets first. Each one shows what the register says: location, quantity, users, brand, model and version, and
+   when it was last confirmed. (On **Information security → Stocktakes**, **Waiting for you** lists them too.)
+2. For each asset:
+   - **It's right**: one click records it as **Confirmed**.
+   - **Something's different…**: the dialog shows what the register says again and asks what is different. Choose
+     **Some details are different** and correct the **Asset name**, **Location**, **Users (departments or people, as
+     text)**, **Brand**, **Model**, **Version** or **Quantity**; **It's missing** and say where you looked; or **It was
+     disposed of** and say when and how (for example the disposal certificate's number). Select **Record**.
+3. To confirm several at once, tick them and select **It's right (…)**.
 
-**What happens next:** corrections are applied to the register at once, and the asset's history says "Updated in a
-stocktake". Missing and disposed assets change status only when the stocktake is signed off. Until then you can
-change a result: select **Change** on its row.
+**What happens next:** the asset leaves **To check**. Corrections are applied to the register at once, and the asset's
+history says "Updated in a stocktake". Missing and disposed assets change status only when the stocktake is signed
+off. When nothing is left for you, the page says "All done". Until the sign-off you can change an answer on the
+**Done** tab.
 
 ![A stocktake in progress with its progress and the assets to check](../../../apps/web/public/help/en/information-security-stocktake.jpg)
 
 ### Sign off a stocktake
 
-1. Open the stocktake from **Information security → Stocktakes**. **Progress** shows how many assets are confirmed,
-   changed, missing, disposed and still to check; the tabs filter the items.
-2. Chase what's left on the **To check** tab: it shows each asset's manager. Stocktake managers can record any item
-   themselves.
+1. Open the stocktake from **Information security → Stocktakes**. The progress bar and the line under it show how many
+   assets are confirmed, changed, missing, disposed and still to check. The tabs **To check**, **Done** and **All**
+   filter the items (on **Done**, choose a result), and **Mine to check** / **Everyone's** switches between your items
+   and all of them.
+2. Chase what's left on **To check**: each item says who checks it. Stocktake managers can record any item themselves.
 3. When every asset is recorded, a security officer selects **Sign off**, adds a **Note (optional)** and selects
    **Sign off**.
 
@@ -260,9 +270,9 @@ change a result: select **Change** on its row.
 **In use** with **Last verified** set to today. The stocktake shows "Signed off by …". If it repeats, the next one is
 scheduled with the same name and scope, three or twelve months later.
 
-Select **Export results** for the audit evidence: a CSV with each asset, its result, the corrections, the notes, who
-recorded it and when. **Cancel stocktake** stops a stocktake you no longer need; the results recorded so far are kept,
-but it can't be signed off.
+Under **More** (⋯), **Export results** gives the audit evidence: a CSV with each asset, its result, the corrections,
+the notes, who recorded it and when. **Cancel stocktake** stops a stocktake you no longer need; the results recorded so
+far are kept, but it can't be signed off.
 
 ## Register a shared account
 
@@ -281,13 +291,14 @@ You need the **Information security officer** role.
 5. Select **Register**.
 
 **What happens next:** the account gets a reference such as `SHA-00003`. Its custodian and the people on the list see
-it under **Shared accounts** (with **Only mine**). Unless you set it, the **Next review** is 12 months away.
+it under **Shared accounts**, and on **My work** when its password must be changed. Unless you set it, the **Next review** is 12 months away.
 
 > **Important:** ISBP never stores the password itself. The custodian keeps it, encrypted, and records here only
 > when it was changed. Don't write a password in a note.
 
-To change the custodian, the people or the details, open the account and select **Edit**. Taking someone off the list
-makes the password change due.
+To change the custodian, the people or the details, open the account and select **Edit**; **Add a person** on the
+**People using the account** card adds one person directly. Taking someone off the list makes the password change
+due. Details nobody filled in are under **Show … empty details**.
 
 ## Change the password when someone leaves the list
 
@@ -302,13 +313,15 @@ The password of a shared account becomes due, and the account shows **Password c
 
 The custodian gets the notification "Change the password of … today" in ISBP and by email; it can't be turned off.
 
-1. Open the account from the notification, from the **Dashboard** card, or from the **Password change due** tab of
+1. Open the account from the notification, from the card on **Home**, or from the **Password change due** tab of
    **Information security → Shared accounts**. The page says **Change the password today** and why.
 2. Change the password on the system itself.
-3. Select **Password changed**, check **Changed on**, add a **Note (optional)** and select **Record**.
+3. Select **Record password change** (in the warning, or at the top of the page), check **Changed on**, add a
+   **Note (optional)** and select **Record**. On the **Password change due** tab of the list, **Record change** on a
+   row does the same without opening the account.
 
 **What happens next:** the warning goes away and **Password last changed** shows the date. The history says
-"Password changed on …", and the change is in the audit log.
+"Password changed on …", and the change is in the audit log. Recording the same change twice records it once.
 
 To take someone off the list yourself, open the account's **Overview**, select the button next to the person under
 **People using the account** (**Take … off the list**) and confirm with **Remove**.
@@ -381,7 +394,8 @@ week before it. Once it's overdue, the reviewer and the person who started it ar
 
 ### Fill in the accounts
 
-The reviewer (or a security officer) brings in the system's accounts, from **Accounts** on the review page:
+The reviewer (or a security officer) brings in the system's accounts, from **More** (⋯) on the review page (an
+empty review also offers **Import an account list** in the middle of the page):
 
 - **Import an account list**: export the account list from the system and choose the file under **CSV file**. The
   columns can be in any order, with headings in English, Chinese or Japanese: the account (required), the user name,
@@ -393,27 +407,32 @@ The reviewer (or a security officer) brings in the system's accounts, from **Acc
 
 ### Decide each account
 
-1. Open the review. The tabs **All**, **To decide**, **Keep**, **Disable**, **Delete** and **Administrators** filter
-   the accounts.
-2. Select **Decide** next to an account, or tick several and select **Decide … selected**.
-3. Choose **Keep**, **Disable** or **Delete**. For disable and delete, enter the **Date done** once it's done (you can
-   add it later), and a **Note**. Select **Save**.
+1. Open the review from the notification or from **My work** (**Account reviews**). It opens on **To decide**. The
+   tabs **To decide**, **Decided** and **All** filter the accounts; on **Decided** and **All**, choose **Keep**,
+   **Disable**, **Delete** or **Administrators**.
+2. On each account, select **Keep**, **Disable** or **Delete**. **Keep** is recorded at once. **Disable** and
+   **Delete** ask for **Done on (optional)** (select **Today** if it is done now) and a **Note**; leave the date empty
+   until it is done.
+3. To decide several at once, tick them and select **Keep …**, **Disable …** or **Delete …**.
 
-Accounts to disable or delete without a date show **Date done missing**.
+An account to disable or delete without a date says **Not done yet: add the date when it is** and stays in **To
+decide**. An account marked disabled or deleted that the latest import still lists as enabled is flagged ("Marked
+disabled, but the latest import still shows it enabled"): check the system.
 
 ![An account review with keep, disable and delete decisions](../../../apps/web/public/help/en/information-security-review.jpg)
 
 ### Raise tickets to disable or delete accounts
 
-When the system's administrators work from service desk tickets, select **Raise tickets**: ISBP raises one service
-request for each disable or delete decision that has no ticket yet, in your name, and shows its number next to the
-decision. Enter the **Date done** once the ticket is fulfilled. The button appears when the review has disable or
-delete decisions and you can raise tickets.
+When the system's administrators work from service desk tickets, select **Raise … tickets** at the top of the review.
+The confirmation lists the accounts ("Disable temp-vendor"); select **Raise … tickets** to raise one service request
+for each disable or delete decision that has no ticket yet, in your name. Each ticket's number shows on its account.
+Enter **Done on** once the ticket is fulfilled. The button shows how many tickets it will raise and goes away when
+every disable and delete has one; selecting it twice never raises a ticket twice.
 
 ### Complete and sign off an account review
 
-1. When every account has a decision, and every disable and delete its date done, the reviewer selects **Complete**.
-   The review is **Waiting for sign-off**, and the person who started it is told.
+1. When every account has a decision, and every disable and delete its date done, the reviewer selects **Send for
+   sign-off**. The review is **Waiting for sign-off**, and the person who started it is told.
 2. A security officer checks the decisions and selects **Sign off**, adds a **Note (optional)** and selects **Sign
    off**. To ask for changes, select **Send back** instead: the review goes back to the reviewer.
 
@@ -421,9 +440,9 @@ delete decisions and you can raise tickets.
 months later: it starts with the accounts this review didn't delete, or with the application's role holders at that
 time.
 
-Select **Export** for the audit evidence: a CSV with the reviewed system, the review date and reference, then each
-account with its user name, privilege, current state, decision, date done and note. **Cancel review** stops a review
-you no longer need; its decisions are kept.
+Under **More** (⋯), **Export CSV** gives the audit evidence: a CSV with the reviewed system, the review date and
+reference, then each account with its user name, privilege, current state, decision, date done and note. **Cancel
+review** stops a review you no longer need; its decisions are kept.
 
 ## Set up classes, sites and classification labels
 
@@ -464,12 +483,12 @@ start from a working set and adapt it to your organisation.
 2. On **Built-in packages**, find **ISMS process pack**. It shows the module it comes from, the number of changes and
    what they change.
 3. Select **Install**.
-4. Review the new draft change set and its dry run, then apply it or request a review.
+4. Review the new draft change set and whether its changes are ready to apply, then apply it or request a review.
 
 **What happens next:** nothing is live until the change set is applied. Once it is, the groups, forms, scheduled jobs
 and categories exist like ones you created yourself: check who is in each group, then adjust approvers, texts and
 schedules as you would any other. You can roll the whole change set back. Installing the package twice gives a second
-change set whose changes fail their dry run: discard it. The full flow, including the messages about modules and
+change set whose changes can't be applied: discard it. The full flow, including the messages about modules and
 permissions: [Start from a package](assistant-and-ai.md#start-from-a-package).
 
 ### What the package contains
@@ -515,13 +534,13 @@ The request forms in the package:
 | **Information assets** isn't in the sidebar                                   | Ask for the **Information security viewer** role (or a role above it). Without it, **Stocktakes**, **Shared accounts** and **Account reviews** show only your own work |
 | The import says "The file has no column for: Asset name."                     | The heading row needs an **Asset name** column, in English, Chinese or Japanese. Export the register to get the right headings                                         |
 | A row is left out: "… doesn't start with the site and class codes."           | The **Asset number** must belong to the row's site and class (`DC01HW…` for a hardware asset in `DC01`). Leave it empty to number the asset automatically              |
-| A row is left out: "… matches no person or group."                            | Write the asset manager's email, username or exact display name, or a group's name                                                                                     |
+| A row is left out: "… matches no person or group."                            | Write the owner's email, username or exact display name, or a group's name                                                                                             |
 | **Sign off** is unavailable: "You can sign off once every asset is recorded." | Open the **To check** tab and remind the managers listed there, or record the items yourself as a stocktake manager                                                    |
-| An asset in a stocktake has no manager                                        | Nobody is asked to check it: a stocktake manager records it. Give it an **Asset manager** or **Managing group** in the register so the next stocktake reaches someone  |
-| **Complete** isn't available on an account review                             | Every account needs a decision, and every disable and delete a **Date done**. Use the **To decide** tab and look for **Date done missing**                             |
-| **Raise tickets** isn't shown                                                 | The review has no disable or delete decisions yet, or you can't raise service desk tickets                                                                             |
-| **Role holders of …** doesn't offer an application                            | You can only fill a review from applications whose role holders you may read, for example as their **Application manager**. Import the account list instead            |
-| The custodian of a shared account left                                        | The security officers are notified. Select **Edit**, choose the new **Primary custodian**, then change the password and record it with **Password changed**            |
+| An asset in a stocktake has no owner                                          | Nobody is asked to check it: a stocktake manager records it. Give it an **Owner** or **Owning group** in the register so the next stocktake reaches someone            |
+| **Send for sign-off** isn't available on an account review                    | Every account needs a decision, and every disable and delete a date done. Use the **To decide** tab and look for **Not done yet: add the date when it is**             |
+| **Raise … tickets** isn't shown                                               | Every disable or delete decision has a ticket already, there are none yet, or you can't raise service desk tickets                                                     |
+| **Role holders of …** doesn't offer an application                            | You can only fill a review from applications whose role holders you may read, for example as their **Application access manager**. Import the account list instead     |
+| The custodian of a shared account left                                        | The security officers are notified. Select **Edit**, choose the new **Primary custodian**, then change the password and record it with **Record password change**      |
 
 ## How it connects
 

@@ -476,18 +476,30 @@ export async function renderReference(root: string): Promise<string> {
         ]),
       ),
     );
+    type Nav = NonNullable<typeof s.navigation>[number];
+    const perm = (p: Nav['permission']) => (Array.isArray(p) ? p.map(code).join(' or ') : code(p));
+    const navRows: unknown[][] = [];
+    const walkNav = (entries: Nav[] | undefined, place: (n: Nav) => string) =>
+      entries?.forEach((n) => {
+        navRows.push([en(n.label), code(n.href), place(n), n.order ?? '', perm(n.permission)]);
+        walkNav(n.children, () => `page of ${en(n.label)}`);
+        walkNav(n.tabs, () => `tab of ${en(n.label)}`);
+      });
+    walkNav(s.navigation, (n) =>
+      n.section === 'admin'
+        ? `Administration › ${n.area ?? 'modules'}`
+        : n.parent
+          ? `in ${code(n.parent)}`
+          : n.children
+            ? 'sidebar group'
+            : 'sidebar',
+    );
+    section('Navigation', table(['Label', 'Path', 'Placement', 'Order', 'Permission'], navRows));
     section(
-      'Navigation',
+      'My work sources',
       table(
-        ['Label', 'Path', 'Section', 'Group', 'Order', 'Permission'],
-        (s.navigation ?? []).map((n) => [
-          en(n.label),
-          code(n.href),
-          n.section ?? 'main',
-          en(n.group),
-          n.order ?? '',
-          code(n.permission),
-        ]),
+        ['Source', 'Kind', 'Label', 'Permission'],
+        (s.work ?? []).map((w) => [code(`${m.id}.${w.key}`), w.kind, en(w.label), code(w.permission)]),
       ),
     );
     section(

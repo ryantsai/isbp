@@ -36,7 +36,7 @@ export function RunsTable({
   const router = useRouter();
   const id = useId();
   const status = RUN_STATUSES.includes(state.status as RunStatus) ? (state.status as RunStatus) : undefined;
-  const { data, isLoading, isFetching } = useApiQuery<Page<RunSummary>>(
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<RunSummary>>(
     '/integrations/runs',
     { connectionId, profileId, status, page: state.page, pageSize: state.pageSize },
     { refetchInterval: 5_000 },
@@ -107,6 +107,8 @@ export function RunsTable({
       pageSize={state.pageSize}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(r) => r.id}
       onRowClick={(r) => router.push(runHref(r.id))}
       onPageChange={(page) => set({ page })}

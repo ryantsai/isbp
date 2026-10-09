@@ -55,7 +55,22 @@
       "email": "Email"
     },
     "mandatory": "Required for security",
-    "switchLabel": "{type}: {channel}"
+    "switchLabel": "{type}: {channel}",
+    "categories": {
+      "approvals": "Approvals",
+      "requests": "My requests",
+      "assigned": "Assigned to me",
+      "announcements": "Announcements",
+      "security": "Security notices",
+      "other": "Other"
+    },
+    "allOn": "All on",
+    "allOff": "All off",
+    "onCount": "{on} of {total} on",
+    "customise": "Customise",
+    "showAll": "Show all {count} notification types",
+    "showFewer": "Show only the ones that apply to me",
+    "none": "No notifications apply to you yet."
   },
   "outOfOffice": {
     "title": "Out of office",
@@ -162,7 +177,9 @@
       "direct": "Assigned to you",
       "group": "Via {group}",
       "everyone": "Everyone"
-    }
+    },
+    "request": "Request access",
+    "baseline": "Everyone's access ({count, plural, one {# role} other {# roles}})"
   },
   "validation": {
     "required": "Required.",

@@ -44,15 +44,18 @@ export function AssignmentsTable() {
   const roleId = state.roleId as string | undefined;
 
   const roles = useApiQuery<{ items: Role[] }>('/roles');
-  const { data, isLoading, isFetching } = useApiQuery<Page<RoleAssignment>>('/role-assignments', {
-    page: state.page,
-    pageSize: state.pageSize,
-    sort: state.sort,
-    q: state.q,
-    roleId,
-    // The API coerces any string to `true`, so only send it when on.
-    includeExpired: includeExpired ? true : undefined,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<RoleAssignment>>(
+    '/role-assignments',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      sort: state.sort,
+      q: state.q,
+      roleId,
+      // The API coerces any string to `true`, so only send it when on.
+      includeExpired: includeExpired ? true : undefined,
+    },
+  );
   const filtered = Boolean(state.q || roleId || includeExpired);
 
   const columns = useMemo<DataTableColumn<RoleAssignment>[]>(
@@ -166,6 +169,8 @@ export function AssignmentsTable() {
         sort={state.sort}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(a) => a.id}
         onPageChange={(page) => set({ page })}
         onPageSizeChange={(pageSize) => set({ pageSize })}

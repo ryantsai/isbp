@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   afterSatisfied,
   BUILTIN_TYPES,
+  cronForPeriod,
+  cronOf,
   describeCron,
   findCycle,
   LOG_LIMITS,
@@ -10,6 +12,7 @@ import {
   mergeSecrets,
   openConfig,
   parseExpectedStatus,
+  repeatOf,
   redactConfig,
   retryDelaySeconds,
   sealConfig,
@@ -159,7 +162,7 @@ describe('cron descriptions', () => {
   });
 
   it('falls back to custom', () => {
-    for (const expr of ['0 0 1 1 *', '0 9-17 * * *', '0 3 1 * 1', 'bad', '0 0 * * * *'])
+    for (const expr of ['0 0 1 1-3 *', '0 9-17 * * *', '0 3 1 * 1', 'bad', '0 0 * * * *'])
       expect(describeCron(expr), expr).toEqual({ kind: 'custom' });
   });
 });
@@ -285,5 +288,31 @@ describe('editor helpers', () => {
       { path: 'batch', problem: 'type', expected: 'integer' },
     ]);
     expect(jsonSchemaProblems([], schema)).toEqual([{ path: '', problem: 'type', expected: 'object' }]);
+  });
+});
+
+describe('the Repeats builder', () => {
+  it('reads the simple shapes of a cron expression and writes them back', () => {
+    for (const cron of [
+      '15 * * * *',
+      '0 7 * * *',
+      '30 8 * * 1-5',
+      '0 3 * * 0',
+      '0 8 1 * *',
+      '0 8 1 1,4,7,10 *',
+      '0 9 15 6 *',
+    ])
+      expect(cronOf(repeatOf(cron))).toBe(cron);
+    expect(repeatOf('0 8 1 * *')).toMatchObject({ repeat: 'monthly', time: '08:00', monthDay: 1 });
+    expect(repeatOf('*/5 9-17 * * *').repeat).toBe('custom');
+    expect(cronOf({ ...repeatOf('0 8 * * *'), repeat: 'custom' })).toBeNull();
+  });
+
+  it('follows a task’s period: monthly opens on the 1st at 08:00', () => {
+    expect(cronForPeriod('month')).toBe('0 8 1 * *');
+    expect(cronForPeriod('week')).toBe('0 8 * * 1');
+    expect(describeCron(cronForPeriod('quarter')!)).toEqual({ kind: 'quarterly', day: 1, time: '08:00' });
+    expect(describeCron(cronForPeriod('year')!)).toEqual({ kind: 'yearly', month: 1, day: 1, time: '08:00' });
+    expect(cronForPeriod(undefined)).toBeNull();
   });
 });

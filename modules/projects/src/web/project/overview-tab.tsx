@@ -8,27 +8,40 @@ import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Markdown } from '@isbp/ui/markdown';
-import { AnimatedNumber, Stagger, StaggerItem } from '@isbp/ui/motion';
+import { AnimatedItem, AnimatedList, Collapse, SuccessMark } from '@isbp/ui/motion';
 import { RelativeTime } from '@isbp/ui/relative-time';
+import { StatTile } from '@isbp/ui/stat-tile';
 import {
   BanIcon,
   CircleAlertIcon,
   CircleCheckIcon,
   CircleDotIcon,
+  CircleIcon,
   DiamondIcon,
-  type LucideIcon,
   PencilIcon,
+  PlayIcon,
+  PlusIcon,
+  SendIcon,
   SettingsIcon,
+  UserPlusIcon,
 } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { BOARD_COLUMNS, type ProjectDetail, type TaskStatus } from '../../contracts';
-import { HealthBadge, ProgressBar, ProjectStatusBadge, TaskStatusIcon } from '../components/badges';
+import {
+  HealthBadge,
+  ProgressBar,
+  ProjectHealthBadge,
+  ProjectStatusBadge,
+  TaskStatusIcon,
+} from '../components/badges';
 import { CustomFieldsCard } from '../components/custom-fields';
 import { Via } from '../components/via';
-import { dateValue, projectApi } from '../lib';
+import { dateValue, projectApi, projectHref } from '../lib';
 import { ApprovalCard } from './approval-card';
 import { HealthDialog } from './dialogs';
+import { AddMilestoneForm } from './milestone-form';
+import { useStartProject } from './start';
 
 const STATUS_COLOR: Record<TaskStatus, string> = {
   backlog: 'bg-muted-foreground/30',
@@ -38,43 +51,6 @@ const STATUS_COLOR: Record<TaskStatus, string> = {
   done: 'bg-success',
   cancelled: 'bg-muted',
 };
-
-function Kpi({
-  icon: Icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: number;
-  tone?: 'destructive' | 'warning' | 'success';
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-xl border bg-card px-4 py-3 shadow-xs">
-      <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-        <Icon
-          className={cn(
-            'size-3.5 shrink-0',
-            tone === 'destructive' && value > 0 && 'text-destructive',
-            tone === 'warning' && value > 0 && 'text-warning-foreground',
-            tone === 'success' && 'text-success',
-          )}
-          aria-hidden
-        />
-        <span className="truncate">{label}</span>
-      </span>
-      <span
-        className={cn(
-          'text-2xl font-semibold tracking-tight',
-          tone === 'destructive' && value > 0 && 'text-destructive',
-        )}
-      >
-        <AnimatedNumber value={value} />
-      </span>
-    </div>
-  );
-}
 
 /** Tasks by status: a stacked bar (decorative) with the same numbers as a list. */
 function StatusBreakdown({ project }: { project: ProjectDetail }) {
@@ -124,7 +100,13 @@ function HealthCard({ project }: { project: ProjectDetail }) {
   const th = useTranslations('projects.health');
   const ts = useTranslations('projects.projectStatus');
   const [editing, setEditing] = useState(false);
-  const history = project.updates.slice(0, 6);
+  // The newest health update is what the card already shows: the history starts from the one before it.
+  const first = project.updates[0];
+  const repeatsCurrent =
+    first?.kind === 'health' &&
+    first.to === project.health &&
+    (first.note ?? null) === (project.healthNote ?? null);
+  const history = project.updates.slice(repeatsCurrent ? 1 : 0, (repeatsCurrent ? 1 : 0) + 6);
   return (
     <Card className="min-w-0 gap-4">
       <CardHeader>
@@ -145,7 +127,7 @@ function HealthCard({ project }: { project: ProjectDetail }) {
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="grid gap-2">
-          <HealthBadge health={project.health} className="text-sm" />
+          <ProjectHealthBadge project={project} className="text-sm" />
           {project.healthNote ? (
             <p className="text-sm leading-relaxed wrap-anywhere">{project.healthNote}</p>
           ) : (
@@ -198,29 +180,55 @@ function HealthCard({ project }: { project: ProjectDetail }) {
   );
 }
 
-function MilestonesCard({ project, onManage }: { project: ProjectDetail; onManage: () => void }) {
+function MilestonesCard({
+  project,
+  onManage,
+  adding,
+  onAdding,
+}: {
+  project: ProjectDetail;
+  onManage: (section: ManageSection) => void;
+  adding: boolean;
+  onAdding: (open: boolean) => void;
+}) {
   const t = useTranslations('projects.overview');
   const format = useFormatter();
+  const canManage = project.viewer.canManage && !project.archivedAt;
   return (
-    <Card className="min-w-0 gap-4">
+    <Card className="min-w-0 gap-4" id="overview-milestones">
       <CardHeader>
         <CardTitle>{t('milestones')}</CardTitle>
-        {project.viewer.canManage && (
-          <CardAction>
-            <Button variant="ghost" size="sm" onClick={onManage}>
-              <SettingsIcon />
-              {t('manage')}
+        {canManage && (
+          <CardAction className="flex gap-1">
+            <Button variant="ghost" size="sm" onClick={() => onAdding(!adding)} aria-expanded={adding}>
+              <PlusIcon />
+              {t('addMilestone')}
             </Button>
+            {project.milestones.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => onManage('milestones')}>
+                <SettingsIcon />
+                {t('manage')}
+              </Button>
+            )}
           </CardAction>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="grid gap-4">
+        {canManage && (
+          <Collapse open={adding}>
+            <AddMilestoneForm
+              project={project}
+              autoFocus={adding}
+              className="rounded-lg border bg-muted/20 p-3"
+            />
+          </Collapse>
+        )}
         {project.milestones.length ? (
-          <ol className="grid gap-4">
+          <AnimatedList as="ol" className="grid">
             {project.milestones.map((m) => {
               const pct = m.taskCount ? (m.doneCount / m.taskCount) * 100 : m.status === 'done' ? 100 : 0;
               return (
-                <li key={m.id} className="grid gap-1.5">
+                <AnimatedItem as="li" key={m.id} className="grid gap-1.5 pb-4 last:pb-0">
                   <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
                     <DiamondIcon
                       className={cn(
@@ -250,19 +258,25 @@ function MilestonesCard({ project, onManage }: { project: ProjectDetail; onManag
                   <span className="text-xs text-muted-foreground">
                     {t('doneOf', { done: m.doneCount, total: m.taskCount })}
                   </span>
-                </li>
+                </AnimatedItem>
               );
             })}
-          </ol>
+          </AnimatedList>
         ) : (
-          <p className="text-sm text-muted-foreground">{t('noMilestones')}</p>
+          !adding && <p className="text-sm text-muted-foreground">{t('noMilestones')}</p>
         )}
       </CardContent>
     </Card>
   );
 }
 
-function MembersCard({ project, onManage }: { project: ProjectDetail; onManage: () => void }) {
+function MembersCard({
+  project,
+  onManage,
+}: {
+  project: ProjectDetail;
+  onManage: (section: ManageSection) => void;
+}) {
   const t = useTranslations('projects.overview');
   const tr = useTranslations('projects.roles');
   const ts = useTranslations('projects.sync');
@@ -272,7 +286,7 @@ function MembersCard({ project, onManage }: { project: ProjectDetail; onManage: 
         <CardTitle>{t('members', { count: project.members.length })}</CardTitle>
         {project.viewer.canManage && (
           <CardAction>
-            <Button variant="ghost" size="sm" onClick={onManage}>
+            <Button variant="ghost" size="sm" onClick={() => onManage('members')}>
               <SettingsIcon />
               {t('manage')}
             </Button>
@@ -295,8 +309,11 @@ function MembersCard({ project, onManage }: { project: ProjectDetail; onManage: 
                   {m.isOwner && ` · ${t('owner')}`}
                 </span>
                 {m.via && (
-                  <span className="truncate text-xs text-muted-foreground">
-                    {ts('addedVia', { system: m.via.connection, reference: m.via.ref })}
+                  <span
+                    className="truncate text-xs text-muted-foreground"
+                    title={ts('addedVia', { system: m.via.connection, reference: m.via.ref })}
+                  >
+                    {ts('addedFrom', { system: m.via.connection })}
                   </span>
                 )}
               </span>
@@ -313,36 +330,167 @@ function MembersCard({ project, onManage }: { project: ProjectDetail; onManage: 
   );
 }
 
-export function OverviewTab({ project, onManage }: { project: ProjectDetail; onManage: () => void }) {
+/** What a new project needs, as a checklist that does each step (instead of a page of zeros). */
+function GetStarted({
+  project,
+  onNewTask,
+  onManage,
+  onAddMilestone,
+}: {
+  project: ProjectDetail;
+  onNewTask: () => void;
+  onManage: (section: ManageSection) => void;
+  onAddMilestone: () => void;
+}) {
+  const t = useTranslations('projects.getStarted');
+  const starter = useStartProject(project);
+  const v = project.viewer;
+  const steps: { id: string; done: boolean; label: string; hint: string; action?: ReactNode }[] = [
+    {
+      id: 'milestones',
+      done: project.milestones.length > 0,
+      label: t('milestones'),
+      hint: t('milestonesHint'),
+      action: v.canManage ? (
+        <Button size="sm" variant="outline" onClick={onAddMilestone}>
+          <PlusIcon /> {t('addMilestone')}
+        </Button>
+      ) : undefined,
+    },
+    {
+      id: 'tasks',
+      done: project.totalTasks > 0,
+      label: t('tasks'),
+      hint: t('tasksHint'),
+      action: v.canEditTasks ? (
+        <Button size="sm" variant="outline" onClick={onNewTask}>
+          <PlusIcon /> {t('newTask')}
+        </Button>
+      ) : undefined,
+    },
+    {
+      id: 'members',
+      done: project.members.length > 1,
+      label: t('members'),
+      hint: t('membersHint'),
+      action: v.canManage ? (
+        <Button size="sm" variant="outline" onClick={() => onManage('members')}>
+          <UserPlusIcon /> {t('addMembers')}
+        </Button>
+      ) : undefined,
+    },
+    ...(project.status === 'proposed'
+      ? [
+          {
+            id: 'start',
+            done: project.approval?.status === 'pending' || project.approval?.status === 'approved',
+            label: starter.needsApproval ? t('submit') : t('start'),
+            hint: starter.needsApproval ? t('submitHint') : t('startHint'),
+            action: v.canStart ? (
+              <Button size="sm" onClick={starter.open}>
+                {starter.needsApproval ? <SendIcon /> : <PlayIcon />} {starter.label}
+              </Button>
+            ) : undefined,
+          },
+        ]
+      : []),
+  ];
+  const done = steps.filter((s) => s.done).length;
+  if (done === steps.length) return null;
+  return (
+    <Card className="min-w-0 gap-4">
+      <CardHeader>
+        <CardTitle>{t('title')}</CardTitle>
+        <CardDescription>{t('progress', { done, total: steps.length })}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ol className="grid gap-1">
+          {steps.map((s) => (
+            <li key={s.id} className="flex min-w-0 flex-wrap items-center gap-3 rounded-lg px-2 py-2">
+              <span
+                className={cn(
+                  'grid size-6 shrink-0 place-items-center rounded-full border transition-colors duration-(--motion-fast) motion-reduce:transition-none',
+                  s.done ? 'border-success bg-success/12 text-success' : 'text-muted-foreground',
+                )}
+              >
+                {s.done ? (
+                  <SuccessMark className="size-3.5" label={t('done')} />
+                ) : (
+                  <CircleIcon className="size-3" aria-hidden />
+                )}
+              </span>
+              <span className="grid min-w-0 flex-1 gap-0.5">
+                <span className={cn('text-sm font-medium', s.done && 'text-muted-foreground line-through')}>
+                  {s.label}
+                </span>
+                {!s.done && <span className="text-xs text-muted-foreground">{s.hint}</span>}
+              </span>
+              {!s.done && s.action}
+            </li>
+          ))}
+        </ol>
+      </CardContent>
+      {starter.dialog}
+    </Card>
+  );
+}
+
+export type ManageSection = 'members' | 'milestones';
+
+export function OverviewTab({
+  project,
+  onManage,
+  onNewTask,
+}: {
+  project: ProjectDetail;
+  onManage: (section: ManageSection) => void;
+  onNewTask: () => void;
+}) {
   const t = useTranslations('projects.overview');
+  const [adding, setAdding] = useState(false);
   const record = { type: 'projects.project', id: project.id };
+  // A new project (no tasks yet, or a proposal) gets the Get started checklist; ticked steps stay until all are done.
+  const fresh = !project.archivedAt && (project.totalTasks === 0 || project.status === 'proposed');
+  const noTasks = project.totalTasks === 0;
+  const addMilestone = () => {
+    setAdding(true);
+    document.getElementById('overview-milestones')?.scrollIntoView({ block: 'nearest' });
+  };
   return (
     <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3">
       <div className="grid min-w-0 gap-6 lg:col-span-2">
-        <Stagger className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StaggerItem className="min-w-0">
-            <Kpi icon={CircleDotIcon} label={t('kpi.open')} value={project.kpis.open} />
-          </StaggerItem>
-          <StaggerItem className="min-w-0">
-            <Kpi
-              icon={CircleAlertIcon}
+        {fresh && (
+          <GetStarted
+            project={project}
+            onNewTask={onNewTask}
+            onManage={onManage}
+            onAddMilestone={addMilestone}
+          />
+        )}
+        {!noTasks && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatTile icon={<CircleDotIcon />} label={t('kpi.open')} value={project.kpis.open} />
+            <StatTile
+              icon={<CircleAlertIcon />}
+              tone={project.kpis.overdue > 0 ? 'destructive' : 'default'}
               label={t('kpi.overdue')}
               value={project.kpis.overdue}
-              tone="destructive"
+              href={project.kpis.overdue > 0 ? `${projectHref(project.key)}?view=list&sort=due` : undefined}
             />
-          </StaggerItem>
-          <StaggerItem className="min-w-0">
-            <Kpi
-              icon={CircleCheckIcon}
+            <StatTile
+              icon={<CircleCheckIcon />}
+              tone="success"
               label={t('kpi.doneThisWeek')}
               value={project.kpis.doneThisWeek}
-              tone="success"
             />
-          </StaggerItem>
-          <StaggerItem className="min-w-0">
-            <Kpi icon={BanIcon} label={t('kpi.blocked')} value={project.kpis.blocked} tone="warning" />
-          </StaggerItem>
-        </Stagger>
+            <StatTile
+              icon={<BanIcon />}
+              tone={project.kpis.blocked > 0 ? 'warning' : 'default'}
+              label={t('kpi.blocked')}
+              value={project.kpis.blocked}
+            />
+          </div>
+        )}
         <Card className="min-w-0 gap-4">
           <CardHeader>
             <CardTitle>{t('description')}</CardTitle>
@@ -355,8 +503,8 @@ export function OverviewTab({ project, onManage }: { project: ProjectDetail; onM
             )}
           </CardContent>
         </Card>
-        <StatusBreakdown project={project} />
-        <MilestonesCard project={project} onManage={onManage} />
+        {!noTasks && <StatusBreakdown project={project} />}
+        <MilestonesCard project={project} onManage={onManage} adding={adding} onAdding={setAdding} />
       </div>
       <div className="grid min-w-0 gap-6">
         <ApprovalCard project={project} />

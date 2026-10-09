@@ -1,0 +1,1 @@
+ALTER TABLE "etl"."pipeline_runs" ADD COLUMN "task_job_id" varchar(64);

@@ -86,6 +86,13 @@ export function statusTone(status: TicketStatus): StatusTone {
 export const statusLabelKey = (t: { status: TicketStatus; signOffInstanceId?: string | null }) =>
   t.signOffInstanceId && t.status === 'pending_approval' ? 'itsm.signOff.status' : `itsm.status.${t.status}`;
 
+/**
+ * The status as the requester reads it ("My requests", a form request's fulfilment): `new` is "Received", and the
+ * resolution sign-off is "Waiting for approval" — one vocabulary for every request a person raised.
+ */
+export const requesterStatusKey = (t: { status: TicketStatus; signOffInstanceId?: string | null }) =>
+  `itsm.requesterStatus.${t.signOffInstanceId && t.status === 'pending_approval' ? 'pending_approval' : t.status}`;
+
 /** Where a ticket stands for the request portal ("My requests"). */
 export function portalState(status: TicketStatus): 'open' | 'closed' {
   return isDone(status) ? 'closed' : 'open';

@@ -29,13 +29,6 @@
     "blockedTitle": "{count, plural, one {別のモジュールがこのモジュールに依存しています。先にそのモジュールを無効にしてください:} other {# 個のモジュールがこのモジュールに依存しています。先にそれらを無効にしてください:}}",
     "inactiveDependents": "{names} (現在無効) でも必要とされています。"
   },
-  "stats": {
-    "permissions": "{count, plural, one {アクセス許可} other {アクセス許可}}",
-    "events": "イベント",
-    "eventsDetail": "{emits, plural, one {発行 # 件} other {発行 # 件}}、{consumes, plural, one {受信 # 件} other {受信 # 件}}",
-    "aiTools": "{count, plural, one {AI ツール} other {AI ツール}}",
-    "jobs": "{count, plural, one {ジョブ} other {ジョブ}}"
-  },
   "tabs": {
     "overview": "概要",
     "permissions": "アクセス許可",
@@ -43,7 +36,8 @@
     "aiTools": "AI ツール",
     "ai": "AI",
     "jobs": "ジョブ",
-    "settings": "設定"
+    "settings": "設定",
+    "technical": "技術的な詳細"
   },
   "overview": {
     "id": "モジュール ID",
@@ -100,10 +94,6 @@
     "number": "数値を入力してください。",
     "tooLong": "{max} 文字以内で入力してください。"
   },
-  "howTo": {
-    "title": "モジュールのしくみ",
-    "body": "コア プラットフォームを含むすべての機能はモジュールです。モジュールとは、ページ、API ルート、アクセス許可、イベント、バックグラウンド ジョブ、設定、AI ツールを宣言するマニフェストです。組み込みモジュールとカスタム モジュールは同じ SDK を使用します。",
-    "scaffold": "独自のモジュールを作成するには、リポジトリのルートで次のコマンドを実行してひな形を生成します:",
-    "placeholder": "name"
-  }
+  "technicalHint": "モジュールが宣言している内容です。開発者とサポート担当者向けです。",
+  "hasSettings": "{count, plural, other {# 個の設定}}"
 }

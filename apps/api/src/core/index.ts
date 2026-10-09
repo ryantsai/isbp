@@ -25,6 +25,7 @@ import { databaseRoutes } from './routes/databases';
 import { recordRoutes } from './routes/records';
 import { requestRoutes } from './routes/requests';
 import { workflowRoutes } from './routes/workflows';
+import { workRoutes } from './routes/work';
 import { AccessService } from './services/access';
 import { AccessRequestService } from './services/access-requests';
 import { ApiClientService, ApplicationService, RoleQueryService } from './services/applications';
@@ -38,6 +39,8 @@ import { NotificationAdminService } from './services/notifications';
 import { UserService } from './services/users';
 import { ApprovalService, WorkflowAdminService } from './services/workflows';
 import { likePattern, reachFilter } from './util';
+import { coreWork } from './work';
+import { groupReferences, recordReferences } from './references';
 
 async function searchCore(
   query: string,
@@ -47,6 +50,46 @@ async function searchCore(
 ): Promise<SearchHit[]> {
   const like = likePattern(query);
   const tasks: Promise<SearchHit[]>[] = [];
+  // Requests by their number (REQ-01020): the people who may read them (requester, approvers, request readers).
+  // Access requests and form requests share the number sequence.
+  const requestNumber = /^req[-\s]?0*(\d{1,12})$/i.exec(query.trim());
+  if (requestNumber) {
+    tasks.push(
+      new AccessRequestService(ctx)
+        .byNumber(Number(requestNumber[1]), auth)
+        .catch(() => null)
+        .then((r) =>
+          r
+            ? [
+                {
+                  id: r.id,
+                  type: 'request',
+                  title: `${r.reference} · ${r.role.name} — ${r.beneficiary.displayName}`,
+                  subtitle: null,
+                  status: `workflows.status.request.${r.status}`,
+                  href: `/requests/${r.reference}`,
+                  icon: 'key-round',
+                  exact: true,
+                },
+              ]
+            : [],
+        ),
+    );
+    tasks.push(
+      requestRecords.search(query, ctx, auth, limit).then((rows) =>
+        rows.map((r) => ({
+          id: r.id,
+          type: 'request',
+          title: `${r.reference} · ${r.title}`,
+          subtitle: null,
+          status: r.status?.key ?? null,
+          href: r.href,
+          icon: 'clipboard-list',
+          exact: true,
+        })),
+      ),
+    );
+  }
   if (auth.permissions.hasAny('core.users.read')) {
     tasks.push(
       ctx.db
@@ -150,6 +193,7 @@ export const coreModule = defineServerModule(coreManifest, {
     formRoutes(app, forms, new CustomFieldAdminService(ctx));
     formAssignmentRoutes(app, new FormAssignmentService(ctx), forms);
     notificationRoutes(app, new NotificationAdminService(ctx));
+    workRoutes(app);
     aiRoutes(app, new AiAdminService(ctx));
     recordRoutes(app);
     databaseRoutes(app, new DatabaseAdminService(ctx));
@@ -197,6 +241,10 @@ export const coreModule = defineServerModule(coreManifest, {
   taskTypes,
 
   records: { request: requestRecords },
+
+  work: coreWork,
+
+  references: { 'core.group': groupReferences, '*': recordReferences },
 
   jobs: {
     'workflow-timers': {

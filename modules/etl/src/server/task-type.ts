@@ -31,7 +31,7 @@ export const pipelineTask: TaskTypeHandler<PipelineTaskConfig> = {
     const pipeline = await s.find(config.pipelineId);
     if (!pipeline) throw httpErrors.notFound('Pipeline not found (deleted?)');
     task.log(`Pipeline ${pipeline.name}`);
-    const queued = await s.queueRun(pipeline, 'schedule', { taskRunId: task.runId });
+    const queued = await s.queueRun(pipeline, 'schedule', { taskRunId: task.runId, taskJobId: task.jobId });
     const run = await executeRun(ctx, queued.id, {
       signal: task.signal,
       log: (m, level) => task.log(m, level),
@@ -43,10 +43,13 @@ export const pipelineTask: TaskTypeHandler<PipelineTaskConfig> = {
       throw new HttpError(422, ErrorCodes.INVALID_STATE, run.error ?? `Pipeline run ${run.status}`, {
         runId: run.id,
         href: runHref(pipeline.id, run.id),
+        // The job's run explains the failure as the pipeline's run does (which connection, what to do).
+        problem: run.problem ?? undefined,
         ...metrics,
       });
     return {
-      summary: `${run.rowsWritten} rows written (${run.rowsRead} read, ${run.rowsRejected} rejected)`,
+      summary: 'etl.results.pipeline',
+      summaryParams: { written: run.rowsWritten, read: run.rowsRead, rejected: run.rowsRejected },
       metrics,
       href: runHref(pipeline.id, run.id),
     };

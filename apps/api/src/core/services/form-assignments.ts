@@ -50,7 +50,9 @@ import {
   or,
   sql,
 } from 'drizzle-orm';
+import type { Locale } from '@isbp/i18n';
 import type { z } from 'zod';
+import { renderText } from '../../kernel/notifications/render';
 import { likePattern, orderBy, pageOffset } from '../util';
 import { peopleById, ref } from './people';
 
@@ -765,19 +767,27 @@ export class FormAssignmentService {
     if (!assignmentTitle(c.title, '2026-01')) throw invalid('title', 'Enter a title');
   }
 
-  async describeTask(config: AssignFormTaskConfig) {
+  /** The job list's label ("Assign “Server room inspection” to Server room administrators, every month"). */
+  async describeTask(config: AssignFormTaskConfig, locale: Locale = 'en') {
     const c = assignFormTaskConfigSchema.parse(config);
     const [f] = await this.db
       .select({ id: forms.id, name: forms.name })
       .from(forms)
       .where(eq(forms.key, c.formKey));
-    const who =
-      c.assignee.type === 'group'
-        ? `group ${c.assignee.groupKey}`
-        : ((await peopleById(this.db, [c.assignee.userId])).get(c.assignee.userId)?.displayName ??
-          'a person');
+    // The group's or person's name, not its key; a group or person that is gone shows what the job names.
+    const assignee = await this.resolveAssignee(c.assignee).then(
+      (a) => a.label,
+      () => (c.assignee.type === 'group' ? c.assignee.groupKey : c.assignee.userId),
+    );
+    const form = f ? localize(f.name, locale) : c.formKey;
+    const label = await renderText(
+      'core',
+      'taskTypes.assignForm.label',
+      { form, assignee, period: c.period },
+      { locale },
+    );
     return {
-      label: `Assign “${f ? localize(f.name, 'en') : c.formKey}” to ${who}, each ${c.period}`,
+      label: label ?? `Assign “${form}” to ${assignee}, each ${c.period}`,
       href: f ? adminHref(f.id) : null,
     };
   }
@@ -811,7 +821,9 @@ export class FormAssignmentService {
         : `“${row.title}” is already assigned for ${key} (${row.status})`,
     );
     return {
-      summary: created ? `Assigned ${row.title}` : `Already assigned for ${key}`,
+      // Catalog keys, shown in the reader's language on the job's runs.
+      summary: created ? 'core.taskTypes.assignForm.assigned' : 'core.taskTypes.assignForm.alreadyAssigned',
+      summaryParams: created ? { title: row.title } : { period: key },
       metrics: { created: created ? 1 : 0 },
       href: adminHref(form.id),
     };

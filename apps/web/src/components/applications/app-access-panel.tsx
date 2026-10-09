@@ -72,7 +72,7 @@ export function AppAccessPanel({ app }: { app: Application }) {
   const roleId = state.roleId as string | undefined;
 
   const roles = useApiQuery<{ items: Role[] }>(`/applications/${app.id}/roles`);
-  const { data, isLoading, isFetching } = useApiQuery<Page<RoleAssignment>>(
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<RoleAssignment>>(
     `/applications/${app.id}/assignments`,
     {
       page: state.page,
@@ -203,6 +203,8 @@ export function AppAccessPanel({ app }: { app: Application }) {
         sort={state.sort}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(a) => a.id}
         onPageChange={(page) => set({ page })}
         onPageSizeChange={(pageSize) => set({ pageSize })}

@@ -1,8 +1,10 @@
 'use client';
 
 import { localize } from '@isbp/sdk';
+import { useCan } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
+import { type SectionTab, SectionTabs } from '@isbp/ui/section-tabs';
+import { defineStatusMap, MappedStatus, StatusBadge as Chip } from '@isbp/ui/status';
 import {
   ArchiveIcon,
   BookOpenIcon,
@@ -51,39 +53,56 @@ export function CategoryIcon({ name, className }: { name?: string | null; classN
   );
 }
 
-const STATUS: Record<
-  ArticleStatus,
-  { icon: typeof ClockIcon; variant: 'muted' | 'info' | 'success' | 'warning' }
-> = {
-  draft: { icon: FileEditIcon, variant: 'muted' },
-  in_review: { icon: ClockIcon, variant: 'warning' },
-  published: { icon: CheckCircle2Icon, variant: 'success' },
-  retired: { icon: ArchiveIcon, variant: 'muted' },
-};
+const ARTICLE_STATUS = defineStatusMap<ArticleStatus>({
+  draft: { tone: 'muted', icon: FileEditIcon, labelKey: 'draft' },
+  in_review: { tone: 'warning', icon: ClockIcon, labelKey: 'in_review' },
+  published: { tone: 'success', icon: CheckCircle2Icon, labelKey: 'published' },
+  retired: { tone: 'muted', icon: ArchiveIcon, labelKey: 'retired' },
+});
 
-/** Status is always icon + label + colour — never colour alone. */
-export function StatusBadge({ status, className }: { status: ArticleStatus; className?: string }) {
+/** Status is always icon + label + colour — never colour alone. `animate` cross-fades a change in place. */
+export function StatusBadge({
+  status,
+  animate,
+  className,
+}: {
+  status: ArticleStatus;
+  animate?: boolean;
+  className?: string;
+}) {
   const t = useTranslations('knowledge.status');
-  const { icon: Icon, variant } = STATUS[status];
   return (
-    <Badge variant={variant} className={className}>
-      <Icon aria-hidden />
-      {t(status)}
-    </Badge>
+    <MappedStatus
+      map={ARTICLE_STATUS}
+      value={status}
+      t={(key) => t(key as ArticleStatus)}
+      animate={animate}
+      className={className}
+    />
   );
 }
 
+/** "Agents only": who can read it (an attribute, not a status: a neutral outline chip with a lock). */
 export function InternalBadge({ className }: { className?: string }) {
   const t = useTranslations('knowledge.audience');
-  return (
-    <Badge variant="info" className={className}>
-      <LockIcon aria-hidden />
-      {t('agents')}
-    </Badge>
-  );
+  return <Chip tone="neutral" icon={LockIcon} label={t('agents')} className={className} />;
 }
 
-export function LocaleChip({ locale, className }: { locale: ArticleLocale; className?: string }) {
+/**
+ * The article's language as a small chip; `foreignOnly` shows it only when it isn't the reader's UI language (an
+ * English reader doesn't need "EN" on every row).
+ */
+export function LocaleChip({
+  locale,
+  foreignOnly,
+  className,
+}: {
+  locale: ArticleLocale;
+  foreignOnly?: boolean;
+  className?: string;
+}) {
+  const ui = useLocale();
+  if (foreignOnly && locale === ui) return null;
   return (
     <span
       lang={LOCALE_LANG[locale]}
@@ -97,6 +116,30 @@ export function LocaleChip({ locale, className }: { locale: ArticleLocale; class
     </span>
   );
 }
+
+/* ───────────── sections ───────────── */
+
+/**
+ * Browse | Manage | Categories under the page header of the knowledge home, the management list and the categories
+ * page: each tab is its own page. Only people who can write or manage categories get the strip (readers have one
+ * page). Header buttons that would repeat a tab don't exist.
+ */
+export function KnowledgeSections() {
+  const t = useTranslations('knowledge.sections');
+  const canWrite = useCan('knowledge.articles.write');
+  const canManageCategories = useCan('knowledge.categories.manage');
+  const items: SectionTab[] = [{ href: '/knowledge', label: t('browse'), match: 'exact' }];
+  if (canWrite) items.push({ href: '/knowledge/manage', label: t('manage') });
+  if (canManageCategories) items.push({ href: '/knowledge/categories', label: t('categories') });
+  if (items.length < 2) return null;
+  return <SectionTabs items={items} label={t('label')} />;
+}
+
+/**
+ * Article text (reading and preview): tables keep whole words in their cells and scroll sideways in their own box
+ * when they don't fit (the first column stays at least 8rem wide), instead of breaking words mid-word on a phone.
+ */
+export const ARTICLE_PROSE = 'text-[15px] [&_:is(td,th)]:wrap-break-word [&_:is(td,th):first-child]:min-w-32';
 
 /* ───────────── classification ───────────── */
 
@@ -134,11 +177,18 @@ export function ClassificationBadge({ value, className }: { value: string; class
   const variant = tone(value);
   const Icon = variant === 'destructive' || variant === 'warning' ? ShieldAlertIcon : ShieldIcon;
   return (
-    <Badge variant={variant} className={className}>
-      <Icon aria-hidden />
-      <span className="sr-only">{t('label')}: </span>
-      {label(value)}
-    </Badge>
+    <Chip
+      tone={variant}
+      icon={Icon}
+      title={`${t('label')}: ${label(value)}`}
+      className={className}
+      label={
+        <>
+          <span className="sr-only">{t('label')}: </span>
+          {label(value)}
+        </>
+      }
+    />
   );
 }
 
@@ -235,7 +285,7 @@ export function ArticleHit({
               <span>{categoryName(item.category)}</span>
             </>
           )}
-          <LocaleChip locale={item.locale} />
+          <LocaleChip locale={item.locale} foreignOnly />
         </span>
       </span>
     </Link>

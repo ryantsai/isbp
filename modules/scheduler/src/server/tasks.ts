@@ -7,6 +7,8 @@ import {
   ErrorCodes,
   HttpError,
   type ModuleContext,
+  type RunProblem,
+  runProblemOf,
   type SqlParamType,
   type SqlValue,
   type TaskContext,
@@ -23,6 +25,25 @@ export function timeoutError(message: string): Error {
   err.name = 'TimeoutError';
   return err;
 }
+
+/** Attaches the explanation to an error (an `HttpError` keeps its code; others become `details.problem` holders). */
+export function withProblem(err: unknown, problem: RunProblem): unknown {
+  if (err instanceof HttpError)
+    return new HttpError(err.statusCode, err.code, err.message, {
+      ...((err.details as Record<string, unknown> | undefined) ?? {}),
+      problem,
+    });
+  const e = err instanceof Error ? err : new Error(String(err));
+  return Object.assign(e, { problem });
+}
+
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url.slice(0, 80);
+  }
+};
 
 const invalid = (path: string, message: string) =>
   new HttpError(400, ErrorCodes.VALIDATION_FAILED, message, { issues: [{ path, message }] });
@@ -83,6 +104,7 @@ export const httpTask: TaskTypeHandler<HttpConfig> = {
     }
 
     task.log(describeUrl(config.method, config.url));
+    const host = hostOf(config.url);
     let res;
     try {
       res = await ctx.http.request(config.url, {
@@ -96,15 +118,30 @@ export const httpTask: TaskTypeHandler<HttpConfig> = {
       });
     } catch (err) {
       if (err instanceof HttpError && (err.details as { reason?: string } | undefined)?.reason === 'timeout')
-        throw timeoutError(`No response within ${config.timeoutSeconds} s`);
-      throw err;
+        throw withProblem(timeoutError(`No response within ${config.timeoutSeconds} s`), {
+          kind: 'http_timeout',
+          params: { host, seconds: config.timeoutSeconds },
+        });
+      throw withProblem(err, runProblemOf(err, { host }));
     }
     const ok = statusMatches(config.expectedStatus, res.status);
     task.log(`HTTP ${res.status} in ${res.durationMs} ms (${res.body.length} bytes)`, ok ? 'info' : 'error');
     for (const line of bodyPreview(res.body, res.headers['content-type'])) task.log(line);
-    if (!ok) throw new Error(`Unexpected status ${res.status} (expected ${config.expectedStatus})`);
+    if (!ok)
+      throw new HttpError(
+        422,
+        ErrorCodes.UPSTREAM_FAILED,
+        `Unexpected status ${res.status} (expected ${config.expectedStatus})`,
+        {
+          problem: {
+            kind: 'http_status',
+            params: { host, status: res.status, expected: config.expectedStatus },
+          } satisfies RunProblem,
+        },
+      );
     return {
-      summary: `HTTP ${res.status} · ${res.durationMs} ms`,
+      summary: 'scheduler.results.http',
+      summaryParams: { status: res.status, ms: res.durationMs },
       metrics: { status: res.status, durationMs: res.durationMs, bytes: res.body.length },
     };
   },
@@ -198,19 +235,28 @@ export const sqlTask: TaskTypeHandler<SqlConfig> = {
     task.log(`${config.mode === 'query' ? 'Query' : 'Execute'} on ${conn.name} (${conn.engine})`);
     for (const [name, value] of Object.entries(params))
       task.log(`:${name} = ${value instanceof Date ? value.toISOString() : cell(value)}`);
-    const res = await ctx.databases.query(config.connectionId, config.statement, {
-      purpose: 'data',
-      params,
-      types,
-      readOnly: config.mode === 'query',
-      maxRows: config.mode === 'query' ? conn.maxRows : 1,
-      timeoutMs: task.timeoutMs,
-      signal: task.signal,
-    });
+    const res = await ctx.databases
+      .query(config.connectionId, config.statement, {
+        purpose: 'data',
+        params,
+        types,
+        readOnly: config.mode === 'query',
+        maxRows: config.mode === 'query' ? conn.maxRows : 1,
+        timeoutMs: task.timeoutMs,
+        signal: task.signal,
+      })
+      .catch((err: unknown) => {
+        // Name the connection, so the run page can say which one to fix and link to it.
+        throw withProblem(err, runProblemOf(err, { connection: { id: conn.id, name: conn.name } }));
+      });
     if (config.mode === 'execute') {
       const affected = res.affected ?? 0;
       task.log(`${affected} row(s) affected in ${res.durationMs} ms`);
-      return { summary: `${affected} rows affected`, metrics: { affected, durationMs: res.durationMs } };
+      return {
+        summary: 'scheduler.results.affected',
+        summaryParams: { count: affected },
+        metrics: { affected, durationMs: res.durationMs },
+      };
     }
     const rows = res.rows.length;
     task.log(
@@ -223,7 +269,8 @@ export const sqlTask: TaskTypeHandler<SqlConfig> = {
       if (rows > 10) task.log(`… ${rows - 10} more row(s)`);
     }
     return {
-      summary: `${rows}${res.truncated ? '+' : ''} rows`,
+      summary: res.truncated ? 'scheduler.results.rowsCapped' : 'scheduler.results.rows',
+      summaryParams: { count: rows },
       metrics: { rows, durationMs: res.durationMs },
     };
   },
@@ -268,11 +315,20 @@ export const scriptTask: TaskTypeHandler<ScriptConfig> = {
       onLog: (line, stream) => task.log(line, stream === 'stderr' ? 'warn' : 'info'),
     });
     if (res.cancelled) throw new Error('The script was stopped');
-    if (res.timedOut) throw timeoutError(`The script ran longer than ${config.timeoutSeconds} s`);
-    if (res.exitCode !== 0) throw new Error(`The script exited with code ${res.exitCode ?? 'unknown'}`);
+    if (res.timedOut)
+      throw withProblem(timeoutError(`The script ran longer than ${config.timeoutSeconds} s`), {
+        kind: 'timeout',
+        params: { seconds: config.timeoutSeconds },
+      });
+    if (res.exitCode !== 0)
+      throw withProblem(new Error(`The script exited with code ${res.exitCode ?? 'unknown'}`), {
+        kind: 'script_exit',
+        params: { code: String(res.exitCode ?? '?') },
+      });
     task.log(`Exited with code 0 after ${res.durationMs} ms`);
     return {
-      summary: `Exit code 0 · ${res.durationMs} ms`,
+      summary: 'scheduler.results.script',
+      summaryParams: { ms: res.durationMs },
       metrics: { exitCode: 0, durationMs: res.durationMs },
     };
   },

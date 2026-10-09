@@ -1,19 +1,25 @@
 'use client';
 
+import { useCan } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
 import { useApiQuery } from '@isbp/ui/query';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { MessageCircleQuestionIcon, SparklesIcon } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { HelpdeskAiStatus } from '../../contracts';
 import { ChatPanel } from './chat-panel';
 
 /**
- * "Ask IT" invitation for the request portal (`core.requests.assist`) and the knowledge home
- * (`knowledge.home.assist`); opens the virtual agent in a sheet.
+ * "Ask IT" invitation on the knowledge home (`knowledge.home.assist`): for the people the desk serves, not for its
+ * agents (holders of `itsm.tickets.work`), who search the knowledge base for answers they give.
  */
+export function KnowledgeAskItCard() {
+  const agent = useCan('itsm.tickets.work');
+  return agent ? null : <AskItCard />;
+}
+
+/** "Ask IT" invitation for the request portal (`core.requests.assist`); opens the virtual agent in a sheet. */
 export default function AskItCard() {
   const t = useTranslations('helpdesk-ai');
   const status = useApiQuery<HelpdeskAiStatus>('/helpdesk-ai/status');
@@ -23,12 +29,9 @@ export default function AskItCard() {
 
   return (
     <>
-      <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      <section
         aria-labelledby="hai-ask-it"
-        className="relative overflow-hidden rounded-xl border bg-card p-5 shadow-xs"
+        className="relative overflow-hidden rounded-xl border bg-card p-3 shadow-xs sm:p-4"
       >
         <div
           aria-hidden
@@ -38,21 +41,22 @@ export default function AskItCard() {
           aria-hidden
           className="pointer-events-none absolute -top-10 -right-10 size-40 rounded-full bg-primary/15 blur-3xl"
         />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary to-chart-4 text-primary-foreground shadow-md">
-            <SparklesIcon className="size-5" aria-hidden />
+        {/* A compact tile, one row on phones too: the catalog below is what most people came for. */}
+        <div className="relative flex items-center gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-chart-4 text-primary-foreground shadow-sm">
+            <SparklesIcon className="size-4" aria-hidden />
           </span>
-          <div className="min-w-0 flex-1 space-y-1">
-            <h2 id="hai-ask-it" className="text-base font-semibold tracking-tight">
+          <div className="min-w-0 flex-1">
+            <h2 id="hai-ask-it" className="text-sm font-semibold tracking-tight">
               {t('askIt.title')}
             </h2>
-            <p className="text-sm text-muted-foreground">{t('askIt.body')}</p>
+            <p className="line-clamp-2 text-xs text-muted-foreground sm:text-sm">{t('askIt.body')}</p>
           </div>
-          <Button onClick={() => setOpen(true)} className="shrink-0">
+          <Button size="sm" onClick={() => setOpen(true)} className="shrink-0">
             <MessageCircleQuestionIcon /> {t('askIt.button')}
           </Button>
         </div>
-      </motion.section>
+      </section>
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent className="gap-0 p-0 sm:max-w-lg" closeLabel={t('askIt.close')}>

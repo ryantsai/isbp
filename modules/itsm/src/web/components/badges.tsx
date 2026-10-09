@@ -3,6 +3,7 @@
 import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
+import { StatusBadge } from '@isbp/ui/status';
 import {
   AlarmClockOffIcon,
   ArchiveIcon,
@@ -24,11 +25,13 @@ import {
   PackageIcon,
   PauseCircleIcon,
   PlayCircleIcon,
+  RepeatIcon,
   SearchIcon,
   ShieldAlertIcon,
   SirenIcon,
   StampIcon,
   XCircleIcon,
+  ZapIcon,
 } from 'lucide-react';
 import { useNow, useTranslations } from 'next-intl';
 import type { PersonRef, TicketStatus, TicketType } from '../../contracts';
@@ -90,41 +93,48 @@ const STATUS: Record<TicketStatus, { tone: Tone; icon: LucideIcon }> = {
   rejected: { tone: 'destructive', icon: XCircleIcon },
 };
 
-const TONE: Record<Tone, string> = {
-  info: 'border-transparent bg-info/12 text-info',
-  primary: 'border-transparent bg-primary/10 text-primary',
-  warning: 'border-transparent bg-warning/15 text-warning-foreground',
-  success: 'border-transparent bg-success/12 text-success',
-  muted: 'border-transparent bg-muted text-muted-foreground',
-  destructive: 'border-transparent bg-destructive/10 text-destructive dark:bg-destructive/20',
-};
-
 export function statusIcon(status: TicketStatus): LucideIcon {
   return STATUS[status]?.icon ?? CircleDotIcon;
 }
 
 /**
  * Ticket status: icon + text + tone (never colour alone). `signOff`: a resolution waiting for its sign-off shows as
- * "Waiting for sign-off" instead of "Pending approval".
+ * "Waiting for sign-off" instead of "Pending approval". `requester`: the requester's words ("Received" for new).
+ * `animate`: cross-fades when the status changes in place (the ticket page header).
  */
 export function TicketStatusBadge({
   status,
   signOff,
+  requester,
+  animate,
   className,
 }: {
   status: TicketStatus;
   signOff?: boolean;
+  requester?: boolean;
+  animate?: boolean;
   className?: string;
 }) {
-  const t = useTranslations('itsm.status');
-  const ts = useTranslations('itsm.signOff');
+  const t = useTranslations('itsm');
   const s = STATUS[status] ?? { tone: 'muted' as const, icon: CircleDotIcon };
-  const Icon = signOff && status === 'pending_approval' ? StampIcon : s.icon;
+  const signingOff = signOff && status === 'pending_approval';
+  const label = signingOff
+    ? requester
+      ? t('requesterStatus.pending_approval')
+      : t('signOff.status')
+    : requester && t.has(`requesterStatus.${status}`)
+      ? t(`requesterStatus.${status}`)
+      : t.has(`status.${status}`)
+        ? t(`status.${status}`)
+        : status;
   return (
-    <Badge variant="outline" className={cn(TONE[s.tone], className)}>
-      <Icon aria-hidden />
-      {signOff && status === 'pending_approval' ? ts('status') : t.has(status) ? t(status) : status}
-    </Badge>
+    <StatusBadge
+      tone={s.tone}
+      icon={signingOff ? StampIcon : s.icon}
+      label={label}
+      changeKey={animate ? `${status}${signingOff ? ':sign-off' : ''}` : undefined}
+      className={className}
+    />
   );
 }
 
@@ -236,27 +246,16 @@ export function MajorBadge({ className }: { className?: string }) {
   );
 }
 
-const CHANGE_TYPE: Record<ChangeType, { dot: string; className: string }> = {
-  standard: { dot: 'bg-success', className: '' },
-  normal: { dot: 'bg-info', className: '' },
-  emergency: {
-    dot: 'bg-destructive',
-    className: 'border-destructive/30 bg-destructive/10 text-destructive dark:bg-destructive/20',
-  },
+/** Change types are attributes, not statuses: an icon each, no status colours (emergency is not "failed"). */
+export const CHANGE_TYPE_ICON: Record<ChangeType, LucideIcon> = {
+  standard: RepeatIcon,
+  normal: GitCompareArrowsIcon,
+  emergency: ZapIcon,
 };
-
-export function changeTypeDot(type: ChangeType) {
-  return CHANGE_TYPE[type].dot;
-}
 
 export function ChangeTypeBadge({ type, className }: { type: ChangeType; className?: string }) {
   const t = useTranslations('itsm.changeType');
-  return (
-    <Badge variant="outline" className={cn('gap-1.5', CHANGE_TYPE[type].className, className)}>
-      <span className={cn('size-2 rounded-full', CHANGE_TYPE[type].dot)} aria-hidden />
-      {t(type)}
-    </Badge>
-  );
+  return <StatusBadge tone="neutral" icon={CHANGE_TYPE_ICON[type]} label={t(type)} className={className} />;
 }
 
 export function RiskBadge({ risk, className }: { risk: Risk; className?: string }) {

@@ -5,11 +5,13 @@ import { cn } from '@isbp/ui';
 import { Badge } from '@isbp/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Stagger, StaggerItem } from '@isbp/ui/motion';
+import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
+import { ProjectsTabs } from '../section-tabs';
 import { useApiQuery } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { toast } from '@isbp/ui/sonner';
 import { CircleCheckBigIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -22,7 +24,7 @@ import {
   type TaskListItem,
   type TaskStatus,
 } from '../../contracts';
-import { DueDate, KeyBadge, PriorityLabel, TaskStatusIcon, TaskTypeIcon } from '../components/badges';
+import { DueDate, PriorityLabel, TaskStatusIcon, TaskTypeIcon } from '../components/badges';
 import { useMoveTask } from '../components/task-actions';
 import { localToday, taskHref, useSearchParam } from '../lib';
 
@@ -39,17 +41,26 @@ function StatusQuickChange({ task }: { task: TaskListItem }) {
   const t = useTranslations('projects.myTasks');
   const ts = useTranslations('projects.taskStatus');
   const { move, isPending } = useMoveTask();
+  const change = async (status: TaskStatus) => {
+    const before = task.status;
+    try {
+      await move({ ref: task.reference, status });
+    } catch {
+      return;
+    }
+    // A closed task leaves this list: say so, with a way back.
+    toast.success(t('moved', { reference: task.reference, status: ts(status) }), {
+      action: {
+        label: t('undo'),
+        onClick: () => void move({ ref: task.reference, status: before }).catch(() => undefined),
+      },
+    });
+  };
   return (
-    <Select
-      value={task.status}
-      disabled={isPending}
-      onValueChange={(v) =>
-        void move({ ref: task.reference, status: v as TaskStatus }).catch(() => undefined)
-      }
-    >
+    <Select value={task.status} disabled={isPending} onValueChange={(v) => void change(v as TaskStatus)}>
       <SelectTrigger
         size="sm"
-        className="w-full sm:w-36"
+        className="w-full sm:w-40"
         aria-label={t('changeStatus', { reference: task.reference })}
       >
         <SelectValue />
@@ -68,7 +79,7 @@ function StatusQuickChange({ task }: { task: TaskListItem }) {
 
 function TaskRow({ task, today }: { task: TaskListItem; today: string }) {
   return (
-    <li className="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
+    <div className="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
       <div className="grid min-w-0 gap-1">
         <div className="flex min-w-0 items-center gap-2">
           <TaskTypeIcon type={task.type} />
@@ -81,14 +92,16 @@ function TaskRow({ task, today }: { task: TaskListItem; today: string }) {
           </Link>
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-          <KeyBadge projectKey={task.project.key} />
-          <span className="min-w-0 truncate text-xs text-muted-foreground">{task.project.name}</span>
+          {/* The reference already starts with the project key: the name is enough here. */}
+          <span className="min-w-0 truncate text-xs text-muted-foreground" title={task.project.key}>
+            {task.project.name}
+          </span>
           <PriorityLabel priority={task.priority} compact />
           <DueDate date={task.dueDate} status={task.status} today={today} />
         </div>
       </div>
       <StatusQuickChange task={task} />
-    </li>
+    </div>
   );
 }
 
@@ -131,6 +144,7 @@ export default function MyTasksPage() {
           )
         }
       />
+      <ProjectsTabs />
       {isLoading || !data ? (
         <div className="grid gap-4">
           <Skeleton className="h-40 w-full rounded-xl" />
@@ -144,9 +158,9 @@ export default function MyTasksPage() {
           className="rounded-xl border border-dashed"
         />
       ) : (
-        <Stagger className="grid gap-4">
+        <AnimatedList className="grid">
           {DUE_BUCKETS.filter((g) => data.groups[g].length).map((g) => (
-            <StaggerItem key={g}>
+            <AnimatedItem key={g} className="pb-4 last:pb-0">
               <section aria-labelledby={`my-${g}`}>
                 <Card className="min-w-0 gap-2">
                   <CardHeader>
@@ -158,17 +172,19 @@ export default function MyTasksPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ul className="divide-y">
+                    <AnimatedList as="ul" className="divide-y">
                       {data.groups[g].map((task) => (
-                        <TaskRow key={task.id} task={task} today={today} />
+                        <AnimatedItem as="li" key={task.id}>
+                          <TaskRow task={task} today={today} />
+                        </AnimatedItem>
                       ))}
-                    </ul>
+                    </AnimatedList>
                   </CardContent>
                 </Card>
               </section>
-            </StaggerItem>
+            </AnimatedItem>
           ))}
-        </Stagger>
+        </AnimatedList>
       )}
     </>
   );

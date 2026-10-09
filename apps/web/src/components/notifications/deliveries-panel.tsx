@@ -42,7 +42,7 @@ export function DeliveriesPanel() {
   const status = str('status');
   const channel = str('channel');
   const query = { page: state.page, pageSize: state.pageSize, status, channel };
-  const { data, isLoading, isFetching, refetch } = useApiQuery<Page<Delivery>>(PATH, query);
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<Delivery>>(PATH, query);
   const filtered = Boolean(status || channel);
 
   const columns = useMemo<DataTableColumn<Delivery>[]>(
@@ -148,6 +148,8 @@ export function DeliveriesPanel() {
         pageSize={state.pageSize}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(d) => d.id}
         onPageChange={(page) => set({ page })}
         onPageSizeChange={(pageSize) => set({ pageSize })}

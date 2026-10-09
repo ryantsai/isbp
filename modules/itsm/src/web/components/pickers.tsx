@@ -15,12 +15,12 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@isbp/ui/popover';
 import { useApiQuery } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { BookOpenIcon, CheckIcon, ChevronsUpDownIcon, ServerIcon, XIcon } from 'lucide-react';
+import { BookOpenIcon, CheckIcon, ChevronsUpDownIcon, ServerIcon, TicketIcon, XIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import type { ResolvedRecordInfo } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
-import type { PersonRef, TicketType } from '../../contracts';
+import type { PersonRef, TicketStatus, TicketType } from '../../contracts';
 import { useCategories, useGroupAgents, useGroups } from '../lib';
 import type { CmdbCiOption, CmdbService } from '../types';
 
@@ -312,7 +312,7 @@ export function ServicePicker({
   const items = data?.items ?? [];
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <div className="relative">
+      <div className="relative min-w-0">
         <PopoverTrigger asChild>
           <Button
             id={id}
@@ -321,7 +321,7 @@ export function ServicePicker({
             role="combobox"
             aria-expanded={open}
             aria-describedby={describedBy}
-            className="h-auto min-h-9 w-full justify-between py-2 text-left font-normal"
+            className="h-auto min-h-9 w-full min-w-0 justify-between py-2 text-left font-normal whitespace-normal"
           >
             {value ? (
               <span className="flex min-w-0 items-center gap-2">
@@ -418,7 +418,7 @@ export function ArticlePicker({
   const items = data?.items ?? [];
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <div className="relative">
+      <div className="relative min-w-0">
         <PopoverTrigger asChild>
           <Button
             id={id}
@@ -428,7 +428,7 @@ export function ArticlePicker({
             aria-expanded={open}
             aria-describedby={describedBy}
             disabled={disabled}
-            className="h-auto min-h-9 w-full justify-between py-2 text-left font-normal"
+            className="h-auto min-h-9 w-full min-w-0 justify-between py-2 text-left font-normal whitespace-normal"
           >
             {value ? (
               <span className="flex min-w-0 items-center gap-2 pr-6">
@@ -492,5 +492,132 @@ export function ArticlePicker({
         </Command>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/* ───────────────────────────── tickets ───────────────────────────── */
+
+/** A ticket as the picker shows it. */
+export interface TicketOption {
+  id: string;
+  type: TicketType;
+  reference: string;
+  title: string;
+  status: TicketStatus;
+}
+
+/**
+ * Multi-select of tickets by number or title (`GET /itsm/tickets?q=`), so nobody types references. `types` narrows
+ * the search (on a problem: incidents and requests); `exclude` hides the ticket itself and what is linked already.
+ */
+export function TicketPicker({
+  value,
+  onChange,
+  types,
+  exclude = [],
+  id,
+  max = 20,
+  'aria-describedby': describedBy,
+  'aria-label': ariaLabel,
+}: {
+  value: TicketOption[];
+  onChange: (tickets: TicketOption[]) => void;
+  types?: readonly TicketType[];
+  exclude?: readonly string[];
+  id?: string;
+  max?: number;
+  'aria-describedby'?: string;
+  'aria-label'?: string;
+}) {
+  const t = useTranslations('itsm.common.ticketPicker');
+  const ts = useTranslations('itsm.status');
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const debounced = useDebounced(q);
+  const { data, isFetching } = useApiQuery<Page<TicketOption>>(open ? '/itsm/tickets' : null, {
+    q: debounced || undefined,
+    types: types?.join(','),
+    view: 'all',
+    sort: '-createdAt',
+    pageSize: 10,
+  });
+  const chosen = new Set(value.map((x) => x.id));
+  const hidden = new Set(exclude);
+  const items = (data?.items ?? []).filter((x) => !hidden.has(x.id));
+  const toggle = (it: TicketOption) =>
+    onChange(
+      chosen.has(it.id)
+        ? value.filter((x) => x.id !== it.id)
+        : [
+            ...value,
+            { id: it.id, type: it.type, reference: it.reference, title: it.title, status: it.status },
+          ].slice(0, max),
+    );
+  return (
+    <div className="grid gap-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            aria-describedby={describedBy}
+            aria-label={ariaLabel}
+            className="w-full justify-between font-normal"
+          >
+            <span className="truncate text-muted-foreground">
+              {value.length ? t('selected', { count: value.length }) : t('placeholder')}
+            </span>
+            <ChevronsUpDownIcon className="opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-(--radix-popover-trigger-width) min-w-72 p-0" align="start">
+          <Command shouldFilter={false}>
+            <CommandInput value={q} onValueChange={setQ} placeholder={t('search')} />
+            <CommandList>
+              <CommandEmpty>{isFetching ? t('loading') : t('noResults')}</CommandEmpty>
+              {items.length > 0 && (
+                <CommandGroup>
+                  {items.map((it) => (
+                    <CommandItem key={it.id} value={it.id} onSelect={() => toggle(it)}>
+                      <TicketIcon />
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate">{it.title}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {it.reference} · {ts(it.status)}
+                        </span>
+                      </div>
+                      {chosen.has(it.id) && <CheckIcon className="ml-auto" />}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {value.length > 0 && (
+        <ul className="flex flex-wrap gap-1.5" aria-label={t('chosen')}>
+          {value.map((it) => (
+            <li key={it.id}>
+              <Badge variant="secondary" className="gap-1 py-0.5 pr-0.5 font-normal">
+                <span className="font-mono text-xs">{it.reference}</span>
+                <span className="max-w-48 truncate">{it.title}</span>
+                <button
+                  type="button"
+                  onClick={() => onChange(value.filter((x) => x.id !== it.id))}
+                  aria-label={t('remove', { reference: it.reference })}
+                  className="rounded-sm p-0.5 text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                >
+                  <XIcon className="size-3" />
+                </button>
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

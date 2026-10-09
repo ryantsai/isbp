@@ -63,6 +63,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { CustomFieldSheet } from './custom-field-sheet';
 import { useDndAccessibility, verticalOnly } from './dnd';
+import { useShowFieldKeys } from './field-keys';
 import { ElementTypeIcon } from './field-types';
 import { fieldFacts } from './field-utils';
 
@@ -78,6 +79,9 @@ export function CustomFieldsView() {
   const items = entities.data?.items ?? [];
   const current = items.find((e) => e.type === sp.get('entity')) ?? items[0];
   const entityName = (e: CustomFieldEntity) => (tr.has(e.name) ? tr(e.name) : e.type);
+  // Tabs and list titles name the records in the plural ("Tickets"); the module's own name otherwise.
+  const pluralName = (e: CustomFieldEntity) =>
+    t.has(`plural.${e.type}`) ? t(`plural.${e.type}`) : entityName(e);
 
   const setEntity = (type: string) => {
     const next = new URLSearchParams(sp.toString());
@@ -107,7 +111,7 @@ export function CustomFieldsView() {
           <TabsList aria-label={t('entities')}>
             {items.map((e) => (
               <TabsTrigger key={e.type} value={e.type}>
-                {entityName(e)}
+                {pluralName(e)}
                 <Badge variant="muted" className="px-1.5 tabular-nums">
                   {e.fieldCount}
                 </Badge>
@@ -116,7 +120,7 @@ export function CustomFieldsView() {
           </TabsList>
           {items.map((e) => (
             <TabsContent key={e.type} value={e.type}>
-              <EntityFields entityType={e.type} entityName={entityName(e)} />
+              <EntityFields entityType={e.type} entityName={pluralName(e)} />
             </TabsContent>
           ))}
         </Tabs>
@@ -127,8 +131,10 @@ export function CustomFieldsView() {
 
 function EntityFields({ entityType, entityName }: { entityType: string; entityName: string }) {
   const t = useTranslations('fields.custom');
+  const tf = useTranslations('fields');
   const locale = useLocale();
   const [showArchived, setShowArchived] = useState(false);
+  const [showKeys, setShowKeys] = useShowFieldKeys();
   const [sheet, setSheet] = useState<{ open: boolean; field?: CustomField }>({ open: false });
   const [archiving, setArchiving] = useState<CustomField | null>(null);
   const { data, isLoading } = useApiQuery<{ items: CustomField[] }>('/custom-fields', {
@@ -179,6 +185,10 @@ function EntityFields({ entityType, entityName }: { entityType: string; entityNa
             <CardDescription>{t('listDescription')}</CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Switch checked={showKeys} onCheckedChange={setShowKeys} />
+              {tf('showKeys')}
+            </label>
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <Switch checked={showArchived} onCheckedChange={setShowArchived} />
               {t('showArchived')}
@@ -272,6 +282,7 @@ function EntityFields({ entityType, entityName }: { entityType: string; entityNa
 
 function FieldSummary({ field, facts }: { field: CustomField; facts: ReturnType<typeof fieldFacts> }) {
   const t = useTranslations('fields');
+  const [showKeys] = useShowFieldKeys();
   const locale = useLocale();
   const conditionText = useConditionText(facts);
   const d = def(field);
@@ -279,7 +290,7 @@ function FieldSummary({ field, facts }: { field: CustomField; facts: ReturnType<
     <div className="min-w-0 flex-1 space-y-1">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="truncate font-medium">{localize(d.label, locale) || field.key}</span>
-        <code className="font-mono text-xs text-muted-foreground">{field.key}</code>
+        {showKeys && <code className="font-mono text-xs text-muted-foreground">{field.key}</code>}
       </div>
       <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
         <span>{t(`types.${d.type}.name`)}</span>

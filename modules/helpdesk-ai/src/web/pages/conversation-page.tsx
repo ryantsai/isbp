@@ -3,19 +3,13 @@
 import type { WebPageProps } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { ErrorState } from '@isbp/ui/empty-state';
+import { AnimatedList } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
-import { useApiQuery, useErrorText } from '@isbp/ui/query';
+import { useApiQuery } from '@isbp/ui/query';
 import { DateTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import {
-  ArrowLeftIcon,
-  CircleCheckIcon,
-  MessageCircleIcon,
-  MessagesSquareIcon,
-  TicketCheckIcon,
-  TicketPlusIcon,
-} from 'lucide-react';
+import { CircleCheckIcon, MessageCircleIcon, TicketCheckIcon, TicketPlusIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ConversationDetail } from '../../contracts';
@@ -25,18 +19,8 @@ import { ModeBadge } from '../shared';
 /** Read-only transcript of any conversation, for reviewing the virtual agent's answers. */
 export default function ConversationPage({ params }: WebPageProps) {
   const t = useTranslations('helpdesk-ai');
-  const errorText = useErrorText();
-  const { data, isLoading, error } = useApiQuery<ConversationDetail>(
+  const { data, isLoading, error, refetch } = useApiQuery<ConversationDetail>(
     `/helpdesk-ai/conversations/${params.id}`,
-  );
-
-  const back = (
-    <Link
-      href="/helpdesk-ai"
-      className="inline-flex items-center gap-1 hover:text-foreground hover:underline"
-    >
-      <ArrowLeftIcon className="size-3.5" aria-hidden /> {t('insights.title')}
-    </Link>
   );
 
   if (isLoading)
@@ -46,8 +30,7 @@ export default function ConversationPage({ params }: WebPageProps) {
         <Skeleton className="h-64 w-full rounded-xl" />
       </div>
     );
-  if (error || !data)
-    return <EmptyState icon={<MessagesSquareIcon />} title={errorText(error)} action={back} />;
+  if (error || !data) return <ErrorState error={error} onRetry={() => void refetch()} kind="page" />;
 
   const mode =
     data.mode === 'llm'
@@ -61,7 +44,7 @@ export default function ConversationPage({ params }: WebPageProps) {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
-        eyebrow={back}
+        back={{ href: '/helpdesk-ai', label: t('insights.title') }}
         title={data.title || t('history.untitled')}
         description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -105,7 +88,8 @@ export default function ConversationPage({ params }: WebPageProps) {
         }
       />
       <div className="rounded-xl border bg-card p-4 shadow-xs sm:p-6">
-        <ol className="space-y-4" aria-label={t('chat.log')}>
+        {/* An AnimatedList, so the transcript shows at once (its items only animate when added). */}
+        <AnimatedList as="ol" aria-label={t('chat.log')}>
           {data.messages.map((m) =>
             m.role === 'user' ? (
               <UserMessage key={m.id} content={m.content} label={t('chat.you')} />
@@ -114,6 +98,7 @@ export default function ConversationPage({ params }: WebPageProps) {
                 key={m.id}
                 content={m.content}
                 citations={m.citations}
+                numbered={m.mode === 'llm'}
                 label={t('chat.agent')}
               >
                 {m.proposal && (
@@ -125,7 +110,7 @@ export default function ConversationPage({ params }: WebPageProps) {
               </AssistantMessage>
             ),
           )}
-        </ol>
+        </AnimatedList>
       </div>
     </div>
   );

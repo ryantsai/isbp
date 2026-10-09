@@ -9,7 +9,12 @@ and an **LLM mode** through the kernel AI gateway (`ctx.ai`). The UI always says
 
 ITSM and the knowledge base are reached **only** through the AI tool registry
 (`ctx.ai.tools.invoke`): as the signed-in user for interactive features, or as the module's agent
-identity (`manifest.ai.agent`: read tickets and articles, set triage fields) for background triage.
+identity (`manifest.ai.agent`: read tickets and articles, set triage fields) for background triage. It reads
+ITSM's tables only where a tool can't answer (it `dependsOn` ITSM): to find the ticket an interrupted escalation
+raised, and to list suggestions still waiting on open tickets.
+
+The AI insights metrics are open to `helpdesk-ai.insights.read` and to service desk report readers
+(`itsm.reports.read`); conversation transcripts only to the former.
 
 | File                     | What it does                                                                      |
 | ------------------------ | --------------------------------------------------------------------------------- |
@@ -18,7 +23,7 @@ identity (`manifest.ai.agent`: read tickets and articles, set triage fields) for
 | `src/lib/*`              | Pure logic: triage vote, keywords, Markdown steps, citations, SSE, history        |
 | `src/server/assist.ts`   | Triage, assist panel data, reply drafts, summaries, KB drafts, feedback           |
 | `src/server/chat.ts`     | The virtual agent: conversations, streamed turns, bounded tool loop, escalation   |
-| `src/server/insights.ts` | The metrics overview (triage acceptance, deflection, usage and cost per feature)  |
+| `src/server/insights.ts` | Metrics (triage acceptance, deflection, usage and cost) and waiting suggestions   |
 | `src/server/text.ts`     | Server-side texts from the catalogs (`server.*`) in en / zh-TW / ja-JP            |
 | `src/web/assist/*`       | `itsm.ticket.aside` slot: the AI assist panel                                     |
 | `src/web/chat/*`         | `ChatPanel` (page and sheet), the "Ask IT" card for the portal and knowledge home |

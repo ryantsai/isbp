@@ -9,6 +9,8 @@ import { routes } from './routes';
 import { servers } from './schema';
 import { seed } from './seed';
 import { services } from './services';
+import { dbaccessNavigation, dbaccessWork } from './work';
+import { references } from './references';
 
 /**
  * Database access: requestable roles on SQL Server, Oracle and PostgreSQL servers, approval through the
@@ -18,6 +20,9 @@ import { services } from './services';
 export default defineServerModule(manifest, {
   migrations,
   routes,
+  work: dbaccessWork,
+  references,
+  navigation: dbaccessNavigation,
 
   events: {
     /** Leavers lose every grant and their accounts are disabled. */

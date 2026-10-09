@@ -38,6 +38,7 @@
     },
     "divider": { "name": "分隔線", "description": "區段之間的分隔線" }
   },
+  "showKeys": "顯示欄位代碼",
   "badges": {
     "required": "必填",
     "conditionalWhen": "顯示條件：{condition}",
@@ -63,6 +64,9 @@
     "keyHint": "答案的儲存位置。須以小寫英文字母開頭，僅限英文字母、數字與 _。",
     "keyLocked": "已鎖定：已有答案以此代碼儲存。",
     "keyAuto": "依英文標籤產生",
+    "moreOptions": "更多選項",
+    "advanced": "進階",
+    "conditional": "依條件顯示",
     "help": "說明文字",
     "helpHint": "顯示在欄位下方。",
     "placeholder": "提示文字",
@@ -88,7 +92,9 @@
     "maxLength": "最多字數",
     "pattern": "格式",
     "patternHint": "整個答案必須符合的規則運算式。",
-    "patternPresets": "常用格式",
+    "format": "格式",
+    "formatAny": "任何文字",
+    "formatCustom": "自訂模式（規則運算式）",
     "patternTest": "輸入值試試看…",
     "patternMatches": "符合",
     "patternNoMatch": "不符合",
@@ -105,6 +111,7 @@
     "checkedByDefault": "預設勾選",
     "visibleWhen": "僅在以下情況顯示此欄位…",
     "visibleWhenHint": "隱藏的欄位會略過，也不會儲存。",
+    "visibleWhenEmpty": "沒有條件：一律顯示此欄位。",
     "noOtherFields": "請先新增其他欄位；條件會將此欄位與其他欄位的答案比較。",
     "text": "文字",
     "dividerHint": "分隔線沒有可編輯的內容，但可以設定顯示條件。",
@@ -117,7 +124,8 @@
       "where": "只限符合以下條件的紀錄…",
       "whereHint": "依紀錄本身的資料篩選可選項目，例如只限正式環境的組態項目。伺服器也會檢查。",
       "chooseTypeFirst": "請先選擇紀錄類型。",
-      "noFacts": "這些紀錄類型沒有可用來篩選的資料。"
+      "noFacts": "這些紀錄類型沒有可用來篩選的資料。",
+      "whereEmpty": "沒有條件：可選取這些類型的任何紀錄。"
     },
     "rows": {
       "min": "最少列數",
@@ -167,9 +175,17 @@
   },
   "custom": {
     "title": "自訂欄位",
-    "description": "為人員、群組與部門加入額外欄位。值會隨每筆資料儲存、顯示在其頁面上，並可用於篩選。",
+    "description": "為人員、群組、部門，以及工單、資產等模組紀錄加入額外欄位。值會隨每筆紀錄儲存、顯示在其頁面上，並可用於篩選。",
     "noAccess": "您沒有管理自訂欄位的權限。",
-    "entities": "資料類型",
+    "entities": "紀錄類型",
+    "plural": {
+      "itsm": { "ticket": "工單" },
+      "cmdb": { "ci": "組態項目" },
+      "itam": { "asset": "硬體資產", "contract": "合約" },
+      "alm": { "application": "應用程式" },
+      "isms": { "asset": "資訊資產" },
+      "projects": { "task": "工作項目", "project": "專案" }
+    },
     "listTitle": "{entity}的欄位",
     "listDescription": "拖曳即可調整欄位在資料表單中的順序。",
     "showArchived": "顯示已封存",

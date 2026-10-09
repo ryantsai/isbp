@@ -6,6 +6,7 @@ import {
   listQuerySchema,
   localizedTextSchema,
   PROCESS_ACTION_OUTCOMES,
+  workflowGraphSchema,
 } from '@isbp/sdk';
 import { z } from 'zod';
 import { dateTime, id, keySchema } from './common';
@@ -120,6 +121,56 @@ export const updateFormSchema = z.object({
   active: z.boolean().optional(),
 });
 export type UpdateFormInput = z.input<typeof updateFormSchema>;
+
+/* ───────────── building a process: checks and preview ───────────── */
+
+/**
+ * "Before you publish" (`POST /forms/checks`): what the server knows about a process being built — whether its
+ * audience can see the records its record fields offer, and whether the groups and roles its approval names have
+ * anybody in them. Built from the builder's unsaved state.
+ */
+export const processChecksInputSchema = z.object({
+  audience: formAudienceSchema,
+  recordTypes: z.array(z.string().max(150)).max(50).default([]),
+  groupKeys: z.array(z.string().max(100)).max(100).default([]),
+  roleKeys: z.array(z.string().max(100)).max(100).default([]),
+});
+export type ProcessChecksInput = z.input<typeof processChecksInputSchema>;
+
+const namedKey = z.object({ key: z.string(), name: z.string() });
+export const processChecksSchema = z.object({
+  records: z.array(
+    z.object({
+      type: z.string(),
+      /**
+       * `all`: the audience can pick these records because of the audience itself (Everyone or its groups);
+       * `some`: only people who hold one of `roles` some other way; `none`: no role lets anyone pick them.
+       */
+      reach: z.enum(['all', 'some', 'none']),
+      /** Audience groups whose members don't get it through the group (or Everyone). */
+      groupsWithout: z.array(namedKey),
+      /** Platform roles that let people pick these records. */
+      roles: z.array(namedKey.extend({ moduleId: z.string().nullable() })),
+    }),
+  ),
+  groups: z.array(namedKey.extend({ members: z.number().int() })),
+  roles: z.array(namedKey.extend({ moduleId: z.string().nullable(), holders: z.number().int() })),
+});
+export type ProcessChecks = z.input<typeof processChecksSchema>;
+
+/**
+ * "Who will approve this?" while building (`POST /forms/:id/preview`): the unsaved questions and approval, answered
+ * with sample values, as a chosen person (default: you). Nothing is saved.
+ */
+export const formBuilderPreviewInputSchema = z.object({
+  data: z.record(z.string(), z.unknown()),
+  draft: formSchemaSchema,
+  /** The approval being built; without it, nobody approves. */
+  graph: workflowGraphSchema.nullish(),
+  category: z.string().trim().max(64).nullish(),
+  asUserId: id.nullish(),
+});
+export type FormBuilderPreviewInput = z.input<typeof formBuilderPreviewInputSchema>;
 
 export const catalogItemSchema = z.object({
   id,

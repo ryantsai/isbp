@@ -48,7 +48,8 @@
   "empty": {
     "current": "目前沒有公告 — 所有系統運作正常。",
     "drafts": "沒有草稿。",
-    "archive": "尚無封存的公告。"
+    "archive": "尚無封存的公告。",
+    "search": "沒有符合搜尋條件的公告。"
   },
   "new": "新增公告",
   "search": "搜尋公告…",
@@ -59,15 +60,20 @@
   "notFound": "此公告不存在或尚未發佈。",
   "previous": "上一頁",
   "next": "下一頁",
+  "pagination": "分頁",
+  "pageOf": "第 {page} 頁，共 {pages} 頁",
   "saved": "已儲存變更",
   "draftSaved": "已儲存草稿",
   "publishedToast": "公告已發佈",
   "archivedToast": "公告已封存",
   "deletedToast": "公告已刪除",
+  "deleteTitle": "要刪除「{title}」嗎？",
+  "deleteBody": "這會永久移除此公告，且無法復原。",
+  "deleteBodyPublished": "所有人將無法再看到這則公告，且會永久移除。若要保留紀錄，請改為封存。",
   "editor": {
     "createTitle": "新增公告",
     "editTitle": "編輯公告",
-    "hint": "已發佈的公告所有人皆可看到，並會以事件發佈，供其他模組（例如通知）使用。",
+    "hint": "發佈後所有人都能看到公告，也會張貼到為公告設定的聊天頻道。",
     "severity": "等級",
     "title": "標題",
     "body": "內容",
@@ -91,7 +97,7 @@
   "workflows": {
     "publish": {
       "name": "發佈公告",
-      "description": "公告發佈前的選用審查。條件可使用 post.severity、post.pinned 與 post.hasWindow。"
+      "description": "公告發佈前的選用審查。條件可使用公告類型、是否置頂，以及是否有時間範圍。"
     }
   },
   "notifications": {
@@ -114,5 +120,9 @@
   "submittedToast": "已送出審核，核准後即會發佈",
   "withdrawnToast": "已撤回審核，回到草稿",
   "withdraw": "撤回審核",
-  "pendingHint": "此公告正在等候簽核，核准後會自動發佈；若要修改請先撤回。"
+  "pendingHint": "此公告正在等候簽核，核准後會自動發佈；若要修改請先撤回。",
+  "home": {
+    "title": "最新消息",
+    "viewAll": "所有公告"
+  }
 }

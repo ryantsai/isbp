@@ -1,14 +1,23 @@
 'use client';
 
-import type { TicketAsideSlotProps } from '@isbp/module-itsm/contracts';
+import {
+  DONE_STATUSES,
+  type ReplyArticle,
+  type TicketAsideSlotProps,
+  type TicketStatus,
+} from '@isbp/module-itsm/contracts';
 import { localize } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Markdown } from '@isbp/ui/markdown';
-import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
+import { Meter } from '@isbp/ui/meter';
+import { AnimatedItem, AnimatedList, duration, ease, useReducedMotion } from '@isbp/ui/motion';
+import { ErrorState } from '@isbp/ui/empty-state';
+import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { StatusBadge } from '@isbp/ui/status';
 import { Hint } from '@isbp/ui/tooltip';
 import {
   ArrowRightIcon,
@@ -16,38 +25,51 @@ import {
   CheckCheckIcon,
   CheckIcon,
   CircleAlertIcon,
+  CircleDotIcon,
   FileTextIcon,
   HistoryIcon,
+  Link2Icon,
   LinkIcon,
   LockIcon,
   NotebookPenIcon,
   PenLineIcon,
   RefreshCwIcon,
   SparklesIcon,
+  TriangleAlertIcon,
   WandSparklesIcon,
   XIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
-import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
-import type {
-  Assist,
-  InsightFeedbackInput,
-  KbDraft,
-  ReplyDraft,
-  TicketSummary,
-  TriageField,
-  TriageInsight,
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { type ReactNode, useState } from 'react';
+import {
+  type Assist,
+  type InsightFeedbackInput,
+  type KbDraft,
+  LOW_CONFIDENCE,
+  type ReplyDraft,
+  SHOW_FIRST,
+  type TicketSummary,
+  type TriageField,
+  type TriageInsight,
 } from '../../contracts';
-import { CitationChips, ConfidenceMeter, Disclosure, ModeBadge } from '../shared';
+import { CitationChips, ModeBadge, Section } from '../shared';
 
 type Ticket = TicketAsideSlotProps['ticket'];
 type Actions = TicketAsideSlotProps['actions'];
 
-const DONE = ['resolved', 'fulfilled', 'closed'];
+/** Tickets that can become knowledge articles. */
+const KB_READY = ['resolved', 'fulfilled', 'closed'];
+const TRIAGED = ['incident', 'service_request'];
 
-/** Helpdesk AI's panel on ITSM's ticket page (agents only): triage, similar work, articles, drafts. */
+const isDone = (ticket: Ticket) => DONE_STATUSES.includes(ticket.status as TicketStatus);
+
+/**
+ * Helpdesk AI's panel on ITSM's ticket page (agents only). Secondary to the ticket's own fields: every section is
+ * collapsed except a triage suggestion that is still waiting, sections with nothing to show are left out, and a
+ * change gets only its summary (and KB draft once done).
+ */
 export default function AssistPanel({ ticket, actions }: TicketAsideSlotProps) {
   if (ticket.viewer.role !== 'agent') return null;
   return <Panel ticket={ticket} actions={actions} />;
@@ -55,25 +77,27 @@ export default function AssistPanel({ ticket, actions }: TicketAsideSlotProps) {
 
 function Panel({ ticket, actions }: { ticket: Ticket; actions: Actions }) {
   const t = useTranslations('helpdesk-ai');
-  const errorText = useErrorText();
   const path = `/helpdesk-ai/tickets/${ticket.id}/assist`;
   const { data, isLoading, error, refetch, isFetching } = useApiQuery<Assist>(path);
+  // null: follow the suggestion (open while it waits); set once the agent toggles it or applies it.
+  const [triageOpen, setTriageOpen] = useState<boolean | null>(null);
+  const change = ticket.type === 'change';
+  const problem = ticket.type === 'problem';
+  const triaged = TRIAGED.includes(ticket.type) && !isDone(ticket);
+  const canTriage = triaged && (!!data?.triage || ticket.viewer.canEdit);
+  const waiting = !!data?.triage && triageWaits(ticket, data.triage);
 
   return (
     // ITSM wraps each aside contribution in a padded card: bleed to its edges so the header spans it.
     <section aria-labelledby="hai-assist-title" className="-mx-4 -my-4 min-w-0 text-card-foreground">
-      <header className="relative flex items-center gap-2.5 overflow-hidden rounded-t-xl border-b px-4 py-3">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/14 via-chart-4/8 to-transparent"
-        />
-        <span className="relative grid size-7 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-chart-4 text-primary-foreground shadow-sm">
+      <header className="flex items-center gap-2 border-b px-4 py-2">
+        <span className="grid size-6 shrink-0 place-items-center rounded-md bg-gradient-to-br from-primary to-chart-4 text-primary-foreground">
           <SparklesIcon className="size-3.5" aria-hidden />
         </span>
-        <h2 id="hai-assist-title" className="relative text-sm font-semibold tracking-tight">
+        <h2 id="hai-assist-title" className="text-sm font-semibold tracking-tight">
           {t('assist.title')}
         </h2>
-        <div className="relative ml-auto flex min-w-0 items-center gap-1">
+        <div className="ml-auto flex min-w-0 items-center gap-1">
           <ModeBadge ai={data?.ai} />
           <Hint label={t('assist.refresh')}>
             <Button
@@ -91,64 +115,61 @@ function Panel({ ticket, actions }: { ticket: Ticket; actions: Actions }) {
       </header>
 
       {isLoading ? (
-        <div className="space-y-3 p-4" role="status" aria-busy="true" aria-label={t('assist.loading')}>
+        <div className="space-y-2 p-4" role="status" aria-busy="true" aria-label={t('assist.loading')}>
           <Skeleton className="h-4 w-2/3" />
-          <Skeleton className="h-16 w-full" />
           <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-10 w-full" />
         </div>
       ) : error || !data ? (
-        <div className="flex flex-col items-start gap-2 p-4 text-sm">
-          <p className="flex items-center gap-2 text-destructive">
-            <CircleAlertIcon className="size-4" aria-hidden /> {errorText(error)}
-          </p>
-          <Button variant="outline" size="sm" onClick={() => void refetch()}>
-            {t('assist.retry')}
-          </Button>
-        </div>
+        <ErrorState error={error} onRetry={() => void refetch()} compact className="px-4 py-3" />
       ) : (
         <div className="overflow-hidden rounded-b-xl">
-          <Disclosure
-            title={t('triage.title')}
-            icon={<WandSparklesIcon />}
-            defaultOpen={!data.triage || data.triage.status === 'suggested'}
-            meta={data.triage && <TriageStatusBadge status={data.triage.status} />}
-          >
-            <TriageSection
-              ticket={ticket}
-              insight={data.triage}
-              enabled={data.settings.triageEnabled}
-              actions={actions}
-            />
-          </Disclosure>
-          <Disclosure
-            title={t('similar.title')}
-            icon={<HistoryIcon />}
-            meta={<CountBadge n={data.similar.length} />}
-            defaultOpen={data.similar.length > 0}
-          >
-            <SimilarList items={data.similar} />
-          </Disclosure>
-          <Disclosure
-            title={t('articles.title')}
-            icon={<BookOpenIcon />}
-            meta={<CountBadge n={data.articles.length} />}
-            defaultOpen={data.articles.length > 0}
-          >
-            <ArticleList items={data.articles} actions={actions} />
-          </Disclosure>
-          {data.settings.suggestReplies && ticket.viewer.canComment && (
-            <Disclosure title={t('reply.title')} icon={<PenLineIcon />}>
-              <ReplySection ticketId={ticket.id} actions={actions} />
-            </Disclosure>
+          {canTriage && (
+            <Section
+              title={t('triage.title')}
+              icon={<WandSparklesIcon />}
+              open={triageOpen ?? (waiting && ticket.viewer.canEdit)}
+              onOpenChange={setTriageOpen}
+              meta={data.triage && <TriageStatusBadge status={data.triage.status} />}
+            >
+              <TriageSection
+                ticket={ticket}
+                insight={data.triage}
+                enabled={data.settings.triageEnabled}
+                actions={actions}
+                onSettled={() => setTriageOpen(false)}
+              />
+            </Section>
           )}
-          <Disclosure title={t('summary.title')} icon={<FileTextIcon />} defaultOpen={!!data.summary}>
+          {data.similar.length > 0 && (
+            <Section
+              title={problem ? t('similar.problemTitle') : t('similar.title')}
+              icon={<HistoryIcon />}
+              meta={<CountBadge n={data.similar.length} />}
+            >
+              <SimilarList items={data.similar} ticket={ticket} actions={actions} />
+            </Section>
+          )}
+          {data.articles.length > 0 && (
+            <Section
+              title={t('articles.title')}
+              icon={<BookOpenIcon />}
+              meta={<CountBadge n={data.articles.length} />}
+            >
+              <ArticleList items={data.articles} ticket={ticket} actions={actions} />
+            </Section>
+          )}
+          {!change && data.settings.suggestReplies && ticket.viewer.canComment && (
+            <Section title={t('reply.title')} icon={<PenLineIcon />}>
+              <ReplySection ticketId={ticket.id} actions={actions} />
+            </Section>
+          )}
+          <Section title={t('summary.title')} icon={<FileTextIcon />}>
             <SummarySection ticketId={ticket.id} cached={data.summary} />
-          </Disclosure>
-          {DONE.includes(ticket.status) && (
-            <Disclosure title={t('kb.title')} icon={<NotebookPenIcon />} defaultOpen={!!data.kbDraft}>
+          </Section>
+          {KB_READY.includes(ticket.status) && (
+            <Section title={t('kb.title')} icon={<NotebookPenIcon />}>
               <KbSection ticketId={ticket.id} existing={data.kbDraft} />
-            </Disclosure>
+            </Section>
           )}
         </div>
       )}
@@ -164,7 +185,7 @@ function CountBadge({ n }: { n: number }) {
   );
 }
 
-const STATUS_VARIANT = {
+const STATUS_TONE = {
   suggested: 'info',
   applied: 'success',
   partially_applied: 'success',
@@ -176,9 +197,12 @@ function TriageStatusBadge({ status }: { status: TriageInsight['status'] }) {
   const t = useTranslations('helpdesk-ai');
   const Icon = status === 'dismissed' ? XIcon : status === 'suggested' ? SparklesIcon : CheckIcon;
   return (
-    <Badge variant={STATUS_VARIANT[status]}>
-      <Icon aria-hidden /> {t(`insightStatus.${status}`)}
-    </Badge>
+    <StatusBadge
+      tone={STATUS_TONE[status]}
+      icon={Icon}
+      label={t(`insightStatus.${status}`)}
+      changeKey={status}
+    />
   );
 }
 
@@ -234,16 +258,31 @@ function buildRows(
   ];
 }
 
+/** A suggestion nobody decided yet that would still change the ticket. */
+function triageWaits(ticket: Ticket, insight: TriageInsight) {
+  const s = insight.data.suggestion;
+  return (
+    insight.status === 'suggested' &&
+    ((!!s.categoryId && s.categoryId !== ticket.category?.id) ||
+      (!!s.assignmentGroupId && s.assignmentGroupId !== ticket.assignmentGroup?.id) ||
+      s.impact !== ticket.impact ||
+      s.urgency !== ticket.urgency)
+  );
+}
+
 function TriageSection({
   ticket,
   insight,
   enabled,
   actions,
+  onSettled,
 }: {
   ticket: Ticket;
   insight: TriageInsight | null;
   enabled: boolean;
   actions: Actions;
+  /** Everything was applied or dismissed: the section folds to its status. */
+  onSettled: () => void;
 }) {
   const t = useTranslations('helpdesk-ai');
   const locale = useLocale();
@@ -256,7 +295,7 @@ function TriageSection({
   const feedback = useApiMutation(
     (api, body: InsightFeedbackInput) =>
       api.post<TriageInsight>(`/helpdesk-ai/insights/${insight!.id}/feedback`, body),
-    { invalidate, silent: false },
+    { invalidate, onSuccess: (r) => r.status === 'dismissed' && onSettled() },
   );
   const apply = useApiMutation(
     async (api, rows: Row[]) => {
@@ -274,11 +313,15 @@ function TriageSection({
         action: remaining.length ? 'partially_applied' : 'applied',
         fields: [...before] as TriageField[],
       } satisfies InsightFeedbackInput);
+      return remaining.length;
     },
     {
       invalidate,
       success: t('triage.applied'),
-      onSuccess: () => actions.refresh(),
+      onSuccess: (remaining) => {
+        actions.refresh();
+        if (!remaining) onSettled();
+      },
     },
   );
 
@@ -304,14 +347,17 @@ function TriageSection({
   const decided = insight.status === 'dismissed';
   const busy = apply.isPending || feedback.isPending || rerun.isPending;
   const confidence = insight.confidence ?? 0;
+  const low = confidence < LOW_CONFIDENCE;
+  const offer = canEdit && !decided;
 
   return (
     <div className="space-y-3 text-sm">
-      <dl className="grid grid-cols-1 gap-2">
+      <dl className="grid grid-cols-1 gap-1.5">
         {rows.map((r) => (
-          <div key={r.field} className="min-w-0 rounded-lg border bg-background/60 px-3 py-2">
+          // dt/dd sit directly in the row (axe: definition lists); the Apply button is part of the value.
+          <div key={r.field} className="min-w-0 rounded-lg border bg-background/60 px-3 py-1.5">
             <dt className="text-xs text-muted-foreground">{r.label}</dt>
-            <dd className="mt-0.5 flex min-w-0 items-center gap-2">
+            <dd className="flex min-w-0 items-center gap-2">
               <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5">
                 {r.differs ? (
                   <>
@@ -323,6 +369,7 @@ function TriageSection({
                       aria-label={t('triage.to')}
                     />
                     <span className="truncate font-medium">{r.suggested}</span>
+                    {r.detail && <span className="w-full text-xs text-muted-foreground">{r.detail}</span>}
                   </>
                 ) : (
                   <span className="flex min-w-0 items-center gap-1.5">
@@ -331,11 +378,8 @@ function TriageSection({
                     <span className="sr-only">{t('triage.matches')}</span>
                   </span>
                 )}
-                {r.detail && r.differs && (
-                  <span className="w-full text-xs text-muted-foreground">{r.detail}</span>
-                )}
               </span>
-              {r.differs && canEdit && !decided && (
+              {r.differs && offer && (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -354,13 +398,20 @@ function TriageSection({
 
       <div className="space-y-1">
         <p className="text-xs text-muted-foreground">{t('triage.confidence')}</p>
-        <ConfidenceMeter value={confidence} label={t('triage.confidence')} />
+        <Meter
+          value={Math.round(confidence * 100)}
+          label={t('triage.confidence')}
+          tone={low ? 'warning' : 'primary'}
+          size="sm"
+          showValue
+        />
+        {low && pending.length > 0 && offer && (
+          <p className="flex items-start gap-1.5 text-xs text-warning-foreground">
+            <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {t('triage.lowConfidence')}
+          </p>
+        )}
       </div>
-      {insight.data.rationale && (
-        <p className="rounded-lg bg-muted/60 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-          {insight.data.rationale}
-        </p>
-      )}
+      <Rationale insight={insight} />
       {insight.data.fallback && (
         <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
           <CircleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {t('triage.fallback')}
@@ -376,14 +427,20 @@ function TriageSection({
       {canEdit && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {pending.length > 0 && !decided && (
-            <Button size="sm" loading={apply.isPending} disabled={busy} onClick={() => apply.mutate(pending)}>
+            <Button
+              size="sm"
+              variant={low ? 'outline' : 'default'}
+              loading={apply.isPending}
+              disabled={busy}
+              onClick={() => apply.mutate(pending)}
+            >
               <CheckCheckIcon /> {t('triage.applyAll')}
             </Button>
           )}
           {insight.status === 'suggested' && (
             <Button
               size="sm"
-              variant="outline"
+              variant={low ? 'ghost' : 'outline'}
               disabled={busy}
               onClick={() => feedback.mutate({ action: 'dismissed' })}
             >
@@ -408,6 +465,41 @@ function TriageSection({
   );
 }
 
+/**
+ * Why the suggestion looks like this, in the viewer's language: the builtin vote is rendered from its data (the
+ * similar tickets and keywords); a model's explanation, and older rows without that data, show the stored text.
+ */
+function Rationale({ insight }: { insight: TriageInsight }) {
+  const t = useTranslations('helpdesk-ai');
+  const format = useFormatter();
+  const d = insight.data;
+  const fromData = insight.mode === 'builtin' && Array.isArray(d.neighbours) && !!d.keywords;
+  if (!fromData)
+    return d.rationale ? (
+      <p className="rounded-lg bg-muted/60 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+        {d.rationale}
+      </p>
+    ) : null;
+  const top = d.neighbours
+    .slice(0, 3)
+    .map((n) => t('triage.neighbour', { reference: n.reference, percent: Math.round(n.similarity * 100) }));
+  const words = [...new Set([...d.keywords.impact, ...d.keywords.urgency])].map((word) =>
+    t('triage.keyword', { word }),
+  );
+  return (
+    <ul className="space-y-0.5 rounded-lg bg-muted/60 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+      <li>
+        {top.length
+          ? t('triage.basedOn', { list: format.list(top, { type: 'conjunction' }) })
+          : t('triage.noNeighbours')}
+      </li>
+      {words.length > 0 && (
+        <li>{t('triage.keywords', { list: format.list(words, { type: 'conjunction' }) })}</li>
+      )}
+    </ul>
+  );
+}
+
 /* ───────────────────────────── similar & articles ───────────────────────────── */
 
 function Similarity({ value }: { value: number }) {
@@ -419,76 +511,194 @@ function Similarity({ value }: { value: number }) {
   );
 }
 
-function SimilarList({ items }: { items: Assist['similar'] }) {
+/** The first `SHOW_FIRST` items, and the rest behind "Show more" (they grow in when shown). */
+function useShowMore<T>(items: readonly T[]) {
+  const [all, setAll] = useState(false);
+  return {
+    shown: all ? items : items.slice(0, SHOW_FIRST),
+    toggle: items.length > SHOW_FIRST ? { all, flip: () => setAll((a) => !a) } : null,
+  };
+}
+
+function ShowMore({ toggle }: { toggle: { all: boolean; flip: () => void } | null }) {
   const t = useTranslations('helpdesk-ai');
-  if (!items.length) return <p className="text-sm text-muted-foreground">{t('similar.none')}</p>;
+  if (!toggle) return null;
   return (
-    <ul className="space-y-2.5">
-      {items.map((s) => (
-        <li key={s.id} className="min-w-0">
-          <div className="flex min-w-0 items-baseline gap-2">
-            <Link
-              href={s.href}
-              className="min-w-0 truncate text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              <span className="font-mono text-xs text-muted-foreground">{s.reference}</span> {s.title}
-            </Link>
-            <Similarity value={s.similarity} />
-          </div>
-          <div className="mt-1 flex min-w-0 items-start gap-2">
-            {s.resolutionCode && (
-              <Badge variant="success" className="shrink-0">
-                <CheckIcon aria-hidden />
-                {t.has(`resolution.${s.resolutionCode}`)
-                  ? t(`resolution.${s.resolutionCode}`)
-                  : s.resolutionCode}
-              </Badge>
-            )}
-            <p className="line-clamp-2 min-w-0 text-xs text-muted-foreground">{s.snippet}</p>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <Button
+      size="sm"
+      variant="link"
+      className="h-auto px-0 text-xs"
+      onClick={toggle.flip}
+      aria-expanded={toggle.all}
+    >
+      {toggle.all ? t('similar.showLess') : t('similar.showMore')}
+    </Button>
   );
 }
 
-function ArticleList({ items, actions }: { items: Assist['articles']; actions: Actions }) {
+function SimilarList({
+  items,
+  ticket,
+  actions,
+}: {
+  items: Assist['similar'];
+  ticket: Ticket;
+  actions: Actions;
+}) {
   const t = useTranslations('helpdesk-ai');
-  if (!items.length) return <p className="text-sm text-muted-foreground">{t('articles.none')}</p>;
+  const { shown, toggle } = useShowMore(items);
+  // On a problem, incidents can be linked to it from here ("the incident is caused by this problem").
+  const canLink = ticket.type === 'problem' && ticket.viewer.canEdit;
+  const linked = new Set(ticket.links.map((l) => l.ticket.reference));
+  const link = useApiMutation(
+    async (_api, reference: string) => {
+      await actions.linkTicket(reference, { type: 'caused_by', direction: 'incoming' });
+      return reference;
+    },
+    { success: (reference) => t('similar.linkedToast', { reference }) },
+  );
   return (
-    <ul className="space-y-3">
-      {items.map((a) => (
-        <li key={a.id} className="min-w-0">
-          <div className="flex min-w-0 items-baseline gap-2">
-            <Link
-              href={a.href}
-              className="min-w-0 truncate text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              {a.title}
-            </Link>
-            <Similarity value={a.similarity} />
-          </div>
-          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{a.summary || a.snippet}</p>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="mt-1 h-7 px-2 text-xs"
-            onClick={() =>
-              actions.insertReply(
-                t('articles.insertText', { link: `[${a.reference} ${a.title}](${a.href})` }),
-              )
-            }
-            aria-label={t('articles.insertFor', { title: a.title })}
-          >
-            <LinkIcon /> {t('articles.insert')}
-          </Button>
-        </li>
-      ))}
-    </ul>
+    <div className="space-y-1">
+      <AnimatedList className="divide-y">
+        {shown.map((s) => (
+          <AnimatedItem key={s.id} className="min-w-0 py-2 first:pt-0">
+            <div className="flex min-w-0 items-baseline gap-2">
+              <Link
+                href={s.href}
+                className="min-w-0 truncate text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                <span className="font-mono text-xs text-muted-foreground">{s.reference}</span> {s.title}
+              </Link>
+              <Similarity value={s.similarity} />
+            </div>
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
+              {s.status ? (
+                <StatusBadge
+                  tone="info"
+                  icon={CircleDotIcon}
+                  label={
+                    t.has(`ticketStatus.${s.status}`) ? t(`ticketStatus.${s.status}`) : t('similar.open')
+                  }
+                />
+              ) : (
+                s.resolutionCode && (
+                  <StatusBadge
+                    tone="success"
+                    icon={CheckIcon}
+                    label={
+                      t.has(`resolution.${s.resolutionCode}`)
+                        ? t(`resolution.${s.resolutionCode}`)
+                        : s.resolutionCode
+                    }
+                  />
+                )
+              )}
+              {canLink &&
+                s.type === 'incident' &&
+                (linked.has(s.reference) ? (
+                  <StatusBadge
+                    tone="success"
+                    icon={Link2Icon}
+                    label={t('similar.linked')}
+                    changeKey="linked"
+                  />
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    loading={link.isPending && link.variables === s.reference}
+                    disabled={link.isPending}
+                    onClick={() => link.mutate(s.reference)}
+                    aria-label={t('similar.linkFor', { reference: s.reference })}
+                  >
+                    <Link2Icon /> {t('similar.link')}
+                  </Button>
+                ))}
+            </div>
+            {s.snippet && (
+              <p className="mt-1 line-clamp-2 min-w-0 text-xs text-muted-foreground">{s.snippet}</p>
+            )}
+          </AnimatedItem>
+        ))}
+      </AnimatedList>
+      <ShowMore toggle={toggle} />
+    </div>
+  );
+}
+
+function ArticleList({
+  items,
+  ticket,
+  actions,
+}: {
+  items: Assist['articles'];
+  ticket: Ticket;
+  actions: Actions;
+}) {
+  const t = useTranslations('helpdesk-ai');
+  const { shown, toggle } = useShowMore(items);
+  return (
+    <div className="space-y-1">
+      <AnimatedList className="divide-y">
+        {shown.map((a) => (
+          <AnimatedItem key={a.id} className="min-w-0 py-2 first:pt-0">
+            <div className="flex min-w-0 items-baseline gap-2">
+              <Link
+                href={a.href}
+                className="min-w-0 truncate text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                {a.title}
+              </Link>
+              <Similarity value={a.similarity} />
+            </div>
+            <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{a.summary || a.snippet}</p>
+            {ticket.viewer.canComment && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="mt-1 h-7 px-2 text-xs"
+                onClick={() =>
+                  actions.insertReply(
+                    t('articles.insertText', { link: `[${a.reference} ${a.title}](${a.href})` }),
+                    {
+                      article: { id: a.id, reference: a.reference, title: a.title },
+                    },
+                  )
+                }
+                aria-label={t('articles.insertFor', { title: a.title })}
+              >
+                <LinkIcon /> {t('articles.insert')}
+              </Button>
+            )}
+          </AnimatedItem>
+        ))}
+      </AnimatedList>
+      <ShowMore toggle={toggle} />
+    </div>
   );
 }
 
 /* ───────────────────────────── reply, summary, KB ───────────────────────────── */
+
+/** Swaps generated content with a short cross-fade when it is regenerated (not when the panel opens). */
+function Swap({ id, children, className }: { id: string; children: ReactNode; className?: string }) {
+  const reduce = useReducedMotion();
+  return (
+    <AnimatePresence initial={false} mode="wait">
+      <motion.div
+        key={id}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: reduce ? 0 : duration.base, ease: ease.enter }}
+        className={className}
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
+  );
+}
 
 function GeneratedNote({
   mode,
@@ -515,38 +725,44 @@ function GeneratedNote({
 function ReplySection({ ticketId, actions }: { ticketId: string; actions: Actions }) {
   const t = useTranslations('helpdesk-ai');
   const [draft, setDraft] = useState<ReplyDraft | null>(null);
+  const [round, setRound] = useState(0);
   const generate = useApiMutation(
     (api) => api.post<ReplyDraft>(`/helpdesk-ai/tickets/${ticketId}/reply-draft`),
-    { onSuccess: (d) => setDraft(d) },
+    {
+      onSuccess: (d) => {
+        setDraft(d);
+        setRound((n) => n + 1);
+      },
+    },
   );
+  const article = draft?.citations.find((c) => c.id);
+  const used: ReplyArticle | undefined = article
+    ? { id: article.id!, reference: article.reference, title: article.title }
+    : undefined;
   return (
     <div className="space-y-3">
-      {!draft && <p className="text-sm text-muted-foreground">{t('reply.hint')}</p>}
-      <AnimatePresence initial={false}>
-        {draft && (
-          <motion.div
-            key="draft"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="space-y-2"
-          >
-            <div className="max-h-80 overflow-y-auto rounded-lg border bg-background px-3 py-2.5">
-              <Markdown>{draft.text}</Markdown>
-            </div>
-            <CitationChips items={draft.citations} />
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <GeneratedNote mode={draft.mode} model={draft.model} fallback={draft.fallback} />
-              <span className="text-xs text-muted-foreground">
-                {t('reply.language', { language: t(`language.${draft.locale}`) })}
-              </span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {draft ? (
+        <Swap id={String(round)} className="space-y-2">
+          <div className="max-h-80 overflow-y-auto rounded-lg border bg-background px-3 py-2.5">
+            <Markdown>{draft.text}</Markdown>
+          </div>
+          <CitationChips items={draft.citations} />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <GeneratedNote mode={draft.mode} model={draft.model} fallback={draft.fallback} />
+            <span className="text-xs text-muted-foreground">
+              {t('reply.language', { language: t(`language.${draft.locale}`) })}
+            </span>
+          </div>
+        </Swap>
+      ) : (
+        <p className="text-sm text-muted-foreground">{t('reply.hint')}</p>
+      )}
       <div className="flex flex-wrap gap-2">
         {draft && (
-          <Button size="sm" onClick={() => actions.insertReply(draft.insertText)}>
+          <Button
+            size="sm"
+            onClick={() => actions.insertReply(draft.insertText, used ? { article: used } : undefined)}
+          >
             <PenLineIcon /> {t('reply.insert')}
           </Button>
         )}
@@ -573,12 +789,7 @@ function SummarySection({ ticketId, cached }: { ticketId: string; cached: Ticket
   return (
     <div className="space-y-3 text-sm">
       {summary ? (
-        <motion.div
-          key={String(summary.generatedAt)}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-3"
-        >
+        <Swap id={String(summary.generatedAt)} className="space-y-3">
           {summary.text ? (
             <Markdown>{summary.text}</Markdown>
           ) : (
@@ -590,7 +801,7 @@ function SummarySection({ ticketId, cached }: { ticketId: string; cached: Ticket
               <RelativeTime date={summary.generatedAt} />
             </span>
           </div>
-        </motion.div>
+        </Swap>
       ) : (
         <p className="text-muted-foreground">{t('summary.hint')}</p>
       )}
@@ -674,7 +885,7 @@ function KbSection({ ticketId, existing }: { ticketId: string; existing: KbDraft
         </p>
         <Link
           href={draft.href}
-          className="flex min-w-0 items-center gap-2 rounded-lg border bg-background px-3 py-2 font-medium outline-none transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="flex min-w-0 items-center gap-2 rounded-lg border bg-background px-3 py-2 font-medium outline-none transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
         >
           <NotebookPenIcon className="size-4 shrink-0 text-primary" aria-hidden />
           <span className="min-w-0 truncate">{draft.title}</span>

@@ -1,14 +1,14 @@
 'use client';
 
 import { useCan } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { EmptyState } from '@isbp/ui/empty-state';
-import { AnimatedNumber, Stagger, StaggerItem } from '@isbp/ui/motion';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
+import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { StatTile } from '@isbp/ui/stat-tile';
 import {
   ArrowRightIcon,
   CircleCheckIcon,
@@ -17,6 +17,7 @@ import {
   FileTextIcon,
   type LucideIcon,
   PackageIcon,
+  PackageSearchIcon,
   ShieldAlertIcon,
   WarehouseIcon,
   WrenchIcon,
@@ -24,7 +25,7 @@ import {
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useMemo } from 'react';
-import type { AssetStatus, Dashboard } from '../../contracts';
+import type { AssetStatus, ComplianceSummary, Dashboard } from '../../contracts';
 import { CategoryIcon, ComplianceBadge, WarrantyEnd } from '../badges';
 import { ChartFrame, DataTableView, HBars, Legend, type SeriesDef, StackedBars } from '../charts';
 import { assetHref, contractHref, licenseHref, useMoney } from '../lib';
@@ -41,6 +42,7 @@ const STATUS_COLOR: Record<string, string> = {
   retired: 'bg-muted-foreground/40',
 };
 
+/** A KPI tile (the shared `StatTile`); counts of problems link to the filtered list. */
 function Kpi({
   icon: Icon,
   label,
@@ -51,45 +53,22 @@ function Kpi({
 }: {
   icon: LucideIcon;
   label: string;
-  value: ReactNode;
+  value: number | ReactNode;
   hint?: string;
   href?: string;
   tone?: 'warning' | 'destructive';
 }) {
-  const body = (
-    <div className="flex h-full items-start justify-between gap-3 rounded-xl border bg-card px-4 py-4 shadow-xs transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md motion-reduce:group-hover:translate-y-0">
-      <div className="min-w-0 space-y-1">
-        <p className="truncate text-sm text-muted-foreground">{label}</p>
-        <p className="text-2xl font-semibold tracking-tight">{value}</p>
-        {hint && <p className="truncate text-xs text-muted-foreground">{hint}</p>}
-      </div>
-      <span
-        className={cn(
-          'grid size-9 shrink-0 place-items-center rounded-lg',
-          tone === 'destructive'
-            ? 'bg-destructive/10 text-destructive dark:bg-destructive/20'
-            : tone === 'warning'
-              ? 'bg-warning/15 text-warning-foreground'
-              : 'bg-primary/10 text-primary',
-        )}
-        aria-hidden
-      >
-        <Icon className="size-4" />
-      </span>
-    </div>
-  );
   return (
     <StaggerItem className="h-full">
-      {href ? (
-        <Link
-          href={href}
-          className="group block h-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          {body}
-        </Link>
-      ) : (
-        body
-      )}
+      <StatTile
+        label={label}
+        value={value}
+        hint={hint}
+        href={href}
+        icon={<Icon />}
+        tone={tone ?? 'info'}
+        className="h-full"
+      />
     </StaggerItem>
   );
 }
@@ -142,7 +121,19 @@ export default function OverviewPage() {
   const format = useFormatter();
   const money = useMoney();
   const canHardware = useCan('itam.hardware.read');
-  const { data, isLoading, error } = useApiQuery<Dashboard>('/itam/dashboard');
+  const { data, isLoading, error, refetch } = useApiQuery<Dashboard>('/itam/dashboard');
+  // Installs that need a decision (no licence, or not allowed): discovery is for the people who manage hardware.
+  const canDiscover = useCan('itam.hardware.manage');
+  const titles = useApiQuery<{ total: number }>(canDiscover ? '/itam/discovery/titles' : null, {
+    pageSize: 1,
+  });
+  const compliance = useApiQuery<ComplianceSummary>(
+    canDiscover ? '/itam/discovery/compliance/summary' : null,
+  );
+  const needAction =
+    titles.data && compliance.data
+      ? titles.data.total + compliance.data.unapproved + compliance.data.blocked
+      : null;
 
   const series = useMemo<SeriesDef<AssetStatus>[]>(
     () => CHART_STATUSES.map((s) => ({ key: s, label: t(`status.${s}`), className: STATUS_COLOR[s]! })),
@@ -150,7 +141,7 @@ export default function OverviewPage() {
   );
 
   if (!canHardware) return <EmptyState icon={<PackageIcon />} title={t('overview.noAccess')} />;
-  if (error) return <EmptyState icon={<PackageIcon />} title={t('overview.unavailable')} />;
+  if (error) return <ErrorState kind="page" error={error} onRetry={() => refetch()} />;
 
   const d = data;
   const c = d?.currency ?? 'TWD';
@@ -175,27 +166,27 @@ export default function OverviewPage() {
             <Kpi
               icon={PackageIcon}
               label={t('overview.kpi.total')}
-              value={<AnimatedNumber value={inEstate} />}
+              value={inEstate}
               hint={t('overview.kpi.totalHint', { disposed: statusTotals.disposed ?? 0 })}
               href="/itam/hardware"
             />
             <Kpi
               icon={CircleCheckIcon}
               label={t('overview.kpi.deployed')}
-              value={<AnimatedNumber value={statusTotals.deployed ?? 0} />}
+              value={statusTotals.deployed ?? 0}
               href="/itam/hardware?view=deployed"
             />
             <Kpi
               icon={WarehouseIcon}
               label={t('overview.kpi.inStock')}
-              value={<AnimatedNumber value={statusTotals.in_stock ?? 0} />}
+              value={statusTotals.in_stock ?? 0}
               hint={t('overview.kpi.ordered', { count: statusTotals.ordered ?? 0 })}
               href="/itam/hardware?view=in_stock"
             />
             <Kpi
               icon={WrenchIcon}
               label={t('overview.kpi.inRepair')}
-              value={<AnimatedNumber value={statusTotals.in_repair ?? 0} />}
+              value={statusTotals.in_repair ?? 0}
               href="/itam/hardware?view=in_repair"
               tone={(statusTotals.in_repair ?? 0) > 0 ? 'warning' : undefined}
             />
@@ -210,7 +201,7 @@ export default function OverviewPage() {
             <Kpi
               icon={ClockAlertIcon}
               label={t('overview.kpi.warranties')}
-              value={<AnimatedNumber value={d.warranties.expiring30} />}
+              value={d.warranties.expiring30}
               hint={t('overview.kpi.warrantiesHint', {
                 count: d.warranties.expiring90,
                 expired: d.warranties.expired,
@@ -222,17 +213,30 @@ export default function OverviewPage() {
               <Kpi
                 icon={ShieldAlertIcon}
                 label={t('overview.kpi.nonCompliant')}
-                value={<AnimatedNumber value={d.software.nonCompliant} />}
+                value={d.software.nonCompliant}
                 hint={t('overview.kpi.nonCompliantHint', { total: d.software.total })}
                 href="/itam/software?view=attention"
                 tone={d.software.nonCompliant > 0 ? 'destructive' : undefined}
+              />
+            )}
+            {needAction !== null && (
+              <Kpi
+                icon={PackageSearchIcon}
+                label={t('overview.kpi.installs')}
+                value={needAction}
+                hint={t('overview.kpi.installsHint', {
+                  unlicensed: titles.data?.total ?? 0,
+                  notAllowed: (compliance.data?.unapproved ?? 0) + (compliance.data?.blocked ?? 0),
+                })}
+                href={titles.data?.total ? '/itam/discovery' : '/itam/discovery?tab=compliance'}
+                tone={needAction > 0 ? 'destructive' : undefined}
               />
             )}
             {d.contracts && (
               <Kpi
                 icon={FileTextIcon}
                 label={t('overview.kpi.renewing')}
-                value={<AnimatedNumber value={d.contracts.renewing90} />}
+                value={d.contracts.renewing90}
                 hint={t('overview.kpi.renewingHint', {
                   cost: money(d.contracts.renewing90AnnualCost, c, { compact: true }),
                 })}

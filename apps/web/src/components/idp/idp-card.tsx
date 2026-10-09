@@ -104,11 +104,11 @@ export function IdpCard({
 
   return (
     <Card className="h-full gap-0 overflow-hidden py-0">
-      <div className="flex items-start gap-3 p-5">
+      <div className="flex flex-wrap items-start gap-3 p-4 sm:flex-nowrap sm:p-5">
         <IdpTypeTile choice={choice} />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate font-semibold">{idp.name}</h2>
+        <div className="min-w-0 flex-1 basis-40">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h2 className="max-w-full min-w-0 font-semibold wrap-break-word">{idp.name}</h2>
             <Badge variant="outline" className="font-normal text-muted-foreground">
               {t(`typeLabel.${choice}`)}
             </Badge>
@@ -138,9 +138,12 @@ export function IdpCard({
         </div>
       </div>
 
-      <dl className="grid grid-cols-3 border-y bg-muted/20">
+      <dl className="grid grid-cols-1 divide-y border-y bg-muted/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         {facts.map((f, i) => (
-          <div key={i} className="min-w-0 border-r px-5 py-2.5 last:border-r-0">
+          <div
+            key={i}
+            className="flex min-w-0 items-baseline justify-between gap-3 px-4 py-2 sm:block sm:px-5 sm:py-2.5"
+          >
             <dt className="truncate text-[11px] text-muted-foreground">{f.label}</dt>
             <dd className="truncate text-sm font-medium">{f.value}</dd>
           </div>
@@ -148,7 +151,7 @@ export function IdpCard({
       </dl>
 
       {idp.type === 'ldap' && (
-        <div className="space-y-1.5 border-b px-5 py-3">
+        <div className="space-y-1.5 border-b px-4 py-3 sm:px-5">
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="font-medium">{t('sync.title')}</span>
             <SyncBadge status={idp.lastSyncStatus} />
@@ -168,11 +171,11 @@ export function IdpCard({
       )}
 
       {Object.keys(idp.endpoints).length > 0 && (
-        <EndpointList endpoints={idp.endpoints} className="border-b px-5 py-3" />
+        <EndpointList endpoints={idp.endpoints} className="border-b px-4 py-3 sm:px-5" />
       )}
 
       {canManage && (
-        <div className="mt-auto flex flex-wrap items-center gap-2 bg-muted/20 px-5 py-3">
+        <div className="mt-auto flex flex-wrap items-center gap-2 bg-muted/20 px-4 py-3 sm:px-5">
           <Button variant="outline" size="sm" onClick={onTest}>
             <PlugZapIcon /> {t('actions.test')}
           </Button>

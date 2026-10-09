@@ -777,6 +777,29 @@ try {
   let apiKey: { apiClient: string; apiKey: string } | null = null;
   let biKey: { clientId: string; apiKey: string } | null = null;
   let mcpKey: { clientId: string; apiKey: string } | null = null;
+  /**
+   * A plain employee to try the product as: no roles beyond everyone's, managed by their department's head. Added
+   * last, so none of the demo's random choices (requesters, assignees) change.
+   */
+  const seedEmployee = async () => {
+    const [dept] = await db.select().from(departments).where(eq(departments.code, 'SALES-TPE'));
+    await db.insert(users).values({
+      email: `employee@${DOMAIN}`,
+      username: 'employee',
+      displayName: 'Daniel Wu',
+      givenName: 'Daniel',
+      familyName: 'Wu',
+      jobTitle: 'Account Manager',
+      departmentId: dept!.id,
+      managerId: dept!.managerId,
+      passwordHash: await hashPassword(DEMO_PASSWORD),
+      locale: 'en',
+      timezone: 'Asia/Taipei',
+      onboardedAt: daysAgo(60),
+      lastLoginAt: daysAgo(2),
+      createdAt: daysAgo(60),
+    });
+  };
   await runWithContext({ principal: { type: 'system', id: null, name: 'seed' } }, async () => {
     const created = await seedCore();
     if (created) apiKey = await seedPhase1(kernel);
@@ -807,12 +830,13 @@ try {
       // The recurring server room inspection (assigned forms); it adds requests, so it comes after the above.
       await seedFormAssignments(kernel);
     }
+    if (created) await seedEmployee();
   });
   await kernel.rbac.bump();
   await db.execute(sql`analyze`);
   if (config.NODE_ENV !== 'production') {
     log.info(
-      `Sign in at ${config.PUBLIC_URL}/login → admin / ${ADMIN_PASSWORD}   (demo: helpdesk, hr.partner, auditor / ${DEMO_PASSWORD})`,
+      `Sign in at ${config.PUBLIC_URL}/login → admin / ${ADMIN_PASSWORD}   (demo: helpdesk, hr.partner, auditor, employee / ${DEMO_PASSWORD})`,
     );
     const bi = biKey as { clientId: string; apiKey: string } | null;
     if (bi)

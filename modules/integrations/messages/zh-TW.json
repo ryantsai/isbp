@@ -1,32 +1,34 @@
 {
   "meta": {
     "name": "整合",
-    "description": "外部系統連線、含欄位對應的同步設定檔、雙向同步、執行紀錄、連結的紀錄與衝突"
+    "description": "外部系統連線、含欄位對應的同步規則、雙向同步、執行紀錄、連結的紀錄與衝突"
   },
   "nav": {
     "group": "整合",
-    "overview": "整合",
-    "conflicts": "同步衝突"
+    "overview": "連線",
+    "conflicts": "同步衝突",
+    "overviewAbout": "外部系統與同步的內容",
+    "conflictsAbout": "兩邊都有變更、需要決定的紀錄"
   },
   "systemRoles": {
     "integrations-viewer": {
       "name": "整合檢視者",
-      "description": "檢視連線、同步設定檔、執行紀錄、連結的紀錄與衝突"
+      "description": "檢視連線、同步規則、執行紀錄、連結的紀錄與衝突"
     },
     "integrations-admin": {
       "name": "整合管理員",
-      "description": "為所有可同步的實體設定連線與同步設定檔、執行同步並解決衝突"
+      "description": "為所有可同步的實體設定連線與同步規則、執行同步並解決衝突"
     }
   },
   "permissions": {
-    "connectionsRead": "檢視連線、同步設定檔、執行紀錄、連結的紀錄與衝突",
-    "connectionsManage": "新增、編輯與測試連線，設定同步設定檔並執行同步",
+    "connectionsRead": "檢視連線、同步規則、執行紀錄、連結的紀錄與衝突",
+    "connectionsManage": "新增、編輯與測試連線，設定同步規則並執行同步",
     "conflictsResolve": "解決同步衝突"
   },
   "taskTypes": {
     "sync": {
       "name": "整合同步",
-      "description": "執行整合中樞的同步設定檔：讀取外部系統的變更，並推送 ISBP 的變更"
+      "description": "執行整合中樞的同步規則：讀取外部系統的變更，並推送 IS Big Platform 的變更"
     }
   },
   "notifications": {
@@ -47,9 +49,9 @@
     "connection_deleted": "刪除整合連線",
     "connection_secret_rotated": "更換連線的 Webhook 密鑰",
     "connection_insecure_http_changed": "變更連線是否允許不安全的 HTTP",
-    "profile_created": "建立同步設定檔",
-    "profile_updated": "變更同步設定檔",
-    "profile_deleted": "刪除同步設定檔",
+    "profile_created": "建立同步規則",
+    "profile_updated": "變更同步規則",
+    "profile_deleted": "刪除同步規則",
     "run_requested": "開始同步",
     "conflict_created": "發現同步衝突",
     "conflict_resolved": "解決同步衝突",
@@ -66,7 +68,8 @@
   "health": {
     "ok": "正常運作",
     "failing": "發生錯誤",
-    "unknown": "尚未檢查"
+    "unknown": "尚未檢查",
+    "attention": "正常 · 需要處理"
   },
   "security": {
     "badge": "未加密",
@@ -89,7 +92,7 @@
     "schedule": "排程",
     "manual": "手動",
     "webhook": "Webhook",
-    "event": "ISBP 中的變更"
+    "event": "IS Big Platform 中的變更"
   },
   "runKind": {
     "pull": "拉取",
@@ -110,29 +113,29 @@
     "dismissed": "保留雙方"
   },
   "direction": {
-    "pull": "匯入 ISBP",
-    "push": "從 ISBP 匯出",
+    "pull": "匯入 IS Big Platform",
+    "push": "從 IS Big Platform 匯出",
     "both": "雙向",
-    "pullHint": "{system} 中的變更會複製到 ISBP。在 ISBP 中的編輯只會留在 ISBP。",
-    "pushHint": "ISBP 中的變更會傳送到 {system}。在 {system} 中的編輯不會複製回來。",
+    "pullHint": "{system} 中的變更會複製到 IS Big Platform。在 IS Big Platform 中的編輯只會留在 IS Big Platform。",
+    "pushHint": "IS Big Platform 中的變更會傳送到 {system}。在 {system} 中的編輯不會複製回來。",
     "bothHint": "任一方的變更都會同步到另一方。雙方都變更同一欄位時，由衝突規則決定。"
   },
   "policy": {
     "manual": "交由人員決定",
     "remote": "以 {system} 為準",
-    "local": "以 ISBP 為準",
+    "local": "以 IS Big Platform 為準",
     "newest": "以最新變更為準",
     "manualHint": "雙方的值都保持不變，衝突會留在衝突清單中等待處理。其他欄位仍會同步。",
-    "remoteHint": "以 {system} 的值覆寫 ISBP 中的值。",
-    "localHint": "將 ISBP 的值傳送到 {system}。",
+    "remoteHint": "以 {system} 的值覆寫 IS Big Platform 中的值。",
+    "localHint": "將 IS Big Platform 的值傳送到 {system}。",
     "newestHint": "以紀錄最後變更的一方為準。"
   },
   "counts": {
     "read": "已讀取",
-    "created": "在 ISBP 建立",
-    "updated": "在 ISBP 更新",
-    "pushed": "已推送",
-    "remoteCreated": "在遠端建立",
+    "created": "在本平台建立",
+    "updated": "在本平台更新",
+    "pushed": "已送出",
+    "remoteCreated": "在對方系統建立",
     "linked": "已連結",
     "conflicts": "衝突",
     "skipped": "未變更或已略過",
@@ -155,11 +158,11 @@
   },
   "overview": {
     "title": "整合",
-    "description": "與外部系統的連線，以及它們與 ISBP 之間同步的內容。",
+    "description": "與外部系統的連線，以及它們與 IS Big Platform 之間同步的內容。",
     "add": "新增連線",
     "empty": "尚無連線",
     "emptyHint": "新增與外部系統的連線，再設定要同步的內容。",
-    "profiles": "設定檔",
+    "profiles": "同步規則",
     "linked": "連結的紀錄",
     "conflicts": "未解決衝突",
     "errors": "錯誤",
@@ -168,12 +171,14 @@
     "unavailable": "其連接器模組無法使用。",
     "pickTitle": "新增連線",
     "pickDescription": "選擇要連線的系統類型。",
-    "noConnectors": "尚未安裝連接器。連接器模組（例如 ServiceDesk Plus 或 Azure DevOps）會加入可連線的系統。"
+    "noConnectors": "尚未安裝連接器。連接器模組（例如 ServiceDesk Plus 或 Azure DevOps）會加入可連線的系統。",
+    "resolve": "解決",
+    "view": "檢視"
   },
   "connectionForm": {
     "createTitle": "新增 {connector} 連線",
     "editTitle": "編輯 {name}",
-    "description": "外部系統的設定，以及 ISBP 使用的認證資訊。",
+    "description": "外部系統的設定，以及 IS Big Platform 使用的認證資訊。",
     "name": "連線名稱",
     "namePlaceholder": "Contoso 服務台",
     "nameHint": "顯示在清單、執行紀錄與已同步的紀錄上。",
@@ -199,7 +204,7 @@
   },
   "webhook": {
     "title": "Webhook",
-    "description": "紀錄變更時，外部系統會呼叫此位址，ISBP 再讀取這些紀錄。輪詢會持續執行作為備援。",
+    "description": "紀錄變更時，外部系統會呼叫此位址，IS Big Platform 再讀取這些紀錄。輪詢會持續執行作為備援。",
     "notSupported": "此連接器不使用 Webhook；變更會依排程讀取。",
     "url": "Webhook URL",
     "copyUrl": "複製 Webhook URL",
@@ -220,14 +225,15 @@
       "sdp_cloud": "在 ServiceDesk Plus Cloud：管理 → 自動化 → Webhook。新增自訂標頭 X-ISBP-Webhook-Secret 並填入密鑰，再從請求、問題、變更與資產的商務規則呼叫 Webhook。",
       "sdp_server": "在 ServiceDesk Plus：管理 → 自動化 → 自訂觸發程序或 Webhook。新增自訂標頭 X-ISBP-Webhook-Secret 並填入密鑰。",
       "azdo_server": "在 Azure DevOps Server：專案設定 → 服務勾點 → Web Hooks。選擇工作項目與 Git 事件，輸入 URL，並加入 HTTP 標頭 X-ISBP-Webhook-Secret:密鑰。"
-    }
+    },
+    "setup": "設定：即時更新（Webhook）"
   },
   "connection": {
     "back": "整合",
     "notFound": "找不到連線",
     "tabs": {
       "overview": "概觀",
-      "profiles": "同步設定檔",
+      "profiles": "同步規則",
       "runs": "執行紀錄",
       "links": "連結的紀錄",
       "conflicts": "衝突"
@@ -242,12 +248,12 @@
     "lastSync": "上次同步",
     "deleted": "已刪除連線",
     "deleteTitle": "要刪除 {name} 嗎？",
-    "deleteDescription": "其同步設定檔、連結、執行紀錄與衝突都會刪除。ISBP 與外部系統中的紀錄都不會刪除。"
+    "deleteDescription": "其同步規則、連結、執行紀錄與衝突都會刪除。IS Big Platform 與外部系統中的紀錄都不會刪除。"
   },
   "profiles": {
-    "new": "新增同步設定檔",
-    "empty": "尚無同步設定檔",
-    "emptyHint": "同步設定檔說明要同步的內容：一種遠端紀錄對應一種 ISBP 紀錄，以及欄位如何對應。",
+    "new": "新增同步規則",
+    "empty": "尚無同步規則",
+    "emptyHint": "同步規則說明要同步的內容：一種遠端紀錄對應一種 IS Big Platform 紀錄，以及欄位如何對應。",
     "run": "立即執行",
     "runNamed": "立即執行 {name}",
     "runStarted": "已開始同步",
@@ -261,22 +267,22 @@
     "noSchedule": "未排程"
   },
   "editor": {
-    "eyebrow": "同步設定檔 · {system}",
-    "newTitle": "新增同步設定檔",
-    "notFound": "找不到同步設定檔",
-    "readOnly": "您可以檢視此設定檔，但無法變更：變更它需要該類紀錄的同步權限。",
+    "eyebrow": "同步規則 · {system}",
+    "newTitle": "新增同步規則",
+    "notFound": "找不到同步規則",
+    "readOnly": "您可以檢視此同步規則，但無法變更：變更它需要該類紀錄的同步權限。",
     "defaultName": "{remote} ↔ {local}",
     "what": "同步的對象",
-    "whatHint": "選擇外部系統中的一種紀錄，以及它在 ISBP 中對應的紀錄類型。",
-    "whatFixed": "建立設定檔後無法變更。請改為建立另一個設定檔。",
-    "name": "設定檔名稱",
+    "whatHint": "選擇外部系統中的一種紀錄，以及它在 IS Big Platform 中對應的紀錄類型。",
+    "whatFixed": "建立同步規則後無法變更。請改為建立另一個同步規則。",
+    "name": "規則名稱",
     "nameRequired": "請輸入名稱。",
     "remoteObject": "在 {system} 中",
     "chooseObject": "選擇紀錄類型",
     "remoteScope": "位置",
     "chooseScope": "選擇位置",
     "scopeRequired": "請選擇外部系統中的位置。",
-    "localEntity": "在 ISBP 中",
+    "localEntity": "在 IS Big Platform 中",
     "chooseEntity": "選擇紀錄類型",
     "suggested": "（建議）",
     "noSyncPermission": "您沒有此類紀錄的同步權限。",
@@ -285,86 +291,93 @@
     "searchContainer": "搜尋…",
     "searching": "搜尋中…",
     "noContainers": "找不到任何項目。",
-    "containerRequired": "請選擇 ISBP 中的位置。",
+    "containerRequired": "請選擇 IS Big Platform 中的位置。",
     "direction": "方向",
     "directionHint": "變更的流向。每個欄位可在對應中進一步限縮。",
     "records": "紀錄",
     "recordsHint": "只存在於一方的紀錄如何處理。",
-    "createLocal": "在 ISBP 建立紀錄",
-    "createLocalHint": "{system} 中的新紀錄會在 ISBP 中建立。",
+    "createLocal": "在 IS Big Platform 建立紀錄",
+    "createLocalHint": "{system} 中的新紀錄會在 IS Big Platform 中建立。",
     "createRemote": "在 {system} 建立紀錄",
-    "createRemoteHint": "通過下方篩選條件的新 ISBP 紀錄會在 {system} 中建立。",
-    "createRemoteUnsupported": "{system} 不允許 ISBP 建立這類紀錄。",
+    "createRemoteHint": "通過下方篩選條件的新 IS Big Platform 紀錄會在 {system} 中建立。",
+    "createRemoteUnsupported": "{system} 不允許 IS Big Platform 建立這類紀錄。",
     "matchRule": "比對既有紀錄",
     "matchRuleHint": "此欄位的值相同時，會連結雙方已有的紀錄，而不是建立重複的紀錄。",
-    "matchLocal": "ISBP 中的欄位",
+    "matchLocal": "IS Big Platform 中的欄位",
     "matchRemote": "{system} 中的欄位",
     "noMatching": "不比對",
     "chooseRemoteField": "選擇欄位",
     "pushFilter": "要建立的紀錄",
-    "pushFilterHint": "只有符合所有條件的 ISBP 紀錄會在 {system} 中建立。沒有條件時則全部建立。",
+    "pushFilterHint": "只有符合所有條件的 IS Big Platform 紀錄會在 {system} 中建立。沒有條件時則全部建立。",
     "schedule": "排程",
     "interval": "同步間隔（分鐘）",
     "intervalHint": "0 會關閉排程同步（Webhook、立即執行與排程作業仍可運作）。",
-    "intervalPush": "ISBP 中一有變更就會推送。",
+    "intervalPush": "IS Big Platform 中一有變更就會推送。",
     "intervalInvalid": "請輸入 0 到 1440 的整數。",
     "enabled": "啟用",
-    "enabledHint": "關閉時，此設定檔不會同步任何內容。",
+    "enabledHint": "關閉時，此同步規則不會同步任何內容。",
     "conflicts": "衝突與留言",
     "conflictsHint": "自上次同步後，雙方都變更了同一欄位時。",
     "policy": "衝突規則",
-    "policyOneWay": "單向設定檔一律以來源為準：「匯入 ISBP」以 {system} 為準，「從 ISBP 匯出」以 ISBP 為準。",
+    "policyOneWay": "單向同步規則一律以來源為準：「匯入 IS Big Platform」以 {system} 為準，「從 IS Big Platform 匯出」以 IS Big Platform 為準。",
     "comments": "同步留言",
     "commentsHint": "新留言會雙向各複製一次，並保留作者。內部備註在 {system} 中也會維持內部。",
     "commentsUnsupported": "此組合無法同步留言。",
     "mapping": "欄位對應",
-    "mappingHint": "ISBP 的哪個欄位對應 {system} 的哪個欄位。值會自動轉換（HTML ↔ Markdown、依電子郵件比對人員、透過值對應轉換選項）。",
+    "mappingHint": "IS Big Platform 的哪個欄位對應 {system} 的哪個欄位。值會自動轉換（HTML ↔ Markdown、依電子郵件比對人員、透過值對應轉換選項）。",
     "mappingWaiting": "請先選擇同步的對象。",
     "preview": "預覽",
     "previewHint": "針對接下來的變更試執行。不會寫入任何內容，同步位置也不會移動。",
     "runPreview": "預覽",
     "fixIssues": "請修正上方標示的問題。",
-    "create": "建立設定檔",
-    "created": "已建立同步設定檔",
-    "saved": "已儲存同步設定檔",
+    "create": "建立同步規則",
+    "created": "已建立同步規則",
+    "saved": "已儲存同步規則",
     "runNow": "立即執行",
     "export": "將既有紀錄推送到 {system}",
     "runStarted": "已開始同步",
-    "deleted": "已刪除同步設定檔",
+    "deleted": "已刪除同步規則",
     "deleteTitle": "要刪除 {name} 嗎？",
-    "deleteDescription": "其連結、執行紀錄與衝突都會刪除；雙方的紀錄都不會刪除。新的設定檔可以重新連結這些紀錄。",
-    "insecureHint": "伺服器使用未加密的 HTTP。若無法使用 HTTPS，請在連線設定中開啟「允許不安全的 HTTP」。"
+    "deleteDescription": "其連結、執行紀錄與衝突都會刪除；雙方的紀錄都不會刪除。新的同步規則可以重新連結這些紀錄。",
+    "insecureHint": "伺服器使用未加密的 HTTP。若無法使用 HTTPS，請在連線設定中開啟「允許不安全的 HTTP」。",
+    "lastRunLabel": "上次執行：",
+    "errorsCount": "{count} 筆紀錄未同步",
+    "conflictsCount": "{count} 個衝突",
+    "viewRun": "檢視執行",
+    "neverRun": "尚未執行",
+    "nextRun": "下次執行"
   },
   "mapping": {
     "suggest": "使用建議的對應",
     "add": "新增欄位",
     "empty": "尚未對應任何欄位。",
-    "localField": "ISBP 中的欄位，第 {n} 列",
+    "localField": "IS Big Platform 中的欄位，第 {n} 列",
     "remoteField": "{system} 中的欄位，第 {n} 列",
     "directionOf": "方向，第 {n} 列",
-    "chooseLocal": "ISBP 欄位",
+    "chooseLocal": "IS Big Platform 欄位",
     "chooseRemote": "遠端欄位",
     "readOnly": "唯讀",
     "values": "值",
     "remove": "移除第 {n} 列",
     "dir": {
       "both": "雙向",
-      "pull": "僅匯入 ISBP",
-      "push": "僅從 ISBP 匯出"
+      "pull": "僅從 {system} 匯入",
+      "push": "僅匯出到 {system}"
     },
     "valuesTitle": "{local} ↔ {remote} 的值",
-    "valuesDescription": "{system} 的每個值會成為 ISBP 的哪個值，以及反向的對應。",
+    "valuesDescription": "{system} 的每個值會成為 IS Big Platform 的哪個值，以及反向的對應。",
     "inSystem": "在 {system} 中",
-    "inIsbp": "在 ISBP 中",
+    "inIsbp": "在 IS Big Platform 中",
     "remoteValue": "遠端值 {n}",
-    "localValue": "ISBP 值 {n}",
+    "localValue": "IS Big Platform 值 {n}",
     "removeValue": "移除值 {n}",
     "addValue": "新增值",
-    "valuesHint": "每個值在每個方向只能有一列：多個遠端值可透過「僅匯入 ISBP」的列對應到同一個 ISBP 值，再由一列決定該 ISBP 值匯出時的對應值。雙方相同的值（不分大小寫）不需要對應；沒有對應的值會略過並記錄。",
+    "valuesHint": "每個值在每個方向只能有一列：多個遠端值可透過「僅匯入 IS Big Platform」的列對應到同一個 IS Big Platform 值，再由一列決定該 IS Big Platform 值匯出時的對應值。雙方相同的值（不分大小寫）不需要對應；沒有對應的值會略過並記錄。",
     "valueDirection": "值 {n} 的方向",
     "direction": "方向",
     "chooseValue": "值",
-    "addMissing": "{count, plural, other {加入 {system} 的 # 個值}}"
+    "addMissing": "{count, plural, other {加入 {system} 的 # 個值}}",
+    "inRemoteHeader": "在 {system} 中"
   },
   "filter": {
     "none": "沒有條件：所有紀錄。",
@@ -386,42 +399,42 @@
     }
   },
   "issues": {
-    "unknown_local": "ISBP 沒有「{field}」欄位。",
+    "unknown_local": "IS Big Platform 沒有「{field}」欄位。",
     "unknown_remote": "遠端系統沒有「{field}」欄位。",
     "duplicate_local": "「{field}」對應了兩次。",
     "duplicate_remote": "「{field}」對應了兩次。",
     "incompatible": "{local}欄位無法對應到{remote}欄位。",
-    "no_direction": "無法以此方向同步：有欄位為唯讀，或設定檔的方向相反。",
-    "unknown_local_choice": "「{value}」不是 ISBP 中的選項。",
+    "no_direction": "無法以此方向同步：有欄位為唯讀，或同步規則的方向相反。",
+    "unknown_local_choice": "「{value}」不是 IS Big Platform 中的選項。",
     "unknown_remote_choice": "「{value}」不是遠端系統中的選項。",
-    "duplicate_value": "「{value}」透過兩列匯入 ISBP：請將其中一列設為「僅從 ISBP 匯出」。",
+    "duplicate_value": "「{value}」透過兩列匯入 IS Big Platform：請將其中一列設為「僅從 IS Big Platform 匯出」。",
     "match_unsupported": "無法依「{field}」比對紀錄。",
-    "required_unmapped": "請對應「{field}」：ISBP 建立紀錄時需要它。",
+    "required_unmapped": "請對應「{field}」：IS Big Platform 建立紀錄時需要它。",
     "remote_required_unmapped": "請對應遠端欄位「{field}」：在遠端建立紀錄時需要它。",
-    "create_local_needs_pull": "要在 ISBP 建立紀錄，設定檔必須匯入 ISBP。",
-    "create_remote_needs_push": "要在遠端建立紀錄，設定檔必須從 ISBP 匯出。",
-    "create_unsupported": "遠端系統不允許 ISBP 建立這類紀錄。",
+    "create_local_needs_pull": "要在 IS Big Platform 建立紀錄，同步規則必須匯入 IS Big Platform。",
+    "create_remote_needs_push": "要在遠端建立紀錄，同步規則必須從 IS Big Platform 匯出。",
+    "create_unsupported": "遠端系統不允許 IS Big Platform 建立這類紀錄。",
     "comments_unsupported": "此組合無法同步留言。",
     "too_many": "列數過多。",
     "unknown_object": "未知的遠端紀錄類型。",
     "scope_required": "請選擇遠端系統中的位置。",
-    "container_required": "請選擇 ISBP 中的位置。",
+    "container_required": "請選擇 IS Big Platform 中的位置。",
     "unknown_scope": "在遠端系統中找不到。",
     "unknown_container": "找不到，或您無法檢視。",
-    "duplicate_local_value": "「{value}」透過兩列從 ISBP 匯出：請將其中一列設為「僅匯入 ISBP」。"
+    "duplicate_local_value": "「{value}」透過兩列從 IS Big Platform 匯出：請將其中一列設為「僅匯入 IS Big Platform」。"
   },
   "preview": {
     "fromRemote": "{count, plural, other {{system} 接下來的 # 項變更：}}",
-    "fromLocal": "{count, plural, other {前 # 筆 ISBP 紀錄：}}",
+    "fromLocal": "{count, plural, other {前 # 筆 IS Big Platform 紀錄：}}",
     "more": "還有更多等待處理。",
     "nothingRemote": "自上次同步以來，{system} 沒有變更。",
-    "nothingLocal": "沒有要推送的 ISBP 紀錄。",
+    "nothingLocal": "沒有要推送的 IS Big Platform 紀錄。",
     "empty": "（空白）",
     "becomes": "變為",
     "actions": {
-      "create": "在 ISBP 建立",
+      "create": "在 IS Big Platform 建立",
       "link": "連結既有紀錄",
-      "update": "在 ISBP 更新",
+      "update": "在 IS Big Platform 更新",
       "push": "在 {system} 更新",
       "remoteCreate": "在 {system} 建立",
       "conflict": "衝突",
@@ -429,7 +442,7 @@
       "orphan": "一方已刪除"
     },
     "direction": {
-      "pull": "匯入 ISBP",
+      "pull": "匯入 IS Big Platform",
       "push": "傳送到 {system}",
       "conflict": "衝突"
     },
@@ -437,7 +450,7 @@
       "deleted": "已在遠端系統刪除",
       "orphaned": "先前已在一方刪除",
       "unchanged": "沒有變更",
-      "not_linked": "未連結，且已關閉在 ISBP 建立",
+      "not_linked": "未連結，且已關閉在 IS Big Platform 建立",
       "filtered": "未通過篩選條件",
       "parent_unlinked": "其上層尚未連結",
       "unmappable": "{field} 無法轉換，將會略過"
@@ -445,14 +458,14 @@
   },
   "runs": {
     "title": "執行紀錄",
-    "run": "設定檔",
+    "run": "同步規則",
     "changes": "變更",
     "countsLine": "已讀取 {read} · 已寫入 {written} · {conflicts} 個衝突 · {errors} 個錯誤",
     "started": "開始時間",
     "allStatuses": "所有狀態",
     "empty": "尚無執行紀錄",
     "emptyFiltered": "沒有符合的執行紀錄",
-    "emptyHint": "設定檔同步時就會出現執行紀錄：依排程、Webhook、ISBP 中的變更或立即執行。"
+    "emptyHint": "同步規則同步時就會出現執行紀錄：依排程、Webhook、IS Big Platform 中的變更或立即執行。"
   },
   "run": {
     "notFound": "找不到執行紀錄",
@@ -463,7 +476,7 @@
     "openConnection": "開啟連線",
     "counts": "統計",
     "details": "詳細資料",
-    "profile": "設定檔",
+    "profile": "同步規則",
     "started": "開始",
     "finished": "結束",
     "duration": "持續時間",
@@ -480,15 +493,17 @@
       "info": "資訊",
       "warn": "警告",
       "error": "錯誤"
-    }
+    },
+    "problems": "{count} 個問題",
+    "openLink": "在連結的紀錄中尋找"
   },
   "links": {
     "title": "連結的紀錄",
     "filter": "依狀態篩選",
     "search": "依參考編號或標題搜尋",
-    "local": "在 ISBP 中",
+    "local": "在 IS Big Platform 中",
     "remote": "遠端紀錄",
-    "profile": "設定檔",
+    "profile": "同步規則",
     "lastSynced": "上次同步",
     "notCreated": "尚未建立",
     "hidden": "您無法檢視的紀錄",
@@ -498,7 +513,7 @@
     "syncRequested": "已開始同步",
     "relink": "連結至其他紀錄",
     "relinkTitle": "連結至其他遠端紀錄",
-    "relinkDescription": "此 ISBP 紀錄目前連結到 {ref}。請輸入要連結的遠端紀錄 ID；將立即同步。",
+    "relinkDescription": "此 IS Big Platform 紀錄目前連結到 {ref}。請輸入要連結的遠端紀錄 ID；將立即同步。",
     "remoteId": "遠端紀錄 ID",
     "remoteIdHint": "紀錄在外部系統中的 ID（不是顯示用的參考編號）。",
     "relinked": "已連結紀錄",
@@ -508,7 +523,7 @@
     "unlinked": "已取消連結",
     "empty": "尚無連結的紀錄",
     "emptyFiltered": "沒有符合條件的紀錄",
-    "emptyHint": "設定檔同步紀錄時就會連結它們。"
+    "emptyHint": "同步規則同步紀錄時就會連結它們。"
   },
   "conflicts": {
     "title": "同步衝突",
@@ -524,7 +539,7 @@
     "viewFor": "檢視 {ref} 的衝突",
     "emptyOpen": "沒有未解決的衝突",
     "empty": "沒有衝突",
-    "emptyHint": "當設定檔交由人員決定，且雙方都變更同一欄位時，就會出現衝突。"
+    "emptyHint": "當同步規則交由人員決定，且雙方都變更同一欄位時，就會出現衝突。"
   },
   "resolve": {
     "title": "解決同步衝突",
@@ -532,13 +547,17 @@
     "hiddenRecord": "您無法檢視的紀錄",
     "hiddenHint": "您無法檢視此紀錄，因此隱藏其值。",
     "base": "上次同步的值",
-    "inIsbp": "保留 ISBP 的值",
+    "inIsbp": "保留本平台的值",
     "inRemote": "保留 {system} 的值",
     "empty": "（空白）",
-    "keepBoth": "保持雙方現狀",
+    "keepBoth": "不同步這次變更",
     "apply": "套用",
     "resolved": "已解決衝突",
-    "dismissed": "已保留雙方的值"
+    "dismissed": "雙方各自保留自己的值",
+    "keepBothHint": "「不同步這次變更」：雙方各自保留自己的值，之後的變更照常同步。",
+    "changedBy": "由 {name} 變更",
+    "changedHere": "在本平台變更",
+    "changedIn": "在 {system} 中變更"
   },
   "panel": {
     "title": "同步對象",
@@ -549,15 +568,33 @@
     "requested": "已開始同步"
   },
   "taskConfig": {
-    "profile": "同步設定檔",
-    "pick": "選擇同步設定檔",
+    "profile": "同步規則",
+    "pick": "選擇同步規則",
     "loading": "載入中…",
     "option": "{profile}（{connection}）",
     "disabled": "已停用",
-    "hint": "像「立即執行」一樣執行設定檔的同步，並套用此作業的重試與警示設定。",
+    "hint": "像「立即執行」一樣執行同步規則的同步，並套用此作業的重試與警示設定。",
     "open": "開啟 {name}"
   },
   "customizations": {
-    "profile": "同步設定檔"
+    "profile": "同步規則"
+  },
+  "attention": {
+    "title": "需要處理",
+    "description": "決定衝突，並檢查未同步的紀錄。",
+    "nothing": "沒有需要處理的項目：沒有未解決的衝突，也沒有失敗的紀錄。",
+    "conflicts": "{count} 個未解決的衝突",
+    "fieldsChanged": "雙方都變更了：{fields}",
+    "resolve": "解決",
+    "resolveFor": "解決 {ref} 的衝突",
+    "allConflicts": "全部 {count} 個衝突",
+    "failed": "{count} 筆紀錄未同步",
+    "allFailed": "全部 {count} 筆未同步的紀錄",
+    "rules": "上次執行有問題的同步規則",
+    "viewRun": "檢視執行"
+  },
+  "results": {
+    "sync": "讀取 {read} · 建立 {created} · 更新 {updated} · 送出 {pushed}{conflicts, plural, =0 {} other { · 衝突 #}}{errors, plural, =0 {} other { · 錯誤 #}}",
+    "alreadyRunning": "此規則的同步已在執行中"
   }
 }

@@ -1,0 +1,26 @@
+{
+  "title": "管理",
+  "description": "設定できるすべての項目がここにあります。",
+  "filter": "設定を検索…",
+  "noMatch": "一致する設定はありません",
+  "noneTitle": "管理できる項目はありません",
+  "noneDescription": "管理者の権限がありません。必要な場合は管理者にお問い合わせください。",
+  "addPerson": "ユーザーを追加",
+  "grantRole": "ロールを付与",
+  "areas": {
+    "people": "ユーザーとアクセス",
+    "automation": "申請と自動化",
+    "modules": "モジュールの設定",
+    "integrations": "統合",
+    "platform": "プラットフォーム"
+  },
+  "status": {
+    "people": "{active, plural, other {アクティブ # 人}}",
+    "peoplePending": "{active, plural, other {アクティブ # 人}} · {pending, plural, other {入社待ち # 人}}",
+    "groups": "{count, plural, other {# 個のグループ}}",
+    "roles": "{count, plural, other {# 個のロール}}",
+    "expiring": "{count, plural, other {7 日以内に終了する割り当て # 件}}",
+    "departments": "{count, plural, other {# 個の部署}}",
+    "modules": "{total} 個中 {enabled} 個が有効"
+  }
+}

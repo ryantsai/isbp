@@ -47,7 +47,7 @@
   "workflows": {
     "publish": {
       "name": "Publishing a knowledge article",
-      "description": "Optional review before an article goes live. Conditions can use article.audience, article.locale and article.categoryKey."
+      "description": "Optional review before an article goes live. Conditions can use its audience, language and category."
     }
   },
   "notifications": {
@@ -111,7 +111,7 @@
   },
   "toast": {
     "published": "Article published",
-    "submitted": "Submitted — an editor will publish it",
+    "submitted": "Sent for review — an editor will publish it",
     "sentForApproval": "Sent for approval — it goes live once approved",
     "retired": "Article retired",
     "draft": "Article is a draft again",
@@ -122,6 +122,12 @@
     "helpfulShare": "{percent}% found this helpful"
   },
   "newArticle": "New article",
+  "sections": {
+    "label": "Knowledge base sections",
+    "browse": "Browse",
+    "manage": "Manage",
+    "categories": "Categories"
+  },
   "home": {
     "description": "Search answers and step-by-step guides, or browse by topic.",
     "searchLabel": "How can we help?",
@@ -130,9 +136,11 @@
     "searchHintEscape": "clears the search",
     "clear": "Clear search",
     "results": "Search results",
+    "searchFailed": "Couldn't search the knowledge base",
     "resultCount": "{count, plural, =0 {No articles found} one {# article found} other {# articles found}}",
     "noResults": "No articles match “{query}”",
     "noResultsHint": "Try other words, or tell us about the problem and we'll help.",
+    "noResultsHintOther": "Try other words, or browse the topics.",
     "reportIssue": "Report an issue",
     "keywordMode": "Showing keyword matches.",
     "categories": "Browse by topic",
@@ -142,7 +150,6 @@
     "empty": "No articles yet.",
     "emptyCategory": "No published articles in this category yet.",
     "allCategories": "All topics",
-    "manageHint": "Write and review articles",
     "previous": "Previous",
     "next": "Next",
     "pageOf": "Page {page} of {pages}"
@@ -156,7 +163,7 @@
     "language": "Language",
     "stats": "Views and feedback",
     "translations": "Other languages",
-    "generatedFrom": "Draft generated from {reference}",
+    "generatedFrom": "Based on {reference}",
     "tools": "Article actions",
     "translate": "Translate",
     "history": "{count, plural, one {History (# version)} other {History (# versions)}}",
@@ -173,7 +180,7 @@
     "bannerRetired": "This article is retired: it no longer appears in search. Restore it to edit and publish it again.",
     "bannerReviewDue": "This article was due for review on {date}. Check it is still accurate, then set a new review date.",
     "deleteTitle": "Delete this article?",
-    "deleteDescription": "{reference} and its version history will be deleted for good. Retiring keeps the history instead.",
+    "deleteDescription": "“{title}” ({reference}) and its version history will be deleted for good. Retiring keeps the history instead.",
     "syncedFrom": "Synced from {reference}",
     "fromGuide": "Part of the IS Big Platform user guide. It is updated with the platform; edits made here are replaced when a new version of the guide ships."
   },
@@ -187,7 +194,10 @@
     "send": "Send feedback",
     "thanksYes": "Thanks — glad it helped.",
     "thanksNo": "Thanks for letting us know.",
-    "thanksComment": "Thanks — the author will see your comment."
+    "thanksComment": "Thanks — the author will see your comment.",
+    "stillStuck": "Still stuck?",
+    "askIt": "Ask IT",
+    "reportIssue": "Report an issue"
   },
   "versions": {
     "title": "Version history",
@@ -203,6 +213,7 @@
     "description": "Write, review and keep articles up to date.",
     "noAccess": "You need permission to write knowledge articles.",
     "search": "Search title, summary or KB number…",
+    "tabsLabel": "Articles by status",
     "tabs": {
       "mine": "My drafts",
       "review": "In review",
@@ -242,7 +253,7 @@
     "newTitle": "New article",
     "editTitle": "Edit article",
     "translateTitle": "New translation",
-    "hint": "Write in Markdown. Save a draft any time; submit it when it's ready for review.",
+    "hint": "Save a draft any time: readers see nothing until it's published.",
     "publishedHint": "This article is live: saving publishes your changes as a new version.",
     "cannotEdit": "You can't edit this article in its current state.",
     "title": "Title",
@@ -253,6 +264,18 @@
     "preview": "Preview",
     "previewEmpty": "Nothing to preview yet.",
     "markdownHint": "Markdown: ## headings, 1. numbered steps, | tables |, **bold**, [links](/requests). HTML is not rendered.",
+    "format": {
+      "label": "Formatting",
+      "heading": "Heading",
+      "bold": "Bold",
+      "bulleted": "Bulleted list",
+      "numbered": "Numbered list",
+      "link": "Link",
+      "withShortcut": "{label} (Ctrl+{key} / ⌘{key})",
+      "headingText": "Heading",
+      "boldText": "bold text",
+      "linkText": "link text"
+    },
     "category": "Category",
     "noCategory": "No category",
     "tags": "Tags",
@@ -261,7 +284,10 @@
     "tagsFull": "At most {max} tags",
     "removeTag": "Remove tag {tag}",
     "audience": "Audience",
+    "moreSettings": "More settings",
+    "moreSettingsSummary": "{language} · {tags, plural, =0 {no tags} one {# tag} other {# tags}}",
     "language": "Language",
+    "languageHint": "The language this article is written in (yours by default).",
     "translationOf": "Translation of",
     "translationOfNone": "Not a translation",
     "translationOfSearch": "Search articles…",
@@ -271,9 +297,13 @@
     "translationOfSet": "Readers can switch between this article and its translations.",
     "reviewAt": "Review by",
     "reviewAtHint": "The owner is reminded to check the article on this date.",
+    "attachmentsLater": "You can add attachments after saving.",
     "saveDraft": "Save draft",
-    "saveAndSubmit": "Save and submit",
-    "submitHint": "Editors publish submitted articles (or an approval workflow decides).",
+    "outcome": {
+      "publish": "It goes live for its audience right away.",
+      "review": "An editor reviews it before it goes live.",
+      "approval": "It goes to approval first and is published once approved."
+    },
     "publishUpdate": "Publish update",
     "toast": {
       "saved": "Changes saved",
@@ -304,8 +334,10 @@
     "icon": "Icon",
     "iconHint": "A lucide icon name, e.g. key-round, wifi, printer.",
     "sortOrder": "Order",
+    "sortOrderHint": "Lower numbers come first on the knowledge home.",
     "parent": "Parent category",
     "noParent": "None (top level)",
+    "under": "Under {parent}",
     "articles": "Articles",
     "empty": "No categories yet.",
     "created": "Category created",
@@ -313,6 +345,7 @@
     "deleted": "Category deleted",
     "editLabel": "Edit {name}",
     "deleteLabel": "Delete {name}",
+    "rowActions": "Actions for {name}",
     "deleteTitle": "Delete this category?",
     "deleteDescription": "“{name}” will be deleted. Categories that still have articles can't be deleted.",
     "errors": {

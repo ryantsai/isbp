@@ -102,12 +102,18 @@ export class NotificationAdminService {
     return { unread: await this.unread(userId) };
   }
 
-  async badges(userId: string) {
-    const [approvals, unread] = await Promise.all([
-      getKernel().workflows.pendingCount(userId),
+  /** The sidebar and bell counters; `work` is everything waiting on My work (approvals included, tasks not). */
+  async badges(userId: string, auth: AuthContext) {
+    const kernel = getKernel();
+    const [approvals, unread, work] = await Promise.all([
+      kernel.workflows.pendingCount(userId),
       this.unread(userId),
+      kernel.work.counts(auth).then(
+        (c) => c.total,
+        () => 0,
+      ),
     ]);
-    return { approvals, notifications: unread };
+    return { approvals, notifications: unread, work };
   }
 
   /* ───────────── preferences ───────────── */
@@ -119,6 +125,16 @@ export class NotificationAdminService {
       .where(eq(users.id, userId));
     const emailAvailable = await this.center.emailAvailable();
     const prefs = u?.preferences.notifications ?? {};
+    // Relevant: mandatory, set by the person before, or delivered to them. The settings page shows these first, so a
+    // person with no approvals doesn't scroll past every module's notices.
+    const received = new Set(
+      (
+        await this.db
+          .selectDistinct({ type: notifications.type })
+          .from(notifications)
+          .where(eq(notifications.userId, userId))
+      ).map((r) => r.type),
+    );
     return {
       emailAvailable,
       items: [...this.center.types().entries()].map(([type, { moduleId, def }]) => {
@@ -128,6 +144,7 @@ export class NotificationAdminService {
           type,
           moduleId,
           mandatory: Boolean(def.mandatory),
+          relevant: Boolean(def.mandatory) || type in prefs || received.has(type),
           defaults,
           inApp: current.inApp,
           email: current.email,

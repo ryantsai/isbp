@@ -317,6 +317,11 @@ export class DirectoryService {
     auth.require('core.groups.manage', { recordType: 'group', recordId: id });
     if (g.isSystem) throw new HttpError(409, ErrorCodes.SYSTEM_GROUP, 'System groups cannot be deleted');
     await this.ctx.transaction(async (tx) => {
+      // Refused (`IN_USE`, listing them) while requests, approvals, to-dos or live settings still name the group.
+      await getKernel().references.assertUnused(
+        { type: 'core.group', id, key: g.key },
+        { tx, what: 'This group' },
+      );
       await tx.delete(groups).where(eq(groups.id, id));
       await this.ctx.audit.record(
         { action: 'core.group.deleted', entityType: 'group', entityId: id, entityLabel: g.name },

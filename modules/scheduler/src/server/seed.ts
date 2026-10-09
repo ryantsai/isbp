@@ -6,7 +6,7 @@
  * module has seeded.
  */
 import { groupMembers, groups, users } from '@isbp/db/schema';
-import type { ModuleContext } from '@isbp/sdk/server';
+import { type ModuleContext, type RunProblem, runProblemFromText } from '@isbp/sdk/server';
 import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
 import { DEFAULT_ALERTS, DEFAULT_RETRIES, type TriggerInput } from '../contracts';
 import { manifest } from '../manifest';
@@ -159,8 +159,12 @@ export interface HistoryOptions {
   errors?: string[];
   /** Lines a successful run logs (besides the standard ones). */
   lines?: (n: number) => string[];
-  /** Summary of a successful run. */
+  /** Summary of a successful run: an i18n key (with `summaryParams`) or plain text. */
   summary?: (n: number) => string;
+  summaryParams?: (n: number) => Record<string, string | number>;
+  /** What the failures are about, for their plain explanation (the connection to fix, the host called). */
+  connection?: { id: string; name: string } | null;
+  host?: string;
   /** Metrics of a successful run. */
   metrics?: (n: number) => Record<string, number>;
   /** One run that timed out, one cancelled, one missed slot (for the demo). */
@@ -198,8 +202,10 @@ interface SynthRun {
   finishedAt: Date | null;
   durationMs: number | null;
   summary: string | null;
+  summaryParams: Record<string, string | number> | null;
   metrics: Record<string, number>;
   error: string | null;
+  problem: RunProblem | null;
   triggeredBy: string | null;
   upstreamRunId: string | null;
   cancelRequested: boolean;
@@ -246,6 +252,8 @@ export async function seedRunHistory(
   const recentFrom = now.getTime() - 2 * 86_400_000;
   const [dMin, dMax] = opts.durationMs ?? defaultDuration(job.type);
   const errors = opts.errors ?? defaultErrors(job.type);
+  const problemOf = (error: string) =>
+    runProblemFromText(error, { connection: opts.connection ?? null, host: opts.host ?? null });
 
   let times: { at: Date; trigger: RunTrigger; upstreamRunId?: string }[];
   if (job.triggerKind === 'cron' || job.triggerKind === 'interval') {
@@ -315,8 +323,10 @@ export async function seedRunHistory(
       finishedAt: null,
       durationMs: null,
       summary: null,
+      summaryParams: null,
       metrics: {},
       error: null,
+      problem: null,
       triggeredBy: t.trigger === 'manual' ? (opts.actorId ?? null) : null,
       upstreamRunId: t.upstreamRunId ?? null,
       cancelRequested: false,
@@ -336,7 +346,8 @@ export async function seedRunHistory(
         skipReason: 'missed',
         startedAt: null,
         finishedAt: new Date(t.at.getTime() + 75 * 60_000),
-        summary: 'Missed 1 scheduled run(s)',
+        summary: 'scheduler.results.missed',
+        summaryParams: { count: 1 },
         logs: [
           {
             level: 'warn',
@@ -384,6 +395,7 @@ export async function seedRunHistory(
         finishedAt: end.toISOString(),
         status: 'failed',
         error: err,
+        problem: problemOf(err),
       });
       const delay = Math.min(job.retryDelaySeconds * (job.backoff === 'fixed' ? 1 : 2 ** (a - 1)), 3_600);
       log(
@@ -420,15 +432,18 @@ export async function seedRunHistory(
       for (const line of opts.lines?.(i) ?? [])
         log('info', line, attempt, new Date(at.getTime() + Math.round(d * 0.6)));
       const summary = opts.summary?.(i) ?? null;
-      log(
-        'info',
-        `Succeeded in ${d} ms${summary ? `: ${summary}` : ''}`,
-        attempt,
-        new Date(at.getTime() + d),
-      );
+      const plain = summary && !/^[a-z][\w-]*(\.[\w-]+)+$/i.test(summary) ? `: ${summary}` : '';
+      log('info', `Succeeded in ${d} ms${plain}`, attempt, new Date(at.getTime() + d));
     }
     const end = new Date(at.getTime() + d);
-    attempts.push({ attempt, startedAt: at.toISOString(), finishedAt: end.toISOString(), status, error });
+    attempts.push({
+      attempt,
+      startedAt: at.toISOString(),
+      finishedAt: end.toISOString(),
+      status,
+      error,
+      problem: error ? problemOf(error) : null,
+    });
     out.push({
       ...base,
       status,
@@ -437,7 +452,9 @@ export async function seedRunHistory(
       finishedAt: end,
       durationMs: d,
       error,
+      problem: error ? problemOf(error) : null,
       summary: status === 'succeeded' ? (opts.summary?.(i) ?? null) : null,
+      summaryParams: status === 'succeeded' ? (opts.summaryParams?.(i) ?? null) : null,
       metrics: status === 'succeeded' ? (opts.metrics?.(i) ?? { durationMs: d }) : {},
       cancelRequested: isCancelled,
       cancelledBy: isCancelled ? (opts.actorId ?? null) : null,
@@ -532,7 +549,8 @@ export async function seed(ctx: ModuleContext) {
     missed: 1,
     errors: ['Unexpected status 503 (expected 200)', 'Upstream request failed (network)'],
     lines: () => ['HTTP 200 in 18 ms (15 bytes)', '{"status":"ready"}'],
-    summary: (i) => `HTTP 200 · ${12 + (i % 9)} ms`,
+    summary: () => 'scheduler.results.http',
+    summaryParams: (i) => ({ status: 200, ms: 12 + (i % 9) }),
     metrics: (i) => ({ status: 200, durationMs: 12 + (i % 9), bytes: 15 }),
     actorId,
   });
@@ -559,7 +577,8 @@ export async function seed(ctx: ModuleContext) {
       durationMs: [1_800, 4_200],
       failureRate: 0,
       lines: (i) => [':scheduled_for = (the run time)', `${(1_180 + i * 37) % 1_500} row(s) affected`],
-      summary: (i) => `${(1_180 + i * 37) % 1_500} rows affected`,
+      summary: () => 'scheduler.results.affected',
+      summaryParams: (i) => ({ count: (1_180 + i * 37) % 1_500 }),
       metrics: (i) => ({ affected: (1_180 + i * 37) % 1_500 }),
       actorId,
     });
@@ -589,7 +608,8 @@ export async function seed(ctx: ModuleContext) {
       failureRate: 0,
       timeouts: 1,
       lines: () => ['Query on Contoso ERP (reporting) (postgres)', '0 row(s) in 412 ms'],
-      summary: () => '0 rows',
+      summary: () => 'scheduler.results.rows',
+      summaryParams: () => ({ count: 0 }),
       metrics: () => ({ rows: 0 }),
       actorId,
     });
@@ -630,7 +650,8 @@ export async function seed(ctx: ModuleContext) {
         'removed extract-12.parquet',
         '3 of 12 extracts removed',
       ],
-      summary: (i) => `Exit code 0 · ${1_400 + (i % 7) * 90} ms`,
+      summary: () => 'scheduler.results.script',
+      summaryParams: (i) => ({ ms: 1_400 + (i % 7) * 90 }),
       metrics: () => ({ exitCode: 0 }),
       actorId,
     }),
@@ -672,7 +693,9 @@ export async function seed(ctx: ModuleContext) {
       `HTTP 202 in ${400 + (i % 13) * 37} ms (64 bytes)`,
       '{"accepted":true,"items":' + (180 + (i % 40)) + '}',
     ],
-    summary: (i) => `HTTP 202 · ${400 + (i % 13) * 37} ms`,
+    summary: () => 'scheduler.results.http',
+    summaryParams: (i) => ({ status: 202, ms: 400 + (i % 13) * 37 }),
+    host: 'partner-feeds.contoso.example',
     metrics: (i) => ({ status: 202, durationMs: 400 + (i % 13) * 37 }),
     actorId,
   });
@@ -703,7 +726,8 @@ export async function seed(ctx: ModuleContext) {
         'east | 59 | 1702114.00',
         '… 3 more row(s)',
       ],
-      summary: () => '5 rows',
+      summary: () => 'scheduler.results.rows',
+      summaryParams: () => ({ count: 5 }),
       metrics: () => ({ rows: 5 }),
       actorId,
     });

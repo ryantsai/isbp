@@ -17,12 +17,13 @@ import { FormAnswers, FormFields, useFieldsResolver } from '@isbp/ui/form-render
 import { usePeople } from '@isbp/ui/person-picker';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { PencilIcon } from 'lucide-react';
+import { PencilIcon, PlusIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { type FieldValues, useForm } from 'react-hook-form';
 import type { TicketDetail, UpdateTicketInput } from '../../contracts';
 import { INVALIDATE, ticketApi } from '../lib';
+import { isDone } from '../statuses';
 
 const EMPTY: readonly FieldDef[] = [];
 
@@ -110,13 +111,20 @@ export function CustomFieldsCard({ ticket }: { ticket: TicketDetail }) {
     () => Object.fromEntries([...peopleMap.values()].map((p) => [p.id, p.displayName])),
     [peopleMap],
   );
+  const editable = ticket.viewer.canEdit && !isDone(ticket.status);
   if (isLoading) return <Skeleton className="h-28 w-full rounded-xl" />;
   if (!elements.length) return null;
+  const filled = fields.some((f) => {
+    const v = ticket.attributes[f.key];
+    return v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0);
+  });
+  // Nothing filled in: one line to add details (agents), or nothing at all.
+  if (!filled && !editable) return null;
   return (
-    <Card className="gap-4">
-      <CardHeader>
+    <Card className="gap-3 py-4">
+      <CardHeader className="px-4">
         <CardTitle>{t('title')}</CardTitle>
-        {ticket.viewer.canEdit && (
+        {editable && filled && (
           <CardAction>
             <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
               <PencilIcon />
@@ -125,16 +133,26 @@ export function CustomFieldsCard({ ticket }: { ticket: TicketDetail }) {
           </CardAction>
         )}
       </CardHeader>
-      <CardContent>
-        <FormAnswers
-          elements={elements}
-          data={ticket.attributes}
-          people={people}
-          emptyText={t('notSet')}
-          className="sm:grid-cols-1"
-        />
+      <CardContent className="px-4">
+        {filled ? (
+          <FormAnswers
+            elements={elements}
+            data={ticket.attributes}
+            people={people}
+            emptyText={t('notSet')}
+            className="sm:grid-cols-1"
+          />
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+            {t('empty')}
+            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+              <PlusIcon />
+              {t('add')}
+            </Button>
+          </div>
+        )}
       </CardContent>
-      {ticket.viewer.canEdit && (
+      {editable && (
         <EditFieldsDialog
           ticket={ticket}
           fields={fields}

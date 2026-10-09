@@ -29,7 +29,7 @@
  *     GET    /lookups/groups             → { items: { id, name }[] }
  */
 import { catalogSchema, dateTime, dbConnectionSummarySchema, taskTypeInfoSchema } from '@isbp/contracts';
-import { listQuerySchema } from '@isbp/sdk';
+import { listQuerySchema, runProblemSchema } from '@isbp/sdk';
 import { z } from 'zod';
 import {
   AFTER_MODES,
@@ -291,7 +291,11 @@ export const lastRunSchema = z.object({
   startedAt: dateTime.nullable(),
   finishedAt: dateTime.nullable(),
   durationMs: z.number().int().nullable(),
+  /** An i18n key (with `summaryParams`) or plain text. */
   summary: z.string().nullable(),
+  summaryParams: z.record(z.string(), z.union([z.string(), z.number()])).nullable(),
+  error: z.string().nullable(),
+  problem: runProblemSchema.nullable(),
 });
 export type LastRun = z.input<typeof lastRunSchema>;
 export type LastRunOut = z.output<typeof lastRunSchema>;
@@ -393,7 +397,10 @@ export const runSummarySchema = z.object({
   finishedAt: dateTime.nullable(),
   durationMs: z.number().int().nullable(),
   summary: z.string().nullable(),
+  summaryParams: z.record(z.string(), z.union([z.string(), z.number()])).nullable(),
   error: z.string().nullable(),
+  /** Why it failed, for the plain explanation (`error` is the raw text). */
+  problem: runProblemSchema.nullable(),
   triggeredBy: personRefSchema.nullable(),
 });
 export type RunSummary = z.input<typeof runSummarySchema>;
@@ -405,6 +412,7 @@ export const attemptSchema = z.object({
   finishedAt: dateTime.nullable(),
   status: runStatusSchema,
   error: z.string().nullable(),
+  problem: runProblemSchema.nullable(),
   durationMs: z.number().int().nullable(),
 });
 export type Attempt = z.input<typeof attemptSchema>;
@@ -469,14 +477,21 @@ export const dashboardSchema = z.object({
     enabledJobs: z.number().int(),
   }),
   hourly: z.array(z.object({ hour: dateTime, counts: z.record(z.enum(CHART_SERIES), z.number().int()) })),
-  upcoming: z.array(z.object({ job: jobRefSchema, at: dateTime })),
+  /** Jobs due in the next 24 hours, soonest first: the next run and how many runs fall in the window. */
+  upcoming: z.array(z.object({ job: jobRefSchema, at: dateTime, count: z.number().int() })),
   failing: z.array(
     z.object({
       job: jobRefSchema,
       streak: z.number().int(),
       enabled: z.boolean(),
       lastFailure: z
-        .object({ runId: id, status: runStatusSchema, at: dateTime, error: z.string().nullable() })
+        .object({
+          runId: id,
+          status: runStatusSchema,
+          at: dateTime,
+          error: z.string().nullable(),
+          problem: runProblemSchema.nullable(),
+        })
         .nullable(),
     }),
   ),
@@ -489,7 +504,14 @@ export const attentionSchema = z.object({
   failingJobs: z.number().int(),
   runningNow: z.number().int(),
   items: z.array(
-    z.object({ job: jobRefSchema, streak: z.number().int(), at: dateTime.nullable(), runId: id.nullable() }),
+    z.object({
+      job: jobRefSchema,
+      streak: z.number().int(),
+      at: dateTime.nullable(),
+      runId: id.nullable(),
+      error: z.string().nullable(),
+      problem: runProblemSchema.nullable(),
+    }),
   ),
 });
 export type Attention = z.input<typeof attentionSchema>;

@@ -18,7 +18,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckIcon, ChevronsUpDownIcon, GlobeIcon, XIcon } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
-import { type JobRef, type Preview, TRIGGER_KINDS, type TriggerKind } from '../../contracts';
+import {
+  cronOf,
+  type JobRef,
+  type Preview,
+  REPEATS,
+  type Repeat,
+  type RepeatSpec,
+  repeatOf,
+  TRIGGER_KINDS,
+  type TriggerKind,
+} from '../../contracts';
 import { TRIGGER_ICON } from '../badges';
 import { localTimeZone, timeZones, useDebounced, useJobOptions } from '../lib';
 import { useCronText } from '../trigger-text';
@@ -227,6 +237,231 @@ function NextRuns({
   );
 }
 
+/** Weekday names (0 = Sunday) and month names in the viewer's language. */
+function useCalendarNames() {
+  const format = useFormatter();
+  return useMemo(
+    () => ({
+      weekdays: Array.from({ length: 7 }, (_, d) =>
+        format.dateTime(new Date(Date.UTC(2023, 0, 1 + d)), { weekday: 'long', timeZone: 'UTC' }),
+      ),
+      months: Array.from({ length: 12 }, (_, m) =>
+        format.dateTime(new Date(Date.UTC(2024, m, 1)), { month: 'long', timeZone: 'UTC' }),
+      ),
+    }),
+    [format],
+  );
+}
+
+/**
+ * "Repeats [Every month] on day [1] at [08:00]" for the usual schedules; a cron expression only behind
+ * "Custom (cron)". The sentence and the next run times below confirm what was picked.
+ */
+function RepeatEditor({
+  value,
+  onChange,
+  errors,
+  disabled,
+  cron,
+}: {
+  value: TriggerState;
+  onChange: (patch: Partial<TriggerState>) => void;
+  errors: Errors;
+  disabled?: boolean;
+  cron: string;
+}) {
+  const t = useTranslations('scheduler');
+  const cronText = useCronText();
+  const names = useCalendarNames();
+  const parsed = repeatOf(value.cron);
+  const [custom, setCustom] = useState(parsed.repeat === 'custom');
+  const spec: RepeatSpec = custom ? { ...parsed, repeat: 'custom' } : parsed;
+  const update = (patch: Partial<RepeatSpec>) => {
+    const next = { ...spec, ...patch };
+    if (next.repeat === 'custom') {
+      setCustom(true);
+      return;
+    }
+    setCustom(false);
+    const expr = cronOf(next);
+    if (expr) onChange({ cron: expr });
+  };
+  const minute = spec.time.split(':')[1] ?? '00';
+
+  return (
+    <div className="grid min-w-0 gap-4">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <FormRow label={t('form.repeats')}>
+          {({ id: fid }) => (
+            <Select
+              value={spec.repeat}
+              onValueChange={(v) => update({ repeat: v as Repeat })}
+              disabled={disabled}
+            >
+              <SelectTrigger id={fid} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {REPEATS.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {t(`form.repeat.${r}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </FormRow>
+        {spec.repeat === 'weekly' && (
+          <FormRow label={t('form.onWeekday')}>
+            {({ id: fid }) => (
+              <Select
+                value={String(spec.weekday)}
+                onValueChange={(v) => update({ weekday: Number(v) })}
+                disabled={disabled}
+              >
+                <SelectTrigger id={fid} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6, 0].map((d) => (
+                    <SelectItem key={d} value={String(d)}>
+                      {names.weekdays[d]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </FormRow>
+        )}
+        {spec.repeat === 'yearly' && (
+          <FormRow label={t('form.inMonth')}>
+            {({ id: fid }) => (
+              <Select
+                value={String(spec.month)}
+                onValueChange={(v) => update({ month: Number(v) })}
+                disabled={disabled}
+              >
+                <SelectTrigger id={fid} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {names.months.map((m, i) => (
+                    <SelectItem key={m} value={String(i + 1)}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </FormRow>
+        )}
+        {(spec.repeat === 'monthly' || spec.repeat === 'quarterly' || spec.repeat === 'yearly') && (
+          <FormRow
+            label={t('form.onDay')}
+            hint={spec.repeat === 'quarterly' ? t('form.onDayQuarterHint') : undefined}
+          >
+            {({ id: fid, describedBy }) => (
+              <NumberInput
+                id={fid}
+                value={String(spec.monthDay)}
+                onChange={(v) => update({ monthDay: Number(v) || 1 })}
+                min={1}
+                max={31}
+                describedBy={describedBy}
+                disabled={disabled}
+              />
+            )}
+          </FormRow>
+        )}
+        {spec.repeat === 'hourly' && (
+          <FormRow label={t('form.atMinute')}>
+            {({ id: fid }) => (
+              <NumberInput
+                id={fid}
+                value={String(Number(minute))}
+                onChange={(v) => update({ time: `00:${String(Number(v) || 0).padStart(2, '0')}` })}
+                min={0}
+                max={59}
+                disabled={disabled}
+              />
+            )}
+          </FormRow>
+        )}
+        {spec.repeat !== 'hourly' && spec.repeat !== 'custom' && (
+          <FormRow label={t('form.atTime')}>
+            {({ id: fid }) => (
+              <Input
+                id={fid}
+                type="time"
+                value={spec.time}
+                onChange={(e) => e.target.value && update({ time: e.target.value })}
+                disabled={disabled}
+                className="w-full"
+              />
+            )}
+          </FormRow>
+        )}
+        <FormRow label={t('form.timezone')} error={errors['trigger.timezone']}>
+          {({ id: fid }) => (
+            <TimezonePicker
+              id={fid}
+              value={value.timezone}
+              onChange={(timezone) => onChange({ timezone })}
+              disabled={disabled}
+            />
+          )}
+        </FormRow>
+      </div>
+      {spec.repeat === 'custom' && (
+        <div className="grid min-w-0 gap-3">
+          <FormRow label={t('form.cron')} hint={t('form.cronHint')} error={errors['trigger.cron']}>
+            {({ id: fid, describedBy, invalid }) => (
+              <Input
+                id={fid}
+                value={value.cron}
+                onChange={(e) => onChange({ cron: e.target.value })}
+                aria-describedby={describedBy}
+                aria-invalid={invalid || undefined}
+                className="font-mono sm:w-80"
+                placeholder="0 7 * * *"
+                spellCheck={false}
+                disabled={disabled}
+              />
+            )}
+          </FormRow>
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('form.presets')}>
+            <span className="text-xs text-muted-foreground">{t('form.presets')}:</span>
+            {PRESETS.map((p) => (
+              <Button
+                key={p}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => onChange({ cron: p })}
+                disabled={disabled}
+              >
+                {cronText(p)}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+      {spec.repeat !== 'custom' && errors['trigger.cron'] && (
+        <p className="text-xs font-medium text-destructive" role="alert">
+          {errors['trigger.cron']}
+        </p>
+      )}
+      {cron && (
+        <div className="grid min-w-0 gap-2 rounded-lg border bg-muted/30 p-3">
+          <p className="text-sm font-medium">{cronText(cron)}</p>
+          <NextRuns query={{ kind: 'cron', cron, timezone: value.timezone }} timezone={value.timezone} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TriggerEditor({
   value,
   onChange,
@@ -241,7 +476,6 @@ export function TriggerEditor({
   disabled?: boolean;
 }) {
   const t = useTranslations('scheduler');
-  const cronText = useCronText();
   const id = useId();
   const set = (patch: Partial<TriggerState>) => onChange({ ...value, ...patch });
   const cron = useDebounced(value.cron, 350);
@@ -285,57 +519,7 @@ export function TriggerEditor({
       </div>
 
       {value.kind === 'cron' && (
-        <div className="grid min-w-0 gap-4">
-          <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-            <FormRow label={t('form.cron')} hint={t('form.cronHint')} error={errors['trigger.cron']}>
-              {({ id: fid, describedBy, invalid }) => (
-                <Input
-                  id={fid}
-                  value={value.cron}
-                  onChange={(e) => set({ cron: e.target.value })}
-                  aria-describedby={describedBy}
-                  aria-invalid={invalid || undefined}
-                  className="font-mono"
-                  placeholder="0 7 * * *"
-                  spellCheck={false}
-                  disabled={disabled}
-                />
-              )}
-            </FormRow>
-            <FormRow label={t('form.timezone')} error={errors['trigger.timezone']}>
-              {({ id: fid }) => (
-                <TimezonePicker
-                  id={fid}
-                  value={value.timezone}
-                  onChange={(timezone) => set({ timezone })}
-                  disabled={disabled}
-                />
-              )}
-            </FormRow>
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('form.presets')}>
-            <span className="text-xs text-muted-foreground">{t('form.presets')}:</span>
-            {PRESETS.map((p) => (
-              <Button
-                key={p}
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={() => set({ cron: p })}
-                disabled={disabled}
-              >
-                {cronText(p)}
-              </Button>
-            ))}
-          </div>
-          {cron && (
-            <div className="grid min-w-0 gap-2 rounded-lg border bg-muted/30 p-3">
-              <p className="text-sm font-medium">{cronText(cron)}</p>
-              <NextRuns query={{ kind: 'cron', cron, timezone: value.timezone }} timezone={value.timezone} />
-            </div>
-          )}
-        </div>
+        <RepeatEditor value={value} onChange={set} errors={errors} disabled={disabled} cron={cron} />
       )}
 
       {value.kind === 'interval' && (

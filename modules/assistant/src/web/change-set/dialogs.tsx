@@ -15,24 +15,27 @@ import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Textarea } from '@isbp/ui/textarea';
-import { ArchiveIcon, CircleAlertIcon, InfoIcon, Trash2Icon } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { ArchiveIcon, CircleAlertIcon, InfoIcon, Trash2Icon, Undo2Icon } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useId, useState } from 'react';
 import { type ChangeSetItem, DESTRUCTIVE_OPS } from '../../contracts';
+import { dependentsOf } from '../../lib/processes';
 import { ConfirmDialog } from '../confirm-dialog';
-import { type ChangeSetDetailDto, changeSetApiPath, INVALIDATE } from '../lib';
+import { type ChangeSetDetailDto, changeSetApiPath, INVALIDATE, kindInSentence } from '../lib';
+import { usePermissionList } from './permission-names';
 
 /** An action's error, translated by code, with the assistant's own wording where it says more. */
 export function useActionErrorText() {
   const t = useTranslations('assistant.actionErrors');
   const errorText = useErrorText();
+  const permissionList = usePermissionList();
   return useCallback(
     (err: unknown): string => {
       if (!(err instanceof ApiError)) return errorText(err);
       const d = (err.details ?? {}) as { permissions?: unknown; items?: unknown };
       if (err.code === 'VALIDATION_FAILED') return t('validation');
       if (err.code === 'FORBIDDEN' && Array.isArray(d.permissions) && d.permissions.length)
-        return t('forbidden', { permissions: d.permissions.join(', ') });
+        return t('forbidden', { permissions: permissionList(d.permissions as string[]) });
       if (err.code === 'CHANGE_SET_STALE' && Array.isArray(d.items) && d.items.length)
         return t('stale', {
           items: (d.items as { label?: string }[]).map((i) => `“${i.label ?? ''}”`).join(', '),
@@ -40,7 +43,7 @@ export function useActionErrorText() {
       if (err.code === 'NOT_SUPPORTED') return t('notReversible');
       return errorText(err);
     },
-    [t, errorText],
+    [t, errorText, permissionList],
   );
 }
 
@@ -58,7 +61,7 @@ export function useChangeSetAction<V = void>(
   );
 }
 
-/** Apply: one transaction with the viewer's permissions; archives and deletes need the explicit checkbox. */
+/** Apply: everything together, with the viewer's permissions; archives and deletes need the explicit checkbox. */
 export function ApplyDialog({
   detail,
   open,
@@ -92,7 +95,7 @@ export function ApplyDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t('title', { reference: detail.reference })}
-      description={t('body')}
+      description={t('body', { count: detail.items.length })}
       confirmLabel={t('confirm')}
       loading={apply.isPending}
       disabled={destructive.length > 0 && !confirmed}
@@ -227,19 +230,27 @@ export function SubmitDialog({
   );
 }
 
-/** Roll back: confirmed by this dialog, with an optional reason for the audit log. */
+/** How many of the changes the roll back dialog lists before "and N more". */
+const ROLLBACK_SHOWN = 8;
+
+/** Roll back: says what it undoes ("Removes the request form “X”"), with an optional reason for the audit log. */
 export function RollbackDialog({
   detail,
+  kindLabel,
   open,
   onOpenChange,
   onFailed,
 }: {
   detail: ChangeSetDetailDto;
+  kindLabel: (kind: string) => string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onFailed: () => void;
 }) {
   const t = useTranslations('assistant.rollback');
+  const locale = useLocale();
+  // Undone in reverse order: the last change first.
+  const undone = [...detail.items].sort((a, b) => b.position - a.position);
   const errorOf = useActionErrorText();
   const id = useId();
   const [reason, setReason] = useState('');
@@ -271,6 +282,24 @@ export function RollbackDialog({
         )
       }
     >
+      <div className="grid gap-1.5">
+        <p className="text-sm font-medium">{t('what')}</p>
+        <ul className="grid gap-1 text-sm">
+          {undone.slice(0, ROLLBACK_SHOWN).map((i) => (
+            <li key={i.id} className="flex min-w-0 items-start gap-2">
+              <Undo2Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <span className="min-w-0 break-words">
+                {t(`undo.${i.op}`, { kind: kindInSentence(kindLabel(i.kind), locale), label: i.label })}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {undone.length > ROLLBACK_SHOWN && (
+          <p className="text-xs text-muted-foreground">
+            {t('more', { count: undone.length - ROLLBACK_SHOWN })}
+          </p>
+        )}
+      </div>
       <div className="grid gap-1.5">
         <Label htmlFor={`${id}-reason`}>{t('reason')}</Label>
         <Textarea
@@ -324,7 +353,10 @@ export function SimpleActionDialog({
   );
 }
 
-/** Remove one proposed change from a draft. */
+/**
+ * Remove one proposed change from a draft. Changes that refer to it (a form using a workflow, a schedule assigning
+ * the form) would be left broken, so they are listed and removed with it.
+ */
 export function RemoveItemDialog({
   detail,
   item,
@@ -336,9 +368,18 @@ export function RemoveItemDialog({
 }) {
   const t = useTranslations('assistant.item');
   const errorOf = useActionErrorText();
+  const dependents = item ? dependentsOf(detail.items, item.id) : [];
   const remove = useApiMutation(
-    (api, itemId: string) => api.delete<ChangeSetDetailDto>(`${changeSetApiPath(detail.id)}/items/${itemId}`),
-    { invalidate: INVALIDATE, silent: true, success: t('removed'), onSuccess: onClose },
+    (api, input: { itemId: string; withDependents: boolean }) =>
+      api.delete<ChangeSetDetailDto>(
+        `${changeSetApiPath(detail.id)}/items/${input.itemId}${input.withDependents ? '?withDependents=true' : ''}`,
+      ),
+    {
+      invalidate: INVALIDATE,
+      silent: true,
+      success: (d) => t('removed', { count: detail.items.length - d.items.length }),
+      onSuccess: onClose,
+    },
   );
   const { reset } = remove;
   useEffect(() => {
@@ -349,13 +390,30 @@ export function RemoveItemDialog({
       open={!!item}
       onOpenChange={(o) => !o && onClose()}
       title={t('removeTitle')}
-      description={item ? t('removeBody', { label: item.label, reference: detail.reference }) : undefined}
-      confirmLabel={t('removeConfirm')}
+      description={
+        item
+          ? dependents.length
+            ? t('removeWithDependents', { label: item.label, count: dependents.length })
+            : t('removeBody', { label: item.label, reference: detail.reference })
+          : undefined
+      }
+      confirmLabel={t('removeConfirm', { count: dependents.length + 1 })}
       destructive
       loading={remove.isPending}
       error={remove.error ? errorOf(remove.error) : null}
-      onConfirm={() => item && remove.mutate(item.id)}
-    />
+      onConfirm={() => item && remove.mutate({ itemId: item.id, withDependents: dependents.length > 0 })}
+    >
+      {dependents.length > 0 && (
+        <ul className="grid gap-1 text-sm">
+          {dependents.map((d) => (
+            <li key={d.id} className="flex min-w-0 items-start gap-2">
+              <Trash2Icon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+              <span className="min-w-0 break-words">{d.label}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </ConfirmDialog>
   );
 }
 

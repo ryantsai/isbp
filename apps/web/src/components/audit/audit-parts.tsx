@@ -21,6 +21,7 @@ import {
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { useAuditText } from './audit-text';
 
 const CATEGORY = {
   data: { variant: 'secondary', icon: DatabaseIcon },
@@ -114,26 +115,34 @@ export function ActorCell({
   );
 }
 
-/** `entityLabel` (with the type underneath) or `entityType:entityId`. */
-export function TargetCell({ log }: { log: Pick<AuditLog, 'entityType' | 'entityId' | 'entityLabel'> }) {
-  if (log.entityLabel) {
+/** The target's name (its label, or the current name of the id) with what kind of thing it is underneath. */
+export function TargetCell({
+  log,
+}: {
+  log: Pick<AuditLog, 'entityType' | 'entityId' | 'entityLabel' | 'refs'>;
+}) {
+  const text = useAuditText();
+  const name = text.targetName(log);
+  const type = text.typeName(log.entityType);
+  if (name) {
     return (
       <span className="block min-w-0">
-        <span className="block truncate">{log.entityLabel}</span>
-        {log.entityType && (
-          <span className="block truncate text-xs text-muted-foreground">{log.entityType}</span>
-        )}
+        <span className="block truncate">{name}</span>
+        {type && <span className="block truncate text-xs text-muted-foreground">{type}</span>}
       </span>
     );
   }
   if (log.entityType || log.entityId) {
     return (
-      <code
-        className="block truncate font-mono text-xs text-muted-foreground"
-        title={`${log.entityType ?? ''}:${log.entityId ?? ''}`}
-      >
-        {log.entityType ?? '?'}:{log.entityId ?? '?'}
-      </code>
+      <span className="block min-w-0">
+        {type && <span className="block truncate">{type}</span>}
+        <code
+          className="block truncate font-mono text-xs text-muted-foreground"
+          title={`${log.entityType ?? ''}:${log.entityId ?? ''}`}
+        >
+          {type ? log.entityId : `${log.entityType ?? '?'}:${log.entityId ?? '?'}`}
+        </code>
+      </span>
     );
   }
   return <span className="text-muted-foreground">—</span>;

@@ -9,12 +9,10 @@ import { Skeleton } from '@isbp/ui/skeleton';
 import {
   AlarmClockOffIcon,
   ArrowRightIcon,
-  ClockAlertIcon,
   InboxIcon,
   LifeBuoyIcon,
   type LucideIcon,
   UserCheckIcon,
-  UsersIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useNow, useTranslations } from 'next-intl';
@@ -27,13 +25,14 @@ import type { QueueCounts } from '../types';
 
 const SUMMARY: { view: string; count: keyof QueueCounts; icon: LucideIcon; alert?: boolean }[] = [
   { view: 'assigned', count: 'assigned', icon: UserCheckIcon },
-  { view: 'groups', count: 'groups', icon: UsersIcon },
   { view: 'unassigned', count: 'unassigned', icon: InboxIcon },
-  { view: 'breached', count: 'breached', icon: AlarmClockOffIcon, alert: true },
-  { view: 'at_risk', count: 'atRisk', icon: ClockAlertIcon, alert: true },
+  { view: 'attention', count: 'attention', icon: AlarmClockOffIcon, alert: true },
 ];
 
-/** "Your work" card on the home dashboard (`core.dashboard.work`): queue counts and my most urgent tickets. */
+/**
+ * "Your work" card on the home dashboard (`core.dashboard.work`): the queues that need the agent and their most
+ * urgent tickets. Renders nothing when nothing waits (Home shows only what needs the person).
+ */
 export default function DashboardWorkCard() {
   const t = useTranslations('itsm.dashboardCard');
   const tq = useTranslations('itsm.desk.queues');
@@ -46,6 +45,8 @@ export default function DashboardWorkCard() {
     pageSize: 50,
   });
   const urgent = useMemo(() => mostUrgent(mine.data?.items ?? [], now).slice(0, 3), [mine.data, now]);
+  const c = counts.data;
+  if (c && !c.assigned && !c.unassigned && !c.attention) return null;
 
   return (
     <Card className="min-w-0">
@@ -65,14 +66,14 @@ export default function DashboardWorkCard() {
         </CardAction>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <ul className="grid grid-cols-[repeat(auto-fill,minmax(5.75rem,1fr))] gap-2" aria-label={t('queues')}>
+        <ul className="grid grid-cols-3 gap-2" aria-label={t('queues')}>
           {SUMMARY.map((q) => {
             const value = counts.data?.[q.count];
             const hot = q.alert && (value ?? 0) > 0;
             const Icon = q.icon;
             return (
               <li key={q.view} className="min-w-0">
-                {/* Label on top with the full tile width, so five queues fit side by side in a half-width card. */}
+                {/* Label on top with the full tile width, so the queues fit side by side in a half-width card. */}
                 <Link
                   href={`/itsm?view=${q.view}`}
                   className={cn(

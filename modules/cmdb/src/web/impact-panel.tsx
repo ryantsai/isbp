@@ -3,7 +3,7 @@
 import { localize } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -12,6 +12,7 @@ import {
   ArrowDownToLineIcon,
   ArrowUpFromLineIcon,
   BriefcaseBusinessIcon,
+  CircleCheckIcon,
   ListIcon,
   NetworkIcon,
   TriangleAlertIcon,
@@ -32,6 +33,32 @@ type View = 'graph' | 'list';
 /** Fetches impact analysis (shared by the overview summary and the Impact tab). */
 export function useImpact(ref: string, depth: number) {
   return useApiQuery<Impact>(`/cmdb/cis/${ref}/impact`, { depth });
+}
+
+/**
+ * The answer in one sentence: "8 items affected, 7 of them business services" — icon + text, in the destructive tone
+ * when business services are hit, quiet otherwise.
+ */
+export function ImpactSentence({ impact, className }: { impact: Impact; className?: string }) {
+  const t = useTranslations('cmdb');
+  const services = impact.impactedServices > 0;
+  const Icon = services
+    ? TriangleAlertIcon
+    : impact.impacted.length
+      ? BriefcaseBusinessIcon
+      : CircleCheckIcon;
+  return (
+    <p
+      className={cn(
+        'flex items-start gap-2 text-sm font-medium',
+        services ? 'text-destructive' : 'text-muted-foreground',
+        className,
+      )}
+    >
+      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <span>{t('impact.summary', { count: impact.impacted.length, services: impact.impactedServices })}</span>
+    </p>
+  );
 }
 
 function NodeTable({
@@ -109,7 +136,7 @@ export function ImpactPanel({ ci }: { ci: CiRef }) {
   const [depth, setDepth] = useState(3);
   const [view, setView] = useState<View>('graph');
   const depthId = useId();
-  const { data, isLoading, isFetching } = useImpact(ci.id, depth);
+  const { data, isLoading, isFetching, error, refetch } = useImpact(ci.id, depth);
   const byId = useMemo(() => {
     const map = new Map<string, CiRef>();
     if (!data) return map;
@@ -123,29 +150,8 @@ export function ImpactPanel({ ci }: { ci: CiRef }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2" aria-live="polite">
-          {data && (
-            <>
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm font-medium',
-                  data.impactedServices
-                    ? 'bg-destructive/10 text-destructive dark:bg-destructive/20'
-                    : 'bg-muted text-muted-foreground',
-                )}
-              >
-                {data.impactedServices ? (
-                  <TriangleAlertIcon className="size-4" aria-hidden />
-                ) : (
-                  <BriefcaseBusinessIcon className="size-4" aria-hidden />
-                )}
-                {t('impact.servicesImpacted', { count: data.impactedServices })}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {t('detail.impactedCount', { count: data.impacted.length })}
-              </span>
-            </>
-          )}
+        <div aria-live="polite" className="min-w-0">
+          {data && <ImpactSentence impact={data} />}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label htmlFor={depthId} className="text-sm text-muted-foreground">
@@ -175,7 +181,7 @@ export function ImpactPanel({ ci }: { ci: CiRef }) {
                 type="button"
                 aria-pressed={view === v}
                 onClick={() => setView(v)}
-                className="inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none aria-pressed:bg-secondary aria-pressed:text-foreground"
+                className="inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none aria-pressed:bg-secondary aria-pressed:text-foreground"
               >
                 <Icon className="size-4" aria-hidden />
                 {t(`impact.${v}`)}
@@ -192,7 +198,9 @@ export function ImpactPanel({ ci }: { ci: CiRef }) {
         </p>
       )}
 
-      {isLoading || !data ? (
+      {error && !data ? (
+        <ErrorState error={error} onRetry={() => refetch()} className="rounded-xl border" />
+      ) : isLoading || !data ? (
         <Skeleton className="h-80 w-full rounded-xl" />
       ) : empty ? (
         <EmptyState
@@ -202,12 +210,22 @@ export function ImpactPanel({ ci }: { ci: CiRef }) {
           className="rounded-xl border border-dashed"
         />
       ) : view === 'graph' ? (
-        <div className={cn('space-y-2 transition-opacity', isFetching && 'opacity-60')}>
+        <div
+          className={cn(
+            'space-y-2 transition-opacity motion-reduce:transition-none',
+            isFetching && 'opacity-60',
+          )}
+        >
           <ImpactGraph impact={data} />
           <p className="text-xs text-muted-foreground sm:hidden">{t('impact.scrollHint')}</p>
         </div>
       ) : (
-        <div className={cn('grid gap-4 transition-opacity', isFetching && 'opacity-60')}>
+        <div
+          className={cn(
+            'grid gap-4 transition-opacity motion-reduce:transition-none',
+            isFetching && 'opacity-60',
+          )}
+        >
           {(
             [
               [

@@ -10,17 +10,11 @@ import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
+import { DetailHeader } from '@isbp/ui/page-header';
+import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Switch } from '@isbp/ui/switch';
-import {
-  ArrowLeftIcon,
-  EyeIcon,
-  FileQuestionIcon,
-  PlayIcon,
-  SaveIcon,
-  Trash2Icon,
-  UploadIcon,
-} from 'lucide-react';
+import { EyeIcon, FileQuestionIcon, PlayIcon, SaveIcon, Trash2Icon, UploadIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -36,7 +30,7 @@ import {
   type RemoteField,
 } from '../../contracts';
 import { type MappingIssue, validateProfile } from '../../mapping';
-import { DIRECTION_ICON, ModuleIcon } from '../badges';
+import { DIRECTION_ICON, ModuleIcon, RunStatusText } from '../badges';
 import { ConfirmDialog } from '../confirm-dialog';
 import {
   connectionHref,
@@ -143,6 +137,50 @@ function SwitchRow({
         {issues?.length ? <IssueList issues={issues} /> : null}
       </div>
     </div>
+  );
+}
+
+/** "Last run: Partly failed 33 minutes ago · 1 error · View run · next run in 27 minutes", above the settings. */
+function LastRunStrip({ profile, connectionId }: { profile: Profile; connectionId: string }) {
+  const t = useTranslations('integrations.editor');
+  const last = profile.lastRun;
+  const when = last ? (last.finishedAt ?? last.startedAt) : null;
+  return (
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border bg-card px-4 py-3 text-sm shadow-xs">
+      <span className="text-muted-foreground">{t('lastRunLabel')}</span>
+      {last ? (
+        <>
+          <RunStatusText status={last.status} />
+          {when && <RelativeTime date={when} className="text-muted-foreground" />}
+          {profile.stats.errors > 0 && (
+            <Link
+              href={`${connectionHref(connectionId)}?tab=links&state=error`}
+              className="font-medium text-destructive hover:underline"
+            >
+              · {t('errorsCount', { count: profile.stats.errors })}
+            </Link>
+          )}
+          {profile.stats.conflicts > 0 && (
+            <Link
+              href={`${connectionHref(connectionId)}?tab=conflicts`}
+              className="font-medium text-warning-foreground hover:underline"
+            >
+              · {t('conflictsCount', { count: profile.stats.conflicts })}
+            </Link>
+          )}
+          <Link href={runHref(last.id)} className="text-primary hover:underline">
+            · {t('viewRun')}
+          </Link>
+        </>
+      ) : (
+        <span>{t('neverRun')}</span>
+      )}
+      {profile.enabled && profile.nextRunAt && (
+        <span className="text-muted-foreground">
+          · {t('nextRun')} <RelativeTime date={profile.nextRunAt} />
+        </span>
+      )}
+    </p>
   );
 }
 
@@ -359,23 +397,52 @@ export default function ProfilePage({ params }: WebPageProps) {
 
   return (
     <div className="space-y-6 pb-24">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href={`${connectionHref(connectionId)}?tab=profiles`}>
-          <ArrowLeftIcon /> {system}
-        </Link>
-      </Button>
-      <div className="flex min-w-0 items-start gap-4">
-        <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-          <ModuleIcon name={connection.data.connector.icon} className="size-6" />
-        </span>
-        <div className="min-w-0 space-y-1">
-          <p className="text-sm text-muted-foreground">{t('eyebrow', { system })}</p>
-          <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">
-            {profileId ? (saved.data?.name ?? '') : t('newTitle')}
-          </h1>
-          {readOnly && <p className="text-sm text-muted-foreground">{t('readOnly')}</p>}
-        </div>
-      </div>
+      <DetailHeader
+        className="pb-0"
+        back={{ href: `${connectionHref(connectionId)}?tab=profiles`, label: system }}
+        icon={<ModuleIcon name={connection.data.connector.icon} />}
+        reference={t('eyebrow', { system })}
+        title={profileId ? (saved.data?.name ?? '') : t('newTitle')}
+        meta={readOnly ? t('readOnly') : undefined}
+        primaryAction={
+          profileId &&
+          canManage && (
+            <Button
+              type="button"
+              loading={run.isPending && run.variables === 'run'}
+              onClick={() => run.mutate('run')}
+            >
+              <PlayIcon /> {t('runNow')}
+            </Button>
+          )
+        }
+        actions={
+          profileId && canManage && saved.data?.direction !== 'pull' && saved.data?.createRemote
+            ? [
+                {
+                  id: 'export',
+                  label: t('export', { system }),
+                  icon: <UploadIcon />,
+                  disabled: run.isPending,
+                  onSelect: () => run.mutate('export'),
+                },
+              ]
+            : []
+        }
+        menu={
+          profileId && canManage
+            ? [
+                {
+                  label: tc('delete'),
+                  icon: <Trash2Icon />,
+                  destructive: true,
+                  onSelect: () => setDeleting(true),
+                },
+              ]
+            : []
+        }
+      />
+      {saved.data && <LastRunStrip profile={saved.data} connectionId={connectionId} />}
 
       <form
         noValidate
@@ -776,45 +843,13 @@ export default function ProfilePage({ params }: WebPageProps) {
               {rootError}
             </p>
           )}
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
-            {profileId && canManage && (
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-destructive sm:mr-auto"
-                onClick={() => setDeleting(true)}
-              >
-                <Trash2Icon /> {tc('delete')}
+          {canEdit && (
+            <div className="flex items-center justify-end gap-2">
+              <Button type="submit" loading={pending}>
+                <SaveIcon /> {profileId ? tc('saveChanges') : t('create')}
               </Button>
-            )}
-            <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row">
-              {profileId && canManage && saved.data?.direction !== 'pull' && saved.data?.createRemote && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  loading={run.isPending && run.variables === 'export'}
-                  onClick={() => run.mutate('export')}
-                >
-                  <UploadIcon /> {t('export', { system })}
-                </Button>
-              )}
-              {profileId && canManage && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  loading={run.isPending && run.variables === 'run'}
-                  onClick={() => run.mutate('run')}
-                >
-                  <PlayIcon /> {t('runNow')}
-                </Button>
-              )}
-              {canEdit && (
-                <Button type="submit" loading={pending}>
-                  <SaveIcon /> {profileId ? tc('saveChanges') : t('create')}
-                </Button>
-              )}
             </div>
-          </div>
+          )}
         </div>
       </form>
 

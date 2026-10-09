@@ -1,6 +1,7 @@
 'use client';
 
 import type { Me } from '@isbp/contracts';
+import type { Page } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
 import { Button } from '@isbp/ui/button';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
@@ -64,6 +65,10 @@ export function SettingsView() {
   const t = useTranslations('settings');
   const me = useApiQuery<Me>('/me');
   const active = useActiveSection();
+  // Out of office only matters to people who approve things (they can hand their approvals over).
+  const approvals = useApiQuery<Page<unknown>>('/me/approvals', { status: 'done', pageSize: 1 });
+  const pending = useApiQuery<Page<unknown>>('/me/approvals', { status: 'pending', pageSize: 1 });
+  const approves = (approvals.data?.total ?? 0) > 0 || (pending.data?.total ?? 0) > 0;
 
   const mustChange = Boolean(me.data?.mustChangePassword && me.data.authSource === 'local');
 
@@ -88,28 +93,30 @@ export function SettingsView() {
       <div className="grid gap-8 lg:grid-cols-[11rem_minmax(0,1fr)]">
         <nav aria-label={t('nav.label')} className="hidden lg:block">
           <ul className="sticky top-20 space-y-0.5">
-            {SECTIONS.map(({ id, nav, icon: Icon }) => (
-              <li key={id}>
-                <a
-                  href={`#${id}`}
-                  aria-current={active === id ? 'true' : undefined}
-                  className={cn(
-                    'relative flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                    active === id ? 'font-medium text-foreground' : 'text-muted-foreground',
-                  )}
-                >
-                  {active === id && (
-                    <motion.span
-                      layoutId="settings-nav-active"
-                      className="absolute inset-0 rounded-md bg-accent"
-                      transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                    />
-                  )}
-                  <Icon className="relative size-4" aria-hidden />
-                  <span className="relative">{t(`nav.${nav}`)}</span>
-                </a>
-              </li>
-            ))}
+            {SECTIONS.filter(({ id }) => approves || id !== 'out-of-office').map(
+              ({ id, nav, icon: Icon }) => (
+                <li key={id}>
+                  <a
+                    href={`#${id}`}
+                    aria-current={active === id ? 'true' : undefined}
+                    className={cn(
+                      'relative flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                      active === id ? 'font-medium text-foreground' : 'text-muted-foreground',
+                    )}
+                  >
+                    {active === id && (
+                      <motion.span
+                        layoutId="settings-nav-active"
+                        className="absolute inset-0 rounded-md bg-accent"
+                        transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+                      />
+                    )}
+                    <Icon className="relative size-4" aria-hidden />
+                    <span className="relative">{t(`nav.${nav}`)}</span>
+                  </a>
+                </li>
+              ),
+            )}
           </ul>
         </nav>
         <Stagger className="min-w-0 max-w-3xl space-y-6">
@@ -122,9 +129,7 @@ export function SettingsView() {
           <StaggerItem>
             <NotificationsCard />
           </StaggerItem>
-          <StaggerItem>
-            <OutOfOfficeCard />
-          </StaggerItem>
+          <StaggerItem>{approves && <OutOfOfficeCard />}</StaggerItem>
           <StaggerItem>
             <PasswordCard me={me.data} loading={me.isLoading} />
           </StaggerItem>

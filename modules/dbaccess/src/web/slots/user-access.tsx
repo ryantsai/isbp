@@ -1,12 +1,14 @@
 'use client';
 
 import type { UserOverviewSlotProps } from '@isbp/contracts';
+import { useCan, usePlatform } from '@isbp/sdk/web';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { DatabaseIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { Grant } from '../../contracts';
+import { PERMISSIONS } from '../../manifest';
 import { GrantStatusBadge, RiskBadge } from '../badges';
 import { useDate, useLocalized } from '../lib';
 
@@ -18,8 +20,13 @@ export default function UserDatabaseAccess({ user }: UserOverviewSlotProps) {
   const t = useTranslations('dbaccess.userSlot');
   const l = useLocalized();
   const date = useDate();
-  const { data, isLoading, error } = useApiQuery<{ items: Grant[] }>(`/dbaccess/people/${user.id}/access`);
-  if (error) return null;
+  const { user: me } = usePlatform();
+  // The same people the API lets read it: grants readers, the person and their manager (no request for anyone else).
+  const allowed = useCan(PERMISSIONS.grantsRead) || me.id === user.id || user.managerId === me.id;
+  const { data, isLoading, error } = useApiQuery<{ items: Grant[] }>(
+    allowed ? `/dbaccess/people/${user.id}/access` : null,
+  );
+  if (!allowed || error) return null;
   return (
     <Card className="min-w-0">
       <CardHeader>

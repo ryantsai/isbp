@@ -45,13 +45,26 @@ export interface RenderOptions {
   timezone?: string;
 }
 
+/**
+ * Date formatters by locale and time zone: building one is far more costly than formatting with it, and every
+ * catalog lookup formats its (usually empty) parameters. Bounded, since zones are few and entries are cheap to rebuild.
+ */
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
+function dateFormatOf(locale: string, timezone: string | undefined): Intl.DateTimeFormat {
+  const zone = timezone || 'UTC';
+  const key = `${locale}\u0000${zone}`;
+  let fmt = dateFormats.get(key);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: zone });
+    if (dateFormats.size >= 256) dateFormats.clear();
+    dateFormats.set(key, fmt);
+  }
+  return fmt;
+}
+
 function formatParams(params: Record<string, NotificationParam>, opts: RenderOptions) {
   const out: Record<string, string | number> = {};
-  const dateFmt = new Intl.DateTimeFormat(opts.locale, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: opts.timezone || 'UTC',
-  });
+  const dateFmt = dateFormatOf(opts.locale, opts.timezone);
   for (const [k, v] of Object.entries(params)) {
     if (v instanceof Date) out[k] = dateFmt.format(v);
     else if (v === null || v === undefined) out[k] = '';
@@ -61,9 +74,25 @@ function formatParams(params: Record<string, NotificationParam>, opts: RenderOpt
   return out;
 }
 
+/**
+ * Compiled message formatters by locale and message text: compiling one is the costly part of formatting, and a
+ * compiled formatter depends on nothing else. Catalog messages are a fixed set, so the cache is bounded in practice.
+ */
+const messageFormats = new Map<string, IntlMessageFormat>();
+function messageFormatOf(message: string, locale: string): IntlMessageFormat {
+  const key = `${locale}\u0000${message}`;
+  let compiled = messageFormats.get(key);
+  if (!compiled) {
+    compiled = new IntlMessageFormat(message, locale);
+    if (messageFormats.size >= 5_000) messageFormats.clear();
+    messageFormats.set(key, compiled);
+  }
+  return compiled;
+}
+
 function format(message: string, locale: string, values: Record<string, string | number>): string {
   try {
-    return String(new IntlMessageFormat(message, locale).format(values));
+    return String(messageFormatOf(message, locale).format(values));
   } catch {
     return message;
   }

@@ -8,15 +8,15 @@ import { Checkbox } from '@isbp/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
-import { easeOut, Stagger, StaggerItem } from '@isbp/ui/motion';
+import { Disclosure, easeOut, Stagger, StaggerItem } from '@isbp/ui/motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
-  BlocksIcon,
+  ClipboardCheckIcon,
   CircleAlertIcon,
   InfoIcon,
   KeyRoundIcon,
-  ShieldCheckIcon,
-  SparklesIcon,
+  LifeBuoyIcon,
+  SmartphoneIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -68,9 +68,9 @@ export function LoginView({
   });
 
   const features = [
-    { icon: ShieldCheckIcon, label: t('features.rbac') },
-    { icon: BlocksIcon, label: t('features.modules') },
-    { icon: SparklesIcon, label: t('features.ai') },
+    { icon: LifeBuoyIcon, label: t('features.help') },
+    { icon: ClipboardCheckIcon, label: t('features.requests') },
+    { icon: SmartphoneIcon, label: t('features.approve') },
   ];
 
   return (
@@ -274,6 +274,14 @@ export function LoginView({
               </Button>
             </form>
           </Form>
+          <Disclosure
+            summary={t('cantSignIn')}
+            className="mt-6 rounded-lg border"
+            triggerClassName="w-full justify-between px-4 py-3 text-sm font-medium"
+            contentClassName="px-4 pb-4 text-sm text-muted-foreground"
+          >
+            <p>{t('cantSignInBody')}</p>
+          </Disclosure>
         </motion.div>
       </main>
     </div>

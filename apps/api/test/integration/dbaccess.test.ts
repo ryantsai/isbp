@@ -357,6 +357,37 @@ describe('request → approve → provision → reveal → expiry', () => {
   let grantId = '';
   const account = `${PREFIX}_u_alice`;
 
+  it('previews who will approve each role before anything is sent', async () => {
+    const before = await auditOf('dbaccess.request.submitted');
+    const res = await post('alice', '/requests/preview', {
+      items: [
+        { roleId: fx.reader, expiresOn: addDays(today(), 30) },
+        { roleId: fx.hi, expiresOn: addDays(today(), 7) },
+      ],
+    });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    const pathOf = (roleId: string) =>
+      (res.body.items as LooseJson[])
+        .find((i) => i.roleId === roleId)!
+        .steps.filter((s: LooseJson) => s.type === 'approval')
+        .map((s: LooseJson) => [s.id, s.outcome, s.people.map((p: LooseJson) => p.id).sort()]);
+    // Low risk: the manager, then the role owner; information security is left out by its condition.
+    expect(pathOf(fx.reader)).toEqual([
+      ['manager', 'ask', [ids.mgr]],
+      ['owner', 'ask', [ids.owner]],
+      ['security', 'skipped', []],
+    ]);
+    // High risk: information security too.
+    expect(pathOf(fx.hi).map(([id, outcome]: LooseJson[]) => [id, outcome])).toEqual([
+      ['manager', 'ask'],
+      ['owner', 'ask'],
+      ['security', 'ask'],
+    ]);
+    // A dry run: nothing is saved.
+    expect(await auditOf('dbaccess.request.submitted')).toHaveLength(before.length);
+    expect((await get('alice', '/me/access')).body.requests).toHaveLength(0);
+  });
+
   it('refuses durations over the maximum, missing justifications and duplicates', async () => {
     const tooLong = await post('alice', '/requests', {
       items: [{ roleId: fx.reader, expiresOn: addDays(today(), 120) }],
@@ -582,6 +613,15 @@ describe('access reviews', () => {
     expect(mine.body.items).toHaveLength(1);
     const item = mine.body.items[0];
     expect(item).toMatchObject({ grantId: id, canDecide: true, reviewer: { kind: 'user', id: ids.owner } });
+    // The reviewer's part is on My work (opening their items); the grantee has nothing to decide.
+    const work = (await h.call(s.owner!, 'GET', '/api/v1/me/work')).body as LooseJson;
+    const reviewWork = work.sections.find((x: LooseJson) => x.source === 'dbaccess.reviews');
+    expect(reviewWork, JSON.stringify(reviewWork)).toMatchObject({ kind: 'review', count: 1 });
+    expect(reviewWork.items.map((i: LooseJson) => i.href)).toEqual([
+      expect.stringMatching(/^\/dbaccess\/reviews\/REV-\d+\?view=mine$/),
+    ]);
+    const aliceWork = (await h.call(s.alice!, 'GET', '/api/v1/me/work')).body as LooseJson;
+    expect(aliceWork.sections.find((x: LooseJson) => x.source === 'dbaccess.reviews')).toBeUndefined();
     expect(
       (await post('alice', `/reviews/${reviewId}/decisions`, { itemIds: [item.id], decision: 'keep' }))
         .status,

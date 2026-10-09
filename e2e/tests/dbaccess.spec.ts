@@ -138,7 +138,7 @@ test('request a database role, get it approved and provisioned, see the password
   await p.goto('/requests');
   await p
     .getByRole('region', { name: 'What do you need?' })
-    .getByRole('link', { name: /Request database access/ })
+    .getByRole('link', { name: /Direct database access/ })
     .click();
   await expect(p.getByRole('heading', { name: 'Request database access', level: 1 })).toBeVisible();
   await p.getByPlaceholder('Search roles, databases or servers…').fill('reporting');
@@ -148,13 +148,15 @@ test('request a database role, get it approved and provisioned, see the password
   await expect(p.getByText(/At most 180 days/)).toBeVisible();
   await p.getByLabel('Why do you need it?').fill('Weekly service desk KPI report from the ERP (e2e).');
   await p.getByRole('button', { name: 'Review', exact: true }).click();
-  await expect(p.getByText('Who will approve it')).toBeVisible();
-  await expect(p.getByText('Your manager')).toBeVisible();
+  // The same review step as the access request: who will approve it, from a dry run of the workflow.
+  await expect(p.getByRole('heading', { name: 'Who will approve it' })).toBeVisible();
+  await expect(p.getByText('Manager approval')).toBeVisible();
+  await expect(p.getByText('Role owner approval')).toBeVisible();
   await p.getByRole('button', { name: 'Send request' }).click();
   await expect(p).toHaveURL(/\/dbaccess\/requests\/DBR-\d{5}$/);
   const reference = p.url().split('/').pop()!;
   await expect(p.getByText('Waiting for approval').first()).toBeVisible();
-  await expect(p.getByRole('region', { name: 'Approval path' })).toBeVisible();
+  await expect(p.getByRole('list', { name: 'Approval path' })).toBeVisible();
 
   // Admin is helpdesk's manager: approve in the inbox.
   await approveInInbox(page, reference);
@@ -216,34 +218,34 @@ test('DBA: sync servers and see unmanaged access and orphans', async ({ page }) 
   await expect(page.getByRole('heading', { name: 'Servers', level: 1 })).toBeVisible();
   await page.getByRole('button', { name: 'Sync now: Contoso ERP (PostgreSQL)' }).click();
   await expect(
-    page.getByText(/Contoso ERP \(PostgreSQL\): \d+ accounts, \d+ roles, \d+ unmanaged/),
+    page.getByText(/Contoso ERP \(PostgreSQL\): \d+ accounts, \d+ roles, \d+ without a request/),
   ).toBeVisible();
   // The SQL Server host does not exist: the DBA sees the server's own error.
   await page.getByRole('button', { name: 'Sync now: HR (SQL Server)' }).click();
   await expect(page.getByText(/HR \(SQL Server\) could not be synced/)).toBeVisible();
 
   await page.goto('/dbaccess/grants?tab=unmanaged');
-  await expect(page.getByRole('heading', { name: 'Access', level: 1 })).toBeVisible();
-  const unmanaged = page.getByRole('list', { name: 'Unmanaged access' });
+  await expect(page.getByRole('heading', { name: 'Who has access', level: 1 })).toBeVisible();
+  const unmanaged = page.getByRole('list', { name: 'Access without a request' });
   await expect(unmanaged.getByText('demo_u_legacy_report')).toBeVisible();
   await expect(unmanaged.getByText('TMPLOAD')).toBeVisible();
   // Adopting asks for the person and an end date.
   await unmanaged
     .getByRole('listitem')
     .filter({ hasText: 'demo_u_legacy_report' })
-    .getByRole('button', { name: 'Adopt' })
+    .getByRole('button', { name: 'Assign to a person' })
     .click();
-  const adopt = page.getByRole('dialog', { name: 'Adopt demo_u_legacy_report' });
+  const adopt = page.getByRole('dialog', { name: 'Assign demo_u_legacy_report to a person' });
   await expect(adopt.getByLabel('Access until')).toBeVisible();
   await page.keyboard.press('Escape');
 
   await page.getByRole('tab', { name: 'Accounts' }).click();
   await expect(page).toHaveURL(/tab=accounts/);
   await page.getByRole('combobox', { name: 'Person' }).click();
-  await page.getByRole('option', { name: 'Orphans only' }).click();
+  await page.getByRole('option', { name: 'Only accounts with no matching person' }).click();
   await expect(page.getByText('TMPLOAD')).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Grants' }).click();
+  await page.getByRole('tab', { name: 'Granted access' }).click();
   await page.getByRole('combobox', { name: 'Status' }).click();
   await page.getByRole('option', { name: 'Failed', exact: true }).click();
   await expect(page.getByRole('cell', { name: /HRIS read-only/ }).first()).toBeVisible();
@@ -263,6 +265,8 @@ test('access review: decide items one by one', async ({ page }) => {
   // Listed among the campaigns (and under "Reviews awaiting you" while admin has items to decide).
   await page.getByRole('link', { name: 'Q4 2026 database access review' }).first().click();
   await expect(page.getByRole('heading', { name: 'Q4 2026 database access review', level: 1 })).toBeVisible();
+  // The admin's own grants to decide come first, with Keep / Revoke on every row.
+  await expect(page.getByRole('tab', { name: /To do/ })).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('tab', { name: 'All', exact: true }).click();
   await expect(page).toHaveURL(/view=all/);
 
@@ -270,7 +274,7 @@ test('access review: decide items one by one', async ({ page }) => {
     .getByRole('button', { name: /^Keep access of / })
     .first()
     .click();
-  await expect(page.getByText('Decision saved').first()).toBeVisible();
+  await expect(page.getByText('Access kept').first()).toBeVisible();
 
   await page
     .getByRole('button', { name: /^Revoke access of / })
@@ -282,8 +286,11 @@ test('access review: decide items one by one', async ({ page }) => {
   await dialog.getByLabel('Reason').fill('Moved to another team (e2e).');
   await dialog.getByRole('button', { name: 'Revoke' }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByText('Decision saved').first()).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Export CSV' })).toHaveAttribute('href', /report\.csv$/);
+  await expect(page.getByText('Marked to revoke when the review closes').first()).toBeVisible();
+  // Export is in the header's "More" menu.
+  await page.getByRole('button', { name: 'More actions' }).click();
+  await expect(page.getByRole('menuitem', { name: 'Export CSV' })).toBeVisible();
+  await page.keyboard.press('Escape');
 });
 
 test('Database access pages have no accessibility violations (light and dark)', async ({ page, request }) => {

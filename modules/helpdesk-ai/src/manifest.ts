@@ -19,23 +19,16 @@ export const manifest = defineManifest({
   dependsOn: ['itsm', 'knowledge'],
   navigation: [
     {
-      id: 'chat',
-      label: 'helpdesk-ai.nav.chat',
-      href: '/helpdesk-ai/chat',
-      icon: 'message-circle-question',
-      permission: 'helpdesk-ai.chat.use',
-      section: 'main',
-      order: 15,
-    },
-    {
+      // Ask IT lives in Requests (and Home). The insights are the "AI insights" tab of the service desk's Reports
+      // (service desk report readers see the metrics too); a row of its own for people who can't open Reports.
       id: 'insights',
       label: 'helpdesk-ai.nav.insights',
       href: '/helpdesk-ai',
-      icon: 'sparkles',
-      permission: 'helpdesk-ai.insights.read',
+      icon: 'brain-circuit',
+      permission: ['helpdesk-ai.insights.read', 'itsm.reports.read'],
       section: 'main',
-      group: 'itsm.nav.group',
-      order: 24,
+      parent: 'itsm.reports',
+      order: 30,
     },
   ],
   permissions: [

@@ -28,6 +28,7 @@ import { cn } from '../lib/utils';
 import { Checkbox } from './checkbox';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from './form';
 import { Input } from './input';
+import { useReducedMotion } from './motion';
 import { type PersonOption, PersonPicker, usePeople } from './person-picker';
 import { RecordPicker, RecordValues, recordRefs } from './record-picker';
 import { RowsControl, RowsTable } from './rows-field';
@@ -442,6 +443,7 @@ export function FormFields({
   const values = useMemo(() => (watched ?? {}) as Record<string, unknown>, [watched]);
   const visible = visibleElements({ elements: [...elements] }, values);
   const name = (key: string) => (namePrefix ? `${namePrefix}.${key}` : key);
+  const reduce = useReducedMotion();
 
   return (
     <div className={cn('grid gap-x-4 sm:grid-cols-2', className)}>
@@ -449,41 +451,74 @@ export function FormFields({
         {visible.map((el) => {
           const span = !isField(el) || el.width !== 'half' ? 'sm:col-span-2' : '';
           return (
-            <motion.div key={el.id} {...reveal} className={cn('overflow-hidden', span)}>
+            <motion.div
+              key={el.id}
+              {...reveal}
+              transition={reduce ? { duration: 0 } : reveal.transition}
+              className={cn('overflow-hidden', span)}
+            >
               <div className="pb-4">
                 {isField(el) ? (
                   <FormField
                     control={form.control}
                     name={name(el.key)}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {localize(el.label, locale)}
-                          {el.required && (
-                            <span aria-hidden className="text-destructive">
-                              *
-                            </span>
+                    render={({ field }) =>
+                      el.type === 'boolean' ? (
+                        // A yes/no field is one row: [✓] Label, the label part of the click target.
+                        <FormItem className="gap-1.5">
+                          <div className="flex items-start gap-2.5">
+                            <FormControl>
+                              <Checkbox
+                                disabled={disabled}
+                                checked={field.value === true}
+                                onCheckedChange={(c) => field.onChange(c === true)}
+                                className="mt-0.5"
+                              />
+                            </FormControl>
+                            <FormLabel className="leading-snug font-normal">
+                              {localize(el.label, locale)}
+                              {el.required && (
+                                <span aria-hidden className="text-destructive">
+                                  *
+                                </span>
+                              )}
+                            </FormLabel>
+                          </div>
+                          {el.help && (
+                            <FormDescription className="pl-6.5">{localize(el.help, locale)}</FormDescription>
                           )}
-                        </FormLabel>
-                        <FormControl>
-                          <FieldControl
-                            field={el}
-                            value={field.value}
-                            onChange={field.onChange}
-                            locale={locale}
-                            disabled={disabled}
-                            cellError={
-                              el.type === 'rows'
-                                ? (row, key) =>
-                                    errorMessageAt(errors, [...name(el.key).split('.'), String(row), key])
-                                : undefined
-                            }
-                          />
-                        </FormControl>
-                        {el.help && <FormDescription>{localize(el.help, locale)}</FormDescription>}
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                          <FormMessage className="pl-6.5" />
+                        </FormItem>
+                      ) : (
+                        <FormItem>
+                          <FormLabel>
+                            {localize(el.label, locale)}
+                            {el.required && (
+                              <span aria-hidden className="text-destructive">
+                                *
+                              </span>
+                            )}
+                          </FormLabel>
+                          <FormControl>
+                            <FieldControl
+                              field={el}
+                              value={field.value}
+                              onChange={field.onChange}
+                              locale={locale}
+                              disabled={disabled}
+                              cellError={
+                                el.type === 'rows'
+                                  ? (row, key) =>
+                                      errorMessageAt(errors, [...name(el.key).split('.'), String(row), key])
+                                  : undefined
+                              }
+                            />
+                          </FormControl>
+                          {el.help && <FormDescription>{localize(el.help, locale)}</FormDescription>}
+                          <FormMessage />
+                        </FormItem>
+                      )
+                    }
                   />
                 ) : el.type === 'heading' ? (
                   <h3 className="pt-2 text-base font-semibold">{localize(el.text, locale)}</h3>

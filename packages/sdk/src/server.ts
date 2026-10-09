@@ -28,7 +28,7 @@ import type {
   SyncService,
 } from './integrations';
 import type { ChangeSetPackage, CustomizationHandler, CustomizationsService } from './customizations';
-import type { ModuleManifest } from './manifest';
+import type { ModuleManifest, NavEntry } from './manifest';
 import type { PermissionReach, PermissionSet, ResourceScope } from './permissions';
 
 export * from './index';
@@ -631,7 +631,11 @@ export interface RecordsService {
   linked(ref: RecordRef, opts?: { types?: readonly string[]; tx?: Db }): Promise<RecordRef[]>;
   /** Number of links per record (keyed by `type:id`), e.g. for a link badge on list rows or cards. */
   counts(refs: readonly RecordRef[]): Promise<Map<string, number>>;
-  /** Drops the links and attachments of a record that was deleted. */
+  /**
+   * Drops the links and attachments of a record being deleted. Call it in the deleting transaction: it first refuses
+   * with `IN_USE` (details `{ references, more }`) while open work or live settings still use the record
+   * (`references` finders of every module, e.g. a request awaiting approval whose form names it).
+   */
   forget(ref: RecordRef, opts?: { tx?: Db }): Promise<void>;
   /** Approval facts of records (types whose resolver has `facts`), keyed by `type:id`; unknown ones are skipped. */
   facts(refs: readonly RecordRef[]): Promise<Map<string, Record<string, unknown>>>;
@@ -770,18 +774,35 @@ export interface TaskContext {
 }
 
 export interface TaskOutcome {
-  /** One line for run lists ("31 rows written"). */
+  /**
+   * One line for run lists: an i18n key in the module's catalog (`etl.results.pipeline`, shown in the reader's
+   * language with `summaryParams`), or short plain text ("31 rows written").
+   */
   summary?: string;
+  /** Values of the summary's ICU arguments (`{ written: 31, read: 31 }`). */
+  summaryParams?: Record<string, string | number> | null;
   metrics?: Record<string, number>;
   /** Web path with more detail (e.g. the pipeline run). */
   href?: string | null;
 }
 
+/**
+ * A task type's `run` throws `HttpError` (or any error) to fail the attempt. Scheduled jobs explains the failure from
+ * its code (`runProblemOf`); a task that knows better — which database connection, which host — puts a `RunProblem`
+ * in `details.problem`.
+ */
 export interface TaskTypeHandler<C = unknown> {
   /** Checks what `config` refers to as the job's editor (exists, they may use it). Throw `HttpError` to refuse. */
   validate?(config: C, ctx: ModuleContext, auth: AuthContext): Promise<void>;
-  /** A label for job lists ("Pipeline: Orders → warehouse") and a link to the configured object. */
-  describe?(config: C, ctx: ModuleContext): Promise<{ label: string; href?: string | null }>;
+  /**
+   * A label for job lists ("Pipeline: Orders → warehouse") and a link to the configured object, in `opts.locale` (the
+   * reader's language) when given.
+   */
+  describe?(
+    config: C,
+    ctx: ModuleContext,
+    opts?: { locale?: Locale },
+  ): Promise<{ label: string; href?: string | null }>;
   run(config: C, task: TaskContext, ctx: ModuleContext): Promise<TaskOutcome | void>;
 }
 
@@ -806,10 +827,11 @@ export interface TaskTypesService {
    * read through the caller's transaction (a change set validating a job that names a pipeline created in it).
    */
   validate(type: string, config: unknown, auth: AuthContext, opts?: { db?: Db }): Promise<unknown>;
+  /** The job list's label of a configured task, in `opts.locale` when given (the reader's language). */
   describe(
     type: string,
     config: unknown,
-    opts?: { db?: Db },
+    opts?: { db?: Db; locale?: Locale },
   ): Promise<{ label: string; href: string | null }>;
   /** Runs the handler in its own module's context (409 `MODULE_DISABLED` when that module is off). */
   run(type: string, config: unknown, task: TaskContext): Promise<TaskOutcome>;
@@ -968,11 +990,20 @@ export interface JobDefinition<T = any> {
 
 export interface SearchHit {
   id: string;
+  /** What it is (`ticket`, `article`, `request`): the palette shows the translated `shell.commandPalette.types.<type>`. */
   type: string;
   title: string;
+  /** Plain text (a reference, a summary); never a status code — use `status`. */
   subtitle?: string | null;
   href: string;
   icon?: string;
+  /** Status as an i18n key in the module's catalog (`itsm.status.in_progress`), shown translated. */
+  status?: string | null;
+  /** Hits sharing a `group` are one thing in several languages: the viewer sees the one in their `locale`. */
+  group?: string | null;
+  locale?: string | null;
+  /** An exact reference match (`REQ-01020`): listed first. */
+  exact?: boolean;
 }
 
 export type SearchProvider = (
@@ -981,6 +1012,90 @@ export type SearchProvider = (
   auth: AuthContext,
   limit: number,
 ) => Promise<SearchHit[]>;
+
+/** One thing waiting for a person (a row on My work). */
+export interface WorkItem {
+  /** Unique within the source. */
+  id: string;
+  /** Plain text in the viewer's language: what to do or decide ("Q4 database access review"). */
+  title: string;
+  /** Plain text: the reference or who asked ("REV-0003", "林雅婷"). */
+  subtitle?: string | null;
+  /**
+   * Translated text after the subtitle: an i18n key in the module's catalog with its ICU values
+   * (`{ key: 'isms.work.toCheck', params: { count: 4 } }` → "4 to check").
+   */
+  detail?: { key: string; params?: Record<string, string | number> } | null;
+  /** Opens the item itself (the decision, the form, the review filtered to the person's part). */
+  href: string;
+  /** When it is due (overdue items are shown first and marked). */
+  due?: Date | string | null;
+  /** When it arrived. */
+  since?: Date | string | null;
+}
+
+export interface WorkResult {
+  /** Everything waiting for the person in this source (items may be fewer: `limit`). */
+  count: number;
+  items: WorkItem[];
+}
+
+/**
+ * Returns what waits for the person in `auth` (never anyone else's work), soonest due first. `limit` 0 asks for the
+ * count only (the sidebar badge): skip loading items then. Keep it to one or two indexed queries.
+ */
+export type WorkProvider = (
+  auth: AuthContext,
+  ctx: ModuleContext,
+  opts: { limit: number; locale: string },
+) => Promise<WorkResult>;
+
+/** What a delete is checked against: a record (`cmdb.ci`, …) or another referenced thing (`core.group`). */
+export interface ReferenceTarget {
+  type: string;
+  id: string;
+  /** Its key, for things settings may name by key as well as by id (groups). */
+  key?: string | null;
+}
+
+/**
+ * Something a delete would leave broken. `request`, `approval`, `todo` and `work` are open work (a request still in
+ * approval or with actions to run, an approval in progress, an open to-do, a ticket or check in progress); `setting`
+ * is live configuration whose next use would fail (a published form's action, a scheduled job). Report only what an
+ * administrator can resolve (finish, reassign, cancel or archive).
+ */
+export interface Reference {
+  kind: 'request' | 'approval' | 'todo' | 'work' | 'setting';
+  /** How people know it: a reference and a name ("REQ-01039 · New laptop"), with no other words. */
+  label: string | LocalizedText;
+  /** Where to resolve it. */
+  href?: string | null;
+}
+
+/**
+ * A `jsonb_path_match` predicate that is true when a settings document names the group: its id anywhere, or its key
+ * where settings name groups by key (`groupKey`, `groups`, `groupKeys`). A select option that reads like the key
+ * doesn't count. Bind the variables with {@link groupPathVars}:
+ * `sql\`jsonb_path_match(${col}, ${GROUP_JSONPATH}::jsonpath, ${groupPathVars(t)}::jsonb)\``.
+ */
+export const GROUP_JSONPATH =
+  'exists($.** ? (@ == $id)) || exists($.**.groupKey ? (@ == $key)) || exists($.**.groupKeys ? (@ == $key)) || exists($.**.groups ? (@ == $key))';
+
+export const groupPathVars = (t: ReferenceTarget) => JSON.stringify({ id: t.id, key: t.key ?? t.id });
+
+/**
+ * Lists what in this module still uses `target`, read in the deleting transaction `tx` (at most `limit`). Deletes are
+ * refused with `IN_USE` while anything does (`docs/ai/recipes.md`). Report only what would break or be orphaned:
+ * closed work and history never block a delete. Keep it to one or two indexed queries.
+ */
+export type ReferenceFinder = (
+  target: ReferenceTarget,
+  ctx: ModuleContext,
+  opts: { tx: Db; limit: number },
+) => Promise<Reference[]>;
+
+/** Decides whether a navigation entry marked `check: true` is shown to this person (after its permission). */
+export type NavigationCheck = (auth: AuthContext, ctx: ModuleContext) => Promise<boolean>;
 
 export type AiToolHandler = (input: unknown, ctx: ModuleContext, auth: AuthContext) => Promise<unknown>;
 
@@ -998,8 +1113,18 @@ export interface ServerModuleOptions {
   /** Completion handlers for this module's `manifest.workflows` triggers. */
   workflows?: Record<string, WorkflowTriggerHandler>;
   search?: SearchProvider;
+  /** Providers for `manifest.work`, keyed by source (without the module prefix). */
+  work?: Record<string, WorkProvider>;
+  /** Visibility checks for `manifest.navigation` entries marked `check: true`, keyed by entry id. */
+  navigation?: Record<string, NavigationCheck>;
   /** Resolvers for `manifest.records.types`, keyed by type (without the module prefix). */
   records?: Record<string, RecordResolver>;
+  /**
+   * What in this module still uses another module's record or thing, keyed by the referenced type **with** its module
+   * prefix (`core.group`, `cmdb.ci`); `*` answers for every record type. Asked before a group is deleted and by
+   * `ctx.records.forget`, which refuses the delete with `IN_USE` listing them.
+   */
+  references?: Record<string, ReferenceFinder>;
   /** Handlers for `manifest.taskTypes`, keyed by type (without the module prefix). */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   taskTypes?: Record<string, TaskTypeHandler<any>>;
@@ -1136,6 +1261,31 @@ export function defineServerModule(manifest: ModuleManifest, options: ServerModu
       throw new Error(
         `[${manifest.id}] process action handler "${action}" is not declared in manifest.processActions`,
       );
+  }
+  const workSources = new Set(manifest.work?.map((w) => w.key) ?? []);
+  for (const key of workSources) {
+    if (typeof options.work?.[key] !== 'function')
+      throw new Error(`[${manifest.id}] work source "${key}" has no provider in work`);
+  }
+  for (const key of Object.keys(options.work ?? {})) {
+    if (!workSources.has(key))
+      throw new Error(`[${manifest.id}] work provider "${key}" is not declared in manifest.work`);
+  }
+  const checked = new Set<string>();
+  const walk = (entries: NavEntry[] | undefined): void =>
+    entries?.forEach((e) => {
+      if (e.check) checked.add(e.id);
+      walk(e.children);
+      walk(e.tabs);
+    });
+  walk(manifest.navigation);
+  for (const id of checked) {
+    if (typeof options.navigation?.[id] !== 'function')
+      throw new Error(`[${manifest.id}] navigation entry "${id}" has check: true but no check in navigation`);
+  }
+  for (const id of Object.keys(options.navigation ?? {})) {
+    if (!checked.has(id))
+      throw new Error(`[${manifest.id}] navigation check "${id}" is not an entry marked check: true`);
   }
   for (const name of Object.keys(options.jobs ?? {})) {
     if (!/^[a-z][a-z0-9-]*$/.test(name))

@@ -8,16 +8,16 @@ import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { useListState } from '@isbp/ui/data-table';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { safeUrl } from '@isbp/ui/markdown';
-import { FadeIn } from '@isbp/ui/motion';
+import { type DetailAction, DetailHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
   ArchiveRestoreIcon,
-  ArrowLeftIcon,
   ArrowRightLeftIcon,
   CircleAlertIcon,
   CircleCheckIcon,
@@ -58,7 +58,8 @@ import { contractHref, licenseHref, modelLabel, useDay, useMoney } from '../lib'
 import { DepreciationBar } from '../meters';
 import { LinksAndFiles } from '../record-panels';
 
-type Tab = 'overview' | 'software' | 'contracts' | 'history' | 'links';
+const TABS = ['overview', 'software', 'contracts', 'history', 'links'] as const;
+type Tab = (typeof TABS)[number];
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -83,7 +84,8 @@ export default function AssetPage({ params }: WebPageProps) {
     isLoading,
     error,
   } = useApiQuery<AssetDetail>(`/itam/assets/${encodeURIComponent(params.ref ?? '')}`);
-  const [tab, setTab] = useState<Tab>('overview');
+  const [state, set] = useListState();
+  const tab: Tab = TABS.includes(state.tab as Tab) ? (state.tab as Tab) : 'overview';
   const [action, setAction] = useState<AssetAction | null>(null);
   const [editing, setEditing] = useState(false);
 
@@ -101,87 +103,127 @@ export default function AssetPage({ params }: WebPageProps) {
         <Skeleton className="h-72 w-full rounded-xl" />
       </div>
     );
-  if (error || !asset) return <EmptyState icon={<FileQuestionIcon />} title={t('asset.notFound')} />;
+  if (error) return <ErrorState kind="page" error={error} />;
+  if (!asset) return <EmptyState icon={<FileQuestionIcon />} title={t('asset.notFound')} />;
 
   const v = asset.viewer;
   const dep = asset.depreciation;
+  // One next step, from the asset's state; everything else is in "More".
+  const wipePending =
+    asset.wipeState === 'due' || asset.wipeState === 'overdue' || asset.wipeState === 'scheduled';
+  const candidates: { action: AssetAction; label: string; icon: ReactNode; when: boolean }[] = [
+    { action: 'wipe', label: t('wipe.action'), icon: <EraserIcon />, when: v.canRecordWipe && wipePending },
+    { action: 'return', label: t('actions.return'), icon: <Undo2Icon />, when: v.canReturn },
+    {
+      action: 'assign',
+      label: t('actions.assign'),
+      icon: <UserPlusIcon />,
+      when: v.canAssign && !asset.assignee,
+    },
+    {
+      action: 'dispose',
+      label: t('actions.requestDisposal'),
+      icon: <RecycleIcon />,
+      when: v.canDispose && asset.status === 'retired',
+    },
+  ];
+  const primary = v.canManage ? candidates.find((c) => c.when) : undefined;
+  const more: DetailAction[] = v.canManage
+    ? [
+        ...(v.canAssign && asset.assignee
+          ? [
+              {
+                id: 'reassign',
+                label: t('actions.reassign'),
+                icon: <ArrowRightLeftIcon />,
+                onSelect: () => setAction('assign'),
+              },
+            ]
+          : []),
+        ...(v.canReturn && primary?.action !== 'return'
+          ? [
+              {
+                id: 'return',
+                label: t('actions.return'),
+                icon: <Undo2Icon />,
+                onSelect: () => setAction('return'),
+              },
+            ]
+          : []),
+        ...(v.transitions.some((s) => s !== 'deployed')
+          ? [
+              {
+                id: 'status',
+                label: t('actions.changeStatus'),
+                icon: <ArchiveRestoreIcon />,
+                onSelect: () => setAction('status'),
+              },
+            ]
+          : []),
+        ...(v.canRecordWipe && primary?.action !== 'wipe'
+          ? [{ id: 'wipe', label: t('wipe.action'), icon: <EraserIcon />, onSelect: () => setAction('wipe') }]
+          : []),
+        ...(v.canDispose && primary?.action !== 'dispose'
+          ? [
+              {
+                id: 'dispose',
+                label: t('actions.requestDisposalMore'),
+                icon: <RecycleIcon />,
+                onSelect: () => setAction('dispose'),
+              },
+            ]
+          : []),
+      ]
+    : [];
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href="/itam/hardware">
-          <ArrowLeftIcon /> {t('hardware.title')}
-        </Link>
-      </Button>
-
-      <FadeIn y={4} className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <CategoryIcon category={asset.category} className="size-6" />
-          </span>
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-              <span className="font-mono">{asset.tag}</span>
-              <span aria-hidden>·</span>
-              <span>{t(`category.${asset.category}`)}</span>
-              {asset.model && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span className="min-w-0 truncate">{modelLabel(asset.model)}</span>
-                </>
-              )}
-            </p>
-            <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{asset.name}</h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <AssetStatusBadge status={asset.status} />
-              {asset.warrantyState === 'expiring' || asset.warrantyState === 'expired' ? (
-                <Badge variant={asset.warrantyState === 'expired' ? 'destructive' : 'warning'}>
-                  <ShieldAlertIcon aria-hidden />
-                  {t(`warranty.badge.${asset.warrantyState}`)}
-                </Badge>
-              ) : null}
-              <WipeBadge state={asset.wipeState} date={asset.wipeDue} />
-            </div>
-          </div>
-        </div>
-        {v.canManage && (
-          <div className="flex shrink-0 flex-wrap gap-2">
-            {v.canAssign && (
-              <Button onClick={() => setAction('assign')}>
-                {asset.assignee ? <ArrowRightLeftIcon /> : <UserPlusIcon />}
-                {asset.assignee ? t('actions.reassign') : t('actions.assign')}
-              </Button>
-            )}
-            {v.canReturn && (
-              <Button variant="outline" onClick={() => setAction('return')}>
-                <Undo2Icon /> {t('actions.return')}
-              </Button>
-            )}
-            {v.transitions.length > 0 && (
-              <Button variant="outline" onClick={() => setAction('status')}>
-                <ArchiveRestoreIcon /> {t('actions.changeStatus')}
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => setEditing(true)}>
-              <PencilIcon /> {t('actions.edit')}
+      <DetailHeader
+        back={{ href: '/itam/hardware', label: t('hardware.title'), highlight: asset.id }}
+        icon={<CategoryIcon category={asset.category} />}
+        reference={[asset.tag, t(`category.${asset.category}`), asset.model ? modelLabel(asset.model) : null]
+          .filter(Boolean)
+          .join(' · ')}
+        title={asset.name}
+        status={<AssetStatusBadge status={asset.status} animate />}
+        badges={
+          <>
+            {asset.warrantyState === 'expiring' || asset.warrantyState === 'expired' ? (
+              <Badge variant={asset.warrantyState === 'expired' ? 'destructive' : 'warning'}>
+                <ShieldAlertIcon aria-hidden />
+                {t(`warranty.badge.${asset.warrantyState}`)}
+              </Badge>
+            ) : null}
+            <WipeBadge state={asset.wipeState} date={asset.wipeDue} />
+          </>
+        }
+        meta={asset.assignee ? t('asset.assignedTo', { name: asset.assignee.displayName }) : undefined}
+        primaryAction={
+          primary ? (
+            <Button onClick={() => setAction(primary.action)}>
+              {primary.icon}
+              {primary.label}
             </Button>
-            {v.canRecordWipe && (
-              <Button variant="outline" onClick={() => setAction('wipe')}>
-                <EraserIcon /> {t('wipe.action')}
-              </Button>
-            )}
-            {v.canDispose && (
-              <Button variant="outline" onClick={() => setAction('dispose')}>
-                <RecycleIcon /> {t('actions.requestDisposal')}
-              </Button>
-            )}
-          </div>
-        )}
-      </FadeIn>
+          ) : undefined
+        }
+        actions={
+          v.canManage
+            ? [
+                {
+                  id: 'edit',
+                  label: t('actions.edit'),
+                  icon: <PencilIcon />,
+                  onSelect: () => setEditing(true),
+                },
+              ]
+            : []
+        }
+        menu={more}
+      />
 
       <Banners asset={asset} />
 
-      <Tabs value={tab} onValueChange={(x) => setTab(x as Tab)}>
+      <Tabs value={tab} onValueChange={(x) => set({ tab: x === 'overview' ? undefined : x })}>
         <TabsList className="max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="overview">{t('asset.tabs.overview')}</TabsTrigger>
           <TabsTrigger value="software">{t('asset.tabs.software')}</TabsTrigger>
@@ -208,9 +250,6 @@ export default function AssetPage({ params }: WebPageProps) {
                     <CategoryLabel category={asset.category} />
                   </Field>
                   <Field label={t('fields.model')}>{asset.model && modelLabel(asset.model)}</Field>
-                  <Field label={t('fields.status')}>
-                    <AssetStatusBadge status={asset.status} />
-                  </Field>
                   <Field label={t('fields.department')}>{asset.department?.name}</Field>
                   <Field label={t('fields.location')}>{asset.location}</Field>
                   <Field label={t('fields.retireOn')}>{asset.retireOn && day(asset.retireOn)}</Field>
@@ -279,10 +318,8 @@ export default function AssetPage({ params }: WebPageProps) {
             <CustomFieldsCard entityType="itam.asset" attributes={asset.attributes} />
           </div>
           <div className="min-w-0 space-y-6">
-            <AssignmentCard asset={asset} onAssign={v.canAssign ? () => setAction('assign') : undefined} />
-            {asset.dataBearing && (
-              <WipeCard asset={asset} onRecord={v.canRecordWipe ? () => setAction('wipe') : undefined} />
-            )}
+            <AssignmentCard asset={asset} />
+            {asset.dataBearing && <WipeCard asset={asset} />}
             <CiCard asset={asset} />
           </div>
         </TabsContent>
@@ -306,7 +343,7 @@ export default function AssetPage({ params }: WebPageProps) {
         </TabsContent>
       </Tabs>
 
-      <AssetActionDialog asset={asset} action={action} onClose={() => setAction(null)} />
+      <AssetActionDialog asset={asset} action={action} onClose={() => setAction(null)} onNext={setAction} />
       {v.canManage && <AssetFormDialog open={editing} onOpenChange={setEditing} asset={asset} />}
     </div>
   );
@@ -350,7 +387,7 @@ function Banners({ asset }: { asset: AssetDetail }) {
   return null;
 }
 
-function AssignmentCard({ asset, onAssign }: { asset: AssetDetail; onAssign?: () => void }) {
+function AssignmentCard({ asset }: { asset: AssetDetail }) {
   const t = useTranslations('itam.asset');
   return (
     <Card>
@@ -385,18 +422,13 @@ function AssignmentCard({ asset, onAssign }: { asset: AssetDetail; onAssign?: ()
             {t('unassigned')}
           </div>
         )}
-        {!asset.assignee && onAssign && (
-          <Button variant="outline" size="sm" onClick={onAssign}>
-            <UserPlusIcon /> {t('assignSomeone')}
-          </Button>
-        )}
       </CardContent>
     </Card>
   );
 }
 
 /** Data retention and wipes of a device that stores data: the pending wipe and the last recorded one. */
-function WipeCard({ asset, onRecord }: { asset: AssetDetail; onRecord?: () => void }) {
+function WipeCard({ asset }: { asset: AssetDetail }) {
   const t = useTranslations('itam.wipe');
   const tm = useTranslations('itam.wipeMethod');
   const day = useDay();
@@ -442,11 +474,6 @@ function WipeCard({ asset, onRecord }: { asset: AssetDetail; onRecord?: () => vo
             </span>
           </p>
         ) : null}
-        {onRecord && (
-          <Button variant="outline" size="sm" onClick={onRecord}>
-            <EraserIcon /> {t('action')}
-          </Button>
-        )}
       </CardContent>
     </Card>
   );

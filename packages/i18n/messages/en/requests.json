@@ -6,8 +6,8 @@
     "title": "Requests",
     "description": "Ask for access, equipment or anything else IT provides — and follow where your requests are.",
     "new": "What do you need?",
-    "accessTitle": "Request access",
-    "accessDescription": "A role in the platform or in a business application, for you or your team.",
+    "accessTitle": "Access to an application",
+    "accessDescription": "Finance ERP, HR Portal, Expense Claims or a platform role, for you or your team.",
     "needsApproval": "Needs approval",
     "mine": "My requests",
     "open": "Open",
@@ -15,7 +15,16 @@
     "all": "All",
     "emptyOpen": "You have no open requests",
     "empty": "No requests yet",
-    "waitingFor": "Waiting for {step}"
+    "waitingFor": "Waiting for {step}",
+    "newHint": "Pick what you need. Once it is sent, you see who it is waiting for.",
+    "emptyOpenHint": "Requests you send appear here, with who they are waiting for.",
+    "waitingNamed": "Waiting for {names} ({step})",
+    "todoLink": "{count, plural, one {# to-do is waiting for you} other {# to-dos are waiting for you}}",
+    "todoOpen": "Open My work",
+    "search": "Search requests…",
+    "noMatch": "Nothing matches your search.",
+    "loadFailed": "Couldn't load your requests",
+    "retry": "Retry"
   },
   "categories": {
     "hardware": "Hardware",
@@ -81,11 +90,15 @@
       "reject": "Nobody can approve this step — the request would be rejected"
     },
     "selected": "Selected: {name}",
-    "selectHint": "Choose the access you need"
+    "selectHint": "Choose the access you need",
+    "backToRequests": "Requests",
+    "platformRoles": "Platform roles ({count})",
+    "noDescription": "No description yet",
+    "noDescriptionOwner": "No description yet. Ask {name}."
   },
   "form": {
     "title": "Request",
-    "back": "All requests",
+    "back": "Requests",
     "needsApproval": "This request goes through an approval. You'll be notified at each step.",
     "cancel": "Cancel",
     "submit": "Submit",
@@ -99,7 +112,7 @@
     }
   },
   "detail": {
-    "back": "All requests",
+    "back": "Requests",
     "notFound": "We couldn't find this request",
     "submittedAt": "Submitted",
     "role": "Access",
@@ -113,7 +126,7 @@
     "justification": "Justification",
     "open": "Open",
     "answers": "Answers",
-    "path": "Approval path",
+    "path": "Who will approve it",
     "history": "History",
     "waitingFor": "Waiting for",
     "noApproval": "This request doesn't need approval.",
@@ -183,6 +196,31 @@
         "sent": "Sent",
         "cancelled": "Cancelled"
       }
+    },
+    "hero": {
+      "label": "Status",
+      "waitingFor": "Waiting for {names}",
+      "waiting": "Waiting for approval",
+      "since": "Since {date}",
+      "due": "Due {date}",
+      "next": "Next: {step}",
+      "fulfilling": "Approved, being fulfilled: {status}",
+      "approved": "Approved. Nothing else is needed.",
+      "done": "Done",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn",
+      "failed": "Not completed",
+      "received": "Received. This request needs no approval."
+    },
+    "pathDescription": "Each step in order: who decided, who is asked now, and who comes next.",
+    "details": "Details",
+    "workflowHint": "The workflow as its administrators see it, with every step, rule and branch.",
+    "noAnswers": "Nothing was filled in.",
+    "todo": {
+      "label": "To-do done",
+      "done": "Done. This completed your to-do “{title}”.",
+      "recorded": "It is recorded for {period}.",
+      "back": "Back to My work"
     }
   },
   "print": {
@@ -216,5 +254,47 @@
     "fileAdded": "Added",
     "kilobytes": "{size} KB",
     "printedAt": "Printed"
+  },
+  "groups": {
+    "help": "Get help",
+    "equipment": "Equipment and software",
+    "access": "Access",
+    "other": "Other"
+  },
+  "status": {
+    "received": "Received",
+    "waiting": "Waiting for approval",
+    "inProgress": "In progress",
+    "approved": "Approved",
+    "done": "Done",
+    "rejected": "Rejected",
+    "withdrawn": "Withdrawn",
+    "failed": "Not completed"
+  },
+  "path": {
+    "none": "No approval needed.",
+    "state": {
+      "done": "Approved",
+      "rejected": "Rejected",
+      "current": "Waiting for approval",
+      "upcoming": "Up next",
+      "preview": "Approver",
+      "skipped": "Not needed",
+      "alreadyApproved": "Already approved"
+    },
+    "separator": ", ",
+    "peopleLabel": "People",
+    "more": "+{count} more",
+    "doneBy": "Decided by {names}",
+    "rejectedBy": "Rejected by {names}",
+    "waitingFor": "Waiting for {names}",
+    "due": "due",
+    "then": "Then {names}",
+    "afterAbove": "After the steps above",
+    "noApprover": "Nobody can be asked for this step",
+    "skipped": "Not needed for this request",
+    "skippedCondition": "Not needed: its condition didn't hold",
+    "alreadyApproved": "Already approved at {step}",
+    "alreadyApprovedBy": "{name} already approved at {step}"
   }
 }

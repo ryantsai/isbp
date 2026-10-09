@@ -30,11 +30,15 @@ export default function ReviewsPage() {
   const day = useDay();
   const mineId = useId();
   const canManage = useCan('isms.reviews.manage');
+  const canRead = useCan('isms.reviews.read');
+  const canSignOff = useCan('isms.reviews.signoff');
+  // Reviewers who only take part see their reviews without status tabs or the "Only mine" switch.
+  const readsAll = canManage || canRead || canSignOff;
   const [state, set] = useListState({ pageSize: 25 });
   const [creating, setCreating] = useState(false);
   const view: View = VIEWS.includes(state.view as View) ? (state.view as View) : 'all';
   const mine = state.mine === 'true';
-  const { data, isLoading, isFetching } = useApiQuery<Page<ReviewListItem>>('/isms/reviews', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<ReviewListItem>>('/isms/reviews', {
     page: state.page,
     pageSize: state.pageSize,
     sort: state.sort,
@@ -114,6 +118,8 @@ export default function ReviewsPage() {
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(r) => r.id}
       onRowClick={(r) => router.push(reviewHref(r.reference))}
       onPageChange={(page) => set({ page })}
@@ -127,31 +133,41 @@ export default function ReviewsPage() {
             placeholder={t('reviews.search')}
             className="sm:w-64"
           />
-          <div className="flex items-center gap-2">
-            <Switch
-              id={mineId}
-              checked={mine}
-              onCheckedChange={(v) => set({ mine: v ? 'true' : undefined })}
-            />
-            <label htmlFor={mineId} className="text-sm">
-              {t('reviews.onlyMine')}
-            </label>
-          </div>
+          {readsAll && (
+            <div className="flex items-center gap-2">
+              <Switch
+                id={mineId}
+                checked={mine}
+                onCheckedChange={(v) => set({ mine: v ? 'true' : undefined })}
+              />
+              <label htmlFor={mineId} className="text-sm">
+                {t('reviews.onlyMine')}
+              </label>
+            </div>
+          )}
         </>
       }
       empty={
-        <EmptyState
-          icon={<ListChecksIcon />}
-          title={t('reviews.empty.title')}
-          description={t('reviews.empty.description')}
-          action={
-            canManage && (
+        state.q || mine ? (
+          <EmptyState variant="filtered" onClearFilters={() => set({ q: undefined, mine: undefined })} />
+        ) : canManage ? (
+          <EmptyState
+            icon={<ListChecksIcon />}
+            title={t('reviews.empty.title')}
+            description={t('reviews.empty.description')}
+            action={
               <Button onClick={() => setCreating(true)}>
                 <PlusIcon /> {t('reviews.new')}
               </Button>
-            )
-          }
-        />
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={<ListChecksIcon />}
+            title={t('reviews.empty.participantTitle')}
+            description={t('reviews.empty.participant')}
+          />
+        )
       }
     />
   );
@@ -168,20 +184,28 @@ export default function ReviewsPage() {
           )
         }
       />
-      <Tabs value={view} onValueChange={(v) => set({ view: v === 'all' ? undefined : v })} className="gap-4">
-        <TabsList className="max-w-full justify-start overflow-x-auto">
+      {!readsAll ? (
+        table
+      ) : (
+        <Tabs
+          value={view}
+          onValueChange={(v) => set({ view: v === 'all' ? undefined : v })}
+          className="gap-4"
+        >
+          <TabsList className="max-w-full justify-start overflow-x-auto">
+            {VIEWS.map((v) => (
+              <TabsTrigger key={v} value={v}>
+                {v === 'all' ? t('reviews.all') : t(`reviewStatus.${v}`)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
           {VIEWS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {v === 'all' ? t('reviews.all') : t(`reviewStatus.${v}`)}
-            </TabsTrigger>
+            <TabsContent key={v} value={v} className="min-w-0">
+              {view === v && table}
+            </TabsContent>
           ))}
-        </TabsList>
-        {VIEWS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {view === v && table}
-          </TabsContent>
-        ))}
-      </Tabs>
+        </Tabs>
+      )}
       {canManage && (
         <NewReviewSheet
           open={creating}

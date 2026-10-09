@@ -6,8 +6,8 @@
     "title": "申請",
     "description": "アクセス権、機器、その他の IT サービスを申請し、進捗を確認できます。",
     "new": "何が必要ですか？",
-    "accessTitle": "アクセスの申請",
-    "accessDescription": "自分やチームのために、プラットフォームや業務アプリケーションのロールを申請します。",
+    "accessTitle": "アプリケーションへのアクセス",
+    "accessDescription": "Finance ERP、HR Portal、Expense Claims、プラットフォームのロール。自分または自分のチーム向け。",
     "needsApproval": "承認が必要",
     "mine": "自分の申請",
     "open": "進行中",
@@ -15,7 +15,16 @@
     "all": "すべて",
     "emptyOpen": "進行中の申請はありません",
     "empty": "申請はまだありません",
-    "waitingFor": "{step} の待ち"
+    "waitingFor": "{step}待ち",
+    "newHint": "必要なものを選んでください。送信すると、今誰の対応待ちかを確認できます。",
+    "emptyOpenHint": "送信した申請はここに表示され、今誰の対応待ちかが分かります。",
+    "waitingNamed": "{names} さんの対応待ち ({step})",
+    "todoLink": "{count, plural, other {対応が必要な ToDo が # 件あります}}",
+    "todoOpen": "自分の作業を開く",
+    "search": "申請を検索…",
+    "noMatch": "検索に一致する項目はありません。",
+    "loadFailed": "申請を読み込めませんでした",
+    "retry": "再試行"
   },
   "categories": {
     "hardware": "ハードウェア",
@@ -81,11 +90,15 @@
       "reject": "このステップを承認できる人がいないため、申請は却下されます"
     },
     "selected": "選択中: {name}",
-    "selectHint": "必要なアクセスを選択してください"
+    "selectHint": "必要なアクセスを選択してください",
+    "backToRequests": "申請",
+    "platformRoles": "プラットフォームのロール ({count})",
+    "noDescription": "説明はまだありません",
+    "noDescriptionOwner": "説明はまだありません。{name} に確認してください。"
   },
   "form": {
     "title": "申請",
-    "back": "すべての申請",
+    "back": "申請",
     "needsApproval": "この申請には承認が必要です。各ステップで通知が届きます。",
     "cancel": "キャンセル",
     "submit": "送信",
@@ -99,7 +112,7 @@
     }
   },
   "detail": {
-    "back": "すべての申請",
+    "back": "申請",
     "notFound": "申請が見つかりません",
     "submittedAt": "送信日時",
     "role": "アクセス",
@@ -113,7 +126,7 @@
     "justification": "理由",
     "open": "開く",
     "answers": "回答",
-    "path": "承認ルート",
+    "path": "誰が承認するか",
     "history": "履歴",
     "waitingFor": "対応待ち",
     "noApproval": "この申請に承認は不要です。",
@@ -183,6 +196,31 @@
         "sent": "送信済み",
         "cancelled": "キャンセル済み"
       }
+    },
+    "hero": {
+      "label": "状況",
+      "waitingFor": "{names} さんの対応待ち",
+      "waiting": "承認待ち",
+      "since": "{date} から",
+      "due": "期限 {date}",
+      "next": "次: {step}",
+      "fulfilling": "承認済み。対応中: {status}",
+      "approved": "承認済みです。ほかに必要な操作はありません。",
+      "done": "完了",
+      "rejected": "却下されました",
+      "withdrawn": "取り下げ済み",
+      "failed": "未完了",
+      "received": "受け付けました。この申請に承認は不要です。"
+    },
+    "pathDescription": "各ステップを順番に表示します。判断した人、今の担当者、次の担当者です。",
+    "details": "詳細",
+    "workflowHint": "管理者向けのワークフロー全体です。各ステップ、ルール、分岐を含みます。",
+    "noAnswers": "入力された内容はありません。",
+    "todo": {
+      "label": "ToDo 完了",
+      "done": "完了 — ToDo「{title}」を完了しました。",
+      "recorded": "{period} の記録として保存されました。",
+      "back": "自分の作業に戻る"
     }
   },
   "print": {
@@ -216,5 +254,47 @@
     "fileAdded": "追加日時",
     "kilobytes": "{size} KB",
     "printedAt": "印刷日時"
+  },
+  "groups": {
+    "help": "サポートを受ける",
+    "equipment": "機器とソフトウェア",
+    "access": "アクセス",
+    "other": "その他"
+  },
+  "status": {
+    "received": "受付済み",
+    "waiting": "承認待ち",
+    "inProgress": "対応中",
+    "approved": "承認済み",
+    "done": "完了",
+    "rejected": "却下",
+    "withdrawn": "取り下げ済み",
+    "failed": "未完了"
+  },
+  "path": {
+    "none": "承認は不要です。",
+    "state": {
+      "done": "承認済み",
+      "rejected": "却下",
+      "current": "承認待ち",
+      "upcoming": "次",
+      "preview": "承認者",
+      "skipped": "不要",
+      "alreadyApproved": "承認済み"
+    },
+    "separator": "、",
+    "peopleLabel": "担当者",
+    "more": "ほか {count} 人",
+    "doneBy": "{names} が判断",
+    "rejectedBy": "{names} が却下",
+    "waitingFor": "{names} さんの対応待ち",
+    "due": "期限",
+    "then": "次に {names}",
+    "afterAbove": "上のステップの後",
+    "noApprover": "このステップの承認者がいません",
+    "skipped": "この申請では不要です",
+    "skippedCondition": "不要: 条件に当てはまりません",
+    "alreadyApproved": "{step} で承認済み",
+    "alreadyApprovedBy": "{name} は {step} で承認済み"
   }
 }

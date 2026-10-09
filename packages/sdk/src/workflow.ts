@@ -147,8 +147,18 @@ export interface NotifyStep extends BaseStep {
 export type WorkflowStep = ApprovalStep | ParallelStep | ConditionStep | NotifyStep;
 export type StepType = WorkflowStep['type'];
 
+/**
+ * What a later approval step does with a person who already approved an earlier step of the same instance: `ask`
+ * asks them again; `skip` counts that earlier approval, so they are not asked (the engine records it as approved,
+ * with the reason). Rejections never count, and neither do approvals made by nobody (SLA auto-decisions).
+ */
+export const REPEAT_APPROVER_POLICIES = ['ask', 'skip'] as const;
+export type RepeatApproverPolicy = (typeof REPEAT_APPROVER_POLICIES)[number];
+
 export interface WorkflowGraph {
   steps: WorkflowStep[];
+  /** Absent means `ask`. */
+  repeatApprovers?: RepeatApproverPolicy;
 }
 
 /* ───────────────────────────── schemas ───────────────────────────── */
@@ -253,6 +263,7 @@ export const workflowStepSchema: z.ZodType<WorkflowStep, WorkflowStep> = z.lazy(
 
 export const workflowGraphSchema: z.ZodType<WorkflowGraph, WorkflowGraph> = z.object({
   steps: z.array(workflowStepSchema).max(50),
+  repeatApprovers: z.enum(REPEAT_APPROVER_POLICIES).optional(),
 });
 
 /* ───────────────────────────── traversal ───────────────────────────── */
@@ -464,8 +475,10 @@ export interface StepState {
   status: StepStatus;
   /** Chosen branch of a condition step. */
   branch?: string;
-  /** Why a step was skipped or rejected without a decision. */
-  reason?: 'condition' | 'no-approver' | 'cancelled';
+  /** Why a step was skipped or rejected without a decision; `already-approved`: its approvals were counted from earlier steps. */
+  reason?: 'condition' | 'no-approver' | 'cancelled' | 'already-approved';
+  /** `already-approved`: the earlier approval step whose approval counted. */
+  from?: string;
 }
 
 export interface WorkflowState {
@@ -584,6 +597,41 @@ export function decideStep(
   return 'pending';
 }
 
+/**
+ * Earlier approvals that count again (`repeatApprovers: 'skip'`), applied to a step's slots. `repeat` maps a person to
+ * the approval step they already approved. A slot one of whose people is in it is satisfied by that approval: those
+ * people are `counted` (recorded as approved, not asked), and nobody else in the slot is asked. `outcome` is the
+ * step's result from its slots (`decideStep`); when it is approved, nobody is asked at all, otherwise `asked` are the
+ * people of the slots that are not satisfied yet.
+ */
+export function splitRepeatApprovers<A extends { userId: string }>(
+  step: Pick<ApprovalStep, 'mode' | 'quorum'>,
+  slots: readonly { slot: number; assignees: readonly A[] }[],
+  repeat: ReadonlyMap<string, string>,
+): {
+  counted: { slot: number; assignee: A; fromStepId: string }[];
+  asked: { slot: number; assignee: A }[];
+  outcome: SlotOutcome;
+} {
+  const hits = (s: { assignees: readonly A[] }) => s.assignees.filter((a) => repeat.has(a.userId));
+  const outcome: SlotOutcome = slots.length
+    ? decideStep(
+        step,
+        slots.map((s) => (hits(s).length ? 'approved' : 'pending')),
+      )
+    : 'pending';
+  const counted = slots.flatMap((s) =>
+    hits(s).map((assignee) => ({ slot: s.slot, assignee, fromStepId: repeat.get(assignee.userId)! })),
+  );
+  const asked =
+    outcome === 'approved'
+      ? []
+      : slots
+          .filter((s) => !hits(s).length)
+          .flatMap((s) => s.assignees.map((assignee) => ({ slot: s.slot, assignee })));
+  return { counted, asked, outcome };
+}
+
 export interface SimulationResult {
   outcome: Exclude<WorkflowOutcome, 'running'>;
   state: WorkflowState;
@@ -595,10 +643,26 @@ export interface SimulationResult {
  * Runs a graph to completion with every approval decided by `decide` (default: approve). Used by the
  * builder's "test this workflow" panel and by tests.
  */
+/**
+ * What the simulator decides for a step: approve, reject, or that the step's approver is someone who already approved
+ * the earlier approval step `alreadyApprovedAt`. The last one counts only with `repeatApprovers: 'skip'` and only for
+ * an approval step before this one; otherwise the step is simply approved.
+ */
+export type SimulatedDecision = 'approved' | 'rejected' | { alreadyApprovedAt: string };
+
+function decidedState(graph: WorkflowGraph, step: ApprovalStep, decision: SimulatedDecision): StepState {
+  if (typeof decision === 'string') return { status: decision };
+  const from =
+    graph.repeatApprovers === 'skip'
+      ? stepsBefore(graph, step.id).find((s) => s.id === decision.alreadyApprovedAt)
+      : undefined;
+  return from ? { status: 'approved', reason: 'already-approved', from: from.id } : { status: 'approved' };
+}
+
 export function simulateWorkflow(
   graph: WorkflowGraph,
   facts: unknown,
-  decide: (step: ApprovalStep) => 'approved' | 'rejected' = () => 'approved',
+  decide: (step: ApprovalStep) => SimulatedDecision = () => 'approved',
 ): SimulationResult {
   let state = emptyWorkflowState();
   const order: string[] = [];
@@ -609,7 +673,7 @@ export function simulateWorkflow(
       if (!order.includes(s.id)) order.push(s.id);
     for (const b of r.branches) if (!order.includes(b.stepId)) order.push(b.stepId);
     if (r.outcome !== 'running') return { outcome: r.outcome, state, order };
-    for (const step of r.activated) state.steps[step.id] = { status: decide(step) };
+    for (const step of r.activated) state.steps[step.id] = decidedState(graph, step, decide(step));
   }
   return { outcome: 'rejected', state, order };
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import type { AuditLog, RoleAssignment } from '@isbp/contracts';
+import type { RoleAssignment } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
@@ -9,11 +9,10 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { EmptyState } from '@isbp/ui/empty-state';
 import { easeOut } from '@isbp/ui/motion';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { ClockIcon, HistoryIcon, ShieldCheckIcon, ShieldPlusIcon } from 'lucide-react';
+import { ClockIcon, ShieldCheckIcon, ShieldPlusIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
-import { AuditIcon, useActionLabel } from '@/components/audit-action';
 import { RelativeTime } from '@/components/relative-time';
 import { useRoleText } from '@/components/roles/role-utils';
 import { useApiQuery } from '@/lib/api';
@@ -115,59 +114,6 @@ export function GroupRolesPanel({ groupId }: { groupId: string }) {
               </motion.li>
             ))}
           </ul>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-/** Audit trail for the group: edits and membership changes. */
-export function GroupActivityPanel({ groupId }: { groupId: string }) {
-  const t = useTranslations('groups.activity');
-  const actionLabel = useActionLabel();
-  const { data, isLoading } = useApiQuery<Page<AuditLog>>('/audit-logs', {
-    entityType: 'group',
-    entityId: groupId,
-    pageSize: 20,
-  });
-  const items = data?.items ?? [];
-  return (
-    <Card>
-      <CardHeader>
-        <CardDescription>{t('description')}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <Skeleton className="h-40 w-full" />
-        ) : items.length === 0 ? (
-          <EmptyState icon={<HistoryIcon />} title={t('empty')} className="py-10" />
-        ) : (
-          <ol className="space-y-3">
-            {items.map((log) => {
-              const userIds = (log.metadata as { userIds?: unknown } | null)?.userIds;
-              const people = Array.isArray(userIds) ? userIds.length : 0;
-              const changed = log.changes ? Object.keys(log.changes) : [];
-              return (
-                <li key={log.seq} className="flex items-start gap-3 text-sm">
-                  <AuditIcon log={log} />
-                  <div className="min-w-0 flex-1 pt-1">
-                    <span className="font-medium">{log.actorName ?? '—'}</span>{' '}
-                    <span className="text-muted-foreground">{actionLabel(log.action)}</span>
-                    {people > 0 && (
-                      <span className="text-muted-foreground"> · {t('people', { count: people })}</span>
-                    )}
-                    {changed.length > 0 && (
-                      <div className="mt-0.5 text-xs text-muted-foreground">{changed.join(', ')}</div>
-                    )}
-                  </div>
-                  <RelativeTime
-                    date={log.occurredAt}
-                    className="shrink-0 pt-1 text-xs text-muted-foreground"
-                  />
-                </li>
-              );
-            })}
-          </ol>
         )}
       </CardContent>
     </Card>

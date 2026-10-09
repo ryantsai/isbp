@@ -81,7 +81,7 @@
         "type": "類型",
         "typeLocked": "無法變更",
         "guide": {
-          "teams": "在 Microsoft Teams 中開啟通道，選擇 ••• › 工作流程 ›「收到 Webhook 要求時張貼到頻道」，完成步驟後複製顯示的網址。",
+          "teams": "在 Microsoft Teams 中開啟通道，選擇 ••• › 簽核流程 ›「收到 Webhook 要求時張貼到頻道」，完成步驟後複製顯示的網址。",
           "slack": "在 Slack 中，到 api.slack.com/apps 建立應用程式，開啟 Incoming Webhooks，選擇「Add New Webhook to Workspace」並挑選通道，然後複製網址（https://hooks.slack.com/services/…）。",
           "webhook": "您自己維運的任何 HTTPS 端點。我們會以 POST 傳送包含標題、內文、連結及類型的 JSON，並以儲存後顯示一次的密鑰簽章，讓您確認每個要求確實來自本平台。"
         },

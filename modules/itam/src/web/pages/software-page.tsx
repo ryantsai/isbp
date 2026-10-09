@@ -20,6 +20,7 @@ import { ComplianceBadge } from '../badges';
 import { LicenseFormDialog } from '../license-form-dialog';
 import { licenseHref, useDay, useItamSettings, useMoney, useVendors } from '../lib';
 import { UsageMeter } from '../meters';
+import { SoftwareSections } from '../sections';
 
 const ALL = '__all__';
 /** Quick tabs → compliance states. */
@@ -49,15 +50,18 @@ export default function SoftwarePage() {
   const str = (k: string) => (state[k] as string | undefined) || undefined;
   const { vendors } = useVendors(canContracts || canConfig);
 
-  const { data, isLoading, isFetching } = useApiQuery<Page<LicenseListItem>>('/itam/licenses', {
-    page: state.page,
-    pageSize: state.pageSize,
-    sort: state.sort,
-    q: state.q,
-    compliance: VIEWS[view],
-    type: str('type'),
-    vendor: str('vendor'),
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<LicenseListItem>>(
+    '/itam/licenses',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      sort: state.sort,
+      q: state.q,
+      compliance: VIEWS[view],
+      type: str('type'),
+      vendor: str('vendor'),
+    },
+  );
   const filtered = Boolean(state.q || str('type') || str('vendor'));
 
   const columns = useMemo<DataTableColumn<LicenseListItem>[]>(
@@ -160,6 +164,8 @@ export default function SoftwarePage() {
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(l) => l.id}
       onRowClick={(l) => router.push(licenseHref(l))}
       onPageChange={(page) => set({ page })}
@@ -228,7 +234,7 @@ export default function SoftwarePage() {
   return (
     <>
       <PageHeader
-        title={t('software.title')}
+        title={t('nav.software')}
         description={t('software.description')}
         actions={
           canManage && (
@@ -238,6 +244,7 @@ export default function SoftwarePage() {
           )
         }
       />
+      <SoftwareSections />
       <Tabs value={view} onValueChange={(v) => set({ view: v === 'all' ? undefined : v })} className="gap-4">
         <TabsList className="max-w-full justify-start overflow-x-auto">
           {VIEW_KEYS.map((v) => (

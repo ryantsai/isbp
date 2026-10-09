@@ -38,8 +38,26 @@ need the agent's own `knowledge.articles.publish` (403 otherwise), and a running
 (409 `INVALID_TRANSITION`, `reason: 'approval_required'`). Created articles say where they came from
 (`source.type: 'integration'`).
 
-AI tools used by Helpdesk AI: `knowledge.search_articles`, `knowledge.get_article`,
-`knowledge.create_draft` (see `src/contracts.ts` for the exact input and output shapes).
+**Authoring.** A new article without a `locale` is in the author's language (their profile; a translation takes the
+first language its group lacks), also through `knowledge.create_draft`. What "submit" does for the caller is
+`submitOutcome` on a draft's DTO and `GET /articles/submit-outcome?audience=&locale=&categoryId=` for an unsaved form:
+`publish` (they publish and no approval workflow applies), `review` (an editor publishes) or `approval` (the bound
+`knowledge.publish` workflow decides, from a dry run with `ctx.workflows.preview`); the editor's button says "Publish"
+or "Submit for review" from it. `GET /articles/counts` gives the management tabs their counts (same filters as the
+list). Lifecycle actions re-check the article under a row lock inside their transaction, so two requests at once
+change it once (the other gets 409 `INVALID_TRANSITION`).
+
+**Web.** Knowledge home, Manage and Categories share section tabs (`KnowledgeSections`, only for writers and category
+managers). The article page uses `DetailHeader` (next lifecycle step as the primary action, Edit/Translate/History,
+Retire and Delete under "More"); readers who answer "No" to "Was this helpful?" get "Ask IT" and "Report an issue"
+when they can use them. The editor keeps title, summary, body (formatting toolbar: `src/web/markdown-format.ts`, pure
+and unit-tested), category and audience in view, and the rest under "More settings".
+
+AI tools used by Helpdesk AI and ITSM: `knowledge.search_articles`, `knowledge.get_article`,
+`knowledge.create_draft` (see `src/contracts.ts` for the exact input and output shapes). A draft written for a
+ticket or a problem carries `source: { type: 'itsm.ticket' | 'itsm.problem', id, reference: 'INC-…' | 'PRB-…' }`
+(shown as "Based on PRB-00012", linked to the ticket) and is finished in the editor at `/knowledge/<reference>/edit` (the tool returns `href`; append
+`/edit`).
 
 ```bash
 pnpm --filter @isbp/module-knowledge db:generate   # after changing src/server/schema.ts

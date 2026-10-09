@@ -1,5 +1,12 @@
 [
   {
+    "name": "employees-my-work",
+    "as": "hr.partner",
+    "path": "/my-work",
+    "waitFor": "main h1",
+    "clip": null
+  },
+  {
     "name": "employees-portal",
     "as": "hr.partner",
     "path": "/requests",

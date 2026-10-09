@@ -55,7 +55,22 @@
       "email": "電子郵件"
     },
     "mandatory": "基於安全性必須接收",
-    "switchLabel": "{type}：{channel}"
+    "switchLabel": "{type}：{channel}",
+    "categories": {
+      "approvals": "簽核",
+      "requests": "我的申請",
+      "assigned": "指派給我",
+      "announcements": "公告",
+      "security": "安全性通知",
+      "other": "其他"
+    },
+    "allOn": "全部開啟",
+    "allOff": "全部關閉",
+    "onCount": "{total} 項中有 {on} 項開啟",
+    "customise": "自訂",
+    "showAll": "顯示全部 {count} 種通知",
+    "showFewer": "只顯示與我相關的通知",
+    "none": "目前沒有與您相關的通知。"
   },
   "outOfOffice": {
     "title": "不在辦公室",
@@ -162,7 +177,9 @@
       "direct": "直接指派給您",
       "group": "透過群組 {group}",
       "everyone": "所有人"
-    }
+    },
+    "request": "申請存取權限",
+    "baseline": "所有人的基本權限（{count, plural, other {# 個角色}}）"
   },
   "validation": {
     "required": "此欄位為必填。",

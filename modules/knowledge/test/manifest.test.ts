@@ -57,10 +57,10 @@ describe('knowledge manifest', () => {
     expect(aiSearchArticlesInput.safeParse({ query: '' }).success).toBe(false);
     expect(aiGetArticleInput.safeParse({}).success).toBe(false);
     expect(aiGetArticleInput.safeParse({ reference: 'KB-00042' }).success).toBe(true);
-    expect(aiCreateDraftInput.parse({ title: 'T', body: 'B' })).toMatchObject({
-      locale: 'en',
-      audience: 'agents',
-    });
+    // No language: the tool writes in the caller's (never silently English); internal by default.
+    const draft = aiCreateDraftInput.parse({ title: 'T', body: 'B' });
+    expect(draft).toMatchObject({ audience: 'agents' });
+    expect(draft.locale).toBeUndefined();
     expect(aiCreateDraftInput.safeParse({ title: 'T', body: 'B', tags: Array(11).fill('x') }).success).toBe(
       false,
     );

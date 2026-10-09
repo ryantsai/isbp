@@ -16,19 +16,75 @@ export function assertChangeReader(auth: AuthContext) {
     throw httpErrors.forbidden('Seeing changes needs itsm.changes.read or itsm.tickets.read');
 }
 
+/* Calendar cursors: the last change's planned start to the microsecond, and its ticket id, as base64url JSON. */
+const CURSOR_START = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.\d{6}Z$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Postgres refuses the dates JS would roll over (30 February), so the calendar is checked too. */
+function isCursorStart(text: string): boolean {
+  const m = CURSOR_START.exec(text);
+  if (!m) return false;
+  const [y, mo, d, h, mi, s] = m.slice(1).map(Number) as [number, number, number, number, number, number];
+  const day = new Date(0);
+  day.setUTCFullYear(y, mo - 1, d);
+  return (
+    y >= 1 &&
+    h <= 23 &&
+    mi <= 59 &&
+    s <= 59 &&
+    day.getUTCFullYear() === y &&
+    day.getUTCMonth() === mo - 1 &&
+    day.getUTCDate() === d
+  );
+}
+
+const encodeCursor = (at: string, id: string) => Buffer.from(JSON.stringify([at, id])).toString('base64url');
+
+function decodeCursor(value: string): { at: string; id: string } {
+  const invalid = () =>
+    new HttpError(400, ErrorCodes.VALIDATION_FAILED, 'Invalid cursor', {
+      issues: [{ path: 'cursor', message: 'invalid cursor' }],
+    });
+  let parts: unknown;
+  try {
+    parts = JSON.parse(Buffer.from(value, 'base64url').toString('utf8'));
+  } catch {
+    throw invalid();
+  }
+  if (!Array.isArray(parts) || parts.length !== 2) throw invalid();
+  const [at, id] = parts as unknown[];
+  if (typeof at !== 'string' || typeof id !== 'string' || !isCursorStart(at) || !UUID.test(id))
+    throw invalid();
+  return { at, id };
+}
+
 export class ChangeCalendar {
   constructor(
     private readonly ctx: ModuleContext,
     private readonly reader: TicketReader,
   ) {}
 
-  async calendar(q: { from: Date; to: Date; ciId?: string }, auth: AuthContext) {
+  /**
+   * One page of the changes planned in the window, by planned start then id. The page after `cursor` starts strictly
+   * after the last change of the page before, so equal starts neither repeat nor get skipped.
+   */
+  async calendar(
+    q: { from: Date; to: Date; ciId?: string; cursor?: string; limit: number },
+    auth: AuthContext,
+  ) {
     assertChangeReader(auth);
     if (q.to <= q.from) throw new HttpError(400, ErrorCodes.VALIDATION_FAILED, '`to` must be after `from`');
     if (q.to.getTime() - q.from.getTime() > 400 * 86_400_000)
       throw new HttpError(400, ErrorCodes.VALIDATION_FAILED, 'Ask for at most 400 days at a time');
+    const after = q.cursor === undefined ? null : decodeCursor(q.cursor);
+    // One row beyond the page tells whether another page follows.
     const rows = await this.ctx.db
-      .select({ ticket: tickets, change: changes })
+      .select({
+        ticket: tickets,
+        change: changes,
+        // The start as text to the microsecond: a Date would round it, and the next page would repeat or skip changes.
+        startAt: sql<string>`to_char(${changes.plannedStart} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+      })
       .from(changes)
       .innerJoin(tickets, eq(tickets.id, changes.ticketId))
       .where(
@@ -40,11 +96,17 @@ export class ChangeCalendar {
           q.ciId
             ? sql`exists (select 1 from ${ticketCis} where ${ticketCis.ticketId} = ${tickets.id} and ${ticketCis.ciId} = ${q.ciId})`
             : undefined,
+          after
+            ? sql`(${changes.plannedStart}, ${tickets.id}) > (${after.at}::timestamptz, ${after.id}::uuid)`
+            : undefined,
         ),
       )
-      .orderBy(asc(changes.plannedStart))
-      .limit(1_000);
-    const ids = rows.map((r) => r.ticket.id);
+      .orderBy(asc(changes.plannedStart), asc(tickets.id))
+      .limit(q.limit + 1);
+    const page = rows.slice(0, q.limit);
+    const last = page.at(-1);
+    const nextCursor = rows.length > q.limit && last ? encodeCursor(last.startAt, last.ticket.id) : null;
+    const ids = page.map((r) => r.ticket.id);
     const [ciRows, people, conflicted] = await Promise.all([
       ids.length
         ? this.ctx.db
@@ -56,15 +118,16 @@ export class ChangeCalendar {
         : Promise.resolve([]),
       peopleByIds(
         this.ctx.db,
-        rows.map((r) => r.ticket.assigneeId),
+        page.map((r) => r.ticket.assigneeId),
       ),
+      // Each change is checked against every active change on its CIs, not just this page.
       this.conflicted(ids),
     ]);
     const cisBy = new Map<string, { id: string; name: string }[]>();
     for (const c of ciRows)
       cisBy.set(c.ticketId, [...(cisBy.get(c.ticketId) ?? []), { id: c.id, name: c.name }]);
     return {
-      items: rows.map(({ ticket: t, change: c }) => ({
+      items: page.map(({ ticket: t, change: c }) => ({
         id: t.id,
         reference: refOf(t),
         title: t.title,
@@ -77,6 +140,7 @@ export class ChangeCalendar {
         assignee: personRef(t.assigneeId ? people.get(t.assigneeId) : null),
         hasConflict: conflicted.has(t.id),
       })),
+      nextCursor,
     };
   }
 

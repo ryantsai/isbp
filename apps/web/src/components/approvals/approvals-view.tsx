@@ -7,12 +7,12 @@ import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
+import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { cn } from '@isbp/ui';
 import {
   CheckIcon,
   ChevronRightIcon,
@@ -23,7 +23,7 @@ import {
   TrendingUpIcon,
   XIcon,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useNow, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { webModules } from '@/generated/modules';
@@ -45,6 +45,10 @@ function useTriggerName() {
   return (key: string) => (t.has(key) ? t(key) : key);
 }
 
+/**
+ * One item waiting for a decision: the step it is at, what it is (the subject, in full), who asked and by when. Approve
+ * and Reject sit on the card, so an approver on a phone can decide from the list; the sheet has the details.
+ */
 function ApprovalCard({
   item,
   now,
@@ -58,89 +62,81 @@ function ApprovalCard({
 }) {
   const t = useTranslations('approvals');
   const locale = useLocale();
-  const triggerName = useTriggerName();
   const pending = item.task.status === 'pending';
   const subject = localize(item.instance.subject.label, locale);
+  const requester = item.instance.requester;
   return (
-    <motion.li
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: 40, transition: { duration: 0.2 } }}
-      className="group relative min-w-0 rounded-xl border bg-card shadow-xs transition-shadow hover:shadow-md"
-    >
-      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-        <button
-          type="button"
-          onClick={onOpen}
-          className="flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <TriggerIcon item={item} />
+    <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="group flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      >
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+          <TriggerIcon item={item} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-xs font-medium text-muted-foreground">
+            {localize(item.step.name, locale)}
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-              <span>{triggerName(item.trigger.name)}</span>
-              <span aria-hidden>·</span>
-              <span className="font-medium text-foreground/80">{localize(item.step.name, locale)}</span>
-            </span>
-            <span className="mt-0.5 block truncate font-medium group-hover:underline">{subject}</span>
-            <span className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              {item.instance.requester && (
-                <span className="inline-flex items-center gap-1.5">
-                  <UserAvatar
-                    name={item.instance.requester.displayName}
-                    src={item.instance.requester.avatarUrl}
-                    className="size-5 text-[9px]"
-                  />
-                  {item.instance.requester.displayName}
-                </span>
-              )}
-              <RelativeTime date={item.task.createdAt} />
-              {pending && <DueBadge dueAt={item.task.dueAt} now={now} />}
-              {item.task.isEscalation && (
-                <Badge variant="warning">
-                  <TrendingUpIcon aria-hidden />
-                  {t('escalated')}
-                </Badge>
-              )}
-              {item.task.delegatedFrom && (
-                <Badge variant="info">
-                  <ForwardIcon aria-hidden />
-                  {t('delegatedBy', { name: item.task.delegatedFrom.displayName })}
-                </Badge>
-              )}
-              {!pending && <StatusBadge status={item.task.status} kind="task" />}
-            </span>
+          <span className="mt-0.5 line-clamp-2 block font-medium [overflow-wrap:anywhere] group-hover:underline">
+            {subject}
           </span>
-          <ChevronRightIcon
-            className="mt-3 hidden size-4 shrink-0 text-muted-foreground sm:block"
-            aria-hidden
-          />
-        </button>
-        {pending && (
-          <div className="flex shrink-0 gap-2 sm:flex-col lg:flex-row">
-            <Button
-              size="sm"
-              onClick={() => onDecide('approve')}
-              aria-label={t('approveSubject', { subject })}
-            >
-              <CheckIcon />
-              {t('approve')}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onDecide('reject')}
-              aria-label={t('rejectSubject', { subject })}
-            >
-              <XIcon />
-              {t('reject')}
-            </Button>
-          </div>
-        )}
-      </div>
-    </motion.li>
+          <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+            {requester && (
+              <span className="inline-flex min-w-0 items-center gap-1.5">
+                <UserAvatar
+                  name={requester.displayName}
+                  src={requester.avatarUrl}
+                  className="size-5 text-[9px]"
+                />
+                <span className="truncate">{t('requestedBy', { name: requester.displayName })}</span>
+              </span>
+            )}
+            <RelativeTime date={item.task.createdAt} />
+            {pending && <DueBadge dueAt={item.task.dueAt} now={now} />}
+            {item.task.isEscalation && (
+              <Badge variant="warning">
+                <TrendingUpIcon aria-hidden />
+                {t('escalated')}
+              </Badge>
+            )}
+            {item.task.delegatedFrom && (
+              <Badge variant="info">
+                <ForwardIcon aria-hidden />
+                {t('delegatedBy', { name: item.task.delegatedFrom.displayName })}
+              </Badge>
+            )}
+            {!pending && <StatusBadge status={item.task.status} kind="task" />}
+          </span>
+        </span>
+        <ChevronRightIcon
+          className="mt-3 hidden size-4 shrink-0 text-muted-foreground sm:block"
+          aria-hidden
+        />
+      </button>
+      {pending && (
+        <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:flex-col lg:flex-row">
+          <Button
+            className="h-11 sm:h-9"
+            onClick={() => onDecide('approve')}
+            aria-label={t('approveSubject', { subject })}
+          >
+            <CheckIcon />
+            {t('approve')}
+          </Button>
+          <Button
+            variant="outline"
+            className="h-11 sm:h-9"
+            onClick={() => onDecide('reject')}
+            aria-label={t('rejectSubject', { subject })}
+          >
+            <XIcon />
+            {t('reject')}
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -152,13 +148,29 @@ export function ApprovalsView() {
   const triggerName = useTriggerName();
   const [state, set] = useListState({ pageSize: 20 });
   const status = state.status === 'done' ? 'done' : 'pending';
-  const { data, isLoading } = useApiQuery<Page<ApprovalItem>>('/me/approvals', {
+  const { data, isLoading, error, refetch } = useApiQuery<Page<ApprovalItem>>('/me/approvals', {
     status,
     q: state.q,
     page: state.page,
     pageSize: state.pageSize,
   });
-  const [open, setOpen] = useState<ApprovalItem | null>(null);
+  // The open decision is in the URL (`?task=<id>`): notifications and My work link straight to it, and Back closes it.
+  const taskId = typeof state.task === 'string' && state.task ? state.task : null;
+  const listed = data?.items.find((i) => i.task.id === taskId);
+  const single = useApiQuery<Page<ApprovalItem>>(taskId && !listed ? '/me/approvals' : null, {
+    task: taskId,
+  });
+  const open = listed ?? single.data?.items[0] ?? null;
+  const router = useRouter();
+  const pathname = usePathname();
+  const search = useSearchParams();
+  const setOpen = (item: ApprovalItem | null) => {
+    if (!item) return set({ task: undefined, page: state.page });
+    // Opening adds a history entry, so the browser's Back closes the decision instead of leaving the page.
+    const next = new URLSearchParams(search.toString());
+    next.set('task', item.task.id);
+    router.push(`${pathname}?${next.toString()}`, { scroll: false });
+  };
   const [deciding, setDeciding] = useState<{ item: ApprovalItem; decision: Decision } | null>(null);
   const items = data?.items ?? [];
   const pages = data ? Math.ceil(data.total / data.pageSize) : 1;
@@ -168,9 +180,20 @@ export function ApprovalsView() {
       {isLoading ? (
         <div className="grid gap-3">
           {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-xl" />
+            <Skeleton key={i} className="h-28 w-full rounded-xl" />
           ))}
         </div>
+      ) : error ? (
+        <EmptyState
+          icon={<PartyPopperIcon />}
+          title={t('loadFailed')}
+          className="rounded-xl border border-dashed"
+          action={
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              {t('retry')}
+            </Button>
+          }
+        />
       ) : !items.length ? (
         <EmptyState
           icon={status === 'pending' ? <PartyPopperIcon /> : <CheckIcon />}
@@ -179,19 +202,21 @@ export function ApprovalsView() {
           className="rounded-xl border border-dashed"
         />
       ) : (
-        <ul className="grid gap-3" aria-label={t(status === 'pending' ? 'tabs.pending' : 'tabs.done')}>
-          <AnimatePresence initial={false} mode="popLayout">
-            {items.map((item) => (
-              <ApprovalCard
-                key={item.task.id}
-                item={item}
-                now={now}
-                onOpen={() => setOpen(item)}
-                onDecide={(decision) => setDeciding({ item, decision })}
-              />
-            ))}
-          </AnimatePresence>
-        </ul>
+        // Spacing is padding, not gap, so a decided item can collapse out of the list smoothly.
+        <AnimatedList aria-label={t(status === 'pending' ? 'tabs.pending' : 'tabs.done')} className="grid">
+          {items.map((item) => (
+            <AnimatedItem key={item.task.id} as="li" className="pb-3 last:pb-0">
+              <div className="rounded-xl border bg-card shadow-xs transition-shadow hover:shadow-md">
+                <ApprovalCard
+                  item={item}
+                  now={now}
+                  onOpen={() => setOpen(item)}
+                  onDecide={(decision) => setDeciding({ item, decision })}
+                />
+              </div>
+            </AnimatedItem>
+          ))}
+        </AnimatedList>
       )}
 
       {pages > 1 && (
@@ -253,7 +278,8 @@ export function ApprovalsView() {
 
       <InstanceSheet
         instanceId={open?.instance.id ?? null}
-        open={Boolean(open)}
+        taskId={taskId}
+        open={Boolean(taskId)}
         onOpenChange={(o) => !o && setOpen(null)}
         triggerName={open ? triggerName(open.trigger.name) : undefined}
       />
@@ -267,7 +293,7 @@ export function ApprovalsView() {
           onOpenChange={(o) => !o && setDeciding(null)}
         />
       )}
-      <p className={cn('sr-only')} aria-live="polite">
+      <p className="sr-only" aria-live="polite">
         {data ? t('liveCount', { count: data.total }) : ''}
       </p>
     </div>

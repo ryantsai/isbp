@@ -7,11 +7,11 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Label } from '@isbp/ui/label';
 import { Markdown } from '@isbp/ui/markdown';
 import { useApiMutation } from '@isbp/ui/query';
-import { Switch } from '@isbp/ui/switch';
 import { Textarea } from '@isbp/ui/textarea';
-import { BookOpenIcon, BugIcon, PencilIcon } from 'lucide-react';
+import { BookOpenIcon, BugIcon, FilePenLineIcon, PencilIcon } from 'lucide-react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useId, useState } from 'react';
 import type { z } from 'zod';
 import type { TicketDetail, updateProblemSchema } from '../../contracts';
@@ -35,7 +35,7 @@ function ArticleLink({ article, label }: { article: { reference: string }; label
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="grid gap-1.5">
+    <section className="grid min-w-0 grid-cols-1 gap-1.5">
       <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</h3>
       {children}
     </section>
@@ -48,6 +48,9 @@ export function ProblemCard({ ticket }: { ticket: TicketDetail }) {
   const tc = useTranslations('common');
   const id = useId();
   const canManage = useCan('itsm.problems.manage') && ticket.viewer.canEdit;
+  const canWriteKb = useCan('knowledge.articles.write');
+  const router = useRouter();
+  const locale = useLocale();
   const { enabledModules } = usePlatform();
   // The article is checked on the server as the caller (knowledge.get_article), like the picker's search.
   const chooseArticle = canManage && enabledModules.includes('knowledge');
@@ -59,6 +62,36 @@ export function ProblemCard({ ticket }: { ticket: TicketDetail }) {
     (api, body: ProblemPatch) => api.patch<TicketDetail>(`${ticketApi(ticket.reference)}/problem`, body),
     { invalidate: INVALIDATE, success: tc('saved') },
   );
+  // "Write the known-error article": a draft for agents, prefilled in the author's language, linked to the problem.
+  const canWrite = chooseArticle && canWriteKb;
+  const write = useApiMutation(
+    (api, body: { title: string; summary?: string; body: string; locale: 'en' | 'zh-TW' | 'ja-JP' }) =>
+      api.post<{ article: { reference: string; href: string } }>(
+        `${ticketApi(ticket.reference)}/problem/article`,
+        body,
+      ),
+    {
+      invalidate: INVALIDATE,
+      success: (r) => t('articleDrafted', { reference: r.article.reference }),
+      onSuccess: (r) => router.push(`/knowledge/${encodeURIComponent(r.article.reference)}/edit`),
+    },
+  );
+  const writeArticle = () => {
+    if (!problem) return;
+    const sections = [
+      [t('article.symptoms'), ticket.description],
+      [t('rootCause'), problem.rootCause],
+      [t('workaround'), problem.workaround],
+    ].filter(([, text]) => text?.trim());
+    write.mutate({
+      title: t('article.title', { title: ticket.title }),
+      summary: problem.workaround.trim().split('\n')[0]?.slice(0, 400) || undefined,
+      body: sections.length
+        ? sections.map(([h, text]) => `## ${h}\n\n${text!.trim()}`).join('\n\n')
+        : t('article.empty'),
+      locale: (['en', 'zh-TW', 'ja-JP'] as const).find((l) => l === locale) ?? 'en',
+    });
+  };
   const incidents = ticket.links.filter(
     (l) => (l.type === 'caused_by' && l.direction === 'incoming') || l.ticket.type === 'incident',
   );
@@ -90,7 +123,7 @@ export function ProblemCard({ ticket }: { ticket: TicketDetail }) {
           </CardAction>
         )}
       </CardHeader>
-      <CardContent className="grid gap-5">
+      <CardContent className="grid min-w-0 grid-cols-1 gap-5">
         {editing ? (
           <form
             className="grid gap-4"
@@ -147,20 +180,17 @@ export function ProblemCard({ ticket }: { ticket: TicketDetail }) {
             </Section>
           </>
         )}
-        <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
-          <Label htmlFor={`${id}-known`} className="flex-col items-start gap-0.5">
-            <span>{t('knownErrorSwitch')}</span>
-            <span className="text-xs font-normal text-muted-foreground">{t('knownErrorHint')}</span>
-          </Label>
-          <Switch
-            id={`${id}-known`}
-            checked={problem.knownError}
-            disabled={!canManage || save.isPending}
-            onCheckedChange={(knownError) => save.mutate({ knownError })}
-          />
-        </div>
+        {problem.knownError && !problem.kbArticle && canWrite && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm">
+            <p className="min-w-0 flex-1">{t('writeArticleHint')}</p>
+            <Button size="sm" onClick={writeArticle} loading={write.isPending}>
+              <FilePenLineIcon aria-hidden />
+              {t('writeArticle')}
+            </Button>
+          </div>
+        )}
         {chooseArticle ? (
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor={`${id}-article`}>{t('kbArticle')}</Label>
             <ArticlePicker
               id={`${id}-article`}
@@ -187,7 +217,10 @@ export function ProblemCard({ ticket }: { ticket: TicketDetail }) {
         )}
         <Section title={t('incidents', { count: incidents.length })}>
           {incidents.length ? (
-            <ul className="divide-y rounded-lg border">
+            <ul
+              className="min-w-0 divide-y rounded-lg border"
+              aria-label={t('incidents', { count: incidents.length })}
+            >
               {incidents.map((l) => (
                 <li key={l.id} className="flex min-w-0 items-center gap-2 px-3 py-2 text-sm">
                   <TypeIcon type={l.ticket.type} label className="text-muted-foreground" />

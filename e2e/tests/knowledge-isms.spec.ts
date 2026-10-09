@@ -50,12 +50,18 @@ test('a classified article shows its label, the handling banner and its attachme
 test('the editor sets the classification and the workspace filters by it', async ({ page }) => {
   await page.goto('/knowledge/new');
   await page.getByLabel('Title').fill(`E2E classified ${Date.now() % 100000}`);
+  // Classification is one of the editor's rarer settings, under "More settings". Let the section finish opening, as a
+  // person scrolling down to it would (its height animation restores the scroll position it started from).
+  await page.getByRole('button', { name: /More settings/ }).click();
+  await settle(page);
   await page.getByRole('combobox', { name: 'Classification' }).click();
   await page.getByRole('option', { name: 'Internal Use Only' }).click();
   await page.getByRole('button', { name: 'Save draft' }).click();
   await expect(page.getByText('Internal Use Only').first()).toBeVisible();
 
   await page.goto('/knowledge/manage?tab=published');
+  // The rarer filters wait behind "Filters".
+  await page.getByRole('button', { name: 'Filters' }).click();
   await page.getByRole('combobox', { name: 'Classification' }).click();
   await page.getByRole('option', { name: 'Confidential', exact: true }).click();
   await expect(page.getByRole('link', { name: /VPN client 5\.2/ }).first()).toBeVisible();

@@ -67,7 +67,7 @@ test('customers-by-region: overview, versions and the test console', async ({ pa
   await expect(page.getByText('Calls over time')).toBeVisible();
   // The chart's table twin.
   await page.getByRole('button', { name: 'Table', exact: true }).click();
-  await expect(page.getByRole('columnheader', { name: 'p95 latency' })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Response time (95% of calls)' })).toBeVisible();
 
   await page.getByRole('tab', { name: 'Versions' }).click();
   const versions = page.getByRole('list', { name: 'Versions' });
@@ -152,12 +152,17 @@ test('the Customer dimension pipeline runs and writes rows', async ({ page }) =>
   await expect(
     page.locator('dl[aria-label="Progress"] > div').filter({ hasText: 'Rows written' }),
   ).toContainText('400');
-  await expect(page.getByRole('list', { name: 'Log' })).toContainText('Committed: 400 read, 400 written');
+  await expect(page.getByRole('log', { name: 'Log' })).toContainText('Committed: 400 read, 400 written');
+  await expect(page.getByRole('button', { name: 'Run again' })).toBeVisible();
 });
 
 test('call log: filter by outcome and Data API', async ({ page }) => {
   await page.goto('/etl/logs');
-  await expect(page.getByRole('heading', { name: 'Call log', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Data APIs', level: 1 })).toBeVisible();
+  // Data APIs | Call log are the sections of one page.
+  await expect(
+    page.getByRole('navigation', { name: 'Data API sections' }).getByRole('link', { name: 'Call log' }),
+  ).toHaveAttribute('aria-current', 'page');
   await page.getByRole('combobox', { name: 'Status' }).click();
   await page.getByRole('option', { name: 'Errors' }).click();
   await expect(page).toHaveURL(/status=error/);

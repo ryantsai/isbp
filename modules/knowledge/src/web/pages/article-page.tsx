@@ -1,7 +1,7 @@
 'use client';
 
 import type { RecordPanelSlotProps } from '@isbp/contracts';
-import { Slot, usePlatform, type WebPageProps } from '@isbp/sdk/web';
+import { ApiError, Slot, usePlatform, type WebPageProps } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import {
   AlertDialog,
@@ -17,16 +17,15 @@ import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent } from '@isbp/ui/card';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { Markdown } from '@isbp/ui/markdown';
-import { FadeIn } from '@isbp/ui/motion';
+import { type DetailAction, DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
-  ArrowLeftIcon,
   ArrowLeftRightIcon,
   CalendarClockIcon,
   ClockIcon,
@@ -45,7 +44,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import {
   type Article,
@@ -56,6 +55,7 @@ import {
 } from '../../contracts';
 import { FeedbackBox } from '../feedback-box';
 import {
+  ARTICLE_PROSE,
   ArticleHit,
   ArticleStats,
   CategoryIcon,
@@ -69,17 +69,9 @@ import {
 } from '../parts';
 import { VersionHistory } from '../version-history';
 
-const ACTION_ICON: Record<ArticleAction, typeof SendIcon> = {
-  submit: SendIcon,
-  withdraw: UndoIcon,
-  publish: UploadIcon,
-  retire: ArchiveIcon,
-  restore: ArchiveRestoreIcon,
-};
-
 function Related({ article }: { article: Article }) {
   const t = useTranslations('knowledge.article');
-  const { data, isLoading } = useApiQuery<{ items: ArticleCard[] }>(
+  const { data, isLoading, error, refetch } = useApiQuery<{ items: ArticleCard[] }>(
     article.status === 'published' ? `/knowledge/articles/${article.id}/related` : null,
   );
   if (article.status !== 'published') return null;
@@ -90,6 +82,8 @@ function Related({ article }: { article: Article }) {
       </h2>
       {isLoading ? (
         [0, 1, 2].map((i) => <Skeleton key={i} className="h-14 rounded-lg" />)
+      ) : error && !data ? (
+        <ErrorState error={error} onRetry={() => refetch()} compact />
       ) : data?.items.length ? (
         <ul className="-mx-3 grid gap-0.5">
           {data.items.map((item) => (
@@ -132,7 +126,7 @@ function Translations({ article }: { article: Article }) {
             href={x.href}
             lang={LOCALE_LANG[x.locale]}
             hrefLang={LOCALE_LANG[x.locale]}
-            className="rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground outline-none transition-colors hover:border-ring/50 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground outline-none transition-colors hover:border-ring/50 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
           >
             {LOCALE_LABEL[x.locale]}
             {x.status !== 'published' && <span className="sr-only"> ({ts(x.status)})</span>}
@@ -143,7 +137,7 @@ function Translations({ article }: { article: Article }) {
   );
 }
 
-/** Banner for anything that isn't simply published. */
+/** Banner for anything that isn't simply published: what's happening and what's next. */
 function StateBanner({ article }: { article: Article }) {
   const t = useTranslations('knowledge.article');
   const key =
@@ -196,16 +190,52 @@ function ClassificationBanner({ value }: { value: string }) {
   );
 }
 
+/** Where the article came from: the user guide, a synced system, or the ticket/problem it was written from. */
+function SourceLine({ article }: { article: Article }) {
+  const t = useTranslations('knowledge.article');
+  const source = article.source;
+  if (!source) return null;
+  if (source.type === 'guide')
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <LifeBuoyIcon className="size-4 shrink-0 text-primary" aria-hidden />
+        <span>{t('fromGuide')}</span>
+      </p>
+    );
+  if (source.type === 'integration')
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <ArrowLeftRightIcon className="size-4 text-primary" aria-hidden />
+        <span>{t('syncedFrom', { reference: source.reference ?? source.id })}</span>
+      </p>
+    );
+  const link = sourceHref(source);
+  const text = t('generatedFrom', { reference: source.reference ?? source.id });
+  return (
+    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+      <SparklesIcon className="size-4 text-primary" aria-hidden />
+      {link ? (
+        <Link href={link} className="font-medium text-primary underline-offset-4 hover:underline">
+          {text}
+        </Link>
+      ) : (
+        <span>{text}</span>
+      )}
+    </p>
+  );
+}
+
 export default function ArticlePage({ params }: WebPageProps) {
   const t = useTranslations('knowledge');
   const tc = useTranslations('common');
+  const uiLocale = useLocale();
   const router = useRouter();
   const categoryName = useCategoryName();
   const { permissions } = usePlatform();
   const [history, setHistory] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const path = `/knowledge/articles/${encodeURIComponent(params.ref ?? '')}`;
-  const { data: article, isLoading, error } = useApiQuery<Article>(path);
+  const { data: article, isLoading, error, refetch } = useApiQuery<Article>(path);
 
   const act = useApiMutation(
     (api, action: ArticleAction) => api.post<Article>(`/knowledge/articles/${article!.id}/${action}`),
@@ -237,15 +267,15 @@ export default function ArticlePage({ params }: WebPageProps) {
 
   if (isLoading) {
     return (
-      <div className="mx-auto grid max-w-6xl gap-4">
+      <div className="grid max-w-6xl gap-4" aria-busy="true">
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-10 w-2/3" />
         <Skeleton className="h-96 rounded-xl" />
       </div>
     );
   }
-  if (error || !article)
-    return (
+  if (!article)
+    return error instanceof ApiError && error.status === 404 ? (
       <EmptyState
         icon={<FileQuestionIcon />}
         title={t('article.notFound')}
@@ -255,10 +285,10 @@ export default function ArticlePage({ params }: WebPageProps) {
           </Button>
         }
       />
+    ) : (
+      <ErrorState error={error} kind="page" onRetry={() => refetch()} />
     );
 
-  const source = article.source;
-  const sourceLink = source ? sourceHref(source) : null;
   const editorTools = article.canEdit || article.actions.length > 0 || article.canDelete;
   // Like the agent view of a ticket: people who work with articles get the record panels ("Linked records",
   // and "Synced with" for articles synced with an outside system, e.g. ServiceDesk Plus solutions).
@@ -266,164 +296,183 @@ export default function ArticlePage({ params }: WebPageProps) {
   const canTranslate =
     permissions.hasAny('knowledge.articles.write') &&
     article.translations.length + 1 < ARTICLE_LOCALES.length;
+  // The language switcher already names the language; a lone article names it only when it isn't the reader's.
+  const showLanguage = !article.translations.length && article.locale !== uiLocale;
+  const pending = act.isPending;
 
-  return (
-    <div className="mx-auto grid max-w-6xl gap-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit text-muted-foreground">
-        <Link
-          href={
-            article.category
-              ? `/knowledge?category=${encodeURIComponent(article.category.key)}`
-              : '/knowledge'
-          }
-        >
-          <ArrowLeftIcon /> {article.category ? categoryName(article.category) : t('meta.name')}
+  /* ── actions: the next step is the primary button, then Edit, Translate and History; Retire and Delete in "More" ── */
+  const runButton = (action: ArticleAction, label: string, Icon: typeof SendIcon) => (
+    <Button
+      onClick={() => act.mutate(action)}
+      loading={pending && act.variables === action}
+      disabled={pending}
+    >
+      <Icon aria-hidden /> {label}
+    </Button>
+  );
+  const editHref = `/knowledge/${article.reference}/edit`;
+  let primary: React.ReactNode = null;
+  let primaryIsEdit = false;
+  if (article.actions.includes('submit'))
+    primary =
+      article.submitOutcome === 'publish'
+        ? runButton('submit', t('actions.publish'), UploadIcon)
+        : runButton('submit', t('actions.submit'), SendIcon);
+  else if (article.actions.includes('publish'))
+    primary = runButton('publish', t('actions.publish'), UploadIcon);
+  else if (article.actions.includes('restore'))
+    primary = runButton('restore', t('actions.restore'), ArchiveRestoreIcon);
+  else if (article.canEdit) {
+    primaryIsEdit = true;
+    primary = (
+      <Button asChild>
+        <Link href={editHref}>
+          <PencilIcon aria-hidden /> {tc('edit')}
         </Link>
       </Button>
+    );
+  }
+  const secondary: DetailAction[] = [];
+  if (article.canEdit && !primaryIsEdit)
+    secondary.push({ id: 'edit', label: tc('edit'), icon: <PencilIcon aria-hidden />, href: editHref });
+  if (article.actions.includes('withdraw'))
+    secondary.push({
+      id: 'withdraw',
+      label: t('actions.withdraw'),
+      icon: <UndoIcon aria-hidden />,
+      onSelect: () => act.mutate('withdraw'),
+      disabled: pending,
+    });
+  if (canTranslate)
+    secondary.push({
+      id: 'translate',
+      label: t('article.translate'),
+      icon: <GitBranchIcon aria-hidden />,
+      href: `/knowledge/new?translationOf=${article.id}`,
+    });
+  if (editorTools && article.publishedVersion > 0)
+    secondary.push({
+      id: 'history',
+      label: t('article.history', { count: article.publishedVersion }),
+      icon: <HistoryIcon aria-hidden />,
+      onSelect: () => setHistory(true),
+    });
+  const menu: DetailAction[] = [];
+  if (article.actions.includes('retire'))
+    menu.push({
+      id: 'retire',
+      label: t('actions.retire'),
+      icon: <ArchiveIcon aria-hidden />,
+      onSelect: () => act.mutate('retire'),
+      disabled: pending,
+    });
+  if (article.canDelete)
+    menu.push({
+      id: 'delete',
+      label: tc('delete'),
+      icon: <Trash2Icon aria-hidden />,
+      destructive: true,
+      onSelect: () => setConfirmDelete(true),
+    });
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <article className="grid min-w-0 content-start gap-6" lang={LOCALE_LANG[article.locale]}>
-          <FadeIn y={4} className="grid gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {article.status !== 'published' && <StatusBadge status={article.status} />}
+  return (
+    <div className="grid max-w-6xl gap-6">
+      <DetailHeader
+        className="pb-0"
+        back={{
+          href: article.category
+            ? `/knowledge?category=${encodeURIComponent(article.category.key)}`
+            : '/knowledge',
+          label: article.category ? categoryName(article.category) : t('meta.name'),
+        }}
+        reference={<span className="font-mono text-xs">{article.reference}</span>}
+        title={<span lang={LOCALE_LANG[article.locale]}>{article.title}</span>}
+        status={
+          // Readers only need to hear about what isn't simply live; editors see every state change.
+          editorTools || article.status !== 'published' ? (
+            <StatusBadge status={article.status} animate />
+          ) : undefined
+        }
+        badges={
+          (article.audience === 'agents' || article.classification) && (
+            <>
               {article.audience === 'agents' && <InternalBadge />}
               {article.classification && <ClassificationBadge value={article.classification} />}
-              <span className="font-mono text-xs text-muted-foreground">{article.reference}</span>
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-              {article.title}
-            </h1>
-            {article.summary && <p className="text-base text-muted-foreground">{article.summary}</p>}
-            <dl className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
-              {article.category && (
-                <div className="flex items-center gap-1.5">
-                  <dt className="sr-only">{t('article.category')}</dt>
-                  <dd className="flex items-center gap-1.5">
-                    <CategoryIcon name={article.category.icon} className="size-4" />
-                    {categoryName(article.category)}
-                  </dd>
-                </div>
-              )}
+            </>
+          )
+        }
+        meta={
+          <dl className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            {article.category && (
               <div className="flex items-center gap-1.5">
-                <dt>{t('article.updated')}</dt>
-                <dd>
-                  <RelativeTime date={article.updatedAt} />
+                <dt className="sr-only">{t('article.category')}</dt>
+                <dd className="flex items-center gap-1.5">
+                  <CategoryIcon name={article.category.icon} className="size-4" />
+                  {categoryName(article.category)}
                 </dd>
               </div>
-              {article.owner && (
-                <div className="flex items-center gap-1.5">
-                  <dt className="sr-only">{t('article.owner')}</dt>
-                  <dd className="flex items-center gap-1.5">
-                    <UserAvatar
-                      name={article.owner.displayName}
-                      src={article.owner.avatarUrl}
-                      className="size-5 text-[9px]"
-                    />
-                    {article.owner.displayName}
-                  </dd>
-                </div>
-              )}
+            )}
+            <div className="flex items-center gap-1.5">
+              <dt>{t('article.updated')}</dt>
+              <dd>
+                <RelativeTime date={article.updatedAt} />
+              </dd>
+            </div>
+            {article.owner && (
+              <div className="flex items-center gap-1.5">
+                <dt className="sr-only">{t('article.owner')}</dt>
+                <dd className="flex items-center gap-1.5">
+                  <UserAvatar
+                    name={article.owner.displayName}
+                    src={article.owner.avatarUrl}
+                    className="size-5 text-[9px]"
+                  />
+                  {article.owner.displayName}
+                </dd>
+              </div>
+            )}
+            {showLanguage && (
               <div className="flex items-center gap-1.5">
                 <dt className="sr-only">{t('article.language')}</dt>
                 <dd lang={LOCALE_LANG[article.locale]}>{LOCALE_LABEL[article.locale]}</dd>
               </div>
-              {article.status === 'published' && (
-                <div>
-                  <dt className="sr-only">{t('article.stats')}</dt>
-                  <dd>
-                    <ArticleStats
-                      views={article.views}
-                      helpful={article.helpfulCount}
-                      notHelpful={article.notHelpfulCount}
-                      className="text-sm"
-                    />
-                  </dd>
-                </div>
-              )}
-            </dl>
-            <Translations article={article} />
-          </FadeIn>
+            )}
+            {article.status === 'published' && (
+              <div>
+                <dt className="sr-only">{t('article.stats')}</dt>
+                <dd>
+                  <ArticleStats
+                    views={article.views}
+                    helpful={article.helpfulCount}
+                    notHelpful={article.notHelpfulCount}
+                    className="text-sm"
+                  />
+                </dd>
+              </div>
+            )}
+          </dl>
+        }
+        primaryAction={primary}
+        actions={secondary}
+        menu={menu}
+      />
 
-          {source?.type === 'guide' ? (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <LifeBuoyIcon className="size-4 shrink-0 text-primary" aria-hidden />
-              <span>{t('article.fromGuide')}</span>
-            </p>
-          ) : source?.type === 'integration' ? (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <ArrowLeftRightIcon className="size-4 text-primary" aria-hidden />
-              <span>{t('article.syncedFrom', { reference: source.reference ?? source.id })}</span>
-            </p>
-          ) : source ? (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <SparklesIcon className="size-4 text-primary" aria-hidden />
-              {sourceLink ? (
-                <Link
-                  href={sourceLink}
-                  className="font-medium text-primary underline-offset-4 hover:underline"
-                >
-                  {t('article.generatedFrom', { reference: source.reference ?? source.id })}
-                </Link>
-              ) : (
-                <span>{t('article.generatedFrom', { reference: source.reference ?? source.id })}</span>
-              )}
-            </p>
-          ) : null}
-
-          {article.classification && <ClassificationBanner value={article.classification} />}
-          <StateBanner article={article} />
-
-          {editorTools && (
-            <div className="flex flex-wrap gap-2" role="toolbar" aria-label={t('article.tools')}>
-              {article.actions.map((action) => {
-                const Icon = ACTION_ICON[action];
-                return (
-                  <Button
-                    key={action}
-                    variant={action === 'submit' || action === 'publish' ? 'default' : 'outline'}
-                    onClick={() => act.mutate(action)}
-                    loading={act.isPending && act.variables === action}
-                    disabled={act.isPending}
-                  >
-                    <Icon aria-hidden /> {t(`actions.${action}`)}
-                  </Button>
-                );
-              })}
-              {article.canEdit && (
-                <Button variant="outline" asChild>
-                  <Link href={`/knowledge/${article.reference}/edit`}>
-                    <PencilIcon aria-hidden /> {tc('edit')}
-                  </Link>
-                </Button>
-              )}
-              {canTranslate && (
-                <Button variant="outline" asChild>
-                  <Link href={`/knowledge/new?translationOf=${article.id}`}>
-                    <GitBranchIcon aria-hidden /> {t('article.translate')}
-                  </Link>
-                </Button>
-              )}
-              {article.publishedVersion > 0 && (
-                <Button variant="ghost" onClick={() => setHistory(true)}>
-                  <HistoryIcon aria-hidden /> {t('article.history', { count: article.publishedVersion })}
-                </Button>
-              )}
-              {article.canDelete && (
-                <Button
-                  variant="ghost"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  <Trash2Icon aria-hidden /> {tc('delete')}
-                </Button>
-              )}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <article className="grid min-w-0 content-start gap-6" lang={LOCALE_LANG[article.locale]}>
+          {(article.summary || article.translations.length > 0) && (
+            <div className="grid gap-3">
+              {article.summary && <p className="text-base text-muted-foreground">{article.summary}</p>}
+              <Translations article={article} />
             </div>
           )}
+          <SourceLine article={article} />
+          {article.classification && <ClassificationBanner value={article.classification} />}
+          <StateBanner article={article} />
 
           <Card>
             <CardContent>
               {article.body.trim() ? (
-                <Markdown className="text-[15px]" anchors>
+                <Markdown className={ARTICLE_PROSE} anchors>
                   {article.body}
                 </Markdown>
               ) : (
@@ -496,7 +545,7 @@ export default function ArticlePage({ params }: WebPageProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('article.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('article.deleteDescription', { reference: article.reference })}
+              {t('article.deleteDescription', { title: article.title, reference: article.reference })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

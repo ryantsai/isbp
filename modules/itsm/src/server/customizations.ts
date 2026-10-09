@@ -27,6 +27,8 @@ import {
   upsertCategorySchema,
   upsertSlaPolicySchema,
 } from '../contracts';
+import { policyReach } from '../sla-coverage';
+import { policyLabel } from './config';
 import { invalidateLookups } from './lookups';
 import { businessCalendars, catalogItems, categories, slaPolicies } from './schema';
 import { services } from './services';
@@ -106,7 +108,7 @@ export const categoryValueSchema = z.object({
     .nullable()
     .default(null)
     .describe('Group new tickets of this category are routed to, or null'),
-  sortOrder: cat.sortOrder.describe('Order among its siblings (lower first)'),
+  sortOrder: z.number().int().default(0).describe('Order among its siblings (lower first)'),
 });
 export type CategoryValue = z.infer<typeof categoryValueSchema>;
 
@@ -249,14 +251,18 @@ const SLA_FACTS = {
   'ticket.priority': '1 (critical) … 4 (low)',
   'ticket.impact': '1 (high) … 3 (low)',
   'ticket.urgency': '1 (high) … 3 (low)',
-  'ticket.categoryKey': 'the key of the ticket’s category, or null',
+  'ticket.categoryKey': 'the key of the ticket’s category, or null (that category only)',
+  'ticket.categoryKeys':
+    'the keys of the ticket’s category and of its ancestors: { "fact": "ticket.categoryKeys", "op": "eq", "value": "hardware" } matches Hardware and every subcategory',
   'ticket.major': 'true for a major incident',
   'ticket.channel': `one of ${channelSchema.options.join(', ')}`,
 } as const;
 
 /** A policy without `active`: an inactive policy is an archived one. */
 export const slaPolicyValueSchema = z.object({
-  name: z.string().trim().min(1).max(200).describe('Policy name'),
+  name: pol.name.describe(
+    'Policy name per language: { "en", "zh-TW", "ja-JP" } (at least one); a plain string is taken as English',
+  ),
   description: z.string().trim().max(1000).nullable().default(null).describe('What the policy is for'),
   ticketTypes: pol.ticketTypes.describe('Ticket types the policy applies to'),
   condition: pol.condition
@@ -272,11 +278,9 @@ export const slaPolicyValueSchema = z.object({
     .default([...DEFAULT_PAUSE_STATUSES])
     .describe('Ticket statuses that pause the resolution timer'),
   warnAt: pol.warnAt.default(0.75).describe('Warn the assignee when this share of a target has passed'),
-  sortOrder: pol.sortOrder
-    .default(100)
-    .describe(
-      'Evaluation order: the first active policy (lowest first) whose types and condition match applies',
-    ),
+  sortOrder: pol.sortOrder.describe(
+    'Evaluation order: the first active policy (lowest first) whose types and condition match applies. Omit it on create: the policy is then placed just before the first policy that would otherwise take all its tickets (or last)',
+  ),
 });
 export type SlaPolicyValue = z.infer<typeof slaPolicyValueSchema>;
 
@@ -289,7 +293,7 @@ async function policyRow(ctx: ModuleContext, id: string): Promise<PolicyRow | nu
 }
 
 const policyValue = (p: PolicyRow): SlaPolicyValue => ({
-  name: p.name,
+  name: policyLabel(p),
   description: p.description,
   ticketTypes: p.ticketTypes,
   condition: p.condition ?? null,
@@ -306,7 +310,7 @@ function categoryKeysOf(c: Condition | null): string[] {
   if ('all' in c) return c.all.flatMap(categoryKeysOf);
   if ('any' in c) return c.any.flatMap(categoryKeysOf);
   if ('not' in c) return categoryKeysOf(c.not);
-  if (c.fact !== 'ticket.categoryKey') return [];
+  if (c.fact !== 'ticket.categoryKey' && c.fact !== 'ticket.categoryKeys') return [];
   return (Array.isArray(c.value) ? c.value : [c.value]).filter((v): v is string => typeof v === 'string');
 }
 
@@ -338,16 +342,34 @@ export const slaPolicyCustomization: CustomizationHandler<SlaPolicyValue> = {
   schema: slaPolicyValueSchema,
 
   async guide(ctx) {
-    const [calendars, tree] = await Promise.all([calendarList(ctx), categoryTree(ctx)]);
+    const [calendars, tree, rows] = await Promise.all([
+      calendarList(ctx),
+      categoryTree(ctx),
+      ctx.db.select().from(slaPolicies).orderBy(asc(slaPolicies.sortOrder), asc(slaPolicies.createdAt)),
+    ]);
+    const reach = policyReach(
+      rows.map((p) => ({ id: p.id, ticketTypes: p.ticketTypes, condition: p.condition, active: p.active })),
+      { categories: tree.rows.map((r) => ({ id: r.id, key: r.key, parentId: r.parentId })) },
+    );
     return {
       instructions: [
         'An SLA policy sets response and resolution targets per priority (P1 critical … P4 low) for some ticket types. When a ticket is raised, the first active policy in sortOrder whose ticketTypes include its type and whose condition holds starts its timers; changes apply to tickets raised afterwards.',
         'Targets are business minutes on the calendar (a 24×7 calendar counts wall-clock time); every priority needs both targets. The resolution timer pauses in pauseStatuses; the assignee is warned at warnAt of the target.',
-        `A condition is { fact, op, value } or { all: [...] } / { any: [...] } / { not: ... }; ops: ${CONDITION_OPS.join(', ')}. Facts are listed in \`facts\`; ticket.categoryKey compares category keys. Put narrower policies first (lower sortOrder).`,
+        `A condition is { fact, op, value } or { all: [...] } / { any: [...] } / { not: ... }; ops: ${CONDITION_OPS.join(', ')}. Facts are listed in \`facts\`; ticket.categoryKeys matches a category with its subcategories, ticket.categoryKey that category only.`,
+        'Order matters: a policy placed after a general one for the same types never applies (see `policies`: `neverAppliesTo` names the policy that takes those tickets first). Omit sortOrder when creating a policy: it is then placed just before the first policy that would otherwise take all its tickets.',
         'Archive deactivates the policy (running timers keep their targets); restore activates it again.',
       ].join('\n'),
       reference: {
         facts: SLA_FACTS,
+        policies: rows.map((p) => ({
+          id: p.id,
+          name: localize(policyLabel(p), 'en'),
+          ticketTypes: p.ticketTypes,
+          condition: p.condition ?? null,
+          sortOrder: p.sortOrder,
+          active: p.active,
+          neverAppliesTo: (reach.get(p.id)?.blocked ?? []).map((b) => ({ type: b.type, takenBy: b.by })),
+        })),
         priorities: { 1: 'P1 critical', 2: 'P2 high', 3: 'P3 moderate', 4: 'P4 low' },
         calendars,
         categories: tree.rows.filter((r) => r.active).map((r) => ({ key: r.key, path: tree.path(r.id) })),
@@ -359,10 +381,10 @@ export const slaPolicyCustomization: CustomizationHandler<SlaPolicyValue> = {
         {
           description: 'Faster targets for VPN incidents, around the clock',
           value: {
-            name: 'VPN incidents',
+            name: { en: 'VPN incidents', 'zh-TW': 'VPN 事件', 'ja-JP': 'VPN インシデント' },
             description: 'Remote workers depend on the VPN',
             ticketTypes: ['incident'],
-            condition: { fact: 'ticket.categoryKey', op: 'eq', value: 'network-vpn' },
+            condition: { fact: 'ticket.categoryKeys', op: 'eq', value: 'network-vpn' },
             targets: {
               '1': { responseMinutes: 15, resolutionMinutes: 120 },
               '2': { responseMinutes: 30, resolutionMinutes: 240 },
@@ -372,14 +394,13 @@ export const slaPolicyCustomization: CustomizationHandler<SlaPolicyValue> = {
             calendarId: calendars[0]?.id ?? SAMPLE_ID,
             pauseStatuses: [...DEFAULT_PAUSE_STATUSES],
             warnAt: 0.75,
-            sortOrder: 10,
           },
         },
       ],
     };
   },
 
-  async list({ q, limit, includeArchived }, ctx) {
+  async list({ q, limit, includeArchived }, ctx, auth) {
     const pattern = q ? likePattern(q) : null;
     const rows = await ctx.db
       .select()
@@ -394,19 +415,19 @@ export const slaPolicyCustomization: CustomizationHandler<SlaPolicyValue> = {
       .limit(limit);
     return rows.map((p) => ({
       id: p.id,
-      label: p.name,
+      label: nameIn(policyLabel(p), auth.user?.locale),
       description: p.description,
       archived: !p.active,
       href: `${SETTINGS}?tab=sla`,
     }));
   },
 
-  async get(id, ctx) {
+  async get(id, ctx, auth) {
     const p = await policyRow(ctx, id);
     if (!p) return null;
     return {
       id: p.id,
-      label: p.name,
+      label: nameIn(policyLabel(p), auth.user?.locale),
       description: p.description,
       archived: !p.active,
       href: `${SETTINGS}?tab=sla`,
@@ -529,7 +550,6 @@ export const slaPolicyCustomization: CustomizationHandler<SlaPolicyValue> = {
             calendarId: String(answers.calendarId),
             pauseStatuses: [...DEFAULT_PAUSE_STATUSES],
             warnAt: 0.75,
-            sortOrder: 100,
           },
         };
       },

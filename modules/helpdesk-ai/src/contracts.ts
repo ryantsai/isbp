@@ -21,8 +21,9 @@
  *     POST   /conversations/:id/resolve       → conversationSchema   ("that solved it" = deflected)
  *     POST   /conversations/:id/escalate      ticketProposalSchema → escalateResultSchema (creates the ticket)
  *
- *   Insights (helpdesk-ai.insights.read)
+ *   Insights (helpdesk-ai.insights.read, or itsm.reports.read: metrics only — no conversations)
  *     GET    /insights/overview               overviewQuerySchema → overviewSchema
+ *     GET    /insights/pending                overviewQuerySchema → pendingTriageSchema
  */
 import { dateTime } from '@isbp/contracts';
 import { listQuerySchema } from '@isbp/sdk';
@@ -126,7 +127,11 @@ export const triageDataSchema = z.object({
     impact: z.number(),
     urgency: z.number(),
   }),
-  /** Written in the requester's language (builtin) or by the model. */
+  /**
+   * Written by the model (LLM mode), or the builtin explanation in the requester's language. The panel renders
+   * builtin explanations from `neighbours` and `keywords` in the viewer's language instead; this text is the
+   * fallback (and what auto-triage writes on the ticket).
+   */
   rationale: z.string(),
   /** The most similar resolved tickets the vote used. */
   neighbours: z.array(triageNeighbourSchema),
@@ -168,6 +173,13 @@ export type InsightFeedbackInput = z.input<typeof insightFeedbackSchema>;
 
 /* ───────────────────────────── assist panel ───────────────────────────── */
 
+/** Similar tickets and articles below this similarity are noise and are not shown to agents. */
+export const SHOW_SIMILARITY = 0.25;
+/** Similar tickets and articles listed before "Show more". */
+export const SHOW_FIRST = 3;
+/** Confidence below which a triage suggestion says "check before applying" and doesn't push "Apply all". */
+export const LOW_CONFIDENCE = 0.4;
+
 export const similarTicketSchema = z.object({
   id: z.string(),
   reference: z.string(),
@@ -176,6 +188,10 @@ export const similarTicketSchema = z.object({
   similarity: z.number(),
   resolutionCode: z.string().nullable(),
   href: z.string(),
+  /** Ticket type (`incident`, …) when known. */
+  type: z.string().nullable(),
+  /** Still being worked (problems also list open incidents): its status; null for resolved ones. */
+  status: z.string().nullable(),
 });
 export type SimilarTicket = z.input<typeof similarTicketSchema>;
 
@@ -256,11 +272,17 @@ export type ReplyDraft = z.input<typeof replyDraftSchema>;
 export const assistSchema = z.object({
   ai: aiInfoSchema,
   settings: z.object({ triageEnabled: z.boolean(), suggestReplies: z.boolean() }),
+  /** Only for incidents and service requests that are still being worked. */
   triage: triageInsightSchema.nullable(),
   /** The cached summary when it is still current. */
   summary: summarySchema.nullable(),
   kbDraft: kbDraftSchema.nullable(),
+  /**
+   * Clearly similar tickets (at least `SHOW_SIMILARITY`), best first: resolved ones; on a problem, its
+   * candidate incidents — open ones first, then resolved. None on changes.
+   */
   similar: z.array(similarTicketSchema),
+  /** Clearly relevant articles (at least `SHOW_SIMILARITY`), best first. None on changes. */
   articles: z.array(suggestedArticleSchema),
 });
 export type Assist = z.input<typeof assistSchema>;
@@ -320,6 +342,11 @@ export const postMessageSchema = z.object({ content: z.string().trim().min(1).ma
 export const escalateResultSchema = z.object({
   ticket: z.object({ id: z.string(), reference: z.string(), href: z.string() }),
   conversation: conversationSchema,
+  /**
+   * The ticket was raised and linked, but "I've raised …" could not be added to the conversation (nor audited):
+   * the escalation still succeeded. A later retry of the request adds it.
+   */
+  warning: z.enum(['not_recorded']).nullable(),
 });
 export type EscalateResult = z.input<typeof escalateResultSchema>;
 
@@ -399,6 +426,30 @@ export const overviewSchema = z.object({
 });
 export type Overview = z.input<typeof overviewSchema>;
 
+/** Triage suggestions waiting for an agent on open tickets (`GET /insights/pending`). */
+export const pendingTriageSchema = z.object({
+  total: z.number().int(),
+  items: z.array(
+    z.object({
+      insightId: id,
+      ticketId: id,
+      reference: z.string(),
+      href: z.string(),
+      /** Only for callers who may read every ticket. */
+      title: z.string().nullable(),
+      status: z.string(),
+      suggestion: z.object({
+        categoryPath: z.string().nullable(),
+        assignmentGroupName: z.string().nullable(),
+        priority: z.number().int().nullable(),
+      }),
+      confidence: z.number().nullable(),
+      createdAt: dateTime,
+    }),
+  ),
+});
+export type PendingTriage = z.input<typeof pendingTriageSchema>;
+
 /* ───────────────────────────── server-side (output) types ───────────────────────────── */
 
 /** What route handlers return (dates as `Date`); the `z.input` types above are what clients receive. */
@@ -413,4 +464,5 @@ export type Out = {
   ConversationDetail: z.output<typeof conversationDetailSchema>;
   EscalateResult: z.output<typeof escalateResultSchema>;
   Overview: z.output<typeof overviewSchema>;
+  PendingTriage: z.output<typeof pendingTriageSchema>;
 };

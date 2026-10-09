@@ -5,6 +5,7 @@ import { aiTools } from './ai';
 import { jobCustomization } from './customizations';
 import { processActions } from './process-actions';
 import { records, search } from './records';
+import { references } from './references';
 import { routes } from './routes';
 import { seed } from './seed';
 import { services } from './services';
@@ -68,6 +69,7 @@ export default defineServerModule(manifest, {
   customizations: { job: jobCustomization },
   processActions,
   records,
+  references,
   search,
   seed,
 });

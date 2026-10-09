@@ -99,6 +99,7 @@ export function DoraCard({ code, days = 90 }: { code: string; days?: number }) {
                   </dt>
                   <dd className="mt-1 truncate text-xl font-semibold tracking-tight">{tile.value}</dd>
                   <dd className="truncate text-xs text-muted-foreground">{tile.hint}</dd>
+                  <dd className="mt-1 text-xs text-muted-foreground">{t(`tileHints.${tile.key}`)}</dd>
                 </div>
               ))}
             </dl>

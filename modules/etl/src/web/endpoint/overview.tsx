@@ -3,7 +3,9 @@
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useApiQuery } from '@isbp/ui/query';
+import { ErrorState } from '@isbp/ui/empty-state';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { StatTile } from '@isbp/ui/stat-tile';
 import { ActivityIcon, DatabaseZapIcon, GaugeIcon, PercentIcon, ScrollTextIcon, ZapIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
@@ -56,46 +58,37 @@ export function EndpointStatsCard({
   const t = useTranslations('etl.stats');
   const format = useFormatter();
   const duration = useDuration();
-  const { data } = useApiQuery<EndpointStats>(`/etl/endpoints/${endpoint.id}/stats`, { period });
+  const stats = useApiQuery<EndpointStats>(`/etl/endpoints/${endpoint.id}/stats`, { period });
+  const data = stats.data;
   const label = (at: string) =>
     period === '24h'
       ? format.dateTime(new Date(at), { hour: 'numeric', minute: '2-digit' })
       : format.dateTime(new Date(at), { month: 'short', day: 'numeric' });
-  const tiles = data
-    ? [
-        { key: 'calls', icon: ActivityIcon, value: format.number(data.calls) },
-        {
-          key: 'errorRate',
-          icon: PercentIcon,
-          value: format.number(data.errorRate, { style: 'percent', maximumFractionDigits: 1 }),
-          hint: t('errorsHint', { count: data.errors }),
-        },
-        {
-          key: 'p95',
-          icon: GaugeIcon,
-          value: duration(data.p95Ms),
-          hint: t('avgHint', { avg: duration(data.avgMs) }),
-        },
-        { key: 'cacheHits', icon: ZapIcon, value: format.number(data.cacheHits) },
-      ]
-    : [];
+  if (stats.error && !data)
+    return <ErrorState error={stats.error} onRetry={() => stats.refetch()} kind="section" />;
   return (
     <div className="grid min-w-0 gap-4">
       {!data ? (
         <Skeleton className="h-24 w-full rounded-xl" />
       ) : (
-        <dl className="grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label={t('summary')}>
-          {tiles.map((tile) => (
-            <div key={tile.key} className="min-w-0 rounded-xl border bg-card p-4 shadow-xs">
-              <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <tile.icon className="size-3.5 shrink-0" aria-hidden />
-                <span className="truncate">{t(`tiles.${tile.key}`)}</span>
-              </dt>
-              <dd className="mt-1 truncate text-2xl font-semibold tracking-tight">{tile.value}</dd>
-              {tile.hint && <dd className="truncate text-xs text-muted-foreground">{tile.hint}</dd>}
-            </div>
-          ))}
-        </dl>
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4" role="group" aria-label={t('summary')}>
+          <StatTile icon={<ActivityIcon />} label={t('tiles.calls')} value={data.calls} />
+          <StatTile
+            icon={<PercentIcon />}
+            tone={data.errors > 0 ? 'destructive' : 'default'}
+            label={t('tiles.errorRate')}
+            value={format.number(data.errorRate, { style: 'percent', maximumFractionDigits: 1 })}
+            hint={t('errorsHint', { count: data.errors })}
+            href={data.errors > 0 ? `/etl/logs?endpoint=${endpoint.id}&status=error` : undefined}
+          />
+          <StatTile
+            icon={<GaugeIcon />}
+            label={t('tiles.p95')}
+            value={duration(data.p95Ms)}
+            hint={t('avgHint', { avg: duration(data.avgMs) })}
+          />
+          <StatTile icon={<ZapIcon />} label={t('tiles.cacheHits')} value={data.cacheHits} />
+        </div>
       )}
       <ChartFrame
         title={t('chartTitle')}
@@ -104,7 +97,7 @@ export function EndpointStatsCard({
         legend={
           <Legend
             items={[
-              { key: 'ok', label: t('ok'), className: 'bg-chart-1' },
+              { key: 'ok', label: t('ok'), className: 'bg-chart-5' },
               { key: 'errors', label: t('errors'), className: 'bg-destructive' },
             ]}
           />

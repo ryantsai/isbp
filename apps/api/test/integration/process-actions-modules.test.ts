@@ -67,7 +67,8 @@ describe('itsm.create-change', () => {
       type: 'itsm.create-change',
       config: {
         title: 'Firewall change for {{answers.what}} ({{request.reference}})',
-        description: 'Requested by {{requester.displayName}}',
+        // `answers.<record field>` is the picked records' names.
+        description: 'Requested by {{requester.displayName}} for {{answers.cis}}',
         changeType: 'normal',
         risk: 'high',
         ciField: 'cis',
@@ -116,6 +117,7 @@ describe('itsm.create-change', () => {
       .innerJoin(changes, eq(changes.ticketId, tickets.id))
       .where(eq(tickets.id, run!.result!.record!.id));
     expect(change!.t.title).toBe(`Firewall change for payments (${sub.reference})`);
+    expect(change!.t.description).toContain('for pay-db-01, pay-db-02');
     expect(change!.t.status).toBe('authorization');
     expect(change!.t.source).toMatchObject({
       type: 'process-action',

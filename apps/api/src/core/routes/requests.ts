@@ -14,6 +14,7 @@ import {
   publishedFormSchema,
   requestableRoleQuerySchema,
   requestableRoleSchema,
+  requestPathSchema,
   submitFormSchema,
 } from '@isbp/contracts';
 import { httpErrors, type ModuleRouter, pageSchema } from '@isbp/sdk/server';
@@ -175,6 +176,42 @@ export function requestRoutes(app: ModuleRouter, access: AccessRequestService, f
       if (submission) return { kind: 'form' as const, submission };
       throw httpErrors.notFound('Request not found');
     },
+  );
+
+  app.get(
+    '/requests/:reference/path',
+    {
+      schema: {
+        tags,
+        summary:
+          'Who approves a request, step by step, as the requester sees it (done, waiting, next): no rule text',
+        params: z.object({ reference: z.string().max(20) }),
+        response: { 200: requestPathSchema },
+      },
+    },
+    async (req) => {
+      const n = parseRequestNumber(req.params.reference);
+      if (n === null) throw httpErrors.notFound('Request not found');
+      const path =
+        (await access.pathByNumber(n, req.auth).catch(() => null)) ??
+        (await forms.pathByNumber(n, req.auth).catch(() => null));
+      if (!path) throw httpErrors.notFound('Request not found');
+      return path;
+    },
+  );
+
+  app.get(
+    '/workflow-instances/:id/path',
+    {
+      schema: {
+        tags,
+        summary:
+          'The approval path of an instance, step by step, for the people who can see it (approvers, requesters)',
+        params: idParams,
+        response: { 200: requestPathSchema },
+      },
+    },
+    async (req) => access.instancePath(req.params.id, req.auth),
   );
 
   /* ───────────── forms (portal) ───────────── */

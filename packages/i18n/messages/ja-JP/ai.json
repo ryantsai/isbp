@@ -39,7 +39,8 @@
     "spendPercent": "月間予算の {percent}",
     "budgetUsed": "予算の {percent} を使用済み",
     "budgetNear": "{percent} を使用済み、まもなく上限です",
-    "budgetSpent": "予算の上限に達しました。翌月まで AI の呼び出しは拒否されます"
+    "budgetSpent": "予算の上限に達しました。翌月まで AI の呼び出しは拒否されます",
+    "technical": "技術的な詳細"
   },
   "models": {
     "provider": "プロバイダー",
@@ -324,10 +325,10 @@
   },
   "mcp": {
     "endpoint": "エンドポイント",
-    "description": "Claude Code、Claude Desktop、IDE のエージェントは、Model Context Protocol を使用して ISBP のツールとカスタマイズの種類を利用できます。アシスタントと同じアクセス許可の確認と監査ログが適用されます。",
+    "description": "Claude Code、Claude Desktop、IDE のエージェントは、Model Context Protocol で ISBP を利用できます。アシスタントと同じアクセス許可の確認と監査ログが適用されます。",
     "endpointUrl": "MCP エンドポイントの URL",
     "copyEndpoint": "MCP エンドポイントの URL をコピー",
-    "endpointHint": "Streamable HTTP、JSON 応答、セッションなし。ほかの Web サイトからの要求は拒否されます。",
+    "endpointHint": "ほかの Web サイトからの要求は拒否されます。",
     "versions": "プロトコルのリビジョン",
     "stateless": "ステートレス",
     "legacy": "initialize を使用",
@@ -338,14 +339,17 @@
     "clientsEmpty": "MCP を使用できる API クライアントはまだありません。[管理] → [API クライアント] でアクセス許可を付与してください。",
     "manageClients": "API クライアントを管理",
     "offered": "エージェントが利用できるもの",
-    "offeredTools": "ツール: API クライアントが使用できる、破壊的でないすべてのツール (名前は module__tool、読み取り専用かどうかを表示)。",
-    "offeredResources": "リソース: クライアントが読み取れるカスタマイズの種類 (isbp://customizations)、各種類のスキーマとガイド、オブジェクトとそのバージョン。",
+    "offeredTools": "ツール: API クライアントが実行できる、データを破壊しないすべての操作。読み取り専用のツールにはその旨が表示されます。",
+    "offeredResources": "設定: エージェントが変更できる設定と、その現在の値およびガイド。エージェントはこれを基に変更を提案できます。",
     "offeredChangeSets": "変更は変更セットになります。エージェントが提案し、ユーザーが ISBP で確認して適用するまで反映されません。",
     "offeredNoDestructive": "破壊的なツールは ISBP でのユーザーの確認が必要なため、提供されません。",
     "connect": "Claude Code を接続",
     "connectBody": "ターミナルでこのコマンドを実行し、プレースホルダーを MCP を使用できるクライアントの API キーに置き換えてください。",
     "command": "コマンド",
     "copyCommand": "コマンドをコピー",
-    "placeholderHint": "キーはプレースホルダーです。実際のキーを共有のメモやチャットに貼り付けないでください。"
+    "placeholderHint": "キーはプレースホルダーです。実際のキーを共有のメモやチャットに貼り付けないでください。",
+    "technical": "技術的な詳細",
+    "transport": "トランスポート: Streamable HTTP、JSON 応答、セッションなし。",
+    "naming": "ツールの名前は module__tool です。エージェントが変更できる設定は isbp://customizations に、スキーマ、ガイド、オブジェクトとともに一覧表示されます。"
   }
 }

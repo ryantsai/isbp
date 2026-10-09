@@ -376,6 +376,8 @@ export function GrantRoleSheet({
                       })
                     }
                     placeholder={t('userPlaceholder')}
+                    aria-label={t('person')}
+                    aria-describedby={principalError ? 'grant-principal-error' : undefined}
                   />
                 ) : (
                   <GroupPicker
@@ -386,6 +388,7 @@ export function GrantRoleSheet({
                       })
                     }
                     placeholder={t('groupPlaceholder')}
+                    aria-label={t('group')}
                     invalid={Boolean(principalError)}
                     describedBy={principalError ? 'grant-principal-error' : undefined}
                   />

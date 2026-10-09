@@ -743,7 +743,8 @@ describe('core.form: record fields, rules and process actions (Phase 8)', () => 
         'recordGroupApproves',
         'groupApproves',
         'group',
-        'createChange',
+        'audience',
+        'afterApproval',
       ]),
     );
     const recordType = fields.find((f) => f.key === 'recordType')!;
@@ -772,7 +773,7 @@ describe('core.form: record fields, rules and process actions (Phase 8)', () => 
       [ciFact.key]: 'ownerGroup',
       groupApproves: true,
       group: 'it-asset-management',
-      createChange: true,
+      afterApproval: 'change',
     };
     const built = await cz().buildTemplate('core.form', 'approval-process', answers, admin);
     expect(built.items.map((i) => [i.kind, i.op, i.ref])).toEqual([

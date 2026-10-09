@@ -2,50 +2,30 @@
 
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
+import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { AnimatedNumber, Stagger, StaggerItem } from '@isbp/ui/motion';
+import { FilterBar } from '@isbp/ui/filter-bar';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { StatTile } from '@isbp/ui/stat-tile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import {
-  AppWindowIcon,
-  CalendarRangeIcon,
-  CircleCheckIcon,
-  CircleXIcon,
-  PlusIcon,
-  RocketIcon,
-  SearchXIcon,
-} from 'lucide-react';
+import { AppWindowIcon, CircleCheckIcon, CircleXIcon, PlusIcon, RocketIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useMemo, useState } from 'react';
-import {
-  APP_STAGES,
-  type AppStage,
-  type AppSummary,
-  CRITICALITIES,
-  type Dashboard,
-  HOSTINGS,
-} from '../../contracts';
+import { type AppStage, type AppSummary, CRITICALITIES, type Dashboard, HOSTINGS } from '../../contracts';
 import { AppFormDialog } from '../app-form-dialog';
-import {
-  CriticalityBadge,
-  DeploymentStatusText,
-  HostingLabel,
-  STAGE_META,
-  StageBadge,
-  TONE,
-} from '../badges';
+import { CriticalityBadge, DeploymentStatusText, HostingLabel, StageBadge } from '../badges';
 import { appHref } from '../lib';
+import { AlmTabs } from '../section-tabs';
 
 const ALL = '__all__';
 const VIEWS = ['all', 'production', 'development', 'sunset', 'mine'] as const;
@@ -83,94 +63,41 @@ function FilterSelect({
   );
 }
 
-/** Counts by stage, deployments in the last 7 days and releases coming up. */
-function SummaryStrip({ onStage }: { onStage: (stage: AppStage) => void }) {
+/** Two figures: delivery in the last week and what is coming (stage counts are on the tabs below). */
+function SummaryStrip({ data }: { data: Dashboard | undefined }) {
   const t = useTranslations('alm');
-  const { data } = useApiQuery<Dashboard>('/alm/dashboard');
   if (!data)
     return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
-        {Array.from({ length: 7 }, (_, i) => (
-          <Skeleton key={i} className="h-[4.5rem] rounded-xl" />
-        ))}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Skeleton className="h-24 rounded-xl" />
+        <Skeleton className="h-24 rounded-xl" />
       </div>
     );
-  const tile = 'flex min-w-0 flex-col gap-1 rounded-xl border bg-card px-4 py-3 text-left shadow-xs';
   return (
-    <Stagger
-      className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7"
-      role="group"
-      aria-label={t('inventory.summary')}
-    >
-      {APP_STAGES.map((stage) => {
-        const Icon = STAGE_META[stage].icon;
-        return (
-          <StaggerItem key={stage} className="min-w-0">
-            <button
-              type="button"
-              onClick={() => onStage(stage)}
-              className={cn(
-                tile,
-                'w-full outline-none hover:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/50',
-              )}
-            >
-              <span className="flex items-start gap-1.5 text-xs leading-snug text-muted-foreground">
-                <Icon className="mt-px size-3.5 shrink-0" aria-hidden />
-                <span className="line-clamp-2">{t(`stage.${stage}`)}</span>
-              </span>
-              <span className="text-2xl font-semibold tracking-tight">
-                <AnimatedNumber value={data.byStage[stage] ?? 0} />
-              </span>
-            </button>
-          </StaggerItem>
-        );
-      })}
-      <StaggerItem className={cn(tile, 'min-w-0')}>
-        <span className="line-clamp-2 text-xs leading-snug text-muted-foreground">
-          {t('inventory.deploymentsWeek')}
-        </span>
-        <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="inline-flex items-center gap-1 text-lg font-semibold text-success">
-            <CircleCheckIcon className="size-4" aria-hidden />
-            <AnimatedNumber value={data.week.succeeded} />
-            <span className="sr-only">{t('deploymentStatus.succeeded')}</span>
-          </span>
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 text-lg font-semibold',
-              data.week.failed ? 'text-destructive' : 'text-muted-foreground',
-            )}
-          >
-            <CircleXIcon className="size-4" aria-hidden />
-            <AnimatedNumber value={data.week.failed} />
-            <span className="sr-only">{t('inventory.failedOrRolledBack')}</span>
-          </span>
-        </span>
-      </StaggerItem>
-      <StaggerItem className="min-w-0">
-        <Link
-          href="/alm/releases"
-          className={cn(
-            tile,
-            'h-full outline-none hover:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/50',
-          )}
-        >
-          <span className="flex items-start gap-1.5 text-xs leading-snug text-muted-foreground">
-            <RocketIcon className="mt-px size-3.5 shrink-0" aria-hidden />
-            <span className="line-clamp-2">{t('inventory.upcoming')}</span>
-          </span>
-          <span className="text-2xl font-semibold tracking-tight">
-            <AnimatedNumber value={data.upcoming.length} />
-          </span>
-        </Link>
-      </StaggerItem>
-    </Stagger>
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="group" aria-label={t('inventory.summary')}>
+      <StatTile
+        icon={data.week.failed > 0 ? <CircleXIcon /> : <CircleCheckIcon />}
+        tone={data.week.failed > 0 ? 'destructive' : 'success'}
+        label={t('inventory.deploymentsWeek')}
+        value={data.week.total}
+        hint={t('inventory.deploymentsWeekHint', {
+          succeeded: data.week.succeeded,
+          failed: data.week.failed,
+        })}
+      />
+      <StatTile
+        icon={<RocketIcon />}
+        label={t('inventory.upcoming')}
+        value={data.upcoming.length}
+        hint={t('inventory.upcomingHint')}
+        href="/alm/releases"
+      />
+    </div>
   );
 }
 
 export default function InventoryPage() {
   const t = useTranslations('alm');
-  const tc = useTranslations('common');
   const router = useRouter();
   const canManage = useCan('alm.apps.manage');
   const [state, set] = useListState({ pageSize: 25 });
@@ -179,7 +106,7 @@ export default function InventoryPage() {
   const str = (k: string) => (state[k] as string | undefined) || undefined;
   const stage = str('stage');
 
-  const { data, isLoading, isFetching } = useApiQuery<Page<AppSummary>>('/alm/applications', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<AppSummary>>('/alm/applications', {
     page: state.page,
     pageSize: state.pageSize,
     sort: state.sort,
@@ -190,28 +117,33 @@ export default function InventoryPage() {
     hosting: str('hosting'),
   });
   const filtered = FILTER_KEYS.some((k) => str(k)) || Boolean(stage);
+  const dashboard = useApiQuery<Dashboard>('/alm/dashboard');
+  const byStage = dashboard.data?.byStage;
+  /** How many applications each stage tab holds. */
+  const viewCount = (v: View): number | null => {
+    if (!byStage) return null;
+    if (v === 'all') return dashboard.data!.total;
+    if (v === 'mine') return null;
+    return (VIEW_STAGES[v] ?? '').split(',').reduce((n, st) => n + (byStage[st as AppStage] ?? 0), 0);
+  };
 
   const columns = useMemo<DataTableColumn<AppSummary>[]>(
     () => [
       {
-        id: 'code',
-        header: t('fields.code'),
-        size: 120,
-        meta: { sortKey: 'code', className: 'font-mono text-xs text-muted-foreground' },
-        cell: ({ row }) => row.original.code,
-      },
-      {
         id: 'name',
         header: t('fields.name'),
-        meta: { sortKey: 'name', className: 'max-w-64' },
+        meta: { sortKey: 'name', className: 'max-w-72', wrap: true },
         cell: ({ row }) => (
-          <Link
-            href={appHref(row.original.code)}
-            onClick={(e) => e.stopPropagation()}
-            className="block truncate font-medium outline-none hover:underline focus-visible:underline"
-          >
-            {row.original.name}
-          </Link>
+          <div className="flex min-w-0 flex-col">
+            <Link
+              href={appHref(row.original.code)}
+              onClick={(e) => e.stopPropagation()}
+              className="font-medium wrap-anywhere outline-none hover:underline focus-visible:underline"
+            >
+              {row.original.name}
+            </Link>
+            <span className="font-mono text-xs text-muted-foreground">{row.original.code}</span>
+          </div>
         ),
       },
       {
@@ -223,27 +155,19 @@ export default function InventoryPage() {
       {
         id: 'criticality',
         header: t('fields.criticality'),
-        meta: {
-          sortKey: 'criticality',
-          className: 'hidden sm:table-cell',
-          headerClassName: 'hidden sm:table-cell',
-        },
+        meta: { sortKey: 'criticality', priority: 2 },
         cell: ({ row }) => <CriticalityBadge criticality={row.original.criticality} />,
       },
       {
         id: 'hosting',
         header: t('fields.hosting'),
-        meta: {
-          sortKey: 'hosting',
-          className: 'hidden xl:table-cell',
-          headerClassName: 'hidden xl:table-cell',
-        },
+        meta: { sortKey: 'hosting', priority: 3 },
         cell: ({ row }) => <HostingLabel hosting={row.original.hosting} />,
       },
       {
         id: 'technicalOwner',
         header: t('fields.technicalOwner'),
-        meta: { className: 'hidden max-w-44 lg:table-cell', headerClassName: 'hidden lg:table-cell' },
+        meta: { className: 'max-w-44', priority: 3 },
         cell: ({ row }) =>
           row.original.technicalOwner ? (
             <span className="flex min-w-0 items-center gap-2">
@@ -261,35 +185,31 @@ export default function InventoryPage() {
       {
         id: 'team',
         header: t('fields.team'),
-        meta: {
-          className: 'hidden max-w-40 truncate text-muted-foreground 2xl:table-cell',
-          headerClassName: 'hidden 2xl:table-cell',
-        },
+        meta: { className: 'max-w-40 truncate text-muted-foreground', priority: 3 },
         cell: ({ row }) => row.original.team?.name ?? '—',
       },
       {
         id: 'production',
         header: t('fields.productionVersion'),
-        meta: {
-          className: 'hidden font-mono text-xs md:table-cell',
-          headerClassName: 'hidden md:table-cell',
-        },
+        meta: { className: 'font-mono text-xs', priority: 3 },
         cell: ({ row }) => row.original.productionVersion ?? <span className="text-muted-foreground">—</span>,
       },
       {
         id: 'lastDeployment',
         header: t('fields.lastDeployment'),
-        meta: { className: 'hidden md:table-cell', headerClassName: 'hidden md:table-cell' },
+        meta: { priority: 2 },
         cell: ({ row }) => {
           const d = row.original.lastDeployment;
           if (!d) return <span className="text-muted-foreground">{t('inventory.neverDeployed')}</span>;
           return (
             <span className="flex min-w-0 flex-col gap-0.5 text-xs">
-              <DeploymentStatusText status={d.status} />
-              <span className="truncate text-muted-foreground">
-                {d.environment.name} · <span className="font-mono">{d.version}</span> ·{' '}
-                <RelativeTime date={d.at} />
+              <span className="flex flex-wrap items-center gap-x-1.5">
+                <DeploymentStatusText status={d.status} />
+                <span className="text-muted-foreground">
+                  {d.environment.name} · <span className="font-mono">{d.version}</span>
+                </span>
               </span>
+              <RelativeTime date={d.at} className="text-muted-foreground" />
             </span>
           );
         },
@@ -309,80 +229,115 @@ export default function InventoryPage() {
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(a) => a.id}
       onRowClick={(a) => router.push(appHref(a.code))}
       onPageChange={(page) => set({ page })}
       onPageSizeChange={(pageSize) => set({ pageSize })}
       onSortChange={(sort) => set({ sort })}
       toolbar={
-        <>
-          <SearchInput
-            value={state.q ?? ''}
-            onChange={(q) => set({ q })}
-            placeholder={t('inventory.search')}
-            className="sm:w-72"
-          />
-          <FilterSelect
-            value={str('criticality')}
-            onChange={(v) => set({ criticality: v })}
-            label={t('fields.criticality')}
-            allLabel={t('inventory.allCriticalities')}
-          >
-            {CRITICALITIES.map((c) => (
-              <SelectItem key={c} value={c}>
-                {t(`criticality.${c}`)}
-              </SelectItem>
-            ))}
-          </FilterSelect>
-          <FilterSelect
-            value={str('hosting')}
-            onChange={(v) => set({ hosting: v })}
-            label={t('fields.hosting')}
-            allLabel={t('inventory.allHosting')}
-          >
-            {HOSTINGS.map((h) => (
-              <SelectItem key={h} value={h}>
-                {t(`hosting.${h}`)}
-              </SelectItem>
-            ))}
-          </FilterSelect>
-          {stage && (
-            <span className={cn('inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs', TONE.primary)}>
-              {t('inventory.stageFilter', {
-                stages: stage
-                  .split(',')
-                  .map((s) => t(`stage.${s}`))
-                  .join(', '),
-              })}
-            </span>
-          )}
-          {filtered && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                set({ ...Object.fromEntries(FILTER_KEYS.map((k) => [k, undefined])), stage: undefined })
-              }
-            >
-              {tc('clearFilters')}
-            </Button>
-          )}
-        </>
-      }
-      empty={
-        <EmptyState
-          icon={filtered ? <SearchXIcon /> : <AppWindowIcon />}
-          title={view === 'mine' && !filtered ? t('inventory.emptyMine') : t('inventory.empty')}
-          description={filtered ? t('inventory.emptyFiltered') : t('inventory.emptyHint')}
-          action={
-            !filtered &&
-            canManage && (
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon /> {t('inventory.new')}
-              </Button>
-            )
+        <FilterBar
+          search={
+            <SearchInput
+              value={state.q ?? ''}
+              onChange={(q) => set({ q })}
+              placeholder={t('inventory.search')}
+              className="sm:w-72"
+            />
+          }
+          filters={[
+            {
+              id: 'criticality',
+              label: t('fields.criticality'),
+              primary: true,
+              value: str('criticality') ? t(`criticality.${str('criticality')}`) : undefined,
+              onClear: () => set({ criticality: undefined }),
+              control: (
+                <FilterSelect
+                  value={str('criticality')}
+                  onChange={(v) => set({ criticality: v })}
+                  label={t('fields.criticality')}
+                  allLabel={t('inventory.allCriticalities')}
+                >
+                  {CRITICALITIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {t(`criticality.${c}`)}
+                    </SelectItem>
+                  ))}
+                </FilterSelect>
+              ),
+            },
+            {
+              id: 'hosting',
+              label: t('fields.hosting'),
+              primary: true,
+              value: str('hosting') ? t(`hosting.${str('hosting')}`) : undefined,
+              onClear: () => set({ hosting: undefined }),
+              control: (
+                <FilterSelect
+                  value={str('hosting')}
+                  onChange={(v) => set({ hosting: v })}
+                  label={t('fields.hosting')}
+                  allLabel={t('inventory.allHosting')}
+                >
+                  {HOSTINGS.map((h) => (
+                    <SelectItem key={h} value={h}>
+                      {t(`hosting.${h}`)}
+                    </SelectItem>
+                  ))}
+                </FilterSelect>
+              ),
+            },
+            ...(stage
+              ? [
+                  {
+                    id: 'stage',
+                    label: t('fields.stage'),
+                    value: stage
+                      .split(',')
+                      .map((st) => t(`stage.${st}`))
+                      .join(', '),
+                    onClear: () => set({ stage: undefined }),
+                    control: (
+                      <span className="text-sm text-muted-foreground">
+                        {stage
+                          .split(',')
+                          .map((st) => t(`stage.${st}`))
+                          .join(', ')}
+                      </span>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+          onClearAll={() =>
+            set({ ...Object.fromEntries(FILTER_KEYS.map((k) => [k, undefined])), stage: undefined })
           }
         />
+      }
+      empty={
+        filtered ? (
+          <EmptyState
+            variant="filtered"
+            onClearFilters={() =>
+              set({ ...Object.fromEntries(FILTER_KEYS.map((k) => [k, undefined])), stage: undefined })
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={<AppWindowIcon />}
+            title={view === 'mine' ? t('inventory.emptyMine') : t('inventory.empty')}
+            description={t('inventory.emptyHint')}
+            action={
+              canManage && (
+                <Button onClick={() => setCreating(true)}>
+                  <PlusIcon /> {t('inventory.new')}
+                </Button>
+              )
+            }
+          />
+        )
       }
     />
   );
@@ -393,22 +348,16 @@ export default function InventoryPage() {
         title={t('inventory.title')}
         description={t('inventory.description')}
         actions={
-          <>
-            <Button variant="outline" asChild>
-              <Link href="/alm/releases">
-                <CalendarRangeIcon /> {t('calendar.title')}
-              </Link>
+          canManage && (
+            <Button onClick={() => setCreating(true)}>
+              <PlusIcon /> {t('inventory.new')}
             </Button>
-            {canManage && (
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon /> {t('inventory.new')}
-              </Button>
-            )}
-          </>
+          )
         }
       />
+      <AlmTabs />
       <div className="grid min-w-0 grid-cols-1 gap-6">
-        <SummaryStrip onStage={(s) => set({ view: undefined, stage: s })} />
+        <SummaryStrip data={dashboard.data} />
         <Tabs
           value={view}
           onValueChange={(v) => set({ view: v === 'all' ? undefined : v, stage: undefined })}
@@ -417,6 +366,11 @@ export default function InventoryPage() {
             {VIEWS.map((v) => (
               <TabsTrigger key={v} value={v}>
                 {t(`inventory.views.${v}`)}
+                {viewCount(v) !== null && (
+                  <Badge variant="muted" className="px-1.5 tabular-nums">
+                    {viewCount(v)}
+                  </Badge>
+                )}
               </TabsTrigger>
             ))}
           </TabsList>

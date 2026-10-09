@@ -6,13 +6,16 @@ import {
   builtinRationale,
   builtinReply,
   extractiveSummary,
+  rankOpenIncidents,
   withSources,
 } from '../src/server/assist';
 import {
   builtinAnswer,
   builtinProposal,
   chatSystemPrompt,
+  displayContent,
   proposalFromCall,
+  retrying,
   toDisplayMessages,
 } from '../src/server/chat';
 import { joinList, text } from '../src/server/text';
@@ -162,23 +165,33 @@ describe('extractive summary and KB draft', () => {
 });
 
 describe('virtual agent (builtin parts)', () => {
-  it('answers with the best articles numbered like their citations', () => {
+  it('leads into the article cards without repeating them, and offers a ticket when nothing was found', () => {
     const a = builtinAnswer('en', [{ ...kb, snippet: 'Update the client.' }], true);
-    expect(a).toContain("Here's what I found");
-    expect(a).toContain('- **[1]** [Fix VPN disconnects](/knowledge/KB-00007) — Update the client.');
-    expect(a).toContain('raise a ticket');
+    expect(a).toBe("Here's what I found in the knowledge base:");
     expect(builtinAnswer('zh-TW', [], false)).toBe('我找不到符合這個問題的知識庫文章。');
+    expect(builtinAnswer('en', [], true)).toContain('I can raise a ticket');
   });
 
-  it('prefills a proposal from the first message (title) and the conversation (description)', () => {
+  it('prefills a plain-text proposal from the first message (title) and the conversation (description)', () => {
     const p = builtinProposal(
       'en',
       ["I can't work: Outlook crashes on start\nsince the update", 'Safe mode crashes too'],
       [kb],
     );
     expect(p.title).toBe("I can't work: Outlook crashes on start");
-    expect(p.description).toContain('- Safe mode crashes too');
-    expect(p.description).toContain('KB-00007');
+    expect(p.description).toBe(
+      [
+        'Raised from Ask IT.',
+        'What I described:',
+        "I can't work: Outlook crashes on start since the update",
+        'Safe mode crashes too',
+        "Ask IT suggested “Fix VPN disconnects” (KB-00007), but that didn't solve it.",
+      ].join('\n\n'),
+    );
+    expect(p.description).not.toMatch(/\*\*|^- /m);
+    expect(builtinProposal('ja-JP', ['VPN が切れる'], [kb]).description).toContain(
+      '「Fix VPN disconnects」(KB-00007)',
+    );
     expect(p.urgency).toBe(1);
     expect(p.type).toBe('incident');
     expect(builtinProposal('zh-TW', ['我需要申請 SAP 權限'], []).type).toBe('service_request');
@@ -245,5 +258,83 @@ describe('virtual agent (builtin parts)', () => {
       citations: [kb],
       model: 'm',
     });
+    // A message after a finished answer ("I've raised …") is its own bubble.
+    const escalated = toDisplayMessages([
+      row(0, { role: 'user', content: 'VPN?' }),
+      row(1, { role: 'assistant', content: "Here's what I found", citations: [kb], mode: 'builtin' }),
+      row(2, { role: 'assistant', content: "I've raised INC-00001 for you.", mode: 'builtin' }),
+    ]);
+    expect(escalated.map((m) => m.content)).toEqual([
+      'VPN?',
+      "Here's what I found",
+      "I've raised INC-00001 for you.",
+    ]);
+  });
+
+  it('drops the article list older builtin answers repeated in their text (the cards show them)', () => {
+    const legacy = [
+      "Here's what I found in the knowledge base:",
+      '- **[1]** [Fix VPN disconnects](/knowledge/KB-00007) — Update the client.',
+      text('en', 'chat', 'offerTicket'),
+    ].join('\n\n');
+    expect(displayContent({ content: legacy, mode: 'builtin', citations: [kb] })).toBe(
+      "Here's what I found in the knowledge base:",
+    );
+    // Model answers and answers without sources keep their text.
+    expect(displayContent({ content: legacy, mode: 'llm', citations: [kb] })).toBe(legacy);
+    expect(displayContent({ content: 'Nothing found.', mode: 'builtin', citations: [] })).toBe(
+      'Nothing found.',
+    );
+  });
+
+  it('retries a failing step and gives up after the last attempt', async () => {
+    let calls = 0;
+    await expect(
+      retrying(3, async () => {
+        calls++;
+        if (calls < 3) throw new Error('busy');
+        return 'ok';
+      }),
+    ).resolves.toBe('ok');
+    expect(calls).toBe(3);
+    calls = 0;
+    await expect(
+      retrying(2, async () => {
+        calls++;
+        throw new Error('down');
+      }),
+    ).rejects.toThrow('down');
+    expect(calls).toBe(2);
+  });
+});
+
+describe('similar open incidents on a problem', () => {
+  const t = (id: string, title: string) => ({
+    id,
+    reference: `INC-0000${id}`,
+    type: 'incident' as const,
+    title,
+    status: 'in_progress' as const,
+    priority: 3,
+    requester: null,
+    assignee: null,
+    updatedAt: '2026-10-01T00:00:00Z',
+    resolutionNotes: null,
+    href: `/itsm/tickets/INC-0000${id}`,
+  });
+
+  it('ranks by embedding similarity, best first, and leaves out weak matches', () => {
+    const ranked = rankOpenIncidents(
+      [t('1', 'Printer jam'), t('2', 'VPN drops'), t('3', 'VPN slow')],
+      [1, 0],
+      [
+        [0.1, 0.99],
+        [0.95, 0.31],
+        [0.6, 0.8],
+      ],
+    );
+    expect(ranked.map((r) => r.reference)).toEqual(['INC-00002', 'INC-00003']);
+    expect(ranked[0]).toMatchObject({ status: 'in_progress', type: 'incident', resolutionCode: null });
+    expect(ranked[0]!.similarity).toBeCloseTo(0.95);
   });
 });

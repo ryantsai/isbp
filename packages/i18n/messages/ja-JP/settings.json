@@ -55,7 +55,22 @@
       "email": "メール"
     },
     "mandatory": "セキュリティのため必須",
-    "switchLabel": "{type}: {channel}"
+    "switchLabel": "{type}: {channel}",
+    "categories": {
+      "approvals": "承認",
+      "requests": "自分の申請",
+      "assigned": "自分への割り当て",
+      "announcements": "お知らせ",
+      "security": "セキュリティ通知",
+      "other": "その他"
+    },
+    "allOn": "すべてオン",
+    "allOff": "すべてオフ",
+    "onCount": "{total} 件中 {on} 件がオン",
+    "customise": "個別に設定",
+    "showAll": "すべての通知 ({count} 種類) を表示",
+    "showFewer": "自分に関係する通知だけを表示",
+    "none": "今のところ、あなたに関係する通知はありません。"
   },
   "outOfOffice": {
     "title": "不在設定",
@@ -162,7 +177,9 @@
       "direct": "直接割り当て",
       "group": "{group} 経由",
       "everyone": "全員"
-    }
+    },
+    "request": "アクセスを申請",
+    "baseline": "全員に付与されるアクセス権（{count, plural, other {# 個のロール}}）"
   },
   "validation": {
     "required": "必須です。",

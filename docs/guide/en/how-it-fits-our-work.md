@@ -20,25 +20,25 @@ to see the big picture before your role guide, or to find out who does what when
 
 ## Our IT practices in ISBP
 
-| Practice                          | What we do                                                                | Where in ISBP                                                                                      | Who                                                   |
-| --------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Service requests                  | Give people access, equipment and software they ask for                   | **Requests** (forms, **Request access**), fulfilled as tickets in **Service desk → Tickets**       | Employees, approvers, service desk agents             |
-| Incident management               | Restore service quickly when something breaks                             | **Ask IT**, **Report an issue**, **Service desk → Tickets**                                        | Employees, service desk agents                        |
-| Problem management                | Find root causes, publish known errors and workarounds                    | **Service desk → Problems**                                                                        | Problem managers                                      |
-| Knowledge management              | Write and review answers people can use themselves                        | **Knowledge**, **Knowledge → Manage articles**                                                     | Knowledge editors, agents                             |
-| Service level management          | Agree and track response and resolution targets                           | SLA policies and business calendars in **Administration → Service desk**; **Service desk reports** | Service desk leads                                    |
-| Change enablement                 | Assess, approve and schedule changes; avoid clashes                       | **Service desk → Changes**, CAB approvals in **Approvals**                                         | Change managers, the CAB                              |
-| Release and deployment management | Plan versions, check readiness, record deployments, measure delivery      | **Applications → Applications**, **Applications → Release calendar**                               | Application owners, release managers, CI/CD pipelines |
-| Service configuration management  | Know our services, servers and how they depend on each other              | **Configuration items** (the CMDB)                                                                 | CMDB managers, agents                                 |
-| IT asset management               | Track hardware, licences, contracts and vendors from order to disposal    | **Assets** (**Hardware**, **Software**, **Contracts**, **Vendors**), **My devices**                | Asset managers, contract managers                     |
-| Identity and access management    | Onboard and offboard people, grant and review access                      | **Administration → People**, **Groups**, **Roles & access**, **Applications**; **Request access**  | Identity administrators, HR partners, approvers       |
-| Project and portfolio management  | Run IT projects and see who is working on what                            | **Projects → Projects**, **Projects → My tasks**                                                   | Project managers, project teams                       |
-| Data integration                  | Publish data as APIs and move data between databases                      | **Data APIs & ETL**, **Administration → Database connections**                                     | Data and platform engineers                           |
-| Job scheduling                    | Run recurring tasks and know when they fail                               | **Scheduled jobs**                                                                                 | Platform engineers, operators                         |
-| Database access management        | Give people time-bound database roles, review them, find unmanaged access | **Database access**                                                                                | Developers, DBAs, reviewers                           |
-| Working with existing tools       | Keep ServiceDesk Plus and Azure DevOps Server in step with ISBP           | **Administration → Integrations**                                                                  | Integration administrators                            |
-| Platform configuration            | Change approval workflows, forms, fields and settings safely              | The **Assistant**, **Administration → Change sets**, the admin pages                               | Administrators, team leads                            |
-| Audit and compliance              | Show who did what, and who has access and why                             | **Administration → Audit log**, **Profile & preferences → My access**, access reviews              | Auditors, security team                               |
+| Practice                          | What we do                                                                        | Where in ISBP                                                                                      | Who                                                   |
+| --------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Service requests                  | Give people access, equipment and software they ask for                           | **Requests** (forms, **Request access**), fulfilled as tickets in **Service desk → Tickets**       | Employees, approvers, service desk agents             |
+| Incident management               | Restore service quickly when something breaks                                     | **Ask IT**, **Report an issue**, **Service desk → Tickets**                                        | Employees, service desk agents                        |
+| Problem management                | Find root causes, publish known errors and workarounds                            | **Service desk → Problems**                                                                        | Problem managers                                      |
+| Knowledge management              | Write and review answers people can use themselves                                | **Knowledge**, **Knowledge → Manage**                                                              | Knowledge editors, agents                             |
+| Service level management          | Agree and track response and resolution targets                                   | SLA policies and business calendars in **Administration → Service desk**; **Service desk reports** | Service desk leads                                    |
+| Change enablement                 | Assess, approve and schedule changes; avoid clashes                               | **Service desk → Changes**, CAB approvals in **Approvals**                                         | Change managers, the CAB                              |
+| Release and deployment management | Plan versions, check readiness, record deployments, measure delivery              | **Applications → Applications**, **Applications → Release calendar**                               | Application owners, release managers, CI/CD pipelines |
+| Service configuration management  | Know our services, servers and how they depend on each other                      | **Configuration items** (the CMDB)                                                                 | CMDB managers, agents                                 |
+| IT asset management               | Track hardware, licences, contracts and vendors from order to disposal            | **Assets** (**Hardware**, **Software**, **Contracts**, **Vendors**), **My devices**                | Asset managers, contract managers                     |
+| Identity and access management    | Onboard and offboard people, grant and review access                              | **Administration → People**, **Groups**, **Roles & access**, **Applications**; **Request access**  | Identity administrators, HR partners, approvers       |
+| Project and portfolio management  | Run IT projects and see who is working on what                                    | **Projects → Projects**, **Projects → My tasks**                                                   | Project managers, project teams                       |
+| Data integration                  | Publish data as APIs and move data between databases                              | **Data APIs & ETL**, **Administration → Database connections**                                     | Data and platform engineers                           |
+| Job scheduling                    | Run recurring tasks and know when they fail                                       | **Scheduled jobs**                                                                                 | Platform engineers, operators                         |
+| Database access management        | Give people time-bound database roles, review them, find access without a request | **Database access**                                                                                | Developers, DBAs, reviewers                           |
+| Working with existing tools       | Keep ServiceDesk Plus and Azure DevOps Server in step with ISBP                   | **Administration → Connections**                                                                   | Integration administrators                            |
+| Platform configuration            | Change approval workflows, forms, fields and settings safely                      | The **Assistant**, **Administration → Change sets**, the admin pages                               | Administrators, team leads                            |
+| Audit and compliance              | Show who did what, and who has access and why                                     | **Administration → Audit log**, **Profile & preferences → My access**, access reviews              | Auditors, security team                               |
 
 ## The shared building blocks
 
@@ -101,8 +101,8 @@ People involved: the employee, Ask IT, a service desk agent (in the demo, `helpd
 
 1. The employee opens **Ask IT** and writes "VPN keeps disconnecting". Ask IT answers from the knowledge base, in
    the demo from **VPN disconnects every few minutes**, and lists it under **Sources**.
-2. If the steps work, the employee selects **That solved it**: no ticket needed. Otherwise, **I still need help**,
-   **Review ticket** and **Create ticket**. See [Ask IT](employees.md#ask-it-before-you-raise-a-ticket).
+2. If the steps work, the employee selects **Yes, thanks**: no ticket needed. Otherwise, **No, raise a ticket** and
+   **Create ticket**. See [Ask IT](employees.md#ask-it-before-you-raise-a-ticket).
 3. The incident appears in **Service desk → Tickets**. Helpdesk AI suggests the category (VPN), the assignment group
    and the priority, and shows similar resolved tickets. The SLA timers start.
 4. The agent sees the ticket matches the known error **VPN client 5.2 crashes on macOS 15** (a problem in
@@ -194,7 +194,7 @@ without anyone sharing a password, and the access ends by itself.
 People involved: the developer, their manager, the role owner, information security (for high-risk roles), the DBAs,
 a reviewer.
 
-1. The developer opens **Requests → Request database access**, chooses the role (in the demo, **ERP reporting
+1. The developer opens **Requests → Direct database access**, chooses the role (in the demo, **ERP reporting
    (read-only)** on **Contoso ERP (PostgreSQL)**), the end date and the reason, and sends it. See
    [Request database access](employees.md#request-database-access).
 2. **Manager approval**, then **Role owner approval**, and **Information security approval** for high-risk roles,
@@ -205,7 +205,7 @@ a reviewer.
 5. A few days before the end date, the developer is reminded (**Your access to … ends soon**) and can request an
    extension. On the end date the role is removed automatically.
 6. Periodically, reviewers go through **Database access → Access reviews** and choose **Keep** or **Revoke** for each
-   access. DBAs also see access granted outside ISBP (**Unmanaged access**) and can take it under management. See
+   access. DBAs also see access granted outside ISBP (**Without a request**) and can assign it to the right person. See
    [Data and automation](data-and-automation.md).
 
 ## Scenario: working alongside ServiceDesk Plus and Azure DevOps Server
@@ -215,17 +215,17 @@ in step in both directions, while its own rules (approvals, change policy) still
 
 People involved: an integration administrator, service desk agents, project teams.
 
-1. An integration administrator connects each system in **Administration → Integrations** (in the demo, **Contoso
+1. An integration administrator connects each system in **Administration → Connections** (in the demo, **Contoso
    ServiceDesk Plus** and **Contoso Azure DevOps Server**). See [Integrations](integrations.md).
-2. Sync profiles say what syncs, in which direction and how fields map. In the demo: **Requests ↔ tickets**,
+2. Sync rules say what syncs, in which direction and how fields map. In the demo: **Requests ↔ tickets**,
    **Problems → tickets**, **Changes → changes**, **Assets ↔ assets** and **Solutions → knowledge** with ServiceDesk
    Plus; **Team projects → projects**, **ERP work items ↔ tasks** and **Network work items → tasks** with Azure DevOps
    Server.
 3. On a synced record, the **Synced with** card shows the remote record and when it last synced; **Sync now**
    refreshes it.
-4. When the same field changed on both sides, a profile can ask a person to decide. The conflict waits in
-   **Administration → Integrations → Sync conflicts**, where an administrator chooses **Keep ISBP's value**, **Keep the
-   value from …** or **Keep both as they are**.
+4. When the same field changed on both sides, a sync rule can ask a person to decide. The conflict waits in
+   **Administration → Sync conflicts**, where an administrator chooses **Keep the value here**, **Keep the
+   value from …** or **Don’t sync this change**.
 5. Changes made in the other system still follow ISBP's rules. In the demo, an asset disposed of in ServiceDesk Plus
    waits for ISBP's disposal approval.
 
@@ -238,8 +238,8 @@ People involved: the service desk lead (in the demo, `helpdesk`), an administrat
 
 1. The lead opens the **Assistant** in the header and asks for a select field "Affected site" on tickets with Taipei
    HQ, Hsinchu and Tokyo. Without an AI chat model, the **Custom field** guided template asks the same questions.
-2. The assistant prepares a change set: what will change, a readable diff and a **Dry run** that tries the whole set
-   without saving it. Nothing is live yet.
+2. The assistant prepares a change set: what will change, a readable diff and a check that tries the whole set
+   without saving it (**Ready to apply**). Nothing is live yet.
 3. The lead isn't allowed to change custom fields (they have the **Configuration viewer** role, which can only
    propose), so they select **Request review**. In
    the demo, this is `CS-00002`, waiting in the administrator's **Approvals**.

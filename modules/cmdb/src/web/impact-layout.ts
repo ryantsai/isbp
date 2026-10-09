@@ -15,6 +15,15 @@ export const WRAP_GAP = 44;
 export const PAD = 20;
 /** Room above the first row for the pills on node tops. */
 const TOP = 10;
+/**
+ * Extra room between the analysed CI and its first level on each side, for the band label ("Affected if it fails"
+ * above it, "Depends on" below it). Labels sit at the left edge, where no edge runs (edges leave the analysed CI from
+ * its centre), so the graph is at least two nodes wide.
+ */
+export const BAND_GAP = 30;
+/** Distance from the analysed CI's edge to the centre of a band label (clear of the "This CI" pill). */
+const BAND_LABEL_OFFSET = 26;
+const MIN_COLUMNS = 2;
 
 export interface PlacedNode {
   /** Unique per side: a CI can be both impacted and a dependency when links loop. */
@@ -22,6 +31,8 @@ export interface PlacedNode {
   side: 'root' | ImpactDirection;
   ci: CiRef;
   node: ImpactNode | null;
+  /** The node it was reached from (`null` for the analysed CI). */
+  parentKey: string | null;
   /** Row from the top (wide levels wrap over several rows). */
   row: number;
   x: number;
@@ -40,11 +51,19 @@ export interface PlacedEdge {
   direction: RelationDirection;
 }
 
+/** A side's label, next to the analysed CI: `y` is the label's vertical centre, `count` the CIs on that side. */
+export interface ImpactBand {
+  side: ImpactDirection;
+  y: number;
+  count: number;
+}
+
 export interface ImpactLayout {
   width: number;
   height: number;
   nodes: PlacedNode[];
   edges: PlacedEdge[];
+  bands: ImpactBand[];
 }
 
 const flip = (d: RelationDirection): RelationDirection => (d === 'outgoing' ? 'incoming' : 'outgoing');
@@ -71,6 +90,7 @@ export function layoutImpact(
     side: 'root',
     ci: impact.root,
     node: null,
+    parentKey: null,
     row: 0,
     x: 0,
     y: 0,
@@ -95,7 +115,16 @@ export function layoutImpact(
             a.ci.name.localeCompare(b.ci.name),
         )
         .map<PlacedNode>((n, i) => {
-          const p: PlacedNode = { key: `${side}:${n.ci.id}`, side, ci: n.ci, node: n, row: 0, x: 0, y: 0 };
+          const p: PlacedNode = {
+            key: `${side}:${n.ci.id}`,
+            side,
+            ci: n.ci,
+            node: n,
+            parentKey: parentKey(n),
+            row: 0,
+            x: 0,
+            y: 0,
+          };
           order.set(p.key, i);
           placed.set(p.key, p);
           return p;
@@ -117,11 +146,27 @@ export function layoutImpact(
     rows.push(...chunk(level).map((nodes) => ({ level: `down${d}`, nodes }))),
   );
 
-  const widest = Math.max(...rows.map((r) => r.nodes.length));
+  const prev = (i: number) => (i > 0 ? rows[i - 1]!.level : null);
+  const hasEdges = rows.length > 1;
+  const widest = Math.max(hasEdges ? MIN_COLUMNS : 1, ...rows.map((r) => r.nodes.length));
   const width = PAD * 2 + widest * NODE_W + Math.max(0, widest - 1) * GAP_X;
   let y = PAD + TOP;
+  const bands: ImpactBand[] = [];
   rows.forEach((r, i) => {
-    if (i > 0) y += NODE_H + (r.level === rows[i - 1]!.level ? WRAP_GAP : LEVEL_GAP);
+    const before = prev(i);
+    if (before !== null) {
+      const nextToRoot = r.level === 'root' || before === 'root';
+      y += NODE_H + (r.level === before ? WRAP_GAP : LEVEL_GAP + (nextToRoot ? BAND_GAP : 0));
+    }
+    // Labels hug the analysed CI: just above its top edge, and just below its bottom edge.
+    if (r.level === 'root' && before !== null)
+      bands.push({ side: 'impacted', y: y - BAND_LABEL_OFFSET, count: impact.impacted.length });
+    if (before === 'root')
+      bands.push({
+        side: 'dependsOn',
+        y: y - LEVEL_GAP - BAND_GAP + BAND_LABEL_OFFSET,
+        count: impact.dependsOn.length,
+      });
     const rowWidth = r.nodes.length * NODE_W + Math.max(0, r.nodes.length - 1) * GAP_X;
     const start = (width - rowWidth) / 2;
     r.nodes.forEach((n, j) => {
@@ -144,7 +189,19 @@ export function layoutImpact(
     );
   }
 
-  return { width, height: y + NODE_H + PAD, nodes: [...placed.values()], edges };
+  return { width, height: y + NODE_H + PAD, nodes: [...placed.values()], edges, bands };
+}
+
+/** Keys of `key`'s node and every node on its way back to the analysed CI (for highlighting how impact travels). */
+export function pathToRoot(layout: Pick<ImpactLayout, 'nodes'>, key: string | null): Set<string> {
+  const byKey = new Map(layout.nodes.map((n) => [n.key, n]));
+  const path = new Set<string>();
+  let current = key ? byKey.get(key) : undefined;
+  while (current && !path.has(current.key)) {
+    path.add(current.key);
+    current = current.parentKey ? byKey.get(current.parentKey) : undefined;
+  }
+  return path;
 }
 
 const WIDE = /[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60\uFFE0-\uFFE6]/;

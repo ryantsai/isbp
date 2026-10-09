@@ -285,7 +285,7 @@ function CiForm({
                   <SelectContent>
                     {CI_STATUSES.map((s) => (
                       <SelectItem key={s} value={s}>
-                        <CiStatusBadge status={s} />
+                        <CiStatusBadge status={s} quiet={false} />
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -4,7 +4,10 @@
     "description": "以變更集自訂平台的 AI 代理程式，變更由人員檢閱、套用及回復"
   },
   "nav": {
-    "changeSets": "變更集"
+    "changeSets": "變更集",
+    "changeSetsAbout": "檢閱、套用與復原已準備的變更",
+    "packages": "流程範本套件",
+    "packagesAbout": "可作為變更安裝的現成流程"
   },
   "systemRoles": {
     "assistant-user": {
@@ -96,6 +99,7 @@
   },
   "panel": {
     "open": "助理",
+    "openHint": "助理 — 用 AI 變更設定",
     "close": "關閉助理",
     "title": "助理",
     "description": "描述您要的內容或選擇範本。助理會以您的身分和權限運作，套用任何變更前都會先徵求您的確認。",
@@ -110,7 +114,8 @@
     "noKinds": "目前沒有您可以自訂的項目",
     "noKindsHint": "未設定 AI 模型時，助理會為您可檢視的設定（例如簽核流程或申請表單）提供引導式範本。請向管理員申請所需的存取權，或請管理員設定模型，讓您也能提出日常工作需求。",
     "noTools": "助理目前還無法為您做任何事",
-    "noToolsHint": "助理會以您的權限透過平台的工具與設定運作，而您的角色目前不包含其中任何一項。請向管理員申請所需的存取權。"
+    "noToolsHint": "助理會以您的權限透過平台的工具與設定運作，而您的角色目前不包含其中任何一項。請向管理員申請所需的存取權。",
+    "descriptionBuiltin": "選擇範本並回答幾個問題。在任何變更生效前，您都會先檢閱準備好的內容。"
   },
   "chat": {
     "log": "與助理的對話",
@@ -168,7 +173,7 @@
     "items": "{count, plural, =0 {尚無變更} other {# 項變更}}",
     "ready": "可套用",
     "notReady": "尚未就緒",
-    "failing": "{count, plural, other {# 項失敗}}",
+    "failing": "{count, plural, other {# 項無法套用}}",
     "needsApprover": "{count, plural, other {# 項需由審核者套用}}",
     "unchecked": "尚未檢查",
     "open": "檢閱並套用",
@@ -176,9 +181,8 @@
   },
   "templates": {
     "title": "引導式範本",
-    "intro": "選擇您要變更的項目並回答幾個問題，我會準備變更集供您檢閱。",
     "back": "所有範本",
-    "build": "準備變更",
+    "build": "準備檢閱",
     "nothingLive": "目前不會有任何變更：此變更會放入變更集，由您檢閱並套用。",
     "needsReviewer": "您可以準備此變更；套用需要具備權限的人員，請要求審核。",
     "loadError": "無法載入問題。",
@@ -187,7 +191,8 @@
     "startNew": "建立新的變更集",
     "noTemplates": "您可以變更的項目沒有引導式範本",
     "noTemplatesHint": "管理員可在「系統管理 → AI」中設定 AI 對話模型，讓您以自己的話描述其他變更。",
-    "withoutTemplates": "未設定 AI 對話模型時，下列項目沒有引導式範本：{kinds}。"
+    "withoutTemplates": "未設定 AI 對話模型時，下列項目沒有引導式範本：{kinds}。管理員可在「系統管理 → AI」中設定模型，讓您以自己的話描述這些變更。",
+    "whyNot": "為什麼無法在這裡變更其他項目？"
   },
   "list": {
     "title": "變更集",
@@ -203,7 +208,7 @@
       "changeSet": "變更集",
       "kinds": "變更對象",
       "items": "變更數",
-      "readiness": "試行",
+      "readiness": "可否套用",
       "author": "準備者"
     },
     "readiness": {
@@ -218,27 +223,9 @@
     "emptyFiltered": "沒有符合的變更集",
     "emptyFilteredHint": "請嘗試其他狀態或搜尋條件。",
     "liveCount": "{count, plural, other {# 個變更集}}",
-    "fromPackage": "從套件建立"
+    "installPack": "安裝流程範本套件"
   },
   "packages": {
-    "title": "從套件建立變更集",
-    "description": "安裝模組提供的範本套件，或匯入從其他環境匯出的套件檔案。兩者都會建立草稿變更集：在有人套用之前不會生效。",
-    "tabsLabel": "套件來源",
-    "builtin": {
-      "tab": "範本套件",
-      "listLabel": "範本套件",
-      "meta": "{count, plural, other {# 項變更}} · {module}",
-      "kinds": "變更對象：{kinds}",
-      "install": "安裝",
-      "installed": "已從套件建立 {reference}",
-      "needsReviewer": "您可以準備此變更集，但套用需要具備更多權限的人員（或透過審核）。",
-      "missingModules": "需要尚未啟用的模組：{modules}",
-      "unknownKinds": "需要本平台沒有的設定類型：{kinds}",
-      "unreadable": "準備此套件需要您未具備的權限：{permissions}",
-      "unsupported": "其中部分變更在此不受支援。",
-      "empty": "沒有範本套件",
-      "emptyHint": "已啟用的模組都未提供範本套件。您仍可匯入套件檔案。"
-    },
     "file": {
       "tab": "匯入檔案",
       "hint": "選擇變更集套件 (.json)，例如從其他環境的變更集匯出的檔案。每項變更都會像一般提案一樣檢查；只要有一項失敗，就不會建立任何內容。",
@@ -259,7 +246,7 @@
       "unsupported": "此套件不適用於本平台，未建立任何內容：",
       "missingModules": "尚未啟用的模組：{modules}",
       "unknownKinds": "本平台沒有的設定類型：{kinds}",
-      "forbidden": "準備這些變更需要您未具備的權限：{permissions}。",
+      "forbidden": "準備這些變更需要您未具備的存取權：{permissions}。",
       "tooLarge": "此套件大於 4 MB。",
       "more": "{count, plural, other {另有 # 項}}"
     }
@@ -280,7 +267,7 @@
     "createdBy": "由 {name} 準備",
     "appliedBy": "由 {name} 套用",
     "rolledBackBy": "由 {name} 回復",
-    "checked": "試行完成",
+    "checked": "已重新檢查",
     "refreshed": "變更集已改用目前的版本",
     "actions": {
       "apply": "套用",
@@ -295,8 +282,8 @@
     },
     "missing": {
       "title": "您無法自行套用此變更集",
-      "body": "套用此變更集需要 {permissions}。請要求審核：具備這些權限的簽核者會套用它。",
-      "bodyInReview": "套用此變更集需要 {permissions}。具備這些權限的簽核者在核准審核時會套用它。"
+      "body": "套用此變更集需要「{permissions}」。請要求審核：具備此存取權的簽核者會套用它。",
+      "bodyInReview": "套用此變更集需要「{permissions}」。具備此存取權的簽核者在核准審核時會套用它。"
     },
     "rollbackBlocked": {
       "notReversible": "部分變更無法自動復原（刪除），因此無法在此回復此變更集。",
@@ -311,14 +298,32 @@
     "live": {
       "title": "已可使用",
       "body": "此變更集建立的項目已生效。請將這些連結分享給使用者。",
-      "link": "{label}：{object}"
+      "link": "{label}：{object}",
+      "builder": "在表單設計工具中新增規則或動作",
+      "builderFor": "在表單設計工具中新增規則或動作：{name}"
     },
     "stats": {
       "items": "變更數",
-      "kinds": "變更對象",
-      "result": "試行",
-      "checked": "上次試行",
+      "result": "可否套用",
+      "checked": "上次檢查",
       "updated": "更新時間"
+    },
+    "itemsByProcess": "依流程分組的變更",
+    "orderHint": "編號代表變更的套用順序。",
+    "expandAll": "全部展開",
+    "collapseAll": "全部摺疊",
+    "outline": "大綱",
+    "groups": {
+      "shared": "多個流程共用",
+      "sharedHint": "多個流程使用的群組、類別及其他設定，會最先套用。",
+      "other": "其他變更",
+      "otherHint": "不屬於申請流程的變更。"
+    },
+    "next": {
+      "title": "後續步驟",
+      "groups": "{count, plural, other {請為此變更集建立的 # 個群組加入成員：加入之前，相關的簽核與檢核表不會送達任何人。}}",
+      "members": "{count, plural, other {# 位成員}}",
+      "noMembers": "尚無成員"
     }
   },
   "lastError": {
@@ -328,7 +333,7 @@
     "noApprover": "審核已核准，但沒有可套用的人員。請自行套用，或重新要求審核。",
     "stale": "變更集準備完成後，有人修改了 {items}。請重新整理、檢閱差異後再試一次。",
     "staleGeneric": "變更集準備完成後，有人修改了設定。請重新整理、檢閱差異後再試一次。",
-    "forbidden": "套用時需要套用者未具備的權限：{permissions}。",
+    "forbidden": "套用時需要套用者未具備的存取權：{permissions}。",
     "privilege": "套用將會授予套用者本身未具備的權限。",
     "validation": "有變更未通過驗證。",
     "validationItem": "「{label}」未通過驗證。",
@@ -337,8 +342,8 @@
     "item": "發生於「{label}」。"
   },
   "actionErrors": {
-    "validation": "部分變更的試行失敗。請先修正或移除這些變更。",
-    "forbidden": "此動作需要您未具備的權限：{permissions}。",
+    "validation": "部分變更無法套用。請先修正或移除這些變更。",
+    "forbidden": "此動作需要您未具備的存取權：{permissions}。",
     "stale": "變更集準備完成後，有人修改了 {items}。請先重新整理並檢閱差異。",
     "notReversible": "部分變更無法自動復原。"
   },
@@ -354,39 +359,45 @@
   "item": {
     "position": "變更 {n}：",
     "ref": "參照名稱",
-    "refTarget": "此變更集中「{ref}」所建立的物件",
-    "target": "物件",
-    "createdId": "已建立",
-    "openObject": "開啟物件",
+    "refTarget": "由此變更集中的「{ref}」建立",
+    "target": "目標",
+    "createdId": "建立的 ID",
     "remove": "移除「{label}」",
     "removeTitle": "要移除此變更嗎？",
-    "removeBody": "「{label}」將從 {reference} 移除。參照它的後續變更在修正前，試行都會失敗。",
-    "removeConfirm": "移除",
-    "removed": "已移除變更",
-    "stale": "此物件在變更提出後已被修改。請檢閱下方差異，再重新整理變更集，以目前的版本作為基準。",
+    "removeBody": "「{label}」將從 {reference} 移除。",
+    "removeConfirm": "{count, plural, =1 {移除} other {移除 # 項變更}}",
+    "removed": "{count, plural, =1 {已移除變更} other {已移除 # 項變更}}",
+    "stale": "變更提出後，有人修改了此項目。請檢閱下方差異，再重新整理變更集以改用目前的版本。",
     "refresh": "重新整理",
     "note": "備註",
     "changes": "差異：目前 → 提議",
     "changesApplied": "差異：套用前 → 套用後",
-    "proposedValue": "提議的值",
     "preview": "預覽",
     "previewFailed": "無法顯示此預覽。",
-    "currentUnavailable": "無法讀取目前的物件，因此顯示完整的提議值。",
-    "archiveNote": "套用後會封存此物件。回復時會還原。",
-    "archiveDone": "此物件已封存。",
-    "deleteNote": "套用後會刪除此物件。刪除無法回復。",
-    "deleteDone": "此物件已刪除。",
+    "currentUnavailable": "無法讀取目前的內容，因此顯示完整的提議值。",
+    "archiveNote": "套用後會封存此項目。回復時會還原。",
+    "archiveDone": "已封存。",
+    "deleteNote": "套用後會刪除此項目。刪除無法回復。",
+    "deleteDone": "已刪除。",
     "check": {
       "unchecked": "尚未檢查",
-      "ok": "試行通過",
-      "failing": "試行失敗",
-      "failingWith": "試行失敗：{reason}",
-      "needsApprover": "需要權限更高的人員套用",
-      "needsPermission": "需要具備 {permission} 的人員套用",
+      "ok": "可套用",
+      "failing": "無法套用",
+      "failingWith": "無法套用：{reason}",
+      "needsApprover": "需要具備更多存取權的人員套用",
+      "needsPermission": "需要「{permission}」才能套用",
       "issues": "問題",
       "applied": "已套用",
       "rolledBack": "已回復"
-    }
+    },
+    "openKind": "開啟{kind}",
+    "technical": {
+      "title": "技術細節",
+      "kind": "類型"
+    },
+    "showDetails": "顯示「{label}」的詳細資料",
+    "hideDetails": "隱藏「{label}」的詳細資料",
+    "removeWithDependents": "{count, plural, other {「{label}」將被移除，依賴它的 # 項變更也會一併移除：}}"
   },
   "diff": {
     "label": "從{before}到{after}的差異",
@@ -413,17 +424,17 @@
   },
   "apply": {
     "title": "要套用 {reference} 嗎？",
-    "body": "所有變更會以您的權限在單一交易中套用：只要有一項失敗，就不會套用任何變更。之後可以回復。",
+    "body": "{count, plural, other {# 項變更會以您的權限一起套用：只要有一項失敗就全部不套用。之後可以回復。}}",
     "inReview": "此變更集正在審核中。現在套用會取消審核。",
-    "notReady": "部分變更未通過試行，套用很可能會失敗。",
+    "notReady": "部分變更目前無法套用，套用很可能會失敗。",
     "destructiveTitle": "封存與刪除",
-    "destructiveConfirm": "{count, plural, other {我了解將封存或刪除 # 個物件}}",
+    "destructiveConfirm": "{count, plural, other {我了解其中有 # 項變更會封存或刪除項目}}",
     "confirm": "套用",
     "done": "{reference} 已套用"
   },
   "submit": {
     "title": "要求審核 {reference}",
-    "body": "簽核者會檢閱變更及其試行結果。核准後，將以簽核者的權限套用變更集。",
+    "body": "簽核者會檢閱變更及其預先檢查結果。核准後，將以簽核者的權限套用變更集。",
     "note": "給審核者的備註（選填）",
     "confirm": "要求審核",
     "done": "已要求審核"
@@ -436,10 +447,18 @@
   },
   "rollback": {
     "title": "要回復 {reference} 嗎？",
-    "body": "所有變更會在單一交易中依相反順序還原：更新回到先前的值、封存的物件會還原、建立的物件會移除。之後被他人修改過的物件無法回復。",
+    "body": "所有變更會依相反順序一起還原。若其中有項目之後被他人修改，則不會回復任何變更。",
     "reason": "原因（選填，會記錄於稽核日誌）",
     "confirm": "回復",
-    "done": "{reference} 已回復"
+    "done": "{reference} 已回復",
+    "what": "回復內容：",
+    "undo": {
+      "create": "移除{kind}「{label}」",
+      "update": "將{kind}「{label}」還原為先前的狀態",
+      "archive": "還原{kind}「{label}」",
+      "delete": "無法還原已刪除的{kind}「{label}」"
+    },
+    "more": "{count, plural, other {另有 # 項變更}}"
   },
   "discard": {
     "title": "要捨棄 {reference} 嗎？",
@@ -466,5 +485,72 @@
     "openChangeSet": "開啟變更集",
     "alreadyDecided": "此項目已有決定。對話中會顯示結果。",
     "alreadyExpired": "對話繼續進行後，此項目已過期。如仍需要，請再詢問助理。"
+  },
+  "packs": {
+    "title": "流程範本套件",
+    "description": "現成的流程：申請表單、由誰簽核，以及會指派的定期檢核表。安裝時會先準備一個變更集供您檢閱：在套用之前不會生效。",
+    "back": "變更集",
+    "tabsLabel": "套件來源",
+    "tabs": {
+      "builtin": "內建",
+      "file": "匯入檔案"
+    },
+    "listLabel": "內建流程範本套件",
+    "from": "來自「{module}」",
+    "review": "安裝前先檢閱",
+    "installed": "{reference} 已準備好供您檢閱",
+    "groupsToFill": "{count, plural, other {# 個群組（安裝後加入成員）}}",
+    "needsReviewer": "您可以安裝，但套用需要具備更多存取權的人員（或透過審核）。",
+    "missingModules": "需要尚未啟用的模組：{modules}",
+    "unknownKinds": "需要本平台沒有的設定類型：{kinds}",
+    "unreadable": "安裝此套件需要您未具備的存取權：{permissions}",
+    "unsupported": "其中部分變更在此不受支援。",
+    "empty": "沒有流程範本套件",
+    "emptyHint": "已啟用的模組都未提供流程範本套件。您仍可匯入檔案。",
+    "contents": {
+      "title": "會建立的內容",
+      "processes": "{count, plural, other {# 個流程}}",
+      "groups": "安裝後要加入成員的群組（{count}）",
+      "groupsHint": "群組建立時沒有成員：套用後請在各群組頁面加入成員。",
+      "other": "共用及其他變更（{count}）"
+    }
+  },
+  "counts": {
+    "processes": "{count, plural, other {# 個流程}}",
+    "other": "{kind}：{count}",
+    "kinds": {
+      "core_group": "{count, plural, other {# 個群組}}",
+      "core_form": "{count, plural, other {# 個申請表單}}",
+      "core_workflow": "{count, plural, other {# 個簽核流程}}",
+      "core_custom-field": "{count, plural, other {# 個自訂欄位}}",
+      "core_role": "{count, plural, other {# 個角色}}",
+      "itsm_category": "{count, plural, other {# 個工單類別}}",
+      "scheduler_job": "{count, plural, other {# 個排程作業}}"
+    }
+  },
+  "describe": {
+    "form": "{questions, plural, =0 {沒有題目} other {# 個題目}}，適用對象：{audience}。",
+    "everyone": "所有人",
+    "approval": "簽核：{steps}。",
+    "noApproval": "不需簽核：申請送出後即進行。",
+    "noApprovalSteps": "尚無簽核步驟。",
+    "approvalNamed": "簽核：簽核流程「{name}」。",
+    "approvalExisting": "簽核：既有的簽核流程。",
+    "actions": "{on, select, submitted {送出時} approved {核准後} rejected {駁回時} other {之後}}：{actions}。",
+    "workflowFor": "核准以「{forms}」送出的申請。",
+    "workflowTrigger": "核准對象：{trigger}。",
+    "inSomeCases": "{step}（僅限部分情況）",
+    "recordFact": "「{field}」的{fact}",
+    "fieldValue": "「{field}」中的人員",
+    "groupMembers": "建立時沒有成員：請在套用後加入。",
+    "approver": {
+      "manager": "{level, select, 1 {申請人的主管} other {申請人往上第 {level} 層的主管}}",
+      "departmentHead": "申請人的部門主管",
+      "requester": "申請人",
+      "role": "具有「{name}」角色的人員",
+      "someGroup": "某個群組",
+      "somePerson": "某位人員",
+      "fallback": "{rule}，若無則由{fallback}"
+    }
   }
 }

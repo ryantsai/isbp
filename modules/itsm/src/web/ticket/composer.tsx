@@ -5,9 +5,17 @@ import { Kbd } from '@isbp/ui/kbd';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { Textarea } from '@isbp/ui/textarea';
-import { LockIcon, MessageSquareReplyIcon, SendIcon } from 'lucide-react';
+import { CheckCircle2Icon, LockIcon, MessageSquareReplyIcon, SendIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type KeyboardEvent, type ReactNode, type RefObject, useId, useState } from 'react';
+import {
+  type Dispatch,
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+  type SetStateAction,
+  useId,
+  useState,
+} from 'react';
 import type { Activity, CommentInput } from '../../contracts';
 import { INVALIDATE, ticketApi } from '../lib';
 
@@ -17,9 +25,9 @@ export interface ComposerState {
   tab: ComposerTab;
   setTab: (tab: ComposerTab) => void;
   reply: string;
-  setReply: (v: string) => void;
+  setReply: Dispatch<SetStateAction<string>>;
   note: string;
-  setNote: (v: string) => void;
+  setNote: Dispatch<SetStateAction<string>>;
   replyRef: RefObject<HTMLTextAreaElement | null>;
 }
 
@@ -30,10 +38,13 @@ function Pane({
   pending,
   placeholder,
   label,
+  showLabel,
   sendLabel,
   textareaRef,
   error,
   icon,
+  extra,
+  hint,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -41,10 +52,16 @@ function Pane({
   pending: boolean;
   placeholder: string;
   label: string;
+  /** Show the label above the field (single-pane composer); otherwise the tab names it. */
+  showLabel?: boolean;
   sendLabel: string;
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
   error: string | null;
   icon: ReactNode;
+  /** A second action next to Send (e.g. "Send and resolve"). */
+  extra?: ReactNode;
+  /** Replaces "Markdown supported. Send with" (requesters don't need to know about Markdown). */
+  hint?: string;
 }) {
   const t = useTranslations('itsm.composer');
   const id = useId();
@@ -62,7 +79,7 @@ function Pane({
         if (value.trim()) onSend();
       }}
     >
-      <label htmlFor={id} className="sr-only">
+      <label htmlFor={id} className={showLabel ? 'text-sm font-medium' : 'sr-only'}>
         {label}
       </label>
       <Textarea
@@ -79,12 +96,15 @@ function Pane({
       />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-          {t('hint')} <Kbd>{t('shortcut')}</Kbd>
+          {hint ?? t('hint')} <Kbd>{t('shortcut')}</Kbd>
         </p>
-        <Button type="submit" size="sm" loading={pending} disabled={!value.trim()}>
-          {icon}
-          {sendLabel}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {extra}
+          <Button type="submit" size="sm" loading={pending} disabled={!value.trim()}>
+            {icon}
+            {sendLabel}
+          </Button>
+        </div>
       </div>
       <p id={`${id}-error`} role="alert" className="text-sm text-destructive empty:hidden">
         {error}
@@ -93,17 +113,26 @@ function Pane({
   );
 }
 
-/** Reply to the requester (public) or add an internal work note; ⌘/Ctrl+Enter sends. */
+/**
+ * Agents: reply to the requester (public) or add an internal work note; ⌘/Ctrl+Enter sends. "Send and resolve"
+ * turns the reply into the resolution (one message to the requester). Requesters: one pane, "Message the service
+ * desk".
+ */
 export function Composer({
   ticketRef,
   state,
   canComment,
   canWorkNote,
+  audience = 'agent',
+  resolveWith,
 }: {
   ticketRef: string;
   state: ComposerState;
   canComment: boolean;
   canWorkNote: boolean;
+  audience?: 'agent' | 'requester';
+  /** The reply can resolve the ticket: `kind` names the button, `onResolve` opens the resolve dialog with it. */
+  resolveWith?: { kind: 'resolve' | 'fulfil'; onResolve: (reply: string) => void } | null;
 }) {
   const t = useTranslations('itsm.composer');
   const errorText = useErrorText();
@@ -114,11 +143,14 @@ export function Composer({
     {
       invalidate: INVALIDATE,
       silent: true,
-      success: (a) => (a.public ? t('sent') : t('noteAdded')),
+      success: (a) =>
+        audience === 'requester' ? t('requester.sent') : a.public ? t('sent') : t('noteAdded'),
       onSuccess: (_a, vars) => {
         setError(null);
-        if (vars.tab === 'reply') state.setReply('');
-        else state.setNote('');
+        // Clear what was sent, not what the person started typing while it was on its way (the next message).
+        const sent = (current: string) => (current.trim() === vars.body ? '' : current);
+        if (vars.tab === 'reply') state.setReply(sent);
+        else state.setNote(sent);
       },
     },
   );
@@ -130,6 +162,29 @@ export function Composer({
       { onError: (err) => setError({ tab, text: errorText(err) }) },
     );
   };
+
+  if (audience === 'requester') {
+    if (!canComment) return null;
+    return (
+      <section aria-label={t('requester.label')} className="rounded-xl border bg-card p-3 shadow-xs sm:p-4">
+        <Pane
+          value={state.reply}
+          onChange={state.setReply}
+          onSend={() => submit('reply')}
+          pending={send.isPending}
+          placeholder={t('requester.placeholder')}
+          label={t('requester.label')}
+          showLabel
+          sendLabel={t('requester.send')}
+          hint={t('requester.hint')}
+          textareaRef={state.replyRef}
+          error={error?.tab === 'reply' ? error.text : null}
+          icon={<SendIcon />}
+        />
+      </section>
+    );
+  }
+
   const tabs = [canComment && 'reply', canWorkNote && 'note'].filter(Boolean) as ComposerTab[];
   if (!tabs.length) return null;
   const active = tabs.includes(state.tab) ? state.tab : tabs[0]!;
@@ -164,6 +219,20 @@ export function Composer({
               textareaRef={state.replyRef}
               error={error?.tab === 'reply' ? error.text : null}
               icon={<SendIcon />}
+              extra={
+                resolveWith && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!state.reply.trim() || send.isPending}
+                    onClick={() => resolveWith.onResolve(state.reply.trim())}
+                  >
+                    <CheckCircle2Icon aria-hidden />
+                    {t(resolveWith.kind === 'fulfil' ? 'sendAndFulfil' : 'sendAndResolve')}
+                  </Button>
+                )
+              }
             />
           </TabsContent>
         )}

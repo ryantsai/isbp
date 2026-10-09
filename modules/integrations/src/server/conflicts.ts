@@ -1,4 +1,4 @@
-import { users } from '@isbp/db/schema';
+import { auditLogs, users } from '@isbp/db/schema';
 import {
   type AuthContext,
   ErrorCodes,
@@ -8,7 +8,7 @@ import {
   type Page,
   type RemoteRecord,
 } from '@isbp/sdk/server';
-import { and, asc, count, desc, eq, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, type SQL, sql } from 'drizzle-orm';
 import type { ConflictDetailOut, ConflictQueryOut, ConflictSummaryOut } from '../contracts';
 import type { Snapshot } from '../merge';
 import { safeHttpUrl } from '../model';
@@ -41,6 +41,7 @@ export class ConflictService {
           localTitle: links.localTitle,
           remoteUrl: links.remoteUrl,
           remoteId: links.remoteId,
+          remoteUpdatedAt: links.remoteUpdatedAt,
         },
         resolvedBy: { id: users.id, displayName: users.displayName },
       })
@@ -133,7 +134,29 @@ export class ConflictService {
       details: r.c.fields.map((f) => (hidden ? { ...f, base: null, local: null, remote: null } : f)),
       choices: r.c.choices ?? null,
       canResolve: r.c.status === 'open' && !hidden && auth.can(RESOLVE),
+      localChange: hidden ? null : await this.localChange(r.c.entity, r.c.localId),
+      remoteChange: r.link.remoteUpdatedAt ? { at: r.link.remoteUpdatedAt } : null,
     };
+  }
+
+  /** The record's last change here: its time, and the person when the audit log has one (not a sync write). */
+  private async localChange(entity: string, localId: string) {
+    const record = await this.ctx.sync.read(entity, localId).catch(() => null);
+    if (!record) return null;
+    const [last] = await this.ctx.db
+      .select({ by: auditLogs.actorName })
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.entityType, entity),
+          eq(auditLogs.entityId, localId),
+          eq(auditLogs.actorType, 'user'),
+          sql`not (coalesce(${auditLogs.metadata}, '{}'::jsonb) ? 'source')`,
+        ),
+      )
+      .orderBy(desc(auditLogs.occurredAt))
+      .limit(1);
+    return { at: new Date(record.updatedAt), by: last?.by ?? null };
   }
 
   private async open(id: string, auth: AuthContext): Promise<ConflictRow> {
@@ -243,57 +266,75 @@ export class ConflictService {
           }
         }
         const outcome = choices ? 'resolved' : 'dismissed';
-        await this.ctx.transaction(async (tx) => {
-          if (Object.keys(localWrites).length) {
-            const { record } = await this.ctx.sync.write(
-              profile.entity,
-              { id: local.id, values: localWrites },
-              { auth: s.agent, tx, source: sourceOf(s, remote!) },
+        await serializationAsConflict(() =>
+          this.ctx.transaction(async (tx) => {
+            if (Object.keys(localWrites).length) {
+              // Not over an edit made since the comparison was read (409 CONFLICT: reload and decide again).
+              await tx.execute(sql`set transaction isolation level repeatable read`);
+              const { record } = await this.ctx.sync.write(
+                profile.entity,
+                { id: local.id, values: localWrites, expectedUpdatedAt: local.updatedAt },
+                { auth: s.agent, tx, source: sourceOf(s, remote!) },
+              );
+              agreeOnStored(snap, Object.keys(localWrites), record);
+            }
+            await tx
+              .update(links)
+              .set({
+                snapshot: snap,
+                remoteVersion: remote!.version,
+                state: 'ok',
+                lastError: null,
+                lastSyncedAt: new Date(),
+                rev: (current?.rev ?? link.rev) + 1,
+              })
+              .where(eq(links.id, link.id));
+            await tx
+              .update(conflicts)
+              .set({ status: outcome, choices, resolvedBy: auth.user?.id ?? null, resolvedAt: new Date() })
+              .where(eq(conflicts.id, c.id));
+            await this.ctx.audit.record(
+              {
+                action: `integrations.conflict.${outcome}`,
+                entityType: 'integrations.conflict',
+                entityId: c.id,
+                entityLabel: `${local.ref ?? local.title} ↔ ${remote!.ref}`,
+                metadata: { choices, fields: c.fields.map((f) => f.field) },
+              },
+              { tx },
             );
-            agreeOnStored(snap, Object.keys(localWrites), record);
-          }
-          await tx
-            .update(links)
-            .set({
-              snapshot: snap,
-              remoteVersion: remote!.version,
-              state: 'ok',
-              lastError: null,
-              lastSyncedAt: new Date(),
-              rev: (current?.rev ?? link.rev) + 1,
-            })
-            .where(eq(links.id, link.id));
-          await tx
-            .update(conflicts)
-            .set({ status: outcome, choices, resolvedBy: auth.user?.id ?? null, resolvedAt: new Date() })
-            .where(eq(conflicts.id, c.id));
-          await this.ctx.audit.record(
-            {
-              action: `integrations.conflict.${outcome}`,
-              entityType: 'integrations.conflict',
-              entityId: c.id,
-              entityLabel: `${local.ref ?? local.title} ↔ ${remote!.ref}`,
-              metadata: { choices, fields: c.fields.map((f) => f.field) },
-            },
-            { tx },
-          );
-          await this.ctx.events.publish(
-            'integrations.conflict.resolved',
-            {
-              conflictId: c.id,
-              linkId: link.id,
-              profileId: profile.id,
-              connectionId: c.connectionId,
-              entity: c.entity,
-              localId: c.localId,
-              outcome,
-              choices: choices ?? {},
-            },
-            { tx },
-          );
-        });
+            await this.ctx.events.publish(
+              'integrations.conflict.resolved',
+              {
+                conflictId: c.id,
+                linkId: link.id,
+                profileId: profile.id,
+                connectionId: c.connectionId,
+                entity: c.entity,
+                localId: c.localId,
+                outcome,
+                choices: choices ?? {},
+              },
+              { tx },
+            );
+          }),
+        );
       },
     );
     return this.detail(c.id, auth);
+  }
+}
+
+/** An edit that committed while the resolution was written: refuse like the optimistic check does. */
+async function serializationAsConflict<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    const e = err as { code?: unknown; cause?: { code?: unknown } } | null;
+    if (e?.code === '40001' || e?.cause?.code === '40001')
+      throw new HttpError(409, ErrorCodes.CONFLICT, 'The record changed while the conflict was resolved', {
+        reason: 'changed',
+      });
+    throw err;
   }
 }

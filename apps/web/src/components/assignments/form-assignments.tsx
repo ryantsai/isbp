@@ -158,7 +158,7 @@ export function FormAssignments({ form }: { form: FormDetail }) {
   const period = typeof state.period === 'string' ? state.period : undefined;
   const q = typeof state.q === 'string' ? state.q : '';
   const path = `/forms/${form.id}/assignments`;
-  const { data, isLoading, isFetching } = useApiQuery<Page<FormAssignment>>(path, {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<FormAssignment>>(path, {
     page: state.page,
     pageSize: state.pageSize,
     state: stateFilter,
@@ -338,6 +338,8 @@ export function FormAssignments({ form }: { form: FormDetail }) {
         pageSize={state.pageSize}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(a) => a.id}
         onPageChange={(page) => set({ page })}
         onPageSizeChange={(pageSize) => set({ pageSize })}

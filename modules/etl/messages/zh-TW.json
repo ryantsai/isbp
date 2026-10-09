@@ -4,10 +4,11 @@
     "description": "以參數化 SQL 與預存程序建立 REST 端點，並在資料庫之間執行 ETL 管線"
   },
   "nav": {
-    "group": "資料 API 與 ETL",
+    "group": "資料與自動化",
     "endpoints": "資料 API",
     "pipelines": "管線",
-    "logs": "呼叫紀錄"
+    "logs": "呼叫紀錄",
+    "apiSections": "資料 API 區段"
   },
   "systemRoles": {
     "etl-viewer": {
@@ -146,7 +147,7 @@
     "tiles": {
       "calls": "呼叫次數",
       "errorRate": "錯誤率",
-      "p95": "p95 延遲",
+      "p95": "回應時間（95% 的呼叫）",
       "cacheHits": "快取命中"
     },
     "errorsHint": "{count, plural, other {# 次錯誤}}",
@@ -213,7 +214,7 @@
     "namePlaceholder": "各區域客戶",
     "slugHint": "呼叫者使用 /api/v1/etl/data/{slug}。發佈版本後即無法變更。",
     "pickConnection": "選擇連線…",
-    "connectionHint": "僅列出管理員允許作為資料用途的連線。請使用最低權限的登入帳戶。"
+    "connectionHint": "僅列出管理員允許作為資料用途的連線。請使用最低權限的登入帳號。"
   },
   "endpoint": {
     "unpublishedChanges": "有未發佈的變更",
@@ -241,7 +242,10 @@
       "versions": "版本",
       "docs": "文件",
       "links": "連結與檔案"
-    }
+    },
+    "publishNeedsTest": "發佈前，目前的草稿必須測試成功。",
+    "testDraft": "測試草稿",
+    "editNewVersion": "編輯為新版本"
   },
   "editor": {
     "statement": "陳述式",
@@ -256,7 +260,7 @@
     "removeUnused": "{count, plural, other {移除 # 個未使用的參數}}",
     "writesFound": "此 SQL 會變更資料或結構描述（{keywords}）。請開啟「允許寫入」後再儲存。",
     "writesAllowed": "此 SQL 會變更資料或結構描述（{keywords}），且已允許寫入。",
-    "procedureHint": "從連線登入帳戶可見的常式中選擇。",
+    "procedureHint": "從連線登入帳號可見的常式中選擇。",
     "loadingCatalog": "正在載入目錄…",
     "pickProcedure": "選擇預存程序或函式…",
     "arguments": "輸入引數：",
@@ -277,7 +281,8 @@
     "save": "儲存草稿",
     "saved": "已儲存草稿",
     "fixFields": "請修正標示的欄位。",
-    "paramsList": "參數：{list}"
+    "paramsList": "參數：{list}",
+    "catalogFailed": "無法讀取 {name} 的資料表：已關閉自動完成"
   },
   "params": {
     "title": "參數",
@@ -462,7 +467,7 @@
   },
   "pipelines": {
     "title": "管線",
-    "description": "在資料庫連線之間執行 ETL：來源查詢、目標資料表、欄位對應與固定的轉換。",
+    "description": "將一個資料庫的資料複製到另一個資料庫的資料表，可手動或排程執行。",
     "search": "搜尋管線…",
     "new": "新增管線",
     "newTitle": "新增管線",
@@ -511,7 +516,11 @@
       "runs": "執行紀錄",
       "definition": "定義",
       "links": "連結與檔案"
-    }
+    },
+    "seeLastRun": "查看上次執行",
+    "onSchedule": "依排程執行：",
+    "openJob": "開啟排程作業",
+    "lastScheduled": "上次排程執行"
   },
   "pipelineEditor": {
     "source": "來源",
@@ -611,7 +620,12 @@
       "info": "資訊",
       "warn": "警告",
       "error": "錯誤"
-    }
+    },
+    "runAgain": "再次執行",
+    "details": "詳細資料",
+    "jobRun": "由排程作業啟動",
+    "watermarkLabel": "水位",
+    "watermarkRange": "{from} → {to}"
   },
   "links": {
     "unavailable": "無法使用連結與檔案",
@@ -628,5 +642,8 @@
   "customizations": {
     "pipeline": "ETL 管線",
     "endpoint": "資料 API"
+  },
+  "results": {
+    "pipeline": "已寫入 {written} 列（讀取 {read}、拒絕 {rejected}）"
   }
 }

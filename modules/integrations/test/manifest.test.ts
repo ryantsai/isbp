@@ -87,9 +87,10 @@ describe('integrations manifest', () => {
       ['sync', 'integrations.connections.manage'],
     ]);
     expect(manifest.taskTypes![0]!.config.safeParse({ profileId: 'nope' }).success).toBe(false);
-    expect(manifest.navigation?.map((n) => [n.href, n.section, n.group])).toEqual([
-      ['/integrations', 'admin', 'integrations.nav.group'],
-      ['/integrations/conflicts', 'admin', 'integrations.nav.group'],
+    // Cards in the Administration hub's Integrations section.
+    expect(manifest.navigation?.map((n) => [n.href, n.section, n.area])).toEqual([
+      ['/integrations', 'admin', 'integrations'],
+      ['/integrations/conflicts', 'admin', 'integrations'],
     ]);
   });
 });
@@ -198,7 +199,15 @@ describe('catalogs', () => {
       const keys = [
         manifest.name,
         manifest.description!,
-        ...(manifest.navigation ?? []).flatMap((n) => [n.label, n.group!]),
+        ...(function navKeys(entries: NonNullable<typeof manifest.navigation> = []): string[] {
+          return entries.flatMap((n) => [
+            n.label,
+            ...(n.description ? [n.description] : []),
+            ...(n.keywords ? [n.keywords] : []),
+            ...navKeys(n.children),
+            ...navKeys(n.tabs),
+          ]);
+        })(manifest.navigation),
         ...(manifest.permissions ?? []).map((p) => p.description),
         ...(manifest.taskTypes ?? []).flatMap((t) => [t.name, t.description!]),
         ...(manifest.customizations ?? []).map((k) => k.label),

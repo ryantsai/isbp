@@ -1,8 +1,17 @@
 'use client';
 
 import type { NavItem } from '@isbp/contracts';
-import { Hint } from '@isbp/ui/tooltip';
 import { cn } from '@isbp/ui';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@isbp/ui/dropdown-menu';
+import { Collapse, CollapseChevron, duration, ease, spring } from '@isbp/ui/motion';
+import { Hint } from '@isbp/ui/tooltip';
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from 'lucide-react';
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
 import Link from 'next/link';
@@ -12,99 +21,150 @@ import { NavIcon } from '../nav-icon';
 import { Brand } from './brand';
 import { useBadges } from './live';
 
-const spring = { type: 'spring', stiffness: 520, damping: 42, mass: 0.8 } as const;
-
 export function isActivePath(pathname: string, href: string) {
-  return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
+  const path = href.split(/[?#]/)[0]!;
+  return path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`);
 }
 
-/** The single entry to highlight: the most specific match (`/itsm/problems` beats `/itsm`). */
-export function activeHref(pathname: string, hrefs: readonly string[]): string | null {
-  return hrefs.filter((h) => isActivePath(pathname, h)).sort((a, b) => b.length - a.length)[0] ?? null;
+/** How well a row matches the current path: the length of its best pattern (-1 = no match). */
+function matchScore(pathname: string, item: NavItem): number {
+  let best = -1;
+  const consider = (href: string, prefix = false) => {
+    const path = href.split(/[?#]/)[0]!;
+    const hit = prefix ? pathname.startsWith(path) : isActivePath(pathname, path);
+    if (hit && path.length > best) best = path.length;
+  };
+  consider(item.href);
+  item.tabs?.forEach((t) => consider(t.href));
+  item.match?.forEach((m) => consider(m, true));
+  return best;
 }
 
-function NavLink({
+/**
+ * The row to highlight — the most specific match among rows, their section tabs and `match` prefixes (Problems wins
+ * over Tickets on `/itsm/tickets/PRB-00011`) — and the group it is in.
+ */
+export function activeNav(pathname: string, items: readonly NavItem[]) {
+  let row: string | null = null;
+  let group: string | null = null;
+  let best = -1;
+  for (const item of items) {
+    for (const child of item.children ?? [item]) {
+      const score = matchScore(pathname, child);
+      if (score > best) {
+        best = score;
+        row = child.id;
+        group = item.children ? item.id : null;
+      }
+    }
+  }
+  return { row, group };
+}
+
+/** The personal block (Home, My work, Requests…), the areas, and Administration: separated by a rule. */
+const zoneOf = (item: NavItem) => (item.order < 10 ? 0 : item.order >= 1000 ? 2 : 1);
+
+function useLabel() {
+  const t = useTranslations();
+  return (key: string) => (t.has(key) ? t(key) : key);
+}
+
+function CountBadge({ count, dot }: { count: number; dot?: boolean }) {
+  const t = useTranslations('shell');
+  return (
+    <AnimatePresence initial={false}>
+      {count > 0 && (
+        <motion.span
+          key="badge"
+          initial={{ scale: 0.4, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.4, opacity: 0, transition: { duration: duration.fast } }}
+          transition={spring.indicator}
+          className={cn(
+            'relative grid place-items-center rounded-full bg-primary font-semibold text-primary-foreground tabular-nums',
+            dot ? 'absolute top-1 right-1.5 size-2 text-[0px]' : 'ml-auto h-5 min-w-5 px-1.5 text-[11px]',
+          )}
+        >
+          {/* A new count "pops" once. */}
+          <motion.span
+            key={count}
+            aria-hidden
+            initial={{ scale: 1.25 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: duration.base, ease: ease.enter }}
+          >
+            {count > 99 ? '99+' : count}
+          </motion.span>
+          <span className="sr-only">{t('badgeCount', { count })}</span>
+        </motion.span>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function ActivePill({ layoutPrefix }: { layoutPrefix: string }) {
+  return (
+    <>
+      <motion.span
+        layoutId={`${layoutPrefix}-pill`}
+        transition={spring.indicator}
+        className="absolute inset-0 rounded-md bg-sidebar-accent shadow-xs ring-1 ring-sidebar-border"
+      />
+      <motion.span
+        layoutId={`${layoutPrefix}-bar`}
+        transition={spring.indicator}
+        className="absolute top-2 bottom-2 left-0 w-[3px] rounded-full bg-primary"
+      />
+    </>
+  );
+}
+
+const rowClass = (active: boolean, collapsed: boolean) =>
+  cn(
+    'group relative flex h-9 w-full items-center gap-3 rounded-md px-2.5 text-left text-sm outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
+    active
+      ? 'font-medium text-sidebar-accent-foreground'
+      : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
+    collapsed && 'justify-center px-0',
+  );
+
+function NavRow({
   item,
   active,
   collapsed,
+  nested,
   onNavigate,
   layoutPrefix,
 }: {
   item: NavItem;
   active: boolean;
   collapsed: boolean;
+  nested?: boolean;
   onNavigate?: () => void;
   layoutPrefix: string;
 }) {
-  const t = useTranslations();
+  const label = useLabel()(item.label);
   const badges = useBadges();
-  const label = t.has(item.label) ? t(item.label) : item.label;
   const count = item.badge ? (badges[item.badge as keyof typeof badges] ?? 0) : 0;
   const link = (
     <Link
       href={item.href}
       onClick={onNavigate}
       aria-current={active ? 'page' : undefined}
-      className={cn(
-        'group relative flex h-9 items-center gap-3 rounded-md px-2.5 text-sm outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50',
-        active
-          ? 'font-medium text-sidebar-accent-foreground'
-          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
-        collapsed && 'justify-center px-0',
-      )}
+      data-nav-id={item.id}
+      className={cn(rowClass(active, collapsed), nested && 'h-8')}
     >
-      {active && (
-        <>
-          <motion.span
-            layoutId={`${layoutPrefix}-pill`}
-            transition={spring}
-            className="absolute inset-0 rounded-md bg-sidebar-accent shadow-xs ring-1 ring-sidebar-border"
-          />
-          <motion.span
-            layoutId={`${layoutPrefix}-bar`}
-            transition={spring}
-            className="absolute top-2 bottom-2 left-0 w-[3px] rounded-full bg-primary"
-          />
-        </>
-      )}
+      {active && <ActivePill layoutPrefix={layoutPrefix} />}
       <NavIcon
         name={item.icon}
         className={cn(
-          'relative size-[18px] shrink-0 transition-transform duration-200 group-hover:scale-110',
+          'relative shrink-0 transition-transform duration-(--motion-base) group-hover:scale-110 motion-reduce:transition-none',
+          nested ? 'size-4' : 'size-[18px]',
           active && 'text-primary',
         )}
       />
-      <AnimatePresence initial={false}>
-        {!collapsed && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.08 } }}
-            className="relative truncate"
-          >
-            {label}
-          </motion.span>
-        )}
-      </AnimatePresence>
-      <AnimatePresence initial={false}>
-        {count > 0 && (
-          <motion.span
-            key="badge"
-            initial={{ scale: 0.4, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.4, opacity: 0 }}
-            className={cn(
-              'relative grid place-items-center rounded-full bg-primary font-semibold text-primary-foreground tabular-nums',
-              collapsed
-                ? 'absolute top-1 right-1.5 size-2 text-[0px]'
-                : 'ml-auto h-5 min-w-5 px-1.5 text-[11px]',
-            )}
-          >
-            <span aria-hidden>{count > 99 ? '99+' : count}</span>
-            <span className="sr-only">{t('shell.badgeCount', { count })}</span>
-          </motion.span>
-        )}
-      </AnimatePresence>
+      {!collapsed && <span className="relative min-w-0 flex-1 truncate">{label}</span>}
+      <CountBadge count={count} dot={collapsed} />
     </Link>
   );
   return collapsed ? (
@@ -116,69 +176,170 @@ function NavLink({
   );
 }
 
+/** A collapsible area (Service desk ▸ Tickets, Problems…). In the collapsed rail: an icon with a flyout menu. */
+function NavGroup({
+  item,
+  activeRow,
+  isCurrent,
+  open,
+  onToggle,
+  collapsed,
+  onNavigate,
+  layoutPrefix,
+}: {
+  item: NavItem;
+  activeRow: string | null;
+  isCurrent: boolean;
+  open: boolean;
+  onToggle: () => void;
+  collapsed: boolean;
+  onNavigate?: () => void;
+  layoutPrefix: string;
+}) {
+  const label = useLabel();
+  const badges = useBadges();
+  const children = item.children ?? [];
+  const count = children.reduce(
+    (n, c) => n + (c.badge ? (badges[c.badge as keyof typeof badges] ?? 0) : 0),
+    0,
+  );
+  const panelId = `${layoutPrefix}-${item.id.replace(/\W/g, '-')}`;
+
+  if (collapsed)
+    return (
+      <DropdownMenu>
+        <Hint label={label(item.label)} side="right">
+          <DropdownMenuTrigger
+            className={rowClass(isCurrent, true)}
+            aria-label={label(item.label)}
+            data-nav-id={item.id}
+          >
+            {isCurrent && <ActivePill layoutPrefix={layoutPrefix} />}
+            <NavIcon name={item.icon} className={cn('relative size-[18px]', isCurrent && 'text-primary')} />
+            <CountBadge count={count} dot />
+          </DropdownMenuTrigger>
+        </Hint>
+        <DropdownMenuContent side="right" align="start" sideOffset={8} className="w-56">
+          <DropdownMenuLabel>{label(item.label)}</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {children.map((c) => (
+            <DropdownMenuItem key={c.id} asChild>
+              <Link href={c.href} aria-current={c.id === activeRow ? 'page' : undefined}>
+                <NavIcon name={c.icon} className={cn('size-4', c.id === activeRow && 'text-primary')} />
+                <span className={cn('truncate', c.id === activeRow && 'font-medium')}>{label(c.label)}</span>
+              </Link>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+
+  return (
+    <div className="flex flex-col">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={panelId}
+        data-nav-id={item.id}
+        className={rowClass(isCurrent && !open, false)}
+      >
+        {isCurrent && !open && <ActivePill layoutPrefix={layoutPrefix} />}
+        <NavIcon
+          name={item.icon}
+          className={cn(
+            'relative size-[18px] shrink-0 transition-transform duration-(--motion-base) group-hover:scale-110 motion-reduce:transition-none',
+            isCurrent && 'text-primary',
+          )}
+        />
+        <span className={cn('relative min-w-0 flex-1 truncate', isCurrent && 'font-medium')}>
+          {label(item.label)}
+        </span>
+        {!open && <CountBadge count={count} />}
+        <CollapseChevron open={open} className="relative" />
+      </button>
+      <Collapse open={open} id={panelId}>
+        <ul className="mt-0.5 ml-[21px] flex flex-col gap-0.5 border-l border-sidebar-border pl-2">
+          {children.map((c) => (
+            <li key={c.id}>
+              <NavRow
+                item={c}
+                active={c.id === activeRow}
+                collapsed={false}
+                nested
+                onNavigate={onNavigate}
+                layoutPrefix={layoutPrefix}
+              />
+            </li>
+          ))}
+        </ul>
+      </Collapse>
+    </div>
+  );
+}
+
+export interface NavExpansion {
+  /** Groups the person opened (remembered in their preferences). */
+  expanded: readonly string[];
+  /** The current group the person closed (it stays closed until they go to another area). */
+  dismissed: string | null;
+  onToggle: (groupId: string, currentGroup: string | null, open: boolean) => void;
+}
+
+export function isGroupOpen(nav: NavExpansion, id: string, current: string | null) {
+  return nav.expanded.includes(id) || (id === current && nav.dismissed !== id);
+}
+
 export function SidebarNav({
   items,
+  expansion,
   collapsed = false,
   onNavigate,
   layoutPrefix = 'nav',
 }: {
   items: NavItem[];
+  expansion: NavExpansion;
   collapsed?: boolean;
   onNavigate?: () => void;
   layoutPrefix?: string;
 }) {
   const t = useTranslations('core.nav');
-  const tAll = useTranslations();
   const pathname = usePathname();
-  const current = activeHref(
-    pathname,
-    items.map((i) => i.href),
-  );
-  const sections = [
-    { key: 'main' as const, label: t('sectionMain') },
-    { key: 'admin' as const, label: t('sectionAdmin') },
-  ];
+  const { row, group } = activeNav(pathname, items);
   return (
     <LayoutGroup id={layoutPrefix}>
-      <nav aria-label={t('sectionMain')} className="flex flex-col gap-5 px-3 py-2">
-        {sections.map((section) => {
-          const sectionItems = items.filter((i) => i.section === section.key);
-          if (!sectionItems.length) return null;
-          return (
-            <div key={section.key} className="flex flex-col gap-0.5">
-              <div
-                className={cn(
-                  'mb-1 h-5 px-2.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase transition-opacity',
-                  collapsed && 'opacity-0',
+      <nav aria-label={t('main')} className="px-3 py-2">
+        <ul className="flex flex-col gap-0.5">
+          {items.map((item, i) => {
+            const divider = i > 0 && zoneOf(item) !== zoneOf(items[i - 1]!);
+            const open = isGroupOpen(expansion, item.id, group);
+            return (
+              <li key={item.id} className="flex flex-col">
+                {divider && <div aria-hidden className="mx-2 my-2 h-px bg-sidebar-border" />}
+                {item.children ? (
+                  <NavGroup
+                    item={item}
+                    activeRow={row}
+                    isCurrent={group === item.id}
+                    open={open}
+                    onToggle={() => expansion.onToggle(item.id, group, !open)}
+                    collapsed={collapsed}
+                    onNavigate={onNavigate}
+                    layoutPrefix={layoutPrefix}
+                  />
+                ) : (
+                  <NavRow
+                    item={item}
+                    active={item.id === row}
+                    collapsed={collapsed}
+                    onNavigate={onNavigate}
+                    layoutPrefix={layoutPrefix}
+                  />
                 )}
-              >
-                {section.label}
-              </div>
-              {sectionItems.map((item, i) => {
-                const heading = item.group && item.group !== sectionItems[i - 1]?.group ? item.group : null;
-                return (
-                  <div key={item.id} className="flex flex-col">
-                    {heading &&
-                      (collapsed ? (
-                        i > 0 && <div aria-hidden className="mx-3 my-2 h-px bg-sidebar-border" />
-                      ) : (
-                        <div className="mt-2 mb-0.5 px-2.5 text-[11px] text-muted-foreground">
-                          {tAll.has(heading) ? tAll(heading) : heading}
-                        </div>
-                      ))}
-                    <NavLink
-                      item={item}
-                      active={item.href === current}
-                      collapsed={collapsed}
-                      onNavigate={onNavigate}
-                      layoutPrefix={layoutPrefix}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+              </li>
+            );
+          })}
+        </ul>
       </nav>
     </LayoutGroup>
   );
@@ -186,10 +347,12 @@ export function SidebarNav({
 
 export function Sidebar({
   items,
+  expansion,
   collapsed,
   onToggle,
 }: {
   items: NavItem[];
+  expansion: NavExpansion;
   collapsed: boolean;
   onToggle: () => void;
 }) {
@@ -198,12 +361,12 @@ export function Sidebar({
     <motion.aside
       initial={false}
       animate={{ width: collapsed ? 68 : 252 }}
-      transition={spring}
+      transition={{ duration: 0.2, ease: ease.move }}
       className="sticky top-0 hidden h-dvh shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex"
     >
       <Brand collapsed={collapsed} />
       <div className="flex-1 overflow-x-hidden overflow-y-auto">
-        <SidebarNav items={items} collapsed={collapsed} />
+        <SidebarNav items={items} expansion={expansion} collapsed={collapsed} />
       </div>
       <div
         className={cn(

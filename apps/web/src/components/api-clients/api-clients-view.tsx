@@ -55,7 +55,7 @@ export function ApiClientsView() {
   const now = useNow({ updateInterval: 60_000 });
   const [state, set] = useListState({ pageSize: 25 });
   const [created, setCreated] = useState<CreatedSecret | null>(null);
-  const { data, isLoading, isFetching, error } = useApiQuery<{ items: ApiClient[] }>(
+  const { data, isLoading, isFetching, refetch, error } = useApiQuery<{ items: ApiClient[] }>(
     canManage ? '/api-clients' : null,
   );
 
@@ -194,6 +194,8 @@ export function ApiClientsView() {
         pageSize={state.pageSize}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(c) => c.id}
         onRowClick={(c) => router.push(`/admin/api-clients/${c.id}`)}
         onPageChange={(p) => set({ page: p })}

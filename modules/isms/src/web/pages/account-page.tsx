@@ -13,32 +13,40 @@ import {
   AlertDialogTitle,
 } from '@isbp/ui/alert-dialog';
 import { Button } from '@isbp/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
+import { useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RecordValues } from '@isbp/ui/record-picker';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
+import { AnimatedItem, AnimatedList, Disclosure } from '@isbp/ui/motion';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
-  ArrowLeftIcon,
   ClipboardCheckIcon,
   FileQuestionIcon,
   KeyRoundIcon,
   PencilIcon,
   ShieldAlertIcon,
   UserMinusIcon,
+  UserPlusIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useState } from 'react';
 import type { AccountEvent, SharedAccount } from '../../contracts';
-import { AccountFormSheet, PasswordChangedDialog, ReviewAccountDialog } from '../account-dialogs';
+import {
+  AccountFormSheet,
+  AddPersonDialog,
+  PasswordChangedDialog,
+  ReviewAccountDialog,
+} from '../account-dialogs';
 import { PasswordDueBadge, SharedAccountStatusBadge } from '../badges';
 import { INVALIDATE, useDay } from '../lib';
 import { LinksAndFiles } from '../record-panels';
 
-type Tab = 'overview' | 'history' | 'links';
+const TABS = ['overview', 'history', 'links'] as const;
+type Tab = (typeof TABS)[number];
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -97,7 +105,9 @@ export default function AccountPage({ params }: WebPageProps) {
     isLoading,
     error,
   } = useApiQuery<SharedAccount>(`/isms/accounts/${encodeURIComponent(params.ref ?? '')}`);
-  const [tab, setTab] = useState<Tab>('overview');
+  const [state, set] = useListState();
+  const tab: Tab = TABS.includes(state.tab as Tab) ? (state.tab as Tab) : 'overview';
+  const [adding, setAdding] = useState(false);
   const [dialog, setDialog] = useState<'edit' | 'password' | 'review' | null>(null);
   const [removing, setRemoving] = useState<{ id: string; displayName: string } | null>(null);
   const remove = useApiMutation(
@@ -110,82 +120,114 @@ export default function AccountPage({ params }: WebPageProps) {
   const tend = a.viewer.canRecordPassword;
   const pc = a.passwordChange;
 
+  const details: [string, ReactNode][] = [
+    [t('fields.targetSystem'), a.targetSystem],
+    [t('fields.targetRecord'), a.targetRef ? <RecordValues refs={[a.targetRef]} /> : null],
+    [t('fields.department'), a.department?.name],
+    [t('fields.purpose'), a.purpose],
+    [t('fields.project'), a.project],
+    [t('fields.requestReference'), a.requestReference],
+    [t('fields.notes'), a.notes],
+  ];
+  const filled = details.filter(([, v]) => v !== null && v !== undefined && v !== '');
+  const empty = details.filter(([, v]) => v === null || v === undefined || v === '');
+
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href="/isms/accounts">
-          <ArrowLeftIcon /> {t('accounts.title')}
-        </Link>
-      </Button>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <KeyRoundIcon aria-hidden className="size-6" />
-          </span>
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-mono">{a.reference}</span>
-              {a.targetSystem && <> · {a.targetSystem}</>}
-            </p>
-            <h1 className="font-mono text-2xl font-semibold tracking-tight wrap-anywhere">{a.accountName}</h1>
-            <div className="flex flex-wrap items-center gap-2">
-              {a.status === 'active' && pc.due ? (
-                <PasswordDueBadge />
-              ) : (
-                <SharedAccountStatusBadge status={a.status} />
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          {tend && (
+      <DetailHeader
+        back={{ href: '/isms/accounts', label: t('accounts.title'), highlight: a.id }}
+        icon={<KeyRoundIcon />}
+        reference={[a.reference, a.targetSystem].filter(Boolean).join(' · ')}
+        title={<span className="font-mono">{a.accountName}</span>}
+        status={
+          a.status === 'active' && pc.due ? (
+            <PasswordDueBadge animate />
+          ) : (
+            <SharedAccountStatusBadge status={a.status} animate />
+          )
+        }
+        meta={a.custodian ? t('account.custodianIs', { name: a.custodian.displayName }) : undefined}
+        primaryAction={
+          tend && (pc.due || !a.reviewDue) ? (
             <Button variant={pc.due ? 'default' : 'outline'} onClick={() => setDialog('password')}>
               <KeyRoundIcon /> {t('account.passwordChanged')}
             </Button>
-          )}
-          {tend && (
-            <Button variant="outline" onClick={() => setDialog('review')}>
+          ) : tend ? (
+            <Button onClick={() => setDialog('review')}>
               <ClipboardCheckIcon /> {t('account.review')}
             </Button>
-          )}
-          {a.viewer.canManage && (
-            <Button variant="outline" onClick={() => setDialog('edit')}>
-              <PencilIcon /> {tc('edit')}
-            </Button>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+        actions={[
+          ...(tend && (pc.due || !a.reviewDue)
+            ? [
+                {
+                  id: 'review',
+                  label: t('account.review'),
+                  icon: <ClipboardCheckIcon />,
+                  onSelect: () => setDialog('review'),
+                },
+              ]
+            : tend
+              ? [
+                  {
+                    id: 'password',
+                    label: t('account.passwordChanged'),
+                    icon: <KeyRoundIcon />,
+                    onSelect: () => setDialog('password'),
+                  },
+                ]
+              : []),
+          ...(a.viewer.canManage
+            ? [{ id: 'edit', label: tc('edit'), icon: <PencilIcon />, onSelect: () => setDialog('edit') }]
+            : []),
+        ]}
+      />
 
-      {a.status === 'active' && pc.due && (
-        <div
-          role="status"
-          className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm"
-        >
-          <ShieldAlertIcon aria-hidden className="mt-0.5 size-5 shrink-0 text-destructive" />
-          <div className="space-y-1">
-            <p className="font-medium text-destructive">{t('account.dueTitle')}</p>
-            <p>
-              {t('account.dueBody', {
-                reason: pc.reason ?? 'member_removed',
-                member: pc.member?.displayName ?? '',
-              })}
-              {pc.since && (
-                <>
-                  {' '}
-                  (<RelativeTime date={pc.since} />)
-                </>
+      {/* Removed from the DOM once it has faded out; while it fades it keeps the text it had. */}
+      <AnimatedList as="div">
+        {a.status === 'active' && pc.due && (
+          <AnimatedItem as="div" key="due">
+            <div
+              role="status"
+              className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm sm:flex-row sm:items-start"
+            >
+              <ShieldAlertIcon aria-hidden className="size-5 shrink-0 text-destructive" />
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="font-medium text-destructive">{t('account.dueTitle')}</p>
+                <p>
+                  {t('account.dueBody', {
+                    reason: pc.reason ?? 'member_removed',
+                    member: pc.member?.displayName ?? '',
+                  })}
+                  {pc.since && (
+                    <>
+                      {' '}
+                      (<RelativeTime date={pc.since} />)
+                    </>
+                  )}
+                </p>
+              </div>
+              {tend && (
+                <Button size="sm" className="self-start" onClick={() => setDialog('password')}>
+                  <KeyRoundIcon /> {t('account.passwordChanged')}
+                </Button>
               )}
-            </p>
-          </div>
-        </div>
-      )}
+            </div>
+          </AnimatedItem>
+        )}
+      </AnimatedList>
       {a.status === 'active' && a.reviewDue && (
         <p role="status" className="rounded-lg border bg-warning/10 p-3 text-sm text-warning-foreground">
           {t('account.reviewDue', { date: day(a.nextReviewOn) })}
         </p>
       )}
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="gap-4">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => set({ tab: v === 'overview' ? undefined : v })}
+        className="gap-4"
+      >
         <TabsList className="max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="overview">{tc('overview')}</TabsTrigger>
           <TabsTrigger value="history">{t('history.title')}</TabsTrigger>
@@ -200,30 +242,41 @@ export default function AccountPage({ params }: WebPageProps) {
               <CardContent>
                 <dl>
                   <Field label={t('fields.custodian')}>{a.custodian?.displayName}</Field>
-                  <Field label={t('fields.targetSystem')}>{a.targetSystem}</Field>
-                  <Field label={t('fields.targetRecord')}>
-                    {a.targetRef ? <RecordValues refs={[a.targetRef]} /> : null}
-                  </Field>
-                  <Field label={t('fields.department')}>{a.department?.name}</Field>
-                  <Field label={t('fields.purpose')}>{a.purpose}</Field>
-                  <Field label={t('fields.project')}>{a.project}</Field>
-                  <Field label={t('fields.requestReference')}>{a.requestReference}</Field>
                   <Field label={t('fields.lastPasswordChangeOn')}>
                     {a.lastPasswordChangeOn ? day(a.lastPasswordChangeOn) : null}
                   </Field>
                   <Field label={t('fields.nextReviewOn')}>
                     {a.nextReviewOn ? day(a.nextReviewOn) : null}
                   </Field>
-                  <Field label={t('fields.lastReviewedOn')}>
-                    {a.lastReviewedOn
-                      ? `${day(a.lastReviewedOn)}${a.lastReviewedBy ? ` · ${a.lastReviewedBy.displayName}` : ''}`
-                      : null}
-                  </Field>
+                  {a.lastReviewedOn && (
+                    <Field label={t('fields.lastReviewedOn')}>
+                      {`${day(a.lastReviewedOn)}${a.lastReviewedBy ? ` · ${a.lastReviewedBy.displayName}` : ''}`}
+                    </Field>
+                  )}
+                  {filled.map(([label, value]) => (
+                    <Field key={label} label={label}>
+                      {value}
+                    </Field>
+                  ))}
                   <Field label={tc('created_at')}>
                     <DateTime date={a.createdAt} />
                   </Field>
-                  {a.notes && <Field label={t('fields.notes')}>{a.notes}</Field>}
                 </dl>
+                {empty.length > 0 && (
+                  <Disclosure
+                    summary={t('account.emptyDetails', { count: empty.length })}
+                    className="mt-2"
+                    triggerClassName="text-sm text-muted-foreground"
+                  >
+                    <dl>
+                      {empty.map(([label]) => (
+                        <Field key={label} label={label}>
+                          {null}
+                        </Field>
+                      ))}
+                    </dl>
+                  </Disclosure>
+                )}
               </CardContent>
             </Card>
             <Card className="min-w-0">
@@ -232,6 +285,13 @@ export default function AccountPage({ params }: WebPageProps) {
                 <CardDescription>
                   {t('account.membersDescription', { count: a.members.length })}
                 </CardDescription>
+                {a.viewer.canManage && a.status === 'active' && (
+                  <CardAction>
+                    <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+                      <UserPlusIcon /> {t('account.addPerson')}
+                    </Button>
+                  </CardAction>
+                )}
               </CardHeader>
               <CardContent>
                 {!a.members.length ? (
@@ -275,6 +335,7 @@ export default function AccountPage({ params }: WebPageProps) {
         </TabsContent>
       </Tabs>
 
+      {a.viewer.canManage && adding && <AddPersonDialog account={a} onOpenChange={(o) => setAdding(o)} />}
       {a.viewer.canManage && (
         <AccountFormSheet
           open={dialog === 'edit'}

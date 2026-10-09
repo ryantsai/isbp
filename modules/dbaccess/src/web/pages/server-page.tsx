@@ -1,10 +1,10 @@
 'use client';
 
-import { useCan, type WebPageProps } from '@isbp/sdk/web';
+import { useCan, usePlatform, type WebPageProps } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { PageHeader } from '@isbp/ui/page-header';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -17,6 +17,7 @@ import {
   KeyRoundIcon,
   PencilIcon,
   PlusIcon,
+  ServerCogIcon,
   UsersIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -199,6 +200,7 @@ export default function ServerPage({ params }: WebPageProps) {
   const t = useTranslations('dbaccess.server');
   const ta = useTranslations('dbaccess.authMode');
   const canManage = useCan('dbaccess.servers.manage');
+  const { user } = usePlatform();
   const [state, set] = useListState();
   const [editing, setEditing] = useState(false);
   const tab: Tab = TABS.includes(state.tab as Tab) ? (state.tab as Tab) : 'roles';
@@ -218,29 +220,33 @@ export default function ServerPage({ params }: WebPageProps) {
     );
   return (
     <>
-      <PageHeader
-        eyebrow={
-          <Link href="/dbaccess/servers" className="hover:underline">
-            {t('servers')}
-          </Link>
-        }
+      <DetailHeader
+        back={{ href: '/dbaccess/servers', label: t('servers'), highlight: server.id }}
+        icon={<ServerCogIcon />}
         title={server.displayName}
-        description={t('summary', {
+        meta={t('summary', {
           connection: server.connection?.name ?? t('connectionMissing'),
-          pattern: server.accountPattern,
+          // The naming rule as an example account name, not a template.
+          pattern: server.accountPattern
+            .replaceAll('{username}', user.username)
+            .replaceAll('{email_local}', user.email.split('@')[0] ?? user.username),
           auth: ta(server.authMode),
         })}
         actions={
-          canManage && (
-            <>
-              <SyncButton serverId={server.id} name={server.displayName} />
-              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-                <PencilIcon /> {t('settings')}
-              </Button>
-            </>
-          )
+          canManage
+            ? [
+                {
+                  id: 'settings',
+                  label: t('settings'),
+                  icon: <PencilIcon />,
+                  onSelect: () => setEditing(true),
+                },
+              ]
+            : []
         }
-      />
+      >
+        {canManage && <SyncButton serverId={server.id} name={server.displayName} />}
+      </DetailHeader>
       <div className="grid min-w-0 grid-cols-1 gap-6">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border bg-card px-4 py-3 text-sm shadow-xs">
           <EngineLabel engine={server.engine} className="text-sm" />

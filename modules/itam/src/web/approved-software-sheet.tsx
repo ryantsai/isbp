@@ -49,9 +49,11 @@ export interface ApprovedSoftwarePrefill {
   publisher?: string | null;
   version?: string | null;
   status?: ApprovalStatus;
+  /** The flagged device's department: allowing defaults to it, not to the whole company. */
+  department?: { id: string; name: string } | null;
 }
 
-type Errors = Partial<Record<'title' | 'departmentIds' | 'validUntil' | 'root', string>>;
+type Errors = Partial<Record<'title' | 'departmentIds' | 'validUntil' | 'licenseModel' | 'root', string>>;
 
 /**
  * Add or edit an entry of the approved-software list: title, publisher, version (empty = any), licence type and the
@@ -133,11 +135,16 @@ function EntryForm({
   const [title, setTitle] = useState(entry?.title ?? prefill?.title ?? '');
   const [publisher, setPublisher] = useState(entry?.publisher ?? prefill?.publisher ?? '');
   const [version, setVersion] = useState(entry?.version ?? prefill?.version ?? '');
-  const [licenseModel, setLicenseModel] = useState<LicenseModel>(entry?.licenseModel ?? 'free');
+  // No default licence type for a new entry: "Free" would wrongly mark shareware or paid software.
+  const [licenseModel, setLicenseModel] = useState<LicenseModel | null>(entry?.licenseModel ?? null);
   const [license, setLicense] = useState<PickedLicense | null>(entry?.license ?? null);
   const [contract, setContract] = useState<PickedContract | null>(entry?.contract ?? null);
-  const [scope, setScope] = useState<ApprovalScope>(entry?.scope ?? 'company');
-  const [departmentIds, setDepartmentIds] = useState<string[]>(entry?.departments.map((d) => d.id) ?? []);
+  const [scope, setScope] = useState<ApprovalScope>(
+    entry?.scope ?? (prefill?.department ? 'departments' : 'company'),
+  );
+  const [departmentIds, setDepartmentIds] = useState<string[]>(
+    entry?.departments.map((d) => d.id) ?? (prefill?.department ? [prefill.department.id] : []),
+  );
   const [status, setStatus] = useState<ApprovalStatus>(entry?.status ?? prefill?.status ?? 'allowed');
   const [validUntil, setValidUntil] = useState(entry?.validUntil ?? '');
   const [notes, setNotes] = useState(entry?.notes ?? '');
@@ -168,8 +175,9 @@ function EntryForm({
     const next: Errors = {};
     if (!title.trim()) next.title = t('form.titleRequired');
     if (scope === 'departments' && !departmentIds.length) next.departmentIds = t('form.departmentsRequired');
+    if (!licenseModel) next.licenseModel = t('form.licenseModelRequired');
     setErrors(next);
-    if (Object.keys(next).length) return;
+    if (Object.keys(next).length || !licenseModel) return;
     try {
       await save.mutateAsync({
         title: title.trim(),
@@ -250,10 +258,18 @@ function EntryForm({
               </SelectContent>
             </Select>
           </Field>
-          <Field id={f('model')} label={t('fields.licenseModel')}>
-            <Select value={licenseModel} onValueChange={(v) => setLicenseModel(v as LicenseModel)}>
-              <SelectTrigger id={f('model')} className="w-full">
-                <SelectValue />
+          <Field id={f('model')} label={t('fields.licenseModel')} error={errors.licenseModel}>
+            <Select
+              value={licenseModel ?? undefined}
+              onValueChange={(v) => setLicenseModel(v as LicenseModel)}
+            >
+              <SelectTrigger
+                id={f('model')}
+                className="w-full"
+                aria-invalid={errors.licenseModel ? true : undefined}
+                aria-describedby={errors.licenseModel ? `${f('model')}-error` : undefined}
+              >
+                <SelectValue placeholder={t('form.chooseLicenseModel')} />
               </SelectTrigger>
               <SelectContent>
                 {LICENSE_MODELS.map((m) => (
@@ -342,7 +358,6 @@ function EntryForm({
               id={f('request')}
               value={requestReference}
               maxLength={40}
-              placeholder="REQ-01042"
               aria-describedby={`${f('request')}-hint`}
               onChange={(e) => setRequestReference(e.target.value)}
             />

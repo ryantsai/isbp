@@ -2,6 +2,7 @@
 
 import { cn } from '@isbp/ui';
 import { ChevronDownIcon } from 'lucide-react';
+import { duration, ease } from '@isbp/ui/motion';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Component, type ReactNode, useId, useState } from 'react';
 
@@ -18,13 +19,13 @@ export function Disclosure({
   icon?: ReactNode;
   meta?: ReactNode;
   defaultOpen?: boolean;
-  level?: 3 | 4;
+  level?: 3 | 4 | 5;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const id = useId();
   const reduce = useReducedMotion();
-  const Heading = level === 3 ? 'h3' : 'h4';
+  const Heading = level === 3 ? 'h3' : level === 4 ? 'h4' : 'h5';
   return (
     <section className="border-t">
       <Heading className="m-0">
@@ -57,7 +58,7 @@ export function Disclosure({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: reduce ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+            transition={reduce ? { duration: 0 } : { duration: duration.base, ease: ease.move }}
             className="overflow-hidden"
           >
             <div className="min-w-0 px-4 pb-4">{children}</div>

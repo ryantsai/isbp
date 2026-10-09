@@ -16,7 +16,7 @@ import {
   type ModuleContext,
   parseRecordRef,
 } from '@isbp/sdk/server';
-import { and, asc, count, desc, eq, ilike, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import type {
   addReviewItemSchema,
@@ -79,6 +79,12 @@ export const REVIEW_ENTITY = 'isms.review';
 export const reviewHref = (reference: string) => `/isms/reviews/${reference}`;
 const label = (r: ReviewRow) => `${formatRef('review', r.number)} ${r.target}`;
 const TICKET_TOOL = 'itsm.create_ticket';
+/** Decision words of earlier exports (before "Keep" became 保留 / 維持), still read on import. */
+const EARLIER_DECISION_WORDS: Record<ReviewDecision, string[]> = {
+  keep: ['帳號續用', '續用', '継続'],
+  disable: ['停用帳號'],
+  delete: ['刪除帳號'],
+};
 
 /** Who may read the role holders of a core application (the same rule as the Role Query API). */
 function canReadApplication(auth: AuthContext, appId: string) {
@@ -207,6 +213,16 @@ export class ReviewService {
     const open = row.status === 'open';
     const tickets =
       this.ctx.ai.tools.list(auth).some((t) => t.name === TICKET_TOOL) && canDecideReview(auth, row);
+    const [toRaise] = await this.db
+      .select({ n: count() })
+      .from(reviewItems)
+      .where(
+        and(
+          eq(reviewItems.reviewId, row.id),
+          inArray(reviewItems.decision, ['disable', 'delete']),
+          isNull(reviewItems.ticketId),
+        ),
+      );
     return {
       ...dto!,
       viewer: {
@@ -214,6 +230,7 @@ export class ReviewService {
         canManage: canManageReviews(auth),
         canSignOff: row.status === 'completed' && canSignOffReviews(auth),
         canRaiseTickets: tickets && row.status !== 'cancelled' && row.status !== 'scheduled',
+        ticketsToRaise: toRaise?.n ?? 0,
       },
     };
   }
@@ -248,11 +265,15 @@ export class ReviewService {
       eq(reviewItems.reviewId, row.id),
       q.view === 'undecided'
         ? or(isNull(reviewItems.decision), and(ne(reviewItems.decision, 'keep'), isNull(reviewItems.doneOn)))
-        : q.view === 'admin'
-          ? eq(reviewItems.privilege, 'admin')
-          : (REVIEW_DECISIONS as readonly string[]).includes(q.view)
-            ? eq(reviewItems.decision, q.view as ReviewDecision)
-            : undefined,
+        : q.view === 'decided'
+          ? or(eq(reviewItems.decision, 'keep'), isNotNull(reviewItems.doneOn))
+          : q.view === 'needs_ticket'
+            ? and(inArray(reviewItems.decision, ['disable', 'delete']), isNull(reviewItems.ticketId))
+            : q.view === 'admin'
+              ? eq(reviewItems.privilege, 'admin')
+              : (REVIEW_DECISIONS as readonly string[]).includes(q.view)
+                ? eq(reviewItems.decision, q.view as ReviewDecision)
+                : undefined,
       q.q
         ? or(ilike(reviewItems.accountName, likePattern(q.q)), ilike(reviewItems.userName, likePattern(q.q)))
         : undefined,
@@ -470,6 +491,24 @@ export class ReviewService {
     return row;
   }
 
+  /**
+   * Locks the review for the rest of the transaction and checks its status again: a check before the transaction
+   * can be stale when two people (or two clicks) act at once. `key share` lets changes to items run side by side
+   * (and still update the review row) while keeping status changes (`update`) out until they finish.
+   */
+  private async lockStatus(
+    tx: Db,
+    id: string,
+    mode: 'key share' | 'update',
+    allowed: readonly ReviewRow['status'][],
+    message: string,
+    code: string,
+  ) {
+    const [locked] = await tx.select().from(reviews).where(eq(reviews.id, id)).for(mode);
+    if (!locked || !allowed.includes(locked.status)) throw invalidState(message, code);
+    return locked;
+  }
+
   async addItem(ref: string, input: AddItemData, auth: AuthContext) {
     const row = await this.openForChanges(ref, auth);
     if (input.userId) await activePeople(this.db, [input.userId], 'userId');
@@ -478,6 +517,7 @@ export class ReviewService {
       .from(reviewItems)
       .where(eq(reviewItems.reviewId, row.id))) as [{ max: number }];
     const [item] = await this.ctx.transaction(async (tx) => {
+      await this.lockStatus(tx, row.id, 'key share', ['open'], 'The review is not open', 'reviewClosed');
       const inserted = await tx
         .insert(reviewItems)
         .values({
@@ -546,8 +586,10 @@ export class ReviewService {
     const decisionOf = (v: string): ReviewDecision | null =>
       (REVIEW_DECISIONS as readonly string[]).includes(v.toLowerCase())
         ? (v.toLowerCase() as ReviewDecision)
-        : (REVIEW_DECISIONS.find((d) =>
-            LOCALES.some((l) => normalizeName(CATALOGS[l].reviewDecision[d]) === normalizeName(v)),
+        : (REVIEW_DECISIONS.find(
+            (d) =>
+              LOCALES.some((l) => normalizeName(CATALOGS[l].reviewDecision[d]) === normalizeName(v)) ||
+              EARLIER_DECISION_WORDS[d].some((w) => normalizeName(w) === normalizeName(v)),
           ) ?? null);
     const seen = new Set<string>();
     const planned: {
@@ -599,6 +641,7 @@ export class ReviewService {
     report.added = planned.length - report.updated;
     if (dryRun) return report;
     await this.ctx.transaction(async (tx) => {
+      await this.lockStatus(tx, row.id, 'key share', ['open'], 'The review is not open', 'reviewClosed');
       let order = existing.reduce((m, i) => Math.max(m, i.sortOrder), 0);
       const now = new Date();
       for (const p of planned) {
@@ -710,6 +753,7 @@ export class ReviewService {
       .where(and(eq(reviewItems.reviewId, row.id), inArray(reviewItems.id, [...itemIds])));
     if (items.length !== new Set(itemIds).size) throw httpErrors.notFound('Item not found');
     await this.ctx.transaction(async (tx) => {
+      await this.lockStatus(tx, row.id, 'key share', ['open'], 'The review is not open', 'reviewClosed');
       for (const item of items) {
         const doneOn =
           input.decision === 'keep'
@@ -756,15 +800,16 @@ export class ReviewService {
   /** The reviewer is done: every item decided (disable and delete with the date). */
   async complete(ref: string, auth: AuthContext) {
     const row = await this.openForChanges(ref, auth);
-    const items = await this.db
-      .select({ decision: reviewItems.decision, doneOn: reviewItems.doneOn })
-      .from(reviewItems)
-      .where(eq(reviewItems.reviewId, row.id));
-    if (!items.length) throw invalidState('The review has no accounts', 'reviewEmpty');
-    const pending = items.filter((i) => !itemDecided(i)).length;
-    if (pending) throw invalidState('Some accounts are not decided yet', 'itemsPending', { pending });
     const reference = formatRef('review', row.number);
     await this.ctx.transaction(async (tx) => {
+      await this.lockStatus(tx, row.id, 'update', ['open'], 'The review is not open', 'reviewClosed');
+      const items = await tx
+        .select({ decision: reviewItems.decision, doneOn: reviewItems.doneOn })
+        .from(reviewItems)
+        .where(eq(reviewItems.reviewId, row.id));
+      if (!items.length) throw invalidState('The review has no accounts', 'reviewEmpty');
+      const pending = items.filter((i) => !itemDecided(i)).length;
+      if (pending) throw invalidState('Some accounts are not decided yet', 'itemsPending', { pending });
       await tx
         .update(reviews)
         .set({ status: 'completed', completedBy: actingUserId(auth), completedAt: new Date() })
@@ -791,6 +836,14 @@ export class ReviewService {
     if (row.status !== 'completed')
       throw invalidState('Only a completed review can be reopened', 'reviewNotCompleted');
     await this.ctx.transaction(async (tx) => {
+      await this.lockStatus(
+        tx,
+        row.id,
+        'update',
+        ['completed'],
+        'Only a completed review can be reopened',
+        'reviewNotCompleted',
+      );
       await tx
         .update(reviews)
         .set({ status: 'open', completedAt: null, completedBy: null })
@@ -807,9 +860,14 @@ export class ReviewService {
     if (row.status !== 'completed')
       throw invalidState('Only a completed review can be signed off', 'reviewNotCompleted');
     await this.ctx.transaction(async (tx) => {
-      const [locked] = await tx.select().from(reviews).where(eq(reviews.id, row.id)).for('update');
-      if (locked!.status !== 'completed')
-        throw invalidState('Only a completed review can be signed off', 'reviewNotCompleted');
+      await this.lockStatus(
+        tx,
+        row.id,
+        'update',
+        ['completed'],
+        'Only a completed review can be signed off',
+        'reviewNotCompleted',
+      );
       await tx
         .update(reviews)
         .set({
@@ -863,6 +921,14 @@ export class ReviewService {
     if (row.status === 'signed_off' || row.status === 'cancelled')
       throw invalidState('The review is already closed', 'reviewClosed');
     await this.ctx.transaction(async (tx) => {
+      await this.lockStatus(
+        tx,
+        row.id,
+        'update',
+        ['scheduled', 'open', 'completed'],
+        'The review is already closed',
+        'reviewClosed',
+      );
       await tx.update(reviews).set({ status: 'cancelled' }).where(eq(reviews.id, row.id));
       await this.audit(tx, 'isms.review.cancelled', row);
       await this.ctx.events.publish('isms.review.cancelled', this.ref(row), { tx });
@@ -881,8 +947,8 @@ export class ReviewService {
       throw invalidState('The review is not active', 'reviewClosed');
     if (!this.ctx.ai.tools.list(auth).some((t) => t.name === TICKET_TOOL))
       throw invalidState('Raising tickets needs the service desk', 'ticketsUnavailable');
-    const items = await this.db
-      .select()
+    const candidates = await this.db
+      .select({ id: reviewItems.id })
       .from(reviewItems)
       .where(
         and(
@@ -900,39 +966,50 @@ export class ReviewService {
     const words = CATALOGS[locale].tickets;
     let raised = 0;
     let failed = 0;
-    for (const item of items) {
+    for (const { id } of candidates) {
       try {
-        const ticket = await this.ctx.ai.tools.invoke<{ id?: string; reference?: string; href?: string }>(
-          TICKET_TOOL,
-          {
-            type: 'service_request',
-            title:
-              `${item.decision === 'delete' ? words.deleteTitle : words.disableTitle} ${item.accountName} (${row.target})`.slice(
-                0,
-                200,
+        // The item stays locked while its ticket is raised, so two clicks (or two people) at once raise one ticket:
+        // the other request skips the item, or finds it has a ticket by now.
+        const outcome = await this.ctx.transaction(async (tx) => {
+          const [item] = await tx
+            .select()
+            .from(reviewItems)
+            .where(
+              and(
+                eq(reviewItems.id, id),
+                inArray(reviewItems.decision, ['disable', 'delete']),
+                isNull(reviewItems.ticketId),
               ),
-            description: [
-              `${words.review}: ${reference} — ${row.target}`,
-              `${words.account}: ${item.accountName}${item.userName ? ` (${item.userName})` : ''}`,
-              `${words.decision}: ${CATALOGS[locale].reviewDecision[item.decision!]}`,
-              item.note ? `${words.note}: ${item.note}` : null,
-              `${words.link}: ${reviewHref(reference)}`,
-            ]
-              .filter(Boolean)
-              .join('\n'),
-            channel: 'portal',
-          },
-          { auth },
-        );
-        if (!ticket?.id) {
-          failed++;
-          continue;
-        }
-        await this.ctx.transaction(async (tx) => {
+            )
+            .for('update', { skipLocked: true });
+          if (!item) return 'skipped' as const;
+          const ticket = await this.ctx.ai.tools.invoke<{ id?: string; reference?: string; href?: string }>(
+            TICKET_TOOL,
+            {
+              type: 'service_request',
+              title:
+                `${item.decision === 'delete' ? words.deleteTitle : words.disableTitle} ${item.accountName} (${row.target})`.slice(
+                  0,
+                  200,
+                ),
+              description: [
+                `${words.review}: ${reference} — ${row.target}`,
+                `${words.account}: ${item.accountName}${item.userName ? ` (${item.userName})` : ''}`,
+                `${words.decision}: ${CATALOGS[locale].reviewDecision[item.decision!]}`,
+                item.note ? `${words.note}: ${item.note}` : null,
+                `${words.link}: ${reviewHref(reference)}`,
+              ]
+                .filter(Boolean)
+                .join('\n'),
+              channel: 'portal',
+            },
+            { auth },
+          );
+          if (!ticket?.id) return 'failed' as const;
           await tx
             .update(reviewItems)
             .set({
-              ticketId: ticket.id!,
+              ticketId: ticket.id,
               ticketRef: ticket.reference ?? null,
               ticketHref: ticket.href ?? null,
             })
@@ -942,10 +1019,12 @@ export class ReviewService {
             accountName: item.accountName,
             ticket: ticket.reference ?? ticket.id,
           });
+          return 'raised' as const;
         });
-        raised++;
+        if (outcome === 'raised') raised++;
+        else if (outcome === 'failed') failed++;
       } catch (err) {
-        this.ctx.logger.warn({ err, review: reference, item: item.id }, 'raising a ticket failed');
+        this.ctx.logger.warn({ err, review: reference, item: id }, 'raising a ticket failed');
         failed++;
       }
     }

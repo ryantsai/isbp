@@ -59,6 +59,8 @@ export const ErrorCodes = {
   /** The action would lock you out (offboard/suspend yourself, drop your own admin role). */
   SELF_LOCKOUT: 'SELF_LOCKOUT',
   SYSTEM_ROLE_READONLY: 'SYSTEM_ROLE_READONLY',
+  /** The role (or a role of the application) has access requests on record: history outlives it (`details.requests`). */
+  ROLE_HAS_HISTORY: 'ROLE_HAS_HISTORY',
   SYSTEM_GROUP: 'SYSTEM_GROUP',
   SYSTEM_MODULE: 'SYSTEM_MODULE',
   MODULE_DEPENDENCY: 'MODULE_DEPENDENCY',
@@ -171,6 +173,8 @@ export const ErrorCodes = {
   INSECURE_HTTP: 'INSECURE_HTTP',
   /** An object in the change set changed since it was proposed or applied (`details.items`). */
   CHANGE_SET_STALE: 'CHANGE_SET_STALE',
+  /** Another change set touching the same kind of configuration is being applied or dry-run right now: retry shortly. */
+  CHANGE_SET_BUSY: 'CHANGE_SET_BUSY',
   /** The change-set package needs modules that aren't enabled or kinds that don't exist (`details.missingModules`, `details.unknownKinds`). */
   PACKAGE_UNSUPPORTED: 'PACKAGE_UNSUPPORTED',
   /** Adding or changing this process action on a form needs a permission you don't hold (`details.permission`, `details.action`). */

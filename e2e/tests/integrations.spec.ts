@@ -84,7 +84,9 @@ test('the overview shows both demo connections, working, with their figures', as
   await page.goto('/integrations');
   await expect(page.getByRole('heading', { name: 'Integrations', level: 1 })).toBeVisible();
   for (const name of [SDP, ADO]) await expect(page.getByRole('link', { name })).toBeVisible();
-  await expect(page.getByText('Working', { exact: true })).toHaveCount(2);
+  // Both work; the one with an open conflict (ServiceDesk Plus in the demo) also says it needs attention.
+  await expect(page.getByText(/^Working( · needs attention)?$/)).toHaveCount(2);
+  await expect(page.getByText('Working · needs attention', { exact: true })).toBeVisible();
 });
 
 test('a connection page shows its profiles, runs, linked records and conflicts', async ({
@@ -94,9 +96,14 @@ test('a connection page shows its profiles, runs, linked records and conflicts',
   const sdp = await connection(request, SDP);
   await page.goto(`/integrations/connections/${sdp.id}`);
   await expect(page.getByRole('heading', { name: SDP, level: 1 })).toBeVisible();
-  await expect(page.getByText('Webhook', { exact: true })).toBeVisible();
+  // What needs a person comes first; the one-time webhook setup is folded away.
+  await expect(page.getByRole('region', { name: 'Needs attention' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Setup: instant updates/ })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
 
-  await page.getByRole('tab', { name: 'Sync profiles' }).click();
+  await page.getByRole('tab', { name: 'Sync rules' }).click();
   await expect(page).toHaveURL(/tab=profiles/);
   await expect(page.getByText('Requests ↔ tickets')).toBeVisible();
   await expect(page.getByText('Assets ↔ assets')).toBeVisible();
@@ -120,7 +127,7 @@ test('the profile editor shows a saved profile and previews the next changes', a
   await expect(page.getByRole('combobox', { name: 'In Contoso ServiceDesk Plus', exact: true })).toHaveText(
     /Requests/,
   );
-  await expect(page.getByRole('combobox', { name: 'In ISBP', exact: true })).toHaveText(/Tickets/);
+  await expect(page.getByRole('combobox', { name: 'In IS Big Platform', exact: true })).toHaveText(/Tickets/);
   await expect(page.getByRole('radio', { name: /Both ways/ })).toBeChecked();
   await expect(page.getByText('Field mapping')).toBeVisible();
   await page.getByRole('button', { name: 'Preview' }).click();

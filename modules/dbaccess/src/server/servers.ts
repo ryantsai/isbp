@@ -332,7 +332,9 @@ export class ServerService {
         displayName: servers.displayName,
         engine: servers.engine,
         environment: servers.environment,
-        roles: sql<number>`(select count(*)::int from dbaccess.roles r where r.server_id = ${servers.id} and r.active)`,
+        // The outer column is wrapped in its own `sql`: a single-table select writes bare column names ("id"),
+        // which inside the subquery would mean the role's own id.
+        roles: sql<number>`(select count(*)::int from dbaccess.roles r where r.server_id = ${sql`${servers.id}`} and r.active)`,
       })
       .from(servers)
       .orderBy(asc(servers.displayName));
@@ -345,7 +347,7 @@ export class ServerService {
         id: groups.id,
         key: groups.key,
         name: groups.name,
-        members: sql<number>`(select count(*)::int from ${groupMembers} gm where gm.group_id = ${groups.id})`,
+        members: sql<number>`(select count(*)::int from ${groupMembers} gm where gm.group_id = ${sql`${groups.id}`})`,
       })
       .from(groups)
       .where(q ? or(ilike(groups.name, likePattern(q)), ilike(groups.key, likePattern(q))) : undefined)

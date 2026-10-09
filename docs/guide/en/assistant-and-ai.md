@@ -15,7 +15,7 @@ sets you review before anything goes live.
   model is configured
 - [Review](#review-a-change-set), [apply](#apply-a-change-set), [request a review](#request-a-review) and
   [roll back](#roll-back-a-change-set) change sets
-- [Install a ready-made process from a package](#install-a-built-in-package), or
+- [Install a process pack](#install-a-process-pack) (ready-made processes) after reading what it creates, or
   [move configuration to another environment](#move-configuration-to-another-environment) as a file
 - [Connect an outside agent such as Claude Code](#connect-an-outside-agent-over-mcp) over MCP
 
@@ -64,8 +64,10 @@ you raise a ticket.
 
 1. Go to **Workspace → Ask IT**, or select **Ask a question** on the **Ask IT** card in the request portal.
 2. Describe the problem in your own words, in any language.
-3. Read the answer and its linked articles. Select **That solved it**, or **I still need help**.
-4. If it can't help, Ask IT prepares a ticket. Select **Review ticket**, check the details, then **Create ticket**.
+3. Read the answer and its linked articles. Under **Did this solve it?**, select **Yes, thanks**, or **No, raise a
+   ticket**.
+4. With **No, raise a ticket**, Ask IT opens a prepared ticket under the answer: check the details, then **Create
+   ticket**.
 
 **What happens next:** Nothing is created until you confirm. The ticket goes to the service desk, and you follow it
 under **My requests**. See the [Employees guide](employees.md) for requests and tickets.
@@ -149,8 +151,9 @@ until someone applies the change set.
 
 1. Open the assistant and describe the change (with a chat model), or pick a
    [guided template](#use-a-guided-template).
-2. The assistant reads the current configuration, proposes the changes and runs a dry run of the whole set. The
-   panel shows a **Change set** card with the number of changes and whether it's **Ready**.
+2. The assistant reads the current configuration, proposes the changes and checks the whole set by trying it
+   without saving anything (a dry run). The panel shows a **Change set** card with the number of changes and whether
+   they're **Ready to apply**.
 3. Select **Review and apply** to open the change set page.
 4. [Review it](#review-a-change-set), then [apply it](#apply-a-change-set) if you have the permissions, or
    [request a review](#request-a-review). You can also ask the assistant to apply it; you then confirm on the card.
@@ -183,32 +186,43 @@ applying it needs the permission shown.
 | Scheduled job        | Create, update, disable or delete                                                                                                                 | **Scheduled jobs administrator**                                 |
 | ETL pipeline         | Create, update, disable or delete                                                                                                                 | **Data APIs developer**                                          |
 | Data API             | Create or update a **draft** only; a person tests and publishes it in Data APIs                                                                   | **Data APIs developer**                                          |
-| Sync profile         | Create, update, disable or delete an Integrations Hub profile                                                                                     | **Integrations administrator**                                   |
+| Sync rule            | Create, update, disable or delete an Integrations Hub sync rule                                                                                   | **Integrations administrator**                                   |
 | Ticket category      | Create, update or deactivate                                                                                                                      | **Service desk administrator**                                   |
 | SLA policy           | Create, update or deactivate                                                                                                                      | **Service desk administrator**                                   |
 | Service catalog item | Create, update or delete                                                                                                                          | **Service desk administrator**                                   |
 
 ## Use a guided template
 
-Without a chat model, the assistant offers guided templates instead of free text: a few questions that become a
-change in a change set. Use them in builtin mode, as in the demo.
+Without a chat model, the assistant offers guided templates instead of free text: a few questions that become changes
+in a change set. Use them in builtin mode, as in the demo.
 
-1. Open the assistant. The panel shows **Guided templates**.
+1. Open the assistant. The panel says "Pick a template and answer a few questions. You review what it prepares before
+   anything changes." and lists the **Guided templates**, the most used first.
 2. Pick a template:
+   - **Request process**: a form, who approves it and what happens after, in one change set. It asks for the
+     **Form name**, a **Category** (the portal's own, those already in use, or **Something else…**), **Who can use the
+     form** (**Everyone** or **Members of some groups**), the **Records people pick** (for example an application or
+     configuration items), up to three questions, and who approves, in order: the requester's manager, then the person
+     named in the picked record (for example an application's business owner, under **Person from the records**), the
+     group responsible for the picked records, and another group. Under **When a request is approved** choose
+     **Nothing else**, **Raise a change**, **Raise a ticket** (with its category and the group that handles it) or
+     **Notify a group**.
+   - **Request form**: a form in the request portal with up to three questions and an approval workflow.
+   - **Custom field**: a field on people, groups, departments or module records.
    - **Approval chain**: one or two approval steps, the second only above an amount (for example `data.amount` above
      60 000).
-   - **Request form**: a form in the request portal with up to three questions and an approval workflow.
-   - **Approval process**: a form and its own approval workflow together: the records people pick (for example
-     configuration items), up to three questions, the requester's manager, the group responsible for the picked
-     records and another group as approvers, and optionally a change raised once a request is approved.
-   - **Custom field**: a field on people, groups, departments or module records.
-   - **HTTP health check**: call a URL every few minutes and alert the owner when it fails.
    - **SLA targets**: response and resolution targets per priority for the ticket types you choose.
-3. Answer the questions and select **Prepare the change**.
+   - **HTTP health check**: call a URL every few minutes and alert the owner when it fails.
+3. Answer the questions and select **Prepare for review**.
 
 **What happens next:** The panel shows "Added to CS-…" and the change set card. Further templates add to the same
 change set until you select **Start a new change set**. Select **Review and apply** to open it. You only see templates
 for what you can read; if you can prepare a change but not apply it, the template says so, and you request a review.
+**Why can't I change other things here?** lists what has no template without a chat model.
+
+> **Tip:** If the person named in the record may be missing (an application without a business owner), the request
+> doesn't get stuck: the step is skipped when the manager approved already, otherwise the manager approves instead. To
+> add rules or more actions, open the form in the form builder once the change set is applied.
 
 ![The assistant panel in builtin mode with the guided templates](../../../apps/web/public/help/en/assistant-and-ai-panel.jpg)
 
@@ -218,17 +232,29 @@ Every change set has its own page. Review it before you apply it or approve its 
 
 1. Go to **Administration → Change sets** (or **Change sets** in the assistant panel) and open the change set.
 2. Read the header: the reference (`CS-…`), the status (**Draft**, **In review**, **Applied**, **Rolled back** or
-   **Discarded**), who prepared it and the **Summary** for the reviewer.
-3. Read each change under **Changes, in the order they apply**. Each shows what it does (**Create**, **Update**,
-   **Archive** or **Delete**), its dry run result (**Dry run passed**, or why it failed), and either the
-   **Differences: current → proposed** or, for a new object, the **Proposed value**.
-4. For approval workflows and request forms, open **Preview**: the workflow diagram (select **Try it** to run the
-   simulator) or the form as people will see it.
-5. Select **Check again** to run the dry run again after something changed.
+   **Discarded**), who prepared it and the **Summary** for the reviewer. **Ready to apply** in the summary says whether
+   every change can be applied as it is.
+3. Read **Changes by process**. A line on top says what the change set adds up to, for example "21 processes · 5
+   groups · 3 ticket categories · 1 approval workflow · 1 custom field · 8 scheduled jobs". Each request form is a
+   process, with its approval workflow, the groups only it uses and the scheduled jobs that assign it. **Shared by
+   several processes** holds the groups and categories more than one uses (they apply first); **Other changes** holds
+   the rest. A change set with no form simply lists its changes.
+4. Each change says what it does in plain words: for a form, "6 questions, for everyone. Approval: the requester's
+   manager → Network administrators. After approval: Remind two weeks before expiry."; for an approval workflow, which
+   form's requests it approves and who approves; for a group, that it's created without members. Its state is
+   **Ready to apply**, **Can't be applied** with the reason, or "Needs … to apply it" with the role that can.
+5. Open a change to see more: **Preview** (open for request forms and approval workflows: the form as people will see
+   it, or the workflow diagram, where **Try it** runs the simulator with the form's own questions), the **Differences:
+   current → proposed** of an update, and **Technical details** (its reference name, IDs, every property and the full
+   value as JSON).
+6. Select **Check again** to check the whole set again after something changed.
 
-The dry run applies the whole set in a transaction that is then rolled back, so you see exactly what applying would
-do. A change marked "Needs someone with more permissions to apply it" passed every other check: someone who holds the
-permission can apply it.
+On a change set with more than five changes, the processes start closed: each shows its form's questions, approvers
+and schedules in a few lines. Open the ones you want, use **Outline** to jump to one, or **Expand all**. A process
+that has a change that can't be applied opens by itself.
+
+To remove a change from a draft, select its delete button. If other changes depend on it (a form uses the workflow, a
+schedule assigns the form), the dialog lists them and removes them with it, so nothing is left broken.
 
 To change the title and summary, select **Rename the change set**. You can edit a change set while it's a draft and
 you prepared it (or you're an **Assistant administrator**).
@@ -237,17 +263,20 @@ you prepared it (or you're an **Assistant administrator**).
 
 ## Apply a change set
 
-Apply a change set when you hold every permission it needs. Everything is applied in one transaction: if one change
-fails, nothing is applied.
+Apply a change set when you hold every permission it needs. All its changes are applied together: if one fails, none
+is.
 
 1. Open the change set and select **Apply**.
-2. If it archives or deletes something, tick the confirmation that objects will be archived or deleted.
+2. If it archives or deletes something, tick the confirmation that some of the changes archive or delete something.
 3. Select **Apply** in the dialog.
 
-**What happens next:** The status becomes **Applied** and the page shows **Applied by** you. The changes are live:
-a published workflow is used by new requests, a form appears in the portal. **Ready to use** lists links to share,
-such as **Open the form** for a form people can now fill in. The person who prepared it gets a notification. If you
-can't apply it, the page says "You can't apply this change set yourself" and which permissions are missing.
+**What happens next:** The status becomes **Applied**, every change shows **Applied**, and the page shows **Applied
+by** you. The changes are live: a published workflow is used by new requests, a form appears in the portal. **Ready to
+use** lists links to share, such as **Open the form** for a form people can now fill in, and **Add rules or actions in
+the form builder** for a new form. When the change set created groups, **Next steps** lists them with how many members
+each has: add the members, because their approvals and checklists reach nobody until you do. The person who prepared
+it gets a notification. If you can't apply it, the page says "You can't apply this change set yourself" and which role
+it needs (for example **Workflow administrator**).
 
 ## Request a review
 
@@ -267,11 +296,13 @@ To change your mind, open **More actions** and select **Withdraw review**: the c
 
 ## Roll back a change set
 
-If an applied change set causes a problem, roll it back. Everything is undone in one transaction, in reverse order:
-updates go back to their earlier values, archived objects are restored and created ones are removed.
+If an applied change set causes a problem, roll it back. Every change is undone together, in reverse order: updates go
+back to their earlier values, archived items are restored and created ones are removed.
 
 1. Open the applied change set and select **Roll back**.
-2. Optionally fill in **Reason (optional, kept in the audit log)**, then select **Roll back**.
+2. Read **Rolling back:** in the dialog, which says what each change undoes (for example "Removes the request form
+   “Software purchase request”").
+3. Optionally fill in **Reason (optional, kept in the audit log)**, then select **Roll back**.
 
 **What happens next:** The status becomes **Rolled back**. A change set that deleted something can't be rolled back
 automatically. Roll back is refused if someone changed one of the objects after the change set was applied; the page
@@ -286,47 +317,55 @@ applied, applying is refused: "Someone changed this configuration after the chan
 
 1. Open the change set. The changed objects are marked, with the differences against their current version.
 2. Review the differences, then select **Refresh**. The change set now uses the current versions as its base.
-3. Check the dry run and apply again.
+3. Check that every change is **Ready to apply**, then apply again.
 
 ## Start from a package
 
-A package is a change set as a file. Use one to set up a whole process at once (the forms, approval workflows, groups
-and scheduled jobs a module ships), or to move configuration you built and tested in one environment to another. A
-package always becomes a new draft change set: you review its dry run, then apply it or request a review as usual,
-and you can roll it back like any other.
+A package is a change set as a file. Use one to set up whole processes at once (the forms, approval workflows, groups
+and scheduled jobs a module ships as a **process pack**), or to move configuration you built and tested in one
+environment to another. A package always becomes a new draft change set: you review it, then apply it or request a
+review as usual, and you can roll it back like any other.
 
-### Install a built-in package
+### Install a process pack
 
-1. Go to **Administration → Change sets** and select **From a package**.
-2. On **Built-in packages**, read what each package holds: its description, the module it comes from, the number of
-   changes and what they change.
-3. Select **Install** next to the package you want.
+1. Go to **Administration → Forms** or **Administration → Change sets** and select **Install a process pack**. The
+   **Process packs** page opens on **Built-in**.
+2. Read the pack: its description, the module it comes from, and what it adds up to, such as "21 processes · 5 groups
+   you fill in after installing · 3 ticket categories · …".
+3. Open **What it creates** to see each process before you install anything: every request form with its questions,
+   who may use it, who approves it in order and what happens after, and the checklists that assign it. **Groups you
+   fill in after installing** lists the groups it creates empty.
+4. Select **Review before installing**.
 
-**What happens next:** A new draft change set opens, named after the package, with the dry run of every change.
-The names and texts it creates in one language only, such as group names, scheduled jobs and reminders, are in your
-language. [Review it](#review-a-change-set), then [apply it](#apply-a-change-set) or [request a review](#request-a-review).
-Nothing is live until then. Installing a package twice gives a second change set whose changes fail their dry run
-(the keys are taken): discard it.
+**What happens next:** A new draft change set opens, named after the pack and grouped by process, with every change
+checked. The names and texts it creates in one language only, such as group names, scheduled jobs and reminders, are
+in your language. [Review it](#review-a-change-set), then [apply it](#apply-a-change-set) or
+[request a review](#request-a-review). Nothing is live until then. After applying, **Next steps** lists the groups to
+fill in. Installing a pack twice gives a second change set whose changes can't be applied (the keys are taken):
+discard it.
 
-If a package says "Needs modules that aren’t enabled", ask an administrator to enable them in **Administration →
-Modules**. If it says "Preparing it needs permissions you don’t hold", you can't prepare it; ask someone who can. "You
-can prepare it, but applying it needs someone with more permissions (or a review)" means you install it, then request
-a review.
+In the demo, the **ISMS process pack** (from **Information security**) creates 21 processes, such as **Firewall rule change request**: the requester's manager approves, then the network administrators evaluate the rule, an ISMS approver signs it off and the network administrators configure it.
+
+![Process packs with what the ISMS process pack creates](../../../apps/web/public/help/en/assistant-and-ai-packs.jpg)
+
+If a pack says "Needs modules that aren’t enabled", ask an administrator to enable them in **Administration →
+Modules**. If it says "Installing it needs access you don’t have", ask someone with the role it names. "You can
+install it, but applying it needs someone with more access (or a review)" means you install it, then request a review.
 
 ### Move configuration to another environment
 
 1. In the environment where you built and tested the configuration, open its change set, open **More actions** and
    select **Export**. Your browser downloads the change set as a file named after its reference, such as
    `CS-00012.json`.
-2. In the other environment, go to **Administration → Change sets**, select **From a package**, then **Import a
+2. In the other environment, select **Install a process pack** on **Administration → Change sets**, then **Import a
    file**.
-3. Choose the file under **Package file**. The dialog shows its title and the number of changes.
+3. Choose the file under **Package file**. The page shows its title and the number of changes.
 4. Select **Import**.
 
-**What happens next:** A new draft change set opens with its dry run, as when you install a package. If the file
-doesn't fit this environment, nothing is created and the dialog lists why, under "The package has problems. Nothing
-was created:" (for example a change that refers to a later one) or "This package doesn’t fit this platform" (modules
-that aren't enabled here).
+**What happens next:** A new draft change set opens, as when you install a pack. If the file doesn't fit this
+environment, nothing is created and the page lists why, under "The package has problems. Nothing was created:" (for
+example a change that refers to a later one) or "This package doesn’t fit this platform" (modules that aren't enabled
+here).
 
 > **Tip:** Build what you want to move as new objects (a new form, a new workflow). Changes to existing objects refer
 > to them by their ID in the environment they were made in, so the import reports them as not found elsewhere.
@@ -406,7 +445,7 @@ see it in their approvals.
 | "There is nothing you can customise yet"                               | No model is configured, and you can't read any configuration the guided templates work with. Ask an administrator for read access to what you need, or to add a model |
 | "There is nothing the assistant can do for you yet"                    | Your roles don't include anything the assistant works with. Ask an administrator for the access you need                                                              |
 | "You can't apply this change set yourself"                             | Select **Request review**                                                                                                                                             |
-| A change shows "Dry run failed"                                        | Read the reason on the change; ask the assistant to fix it, or remove the change                                                                                      |
+| A change shows "Can't be applied"                                      | Open the change and read the reason; ask the assistant to fix it, or remove the change                                                                                |
 | "Someone changed this configuration after the change set was prepared" | See [When a change set is stale](#when-a-change-set-is-stale)                                                                                                         |
 | "This month's AI budget has been used up."                             | An administrator can raise the budget under **Administration → AI → Privacy & budget**                                                                                |
 
@@ -419,5 +458,5 @@ see it in their approvals.
 - [Employees](employees.md): Ask IT, requests and approvals.
 - [Service desk guide](service-desk.md): Helpdesk AI on tickets, ticket categories, SLA policies and the service
   catalog.
-- [Integrations](integrations.md): sync profiles the assistant can prepare.
+- [Integrations](integrations.md): sync rules the assistant can prepare.
 - [Data and automation](data-and-automation.md): scheduled jobs, ETL pipelines and Data APIs.

@@ -6,7 +6,8 @@
   "nav": {
     "group": "應用程式",
     "applications": "應用程式",
-    "releases": "發行行事曆"
+    "releases": "發行行事曆",
+    "sections": "應用程式區段"
   },
   "entities": {
     "application": "應用程式",
@@ -97,10 +98,10 @@
     "low": "低"
   },
   "disposition": {
-    "tolerate": "維持（Tolerate）",
-    "invest": "投資（Invest）",
-    "migrate": "遷移（Migrate）",
-    "eliminate": "淘汰（Eliminate）"
+    "tolerate": "維持現狀",
+    "invest": "加碼投資",
+    "migrate": "汰換或遷移",
+    "eliminate": "淘汰"
   },
   "hosting": {
     "on_prem": "地端",
@@ -142,7 +143,7 @@
     "rolled_back": "已回復"
   },
   "source": {
-    "manual": "由人員記錄",
+    "manual": "手動記錄",
     "api": "透過 API 記錄"
   },
   "duration": {
@@ -158,7 +159,7 @@
     "name": "名稱",
     "stage": "階段",
     "criticality": "重要性",
-    "disposition": "處置策略（TIME）",
+    "disposition": "投資決策",
     "hosting": "架設方式",
     "businessOwner": "業務負責人",
     "technicalOwner": "技術負責人",
@@ -197,7 +198,7 @@
     "new": "新增應用程式",
     "search": "以代碼或名稱搜尋…",
     "summary": "應用程式組合摘要",
-    "deploymentsWeek": "部署 · 最近 7 天",
+    "deploymentsWeek": "最近 7 天的部署",
     "failedOrRolledBack": "失敗或已回復",
     "upcoming": "未來 14 天的發行",
     "views": {
@@ -215,7 +216,9 @@
     "emptyMine": "您目前沒有負責的應用程式",
     "emptyFiltered": "沒有符合篩選條件的項目。",
     "emptyHint": "您負責的、或您所屬團隊交付的應用程式會顯示在這裡。",
-    "liveCount": "{count, plural, other {# 個應用程式}}"
+    "liveCount": "{count, plural, other {# 個應用程式}}",
+    "deploymentsWeekHint": "成功 {succeeded} 次 · 失敗或回復 {failed} 次",
+    "upcomingHint": "開啟發行行事曆"
   },
   "form": {
     "createTitle": "新增應用程式",
@@ -285,7 +288,7 @@
   },
   "dora": {
     "title": "交付指標",
-    "description": "正式環境，最近 {days} 天（DORA）",
+    "description": "正式環境，最近 {days} 天",
     "viewAs": "顯示方式",
     "chart": "圖表",
     "table": "表格",
@@ -303,7 +306,13 @@
     "weekOf": "週次",
     "weeklyCaption": "每週正式環境部署次數",
     "samplesLead": "{count, plural, =0 {尚無發行資料} other {# 個發行版本的中位數}}",
-    "samplesRestore": "{count, plural, =0 {沒有需要復原的失敗} other {# 次復原的中位數}}"
+    "samplesRestore": "{count, plural, =0 {沒有需要復原的失敗} other {# 次復原的中位數}}",
+    "tileHints": {
+      "frequency": "版本進入正式環境的頻率",
+      "failureRate": "正式環境部署失敗或回復的比例",
+      "leadTime": "從建立發行版本到首次部署至正式環境所需的時間",
+      "restore": "修復失敗的正式環境部署所需的時間"
+    }
   },
   "deployments": {
     "label": "部署紀錄",
@@ -327,7 +336,7 @@
     "emptyHint": "規劃下一個版本，即可追蹤它的就緒狀態與部署。"
   },
   "changes": {
-    "none": "無變更",
+    "none": "未連結變更",
     "inWindow": "目前在時段內",
     "outsideWindow": "目前不在時段內",
     "noWindow": "未排定時段"
@@ -336,8 +345,8 @@
     "title": "正式環境就緒檢查",
     "allPass": "所有檢查皆通過：可以部署到正式環境。",
     "progressLong": "{total} 項檢查中通過 {passed} 項",
-    "progress": "{passed}/{total} 就緒",
-    "ready": "就緒",
+    "progress": "{passed}/{total} 項檢查",
+    "ready": "檢查全數通過",
     "summaryTitle": "{total} 項就緒檢查中通過 {passed} 項",
     "passed": "已通過",
     "notPassed": "尚未通過",
@@ -348,17 +357,21 @@
       "production": "沒有失敗的正式環境部署"
     },
     "details": {
-      "noChange": "請連結已由 CAB 核准（已排程或實施中）的變更。",
+      "noChange": "請連結已由 CAB 核准並排程的變更。",
       "testedIn": "已在{environments}成功部署。",
       "notTested": "請先將此版本部署到測試或預備環境。",
       "notesWritten": "已有發行說明。",
       "noNotes": "請為使用者撰寫發行說明。",
       "noFailures": "此版本沒有失敗的正式環境部署。",
-      "failures": "此版本有 {count} 次正式環境部署失敗。"
+      "failures": "此版本有 {count} 次正式環境部署失敗。",
+      "changeNotYet": "需由 CAB 核准並排程：請開啟變更以送出或追蹤。"
     },
     "raiseChange": "提出變更",
     "allChanges": "已連結的變更",
-    "policyNow": "現在部署到正式環境"
+    "policyNow": "部署到正式環境之前",
+    "openChange": "開啟 {reference}",
+    "recordTest": "記錄測試部署",
+    "writeNotes": "撰寫發行說明"
   },
   "policy": {
     "notProduction": "{environment} 不是正式環境：不需要變更。",
@@ -367,21 +380,26 @@
     "warnOutsideWindow": "變更已核准，但目前不在其預定時段內。部署會被記錄並加上警示。",
     "reason": {
       "no_change": "沒有已核准的變更：請指定變更，或將變更連結到此發行版本。",
-      "change_not_approved": "變更尚未核准：必須為「已排程」或「實施中」。",
+      "change_not_approved": "變更尚未核准：必須由 CAB 核准並排程。",
       "outside_window": "目前不在此變更的預定時段內。"
     },
-    "rule": "正式環境部署須有 CAB 核准（已排程或實施中）的變更，可在此指定，或連結到發行版本。",
-    "ruleWithWindow": "正式環境部署須有 CAB 核准（已排程或實施中）的變更，且必須在其預定時段內進行。",
+    "rule": "正式環境部署須有已由 CAB 核准並排程的變更，可在此指定，或連結到發行版本。",
+    "ruleWithWindow": "正式環境部署須有已由 CAB 核准並排程的變更，且須在其預定時段內進行。",
     "namedNotFound": "找不到此編號的變更。",
-    "raiseChange": "提出變更"
+    "raiseChange": "提出變更",
+    "needs": {
+      "no_change": "部署到正式環境需要已核准的變更：請提出變更，或將變更連結到發行版本。",
+      "change_not_approved": "部署到正式環境需要變更已由 CAB 核准並排程。",
+      "outside_window": "正式環境部署必須在變更的預定時段內進行。"
+    }
   },
   "deploy": {
     "title": "記錄部署",
     "description": "記錄 {name} 的部署。正式環境部署會依變更政策檢查。",
     "chooseEnvironment": "選擇環境",
     "outcome": "結果",
-    "changeReference": "變更（選填）",
-    "changeHint": "正式環境適用：CAB 核准的變更；若發行版本已連結變更則可省略。",
+    "changeReference": "變更編號",
+    "changeHint": "部署到正式環境時需要，除非發行版本已連結變更。",
     "policyCheck": "變更政策",
     "linkedChanges": "此發行版本連結的變更",
     "overrideWithReason": "填寫理由並略過",
@@ -397,7 +415,14 @@
     "reasonTooShort": "理由至少需要 10 個字元。",
     "record": "記錄部署",
     "recordWithOverride": "略過政策並記錄",
-    "recorded": "已記錄 {version} 部署到{environment}"
+    "recorded": "已記錄 {version} 部署到{environment}",
+    "change": "變更",
+    "linkedChange": "發行版本已連結的變更",
+    "noChange": "沒有變更",
+    "otherChange": "其他變更…",
+    "blockedExplain": "目前還無法記錄此部署：上方的變更原則說明了正式環境需要什麼。",
+    "blockedOverride": "變更原則拒絕此部署（見上方）。若必須部署，請填寫理由並強制執行。",
+    "linkedOne": "{reference}（已連結到發行版本）"
   },
   "release": {
     "notFound": "此發行版本不存在，或您沒有檢視權限",
@@ -418,7 +443,8 @@
     "notYet": "尚未部署",
     "noNotes": "尚無發行說明。",
     "deployments": "部署紀錄（{count}）",
-    "raiseChangeTitle": "將 {app} {version} 部署到正式環境"
+    "raiseChangeTitle": "將 {app} {version} 部署到正式環境",
+    "moveToStatus": "變更為「{status}」"
   },
   "releaseForm": {
     "createTitle": "新增 {name} 的發行版本",
@@ -466,7 +492,7 @@
     "repoDuplicate": "此程式碼儲存庫已在清單中。",
     "nameRequired": "請填寫名稱。",
     "lifecycle": "生命週期",
-    "lifecycleHint": "階段、TIME 處置策略，以及應用程式生命週期的關鍵日期。",
+    "lifecycleHint": "階段、投資決策（Gartner TIME），以及應用程式生命週期的關鍵日期。",
     "lifecycleSaved": "已儲存生命週期"
   },
   "calendar": {
@@ -482,7 +508,8 @@
     "month": "月",
     "weekOf": "{range} 這週",
     "count": "{count, plural, =0 {沒有發行} other {# 個發行版本}}",
-    "nothingPlanned": "本週沒有預定的發行。"
+    "nothingPlanned": "本週沒有預定的發行。",
+    "nothingPlannedRange": "{range}：沒有規劃"
   },
   "ciRelated": {
     "title": "應用程式",
@@ -541,7 +568,7 @@
     "criticality": "重要性",
     "hosting": "架設方式",
     "dataClassification": "資料分級",
-    "disposition": "處置策略（TIME）",
+    "disposition": "投資決策",
     "ownerId": "技術負責人",
     "businessOwnerId": "業務負責人",
     "teamGroup": "交付團隊",

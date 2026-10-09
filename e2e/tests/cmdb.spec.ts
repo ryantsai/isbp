@@ -37,25 +37,69 @@ test('CI list: quick views and search', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'tpe-sw-core-01' })).toHaveCount(0);
 });
 
+test('CI list: search and Status stay in view, the other filters sit under Filters', async ({ page }) => {
+  await page.goto('/cmdb');
+  await expect(page.getByRole('combobox', { name: 'Status' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Criticality' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Filters' }).click();
+  await page.getByRole('dialog').getByRole('combobox', { name: 'Criticality' }).click();
+  await page.getByRole('option', { name: 'Critical', exact: true }).click();
+  await expect(page).toHaveURL(/criticality=critical/);
+  await page.keyboard.press('Escape');
+  const applied = page.getByRole('list', { name: 'Applied filters' });
+  await expect(applied).toContainText('Critical');
+  await expect(page.getByRole('link', { name: 'tpe-sw-core-01' })).toBeVisible();
+  await applied.getByRole('button', { name: 'Remove filter: Criticality' }).click();
+  await expect(page).not.toHaveURL(/criticality=/);
+});
+
 test('CI detail: overview, relationships and the impact of an outage', async ({ page, request }) => {
   const ci = await coreSwitch(request);
   await page.goto(`/cmdb/${ci.id}`);
   await expect(page.getByRole('heading', { name: 'tpe-sw-core-01' })).toBeVisible();
   await expect(page.getByText('If this fails')).toBeVisible();
+  // One number, in words.
+  const sentence = /\d+ items affected, \d+ of them business services/;
+  await expect(page.getByRole('tabpanel').getByText(sentence)).toBeVisible();
 
   await page.getByRole('tab', { name: /Relationships/ }).click();
   await expect(page.getByRole('tabpanel')).toContainText('tpe-fw-01');
 
   await page.getByRole('tab', { name: 'Impact' }).click();
+  await expect(page).toHaveURL(/tab=impact/);
   const panel = page.getByRole('tabpanel');
-  await expect(panel.getByText(/business services? impacted/)).toBeVisible();
+  await expect(panel.getByText(sentence)).toBeVisible();
   await expect(panel.getByRole('link', { name: /Email & Calendar/ }).first()).toBeVisible();
+  // The graph names its two halves, so dependencies don't read as impacted.
+  // (Band labels carry their count: "Affected if it fails 8", "Depends on 5".)
+  await expect(panel.getByText(/^Affected if it fails\s*\d+$/)).toBeVisible();
+  await expect(panel.getByText(/^Depends on\s*\d+$/)).toBeVisible();
   // The same analysis as an accessible list.
   await panel
     .getByRole('radio', { name: 'List' })
     .or(panel.getByRole('button', { name: 'List' }))
     .click();
-  await expect(panel.getByText('Impacted if it fails').first()).toBeVisible();
+  await expect(panel.getByText('Affected if it fails').first()).toBeVisible();
+});
+
+test('CI detail: "View impact" and links open the Impact tab; back returns to the list', async ({
+  page,
+  request,
+}) => {
+  const ci = await coreSwitch(request);
+  await page.goto(`/cmdb/${ci.id}?tab=impact`);
+  await expect(page.getByRole('tab', { name: 'Impact' })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tab', { name: 'Overview' }).click();
+  await page.getByRole('button', { name: 'View impact' }).click();
+  await expect(page.getByRole('tab', { name: 'Impact' })).toHaveAttribute('aria-selected', 'true');
+
+  // The back link returns to the list as it was left (tab and search).
+  await page.goto('/cmdb?view=infrastructure&q=core');
+  await page.getByRole('link', { name: 'tpe-sw-core-01' }).click();
+  await expect(page.getByRole('heading', { name: 'tpe-sw-core-01' })).toBeVisible();
+  await page.getByRole('main').getByRole('link', { name: 'Configuration items' }).first().click();
+  await expect(page).toHaveURL(/\/cmdb\?.*view=infrastructure/);
+  await expect(page).toHaveURL(/q=core/);
 });
 
 test('CMDB pages have no accessibility violations (light and dark)', async ({ page, request }) => {

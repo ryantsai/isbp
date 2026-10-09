@@ -3,11 +3,11 @@
 import { localize } from '@isbp/sdk';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent } from '@isbp/ui/card';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
+import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { CableIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -26,42 +26,38 @@ function RelationRow({ rel, label, canManage }: { rel: CiRelation; label: string
     success: t('rel.removed'),
   });
   return (
-    <motion.li
-      layout
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: 16, transition: { duration: 0.15 } }}
-      className="flex items-center gap-3 py-2.5"
-    >
-      <span className="grid size-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-        <ClassIcon name={rel.ci.class.icon} className="size-4" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-          <Link href={ciHref(rel.ci)} className="truncate font-medium hover:underline">
-            {rel.ci.name}
-          </Link>
-          <span className="font-mono text-xs text-muted-foreground">{rel.ci.reference}</span>
+    <AnimatedItem>
+      <div className="flex items-center gap-3 py-2.5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+          <ClassIcon name={rel.ci.class.icon} className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+            <Link href={ciHref(rel.ci)} className="truncate font-medium hover:underline">
+              {rel.ci.name}
+            </Link>
+            <span className="font-mono text-xs text-muted-foreground">{rel.ci.reference}</span>
+          </div>
+          <p className="truncate text-xs text-muted-foreground">
+            {localize(rel.ci.class.name, locale)}
+            {rel.note && <> · {rel.note}</>}
+          </p>
         </div>
-        <p className="truncate text-xs text-muted-foreground">
-          {localize(rel.ci.class.name, locale)}
-          {rel.note && <> · {rel.note}</>}
-        </p>
+        <CiStatusBadge status={rel.ci.status} className="hidden sm:inline-flex" />
+        {canManage && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground hover:text-destructive"
+            onClick={() => remove.mutate(undefined)}
+            loading={remove.isPending}
+            aria-label={t('rel.remove', { label, name: rel.ci.name })}
+          >
+            <Trash2Icon />
+          </Button>
+        )}
       </div>
-      <CiStatusBadge status={rel.ci.status} className="hidden sm:inline-flex" />
-      {canManage && (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="text-muted-foreground hover:text-destructive"
-          onClick={() => remove.mutate(undefined)}
-          loading={remove.isPending}
-          aria-label={t('rel.remove', { label, name: rel.ci.name })}
-        >
-          <Trash2Icon />
-        </Button>
-      )}
-    </motion.li>
+    </AnimatedItem>
   );
 }
 
@@ -76,7 +72,9 @@ export function RelationshipsPanel({
   onAdd: () => void;
 }) {
   const t = useTranslations('cmdb');
-  const { data, isLoading } = useApiQuery<{ items: CiRelation[] }>(`/cmdb/cis/${ciRef}/relationships`);
+  const { data, isLoading, error, refetch } = useApiQuery<{ items: CiRelation[] }>(
+    `/cmdb/cis/${ciRef}/relationships`,
+  );
   const groups = useMemo(() => {
     const items = data?.items ?? [];
     return RELATIONSHIP_TYPES.flatMap((type) =>
@@ -91,6 +89,8 @@ export function RelationshipsPanel({
   }, [data, t]);
 
   if (isLoading) return <Skeleton className="h-48 w-full rounded-xl" />;
+  if (error && !data)
+    return <ErrorState error={error} onRetry={() => refetch()} className="rounded-xl border" />;
 
   if (!groups.length)
     return (
@@ -126,13 +126,12 @@ export function RelationshipsPanel({
                 {g.label}
                 <span className="font-normal text-muted-foreground tabular-nums">{g.items.length}</span>
               </h3>
-              <ul className="divide-y" aria-label={g.label}>
-                <AnimatePresence initial={false}>
-                  {g.items.map((rel) => (
-                    <RelationRow key={rel.id} rel={rel} label={g.label} canManage={canManage} />
-                  ))}
-                </AnimatePresence>
-              </ul>
+              {/* Added and removed relationships grow in and collapse out; the rest stay still. */}
+              <AnimatedList className="divide-y" aria-label={g.label}>
+                {g.items.map((rel) => (
+                  <RelationRow key={rel.id} rel={rel} label={g.label} canManage={canManage} />
+                ))}
+              </AnimatedList>
             </CardContent>
           </Card>
         ))}

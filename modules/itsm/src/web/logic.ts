@@ -2,7 +2,7 @@
  * Pure helpers of the ITSM pages (no React, no I/O) — unit-tested in `test/web-logic.test.ts`.
  */
 import { localize } from '@isbp/sdk';
-import type { Category, TicketListItem } from '../contracts';
+import type { Category, TicketListItem, TicketStatus, TicketType } from '../contracts';
 import type { SlaStatus } from './types';
 
 /* ───────────────────────────── categories ───────────────────────────── */
@@ -137,3 +137,82 @@ export const shiftMonth = (month: string, by: number) => {
   const d = new Date(Date.UTC(y, m - 1 + by, 1));
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`;
 };
+
+/* ───────────────────────────── next step ───────────────────────────── */
+
+/**
+ * The one primary action of a ticket page: the next stop of its lifecycle (`key` names the label in
+ * `itsm.actions.next.*`). The Status menu keeps the side exits. Null when the ticket waits for someone else (the
+ * CAB, a sign-off) or is finished for good.
+ */
+export interface NextStep {
+  to: TicketStatus;
+  key:
+    | 'resolve'
+    | 'fulfil'
+    | 'reopen'
+    | 'startInvestigating'
+    | 'markKnownError'
+    | 'closeProblem'
+    | 'submitForApproval'
+    | 'revise'
+    | 'startImplementation'
+    | 'finishImplementation'
+    | 'closeChange';
+}
+
+export function nextStep(ticket: {
+  type: TicketType;
+  status: TicketStatus;
+  signOff?: unknown;
+  transitions: readonly TicketStatus[];
+}): NextStep | null {
+  const can = (to: TicketStatus) => ticket.transitions.includes(to);
+  const step = (to: TicketStatus, key: NextStep['key']): NextStep | null => (can(to) ? { to, key } : null);
+  if (ticket.signOff) return null;
+  switch (ticket.type) {
+    case 'incident':
+    case 'service_request': {
+      const finish = ticket.type === 'service_request' ? 'fulfilled' : 'resolved';
+      if (ticket.status === finish) return step('in_progress', 'reopen');
+      return step(finish, ticket.type === 'service_request' ? 'fulfil' : 'resolve');
+    }
+    case 'problem':
+      if (ticket.status === 'new') return step('investigating', 'startInvestigating');
+      if (ticket.status === 'investigating') return step('known_error', 'markKnownError');
+      if (ticket.status === 'known_error') return step('resolved', 'resolve');
+      if (ticket.status === 'resolved') return step('closed', 'closeProblem');
+      return null;
+    case 'change':
+      if (ticket.status === 'draft' || ticket.status === 'assessment')
+        return step('authorization', 'submitForApproval');
+      if (ticket.status === 'rejected') return step('draft', 'revise');
+      if (ticket.status === 'scheduled') return step('implementing', 'startImplementation');
+      if (ticket.status === 'implementing') return step('review', 'finishImplementation');
+      if (ticket.status === 'review') return step('closed', 'closeChange');
+      return null;
+  }
+}
+
+/** Where a ticket page's back link goes: the list of its kind. */
+export function listOf(type: TicketType): { href: string; key: 'tickets' | 'problems' | 'changes' } {
+  if (type === 'problem') return { href: '/itsm/problems', key: 'problems' };
+  if (type === 'change') return { href: '/itsm/changes', key: 'changes' };
+  return { href: '/itsm', key: 'tickets' };
+}
+
+/** A change must have a planned window that hasn't started yet (emergencies excepted) to be submitted. */
+export function windowProblem(
+  change: { changeType: string; plannedStart: string | null; plannedEnd: string | null },
+  now: Date,
+): 'missing' | 'past' | null {
+  if (!change.plannedStart || !change.plannedEnd) return 'missing';
+  if (change.changeType !== 'emergency' && new Date(change.plannedStart).getTime() < now.getTime())
+    return 'past';
+  return null;
+}
+
+/** "KB-00078" references in a reply (links the agent inserted or typed). */
+export function articleRefsIn(text: string): string[] {
+  return [...new Set([...text.matchAll(/\bKB-\d{3,12}\b/g)].map((m) => m[0]))];
+}

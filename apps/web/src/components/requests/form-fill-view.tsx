@@ -36,13 +36,16 @@ import { ApprovalPath } from './request-access-view';
 function ApprovalPreviewPanel({
   formKey,
   form,
+  schema,
   assignmentId,
 }: {
   formKey: string;
   form: UseFormReturn<FieldValues>;
+  schema: FormSchema;
   /** The to-do the form is filled in for (opens the form whatever its audience). */
   assignmentId?: string;
 }) {
+  const locale = useLocale();
   const t = useTranslations('requests.form.approval');
   const errorText = useErrorText();
   const api = useApi();
@@ -66,6 +69,23 @@ function ApprovalPreviewPanel({
     placeholderData: keepPreviousData,
     retry: false,
   });
+  // A step whose approver comes from answers still empty says which answer it waits for, rather than implying that
+  // nobody could approve the request (the builder's preview does the same).
+  const waiting = useMemo(() => {
+    const blank = (v: unknown) =>
+      v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length);
+    const answered = JSON.parse(debounced) as Record<string, unknown>;
+    const fields = formFields(schema);
+    const out = new Map<string, string>();
+    for (const s of preview.data?.steps ?? []) {
+      const from = s.dependsOn ?? [];
+      if (!from.length || s.outcome === 'ask' || s.outcome === 'skipped') continue;
+      if (!from.every((k) => blank(answered[k]))) continue;
+      const field = fields.find((f) => f.key === from[0]);
+      if (field) out.set(s.id, localize(field.label, locale) || field.key);
+    }
+    return out;
+  }, [debounced, preview.data, schema, locale]);
   return (
     <section aria-labelledby={uid} className="grid gap-3 rounded-xl border bg-muted/30 p-5">
       <div className="grid gap-0.5">
@@ -78,7 +98,7 @@ function ApprovalPreviewPanel({
         {preview.isError ? (
           <p className="text-sm text-destructive">{errorText(preview.error)}</p>
         ) : (
-          <ApprovalPath preview={preview.data} />
+          <ApprovalPath preview={preview.data} waiting={waiting} />
         )}
       </div>
     </section>
@@ -94,7 +114,6 @@ function FormBody({
   assignment?: FormAssignment | null;
 }) {
   const t = useTranslations('requests.form');
-  const ta = useTranslations('assignments');
   const router = useRouter();
   const fieldError = useFieldErrorText();
   const schema = published.schema as FormSchema;
@@ -111,12 +130,10 @@ function FormBody({
       silent: true,
       invalidate: ['/me/requests', '/me/badges', '/me/form-assignments'],
       onSuccess: (s) => {
-        toast.success(
-          assignment
-            ? ta('submitted', { title: assignment.title, reference: s.reference })
-            : t('submitted', { reference: s.reference }),
-        );
-        router.push(`/requests/${s.reference}`);
+        // A to-do's finish has its own banner on the request page; other requests confirm with a toast.
+        if (!assignment) toast.success(t('submitted', { reference: s.reference }));
+        // A to-do's finish is shown on the request page (`?todo=`): done, and where it is recorded.
+        router.push(`/requests/${s.reference}${assignment ? `?todo=${assignment.id}` : ''}`);
       },
     },
   );
@@ -153,7 +170,12 @@ function FormBody({
         <FormErrorSummary schema={schema} form={form} className="mb-4" />
         <FormFields elements={published.schema.elements} form={form} />
         {published.hasApproval && (
-          <ApprovalPreviewPanel formKey={published.key} form={form} assignmentId={assignment?.id} />
+          <ApprovalPreviewPanel
+            formKey={published.key}
+            form={form}
+            schema={schema}
+            assignmentId={assignment?.id}
+          />
         )}
         <div className="flex items-center justify-end gap-2 border-t pt-4">
           <Button asChild variant="ghost">

@@ -6,19 +6,19 @@ import { UserAvatar } from '@isbp/ui/avatar';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { DataTable, type DataTableColumn } from '@isbp/ui/data-table';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { DataTable, type DataTableColumn, type DataTableSelection, useListState } from '@isbp/ui/data-table';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { Label } from '@isbp/ui/label';
-import { FadeIn } from '@isbp/ui/motion';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { StatTile } from '@isbp/ui/stat-tile';
 import { Switch } from '@isbp/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
-  ArrowLeftIcon,
   CircleAlertIcon,
   CircleCheckIcon,
   CopyIcon,
@@ -28,11 +28,11 @@ import {
   KeyRoundIcon,
   PencilIcon,
   PlusIcon,
-  Trash2Icon,
+  Undo2Icon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useId, useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import type { Installation, LicenseAssignment, LicenseDetail } from '../../contracts';
 import { CategoryIcon, ComplianceBadge } from '../badges';
 import { LicenseFormDialog } from '../license-form-dialog';
@@ -41,22 +41,8 @@ import { UsageMeter } from '../meters';
 import { AssetPicker, type PickedAsset } from '../pickers';
 import { LinksAndFiles } from '../record-panels';
 
-type Tab = 'seats' | 'installations' | 'links';
-
-function Stat({ label, value, tone }: { label: string; value: ReactNode; tone?: 'destructive' }) {
-  return (
-    <div className="min-w-0 rounded-lg border px-3 py-2">
-      <dt className="truncate text-xs text-muted-foreground">{label}</dt>
-      <dd
-        className={
-          tone === 'destructive' ? 'text-lg font-semibold text-destructive' : 'text-lg font-semibold'
-        }
-      >
-        {value}
-      </dd>
-    </div>
-  );
-}
+const TABS = ['seats', 'installations', 'links'] as const;
+type Tab = (typeof TABS)[number];
 
 export default function LicensePage({ params }: WebPageProps) {
   const t = useTranslations('itam');
@@ -68,7 +54,8 @@ export default function LicensePage({ params }: WebPageProps) {
     isLoading,
     error,
   } = useApiQuery<LicenseDetail>(`/itam/licenses/${encodeURIComponent(params.ref ?? '')}`);
-  const [tab, setTab] = useState<Tab>('seats');
+  const [state, set] = useListState();
+  const tab: Tab = TABS.includes(state.tab as Tab) ? (state.tab as Tab) : 'seats';
   const [editing, setEditing] = useState(false);
 
   if (isLoading)
@@ -79,45 +66,34 @@ export default function LicensePage({ params }: WebPageProps) {
         <Skeleton className="h-48 w-full rounded-xl" />
       </div>
     );
-  if (error || !lic) return <EmptyState icon={<FileQuestionIcon />} title={t('license.notFound')} />;
+  if (error) return <ErrorState kind="page" error={error} />;
+  if (!lic) return <EmptyState icon={<FileQuestionIcon />} title={t('license.notFound')} />;
 
   const available = lic.quantity === null ? null : Math.max(0, lic.quantity - lic.used);
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href="/itam/software">
-          <ArrowLeftIcon /> {t('software.title')}
-        </Link>
-      </Button>
-
-      <FadeIn y={4} className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <KeyRoundIcon className="size-6" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-              <span className="font-mono">{lic.reference}</span>
-              <span aria-hidden>·</span>
-              <span>{t(`licenseType.${lic.licenseType}`)}</span>
-              {lic.publisher && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span>{lic.publisher}</span>
-                </>
-              )}
-            </p>
-            <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{lic.product}</h1>
-            <ComplianceBadge state={lic.complianceState} />
-          </div>
-        </div>
-        {lic.viewer.canManage && (
-          <Button variant="outline" onClick={() => setEditing(true)}>
-            <PencilIcon /> {t('actions.edit')}
-          </Button>
-        )}
-      </FadeIn>
+      <DetailHeader
+        back={{ href: '/itam/software', label: t('nav.software'), highlight: lic.id }}
+        icon={<KeyRoundIcon />}
+        reference={[lic.reference, t(`licenseType.${lic.licenseType}`), lic.publisher]
+          .filter(Boolean)
+          .join(' · ')}
+        title={lic.product}
+        status={<ComplianceBadge state={lic.complianceState} />}
+        actions={
+          lic.viewer.canManage
+            ? [
+                {
+                  id: 'edit',
+                  label: t('actions.edit'),
+                  icon: <PencilIcon />,
+                  onSelect: () => setEditing(true),
+                },
+              ]
+            : []
+        }
+      />
 
       <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3">
         <Card className="min-w-0 lg:col-span-2">
@@ -132,16 +108,26 @@ export default function LicensePage({ params }: WebPageProps) {
               size="lg"
               underUsedPercent={settings.underUsedPercent}
             />
-            <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <Stat label={t('license.entitled')} value={lic.quantity ?? t('license.unlimited')} />
-              <Stat label={t('license.assigned')} value={lic.assigned} />
-              <Stat
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <StatTile label={t('license.entitled')} value={lic.quantity ?? t('license.unlimited')} />
+              <StatTile label={t('license.assigned')} value={lic.assigned} />
+              <StatTile
                 label={t('license.unlicensed')}
                 value={lic.unlicensed}
-                tone={lic.unlicensed > 0 ? 'destructive' : undefined}
+                tone={lic.unlicensed > 0 ? 'destructive' : 'default'}
+                icon={lic.unlicensed > 0 ? <CircleAlertIcon /> : undefined}
+                href={lic.unlicensed > 0 ? `?tab=installations` : undefined}
               />
-              <Stat label={t('license.available')} value={available ?? '∞'} />
-            </dl>
+              <StatTile label={t('license.available')} value={available ?? '∞'} />
+            </div>
+            {lic.complianceState === 'over_deployed' && (
+              <p className="text-sm">
+                {t('license.overHint')}{' '}
+                <Link href="?tab=seats&reclaim=true" className="font-medium text-primary hover:underline">
+                  {t('license.showReclaim')}
+                </Link>
+              </p>
+            )}
             {lic.licenseType === 'per_device' && lic.unlicensed > 0 && (
               <p className="flex items-start gap-2 text-sm text-muted-foreground">
                 <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
@@ -151,7 +137,6 @@ export default function LicensePage({ params }: WebPageProps) {
           </CardContent>
         </Card>
         <div className="min-w-0 space-y-6">
-          <KeyCard lic={lic} />
           <Card>
             <CardHeader>
               <CardTitle>{t('license.terms')}</CardTitle>
@@ -162,7 +147,9 @@ export default function LicensePage({ params }: WebPageProps) {
                   [t('fields.vendor'), lic.vendor?.name ?? '—'],
                   [t('fields.billing'), t(`billing.${lic.billing}`)],
                   [t('fields.cost'), money(lic.cost, lic.currency)],
-                  [t('fields.annualCost'), money(lic.annualCost, lic.currency)],
+                  ...(lic.billing === 'annual'
+                    ? []
+                    : [[t('fields.annualCost'), money(lic.annualCost, lic.currency)]]),
                   [t('fields.startDate'), day(lic.startDate)],
                   [t('fields.endDate'), lic.endDate ? day(lic.endDate) : t('software.perpetual')],
                 ].map(([label, value]) => (
@@ -200,10 +187,14 @@ export default function LicensePage({ params }: WebPageProps) {
               )}
             </CardContent>
           </Card>
+          <KeyCard lic={lic} />
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+      <Tabs
+        value={tab}
+        onValueChange={(v) => set({ tab: v === 'seats' ? undefined : v, reclaim: undefined })}
+      >
         <TabsList className="max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="seats">
             {t('license.tabs.seats')}
@@ -222,10 +213,16 @@ export default function LicensePage({ params }: WebPageProps) {
           <TabsTrigger value="links">{t('license.tabs.links')}</TabsTrigger>
         </TabsList>
         <TabsContent value="seats" className="min-w-0">
-          {tab === 'seats' && <SeatsTab lic={lic} />}
+          {tab === 'seats' && (
+            <SeatsTab
+              lic={lic}
+              reclaim={state.reclaim === 'true'}
+              onReclaim={(on) => set({ reclaim: on ? 'true' : undefined })}
+            />
+          )}
         </TabsContent>
         <TabsContent value="installations" className="min-w-0">
-          {tab === 'installations' && <InstallationsTab lic={lic} />}
+          {tab === 'installations' && <InstallationsTab lic={lic} available={available} />}
         </TabsContent>
         <TabsContent value="links" className="min-w-0">
           {tab === 'links' && <LinksAndFiles type="itam.license" id={lic.id} />}
@@ -294,18 +291,28 @@ function KeyCard({ lic }: { lic: LicenseDetail }) {
 const userTypes = ['per_user', 'concurrent', 'site', 'subscription'];
 const deviceTypes = ['per_device', 'concurrent', 'site', 'subscription'];
 
-function SeatsTab({ lic }: { lic: LicenseDetail }) {
+function SeatsTab({
+  lic,
+  reclaim,
+  onReclaim,
+}: {
+  lic: LicenseDetail;
+  reclaim: boolean;
+  onReclaim: (on: boolean) => void;
+}) {
   const t = useTranslations('itam.license');
   const tc = useTranslations('common');
+  const reclaimId = useId();
+  const [selection, setSelection] = useState<DataTableSelection>({});
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [person, setPerson] = useState<PersonOption | null>(null);
   const [device, setDevice] = useState<PickedAsset | null>(null);
   const ids = { person: useId(), device: useId() };
-  const { data, isLoading, isFetching } = useApiQuery<Page<LicenseAssignment>>(
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<LicenseAssignment>>(
     `/itam/licenses/${lic.id}/assignments`,
-    { q: q || undefined, page, pageSize },
+    { q: q || undefined, page, pageSize, reclaim: reclaim ? 'true' : undefined },
   );
   const assign = useApiMutation(
     (api, body: { userId?: string; assetId?: string }) =>
@@ -320,9 +327,17 @@ function SeatsTab({ lic }: { lic: LicenseDetail }) {
     },
   );
   const unassign = useApiMutation(
-    (api, id: string) => api.delete(`/itam/licenses/${lic.id}/assignments/${id}`),
-    { invalidate: INVALIDATE, success: t('seatRemoved') },
+    async (api, ids: string[]) => {
+      for (const id of ids) await api.delete(`/itam/licenses/${lic.id}/assignments/${id}`);
+      return ids.length;
+    },
+    {
+      invalidate: INVALIDATE,
+      success: (n) => t('seatsReclaimed', { count: n }),
+      onSuccess: () => setSelection({}),
+    },
   );
+  const selected = Object.keys(selection).filter((k) => selection[k]);
   const columns = useMemo<DataTableColumn<LicenseAssignment>[]>(
     () => [
       {
@@ -358,6 +373,14 @@ function SeatsTab({ lic }: { lic: LicenseDetail }) {
         },
       },
       {
+        id: 'reclaim',
+        header: t('reclaimWhy'),
+        cell: ({ row }) =>
+          row.original.reclaim ? (
+            <Badge variant="warning">{t(`reclaimReason.${row.original.reclaim}`)}</Badge>
+          ) : null,
+      },
+      {
         id: 'assignedAt',
         header: t('since'),
         meta: {
@@ -380,21 +403,21 @@ function SeatsTab({ lic }: { lic: LicenseDetail }) {
             {
               id: 'actions',
               header: () => <span className="sr-only">{tc('actions')}</span>,
-              size: 48,
+              meta: { className: 'text-right' },
               cell: ({ row }: { row: { original: LicenseAssignment } }) => (
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="sm"
                   aria-label={t('removeSeat', {
                     name: row.original.user?.displayName ?? row.original.asset?.tag ?? '',
                   })}
                   disabled={unassign.isPending}
                   onClick={(e) => {
                     e.stopPropagation();
-                    unassign.mutate(row.original.id);
+                    unassign.mutate([row.original.id]);
                   }}
                 >
-                  <Trash2Icon />
+                  <Undo2Icon /> {t('reclaim')}
                 </Button>
               ),
             } satisfies DataTableColumn<LicenseAssignment>,
@@ -464,36 +487,72 @@ function SeatsTab({ lic }: { lic: LicenseDetail }) {
         pageSize={pageSize}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(a) => a.id}
+        selectable={lic.viewer.canManage}
+        selection={selection}
+        onSelectionChange={setSelection}
         onPageChange={setPage}
         onPageSizeChange={(s) => {
           setPageSize(s);
           setPage(1);
         }}
         toolbar={
-          <SearchInput
-            value={q}
-            onChange={(v) => {
-              setQ(v);
-              setPage(1);
-            }}
-            placeholder={t('searchSeats')}
-            className="sm:w-72"
-          />
+          <>
+            <SearchInput
+              value={q}
+              onChange={(v) => {
+                setQ(v);
+                setPage(1);
+              }}
+              placeholder={t('searchSeats')}
+              className="sm:w-72"
+            />
+            <div className="flex items-center gap-2 text-sm">
+              <Switch
+                id={reclaimId}
+                checked={reclaim}
+                onCheckedChange={(c) => {
+                  onReclaim(c);
+                  setPage(1);
+                }}
+              />
+              <Label htmlFor={reclaimId} className="font-normal">
+                {t('onlyReclaim')}
+              </Label>
+            </div>
+            {lic.viewer.canManage && selected.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                loading={unassign.isPending}
+                onClick={() => unassign.mutate(selected)}
+              >
+                <Undo2Icon /> {t('reclaimSelected', { count: selected.length })}
+              </Button>
+            )}
+          </>
         }
-        empty={<EmptyState icon={<KeyRoundIcon />} title={t('noSeats')} />}
+        empty={
+          reclaim ? (
+            <EmptyState icon={<CircleCheckIcon />} title={t('noReclaim')} description={t('noReclaimHint')} />
+          ) : (
+            <EmptyState icon={<KeyRoundIcon />} title={t('noSeats')} />
+          )
+        }
       />
     </div>
   );
 }
 
-function InstallationsTab({ lic }: { lic: LicenseDetail }) {
+function InstallationsTab({ lic, available }: { lic: LicenseDetail; available: number | null }) {
   const t = useTranslations('itam.license');
   const switchId = useId();
   const [unlicensed, setUnlicensed] = useState(lic.unlicensed > 0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const { data, isLoading, isFetching } = useApiQuery<Page<Installation>>(
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<Installation>>(
     `/itam/licenses/${lic.id}/installations`,
     {
       unlicensed: unlicensed ? 'true' : undefined,
@@ -579,6 +638,8 @@ function InstallationsTab({ lic }: { lic: LicenseDetail }) {
                     ? { userId: i.asset.assignee.id }
                     : null;
                 if (!target) return <span className="text-xs text-muted-foreground">{t('noOwner')}</span>;
+                if (available !== null && available <= 0)
+                  return <span className="text-xs text-muted-foreground">{t('noFreeSeats')}</span>;
                 return (
                   <Button
                     variant="outline"
@@ -597,7 +658,7 @@ function InstallationsTab({ lic }: { lic: LicenseDetail }) {
           ]
         : []),
     ],
-    [t, lic.viewer.canManage, assign, perDevice],
+    [t, lic.viewer.canManage, assign, perDevice, available],
   );
   return (
     <DataTable
@@ -609,6 +670,8 @@ function InstallationsTab({ lic }: { lic: LicenseDetail }) {
       pageSize={pageSize}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(i) => i.id}
       onPageChange={setPage}
       onPageSizeChange={(s) => {

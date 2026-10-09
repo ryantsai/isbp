@@ -9,17 +9,21 @@ import {
   calendarQuerySchema,
   calendarSchema,
   catalogItemSchema,
+  categoryOrderSchema,
   categoryQuerySchema,
   categorySchema,
-  changeCalendarItemSchema,
+  changeCalendarPageSchema,
   changeConflictSchema,
   commentSchema,
   confirmSchema,
   conflictQuerySchema,
   createLinkSchema,
   createTicketSchema,
+  knownErrorArticleResultSchema,
+  knownErrorArticleSchema,
   overviewReportSchema,
   personRefSchema,
+  policyOrderSchema,
   queueCountsSchema,
   reopenSchema,
   reportQuerySchema,
@@ -301,6 +305,25 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
     },
   );
 
+  app.post(
+    '/tickets/:ref/problem/article',
+    {
+      config: { permission: 'itsm.problems.manage' },
+      schema: {
+        tags,
+        summary:
+          "Writes the problem's known-error article as a knowledge draft (as the caller, needs knowledge.articles.write) and links it to the problem",
+        params: refParams,
+        body: knownErrorArticleSchema,
+        response: { 201: knownErrorArticleResultSchema },
+      },
+    },
+    async (req, reply) => {
+      const result = await svc.writeKnownErrorArticle(req.params.ref, req.body, req.auth);
+      return reply.code(201).send(result);
+    },
+  );
+
   app.patch(
     '/tickets/:ref/change',
     {
@@ -340,9 +363,9 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       config: ANY,
       schema: {
         tags,
-        summary: 'Changes planned in a window (change calendar)',
+        summary: 'Changes planned in a window (change calendar), one page at a time',
         querystring: calendarQuerySchema,
-        response: { 200: z.object({ items: z.array(changeCalendarItemSchema) }) },
+        response: { 200: changeCalendarPageSchema },
       },
     },
     async (req) => calendar.calendar(req.query, req.auth),
@@ -440,6 +463,20 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       },
     },
     async (req) => config.updateCategory(req.params.id, req.body),
+  );
+
+  app.put(
+    '/categories/order',
+    {
+      config: CONFIG,
+      schema: {
+        tags: configTags,
+        summary: 'Put the categories of one level in a new order',
+        body: categoryOrderSchema,
+        response: { 200: z.object({ items: z.array(categorySchema) }) },
+      },
+    },
+    async (req) => config.orderCategories(req.body.parentId, req.body.ids),
   );
 
   app.delete(
@@ -558,6 +595,20 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       },
     },
     async (req) => config.updatePolicy(req.params.id, req.body),
+  );
+
+  app.put(
+    '/sla-policies/order',
+    {
+      config: CONFIG,
+      schema: {
+        tags: configTags,
+        summary: 'Put the SLA policies in a new evaluation order',
+        body: policyOrderSchema,
+        response: { 200: z.object({ items: z.array(slaPolicySchema) }) },
+      },
+    },
+    async (req) => config.orderPolicies(req.body.ids),
   );
 
   app.delete(

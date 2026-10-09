@@ -1,11 +1,14 @@
 'use client';
 
+import { canonicalCategory, categoryChoices, categoryMatchKey } from '@isbp/contracts';
 import { cn } from '@isbp/ui';
-import { Input } from '@isbp/ui/input';
-import { CheckIcon } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { type KeyboardEvent, useRef } from 'react';
-import { FORM_ICONS } from './form-meta';
+import { Button } from '@isbp/ui/button';
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@isbp/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@isbp/ui/popover';
+import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from 'lucide-react';
+import { useMessages, useTranslations } from 'next-intl';
+import { type KeyboardEvent, useCallback, useMemo, useRef, useState } from 'react';
+import { FORM_ICONS, FormIcon } from './form-meta';
 
 const ICON_NAMES = Object.keys(FORM_ICONS);
 
@@ -48,7 +51,9 @@ export function IconPicker({
       {names.map((name, i) => {
         const Icon = FORM_ICONS[name];
         const checked = i === active;
-        const label = t.has(name) ? t(name) : name;
+        // An icon outside the curated set (from a process pack): its name in words, "server-cog" → "Server cog".
+        const words = name.replace(/[-_]+/g, ' ');
+        const label = t.has(name) ? t(name) : words.charAt(0).toUpperCase() + words.slice(1);
         return (
           <button
             key={name}
@@ -68,11 +73,7 @@ export function IconPicker({
               checked && 'border-primary bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
             )}
           >
-            {Icon ? (
-              <Icon className="size-4.5" aria-hidden />
-            ) : (
-              <span className="text-[10px]">{name.slice(0, 3)}</span>
-            )}
+            {Icon ? <Icon className="size-4.5" aria-hidden /> : <FormIcon name={name} className="size-4.5" />}
             {checked && (
               <CheckIcon
                 aria-hidden
@@ -86,7 +87,37 @@ export function IconPicker({
   );
 }
 
-/** Free-text category with one-click suggestions from existing forms. */
+/**
+ * Category labels as the portal shows them: the known keys translated (`requests.categories.<key>`, any case), other
+ * categories as typed. `known` lists those keys.
+ */
+export function useCategoryLabel() {
+  const messages = useMessages();
+  const t = useTranslations('requests.categories');
+  const known = useMemo(
+    () =>
+      Object.keys(
+        (
+          (messages as Record<string, unknown>).requests as
+            { categories?: Record<string, string> } | undefined
+        )?.categories ?? {},
+      ),
+    [messages],
+  );
+  const label = useCallback(
+    (value: string) => {
+      const key = canonicalCategory(value, known);
+      return key && known.includes(key) ? t(key) : value;
+    },
+    [known, t],
+  );
+  return { known, label };
+}
+
+/**
+ * The form's category: a combobox of the categories in use (each once, whatever its case) and the portal's own
+ * categories, with their translated names. Typing a name that isn't there offers to add it as a new category.
+ */
 export function CategoryInput({
   id,
   value,
@@ -97,37 +128,95 @@ export function CategoryInput({
   id?: string;
   value: string;
   onChange: (value: string) => void;
+  /** Categories other forms use (any spelling). */
   suggestions: readonly string[];
   describedBy?: string;
 }) {
   const t = useTranslations('forms.create');
-  const options = suggestions.filter((s) => s && s !== value.trim());
+  const { known, label } = useCategoryLabel();
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const options = useMemo(() => {
+    const list = categoryChoices([...known, ...suggestions, value], known);
+    return list.sort((a, b) => label(a).localeCompare(label(b)));
+  }, [known, suggestions, value, label]);
+  const query = categoryMatchKey(q);
+  const shown = query
+    ? options.filter((o) => categoryMatchKey(label(o)).includes(query) || categoryMatchKey(o).includes(query))
+    : options;
+  const exact = options.some((o) => categoryMatchKey(label(o)) === query || categoryMatchKey(o) === query);
+  const pick = (next: string) => {
+    onChange(canonicalCategory(next, known) ?? '');
+    setOpen(false);
+    setQ('');
+  };
+  const current = canonicalCategory(value, known);
+
   return (
-    <div className="grid gap-2">
-      <Input
-        id={id}
-        value={value}
-        maxLength={64}
-        autoComplete="off"
-        placeholder={t('categoryPlaceholder')}
-        aria-describedby={describedBy}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      {options.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-          <span>{t('categorySuggestions')}</span>
-          {options.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => onChange(s)}
-              className="rounded-full border px-2 py-0.5 transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) setQ('');
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          id={id}
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          aria-describedby={describedBy}
+          className="w-full min-w-0 justify-between font-normal"
+        >
+          {current ? (
+            <span className="truncate">{label(current)}</span>
+          ) : (
+            <span className="truncate text-muted-foreground">{t('categoryNone')}</span>
+          )}
+          <ChevronsUpDownIcon className="opacity-50" aria-hidden />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-(--radix-popover-trigger-width) min-w-64 p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput value={q} onValueChange={setQ} placeholder={t('categorySearch')} maxLength={64} />
+          <CommandList>
+            <CommandGroup>
+              {!query && (
+                <CommandItem value="__none__" onSelect={() => pick('')}>
+                  <CheckIcon className={cn('size-4', current ? 'opacity-0' : 'opacity-100')} aria-hidden />
+                  <span className="text-muted-foreground">{t('categoryNone')}</span>
+                </CommandItem>
+              )}
+              {shown.map((o) => (
+                <CommandItem key={o} value={o} onSelect={() => pick(o)}>
+                  <CheckIcon
+                    className={cn(
+                      'size-4',
+                      current && categoryMatchKey(current) === categoryMatchKey(o)
+                        ? 'opacity-100'
+                        : 'opacity-0',
+                    )}
+                    aria-hidden
+                  />
+                  <span className="truncate">{label(o)}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            {query && !exact && (
+              <CommandGroup>
+                <CommandItem value={`__new__${q}`} onSelect={() => pick(q)}>
+                  <PlusIcon className="size-4" aria-hidden />
+                  <span className="truncate">
+                    {t('categoryNew', { name: q.trim().replace(/\s+/g, ' ') })}
+                  </span>
+                </CommandItem>
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

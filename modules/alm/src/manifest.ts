@@ -89,18 +89,16 @@ export const manifest = defineManifest({
       icon: 'app-window',
       permission: 'alm.apps.read',
       section: 'main',
-      group: 'alm.nav.group',
       order: 48,
-    },
-    {
-      id: 'releases',
-      label: 'alm.nav.releases',
-      href: '/alm/releases',
-      icon: 'rocket',
-      permission: 'alm.apps.read',
-      section: 'main',
-      group: 'alm.nav.group',
-      order: 49,
+      tabs: [
+        {
+          id: 'releases',
+          label: 'alm.nav.releases',
+          href: '/alm/releases',
+          icon: 'rocket',
+          permission: 'alm.apps.read',
+        },
+      ],
     },
   ],
   permissions: [

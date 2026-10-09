@@ -5,10 +5,12 @@ import { aiTools } from './ai-tools';
 import { catalogItemCustomization, categoryCustomization, slaPolicyCustomization } from './customizations';
 import { processActions } from './process-actions';
 import { records } from './records';
+import { references } from './references';
 import { routes } from './routes';
 import { seed } from './seed';
 import { services } from './services';
 import { sync } from './sync';
+import { itsmWork } from './work';
 
 /**
  * IT service management: incidents, service requests, problems and changes with CAB approval, SLA
@@ -85,8 +87,11 @@ export default defineServerModule(manifest, {
   },
 
   search: (query, ctx, auth, limit) => services(ctx).tickets.search(query, auth, limit),
+  work: itsmWork,
 
   records,
+
+  references,
 
   processActions,
 

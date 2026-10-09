@@ -11,7 +11,7 @@
     "category": "類別"
   },
   "filters": {
-    "search": "搜尋執行者、目標或動作…",
+    "search": "搜尋人員、紀錄或動作…",
     "category": "類別",
     "outcome": "結果",
     "module": "模組",
@@ -25,7 +25,12 @@
     "entityType": "目標類型",
     "entityId": "目標",
     "action": "動作",
-    "removeFilter": "移除篩選條件：{filter}"
+    "removeFilter": "移除篩選條件：{filter}",
+    "changed": "變更對象",
+    "anything": "全部",
+    "period": "時間",
+    "userId": "人員",
+    "roleId": "角色"
   },
   "category": {
     "data": "資料",
@@ -199,6 +204,117 @@
     "core_workflow-definition_restored": "還原簽核流程",
     "core_workflow-definition_updated": "變更簽核流程",
     "core_workflow_completed": "簽核流程已完成",
-    "core_workflow_started": "簽核流程已開始"
-  }
+    "core_workflow_started": "簽核流程已開始",
+    "core_user_transferred": "調動部門"
+  },
+  "changed": {
+    "people": "人員",
+    "signIns": "登入",
+    "groups": "群組",
+    "departments": "部門",
+    "roles": "角色",
+    "roleGrants": "角色授予",
+    "applications": "應用程式存取權與 API 用戶端",
+    "forms": "表單與自訂欄位",
+    "requests": "申請",
+    "workflows": "簽核流程",
+    "approvals": "簽核",
+    "changeSets": "設定變更",
+    "modules": "模組、通知與 AI",
+    "signInProviders": "登入提供者"
+  },
+  "period": {
+    "any": "任何時間",
+    "today": "今天",
+    "7d": "過去 7 天",
+    "30d": "過去 30 天",
+    "custom": "選擇日期…"
+  },
+  "people": "{count, plural, other {# 位人員}}",
+  "fieldSeparator": "、",
+  "activity": {
+    "empty": "目前沒有任何紀錄。",
+    "system": "系統",
+    "openAuditLog": "在稽核日誌中開啟"
+  },
+  "values": {
+    "yes": "是",
+    "no": "否",
+    "riskLevel": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "status": {
+      "active": "使用中",
+      "pending": "預先建立",
+      "suspended": "已停權",
+      "offboarded": "已離職"
+    },
+    "scopeType": {
+      "global": "所有範圍",
+      "department": "單一部門",
+      "record": "單一紀錄"
+    }
+  },
+  "fields": {
+    "displayName": "顯示名稱",
+    "email": "電子郵件",
+    "username": "使用者名稱",
+    "givenName": "名字",
+    "familyName": "姓氏",
+    "jobTitle": "職稱",
+    "phone": "電話",
+    "employeeId": "員工編號",
+    "departmentId": "部門",
+    "managerId": "主管",
+    "locale": "語言",
+    "timezone": "時區",
+    "status": "狀態",
+    "attributes": "自訂欄位",
+    "name": "名稱",
+    "description": "說明",
+    "permissions": "權限",
+    "requestable": "開放申請",
+    "riskLevel": "風險",
+    "ownerId": "負責人",
+    "maxDurationDays": "最長存取天數",
+    "requestWorkflowId": "簽核流程",
+    "parentId": "上層部門",
+    "code": "代碼",
+    "groupsJoined": "加入的群組",
+    "groupsLeft": "離開的群組",
+    "rolesRevoked": "移除的角色",
+    "userIds": "人員",
+    "scopeType": "適用範圍",
+    "scopeDepartmentId": "部門",
+    "roleId": "角色",
+    "expiresAt": "結束時間",
+    "reason": "原因"
+  },
+  "entityTypes": {
+    "user": "人員",
+    "group": "群組",
+    "department": "部門",
+    "role": "角色",
+    "application": "應用程式存取權",
+    "api_client": "API 用戶端",
+    "access_request": "存取申請",
+    "form": "表單",
+    "form_submission": "申請",
+    "form_assignment": "表單指派",
+    "workflow_definition": "簽核流程",
+    "workflow_instance": "簽核",
+    "custom_field": "自訂欄位",
+    "module": "模組",
+    "identity_provider": "登入提供者",
+    "db-connection": "資料庫連線",
+    "notification_channel": "通知管道",
+    "file": "檔案",
+    "record_link": "連結",
+    "ai": "AI 設定",
+    "ai_tool": "AI 工具",
+    "core_user": "人員"
+  },
+  "core_approval_already_approved": "沿用先前的核准"
 }

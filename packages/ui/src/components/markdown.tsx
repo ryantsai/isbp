@@ -29,7 +29,7 @@ const components: Components = {
   },
   table: ({ children }) => (
     <div className="my-4 w-full overflow-x-auto rounded-lg border">
-      <table className="w-full text-sm">{children}</table>
+      <table className="w-full text-sm break-normal">{children}</table>
     </div>
   ),
   th: ({ children }) => <th className="border-b bg-muted/50 px-3 py-2 text-left font-medium">{children}</th>,

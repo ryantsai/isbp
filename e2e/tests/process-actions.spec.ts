@@ -61,10 +61,11 @@ test('form builder: add a "Notify people" action from the Actions tab', async ({
   await expect(sheet).toBeVisible();
   const title = sheet.getByRole('textbox', { name: 'Title', exact: true });
   await title.fill('Got your request ');
-  // "Insert value" puts a template at the cursor.
+  // "Insert value" puts a chip at the cursor (stored as a placeholder), and the line under the box shows an example.
   await sheet.getByRole('button', { name: 'Insert a value into Title' }).click();
   await page.getByRole('menuitem', { name: /Request number/ }).click();
-  await expect(title).toHaveValue('Got your request {{request.reference}}');
+  await expect(title.locator('[data-path="request.reference"]')).toHaveText('Request number');
+  await expect(sheet.getByText('e.g. Got your request REQ-01042')).toBeVisible();
   await expectAccessible(page);
   await sheet.getByRole('button', { name: 'Add action' }).click();
   await expect(sheet).toBeHidden();

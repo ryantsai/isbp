@@ -1,7 +1,7 @@
 import type { ModuleContext } from '@isbp/sdk/server';
 import { and, desc, eq, gt, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import { type AttentionOut, CHART_SERIES, type ChartSeries, type DashboardOut } from '../contracts';
-import type { RunStatus } from '../model';
+import { problemOfRun, type RunStatus } from '../model';
 import { runsBetween } from '../schedule';
 import { specOf } from './engine';
 import { jobs, runs } from './schema';
@@ -108,15 +108,19 @@ export class DashboardService {
     }
 
     const until = new Date(now.getTime() + DAY);
+    // One row per job (a job every 15 minutes is one line, not seven), soonest first.
     const upcoming = upcomingJobs
-      .flatMap((j) =>
-        runsBetween(specOf(j), j.nextRunAt, until, 50).map((at) => ({
+      .map((j) => {
+        const slots = runsBetween(specOf(j), j.nextRunAt, until, 200);
+        return {
           job: { id: j.id, name: j.name, type: j.type },
-          at,
-        })),
-      )
+          at: slots[0] ?? j.nextRunAt!,
+          count: slots.length,
+        };
+      })
+      .filter((u) => u.count > 0)
       .sort((a, b) => a.at.getTime() - b.at.getTime())
-      .slice(0, 25);
+      .slice(0, 10);
 
     const failures = failing.length
       ? await db
@@ -127,6 +131,7 @@ export class DashboardService {
             at: runs.finishedAt,
             createdAt: runs.createdAt,
             error: runs.error,
+            problem: runs.problem,
           })
           .from(runs)
           .where(
@@ -167,6 +172,7 @@ export class DashboardService {
                 status: last.status,
                 at: last.at ?? last.createdAt,
                 error: last.error,
+                problem: problemOfRun(last),
               }
             : null,
         };
@@ -200,7 +206,13 @@ export class DashboardService {
     ]);
     const last = items.length
       ? await db
-          .selectDistinctOn([runs.jobId], { jobId: runs.jobId, runId: runs.id, at: runs.finishedAt })
+          .selectDistinctOn([runs.jobId], {
+            jobId: runs.jobId,
+            runId: runs.id,
+            at: runs.finishedAt,
+            error: runs.error,
+            problem: runs.problem,
+          })
           .from(runs)
           .where(
             and(
@@ -222,6 +234,8 @@ export class DashboardService {
         streak: i.streak,
         at: byJob.get(i.id)?.at ?? null,
         runId: byJob.get(i.id)?.runId ?? null,
+        error: byJob.get(i.id)?.error ?? null,
+        problem: byJob.has(i.id) ? problemOfRun(byJob.get(i.id)!) : null,
       })),
     };
   }

@@ -3,10 +3,12 @@
 import type { ShellHeaderSlotProps } from '@isbp/contracts';
 import { Button } from '@isbp/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
+import { useApiQuery } from '@isbp/ui/query';
 import { Hint } from '@isbp/ui/tooltip';
 import { SparklesIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { type AssistantStatusDto, STATUS_PATH } from '../lib';
 import { AssistantPanel } from './assistant-panel';
 import { useAssistantChat } from './use-assistant-chat';
 
@@ -21,10 +23,13 @@ export default function AssistantLauncher(_props: ShellHeaderSlotProps) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [templateChangeSet, setTemplateChangeSet] = useState<string | null>(null);
   const chat = useAssistantChat(conversationId, setConversationId);
+  // Without a chat model there is nothing to describe in your own words: the header says what templates do.
+  const status = useApiQuery<AssistantStatusDto>(open ? STATUS_PATH : null);
 
   return (
     <>
-      <Hint label={t('open')}>
+      {/* The tooltip says what it's for; the accessible name stays the short "Assistant" the guide uses. */}
+      <Hint label={t('openHint')}>
         <Button
           variant="ghost"
           size="icon"
@@ -50,7 +55,9 @@ export default function AssistantLauncher(_props: ShellHeaderSlotProps) {
               <SparklesIcon className="size-4 text-primary" aria-hidden />
               {t('title')}
             </SheetTitle>
-            <SheetDescription>{t('description')}</SheetDescription>
+            <SheetDescription>
+              {status.data?.mode === 'builtin' ? t('descriptionBuiltin') : t('description')}
+            </SheetDescription>
           </SheetHeader>
           <AssistantPanel
             chat={chat}

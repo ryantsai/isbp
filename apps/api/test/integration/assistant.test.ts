@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { auditLogs, users } from '@isbp/db/schema';
+import { ChangeSetService } from '@isbp/module-assistant/server';
 import {
   type CustomizationHandler,
   defineManifest,
@@ -528,6 +529,47 @@ describe('change sets', () => {
     expect(built.status).toBe(200);
     expect(built.body.items[0]).toMatchObject({ op: 'create', value: { name: 'Teal', color: 'green' } });
     expect(built.body.title).toBe('Teal');
+  });
+
+  it('keeps and checks the changes written before a template’s later change is refused', async () => {
+    // A template is written change by change and checked once; a change refused part-way (an update with no target)
+    // leaves the earlier ones in the set, checked as they were when each was added.
+    const sets = new ChangeSetService(h.kernel.registry.context('assistant'));
+    const auth = (await h.kernel.registry.context('core').rbac.authFor(h.ids.admin))!;
+    await expect(
+      sets.proposeTemplate(
+        null,
+        {
+          label: 'Two changes, the second refused',
+          items: [
+            {
+              kind: 'itest-config.widget',
+              op: 'create',
+              id: null,
+              label: 'Staged widget',
+              value: { name: 'Staged', color: 'green' },
+              ref: 'staged',
+            },
+            {
+              kind: 'itest-config.widget',
+              op: 'update',
+              id: null,
+              label: 'Refused widget',
+              value: { name: 'Refused', color: 'red' },
+              ref: null,
+            },
+          ],
+        },
+        auth,
+      ),
+    ).rejects.toMatchObject({ statusCode: 422 });
+    const mine = await h.call(admin, 'GET', `${A}/change-sets`);
+    const set = (mine.body.items as LooseJson[]).find((s) => s.title === 'Staged widget');
+    expect(set).toBeDefined();
+    const detail = (await h.call(admin, 'GET', `${A}/change-sets/${set!.id}`)).body;
+    expect(detail.items.map((i: LooseJson) => [i.label, i.check?.ok])).toEqual([['Staged widget', true]]);
+    expect(detail.checkedAt).not.toBeNull();
+    expect(detail.ready).toBe(true);
   });
 });
 

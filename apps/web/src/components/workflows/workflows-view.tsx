@@ -1,6 +1,7 @@
 'use client';
 
 import type {
+  FormSummary,
   WorkflowDefinition,
   WorkflowDefinitionSummary,
   WorkflowInstanceSummary,
@@ -34,10 +35,13 @@ import { Textarea } from '@isbp/ui/textarea';
 import {
   ArchiveIcon,
   ChevronRightIcon,
+  CircleCheckIcon,
+  CircleOffIcon,
+  InfoIcon,
   LockIcon,
   PlayIcon,
   PlusIcon,
-  StarIcon,
+  ShieldCheckIcon,
   WorkflowIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -47,6 +51,7 @@ import { useId, useMemo, useState } from 'react';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { InstanceSheet } from '../approvals/instance-sheet';
 import { StatusBadge } from './status-badges';
+import { FORM_TRIGGER, useAreaName } from './workflow-labels';
 
 function useLabel() {
   const t = useTranslations();
@@ -68,9 +73,12 @@ function NewWorkflowDialog({
 }) {
   const t = useTranslations('workflows.list.create');
   const label = useLabel();
+  const area = useAreaName();
   const router = useRouter();
   const id = useId();
-  const [triggerKey, setTriggerKey] = useState(initialTrigger ?? triggers[0]?.key ?? '');
+  const [triggerKey, setTriggerKey] = useState(
+    initialTrigger ?? triggers.find((x) => x.key !== FORM_TRIGGER)?.key ?? triggers[0]?.key ?? '',
+  );
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [copyFrom, setCopyFrom] = useState<string>('none');
@@ -118,11 +126,17 @@ function NewWorkflowDialog({
               <SelectContent>
                 {triggers.map((tr) => (
                   <SelectItem key={tr.key} value={tr.key}>
-                    {label(tr.name)}
+                    {tr.key === FORM_TRIGGER ? label(tr.name) : `${area(tr.moduleId)} · ${label(tr.name)}`}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {triggerKey === FORM_TRIGGER && (
+              <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <InfoIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                {t('formHint')}
+              </p>
+            )}
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor={`${id}-name`}>{t('name')}</Label>
@@ -175,25 +189,34 @@ function NewWorkflowDialog({
   );
 }
 
-function DefinitionRow({ d }: { d: WorkflowDefinitionSummary }) {
+function DefinitionRow({
+  d,
+  usedBy,
+  isForm,
+}: {
+  d: WorkflowDefinitionSummary;
+  /** Names of the forms that use it (approvals for forms). */
+  usedBy?: string[];
+  isForm: boolean;
+}) {
   const t = useTranslations('workflows.list');
   const label = useLabel();
   return (
     <li>
       <Link
         href={`/admin/workflows/${d.id}`}
-        className="group flex items-center gap-3 px-4 py-3 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50"
+        className="group flex items-center gap-3 px-4 py-3 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 motion-reduce:transition-none"
       >
         <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-          <WorkflowIcon className="size-4" />
+          <WorkflowIcon className="size-4" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="truncate font-medium group-hover:underline">{label(d.name)}</span>
-            {d.isDefault && (
+            <span className="min-w-0 truncate font-medium group-hover:underline">{label(d.name)}</span>
+            {d.isDefault && !isForm && (
               <Badge variant="info">
-                <StarIcon aria-hidden />
-                {t('default')}
+                <CircleCheckIcon aria-hidden />
+                {t('inUse')}
               </Badge>
             )}
             {d.isSystem && (
@@ -229,6 +252,11 @@ function DefinitionRow({ d }: { d: WorkflowDefinitionSummary }) {
               {d.updatedBy ? ` · ${d.updatedBy.displayName}` : ''}
             </span>
           </span>
+          {isForm && (
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+              {usedBy?.length ? t('usedByForms', { names: usedBy.join(', ') }) : t('usedByNoForm')}
+            </span>
+          )}
         </span>
         <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden />
       </Link>
@@ -236,103 +264,178 @@ function DefinitionRow({ d }: { d: WorkflowDefinitionSummary }) {
   );
 }
 
-function DefinitionsTab() {
+/** One built-in approval (a trigger): what it's for, whether it must run, and its workflows. */
+function TriggerSection({
+  trigger,
+  list,
+  canManage,
+  onCreate,
+}: {
+  trigger: WorkflowTrigger;
+  list: WorkflowDefinitionSummary[];
+  canManage: boolean;
+  onCreate: () => void;
+}) {
   const t = useTranslations('workflows.list');
   const label = useLabel();
+  const headingId = useId();
+  const inUse = list.some((d) => d.isDefault && !d.archived && d.publishedVersion !== null);
+  return (
+    <section aria-labelledby={headingId} className="border-t first:border-t-0">
+      <header className="flex flex-col gap-1 bg-muted/20 px-4 py-2.5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h3 id={headingId} className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+            {label(trigger.name)}
+            {trigger.required ? (
+              <Badge variant="warning">
+                <ShieldCheckIcon aria-hidden />
+                {t('required')}
+              </Badge>
+            ) : inUse ? (
+              <Badge variant="success">
+                <CircleCheckIcon aria-hidden />
+                {t('on')}
+              </Badge>
+            ) : (
+              <Badge variant="muted">
+                <CircleOffIcon aria-hidden />
+                {t('off')}
+              </Badge>
+            )}
+          </h3>
+          {trigger.description && (
+            <p className="mt-0.5 text-xs text-muted-foreground">{label(trigger.description)}</p>
+          )}
+        </div>
+      </header>
+      {list.length ? (
+        <ul className="divide-y">
+          {list.map((d) => (
+            <DefinitionRow key={d.id} d={d} isForm={false} />
+          ))}
+        </ul>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-4 text-sm text-muted-foreground">
+          <span>{t('empty')}</span>
+          {canManage && (
+            <Button variant="outline" size="sm" onClick={onCreate}>
+              <PlusIcon />
+              {t('setUp')}
+            </Button>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function DefinitionsTab({ onCreate }: { onCreate: (trigger: string | null) => void }) {
+  const t = useTranslations('workflows.list');
+  const locale = useLocale();
+  const area = useAreaName();
   const canManage = useCan('core.workflows.manage');
+  const canForms = useCan('core.forms.manage');
   const [archived, setArchived] = useState(false);
   const [q, setQ] = useState('');
-  const [creating, setCreating] = useState<string | null | false>(false);
   const triggers = useApiQuery<{ items: WorkflowTrigger[] }>('/workflow-triggers');
   const defs = useApiQuery<{ items: WorkflowDefinitionSummary[] }>('/workflows', {
     includeArchived: archived,
     q: q || undefined,
   });
+  const forms = useApiQuery<{ items: FormSummary[] }>(canForms ? '/forms' : null);
   const items = defs.data?.items ?? [];
+  const usedBy = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const f of forms.data?.items ?? [])
+      if (f.workflow)
+        map.set(f.workflow.id, [...(map.get(f.workflow.id) ?? []), localize(f.name, locale) || f.key]);
+    return map;
+  }, [forms.data, locale]);
+  const formTrigger = triggers.data?.items.find((tr) => tr.key === FORM_TRIGGER);
+  const formList = items.filter((d) => d.triggerKey === FORM_TRIGGER);
+  // Built-in approvals by area, required ones first within an area.
+  const areas = useMemo(() => {
+    const map = new Map<string, WorkflowTrigger[]>();
+    for (const tr of triggers.data?.items ?? []) {
+      if (tr.key === FORM_TRIGGER) continue;
+      const name = area(tr.moduleId);
+      map.set(name, [...(map.get(name) ?? []), tr]);
+    }
+    return [...map]
+      .map(([name, list]) => ({
+        name,
+        list: list.sort((a, b) => Number(b.required) - Number(a.required)),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, locale));
+  }, [triggers.data, area, locale]);
+  const formsHeading = useId();
+  const builtInHeading = useId();
+
   return (
     <div className="grid gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput value={q} onChange={setQ} placeholder={t('search')} className="sm:w-72" />
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm">
-            <Switch checked={archived} onCheckedChange={setArchived} />
-            {t('showArchived')}
-          </label>
-          {canManage && (
-            <Button onClick={() => setCreating(null)}>
-              <PlusIcon />
-              {t('new')}
-            </Button>
-          )}
-        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <Switch checked={archived} onCheckedChange={setArchived} />
+          {t('showArchived')}
+        </label>
       </div>
       {triggers.isLoading || defs.isLoading ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : (
-        <Stagger className="grid gap-6">
-          {(triggers.data?.items ?? []).map((tr) => {
-            const list = items.filter((d) => d.triggerKey === tr.key);
-            return (
-              <StaggerItem key={tr.key}>
-                <section
-                  className="overflow-hidden rounded-xl border bg-card"
-                  aria-labelledby={`trigger-${tr.key}`}
-                >
-                  <header className="flex flex-col gap-2 border-b bg-muted/30 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <h2
-                        id={`trigger-${tr.key}`}
-                        className="flex flex-wrap items-center gap-2 font-semibold"
-                      >
-                        {label(tr.name)}
-                        <span className="font-mono text-xs font-normal text-muted-foreground">{tr.key}</span>
-                        {tr.required ? (
-                          <Badge variant="warning">{t('required')}</Badge>
-                        ) : (
-                          <Badge variant="muted">{t('optional')}</Badge>
-                        )}
-                      </h2>
-                      {tr.description && (
-                        <p className="mt-0.5 text-sm text-muted-foreground">{label(tr.description)}</p>
-                      )}
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {tr.defaultDefinition
-                          ? t('usesDefault', { name: label(tr.defaultDefinition.name) })
-                          : tr.key === 'core.form-submission'
-                            ? t('perForm')
-                            : t('noDefault')}
-                      </p>
-                    </div>
-                    {canManage && (
-                      <Button variant="outline" size="sm" onClick={() => setCreating(tr.key)}>
-                        <PlusIcon />
-                        {t('newFor')}
-                      </Button>
-                    )}
-                  </header>
-                  {list.length ? (
+        <Stagger className="grid gap-8">
+          {formTrigger && (
+            <StaggerItem>
+              <section aria-labelledby={formsHeading} className="grid gap-2">
+                <div>
+                  <h2 id={formsHeading} className="text-base font-semibold">
+                    {t('formsTitle')}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">{t('formsDescription')}</p>
+                </div>
+                <div className="overflow-hidden rounded-xl border bg-card">
+                  {formList.length ? (
                     <ul className="divide-y">
-                      {list.map((d) => (
-                        <DefinitionRow key={d.id} d={d} />
+                      {formList.map((d) => (
+                        <DefinitionRow key={d.id} d={d} isForm usedBy={usedBy.get(d.id)} />
                       ))}
                     </ul>
                   ) : (
-                    <p className="px-4 py-6 text-sm text-muted-foreground">{t('empty')}</p>
+                    <p className="px-4 py-6 text-sm text-muted-foreground">{t('formsEmpty')}</p>
                   )}
-                </section>
-              </StaggerItem>
-            );
-          })}
+                </div>
+              </section>
+            </StaggerItem>
+          )}
+          <StaggerItem>
+            <section aria-labelledby={builtInHeading} className="grid gap-2">
+              <div>
+                <h2 id={builtInHeading} className="text-base font-semibold">
+                  {t('builtInTitle')}
+                </h2>
+                <p className="text-sm text-muted-foreground">{t('builtInDescription')}</p>
+              </div>
+              <div className="grid gap-4">
+                {areas.map((a) => (
+                  <div key={a.name} className="overflow-hidden rounded-xl border bg-card">
+                    <p className="border-b px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      {a.name}
+                    </p>
+                    {a.list.map((tr) => (
+                      <TriggerSection
+                        key={tr.key}
+                        trigger={tr}
+                        list={items.filter((d) => d.triggerKey === tr.key)}
+                        canManage={canManage}
+                        onCreate={() => onCreate(tr.key)}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </StaggerItem>
         </Stagger>
-      )}
-      {creating !== false && (
-        <NewWorkflowDialog
-          open
-          onOpenChange={(o) => !o && setCreating(false)}
-          triggers={triggers.data?.items ?? []}
-          definitions={items}
-          initialTrigger={creating}
-        />
       )}
     </div>
   );
@@ -344,13 +447,16 @@ function InstancesTab() {
   const locale = useLocale();
   const [state, set] = useListState({ pageSize: 25 });
   const triggers = useApiQuery<{ items: WorkflowTrigger[] }>('/workflow-triggers');
-  const { data, isLoading, isFetching } = useApiQuery<Page<WorkflowInstanceSummary>>('/workflow-instances', {
-    page: state.page,
-    pageSize: state.pageSize,
-    q: state.q,
-    status: state.status as string | undefined,
-    triggerKey: state.trigger as string | undefined,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<WorkflowInstanceSummary>>(
+    '/workflow-instances',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      q: state.q,
+      status: state.status as string | undefined,
+      triggerKey: state.trigger as string | undefined,
+    },
+  );
   const [open, setOpen] = useState<WorkflowInstanceSummary | null>(null);
   const triggerName = (key: string) => {
     const tr = triggers.data?.items.find((x) => x.key === key);
@@ -422,6 +528,8 @@ function InstancesTab() {
         pageSize={state.pageSize}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(r) => r.id}
         onRowClick={setOpen}
         onPageChange={(page) => set({ page })}
@@ -479,14 +587,29 @@ function InstancesTab() {
   );
 }
 
-/** Workflow definitions per trigger, and every running/finished instance. */
+/** Approvals for forms, built-in approvals by area, and every running/finished instance. */
 export function WorkflowsView() {
   const t = useTranslations('workflows.list');
   const [state, set] = useListState();
+  const canManage = useCan('core.workflows.manage');
+  const triggers = useApiQuery<{ items: WorkflowTrigger[] }>('/workflow-triggers');
+  const defs = useApiQuery<{ items: WorkflowDefinitionSummary[] }>('/workflows', { includeArchived: true });
+  const [creating, setCreating] = useState<string | null | false>(false);
   const tab = state.tab === 'instances' ? 'instances' : 'definitions';
   return (
     <div>
-      <PageHeader title={t('title')} description={t('description')} />
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        actions={
+          canManage ? (
+            <Button onClick={() => setCreating(null)}>
+              <PlusIcon />
+              {t('new')}
+            </Button>
+          ) : undefined
+        }
+      />
       <Tabs
         value={tab}
         onValueChange={(v) => set({ tab: v === 'definitions' ? undefined : v })}
@@ -497,12 +620,21 @@ export function WorkflowsView() {
           <TabsTrigger value="instances">{t('tabs.instances')}</TabsTrigger>
         </TabsList>
         <TabsContent value="definitions">
-          <DefinitionsTab />
+          <DefinitionsTab onCreate={setCreating} />
         </TabsContent>
         <TabsContent value="instances">
           <InstancesTab />
         </TabsContent>
       </Tabs>
+      {creating !== false && (
+        <NewWorkflowDialog
+          open
+          onOpenChange={(o) => !o && setCreating(false)}
+          triggers={triggers.data?.items ?? []}
+          definitions={defs.data?.items ?? []}
+          initialTrigger={creating}
+        />
+      )}
     </div>
   );
 }

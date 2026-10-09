@@ -46,7 +46,47 @@
     "subjectUser_departmentCode": "對象人員部門",
     "post_severity": "公告類型",
     "post_pinned": "已置頂",
-    "post_hasWindow": "有時間範圍"
+    "post_hasWindow": "有時間範圍",
+    "data": "答案",
+    "records": "選取的紀錄",
+    "change_type": "變更類型",
+    "change_risk": "風險",
+    "change_impact": "影響範圍（1 高 … 3 低）",
+    "change_ciCount": "組態項目數",
+    "change_durationHours": "期間（小時）",
+    "change_criticalCis": "涉及關鍵組態項目",
+    "ticket_type": "工單類型",
+    "ticket_category": "類別",
+    "ticket_priority": "優先順序（1 緊急 … 4 低）",
+    "ticket_impact": "影響範圍（1 高 … 3 低）",
+    "ticket_urgency": "緊急程度（1 高 … 3 低）",
+    "ticket_major": "重大事件",
+    "ticket_groupKey": "指派群組",
+    "ticket_resolutionCode": "解決方式",
+    "ticket_ciCount": "組態項目數",
+    "ticket_ciCriticality": "組態項目最高重要性",
+    "ticket_criticalCis": "涉及關鍵組態項目",
+    "kinds": "變更的設定類型",
+    "modules": "模組",
+    "itemCount": "變更數",
+    "destructive": "會封存或刪除項目",
+    "title": "標題",
+    "role_risk": "風險等級",
+    "role_approverIds": "簽核者",
+    "role_environment": "環境",
+    "role_permanent": "永久權限",
+    "role_days": "期間（天）",
+    "article_audience": "適用對象",
+    "article_locale": "語言",
+    "article_categoryKey": "類別",
+    "asset_category": "資產類別",
+    "asset_dataBearing": "含有資料",
+    "asset_bookValue": "帳面價值",
+    "asset_ageMonths": "使用月數",
+    "project_budgetHours": "預估工時（小時）",
+    "project_priority": "優先順序",
+    "project_departmentId": "部門",
+    "project_memberCount": "成員數"
   },
   "factValues": {
     "role_riskLevel": {
@@ -63,6 +103,75 @@
       "info": "資訊",
       "maintenance": "維護",
       "incident": "事件"
+    },
+    "change_type": {
+      "standard": "標準",
+      "normal": "一般",
+      "emergency": "緊急"
+    },
+    "change_risk": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "ticket_type": {
+      "incident": "事件",
+      "service_request": "服務請求",
+      "problem": "問題",
+      "change": "變更"
+    },
+    "ticket_resolutionCode": {
+      "solved": "已解決",
+      "workaround": "因應措施",
+      "user_error": "使用者操作錯誤",
+      "duplicate": "重複",
+      "no_fault_found": "查無故障",
+      "not_reproducible": "無法重現",
+      "cancelled_by_requester": "申請人取消"
+    },
+    "ticket_ciCriticality": {
+      "critical": "關鍵",
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "role_risk": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "role_environment": {
+      "production": "正式環境",
+      "staging": "預備環境",
+      "test": "測試環境",
+      "development": "開發環境"
+    },
+    "article_audience": {
+      "everyone": "所有人",
+      "agents": "服務台人員"
+    },
+    "article_locale": {
+      "en": "English",
+      "zh-TW": "繁體中文",
+      "ja-JP": "日本語"
+    },
+    "asset_category": {
+      "laptop": "筆記型電腦",
+      "desktop": "桌上型電腦",
+      "monitor": "螢幕",
+      "phone": "手機",
+      "tablet": "平板",
+      "server": "伺服器",
+      "network": "網路設備",
+      "storage": "儲存設備",
+      "printer": "印表機",
+      "peripheral": "周邊設備",
+      "other": "其他"
+    },
+    "project_priority": {
+      "high": "高",
+      "medium": "中",
+      "low": "低"
     }
   },
   "timeline": {
@@ -83,31 +192,33 @@
       "notified": "{step}：已通知 {count} 人",
       "completed": "已完成：{outcome, select, approved {已核准} rejected {已駁回} cancelled {已撤回} other {{outcome}}}",
       "cancelled": "{actor} 撤回了申請",
-      "other": "{type}"
+      "other": "{type}",
+      "task_already_approved": "沿用 {actor} 先前的核准 — {step}"
     },
     "reasons": {
       "condition": "未符合條件",
       "no-approver": "找不到簽核者",
-      "cancelled": "已取消"
+      "cancelled": "已取消",
+      "already-approved": "已於「{step}」核准"
     }
   },
   "list": {
-    "title": "工作流程",
-    "description": "權限申請、表單與模組的簽核路徑。發佈後的變更會套用到新的申請。",
+    "title": "簽核流程",
+    "description": "誰核准什麼。表單的簽核與表單一起建立；內建簽核負責權限、變更等模組紀錄的決定。",
     "tabs": {
-      "definitions": "工作流程",
+      "definitions": "簽核流程",
       "instances": "進行中與歷史紀錄"
     },
-    "search": "搜尋工作流程…",
+    "search": "搜尋簽核流程…",
     "showArchived": "顯示已封存",
-    "new": "新增工作流程",
+    "new": "新增簽核流程",
     "newFor": "新增",
-    "required": "一律執行",
+    "required": "必要",
     "optional": "選用",
     "usesDefault": "使用中：{name}",
-    "perForm": "每張表單各自選擇工作流程。",
-    "noDefault": "未使用：在您選擇預設工作流程前不需要簽核。",
-    "empty": "此觸發條件尚無工作流程。",
+    "perForm": "每張表單各自選擇簽核流程。",
+    "noDefault": "未使用：在您選擇預設簽核流程前不需要簽核。",
+    "empty": "尚未設定簽核：不需簽核即可進行。",
     "default": "預設",
     "system": "內建",
     "archived": "已封存",
@@ -117,20 +228,35 @@
     "steps": "{count} 個步驟",
     "running": "{count} 筆進行中",
     "create": {
-      "title": "新增工作流程",
-      "description": "選擇此流程要決定的事項，可以從空白或複製現有流程開始。",
+      "title": "新增簽核流程",
+      "description": "選擇此簽核流程要決定的事項，可以從空白或複製現有流程開始。",
       "trigger": "用於",
       "name": "名稱",
       "descriptionLabel": "說明",
       "copyFrom": "起點",
-      "blank": "空白工作流程",
+      "blank": "空白簽核流程",
       "cancel": "取消",
       "submit": "建立並開啟",
-      "created": "已建立工作流程"
+      "created": "已建立簽核流程",
+      "formHint": "表單的簽核最容易從表單本身建立：開啟表單並使用其「簽核」索引標籤。"
+    },
+    "on": "已啟用",
+    "off": "關閉",
+    "inUse": "使用中",
+    "setUp": "設定簽核",
+    "formsTitle": "表單的簽核流程",
+    "formsDescription": "每張表單指定自己的簽核。請從表單的「簽核」索引標籤建立與變更。",
+    "formsEmpty": "還沒有表單設定簽核。",
+    "usedByForms": "使用者：{names}",
+    "usedByNoForm": "沒有表單使用",
+    "builtInTitle": "內建簽核",
+    "builtInDescription": "平台各領域需要的決定。必要的一律執行；其他的設定後才會執行。",
+    "areas": {
+      "access": "存取權"
     }
   },
   "instances": {
-    "label": "工作流程執行紀錄",
+    "label": "簽核流程執行紀錄",
     "subject": "申請",
     "status": "狀態",
     "current": "目前步驟",
@@ -138,11 +264,11 @@
     "started": "開始時間",
     "search": "搜尋申請…",
     "allStatuses": "所有狀態",
-    "trigger": "工作流程類型",
+    "trigger": "簽核流程類型",
     "allTriggers": "所有類型"
   },
   "issues": {
-    "empty": "請至少新增一個步驟，空的工作流程會自動核准所有申請。",
+    "empty": "請至少新增一個步驟，空的簽核流程會自動核准所有申請。",
     "noApprovers": "請至少新增一位簽核者。",
     "quorumInvalid": "需要的核准人數超過簽核者人數。",
     "requesterApprover": "申請人不能擔任簽核者。",
@@ -162,8 +288,8 @@
     "stepFields": "簽核人員需填寫的欄位依賴未知的欄位或自身，或預設值無效。"
   },
   "builder": {
-    "title": "工作流程設計工具",
-    "back": "工作流程",
+    "title": "簽核流程設計工具",
+    "back": "簽核流程",
     "version": "第 {version} 版",
     "draftOnly": "尚未發佈",
     "default": "預設",
@@ -175,7 +301,7 @@
     "more": "更多動作",
     "makeDefault": "用於新的申請",
     "clearDefault": "停止使用（不需簽核）",
-    "defaultCleared": "已關閉此觸發條件的簽核",
+    "defaultCleared": "已關閉「{name}」的簽核",
     "restore": "還原",
     "archive": "封存",
     "zoomOut": "縮小",
@@ -201,7 +327,7 @@
         "hint": "告知相關人員，不需決定"
       }
     },
-    "stepActions": "步驟動作",
+    "stepActions": "步驟選項",
     "moveUp": "上移",
     "moveDown": "下移",
     "duplicate": "複製",
@@ -211,7 +337,7 @@
     "yes": "如果…",
     "tabs": {
       "step": "步驟",
-      "settings": "工作流程",
+      "settings": "簽核流程",
       "test": "測試"
     },
     "selectStep": "在畫布上選取步驟即可編輯。",
@@ -227,7 +353,7 @@
     "noVersions": "尚未發佈。",
     "system": "系統",
     "incomplete": "部分簽核者未設定完成，請先選擇對象。",
-    "invalid": "工作流程設定無效。",
+    "invalid": "簽核流程設定無效。",
     "saved": "已儲存草稿",
     "published": "已發佈第 {version} 版，新的申請會立即使用",
     "fixIssues": "請先修正標示的步驟再發佈",
@@ -259,7 +385,9 @@
       "pickGroupFact": "選擇紀錄群組的欄位",
       "noGroupFacts": "目前沒有紀錄群組的欄位。請在「使用表單欄位」選擇含紀錄欄位的表單（例如組態項目及其支援群組）。",
       "each": "分別詢問每一個",
-      "eachHint": "欄位中的每個群組或人員各自簽核。搭配「所有簽核者」時，每一個都必須核准（例如每個選取 CI 的負責群組）。"
+      "eachHint": "欄位中的每個群組或人員各自簽核。搭配「所有簽核者」時，每一個都必須核准（例如每個選取 CI 的負責群組）。",
+      "removeApprover": "移除簽核者 {name}",
+      "removeFallback": "移除備援簽核者 {name}"
     },
     "editor": {
       "legend": "步驟設定",
@@ -283,6 +411,7 @@
       "name": "步驟名稱",
       "when": "條件",
       "whenHint": "不符合條件的申請會略過此步驟。",
+      "whenEmpty": "請加入申請必須符合的條件，此步驟才會執行。",
       "onlySometimes": "僅在特定情況執行此步驟",
       "approvers": "簽核者",
       "approversHint": "每一行代表一位簽核者；群組或角色算一位，任一成員皆可回覆。",
@@ -345,10 +474,29 @@
       "recipients": "通知對象",
       "recipientsHint": "對方會收到站內通知（若有設定也會收到電子郵件）。",
       "addRecipient": "新增收件者",
-      "message": "訊息"
+      "message": "訊息",
+      "always": "一律執行",
+      "summary": {
+        "due": "{hours} 小時內完成",
+        "remind": "{hours} 小時後提醒",
+        "breach": {
+          "notify": "逾期後提醒",
+          "escalate": "逾期後呈報",
+          "approve": "逾期後自動核准",
+          "reject": "逾期後自動駁回"
+        },
+        "noDeadline": "沒有期限",
+        "nobody": {
+          "reject": "找不到簽核者時：駁回",
+          "skip": "找不到簽核者時：略過此步驟"
+        },
+        "selfAllowed": "申請人可自行核准",
+        "noHandover": "不可轉交",
+        "fields": "{count, plural, other {# 個欄位}}"
+      }
     },
     "test": {
-      "intro": "用範例值與決定試跑工作流程，不會儲存或寄送任何內容。",
+      "intro": "用範例值與決定試跑簽核流程，不會儲存或寄送任何內容。",
       "facts": "申請內容",
       "any": "未設定",
       "decisions": "決定",
@@ -364,17 +512,43 @@
         "skipped": "已略過",
         "active": "等待中",
         "waiting": "未到達"
-      }
+      },
+      "tryAs": "以此身分試用",
+      "tryAsHint": "選擇人員",
+      "enterYourself": "自行輸入值",
+      "alreadyAt": "已於「{step}」核准"
     },
-    "recordFact": "{field}：{fact}"
+    "recordFact": "{field}：{fact}",
+    "stepActionsFor": "{name} 的選項",
+    "startHint": "使用畫布上的 + 新增第一個步驟。",
+    "autoName": {
+      "generic": "簽核",
+      "manager": "主管簽核",
+      "managerLevel": "第 {level} 層主管簽核",
+      "departmentHead": "部門主管簽核",
+      "named": "{name}簽核",
+      "requester": "申請人確認"
+    },
+    "editInForm": "在表單的「簽核」索引標籤中，可以同時看到表單的題目與此簽核。",
+    "archiveTitle": "要封存「{name}」嗎？",
+    "archiveBody": "新的申請將無法再使用它。進行中的申請會繼續。之後可以還原。",
+    "archiveBodyUsed": "{count, plural, other {有 # 個表單或角色使用它，}}在您選擇其他簽核前，它們將找不到簽核。進行中的申請會繼續。",
+    "activity": "活動",
+    "activityDescription": "誰變更或發佈了此簽核，最新的在前。",
+    "repeatApprovers": {
+      "title": "同一人已在先前關卡核准時",
+      "ask": "再次請他簽核",
+      "skip": "沿用先前的核准",
+      "hint": "沿用先前的核准：後面的關卡不再請同一人簽核，先前的核准即計入該關卡。"
+    }
   },
   "changePreview": {
-    "invalid": "無法繪製此提議：其流程圖不是有效的工作流程。",
+    "invalid": "無法繪製此提議：其流程圖不是有效的簽核流程。",
     "show": "顯示",
     "proposed": "提議",
     "current": "目前",
-    "proposedDiagram": "提議的工作流程",
-    "currentDiagram": "目前的工作流程",
+    "proposedDiagram": "提議的簽核流程",
+    "currentDiagram": "目前的簽核流程",
     "simulate": "試用"
   }
 }

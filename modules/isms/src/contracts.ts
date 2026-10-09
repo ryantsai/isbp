@@ -312,6 +312,8 @@ export const updateAssetSchema = z.object({
   notes: assetFields.notes.optional(),
   attributes: assetFields.attributes.optional(),
   status: z.enum(ASSET_STATUSES).optional(),
+  /** Why the status changed (missing since, how it was disposed of): kept in the asset's history. */
+  statusNote: z.string().trim().max(1000).nullish(),
 });
 export type UpdateAssetInput = z.input<typeof updateAssetSchema>;
 
@@ -473,7 +475,13 @@ export const stocktakeSchema = z.object({
   signedOffAt: dateTime.nullable(),
   signOffNote: z.string().nullable(),
   createdAt: dateTime,
-  viewer: z.object({ canManage: z.boolean(), canSignOff: z.boolean(), pendingForMe: z.number().int() }),
+  viewer: z.object({
+    canManage: z.boolean(),
+    canSignOff: z.boolean(),
+    pendingForMe: z.number().int(),
+    /** Every item the viewer checks, recorded or not (0: they don't take part). */
+    mineTotal: z.number().int(),
+  }),
 });
 export type Stocktake = z.input<typeof stocktakeSchema>;
 
@@ -504,6 +512,8 @@ export const stocktakeItemSchema = z.object({
   id: uuid,
   assetId: uuid.nullable(),
   snapshot: itemSnapshotSchema,
+  /** When the register entry was last confirmed by a stocktake. */
+  lastVerifiedOn: z.string().nullable(),
   assignee: person.nullable(),
   assigneeGroup: groupRef.nullable(),
   result: z.enum(STOCKTAKE_RESULTS).nullable(),
@@ -716,6 +726,8 @@ export const reviewSchema = z.object({
     canSignOff: z.boolean(),
     /** ITSM is enabled and the viewer may raise tickets through it. */
     canRaiseTickets: z.boolean(),
+    /** Disable and delete decisions without a ticket yet. */
+    ticketsToRaise: z.number().int(),
   }),
 });
 export type Review = z.input<typeof reviewSchema>;
@@ -745,7 +757,16 @@ export const reviewItemSchema = z.object({
 });
 export type ReviewItem = z.input<typeof reviewItemSchema>;
 
-export const REVIEW_ITEM_VIEWS = ['all', 'undecided', 'keep', 'disable', 'delete', 'admin'] as const;
+export const REVIEW_ITEM_VIEWS = [
+  'all',
+  'undecided',
+  'decided',
+  'keep',
+  'disable',
+  'delete',
+  'admin',
+  'needs_ticket',
+] as const;
 export const reviewItemQuerySchema = listQuerySchema.extend({
   view: z.enum(REVIEW_ITEM_VIEWS).default('all'),
 });

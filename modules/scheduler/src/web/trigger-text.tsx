@@ -1,6 +1,6 @@
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 import { type CronDescription, describeCron, type TriggerOut } from '../contracts';
 
@@ -20,6 +20,7 @@ function weekdays(locale: string, days: number[]): string {
 export function useCronText() {
   const t = useTranslations('scheduler.cron');
   const locale = useLocale();
+  const format = useFormatter();
   return useCallback(
     (expr: string, d: CronDescription = describeCron(expr)) => {
       switch (d.kind) {
@@ -39,11 +40,22 @@ export function useCronText() {
           return t('weekly', { days: weekdays(locale, d.days), time: d.time });
         case 'monthly':
           return t('monthly', { day: d.day, time: d.time });
+        case 'quarterly':
+          return t('quarterly', { day: d.day, time: d.time });
+        case 'yearly':
+          return t('yearly', {
+            date: format.dateTime(new Date(Date.UTC(2024, d.month - 1, d.day)), {
+              month: 'long',
+              day: 'numeric',
+              timeZone: 'UTC',
+            }),
+            time: d.time,
+          });
         default:
           return t('custom', { cron: expr });
       }
     },
-    [t, locale],
+    [t, locale, format],
   );
 }
 

@@ -186,7 +186,7 @@ describe('hardware lifecycle', () => {
       model: { manufacturer: 'Dell', name: 'Latitude 7450' },
       vendor: { name: 'Dell Technologies' },
       warrantyState: 'active',
-      viewer: { canManage: true, canAssign: true, canDispose: false },
+      viewer: { canManage: true, canAssign: true, canDispose: true },
     });
     expect(a.depreciation.lifespanMonths).toBe(36);
     expect(a.depreciation.bookValue).toBeGreaterThan(0);
@@ -625,13 +625,17 @@ describe('disposal approval', () => {
   };
 
   it('needs the asset manager and, for a data-bearing device with book value, information security', async () => {
-    const a = await newAsset();
+    const a = await newAsset({ assigneeId: ids.alice });
+    // A device someone has is returned first; one in stock is retired by the request itself.
     expect((await post('am', `/assets/${a.tag}/dispose`, { note: 'x' })).body.error.code).toBe(
       'INVALID_TRANSITION',
     );
-    await post('am', `/assets/${a.tag}/status`, { status: 'retired' });
+    await post('am', `/assets/${a.tag}/return`, { toStatus: 'in_stock', scheduleWipe: false });
     const requested = await post('am', `/assets/${a.tag}/dispose`, { note: 'Wipe and recycle' });
     expect(requested.status).toBe(200);
+    expect(await auditOf('itam.asset.status_changed', a.id)).toContainEqual(
+      expect.objectContaining({ changes: { status: ['in_stock', 'retired'] } }),
+    );
     expect(requested.body).toMatchObject({
       status: 'retired',
       viewer: { canDispose: false, transitions: [] },

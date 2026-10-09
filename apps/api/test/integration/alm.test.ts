@@ -654,7 +654,10 @@ describe('deployments and the change policy', () => {
     await h.call(s.owner!, 'PATCH', `${API}/releases/${releaseId}`, {
       notes: '## Payroll 1.0.0\n\n- First release',
     });
-    expect(await notificationsOf(ids.owner, 'alm.release.ready')).toHaveLength(1);
+    const [ready] = await notificationsOf(ids.owner, 'alm.release.ready');
+    expect(ready).toBeDefined();
+    // The notification opens "Record deployment" for production on the release.
+    expect((ready as { href: string | null }).href).toBe('/alm/payroll/releases/1.0.0?deploy=production');
     await h.call(s.owner!, 'PATCH', `${API}/releases/${releaseId}`, {
       notes: '## Payroll 1.0.0\n\n- First release!',
     });

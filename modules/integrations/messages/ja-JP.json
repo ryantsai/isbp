@@ -1,32 +1,34 @@
 {
   "meta": {
     "name": "統合",
-    "description": "外部システムへの接続、フィールド マッピング付きの同期プロファイル、双方向同期、実行履歴、関連レコード、競合"
+    "description": "外部システムへの接続、フィールド マッピング付きの同期ルール、双方向同期、実行履歴、関連レコード、競合"
   },
   "nav": {
     "group": "統合",
-    "overview": "統合",
-    "conflicts": "同期の競合"
+    "overview": "接続",
+    "conflicts": "同期の競合",
+    "overviewAbout": "外部システムと同期する内容",
+    "conflictsAbout": "両方で変更され、判断が必要なレコード"
   },
   "systemRoles": {
     "integrations-viewer": {
       "name": "統合閲覧者",
-      "description": "接続、同期プロファイル、実行履歴、関連レコード、競合を表示します"
+      "description": "接続、同期ルール、実行履歴、関連レコード、競合を表示します"
     },
     "integrations-admin": {
       "name": "統合管理者",
-      "description": "同期可能なすべてのエンティティの接続と同期プロファイルを設定し、同期を実行して競合を解決します"
+      "description": "同期可能なすべてのエンティティの接続と同期ルールを設定し、同期を実行して競合を解決します"
     }
   },
   "permissions": {
-    "connectionsRead": "接続、同期プロファイル、実行履歴、関連レコード、競合を表示する",
-    "connectionsManage": "接続を追加、編集、テストし、同期プロファイルを設定して同期を実行する",
+    "connectionsRead": "接続、同期ルール、実行履歴、関連レコード、競合を表示する",
+    "connectionsManage": "接続を追加、編集、テストし、同期ルールを設定して同期を実行する",
     "conflictsResolve": "同期の競合を解決する"
   },
   "taskTypes": {
     "sync": {
       "name": "統合の同期",
-      "description": "統合ハブの同期プロファイルを実行します: 外部システムの変更を読み取り、ISBP の変更を送信します"
+      "description": "統合ハブの同期ルールを実行します: 外部システムの変更を読み取り、IS Big Platform の変更を送信します"
     }
   },
   "notifications": {
@@ -47,9 +49,9 @@
     "connection_deleted": "統合の接続を削除しました",
     "connection_secret_rotated": "接続の Webhook シークレットを更新しました",
     "connection_insecure_http_changed": "接続で安全でない HTTP を許可するかどうかを変更しました",
-    "profile_created": "同期プロファイルを作成しました",
-    "profile_updated": "同期プロファイルを変更しました",
-    "profile_deleted": "同期プロファイルを削除しました",
+    "profile_created": "同期ルールを作成しました",
+    "profile_updated": "同期ルールを変更しました",
+    "profile_deleted": "同期ルールを削除しました",
     "run_requested": "同期を開始しました",
     "conflict_created": "同期の競合が見つかりました",
     "conflict_resolved": "同期の競合を解決しました",
@@ -66,7 +68,8 @@
   "health": {
     "ok": "正常",
     "failing": "エラー",
-    "unknown": "未確認"
+    "unknown": "未確認",
+    "attention": "正常 · 対応が必要"
   },
   "security": {
     "badge": "暗号化なし",
@@ -89,7 +92,7 @@
     "schedule": "スケジュール",
     "manual": "手動",
     "webhook": "Webhook",
-    "event": "ISBP での変更"
+    "event": "IS Big Platform での変更"
   },
   "runKind": {
     "pull": "取り込み",
@@ -110,29 +113,29 @@
     "dismissed": "両方を保持"
   },
   "direction": {
-    "pull": "ISBP に取り込む",
-    "push": "ISBP から送信する",
+    "pull": "IS Big Platform に取り込む",
+    "push": "IS Big Platform から送信する",
     "both": "双方向",
-    "pullHint": "{system} での変更が ISBP にコピーされます。ISBP での編集は ISBP にのみ残ります。",
-    "pushHint": "ISBP での変更が {system} に送信されます。{system} での編集はコピーされません。",
+    "pullHint": "{system} での変更が IS Big Platform にコピーされます。IS Big Platform での編集は IS Big Platform にのみ残ります。",
+    "pushHint": "IS Big Platform での変更が {system} に送信されます。{system} での編集はコピーされません。",
     "bothHint": "どちらの変更ももう一方に反映されます。両方で同じフィールドが変更された場合は、競合のルールに従います。"
   },
   "policy": {
     "manual": "担当者が決定する",
     "remote": "{system} を優先",
-    "local": "ISBP を優先",
+    "local": "IS Big Platform を優先",
     "newest": "最新の変更を優先",
     "manualHint": "両方の値はそのまま残り、競合は競合の一覧で待機します。他のフィールドは引き続き同期されます。",
-    "remoteHint": "{system} の値で ISBP の値を上書きします。",
-    "localHint": "ISBP の値を {system} に送信します。",
+    "remoteHint": "{system} の値で IS Big Platform の値を上書きします。",
+    "localHint": "IS Big Platform の値を {system} に送信します。",
     "newestHint": "最後にレコードが変更された側を優先します。"
   },
   "counts": {
     "read": "読み取り",
-    "created": "ISBP で作成",
-    "updated": "ISBP で更新",
+    "created": "こちらで作成",
+    "updated": "こちらで更新",
     "pushed": "送信",
-    "remoteCreated": "リモートで作成",
+    "remoteCreated": "相手側で作成",
     "linked": "リンク",
     "conflicts": "競合",
     "skipped": "変更なし/スキップ",
@@ -155,11 +158,11 @@
   },
   "overview": {
     "title": "統合",
-    "description": "外部システムへの接続と、それらと ISBP の間で同期される内容です。",
+    "description": "外部システムへの接続と、それらと IS Big Platform の間で同期される内容です。",
     "add": "接続の追加",
     "empty": "接続はまだありません",
     "emptyHint": "外部システムへの接続を追加してから、同期する内容を設定します。",
-    "profiles": "プロファイル",
+    "profiles": "同期ルール",
     "linked": "関連レコード",
     "conflicts": "未解決の競合",
     "errors": "エラー",
@@ -168,12 +171,14 @@
     "unavailable": "コネクタのモジュールを利用できません。",
     "pickTitle": "接続の追加",
     "pickDescription": "接続するシステムの種類を選択してください。",
-    "noConnectors": "コネクタがインストールされていません。コネクタ モジュール (ServiceDesk Plus や Azure DevOps など) によって接続できるシステムが追加されます。"
+    "noConnectors": "コネクタがインストールされていません。コネクタ モジュール (ServiceDesk Plus や Azure DevOps など) によって接続できるシステムが追加されます。",
+    "resolve": "解決",
+    "view": "表示"
   },
   "connectionForm": {
     "createTitle": "{connector} の接続の追加",
     "editTitle": "{name} の編集",
-    "description": "外部システムの設定と、ISBP が使用する資格情報です。",
+    "description": "外部システムの設定と、IS Big Platform が使用する資格情報です。",
     "name": "接続名",
     "namePlaceholder": "Contoso サービス デスク",
     "nameHint": "一覧、実行ログ、同期されたレコードに表示されます。",
@@ -199,7 +204,7 @@
   },
   "webhook": {
     "title": "Webhook",
-    "description": "レコードが変更されると外部システムがこのアドレスを呼び出し、ISBP がレコードを読み取ります。ポーリングも予備として引き続き実行されます。",
+    "description": "レコードが変更されると外部システムがこのアドレスを呼び出し、IS Big Platform がレコードを読み取ります。ポーリングも予備として引き続き実行されます。",
     "notSupported": "このコネクタは Webhook を使用しません。変更はスケジュールに従って読み取られます。",
     "url": "Webhook URL",
     "copyUrl": "Webhook URL をコピー",
@@ -220,14 +225,15 @@
       "sdp_cloud": "ServiceDesk Plus Cloud: [管理] → [自動化] → [Webhook]。カスタム ヘッダー X-ISBP-Webhook-Secret にシークレットを設定し、リクエスト、問題、変更、資産のビジネス ルールから Webhook を呼び出します。",
       "sdp_server": "ServiceDesk Plus: [管理] → [自動化] → [カスタム トリガー] または [Webhook]。カスタム ヘッダー X-ISBP-Webhook-Secret にシークレットを設定します。",
       "azdo_server": "Azure DevOps Server: [プロジェクトの設定] → [サービス フック] → [Web Hooks]。作業項目と Git のイベントを選択し、URL を入力して HTTP ヘッダー X-ISBP-Webhook-Secret:シークレット を追加します。"
-    }
+    },
+    "setup": "設定: 即時更新 (Webhook)"
   },
   "connection": {
     "back": "統合",
     "notFound": "接続が見つかりません",
     "tabs": {
       "overview": "概要",
-      "profiles": "同期プロファイル",
+      "profiles": "同期ルール",
       "runs": "実行履歴",
       "links": "関連レコード",
       "conflicts": "競合"
@@ -242,12 +248,12 @@
     "lastSync": "前回の同期",
     "deleted": "接続を削除しました",
     "deleteTitle": "{name} を削除しますか?",
-    "deleteDescription": "同期プロファイル、リンク、実行、競合が削除されます。ISBP と外部システムのどちらのレコードも削除されません。"
+    "deleteDescription": "同期ルール、リンク、実行、競合が削除されます。IS Big Platform と外部システムのどちらのレコードも削除されません。"
   },
   "profiles": {
-    "new": "新しい同期プロファイル",
-    "empty": "同期プロファイルはまだありません",
-    "emptyHint": "同期プロファイルは、何と何を同期するか (リモート レコードの種類と ISBP レコードの種類) と、フィールドのマッピングを定義します。",
+    "new": "新しい同期ルール",
+    "empty": "同期ルールはまだありません",
+    "emptyHint": "同期ルールは、何と何を同期するか (リモート レコードの種類と IS Big Platform レコードの種類) と、フィールドのマッピングを定義します。",
     "run": "今すぐ実行",
     "runNamed": "{name} を今すぐ実行",
     "runStarted": "同期を開始しました",
@@ -261,22 +267,22 @@
     "noSchedule": "スケジュールなし"
   },
   "editor": {
-    "eyebrow": "同期プロファイル · {system}",
-    "newTitle": "新しい同期プロファイル",
-    "notFound": "同期プロファイルが見つかりません",
-    "readOnly": "このプロファイルを表示できますが、変更はできません。変更するには、このレコードの種類の同期のアクセス許可が必要です。",
+    "eyebrow": "同期ルール · {system}",
+    "newTitle": "新しい同期ルール",
+    "notFound": "同期ルールが見つかりません",
+    "readOnly": "この同期ルールを表示できますが、変更はできません。変更するには、このレコードの種類の同期のアクセス許可が必要です。",
     "defaultName": "{remote} ↔ {local}",
     "what": "同期する対象",
-    "whatHint": "外部システムのレコードの種類と、ISBP での対応するレコードの種類を選択します。",
-    "whatFixed": "プロファイルの作成後は変更できません。代わりに別のプロファイルを作成してください。",
-    "name": "プロファイル名",
+    "whatHint": "外部システムのレコードの種類と、IS Big Platform での対応するレコードの種類を選択します。",
+    "whatFixed": "同期ルールの作成後は変更できません。代わりに別の同期ルールを作成してください。",
+    "name": "同期ルール名",
     "nameRequired": "名前を入力してください。",
     "remoteObject": "{system} 側",
     "chooseObject": "レコードの種類を選択",
     "remoteScope": "場所",
     "chooseScope": "場所を選択",
     "scopeRequired": "外部システム内の場所を選択してください。",
-    "localEntity": "ISBP 側",
+    "localEntity": "IS Big Platform 側",
     "chooseEntity": "レコードの種類を選択",
     "suggested": "(推奨)",
     "noSyncPermission": "このレコードの種類の同期のアクセス許可がありません。",
@@ -285,86 +291,93 @@
     "searchContainer": "検索…",
     "searching": "検索中…",
     "noContainers": "見つかりませんでした。",
-    "containerRequired": "ISBP 内の場所を選択してください。",
+    "containerRequired": "IS Big Platform 内の場所を選択してください。",
     "direction": "方向",
     "directionHint": "変更が流れる方向です。各フィールドはマッピングでさらに絞り込めます。",
     "records": "レコード",
     "recordsHint": "一方にのみ存在するレコードの扱いです。",
-    "createLocal": "ISBP でレコードを作成する",
-    "createLocalHint": "{system} の新しいレコードを ISBP で作成します。",
+    "createLocal": "IS Big Platform でレコードを作成する",
+    "createLocalHint": "{system} の新しいレコードを IS Big Platform で作成します。",
     "createRemote": "{system} でレコードを作成する",
-    "createRemoteHint": "下のフィルターを満たす新しい ISBP レコードを {system} で作成します。",
-    "createRemoteUnsupported": "{system} では ISBP がこれらのレコードを作成できません。",
+    "createRemoteHint": "下のフィルターを満たす新しい IS Big Platform レコードを {system} で作成します。",
+    "createRemoteUnsupported": "{system} では IS Big Platform がこれらのレコードを作成できません。",
     "matchRule": "既存のレコードを照合する",
     "matchRuleHint": "このフィールドの値が同じ場合、両方に既にあるレコードを重複させずにリンクします。",
-    "matchLocal": "ISBP のフィールド",
+    "matchLocal": "IS Big Platform のフィールド",
     "matchRemote": "{system} のフィールド",
     "noMatching": "照合しない",
     "chooseRemoteField": "フィールドを選択",
     "pushFilter": "作成するレコード",
-    "pushFilterHint": "すべての条件を満たす ISBP レコードのみを {system} で作成します。条件がない場合はすべて作成します。",
+    "pushFilterHint": "すべての条件を満たす IS Big Platform レコードのみを {system} で作成します。条件がない場合はすべて作成します。",
     "schedule": "スケジュール",
     "interval": "同期の間隔 (分)",
     "intervalHint": "0 にするとスケジュールされた同期がオフになります (Webhook、[今すぐ実行]、スケジュール ジョブは引き続き動作します)。",
-    "intervalPush": "ISBP で変更が発生するとすぐに送信されます。",
+    "intervalPush": "IS Big Platform で変更が発生するとすぐに送信されます。",
     "intervalInvalid": "0 から 1440 までの整数を入力してください。",
     "enabled": "有効",
-    "enabledHint": "オフの場合、このプロファイルでは何も同期されません。",
+    "enabledHint": "オフの場合、この同期ルールでは何も同期されません。",
     "conflicts": "競合とコメント",
     "conflictsHint": "前回の同期以降、両方で同じフィールドが変更された場合です。",
     "policy": "競合のルール",
-    "policyOneWay": "一方向のプロファイルでは常に送信元が優先されます: [ISBP に取り込む] では {system}、[ISBP から送信する] では ISBP です。",
+    "policyOneWay": "一方向の同期ルールでは常に送信元が優先されます: [IS Big Platform に取り込む] では {system}、[IS Big Platform から送信する] では IS Big Platform です。",
     "comments": "コメントを同期する",
     "commentsHint": "新しいコメントは作成者とともに双方向に 1 回ずつコピーされます。内部メモは {system} でも内部のままです。",
     "commentsUnsupported": "この組み合わせではコメントを同期できません。",
     "mapping": "フィールド マッピング",
-    "mappingHint": "ISBP のどのフィールドが {system} のどのフィールドに対応するかを指定します。値は変換されます (HTML ↔ Markdown、メール アドレスによるユーザーの照合、値のマッピングによる選択肢の変換)。",
+    "mappingHint": "IS Big Platform のどのフィールドが {system} のどのフィールドに対応するかを指定します。値は変換されます (HTML ↔ Markdown、メール アドレスによるユーザーの照合、値のマッピングによる選択肢の変換)。",
     "mappingWaiting": "先に同期する対象を選択してください。",
     "preview": "プレビュー",
     "previewHint": "次の変更に対するドライ ランです。何も書き込まれず、同期の位置も進みません。",
     "runPreview": "プレビュー",
     "fixIssues": "上に表示されている問題を修正してください。",
-    "create": "プロファイルの作成",
-    "created": "同期プロファイルを作成しました",
-    "saved": "同期プロファイルを保存しました",
+    "create": "同期ルールの作成",
+    "created": "同期ルールを作成しました",
+    "saved": "同期ルールを保存しました",
     "runNow": "今すぐ実行",
     "export": "既存のレコードを {system} に送信",
     "runStarted": "同期を開始しました",
-    "deleted": "同期プロファイルを削除しました",
+    "deleted": "同期ルールを削除しました",
     "deleteTitle": "{name} を削除しますか?",
-    "deleteDescription": "リンク、実行、競合が削除されます。どちらのレコードも削除されません。新しいプロファイルでレコードを再びリンクできます。",
-    "insecureHint": "サーバーは暗号化されていない HTTP を使用しています。HTTPS を使用できない場合は、接続の設定で [安全でない HTTP を許可する] をオンにしてください。"
+    "deleteDescription": "リンク、実行、競合が削除されます。どちらのレコードも削除されません。新しい同期ルールでレコードを再びリンクできます。",
+    "insecureHint": "サーバーは暗号化されていない HTTP を使用しています。HTTPS を使用できない場合は、接続の設定で [安全でない HTTP を許可する] をオンにしてください。",
+    "lastRunLabel": "前回の実行:",
+    "errorsCount": "同期されなかったレコード {count} 件",
+    "conflictsCount": "競合 {count} 件",
+    "viewRun": "実行を表示",
+    "neverRun": "未実行",
+    "nextRun": "次回の実行"
   },
   "mapping": {
     "suggest": "推奨のマッピングを使用",
     "add": "フィールドの追加",
     "empty": "マッピングされたフィールドはまだありません。",
-    "localField": "ISBP のフィールド、{n} 行目",
+    "localField": "IS Big Platform のフィールド、{n} 行目",
     "remoteField": "{system} のフィールド、{n} 行目",
     "directionOf": "方向、{n} 行目",
-    "chooseLocal": "ISBP のフィールド",
+    "chooseLocal": "IS Big Platform のフィールド",
     "chooseRemote": "リモートのフィールド",
     "readOnly": "読み取り専用",
     "values": "値",
     "remove": "{n} 行目を削除",
     "dir": {
       "both": "双方向",
-      "pull": "ISBP への取り込みのみ",
-      "push": "ISBP からの送信のみ"
+      "pull": "{system} からのみ取り込む",
+      "push": "{system} へのみ送信"
     },
     "valuesTitle": "{local} ↔ {remote} の値",
-    "valuesDescription": "{system} の各値を ISBP のどの値にするか、およびその逆を指定します。",
+    "valuesDescription": "{system} の各値を IS Big Platform のどの値にするか、およびその逆を指定します。",
     "inSystem": "{system} 側",
-    "inIsbp": "ISBP 側",
+    "inIsbp": "IS Big Platform 側",
     "remoteValue": "リモートの値 {n}",
-    "localValue": "ISBP の値 {n}",
+    "localValue": "IS Big Platform の値 {n}",
     "removeValue": "値 {n} を削除",
     "addValue": "値の追加",
-    "valuesHint": "値ごと、方向ごとに 1 行です: [ISBP への取り込みのみ] の行で複数のリモートの値を同じ ISBP の値にでき、その ISBP の値を送信するときの値は 1 行で指定します。両方で同じ値 (大文字と小文字を区別しない) には行は不要です。対応する値がない場合はスキップされ、ログに記録されます。",
+    "valuesHint": "値ごと、方向ごとに 1 行です: [IS Big Platform への取り込みのみ] の行で複数のリモートの値を同じ IS Big Platform の値にでき、その IS Big Platform の値を送信するときの値は 1 行で指定します。両方で同じ値 (大文字と小文字を区別しない) には行は不要です。対応する値がない場合はスキップされ、ログに記録されます。",
     "valueDirection": "値 {n} の方向",
     "direction": "方向",
     "chooseValue": "値",
-    "addMissing": "{count, plural, other {{system} の値 # 件を追加}}"
+    "addMissing": "{count, plural, other {{system} の値 # 件を追加}}",
+    "inRemoteHeader": "{system} 側"
   },
   "filter": {
     "none": "条件なし: すべてのレコード。",
@@ -386,42 +399,42 @@
     }
   },
   "issues": {
-    "unknown_local": "ISBP にフィールド「{field}」はありません。",
+    "unknown_local": "IS Big Platform にフィールド「{field}」はありません。",
     "unknown_remote": "リモート システムにフィールド「{field}」はありません。",
     "duplicate_local": "「{field}」が 2 回マッピングされています。",
     "duplicate_remote": "「{field}」が 2 回マッピングされています。",
     "incompatible": "{local} のフィールドを {remote} のフィールドにマッピングすることはできません。",
-    "no_direction": "この方向では同期できません: フィールドが読み取り専用か、プロファイルの方向が逆です。",
-    "unknown_local_choice": "「{value}」は ISBP の選択肢ではありません。",
+    "no_direction": "この方向では同期できません: フィールドが読み取り専用か、同期ルールの方向が逆です。",
+    "unknown_local_choice": "「{value}」は IS Big Platform の選択肢ではありません。",
     "unknown_remote_choice": "「{value}」はリモート システムの選択肢ではありません。",
-    "duplicate_value": "「{value}」が 2 つの行で ISBP に取り込まれます。一方を [ISBP からの送信のみ] にしてください。",
+    "duplicate_value": "「{value}」が 2 つの行で IS Big Platform に取り込まれます。一方を [IS Big Platform からの送信のみ] にしてください。",
     "match_unsupported": "「{field}」ではレコードを照合できません。",
-    "required_unmapped": "「{field}」をマッピングしてください: ISBP でレコードを作成するのに必要です。",
+    "required_unmapped": "「{field}」をマッピングしてください: IS Big Platform でレコードを作成するのに必要です。",
     "remote_required_unmapped": "リモートのフィールド「{field}」をマッピングしてください: リモートでレコードを作成するのに必要です。",
-    "create_local_needs_pull": "ISBP でレコードを作成するには、ISBP に取り込むプロファイルが必要です。",
-    "create_remote_needs_push": "リモートでレコードを作成するには、ISBP から送信するプロファイルが必要です。",
-    "create_unsupported": "リモート システムでは ISBP がこれらのレコードを作成できません。",
+    "create_local_needs_pull": "IS Big Platform でレコードを作成するには、IS Big Platform に取り込む同期ルールが必要です。",
+    "create_remote_needs_push": "リモートでレコードを作成するには、IS Big Platform から送信する同期ルールが必要です。",
+    "create_unsupported": "リモート システムでは IS Big Platform がこれらのレコードを作成できません。",
     "comments_unsupported": "この組み合わせではコメントを同期できません。",
     "too_many": "行が多すぎます。",
     "unknown_object": "不明なリモート レコードの種類です。",
     "scope_required": "リモート システム内の場所を選択してください。",
-    "container_required": "ISBP 内の場所を選択してください。",
+    "container_required": "IS Big Platform 内の場所を選択してください。",
     "unknown_scope": "リモート システムに見つかりません。",
     "unknown_container": "見つからないか、表示するアクセス許可がありません。",
-    "duplicate_local_value": "「{value}」が 2 つの行で ISBP から送信されます。一方を [ISBP への取り込みのみ] にしてください。"
+    "duplicate_local_value": "「{value}」が 2 つの行で IS Big Platform から送信されます。一方を [IS Big Platform への取り込みのみ] にしてください。"
   },
   "preview": {
     "fromRemote": "{count, plural, other {{system} の次の # 件の変更:}}",
-    "fromLocal": "{count, plural, other {最初の # 件の ISBP レコード:}}",
+    "fromLocal": "{count, plural, other {最初の # 件の IS Big Platform レコード:}}",
     "more": "さらに待機中の変更があります。",
     "nothingRemote": "前回の同期以降、{system} に変更はありません。",
-    "nothingLocal": "送信する ISBP レコードはありません。",
+    "nothingLocal": "送信する IS Big Platform レコードはありません。",
     "empty": "(空)",
     "becomes": "変更後",
     "actions": {
-      "create": "ISBP で作成",
+      "create": "IS Big Platform で作成",
       "link": "既存のレコードにリンク",
-      "update": "ISBP で更新",
+      "update": "IS Big Platform で更新",
       "push": "{system} で更新",
       "remoteCreate": "{system} で作成",
       "conflict": "競合",
@@ -429,7 +442,7 @@
       "orphan": "一方で削除済み"
     },
     "direction": {
-      "pull": "ISBP へ",
+      "pull": "IS Big Platform へ",
       "push": "{system} へ",
       "conflict": "競合"
     },
@@ -437,7 +450,7 @@
       "deleted": "リモート システムで削除されました",
       "orphaned": "以前に一方で削除されました",
       "unchanged": "変更はありません",
-      "not_linked": "リンクされておらず、ISBP での作成がオフです",
+      "not_linked": "リンクされておらず、IS Big Platform での作成がオフです",
       "filtered": "フィルターの条件を満たしません",
       "parent_unlinked": "親がまだリンクされていません",
       "unmappable": "{field} は変換できないため、スキップされます"
@@ -445,14 +458,14 @@
   },
   "runs": {
     "title": "実行履歴",
-    "run": "プロファイル",
+    "run": "同期ルール",
     "changes": "変更",
     "countsLine": "読み取り {read} · 書き込み {written} · 競合 {conflicts} · エラー {errors}",
     "started": "開始",
     "allStatuses": "すべての状態",
     "empty": "実行履歴はまだありません",
     "emptyFiltered": "一致する実行はありません",
-    "emptyHint": "プロファイルが同期すると実行が表示されます: スケジュール、Webhook、ISBP での変更、または [今すぐ実行] によって。"
+    "emptyHint": "同期ルールが同期すると実行が表示されます: スケジュール、Webhook、IS Big Platform での変更、または [今すぐ実行] によって。"
   },
   "run": {
     "notFound": "実行が見つかりません",
@@ -463,7 +476,7 @@
     "openConnection": "接続を開く",
     "counts": "件数",
     "details": "詳細",
-    "profile": "プロファイル",
+    "profile": "同期ルール",
     "started": "開始",
     "finished": "終了",
     "duration": "所要時間",
@@ -480,15 +493,17 @@
       "info": "情報",
       "warn": "警告",
       "error": "エラー"
-    }
+    },
+    "problems": "問題 {count} 件",
+    "openLink": "リンクされたレコードで探す"
   },
   "links": {
     "title": "関連レコード",
     "filter": "状態で絞り込む",
     "search": "参照番号またはタイトルで検索",
-    "local": "ISBP 側",
+    "local": "IS Big Platform 側",
     "remote": "リモート レコード",
-    "profile": "プロファイル",
+    "profile": "同期ルール",
     "lastSynced": "前回の同期",
     "notCreated": "未作成",
     "hidden": "表示するアクセス許可のないレコード",
@@ -498,7 +513,7 @@
     "syncRequested": "同期を開始しました",
     "relink": "別のレコードにリンク",
     "relinkTitle": "別のリモート レコードにリンク",
-    "relinkDescription": "この ISBP レコードは現在 {ref} にリンクされています。リンク先のリモート レコードの ID を入力してください。すぐに同期されます。",
+    "relinkDescription": "この IS Big Platform レコードは現在 {ref} にリンクされています。リンク先のリモート レコードの ID を入力してください。すぐに同期されます。",
     "remoteId": "リモート レコードの ID",
     "remoteIdHint": "外部システムでのレコードの ID (表示用の参照番号ではありません)。",
     "relinked": "レコードをリンクしました",
@@ -508,7 +523,7 @@
     "unlinked": "リンクを解除しました",
     "empty": "関連レコードはまだありません",
     "emptyFiltered": "一致する関連レコードはありません",
-    "emptyHint": "プロファイルがレコードを同期すると、レコードがリンクされます。"
+    "emptyHint": "同期ルールがレコードを同期すると、レコードがリンクされます。"
   },
   "conflicts": {
     "title": "同期の競合",
@@ -524,7 +539,7 @@
     "viewFor": "{ref} の競合を表示",
     "emptyOpen": "未解決の競合はありません",
     "empty": "競合はありません",
-    "emptyHint": "プロファイルが担当者に決定を求め、両方で同じフィールドが変更されると競合が表示されます。"
+    "emptyHint": "同期ルールが担当者に決定を求め、両方で同じフィールドが変更されると競合が表示されます。"
   },
   "resolve": {
     "title": "同期の競合の解決",
@@ -532,13 +547,17 @@
     "hiddenRecord": "表示するアクセス許可のないレコード",
     "hiddenHint": "このレコードを表示するアクセス許可がないため、値は表示されません。",
     "base": "前回同期した値",
-    "inIsbp": "ISBP の値を保持",
+    "inIsbp": "このプラットフォームの値を使用",
     "inRemote": "{system} の値を保持",
     "empty": "(空)",
-    "keepBoth": "両方をそのまま保持",
+    "keepBoth": "今回の変更は同期しない",
     "apply": "適用",
     "resolved": "競合を解決しました",
-    "dismissed": "両方の値を保持しました"
+    "dismissed": "それぞれの値を保持しました",
+    "keepBothHint": "「今回の変更は同期しない」: それぞれが自分の値を保持し、以降の変更は通常どおり同期されます。",
+    "changedBy": "{name} が変更",
+    "changedHere": "このプラットフォームで変更",
+    "changedIn": "{system} で変更"
   },
   "panel": {
     "title": "同期先",
@@ -549,15 +568,33 @@
     "requested": "同期を開始しました"
   },
   "taskConfig": {
-    "profile": "同期プロファイル",
-    "pick": "同期プロファイルを選択",
+    "profile": "同期ルール",
+    "pick": "同期ルールを選択",
     "loading": "読み込み中…",
     "option": "{profile} ({connection})",
     "disabled": "無効",
-    "hint": "[今すぐ実行] と同様にプロファイルの同期を実行し、このジョブの再試行とアラートを適用します。",
+    "hint": "[今すぐ実行] と同様に同期ルールの同期を実行し、このジョブの再試行とアラートを適用します。",
     "open": "{name} を開く"
   },
   "customizations": {
-    "profile": "同期プロファイル"
+    "profile": "同期ルール"
+  },
+  "attention": {
+    "title": "対応が必要",
+    "description": "競合を決定し、同期されなかったレコードを確認してください。",
+    "nothing": "対応が必要な項目はありません。未解決の競合も失敗したレコードもありません。",
+    "conflicts": "未解決の競合 {count} 件",
+    "fieldsChanged": "両方で変更: {fields}",
+    "resolve": "解決",
+    "resolveFor": "{ref} の競合を解決",
+    "allConflicts": "すべての競合 ({count} 件)",
+    "failed": "同期されなかったレコード {count} 件",
+    "allFailed": "同期されなかったすべてのレコード ({count} 件)",
+    "rules": "前回の実行で問題があった同期ルール",
+    "viewRun": "実行を表示"
+  },
+  "results": {
+    "sync": "読み取り {read} · 作成 {created} · 更新 {updated} · 送信 {pushed}{conflicts, plural, =0 {} other { · 競合 #}}{errors, plural, =0 {} other { · エラー #}}",
+    "alreadyRunning": "このルールの同期はすでに実行中でした"
   }
 }

@@ -35,6 +35,7 @@ import {
   type CreateDeploymentInput,
   type DeploymentStatus,
   type Environment,
+  type EnvironmentKind,
   type PolicyCheck,
   type PolicyDecisionDto,
   type RecordedDeployment,
@@ -54,11 +55,29 @@ export function useRaiseChangeHref() {
   const t = useTranslations('alm.release');
   const { enabledModules } = usePlatform();
   const canRaise = useCan(NEW_CHANGE_PERMISSION) && enabledModules.includes('itsm');
-  return (app: { name: string }, release: { id: string; version: string }): string | null =>
-    canRaise
-      ? `/itsm/changes?new=1&title=${encodeURIComponent(t('raiseChangeTitle', { app: app.name, version: release.version }))}&link=alm.release:${release.id}`
-      : null;
+  return (
+    app: { name: string },
+    release: { id: string; version: string; plannedDate?: string | null },
+  ): string | null => {
+    if (!canRaise) return null;
+    const params = new URLSearchParams({
+      new: '1',
+      title: t('raiseChangeTitle', { app: app.name, version: release.version }),
+      link: `alm.release:${release.id}`,
+    });
+    // The change window follows the release's planned date: 20:00–21:00 that evening (editable in the form).
+    if (release.plannedDate) {
+      const start = new Date(`${release.plannedDate}T20:00:00`);
+      if (start.getTime() > Date.now()) {
+        params.set('start', start.toISOString());
+        params.set('end', new Date(start.getTime() + 3_600_000).toISOString());
+      }
+    }
+    return `/itsm/changes?${params.toString()}`;
+  };
 }
+
+const LINKED = '__linked__';
 
 function Panel({
   tone,
@@ -88,10 +107,13 @@ export function PolicyExplanation({
   decision,
   check,
   raiseHref,
+  soft,
 }: {
   decision: PolicyDecisionDto;
   check?: Pick<PolicyCheck, 'environment' | 'changes' | 'requireChange' | 'enforceWindow' | 'namedNotFound'>;
   raiseHref?: string | null;
+  /** Nothing was refused yet (a release being prepared): what production needs, in the info tone, not an alarm. */
+  soft?: boolean;
 }) {
   const t = useTranslations('alm.policy');
   const change = decision.change;
@@ -118,8 +140,10 @@ export function PolicyExplanation({
       </Panel>
     );
   return (
-    <Panel tone="danger" icon={CircleXIcon}>
-      <p className="font-medium">{t(`reason.${decision.reason ?? 'no_change'}`)}</p>
+    <Panel tone={soft ? 'info' : 'danger'} icon={soft ? InfoIcon : CircleXIcon}>
+      <p className="font-medium">
+        {soft ? t(`needs.${decision.reason ?? 'no_change'}`) : t(`reason.${decision.reason ?? 'no_change'}`)}
+      </p>
       <p className="text-muted-foreground">{check?.enforceWindow ? t('ruleWithWindow') : t('rule')}</p>
       {check?.namedNotFound && <p className="text-destructive">{t('namedNotFound')}</p>}
       {change && <ChangeLine change={change} />}
@@ -146,6 +170,7 @@ export function DeploymentDialog({
   release,
   canOverride,
   onRecorded,
+  environmentKind,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -154,6 +179,8 @@ export function DeploymentDialog({
   release?: { id: string; version: string } | null;
   canOverride: boolean;
   onRecorded?: (d: RecordedDeployment) => void;
+  /** Start on the first environment of this kind (`production` from the "ready" notification, `test`). */
+  environmentKind?: EnvironmentKind;
 }) {
   const t = useTranslations('alm.deploy');
   const tc = useTranslations('common');
@@ -170,6 +197,7 @@ export function DeploymentDialog({
             environments={environments}
             release={release ?? null}
             canOverride={canOverride}
+            environmentKind={environmentKind}
             onCancel={() => onOpenChange(false)}
             onRecorded={(d) => {
               onOpenChange(false);
@@ -187,6 +215,7 @@ function DeploymentForm({
   environments,
   release,
   canOverride,
+  environmentKind,
   onCancel,
   onRecorded,
 }: {
@@ -194,6 +223,7 @@ function DeploymentForm({
   environments: Environment[];
   release: { id: string; version: string } | null;
   canOverride: boolean;
+  environmentKind?: EnvironmentKind;
   onCancel: () => void;
   onRecorded: (d: RecordedDeployment) => void;
 }) {
@@ -216,11 +246,18 @@ function DeploymentForm({
   };
   // Default: the first environment that doesn't run this version yet (the next step of the pipeline).
   const initialEnv =
-    (release && environments.find((e) => e.currentVersion !== release.version)) ?? environments[0] ?? null;
+    (environmentKind &&
+      (environments.find((e) => e.kind === environmentKind) ??
+        (environmentKind === 'test' ? environments.find((e) => e.kind === 'staging') : undefined))) ||
+    (release && environments.find((e) => e.currentVersion !== release.version)) ||
+    environments[0] ||
+    null;
   const [envId, setEnvId] = useState(initialEnv?.id ?? '');
   const [version, setVersion] = useState(release?.version ?? '');
   const [status, setStatus] = useState<DeploymentStatus>('succeeded');
   const [changeRef, setChangeRef] = useState('');
+  /** `''` = the release's linked change (or none), `other` = type a reference. */
+  const [changeChoice, setChangeChoice] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [commitSha, setCommitSha] = useState('');
   const [pipelineUrl, setPipelineUrl] = useState('');
@@ -240,6 +277,8 @@ function DeploymentForm({
     changeReference: debouncedChange || undefined,
   });
 
+  // Changes linked to the release (from the live policy check), offered by reference.
+  const linkedChanges = policy.data?.changes ?? [];
   // While another environment's answer is still on screen (kept while refetching), show nothing stale.
   const live = policy.data && policy.data.environment.id === envId ? policy.data : null;
   const decision = refusal ?? live?.decision ?? null;
@@ -263,6 +302,11 @@ function DeploymentForm({
     e.preventDefault();
     setError(null);
     if (!env || !versionOk) return setError(t('incomplete'));
+    // Refused by the change policy: the explanation above says why; point at it instead of a disabled button.
+    if (blocked && !overriding) {
+      document.getElementById(ids.policy)?.scrollIntoView({ block: 'nearest' });
+      return setError(canOverride ? t('blockedOverride') : t('blockedExplain'));
+    }
     if (overriding && blocked && reason.trim().length < 10) return setError(t('reasonTooShort'));
     try {
       await record.mutateAsync({
@@ -352,19 +396,49 @@ function DeploymentForm({
           </Select>
         </div>
         <div className="grid min-w-0 gap-2">
-          <Label htmlFor={ids.change}>{t('changeReference')}</Label>
-          <Input
-            id={ids.change}
-            className="font-mono"
-            placeholder="CHG-00012"
-            value={changeRef}
-            maxLength={32}
-            aria-describedby={ids.changeHint}
-            onChange={(e) => {
-              setChangeRef(e.target.value.toUpperCase());
+          <Label htmlFor={ids.change}>{t('change')}</Label>
+          <Select
+            value={changeChoice || LINKED}
+            onValueChange={(v) => {
+              const choice = v === LINKED ? '' : v;
+              setChangeChoice(choice);
+              setChangeRef(choice === 'other' || choice === '' ? '' : choice);
               setRefusal(null);
             }}
-          />
+          >
+            <SelectTrigger id={ids.change} className="w-full" aria-describedby={ids.changeHint}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={LINKED}>
+                {linkedChanges.length === 1
+                  ? t('linkedOne', { reference: linkedChanges[0]!.reference })
+                  : linkedChanges.length
+                    ? t('linkedChange')
+                    : t('noChange')}
+              </SelectItem>
+              {(linkedChanges.length > 1 ? linkedChanges : []).map((c) => (
+                <SelectItem key={c.id} value={c.reference}>
+                  <span className="font-mono text-xs">{c.reference}</span> {c.title}
+                </SelectItem>
+              ))}
+              <SelectItem value="other">{t('otherChange')}</SelectItem>
+            </SelectContent>
+          </Select>
+          {changeChoice === 'other' && (
+            <Input
+              aria-label={t('changeReference')}
+              className="font-mono"
+              placeholder="CHG-00012"
+              value={changeRef}
+              maxLength={32}
+              autoFocus
+              onChange={(e) => {
+                setChangeRef(e.target.value.toUpperCase());
+                setRefusal(null);
+              }}
+            />
+          )}
           <p id={ids.changeHint} className="text-xs text-muted-foreground">
             {t('changeHint')}
           </p>
@@ -482,7 +556,6 @@ function DeploymentForm({
           type="submit"
           variant={overriding && blocked ? 'destructive' : 'default'}
           loading={record.isPending}
-          disabled={!env || !versionOk || (blocked && !overriding)}
         >
           {overriding && blocked ? t('recordWithOverride') : t('record')}
         </Button>

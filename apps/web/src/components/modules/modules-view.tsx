@@ -4,10 +4,10 @@ import type { ModuleInfo } from '@isbp/contracts';
 import { Badge } from '@isbp/ui/badge';
 import { Card, CardContent } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { FadeIn, Stagger, StaggerItem } from '@isbp/ui/motion';
+import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { BlocksIcon, SquareTerminalIcon } from 'lucide-react';
+import { BlocksIcon } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -32,29 +32,6 @@ function CardSkeleton() {
         <Skeleton className="h-9 w-full" />
       </CardContent>
     </Card>
-  );
-}
-
-/** Small developer hint: how modules are made. Text only — commands are not translated. */
-function HowModulesWork() {
-  const t = useTranslations('modules.howTo');
-  return (
-    <FadeIn
-      delay={0.15}
-      className="mt-8 flex flex-col gap-4 rounded-xl border border-dashed bg-card/50 p-5 sm:flex-row sm:items-start"
-    >
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-        <SquareTerminalIcon className="size-4" aria-hidden />
-      </span>
-      <div className="min-w-0 space-y-2 text-sm">
-        <p className="font-medium">{t('title')}</p>
-        <p className="max-w-3xl text-muted-foreground">{t('body')}</p>
-        <p className="text-muted-foreground">{t('scaffold')}</p>
-        <pre className="w-fit max-w-full overflow-x-auto rounded-md bg-muted px-3 py-2 font-mono text-xs">
-          <code>pnpm create-module &lt;{t('placeholder')}&gt;</code>
-        </pre>
-      </div>
-    </FadeIn>
   );
 }
 
@@ -104,15 +81,14 @@ export function ModulesView() {
       ) : items.length === 0 ? (
         <EmptyState icon={<BlocksIcon />} title={t('empty')} />
       ) : (
-        <Stagger className="grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <Stagger className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((m) => (
-            <StaggerItem key={m.id} className="h-full">
+            <StaggerItem key={m.id} className="h-full min-w-0">
               <ModuleCard module={m} all={items} onOpen={() => select(m.id)} />
             </StaggerItem>
           ))}
         </Stagger>
       )}
-      <HowModulesWork />
       <ModuleSheet
         module={selected ?? shown}
         all={items}

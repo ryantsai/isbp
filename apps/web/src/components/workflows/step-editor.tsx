@@ -10,14 +10,13 @@ import {
   type WorkflowStep,
 } from '@isbp/sdk';
 import { Button } from '@isbp/ui/button';
-import { ConditionBuilder } from '@isbp/ui/condition-builder';
+import { ConditionBuilder, useConditionText } from '@isbp/ui/condition-builder';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
+import { Disclosure } from '@isbp/ui/motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Separator } from '@isbp/ui/separator';
 import { Switch } from '@isbp/ui/switch';
-import { cn } from '@isbp/ui';
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useId } from 'react';
@@ -48,6 +47,35 @@ function Group({
       </div>
       {children}
     </section>
+  );
+}
+
+/** A collapsed part of the inspector that says in one line what it holds ("Due within 48 h", "Always"). */
+function Section({
+  title,
+  summary,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  summary: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Disclosure
+      defaultOpen={defaultOpen}
+      className="rounded-lg border px-3"
+      summary={
+        <span className="grid gap-0.5">
+          <span className="text-sm font-semibold">{title}</span>
+          <span className="text-xs font-normal text-muted-foreground">{summary}</span>
+        </span>
+      }
+      contentClassName="grid gap-3 pb-3"
+    >
+      {children}
+    </Disclosure>
   );
 }
 
@@ -114,8 +142,10 @@ function NumberField({
 function WhenEditor({ step, onChange }: { step: WorkflowStep; onChange: (s: WorkflowStep) => void }) {
   const t = useTranslations('workflows.builder.editor');
   const { facts } = useBuilder();
+  const conditionText = useConditionText(facts);
   return (
-    <Group title={t('when')} description={t('whenHint')}>
+    <Section title={t('when')} summary={conditionText(step.when)} defaultOpen={Boolean(step.when)}>
+      <p className="text-xs text-muted-foreground">{t('whenHint')}</p>
       <ToggleRow
         label={t('onlySometimes')}
         checked={Boolean(step.when)}
@@ -125,10 +155,11 @@ function WhenEditor({ step, onChange }: { step: WorkflowStep; onChange: (s: Work
         <ConditionBuilder
           value={step.when}
           facts={facts}
+          emptyText={t('whenEmpty')}
           onChange={(when) => onChange({ ...step, when: when ?? { all: [] } })}
         />
       )}
-    </Group>
+    </Section>
   );
 }
 
@@ -141,6 +172,25 @@ function ApprovalEditor({ step, onChange }: { step: ApprovalStep; onChange: (s: 
       ...step,
       sla: patch === null ? undefined : ({ dueHours: 48, onBreach: 'notify', ...sla, ...patch } as SlaPolicy),
     });
+  // With one approver line the mode doesn't change anything: show it once there are several (or it was changed).
+  const showMode = step.approvers.length > 1 || step.mode !== 'any';
+  const fieldCount = step.fields?.length ?? 0;
+  const deadlineSummary = sla
+    ? [
+        t('summary.due', { hours: sla.dueHours }),
+        sla.remindHours ? t('summary.remind', { hours: sla.remindHours }) : null,
+        t(`summary.breach.${sla.onBreach}`),
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : t('summary.noDeadline');
+  const optionsSummary = [
+    t(`summary.nobody.${step.ifNoApprover ?? 'reject'}`),
+    step.allowSelfApproval ? t('summary.selfAllowed') : null,
+    step.allowDelegation === false ? t('summary.noHandover') : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <>
       <Group title={t('approvers')} description={t('approversHint')}>
@@ -149,48 +199,74 @@ function ApprovalEditor({ step, onChange }: { step: ApprovalStep; onChange: (s: 
           onChange={(approvers) => onChange({ ...step, approvers })}
           addLabel={t('addApprover')}
         />
-        <div className="grid gap-1.5 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-mode`} className="text-xs font-normal">
-              {t('mode')}
-            </Label>
-            <Select
-              value={step.mode}
-              onValueChange={(v) =>
-                onChange({
-                  ...step,
-                  mode: v as ApprovalStep['mode'],
-                  quorum:
-                    v === 'quorum' ? (step.quorum ?? Math.min(2, step.approvers.length || 1)) : undefined,
-                })
-              }
-            >
-              <SelectTrigger id={`${id}-mode`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any">{t('modes.any')}</SelectItem>
-                <SelectItem value="all">{t('modes.all')}</SelectItem>
-                <SelectItem value="quorum">{t('modes.quorum')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {step.mode === 'quorum' && (
-            <NumberField
-              label={t('quorum')}
-              min={1}
-              value={step.quorum}
-              onChange={(v) => onChange({ ...step, quorum: v ? Math.round(v) : undefined })}
-              suffix={t('ofSlots', { count: step.approvers.length })}
-            />
-          )}
+        {showMode && (
+          <>
+            <div className="grid gap-1.5 sm:grid-cols-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor={`${id}-mode`} className="text-xs font-normal">
+                  {t('mode')}
+                </Label>
+                <Select
+                  value={step.mode}
+                  onValueChange={(v) =>
+                    onChange({
+                      ...step,
+                      mode: v as ApprovalStep['mode'],
+                      quorum:
+                        v === 'quorum' ? (step.quorum ?? Math.min(2, step.approvers.length || 1)) : undefined,
+                    })
+                  }
+                >
+                  <SelectTrigger id={`${id}-mode`} className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">{t('modes.any')}</SelectItem>
+                    <SelectItem value="all">{t('modes.all')}</SelectItem>
+                    <SelectItem value="quorum">{t('modes.quorum')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {step.mode === 'quorum' && (
+                <NumberField
+                  label={t('quorum')}
+                  min={1}
+                  value={step.quorum}
+                  onChange={(v) => onChange({ ...step, quorum: v ? Math.round(v) : undefined })}
+                  suffix={t('ofSlots', { count: step.approvers.length })}
+                />
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">{t(`modeHints.${step.mode}`)}</p>
+          </>
+        )}
+        <div className="grid gap-1.5">
+          <Label htmlFor={`${id}-none`} className="text-xs font-normal">
+            {t('ifNobody')}
+          </Label>
+          <Select
+            value={step.ifNoApprover ?? 'reject'}
+            onValueChange={(v) => onChange({ ...step, ifNoApprover: v as 'reject' | 'skip' })}
+          >
+            <SelectTrigger id={`${id}-none`} className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="reject">{t('nobody.reject')}</SelectItem>
+              <SelectItem value="skip">{t('nobody.skip')}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <p className="text-xs text-muted-foreground">{t(`modeHints.${step.mode}`)}</p>
       </Group>
-      <Separator />
-      <StepFieldsEditor step={step} onChange={onChange} />
-      <Separator />
-      <Group title={t('deadline')} description={t('deadlineHint')}>
+      <Section
+        title={t('stepFields')}
+        summary={fieldCount ? t('summary.fields', { count: fieldCount }) : t('noStepFields')}
+        defaultOpen={fieldCount > 0}
+      >
+        <StepFieldsEditor step={step} onChange={onChange} bare />
+      </Section>
+      <Section title={t('deadline')} summary={deadlineSummary} defaultOpen={Boolean(sla)}>
+        <p className="text-xs text-muted-foreground">{t('deadlineHint')}</p>
         <ToggleRow label={t('useDeadline')} checked={Boolean(sla)} onChange={(v) => setSla(v ? {} : null)} />
         {sla && (
           <div className="grid gap-3 rounded-lg border bg-muted/30 p-3">
@@ -246,9 +322,8 @@ function ApprovalEditor({ step, onChange }: { step: ApprovalStep; onChange: (s: 
             )}
           </div>
         )}
-      </Group>
-      <Separator />
-      <Group title={t('options')}>
+      </Section>
+      <Section title={t('options')} summary={optionsSummary}>
         <ToggleRow
           label={t('allowDelegation')}
           hint={t('allowDelegationHint')}
@@ -261,23 +336,6 @@ function ApprovalEditor({ step, onChange }: { step: ApprovalStep; onChange: (s: 
           checked={Boolean(step.allowSelfApproval)}
           onChange={(v) => onChange({ ...step, allowSelfApproval: v || undefined })}
         />
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-none`} className="text-xs font-normal">
-            {t('ifNobody')}
-          </Label>
-          <Select
-            value={step.ifNoApprover ?? 'reject'}
-            onValueChange={(v) => onChange({ ...step, ifNoApprover: v as 'reject' | 'skip' })}
-          >
-            <SelectTrigger id={`${id}-none`} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="reject">{t('nobody.reject')}</SelectItem>
-              <SelectItem value="skip">{t('nobody.skip')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
         <div className="grid gap-1.5">
           <Label htmlFor={`${id}-instructions`} className="text-xs font-normal">
             {t('instructions')}
@@ -292,7 +350,7 @@ function ApprovalEditor({ step, onChange }: { step: ApprovalStep; onChange: (s: 
             placeholder={t('instructionsPlaceholder')}
           />
         </div>
-      </Group>
+      </Section>
     </>
   );
 }
@@ -524,17 +582,12 @@ export function StepEditor({
           onChange={(name) => onChange({ ...step, name })}
         />
       </div>
-      <div className={cn('grid gap-6')}>
+      <div className="grid gap-3">
         {step.type === 'approval' && <ApprovalEditor step={step} onChange={onChange} />}
         {step.type === 'condition' && <ConditionEditor step={step} onChange={onChange} />}
         {step.type === 'parallel' && <ParallelEditor step={step} onChange={onChange} />}
         {step.type === 'notify' && <NotifyEditor step={step} onChange={onChange} />}
-        {step.type !== 'condition' && (
-          <>
-            <Separator />
-            <WhenEditor step={step} onChange={onChange} />
-          </>
-        )}
+        {step.type !== 'condition' && <WhenEditor step={step} onChange={onChange} />}
       </div>
     </fieldset>
   );

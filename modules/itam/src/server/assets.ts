@@ -354,7 +354,11 @@ export class AssetService {
       transitions: manage && !row.disposalInstanceId ? manualTransitions(row.status) : [],
       canAssign: manage && canAssign(row.status) && !row.disposalInstanceId,
       canReturn: manage && Boolean(row.assignedTo),
-      canDispose: manage && row.status === 'retired' && !row.disposalInstanceId,
+      // From stock or repair too: the request retires the asset first.
+      canDispose:
+        manage &&
+        (row.status === 'retired' || canTransition(row.status, 'retired')) &&
+        !row.disposalInstanceId,
       canRecordWipe: manage && isDataBearing(row.category) && row.status !== 'disposed',
       canReadContracts: canReadContracts(auth),
       canReadSoftware: canReadSoftware(auth) || manage,
@@ -1124,15 +1128,45 @@ export class AssetService {
     const today = companyToday();
     const actor = actorOf(auth);
     return this.ctx.transaction(async (tx) => {
-      const a = await this.lock(tx, target.id);
-      if (a.status !== 'retired')
+      let a = await this.lock(tx, target.id);
+      if (a.disposalInstanceId)
+        throw new HttpError(409, ErrorCodes.INVALID_STATE, 'A disposal request is already pending');
+      if (a.status !== 'retired' && !canTransition(a.status, 'retired'))
         throw new HttpError(409, ErrorCodes.INVALID_TRANSITION, 'Only retired assets can be disposed of', {
           from: a.status,
           to: 'disposed',
           allowed: [],
         });
-      if (a.disposalInstanceId)
-        throw new HttpError(409, ErrorCodes.INVALID_STATE, 'A disposal request is already pending');
+      if (a.status !== 'retired') {
+        // "Request disposal" on an asset in stock or in repair retires it first (as "Change status" would).
+        const [retired] = await tx
+          .update(assets)
+          .set({ status: 'retired' })
+          .where(eq(assets.id, a.id))
+          .returning();
+        await this.event(tx, a.id, 'status_changed', actor, {
+          from: a.status,
+          to: 'retired',
+          note: input.note,
+        });
+        await this.ctx.audit.record(
+          {
+            action: 'itam.asset.status_changed',
+            entityType: ASSET_ENTITY,
+            entityId: a.id,
+            entityLabel: auditLabel(a),
+            changes: { status: [a.status, 'retired'] },
+            metadata: { note: input.note, reason: 'disposal_requested' },
+          },
+          { tx },
+        );
+        await this.ctx.events.publish(
+          'itam.asset.status_changed',
+          { ...this.ref(retired!), from: a.status, to: 'retired' },
+          { tx },
+        );
+        a = retired!;
+      }
       const tag = formatAssetTag(a.number);
       const facts = await this.disposalStartFacts(a, row ? lifespanOf(row) : null, today);
       const started = await this.ctx.workflows.start(

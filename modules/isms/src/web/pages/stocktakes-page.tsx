@@ -3,7 +3,6 @@
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
@@ -15,57 +14,37 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
-import {
-  type MyStocktakeItem,
-  STOCKTAKE_STATUSES,
-  type Stocktake,
-  type StocktakeItem,
-} from '../../contracts';
+import { type MyStocktakeItem, STOCKTAKE_STATUSES, type Stocktake } from '../../contracts';
 import { ProgressBar, StocktakeStatusBadge } from '../badges';
 import { stocktakeHref, useDay } from '../lib';
-import { NewStocktakeSheet, RecordItemDialog } from '../stocktake-dialogs';
+import { NewStocktakeSheet } from '../stocktake-dialogs';
+import { StocktakeItemList } from '../stocktake-items';
 
 const VIEWS = ['all', ...STOCKTAKE_STATUSES] as const;
 type View = (typeof VIEWS)[number];
 
-/** Items waiting for the viewer in open stocktakes, each with a "Record" button. */
+/** Items waiting for the viewer in open stocktakes, answered right here ("It's right" / "Something's different…"). */
 function MyItems() {
   const t = useTranslations('isms');
-  const day = useDay();
   const { data } = useApiQuery<{ items: MyStocktakeItem[] }>('/isms/stocktake-items/mine');
-  const [item, setItem] = useState<MyStocktakeItem | null>(null);
   if (!data?.items.length) return null;
   return (
-    <Card className="min-w-0">
-      <CardHeader>
-        <CardTitle>{t('stocktakes.mine')}</CardTitle>
-        <CardDescription>{t('stocktakes.mineDescription', { count: data.items.length })}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ul className="divide-y">
-          {data.items.slice(0, 10).map((i) => (
-            <li key={i.id} className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm">
-              <span className="font-mono text-xs text-muted-foreground">{i.snapshot.number}</span>
-              <span className="min-w-0 flex-1 truncate font-medium">{i.snapshot.name}</span>
-              <Link
-                href={stocktakeHref(i.stocktake.reference)}
-                className="text-xs text-muted-foreground hover:underline"
-              >
-                {i.stocktake.reference} · {t('stocktakes.dueOn', { date: day(i.stocktake.dueOn) })}
-              </Link>
-              <Button size="sm" variant="outline" onClick={() => setItem(i)}>
-                {t('record.open')}
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-      <RecordItemDialog
-        stocktake={item?.stocktake.reference ?? ''}
-        item={item as StocktakeItem | null}
-        onOpenChange={(o) => !o && setItem(null)}
+    <section aria-labelledby="isms-my-items" className="grid min-w-0 gap-2">
+      <div>
+        <h2 id="isms-my-items" className="text-base font-semibold">
+          {t('stocktakes.mine')}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {t('stocktakes.mineDescription', { count: data.items.length })}
+        </p>
+      </div>
+      <StocktakeItemList
+        label={t('stocktakes.mine')}
+        items={data.items.slice(0, 10)}
+        stocktakeOf={(i) => i.stocktake?.reference ?? ''}
+        selectable
       />
-    </Card>
+    </section>
   );
 }
 
@@ -75,10 +54,14 @@ export default function StocktakesPage() {
   const router = useRouter();
   const day = useDay();
   const canManage = useCan('isms.stocktakes.manage');
+  const readsAssets = useCan('isms.assets.read');
+  const signsOff = useCan('isms.stocktakes.signoff');
+  // People who only take part see their stocktakes without the status tabs.
+  const readsAll = canManage || readsAssets || signsOff;
   const [state, set] = useListState({ pageSize: 25 });
   const [creating, setCreating] = useState(false);
   const view: View = VIEWS.includes(state.view as View) ? (state.view as View) : 'all';
-  const { data, isLoading, isFetching } = useApiQuery<Page<Stocktake>>('/isms/stocktakes', {
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<Stocktake>>('/isms/stocktakes', {
     page: state.page,
     pageSize: state.pageSize,
     sort: state.sort,
@@ -160,6 +143,8 @@ export default function StocktakesPage() {
       sort={state.sort}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(s) => s.id}
       onRowClick={(s) => router.push(stocktakeHref(s.reference))}
       onPageChange={(page) => set({ page })}
@@ -174,18 +159,26 @@ export default function StocktakesPage() {
         />
       }
       empty={
-        <EmptyState
-          icon={<ClipboardCheckIcon />}
-          title={t('stocktakes.empty.title')}
-          description={t('stocktakes.empty.description')}
-          action={
-            canManage && (
+        state.q ? (
+          <EmptyState variant="filtered" onClearFilters={() => set({ q: undefined })} />
+        ) : canManage ? (
+          <EmptyState
+            icon={<ClipboardCheckIcon />}
+            title={t('stocktakes.empty.title')}
+            description={t('stocktakes.empty.description')}
+            action={
               <Button onClick={() => setCreating(true)}>
                 <PlusIcon /> {t('stocktakes.new')}
               </Button>
-            )
-          }
-        />
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={<ClipboardCheckIcon />}
+            title={t('stocktakes.empty.participantTitle')}
+            description={t('stocktakes.empty.participant')}
+          />
+        )
       }
     />
   );
@@ -203,20 +196,28 @@ export default function StocktakesPage() {
         }
       />
       <MyItems />
-      <Tabs value={view} onValueChange={(v) => set({ view: v === 'all' ? undefined : v })} className="gap-4">
-        <TabsList className="max-w-full justify-start overflow-x-auto">
+      {!readsAll ? (
+        table
+      ) : (
+        <Tabs
+          value={view}
+          onValueChange={(v) => set({ view: v === 'all' ? undefined : v })}
+          className="gap-4"
+        >
+          <TabsList className="max-w-full justify-start overflow-x-auto">
+            {VIEWS.map((v) => (
+              <TabsTrigger key={v} value={v}>
+                {v === 'all' ? t('stocktakes.all') : t(`stocktakeStatus.${v}`)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
           {VIEWS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {v === 'all' ? t('stocktakes.all') : t(`stocktakeStatus.${v}`)}
-            </TabsTrigger>
+            <TabsContent key={v} value={v} className="min-w-0">
+              {view === v && table}
+            </TabsContent>
           ))}
-        </TabsList>
-        {VIEWS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {view === v && table}
-          </TabsContent>
-        ))}
-      </Tabs>
+        </Tabs>
+      )}
       {canManage && (
         <NewStocktakeSheet
           open={creating}

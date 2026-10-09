@@ -118,6 +118,38 @@ toSessionUser(user), null, await h.kernel.rbac.permissionsFor(user.id))`.
   service containers.
 - The Docker script runner test runs with `ISBP_TEST_DOCKER=1` (CI).
 
+## Flow simulation (many runs, random data)
+
+`tooling/flow-sim` (`@isbp/flow-sim`, details in its README) runs every user flow hundreds of times with random data
+against a running stack, through the public API as the people in them would, to find what single tests miss: 5xx
+responses, wrong states, races, slow routes and background work that never finishes.
+
+- **Stack:** `pnpm turbo run build --filter=@isbp/api`, then `pnpm sim:stack --reset`: the API (:4010) and worker from
+  the production build on their own database (`isbp_sim`), Redis index (12), metrics ports and integration stand-ins
+  (:4110). Never point the simulator at the demo stack (:3000/:4000), `isbp` or a `*_test` database: it refuses.
+- **Run:** `pnpm sim --iterations 500 --concurrency 6 --seed 42 --flows all --report <dir>`. Each iteration runs every
+  selected flow once, in a seeded random order; `--concurrency` runs are in flight at once across iterations. The same
+  seed makes the same choices. It exits 1 when anything failed.
+- **Personas:** flows act as the seed's accounts and the simulator's own `sim.*` people (managers, employees,
+  requesters, IT staff, agents, a CI approver, a CAB member, an access owner), created once per database through the
+  admin API with random passwords kept in `tooling/flow-sim/.state/` (gitignored). Pools (`employee`, `requester`,
+  `itstaff`, `agent`) spread concurrent runs over several people. Nothing it prints or reports contains a password,
+  token or API key.
+- **Flow contract:** `defineFlow({ name, area, personas, run: async (ctx) => … })` in
+  `tooling/flow-sim/src/flows/<area>.ts`, registered in `src/flows/index.ts`. `ctx.as(persona)` is an API client
+  (`get/post/patch/put/delete` → `{ status, body }`, never throws); `ctx.rand` seeded data and unique suffixes;
+  `ctx.step(label, fn)` names failure locations; `ctx.expect.*` checks throw a `FlowError` with the step, request and
+  response excerpt (`oneOk` for requests sent twice at once); `ctx.eventually` waits for outbox and worker effects;
+  `ctx.approvals` decides as the approvers; `ctx.forms.answers` fills a form from its own schema.
+- **Adding a flow:** create what it needs with a unique suffix, never rely on another flow's data, find your records
+  with `q` (thousands of earlier runs' records are there), check what each party sees afterwards, put variants behind
+  `ctx.rand` and `ctx.tag` them, and leave shared configuration as you found it. A persona whose access a flow changes
+  belongs to that flow alone (its own pool, like `requester`).
+- **Report** (`report.md` + `report.json`): per-flow results, failures grouped by signature (flow › step › normalised
+  message) with the first occurrence, every 5xx, requests over 3 s and p50/p95/p99 per route, how long background work
+  took, whether it drained (outbox, BullMQ queues, process actions), failed jobs and process actions, and API/worker
+  log entries at error level.
+
 ## Quality gate (what CI runs)
 
 ```bash

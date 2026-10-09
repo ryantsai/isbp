@@ -184,10 +184,11 @@ conversation.
 
 ## Ask IT, the assistant and change sets
 
-### Ask IT says "Builtin · no LLM"
+### Ask IT says "Answers from our knowledge base"
 
 No AI language model is configured. Ask IT still works: it answers from knowledge-base search, similar tickets and
-templates, and it can still prepare a ticket. **Language model** means an AI model writes the answers. An
+templates, and it can still prepare a ticket. **AI answers based on our knowledge base** means an AI model writes the
+answers. An
 administrator chooses the model in **Administration → AI**. See [Assistant and AI](assistant-and-ai.md).
 
 ### The assistant only offers guided templates
@@ -208,7 +209,7 @@ prepared, so applying it would overwrite their work.
 
 1. Open the change set in **Administration → Change sets**.
 2. Select **Refresh**: the change set now uses the current versions.
-3. Review the differences and the **Dry run**, then apply or request a review again.
+3. Review the differences and whether each change is **Ready to apply**, then apply or request a review again.
 
 ### It says "You can't apply this change set yourself"
 
@@ -252,13 +253,13 @@ change manager, raise one with **Raise a change**. See [Changes and releases](ch
 
 ### There's a sync conflict
 
-The same field changed in ISBP and in ServiceDesk Plus or Azure DevOps Server since the last sync, and the profile
+The same field changed in ISBP and in ServiceDesk Plus or Azure DevOps Server since the last sync, and the sync rule
 asks a person to decide.
 
-1. Go to **Administration → Integrations → Sync conflicts**.
+1. Go to **Administration → Sync conflicts**.
 2. Select **Resolve** on the conflict.
-3. For each field, choose **Keep ISBP's value** or **Keep the value from …**, or **Keep both as they are**, then
-   select **Apply**.
+3. For each field, choose **Keep the value here** or **Keep the value from …**, then select **Apply**. To leave each
+   side with its own value, select **Don’t sync this change** instead.
 
 You need permission to resolve sync conflicts (the **Integrations administrator** role). See
 [Integrations](integrations.md).

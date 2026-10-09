@@ -27,6 +27,7 @@ const ICONS: Record<string, { icon: ReactNode; tone: string }> = {
   started: { icon: <PlayIcon />, tone: 'bg-primary/10 text-primary' },
   step_started: { icon: <CircleDotIcon />, tone: 'bg-muted text-muted-foreground' },
   task_approved: { icon: <CheckCircle2Icon />, tone: 'bg-success/12 text-success' },
+  task_already_approved: { icon: <CheckCircle2Icon />, tone: 'bg-success/12 text-success' },
   task_rejected: { icon: <XCircleIcon />, tone: 'bg-destructive/10 text-destructive' },
   task_delegated: { icon: <ForwardIcon />, tone: 'bg-info/12 text-info' },
   task_reminded: { icon: <AlarmClockIcon />, tone: 'bg-warning/15 text-warning-foreground' },
@@ -70,6 +71,7 @@ export function InstanceTimeline({ instance }: { instance: Pick<WorkflowInstance
           count: Number(data.added ?? data.recipients ?? data.assignees ?? 0),
           outcome: String(data.outcome ?? ''),
           reason: String(data.reason ?? ''),
+          from: stepName(String(data.fromStepId ?? '')),
         };
         const key = t.has(`events.${e.type}`) ? `events.${e.type}` : 'events.other';
         const comment = typeof data.comment === 'string' && data.comment ? data.comment : null;
@@ -107,6 +109,11 @@ export function InstanceTimeline({ instance }: { instance: Pick<WorkflowInstance
                   </span>
                 )}
               </p>
+              {e.type === 'task_already_approved' && (
+                <p className="text-sm text-muted-foreground">
+                  {t('reasons.already-approved', { step: values.from })}
+                </p>
+              )}
               {(comment || reason) && (
                 <blockquote className="mt-1.5 rounded-lg border-l-2 border-primary/40 bg-muted/50 px-3 py-2 text-sm whitespace-pre-line text-foreground/90">
                   {comment ?? reason}

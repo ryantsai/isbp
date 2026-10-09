@@ -45,13 +45,19 @@ export function useCategories(type?: TicketType, includeInactive = false) {
   return { categories: q.data?.items ?? [], tree, isLoading: q.isLoading, error: q.error };
 }
 
-/** Localized category path from a ref (`ancestors` aren't on refs, so the English path is the fallback). */
+/** Localized category path ("網路 › VPN") from a ref; refs without `ancestors` fall back to the English parents. */
 export function useCategoryLabel() {
   const locale = useLocale();
   return useCallback(
-    (c: { name: Category['name']; path: string } | null | undefined) => {
+    (
+      c:
+        | { name: Category['name']; path: string; ancestors?: { name: Category['name'] }[] | null }
+        | null
+        | undefined,
+    ) => {
       if (!c) return null;
       const own = localize(c.name, locale);
+      if (c.ancestors) return [...c.ancestors.map((a) => localize(a.name, locale)), own].join(' › ');
       const parts = c.path.split(' › ');
       return parts.length > 1 ? [...parts.slice(0, -1), own].join(' › ') : own;
     },

@@ -84,6 +84,39 @@ test('notifications: mark everything read', async ({ page, request }) => {
   await expect(page.getByRole('button', { name: 'Mark all as read' })).toBeDisabled();
 });
 
+test('custom fields: add a record field to tickets with the short editor', async ({ page, request }) => {
+  const label = `E2E application ${Date.now().toString(36)}`;
+  await page.goto('/admin/custom-fields?entity=itsm.ticket');
+  await expect(page.getByRole('tab', { name: /Tickets/ })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('button', { name: 'Add field' }).first().click();
+  const sheet = page.getByRole('dialog', { name: 'Add a field to Tickets' });
+  await sheet.getByRole('combobox', { name: 'Field type' }).click();
+  await page.getByRole('option', { name: 'Record' }).click();
+  await sheet.getByRole('textbox', { name: 'Label' }).fill(label);
+  await sheet.getByRole('checkbox', { name: 'Application', exact: true }).check();
+  // Type, label, required and the record types come first; the rest waits under "More options", the key under
+  // "Advanced".
+  await expect(sheet.getByRole('button', { name: 'More options' })).toHaveAttribute('aria-expanded', 'false');
+  await expect(sheet.getByRole('button', { name: 'Advanced' })).toHaveAttribute('aria-expanded', 'false');
+  // A closed section is hidden from assistive technology (and inert).
+  await expect(sheet.getByRole('textbox', { name: 'Key' })).toHaveCount(0);
+  await expectAccessible(page);
+  await sheet.getByRole('button', { name: 'Add field' }).click();
+  await expect(sheet).toBeHidden();
+
+  const headers = { 'x-csrf-token': await csrfOf(request) };
+  const fields = (await (await request.get('/api/v1/custom-fields?entityType=itsm.ticket')).json()) as {
+    items: { id: string; field: { label: { en?: string } } }[];
+  };
+  const id = fields.items.find((f) => f.field.label.en === label)?.id;
+  try {
+    expect(id).toBeTruthy();
+    await expect(page.getByText(label).first()).toBeVisible();
+  } finally {
+    if (id) await request.post(`/api/v1/custom-fields/${id}/archive`, { headers });
+  }
+});
+
 for (const [name, path] of [
   ['notifications', '/notifications'],
   ['settings', '/settings'],

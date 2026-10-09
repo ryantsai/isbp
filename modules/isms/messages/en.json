@@ -9,7 +9,8 @@
     "stocktakes": "Stocktakes",
     "accounts": "Shared accounts",
     "reviews": "Account reviews",
-    "settings": "Information security"
+    "settings": "Information security settings",
+    "settingsAbout": "Asset classes, numbering and values"
   },
   "systemRoles": {
     "isms-participant": {
@@ -119,7 +120,7 @@
     "availability": "Availability",
     "value": "Asset value",
     "classification": "Classification label",
-    "managerId": "Asset manager",
+    "managerId": "Owner",
     "managerGroup": "Managing group",
     "siteCode": "Site code",
     "status": "Asset status"
@@ -179,13 +180,13 @@
   "fields": {
     "number": "Asset number",
     "name": "Asset name",
-    "class": "Class",
-    "subclass": "Sub-class",
+    "class": "Asset type",
+    "subclass": "Subtype",
     "site": "Site",
-    "manager": "Asset manager",
-    "managerGroup": "Managing group",
-    "users": "Asset users",
-    "usersText": "Users (departments or people, as text)",
+    "manager": "Owner",
+    "managerGroup": "Owning group",
+    "users": "People who use it",
+    "usersText": "Other users (as text)",
     "location": "Location",
     "brand": "Brand",
     "model": "Model",
@@ -312,14 +313,14 @@
   },
   "register": {
     "title": "Information assets",
-    "description": "The information asset register: every asset with its class, manager, confidentiality, integrity, availability and value.",
-    "new": "Register an asset",
+    "description": "The information asset register: every asset with its type, owner and value (the highest of confidentiality, integrity and availability).",
+    "new": "New asset",
     "more": "More",
     "import": "Import from CSV",
     "createFrom": "Create from other records",
     "export": "Export CSV",
     "search": "Search by number or name",
-    "allClasses": "All classes",
+    "allClasses": "All asset types",
     "minValue": "Minimum value",
     "anyValue": "Any value",
     "valueAtLeast": "Value {value} or more",
@@ -339,18 +340,19 @@
       "title": "No information assets",
       "none": "Register the people, hardware, software, information and services your organisation depends on.",
       "filtered": "No asset matches these filters."
-    }
+    },
+    "needClassSite": "Choose an asset type and a site."
   },
   "assetForm": {
-    "createTitle": "Register an information asset",
+    "createTitle": "New information asset",
     "editTitle": "Edit {number}",
-    "hint": "Score confidentiality, integrity and availability with the class’s guidance: the asset value is the highest of the three.",
+    "hint": "Name it, say who owns it, then score confidentiality, integrity and availability with the asset type’s guidance: the asset value is the highest of the three.",
     "identity": "Asset",
-    "responsibility": "Responsibility and location",
-    "details": "Details",
+    "responsibility": "Owner",
+    "details": "More details: brand, model, version, quantity",
     "cia": "Confidentiality, integrity and availability",
     "ciaHint": "Choose the highest score whose description fits, so the value isn’t underestimated.",
-    "ciaPickClass": "Choose a class to see what each score means for it.",
+    "ciaPickClass": "Choose an asset type to see what each score means for it.",
     "confidentialityHint": "Impact if it is disclosed to people who shouldn’t see it.",
     "integrityHint": "Impact if it is wrong, incomplete or changed without permission.",
     "availabilityHint": "Impact if it can’t be used.",
@@ -358,11 +360,11 @@
     "noGuidance": "No guidance for this score",
     "nameHint": "Describe what it does, simply and clearly.",
     "nameRequired": "Enter a name",
-    "classRequired": "Choose a class",
+    "classRequired": "Choose an asset type",
     "siteRequired": "Choose a site",
     "quantityInvalid": "Enter a whole number, 0 or more",
     "choose": "Choose…",
-    "noSubclass": "No sub-class",
+    "noSubclass": "No subtype",
     "noClassification": "No classification",
     "noGroup": "No group",
     "numberHint": "The asset number is made from the site and class codes and the next number, such as HQ01HW0001.",
@@ -370,9 +372,16 @@
     "managerPlaceholder": "Choose a person",
     "addUser": "Add a person",
     "usersTextPlaceholder": "For example: Finance department, all staff",
-    "register": "Register",
+    "register": "Save",
     "created": "Registered {number}",
-    "saved": "Asset saved"
+    "saved": "Asset saved",
+    "usersAndPlace": "Who uses it and where it is",
+    "scoreRequired": "Choose a score",
+    "notScored": "Not scored yet",
+    "because": "set by {dimensions}",
+    "classificationSuggested": "Suggested from the confidentiality score: change it if this asset needs another label.",
+    "classificationHint": "The four labels follow the confidentiality scale: score 4 is the most restricted.",
+    "usersTextHint": "For people the platform doesn’t list, such as a department or a supplier."
   },
   "asset": {
     "notFound": "This asset doesn’t exist or you can’t see it",
@@ -380,8 +389,21 @@
     "cia": "Value",
     "ciaDescription": "The asset value is {value}: the highest of confidentiality, integrity and availability.",
     "deleteTitle": "Delete {number}?",
-    "deleteDescription": "{name} is removed from the register with its links and attachments. Its history stays in the audit log.",
-    "deleted": "Asset deleted"
+    "deleteDescription": "Delete removes {name} from the register, with its links and attachments (the audit log keeps the history). To keep the record, mark it disposed instead.",
+    "deleted": "Asset deleted",
+    "changeStatus": "Change status…",
+    "changeStatusTitle": "Change the status of {number}",
+    "statusHints": {
+      "active": "It’s in use, as the register says.",
+      "missing": "It can’t be found.",
+      "disposed": "It no longer exists: destroyed, returned or deleted."
+    },
+    "statusNote": "Note (optional)",
+    "statusNoteRequired": "Note: when and how (required)",
+    "statusNoteMissing": "Add a note: when and how.",
+    "statusChanged": "Status changed",
+    "markDisposedInstead": "Mark disposed instead",
+    "changeStatusSubmit": "Change status"
   },
   "history": {
     "title": "History",
@@ -399,7 +421,7 @@
     }
   },
   "links": {
-    "title": "Links and files",
+    "title": "Links & files",
     "unavailable": "Links and attachments aren’t available",
     "unavailableHint": "The platform’s record panels are switched off."
   },
@@ -456,7 +478,7 @@
     "noSources": "You can’t see any record types to register from.",
     "registered": "Registered as {number}",
     "defaults": "The new assets",
-    "needClassSite": "Choose a class and a site.",
+    "needClassSite": "Choose an asset type and a site.",
     "submit": "{count, plural, =0 {Register assets} one {Register # asset} other {Register # assets}}",
     "done": "{created, plural, one {# asset registered} other {# assets registered}}, {skipped} left out.",
     "types": {
@@ -466,11 +488,12 @@
       "itam_contract": "Contracts",
       "alm_application": "Applications",
       "knowledge_article": "Knowledge articles"
-    }
+    },
+    "needScores": "Score confidentiality, integrity and availability."
   },
   "stocktakes": {
     "title": "Stocktakes",
-    "description": "Check that the register is right: each asset’s manager confirms it, corrects it, or reports it missing or disposed.",
+    "description": "Check that the register is right: each asset’s owner confirms it, corrects it, or reports it missing or disposed.",
     "new": "New stocktake",
     "all": "All",
     "search": "Search stocktakes",
@@ -482,15 +505,15 @@
     "progressLabel": "Progress of {name}",
     "empty": {
       "title": "No stocktakes",
-      "description": "Start a stocktake to have asset managers check their assets."
+      "description": "Start a stocktake to have the owners of information assets check them.",
+      "participantTitle": "Nothing to check",
+      "participant": "When a stocktake includes assets you’re responsible for, they’ll appear here and on My work."
     }
   },
   "stocktake": {
     "notFound": "This stocktake doesn’t exist or you can’t see it",
     "items": "Assets in the stocktake",
     "search": "Search by number or name",
-    "onlyMine": "Only mine",
-    "noItems": "No assets here",
     "export": "Export results",
     "cancel": "Cancel stocktake",
     "cancelTitle": "Cancel {reference}?",
@@ -505,33 +528,41 @@
     "scheduled": "This stocktake starts on {date}.",
     "summary": "{confirmed} confirmed, {changed} changed, {missing} missing, {disposed} disposed, {pending} to check",
     "views": {
-      "all": "All",
-      "pending": "To check",
-      "done": "Recorded",
-      "confirmed": "Confirmed",
-      "changed": "Changed",
-      "missing": "Missing",
-      "disposed": "Disposed"
+      "todo": "To check",
+      "done": "Done",
+      "all": "All"
+    },
+    "runBy": "Run by {name}",
+    "progressValue": "{done} of {total} checked",
+    "readyToSignOff": "Every asset is checked: ready to sign off.",
+    "allDone": "All done. Thanks — nothing else to check.",
+    "allDoneHint": "You can still change an answer under Done until the stocktake is signed off.",
+    "scope": {
+      "label": "Whose assets",
+      "mine": "Mine to check",
+      "everyone": "Everyone’s"
+    },
+    "anyResult": "Any result",
+    "empty": {
+      "todo": "Nothing to check",
+      "done": "Nothing recorded yet",
+      "all": "No assets in this stocktake"
     }
   },
   "newStocktake": {
     "title": "New stocktake",
-    "description": "In-scope assets become items for their managers to check by the due date.",
+    "description": "In-scope assets become items for their owners to check by the due date.",
     "defaultName": "Asset stocktake {year}",
     "scopeHint": "Leave a list empty to include everything. Assets in use and missing assets are included.",
-    "managers": "Asset managers",
-    "addManager": "Add a manager",
+    "managers": "Owners",
+    "addManager": "Add an owner",
     "required": "Enter a name and a due date.",
     "start": "Start",
     "schedule": "Schedule",
     "created": "Stocktake {reference} created"
   },
   "record": {
-    "title": "Check {number}",
-    "open": "Check",
-    "change": "Change",
-    "openFor": "Check {number}",
-    "result": "Result",
+    "title": "What’s different about {name}?",
     "corrections": "What is right now",
     "note": "Note",
     "submit": "Record",
@@ -539,11 +570,36 @@
     "changesRequired": "Change at least one value.",
     "noteRequired": "Add a note: what happened to it?",
     "hints": {
-      "confirmed": "The register is right.",
-      "changed": "Correct the register now.",
-      "missing": "It can’t be found.",
-      "disposed": "It was disposed of."
-    }
+      "changed": "Correct them below: the register is updated right away.",
+      "missing": "You couldn’t find it. Say where you looked.",
+      "disposed": "Say when and how it was disposed of."
+    },
+    "facts": {
+      "location": "Location: {value}",
+      "noLocation": "No location recorded",
+      "quantity": "Quantity: {value}",
+      "users": "Used by: {value}",
+      "verified": "Last confirmed {date}",
+      "neverVerified": "Not confirmed by a stocktake yet"
+    },
+    "checkedBy": "Checked by {name}",
+    "right": "It’s right",
+    "different": "Something’s different…",
+    "rightFor": "{name} is as the register says",
+    "differentFor": "Report what’s different about {name}",
+    "groupFor": "Is the register right about {name}?",
+    "confirmSelected": "It’s right ({count})",
+    "confirmedOne": "Recorded: {name} is as the register says",
+    "confirmedMany": "{count, plural, one {# asset confirmed} other {# assets confirmed}}",
+    "registerSays": "What the register says",
+    "whatsDifferent": "What’s different?",
+    "choices": {
+      "changed": "Some details are different",
+      "missing": "It’s missing",
+      "disposed": "It was disposed of"
+    },
+    "chooseWhat": "Choose what’s different.",
+    "noteNeeded": "Note (required)"
   },
   "signOff": {
     "note": "Note (optional)",
@@ -569,13 +625,17 @@
       "password": "No password needs changing.",
       "review": "No review is due.",
       "retired": "No retired accounts.",
-      "all": "Register the shared accounts approved for use."
-    }
+      "all": "Register the shared accounts approved for use.",
+      "participantTitle": "No shared accounts",
+      "participant": "Shared accounts you use or look after appear here."
+    },
+    "recordChange": "Record change",
+    "recordChangeFor": "Record the password change of {account}"
   },
   "account": {
     "notFound": "This shared account doesn’t exist or you can’t see it",
     "about": "About this account",
-    "passwordChanged": "Password changed",
+    "passwordChanged": "Record password change",
     "review": "Review members",
     "dueTitle": "Change the password today",
     "dueBody": "{reason, select, member_left {{member} left the organisation} member_moved {{member} moved to another department} custodian_left {The custodian {member} left: appoint a new custodian} other {{member} was taken off the list}}.",
@@ -587,7 +647,14 @@
     "removeMember": "Take {name} off the list",
     "removeTitle": "Take {name} off the list?",
     "removeDescription": "The password of {account} must then be changed today.",
-    "memberRemoved": "Taken off the list: change the password today"
+    "memberRemoved": "Taken off the list: change the password today",
+    "custodianIs": "Primary custodian: {name}",
+    "emptyDetails": "{count, plural, one {Show # empty detail} other {Show # empty details}}",
+    "addPerson": "Add a person",
+    "addPersonTitle": "Add a person to {account}",
+    "addPersonDescription": "They may use the account from now on. The yearly review asks about them again.",
+    "person": "Person",
+    "personAdded": "Added to the list"
   },
   "accountForm": {
     "createTitle": "Register a shared account",
@@ -603,7 +670,7 @@
     "saved": "Shared account saved"
   },
   "password": {
-    "title": "Password of {account} changed",
+    "title": "Record the password change of {account}",
     "description": "Record when the password was changed. Don’t write the password anywhere here.",
     "changedOn": "Changed on",
     "note": "Note (optional)",
@@ -643,7 +710,9 @@
     "progressLabel": "Progress of the review of {target}",
     "empty": {
       "title": "No account reviews",
-      "description": "Start a review for a system, device or application."
+      "description": "Start a review for a system, device or application.",
+      "participantTitle": "No account reviews for you",
+      "participant": "When you’re asked to review the accounts of a system, the review appears here and on My work."
     }
   },
   "review": {
@@ -651,15 +720,14 @@
     "items": "Accounts",
     "search": "Search accounts or users",
     "reviewer": "Reviewer: {name}",
-    "accounts": "Accounts",
     "import": "Import an account list",
     "add": "Add an account",
-    "export": "Export",
-    "raiseTickets": "Raise tickets",
+    "export": "Export CSV",
+    "raiseTickets": "{count, plural, one {Raise # ticket} other {Raise # tickets}}",
     "ticketsRaised": "{raised, plural, one {# ticket raised} other {# tickets raised}}{failed, plural, =0 {} other {, # failed}}",
-    "complete": "Complete",
-    "completed": "Review completed: waiting for sign-off",
-    "completeWhenDone": "Complete the review once every account has a decision, and disable or delete has the date it was done.",
+    "complete": "Send for sign-off",
+    "completed": "Sent for sign-off",
+    "completeWhenDone": "Send the review for sign-off once every account has a decision, and each disable or delete has the date it was done.",
     "reopen": "Send back",
     "reopened": "Sent back to the reviewer",
     "signOff": "Sign off",
@@ -667,7 +735,7 @@
     "signOffDescription": "Confirm the decisions. Recurring reviews schedule the next one.",
     "signedOff": "Review signed off",
     "signedOffBy": "Signed off by {name}",
-    "waitingSignOff": "Completed: waiting for a security officer to sign it off.",
+    "waitingSignOff": "Sent by {name}: waiting for a security officer to sign it off.",
     "cancel": "Cancel review",
     "cancelTitle": "Cancel {reference}?",
     "cancelDescription": "Decisions recorded so far are kept, but the review can’t be signed off.",
@@ -676,16 +744,35 @@
     "noItems": "No accounts",
     "noItemsHint": "Import the system’s account list or add accounts by hand.",
     "doneOn": "Done {date}",
-    "notDoneYet": "Date done missing",
-    "summary": "{keep} keep, {disable} disable, {delete} delete, {undecided} still to decide",
+    "notDoneYet": "Not done yet: add the date when it is",
+    "summary": "{keep} keep · {disable} disable · {delete} delete · {undecided} to decide",
     "views": {
+      "todo": "To decide",
+      "done": "Decided",
       "all": "All",
-      "undecided": "To decide",
-      "keep": "Keep",
-      "disable": "Disable",
-      "delete": "Delete",
       "admin": "Administrators"
-    }
+    },
+    "ticketsTitle": "{count, plural, one {Raise # service desk ticket?} other {Raise # service desk tickets?}}",
+    "ticketsDescription": "One service request per account to disable or delete, so the service desk does the change. They are raised in your name.",
+    "ticketLine": {
+      "disable": "Disable {account}",
+      "delete": "Delete {account}"
+    },
+    "ticket": "Ticket {reference}",
+    "progressValue": "{done} of {total} decided",
+    "stillEnabled": {
+      "disable": "Marked disabled, but the latest import still shows it enabled",
+      "delete": "Marked deleted, but the latest import still shows it enabled"
+    },
+    "filter": "Decision",
+    "anyDecision": "Any decision",
+    "empty": {
+      "todo": "Every account is decided",
+      "done": "Nothing decided yet",
+      "all": "No accounts"
+    },
+    "allDecided": "Every account is decided.",
+    "allDecidedHint": "Send the review for sign-off with the button at the top."
   },
   "newReview": {
     "title": "New account review",
@@ -701,14 +788,32 @@
     "created": "Review {reference} created"
   },
   "decide": {
-    "open": "Decide",
-    "openFor": "Decide {account}",
-    "title": "Decide {account}",
-    "titleMany": "Decide {count} accounts",
-    "description": "Keep, disable or delete the account.",
-    "doneHint": "When the account was disabled or deleted. You can add it later.",
-    "selected": "Decide {count} selected",
-    "saved": "{count, plural, one {Decision saved} other {Decisions saved}}"
+    "title": {
+      "disable": "Disable {account}",
+      "delete": "Delete {account}"
+    },
+    "titleMany": {
+      "disable": "Disable {count} accounts",
+      "delete": "Delete {count} accounts"
+    },
+    "description": "Record when it was done, so the review shows it.",
+    "doneHint": "Leave it empty until it’s done. The review can be sent for sign-off once every disable and delete has its date.",
+    "selected": {
+      "keep": "Keep {count}",
+      "disable": "Disable {count}",
+      "delete": "Delete {count}"
+    },
+    "saved": "{count, plural, one {Decision saved} other {Decisions saved}}",
+    "doneOn": "Done on (optional)",
+    "today": "Today",
+    "for": {
+      "keep": "Keep {account}",
+      "disable": "Disable {account}",
+      "delete": "Delete {account}"
+    },
+    "groupFor": "Decision for {account}",
+    "kept": "Kept {account}",
+    "keptMany": "{count, plural, one {# account kept} other {# accounts kept}}"
   },
   "addAccount": {
     "title": "Add an account",
@@ -1103,5 +1208,11 @@
         "resolutionSignOff": "Equipment anomaly resolution sign-off"
       }
     }
+  },
+  "work": {
+    "stocktakeChecks": "Stocktake checks",
+    "accountReviews": "Account reviews",
+    "passwordChanges": "Passwords to change",
+    "toCheck": "{count, plural, one {# item to check} other {# items to check}}"
   }
 }

@@ -586,6 +586,20 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
   );
 
   app.post(
+    '/discovery/installations/:id/ask-removal',
+    {
+      config: HW_MANAGE,
+      schema: {
+        tags: sw,
+        summary: 'Ask the service desk to remove software from a device (a linked service request)',
+        params: z.object({ id }),
+        response: { 200: z.object({ reference: z.string().nullable(), href: z.string().nullable() }) },
+      },
+    },
+    async (req) => svc().discovery.askRemoval(req.params.id, req.auth),
+  );
+
+  app.post(
     '/discovery/rules',
     {
       config: SW_MANAGE,

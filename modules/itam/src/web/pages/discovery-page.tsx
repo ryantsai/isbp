@@ -2,9 +2,16 @@
 
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
+import { cn } from '@isbp/ui';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { DataTable, type DataTableColumn, type ListState, useListState } from '@isbp/ui/data-table';
+import {
+  DataTable,
+  type DataTableColumn,
+  DataTableSummary,
+  type ListState,
+  useListState,
+} from '@isbp/ui/data-table';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +45,7 @@ import {
   RadarIcon,
   SearchXIcon,
   ShieldCheckIcon,
+  TicketIcon,
   Trash2Icon,
   UploadIcon,
 } from 'lucide-react';
@@ -57,6 +65,7 @@ import { ConfirmDialog } from '../confirm-dialog';
 import { DiscoveryImportDialog } from '../discovery-import-dialog';
 import { assetHref, INVALIDATE, licenseHref, useDepartments } from '../lib';
 import { LicensePicker, type PickedLicense } from '../pickers';
+import { SoftwareSections } from '../sections';
 
 const TABS = ['titles', 'compliance', 'reports', 'rules'] as const;
 type Tab = (typeof TABS)[number];
@@ -71,6 +80,7 @@ const str = (state: ListState, k: string) => (state[k] as string | undefined) ||
  */
 export default function DiscoveryPage() {
   const t = useTranslations('itam.discovery');
+  const tn = useTranslations('itam.nav');
   const [state, set] = useListState({ pageSize: 25 });
   const [importing, setImporting] = useState(false);
   const tab: Tab = TABS.includes(state.tab as Tab) ? (state.tab as Tab) : 'titles';
@@ -79,14 +89,15 @@ export default function DiscoveryPage() {
   return (
     <>
       <PageHeader
-        title={t('title')}
+        title={tn('software')}
         description={t('description')}
         actions={
-          <Button onClick={() => setImporting(true)}>
+          <Button variant="outline" onClick={() => setImporting(true)}>
             <UploadIcon /> {t('import')}
           </Button>
         }
       />
+      <SoftwareSections />
       <Tabs
         value={tab}
         onValueChange={(v) =>
@@ -141,11 +152,14 @@ function TitlesTab({ state, set, canDecide }: { state: ListState; set: SetState;
   const [mapping, setMapping] = useState<string | null>(null);
   const [ignoring, setIgnoring] = useState<string | null>(null);
   const [listing, setListing] = useState<ApprovedSoftwarePrefill | null>(null);
-  const { data, isLoading, isFetching } = useApiQuery<Page<DiscoveredTitle>>('/itam/discovery/titles', {
-    page: state.page,
-    pageSize: state.pageSize,
-    q: state.q,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<DiscoveredTitle>>(
+    '/itam/discovery/titles',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      q: state.q,
+    },
+  );
   const ignore = useApiMutation(
     (api, title: string) => api.post('/itam/discovery/rules', { title, licenseId: null }),
     {
@@ -155,17 +169,69 @@ function TitlesTab({ state, set, canDecide }: { state: ListState; set: SetState;
     },
   );
 
-  const columns = useMemo<DataTableColumn<DiscoveredTitle>[]>(
-    () => [
+  const columns = useMemo<DataTableColumn<DiscoveredTitle>[]>(() => {
+    // The fixes, as labelled buttons: beside the title on a wide table, under it on a phone.
+    const titleActions = (r: DiscoveredTitle, under = false) => (
+      <span className={cn('flex flex-wrap gap-1.5', under ? 'justify-start' : 'justify-end md:flex-nowrap')}>
+        <Button
+          size="sm"
+          variant="outline"
+          aria-label={t('titles.mapFor', { title: r.title })}
+          onClick={() => setMapping(r.title)}
+        >
+          <LinkIcon /> {t('titles.map')}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          aria-label={t('titles.ignoreFor', { title: r.title })}
+          onClick={() => setIgnoring(r.title)}
+        >
+          <BanIcon /> {t('titles.ignore')}
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label={t('titles.actionsFor', { title: r.title })}>
+              <EllipsisIcon />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => setListing({ title: r.title, publisher: r.publisher })}>
+              <ShieldCheckIcon /> {t('titles.allow')}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() =>
+                setListing({
+                  title: r.title,
+                  publisher: r.publisher,
+                  status: 'blocked',
+                })
+              }
+            >
+              <OctagonXIcon /> {t('titles.block')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </span>
+    );
+    return [
       {
         id: 'title',
         header: t('titles.title'),
-        meta: { className: 'max-w-72' },
+        meta: { className: 'max-w-72', wrap: true },
         cell: ({ row }) => (
           <div className="min-w-0">
-            <span className="block truncate font-medium">{row.original.title}</span>
+            <span className="block font-medium wrap-break-word">{row.original.title}</span>
             {row.original.publisher && (
               <span className="block truncate text-xs text-muted-foreground">{row.original.publisher}</span>
+            )}
+            <DataTableSummary>
+              <span>{t('titles.onDevices', { count: row.original.devices })}</span>
+            </DataTableSummary>
+            {canDecide && (
+              <DataTableSummary className="mt-2 text-foreground">
+                {titleActions(row.original, true)}
+              </DataTableSummary>
             )}
           </div>
         ),
@@ -174,16 +240,13 @@ function TitlesTab({ state, set, canDecide }: { state: ListState; set: SetState;
         id: 'devices',
         header: t('titles.devices'),
         size: 100,
-        meta: { className: 'tabular-nums' },
+        meta: { className: 'tabular-nums', priority: 2 },
         cell: ({ row }) => row.original.devices,
       },
       {
         id: 'lastSeen',
         header: t('titles.lastSeen'),
-        meta: {
-          className: 'hidden whitespace-nowrap text-muted-foreground sm:table-cell',
-          headerClassName: 'hidden sm:table-cell',
-        },
+        meta: { className: 'whitespace-nowrap text-muted-foreground', priority: 3 },
         cell: ({ row }) => <RelativeTime date={row.original.lastSeenAt} />,
       },
       ...(canDecide
@@ -191,53 +254,13 @@ function TitlesTab({ state, set, canDecide }: { state: ListState; set: SetState;
             {
               id: 'actions',
               header: () => <span className="sr-only">{tc('actions')}</span>,
-              size: 56,
-              meta: { className: 'text-right' },
-              cell: ({ row }) => (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={t('titles.actionsFor', { title: row.original.title })}
-                    >
-                      <EllipsisIcon />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => setMapping(row.original.title)}>
-                      <LinkIcon /> {t('titles.map')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setIgnoring(row.original.title)}>
-                      <BanIcon /> {t('titles.ignore')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() =>
-                        setListing({ title: row.original.title, publisher: row.original.publisher })
-                      }
-                    >
-                      <ShieldCheckIcon /> {t('titles.allow')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() =>
-                        setListing({
-                          title: row.original.title,
-                          publisher: row.original.publisher,
-                          status: 'blocked',
-                        })
-                      }
-                    >
-                      <OctagonXIcon /> {t('titles.block')}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ),
+              meta: { className: 'text-right', priority: 2 },
+              cell: ({ row }) => titleActions(row.original),
             } satisfies DataTableColumn<DiscoveredTitle>,
           ]
         : []),
-    ],
-    [t, tc, canDecide],
-  );
+    ];
+  }, [t, tc, canDecide]);
 
   return (
     <div className="grid min-w-0 gap-3">
@@ -251,6 +274,8 @@ function TitlesTab({ state, set, canDecide }: { state: ListState; set: SetState;
         pageSize={state.pageSize}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(r) => r.title}
         onPageChange={(page) => set({ page })}
         onPageSizeChange={(pageSize) => set({ pageSize })}
@@ -295,30 +320,84 @@ function ComplianceTab({ state, set, canDecide }: { state: ListState; set: SetSt
   const department = str(state, 'department');
   const departments = useDepartments();
   const [listing, setListing] = useState<ApprovedSoftwarePrefill | null>(null);
+  const [asking, setAsking] = useState<ComplianceItem | null>(null);
+  const askRemoval = useApiMutation(
+    (api, item: ComplianceItem) =>
+      api.post<{ reference: string | null; href: string | null }>(
+        `/itam/discovery/installations/${item.id}/ask-removal`,
+        {},
+      ),
+    {
+      invalidate: INVALIDATE,
+      success: (r) => t('askRemovalDone', { reference: r.reference ?? '' }),
+      onSuccess: () => setAsking(null),
+    },
+  );
   const { data: summary } = useApiQuery<ComplianceSummary>('/itam/discovery/compliance/summary');
-  const { data, isLoading, isFetching } = useApiQuery<Page<ComplianceItem>>('/itam/discovery/compliance', {
-    page: state.page,
-    pageSize: state.pageSize,
-    q: state.q,
-    approval,
-    department,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<ComplianceItem>>(
+    '/itam/discovery/compliance',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      q: state.q,
+      approval,
+      department,
+    },
+  );
   const filtered = Boolean(state.q || approval || department);
 
-  const columns = useMemo<DataTableColumn<ComplianceItem>[]>(
-    () => [
+  const columns = useMemo<DataTableColumn<ComplianceItem>[]>(() => {
+    const complianceActions = (item: ComplianceItem, under = false) => {
+      const title = item.reportedAs ?? item.product;
+      return (
+        <span
+          className={cn('flex flex-wrap gap-1.5', under ? 'justify-start' : 'justify-end md:flex-nowrap')}
+        >
+          {item.approval === 'unapproved' && (
+            <Button
+              size="sm"
+              variant="outline"
+              aria-label={t('allowFor', { title })}
+              onClick={() =>
+                setListing({ title, publisher: item.publisher, department: item.asset.department })
+              }
+            >
+              <ShieldCheckIcon /> {t('allow')}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label={t('askRemovalFor', { title, device: item.asset.name })}
+            onClick={() => setAsking(item)}
+          >
+            <TicketIcon /> {t('askRemoval')}
+          </Button>
+        </span>
+      );
+    };
+    return [
       {
         id: 'title',
         header: t('title'),
-        meta: { className: 'max-w-64' },
+        meta: { className: 'max-w-64', wrap: true },
         cell: ({ row }) => (
           <div className="min-w-0">
-            <span className="block truncate font-medium">
+            <span className="block font-medium wrap-break-word">
               {row.original.reportedAs ?? row.original.product}
             </span>
             <span className="block truncate text-xs text-muted-foreground">
               {[row.original.version, row.original.publisher].filter(Boolean).join(' · ') || '—'}
             </span>
+            <DataTableSummary>
+              <span className="font-mono">{row.original.asset.tag}</span>
+              <span>{row.original.asset.name}</span>
+            </DataTableSummary>
+            {canDecide && (
+              <DataTableSummary className="mt-2 text-foreground">
+                {complianceActions(row.original, true)}
+              </DataTableSummary>
+            )}
           </div>
         ),
       },
@@ -330,7 +409,7 @@ function ComplianceTab({ state, set, canDecide }: { state: ListState; set: SetSt
       {
         id: 'device',
         header: t('device'),
-        meta: { className: 'max-w-56' },
+        meta: { className: 'max-w-56', priority: 2 },
         cell: ({ row }) => (
           <div className="min-w-0">
             <Link
@@ -349,10 +428,7 @@ function ComplianceTab({ state, set, canDecide }: { state: ListState; set: SetSt
       {
         id: 'department',
         header: t('department'),
-        meta: {
-          className: 'hidden text-muted-foreground md:table-cell',
-          headerClassName: 'hidden md:table-cell',
-        },
+        meta: { className: 'text-muted-foreground', priority: 3 },
         cell: ({ row }) => row.original.asset.department?.name ?? '—',
       },
       {
@@ -369,30 +445,13 @@ function ComplianceTab({ state, set, canDecide }: { state: ListState; set: SetSt
             {
               id: 'actions',
               header: () => <span className="sr-only">{tc('actions')}</span>,
-              size: 56,
-              meta: { className: 'text-right' },
-              cell: ({ row }) =>
-                row.original.approval === 'unapproved' ? (
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t('allowFor', { title: row.original.reportedAs ?? row.original.product })}
-                    onClick={() =>
-                      setListing({
-                        title: row.original.reportedAs ?? row.original.product,
-                        publisher: row.original.publisher,
-                      })
-                    }
-                  >
-                    <ShieldCheckIcon />
-                  </Button>
-                ) : null,
+              meta: { className: 'text-right', priority: 2 },
+              cell: ({ row }) => complianceActions(row.original),
             } satisfies DataTableColumn<ComplianceItem>,
           ]
         : []),
-    ],
-    [t, tc, canDecide],
-  );
+    ];
+  }, [t, tc, canDecide]);
 
   return (
     <div className="grid min-w-0 gap-3">
@@ -420,6 +479,8 @@ function ComplianceTab({ state, set, canDecide }: { state: ListState; set: SetSt
         pageSize={state.pageSize}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(r) => r.id}
         onPageChange={(page) => set({ page })}
         onPageSizeChange={(pageSize) => set({ pageSize })}
@@ -483,6 +544,18 @@ function ComplianceTab({ state, set, canDecide }: { state: ListState; set: SetSt
       />
       <LiveCount total={data?.total} />
       {listing && <ApprovedSoftwareSheet prefill={listing} onClose={() => setListing(null)} />}
+      <ConfirmDialog
+        open={asking !== null}
+        onOpenChange={(o) => !o && setAsking(null)}
+        title={t('askRemovalTitle', {
+          title: asking?.reportedAs ?? asking?.product ?? '',
+          device: asking?.asset.name ?? '',
+        })}
+        description={t('askRemovalDescription', { user: asking?.asset.assignee?.displayName ?? '—' })}
+        confirmLabel={t('askRemoval')}
+        loading={askRemoval.isPending}
+        onConfirm={() => asking && askRemoval.mutate(asking)}
+      />
     </div>
   );
 }
@@ -541,12 +614,15 @@ function ReportsTab({ state, set }: { state: ListState; set: SetState }) {
   const t = useTranslations('itam.discovery.reports');
   const tc = useTranslations('common');
   const source = str(state, 'source');
-  const { data, isLoading, isFetching } = useApiQuery<Page<DiscoveryReport>>('/itam/discovery/reports', {
-    page: state.page,
-    pageSize: state.pageSize,
-    q: state.q,
-    source,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<DiscoveryReport>>(
+    '/itam/discovery/reports',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      q: state.q,
+      source,
+    },
+  );
   const filtered = Boolean(state.q || source);
 
   const columns = useMemo<DataTableColumn<DiscoveryReport>[]>(
@@ -630,6 +706,8 @@ function ReportsTab({ state, set }: { state: ListState; set: SetState }) {
         pageSize={state.pageSize}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(r) => r.id}
         onPageChange={(page) => set({ page })}
         onPageSizeChange={(pageSize) => set({ pageSize })}
@@ -678,12 +756,15 @@ function RulesTab({ state, set, canDecide }: { state: ListState; set: SetState; 
   const tc = useTranslations('common');
   const kind = str(state, 'kind');
   const [removing, setRemoving] = useState<TitleRule | null>(null);
-  const { data, isLoading, isFetching } = useApiQuery<Page<TitleRule>>('/itam/discovery/rules', {
-    page: state.page,
-    pageSize: state.pageSize,
-    q: state.q,
-    kind,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<TitleRule>>(
+    '/itam/discovery/rules',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      q: state.q,
+      kind,
+    },
+  );
   const remove = useApiMutation((api, rule: TitleRule) => api.delete(`/itam/discovery/rules/${rule.id}`), {
     invalidate: INVALIDATE,
     success: () => t('removed', { title: removing?.title ?? '' }),
@@ -775,6 +856,8 @@ function RulesTab({ state, set, canDecide }: { state: ListState; set: SetState; 
         pageSize={state.pageSize}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(r) => r.id}
         onPageChange={(page) => set({ page })}
         onPageSizeChange={(pageSize) => set({ pageSize })}

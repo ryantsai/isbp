@@ -145,17 +145,15 @@ export class StocktakeService {
       ),
       ids.length && auth.user
         ? this.db
-            .select({ id: stocktakeItems.stocktakeId, n: count() })
+            .select({
+              id: stocktakeItems.stocktakeId,
+              n: sql<number>`count(*) filter (where ${stocktakeItems.result} is null)`.mapWith(Number),
+              all: count(),
+            })
             .from(stocktakeItems)
-            .where(
-              and(
-                inArray(stocktakeItems.stocktakeId, ids),
-                isNull(stocktakeItems.result),
-                this.mineCondition(auth.user.id, groupIds),
-              ),
-            )
+            .where(and(inArray(stocktakeItems.stocktakeId, ids), this.mineCondition(auth.user.id, groupIds)))
             .groupBy(stocktakeItems.stocktakeId)
-        : Promise.resolve([] as { id: string; n: number }[]),
+        : Promise.resolve([] as { id: string; n: number; all: number }[]),
     ]);
     const scopeClassIds = [...new Set(rows.flatMap((r) => r.scope.classIds))];
     const scopeSiteIds = [...new Set(rows.flatMap((r) => r.scope.siteIds))];
@@ -177,7 +175,7 @@ export class StocktakeService {
         rows.flatMap((r) => r.scope.managerGroupIds),
       ),
     ]);
-    const mine = new Map(pending.map((p) => [p.id, p.n]));
+    const mine = new Map(pending.map((p) => [p.id, p]));
     const today = companyToday();
     return rows.map((r) => ({
       id: r.id,
@@ -203,7 +201,8 @@ export class StocktakeService {
       viewer: {
         canManage: canManageStocktakes(auth),
         canSignOff: canSignOffStocktakes(auth),
-        pendingForMe: mine.get(r.id) ?? 0,
+        pendingForMe: mine.get(r.id)?.n ?? 0,
+        mineTotal: mine.get(r.id)?.all ?? 0,
       },
     }));
   }
@@ -265,7 +264,8 @@ export class StocktakeService {
     groupIds: readonly string[],
     open: boolean,
   ) {
-    const [people, grps] = await Promise.all([
+    const assetIds = [...new Set(rows.map((i) => i.assetId).filter((v): v is string => Boolean(v)))];
+    const [people, grps, verified] = await Promise.all([
       peopleByIds(
         this.db,
         rows.flatMap((i) => [i.assigneeId, i.decidedBy]),
@@ -274,11 +274,20 @@ export class StocktakeService {
         this.db,
         rows.map((i) => i.assigneeGroupId),
       ),
+      // When the register was last confirmed, so the person checking sees how old it is.
+      assetIds.length
+        ? this.db
+            .select({ id: assets.id, on: assets.lastVerifiedOn })
+            .from(assets)
+            .where(inArray(assets.id, assetIds))
+            .then((r) => new Map(r.map((a) => [a.id, a.on])))
+        : Promise.resolve(new Map<string, string | null>()),
     ]);
     return rows.map((i) => ({
       id: i.id,
       assetId: i.assetId,
       snapshot: i.snapshot,
+      lastVerifiedOn: (i.assetId ? verified.get(i.assetId) : null) ?? null,
       assignee: personRef(i.assigneeId ? people.get(i.assigneeId) : null),
       assigneeGroup: i.assigneeGroupId ? (grps.get(i.assigneeGroupId) ?? null) : null,
       result: i.result,
@@ -542,6 +551,18 @@ export class StocktakeService {
       throw invalidField('note', 'Add a note', 'noteRequired');
     const reference = formatRef('stocktake', row.number);
     await this.ctx.transaction(async (tx) => {
+      // Checked again under a lock: the stocktake may have been signed off or cancelled meanwhile, and the same item
+      // recorded twice at once is recorded one after the other.
+      // `key share`: items are recorded side by side (and may mark the stocktake ready), while sign-off and cancel
+      // (`update`) wait for them.
+      const [open] = await tx.select().from(stocktakes).where(eq(stocktakes.id, row.id)).for('key share');
+      if (open?.status !== 'open') throw invalidState('The stocktake is not open', 'stocktakeClosed');
+      const [current] = await tx
+        .select({ result: stocktakeItems.result })
+        .from(stocktakeItems)
+        .where(eq(stocktakeItems.id, item.id))
+        .for('update');
+      if (!current) throw httpErrors.notFound('Item not found');
       let diff: Record<string, [unknown, unknown]> | null = null;
       if (input.result === 'changed') {
         const before = await this.assetsSvc.row(item.assetId!, tx);
@@ -573,7 +594,12 @@ export class StocktakeService {
           entityType: STOCKTAKE_ENTITY,
           entityId: row.id,
           entityLabel: `${reference} ${item.snapshot.number}`,
-          metadata: { itemId: item.id, assetId: item.assetId, result: input.result, previous: item.result },
+          metadata: {
+            itemId: item.id,
+            assetId: item.assetId,
+            result: input.result,
+            previous: current.result,
+          },
         },
         { tx },
       );
@@ -626,18 +652,18 @@ export class StocktakeService {
     const row = await this.row(ref);
     if (row.status !== 'open')
       throw invalidState('Only an open stocktake can be signed off', 'stocktakeClosed');
-    const [pending] = await this.db
-      .select({ n: count() })
-      .from(stocktakeItems)
-      .where(and(eq(stocktakeItems.stocktakeId, row.id), isNull(stocktakeItems.result)));
-    if (pending!.n)
-      throw invalidState('Some items are not recorded yet', 'itemsPending', { pending: pending!.n });
     const reference = formatRef('stocktake', row.number);
     const today = companyToday();
     await this.ctx.transaction(async (tx) => {
       const [locked] = await tx.select().from(stocktakes).where(eq(stocktakes.id, row.id)).for('update');
       if (locked!.status !== 'open')
         throw invalidState('Only an open stocktake can be signed off', 'stocktakeClosed');
+      const [pending] = await tx
+        .select({ n: count() })
+        .from(stocktakeItems)
+        .where(and(eq(stocktakeItems.stocktakeId, row.id), isNull(stocktakeItems.result)));
+      if (pending!.n)
+        throw invalidState('Some items are not recorded yet', 'itemsPending', { pending: pending!.n });
       const items = await tx.select().from(stocktakeItems).where(eq(stocktakeItems.stocktakeId, row.id));
       const counts: Record<string, number> = {};
       for (const i of items) {
@@ -733,6 +759,9 @@ export class StocktakeService {
       throw invalidState('The stocktake is already closed', 'stocktakeClosed');
     const reference = formatRef('stocktake', row.number);
     await this.ctx.transaction(async (tx) => {
+      const [locked] = await tx.select().from(stocktakes).where(eq(stocktakes.id, row.id)).for('update');
+      if (locked?.status !== 'open' && locked?.status !== 'scheduled')
+        throw invalidState('The stocktake is already closed', 'stocktakeClosed');
       await tx.update(stocktakes).set({ status: 'cancelled' }).where(eq(stocktakes.id, row.id));
       await this.ctx.audit.record(
         {

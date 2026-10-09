@@ -109,6 +109,11 @@ export interface AssistantPreviewProps {
   item: ChangeSetItem;
   value: unknown;
   current: ObjectSnapshot | null;
+  /**
+   * Every item of the change set, in the order they apply (absent in older hosts): a workflow's preview names the
+   * fields of the form proposed with it ("Which application?: Delivery team"), a form's the workflow it uses.
+   */
+  items?: readonly ChangeSetItem[];
 }
 
 /* ───────────── change sets ───────────── */
@@ -145,6 +150,14 @@ export const changeSetPermissionsSchema = z.object({
   rollbackBlocked: z.string().nullable(),
 });
 
+/** A system role of the platform that grants a permission, so messages can say "needs Workflow administrator". */
+export const permissionRoleSchema = z.object({
+  permission: z.string(),
+  /** The narrowest system roles holding it (fewest permissions first), at most two; empty when none does. */
+  roles: z.array(z.object({ key: z.string(), name: z.string(), moduleId: z.string().nullable() })),
+});
+export type PermissionRole = z.output<typeof permissionRoleSchema>;
+
 export const changeSetDetailSchema = changeSetSummarySchema.extend({
   items: z.array(changeSetItemSchema),
   conversationId: id.nullable(),
@@ -160,6 +173,8 @@ export const changeSetDetailSchema = changeSetSummarySchema.extend({
   rolledBackBy: personRefSchema.nullable(),
   rolledBackAt: dateTime.nullable(),
   permissions: changeSetPermissionsSchema,
+  /** Roles for the permissions the page names (missing apply permissions, items' checks, the last error). */
+  permissionRoles: z.array(permissionRoleSchema),
   href: z.string(),
 });
 export type ChangeSetDetail = z.output<typeof changeSetDetailSchema>;
@@ -284,7 +299,37 @@ export const packageInfoSchema = z.object({
 });
 export type PackageInfo = z.output<typeof packageInfoSchema>;
 
-export const packageListSchema = z.object({ items: z.array(packageInfoSchema) });
+export const packageListSchema = z.object({
+  items: z.array(packageInfoSchema),
+  /** Roles for the permissions the packages need that the viewer lacks ("needs Workflow administrator"). */
+  permissionRoles: z.array(permissionRoleSchema).optional(),
+});
+
+/**
+ * What a built-in package holds, built in the reader's language (as installing it would): read on the process packs
+ * page before installing. Names and texts only: nothing here is live.
+ */
+export const packageContentSchema = z.object({
+  key: z.string(),
+  moduleId: z.string(),
+  title: z.string(),
+  summary: z.string(),
+  items: z.array(
+    z.object({
+      ref: z.string().nullable(),
+      kind: z.string(),
+      op: itemOpSchema,
+      targetId: z.string().nullable(),
+      label: z.string(),
+      value: z.unknown(),
+      note: z.string().nullable(),
+    }),
+  ),
+});
+export type PackageContent = z.output<typeof packageContentSchema>;
+
+/** `DELETE /change-sets/:id/items/:itemId?withDependents=true` also removes the items that refer to it. */
+export const removeItemQuerySchema = z.object({ withDependents: z.stringbool().optional() });
 
 /** `/change-sets/:id/export` → `CS-00012.json`. */
 export const packageFileName = (reference: string) => `${reference}.json`;

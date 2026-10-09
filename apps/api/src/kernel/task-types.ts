@@ -92,7 +92,9 @@ export class TaskTypeRegistry {
         const e = this.entries.get(type);
         if (!e) return { label: type, href: null };
         try {
-          const d = await e.handler.describe?.(this.parse(e, config), this.context(e, opts?.db));
+          const d = await e.handler.describe?.(this.parse(e, config), this.context(e, opts?.db), {
+            locale: opts?.locale,
+          });
           return { label: d?.label ?? e.def.name, href: d?.href ?? null };
         } catch {
           return { label: e.def.name, href: null };

@@ -1,7 +1,14 @@
 'use client';
 
 import type { CustomField } from '@isbp/contracts';
-import { defaultFieldValues, type FieldDef, type FormElement, validateFields } from '@isbp/sdk';
+import {
+  defaultFieldValues,
+  type FieldDef,
+  type FormElement,
+  isField,
+  validateFields,
+  visibleElements,
+} from '@isbp/sdk';
 import { ApiError } from '@isbp/sdk/web';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { FormAnswers, FormFields, useFieldErrorText, useFieldsRefinement } from '@isbp/ui/form-renderer';
@@ -112,7 +119,25 @@ export function CustomFieldsSection({
   );
 }
 
-/** Read-only custom-field values; hidden when admins defined none. */
+/** A stored custom-field value that says something (not empty, not an empty list). */
+export function hasAttributeValue(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.length > 0;
+  return true;
+}
+
+/** Whether any field people can see on this CI has a value. */
+export function anyAttributeValue(elements: readonly FormElement[], attributes: Record<string, unknown>) {
+  return visibleElements({ elements: [...elements] }, attributes)
+    .filter(isField)
+    .some((f) => hasAttributeValue(attributes[f.key]));
+}
+
+/**
+ * Read-only custom-field values. Hidden when admins defined no fields, or when every field is still empty (an empty
+ * card of "Not set" rows says nothing; values are added with Edit).
+ */
 export function CustomFieldsCard({ attributes }: { attributes: Record<string, unknown> }) {
   const t = useTranslations('fields.entity');
   const { fields, elements } = useCiFields();
@@ -125,7 +150,7 @@ export function CustomFieldsCard({ attributes }: { attributes: Record<string, un
     () => Object.fromEntries([...peopleMap.values()].map((p) => [p.id, p.displayName])),
     [peopleMap],
   );
-  if (!elements.length) return null;
+  if (!elements.length || !anyAttributeValue(elements, attributes)) return null;
   return (
     <Card>
       <CardHeader>

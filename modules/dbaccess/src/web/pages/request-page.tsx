@@ -1,26 +1,28 @@
 'use client';
 
 import { cn } from '@isbp/ui';
+import { UserAvatar } from '@isbp/ui/avatar';
 import { Button } from '@isbp/ui/button';
 import { Checkbox } from '@isbp/ui/checkbox';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { StepTransition } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { Stepper } from '@isbp/ui/stepper';
 import { Textarea } from '@isbp/ui/textarea';
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
-  CheckIcon,
+  CircleDashedIcon,
   SearchXIcon,
   SendIcon,
-  ShieldAlertIcon,
-  UserCheckIcon,
-  UsersIcon,
+  SkipForwardIcon,
+  XCircleIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -28,6 +30,7 @@ import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
 import {
   type AccessRequest,
+  type ApprovalStepPreview,
   addDays,
   type CatalogItem,
   checkDuration,
@@ -35,6 +38,7 @@ import {
   type MyAccess,
   maxDateFor,
   RISKS,
+  type RequestPreview,
   type ServerOption,
 } from '../../contracts';
 import { EngineLabel, RiskBadge } from '../badges';
@@ -48,32 +52,68 @@ interface Choice {
   expiresOn: string | null;
 }
 
-function Steps({ step }: { step: Step }) {
-  const t = useTranslations('dbaccess.wizard');
-  const current = STEPS.indexOf(step);
+/**
+ * The approval steps of the dry run, as the access request wizard shows them: who would be asked at each step,
+ * steps a condition leaves out, and steps nobody could approve. The wording is the platform's (`requests.path`).
+ */
+function PreviewPath({ steps }: { steps: readonly ApprovalStepPreview[] }) {
+  const t = useTranslations('requests.path');
+  const l = useLocalized();
+  const approvals = steps.filter((s) => s.type === 'approval');
+  if (!approvals.length) return <p className="text-sm text-muted-foreground">{t('none')}</p>;
   return (
-    <ol className="flex flex-wrap items-center gap-2 text-sm" aria-label={t('steps')}>
-      {STEPS.map((s, i) => (
-        <li
-          key={s}
-          aria-current={i === current ? 'step' : undefined}
-          className={cn(
-            'flex items-center gap-2 rounded-full border px-3 py-1',
-            i === current ? 'border-primary bg-primary/10 font-medium text-primary' : 'text-muted-foreground',
-          )}
-        >
-          <span
-            className={cn(
-              'flex size-5 items-center justify-center rounded-full text-xs',
-              i < current ? 'bg-primary text-primary-foreground' : 'border bg-background',
+    <ol className="grid gap-5">
+      {approvals.map((s, i) => {
+        const nobody = s.outcome === 'no-approver' || s.outcome === 'reject';
+        const Icon = s.outcome === 'skipped' ? SkipForwardIcon : nobody ? XCircleIcon : CircleDashedIcon;
+        return (
+          <li key={`${s.id}-${i}`} className="relative flex min-w-0 gap-3">
+            {i < approvals.length - 1 && (
+              <span aria-hidden className="absolute top-8 -bottom-5 left-[15px] w-px bg-border" />
             )}
-            aria-hidden
-          >
-            {i < current ? <CheckIcon className="size-3" /> : i + 1}
-          </span>
-          {t(`step.${s}`)}
-        </li>
-      ))}
+            <span
+              className={cn(
+                'relative z-10 grid size-8 shrink-0 place-items-center rounded-full ring-4 ring-background [&_svg]:size-4',
+                nobody ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground',
+              )}
+            >
+              <Icon aria-hidden />
+            </span>
+            <div className="grid min-w-0 flex-1 content-start gap-1 pt-1">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="text-sm font-medium text-foreground/80 [overflow-wrap:anywhere]">
+                  {l(s.name)}
+                </span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {s.outcome === 'skipped' ? t('state.skipped') : t('state.preview')}
+                </span>
+              </div>
+              {s.outcome === 'skipped' && (
+                <p className="text-sm text-muted-foreground">{t('skippedCondition')}</p>
+              )}
+              {nobody && <p className="text-sm text-destructive">{t('noApprover')}</p>}
+              {s.people.length > 0 && (
+                <ul className="mt-0.5 flex flex-wrap gap-1.5" aria-label={t('peopleLabel')}>
+                  {s.people.slice(0, 4).map((p) => (
+                    <li
+                      key={p.id}
+                      className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full border py-0.5 pr-2.5 pl-0.5 text-xs"
+                    >
+                      <UserAvatar name={p.displayName} className="size-5 text-[9px]" />
+                      <span className="truncate">{p.displayName}</span>
+                    </li>
+                  ))}
+                  {s.people.length > 4 && (
+                    <li className="self-center text-xs text-muted-foreground">
+                      {t('more', { count: s.people.length - 4 })}
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -153,6 +193,7 @@ export default function RequestPage() {
   const t = useTranslations('dbaccess.wizard');
   const tr = useTranslations('dbaccess.risk');
   const tc = useTranslations('common');
+  const ta = useTranslations('requests.access');
   const l = useLocalized();
   const day = useDay();
   const today = useToday();
@@ -207,7 +248,6 @@ export default function RequestPage() {
     .map(([id, c]) => ({ item: byId.get(id), choice: c }))
     .filter((x): x is { item: CatalogItem; choice: Choice } => Boolean(x.item));
   const needsJustification = chosen.some((c) => c.item.justificationRequired);
-  const highRisk = chosen.some((c) => c.item.risk === 'high');
 
   const setChoice = (id: string, c: Choice | null) => {
     const next = { ...effective };
@@ -232,6 +272,14 @@ export default function RequestPage() {
     },
   );
 
+  // "Who will approve it": a dry run of each role's approval workflow, asked for when the review step opens.
+  const preview = useApiMutation(
+    (api, items: { roleId: string; expiresOn: string | null }[]) =>
+      api.post<RequestPreview>('/dbaccess/requests/preview', { items }),
+    { silent: true },
+  );
+  const pathOf = new Map((preview.data?.items ?? []).map((i) => [i.roleId, i.steps]));
+
   const detailsProblem = (): string | null => {
     for (const c of chosen) {
       const check = checkDuration(c.item, c.choice.expiresOn, today);
@@ -252,6 +300,7 @@ export default function RequestPage() {
         setProblem(p);
         return;
       }
+      preview.mutate(chosen.map((c) => ({ roleId: c.item.id, expiresOn: c.choice.expiresOn })));
     }
     setStep(next);
   };
@@ -259,221 +308,239 @@ export default function RequestPage() {
   return (
     <>
       <PageHeader
+        back={
+          extend
+            ? { href: '/dbaccess', label: t('myAccess') }
+            : { href: '/requests', label: ta('backToRequests') }
+        }
         title={extend ? t('extendTitle') : t('title')}
         description={extend ? t('extendDescription') : t('description')}
-        actions={
-          <Button variant="outline" asChild>
-            <Link href="/dbaccess">{t('myAccess')}</Link>
-          </Button>
-        }
       />
       <div className="grid min-w-0 grid-cols-1 gap-6">
-        <Steps step={step} />
-
-        {step === 'choose' && (
-          <section aria-labelledby="dbaccess-choose" className="grid min-w-0 gap-4">
-            <h2 id="dbaccess-choose" className="sr-only">
-              {t('step.choose')}
-            </h2>
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3 shadow-xs">
-              <SearchInput value={q} onChange={setQ} placeholder={t('search')} className="sm:w-72" />
-              <Select value={serverId} onValueChange={setServerId}>
-                <SelectTrigger className="w-full sm:w-56" aria-label={t('server')} id={ids.server}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>{t('allServers')}</SelectItem>
-                  {(servers.data?.items ?? [])
-                    .filter((s) => s.roles > 0)
-                    .map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.displayName}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              {databases.length > 0 && (
-                <Select value={database} onValueChange={setDatabase}>
-                  <SelectTrigger className="w-full sm:w-44" aria-label={t('database')}>
+        <Stepper
+          steps={STEPS.map((s) => ({ id: s, label: t(`step.${s}`) }))}
+          current={STEPS.indexOf(step)}
+          label={t('steps')}
+        />
+        <StepTransition step={STEPS.indexOf(step)}>
+          {step === 'choose' && (
+            <section aria-labelledby="dbaccess-choose" className="grid min-w-0 gap-4">
+              <h2 id="dbaccess-choose" className="sr-only">
+                {t('step.choose')}
+              </h2>
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3 shadow-xs">
+                <SearchInput value={q} onChange={setQ} placeholder={t('search')} className="sm:w-72" />
+                <Select value={serverId} onValueChange={setServerId}>
+                  <SelectTrigger className="w-full sm:w-56" aria-label={t('server')} id={ids.server}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ALL}>{t('allDatabases')}</SelectItem>
-                    {databases.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d}
+                    <SelectItem value={ALL}>{t('allServers')}</SelectItem>
+                    {(servers.data?.items ?? [])
+                      .filter((s) => s.roles > 0)
+                      .map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.displayName}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {databases.length > 0 && (
+                  <Select value={database} onValueChange={setDatabase}>
+                    <SelectTrigger className="w-full sm:w-44" aria-label={t('database')}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL}>{t('allDatabases')}</SelectItem>
+                      {databases.map((d) => (
+                        <SelectItem key={d} value={d}>
+                          {d}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Select value={risk} onValueChange={setRisk}>
+                  <SelectTrigger className="w-full sm:w-40" aria-label={t('risk')} id={ids.risk}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>{t('allRisks')}</SelectItem>
+                    {RISKS.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {tr(r)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              )}
-              <Select value={risk} onValueChange={setRisk}>
-                <SelectTrigger className="w-full sm:w-40" aria-label={t('risk')} id={ids.risk}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>{t('allRisks')}</SelectItem>
-                  {RISKS.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {tr(r)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="min-w-0 overflow-hidden rounded-xl border bg-card shadow-xs">
-              {catalog.isLoading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : !catalog.data?.items.length ? (
-                <EmptyState icon={<SearchXIcon />} title={t('noRoles')} description={t('noRolesHint')} />
+              </div>
+              <div className="min-w-0 overflow-hidden rounded-xl border bg-card shadow-xs">
+                {catalog.isLoading ? (
+                  <Skeleton className="h-64 w-full" />
+                ) : !catalog.data?.items.length ? (
+                  <EmptyState icon={<SearchXIcon />} title={t('noRoles')} description={t('noRolesHint')} />
+                ) : (
+                  <ul className="divide-y" aria-label={t('roles')}>
+                    {catalog.data.items.map((item) => (
+                      <RoleRow
+                        key={item.id}
+                        item={item}
+                        checked={Boolean(effective[item.id])}
+                        onChange={(v) =>
+                          setChoice(item.id, v ? { expiresOn: defaultDateFor(item, today) } : null)
+                        }
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground" aria-live="polite">
+                  {t('selected', { count: chosen.length })}
+                </p>
+                <Button disabled={!chosen.length} onClick={() => go('details')}>
+                  {t('continue')} <ArrowRightIcon />
+                </Button>
+              </div>
+            </section>
+          )}
+
+          {step === 'details' && (
+            <section aria-labelledby="dbaccess-details" className="grid min-w-0 gap-4">
+              <h2 id="dbaccess-details" className="text-lg font-semibold">
+                {t('step.details')}
+              </h2>
+              {extend && !extended && (mine.isLoading || all.isLoading) ? (
+                <Skeleton className="h-40 w-full rounded-xl" />
               ) : (
-                <ul className="divide-y" aria-label={t('roles')}>
-                  {catalog.data.items.map((item) => (
-                    <RoleRow
+                <ul className="grid gap-3">
+                  {chosen.map(({ item, choice }) => (
+                    <DurationRow
                       key={item.id}
                       item={item}
-                      checked={Boolean(effective[item.id])}
-                      onChange={(v) =>
-                        setChoice(item.id, v ? { expiresOn: defaultDateFor(item, today) } : null)
-                      }
+                      choice={choice}
+                      today={today}
+                      onChange={(c) => setChoice(item.id, c)}
                     />
                   ))}
                 </ul>
               )}
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground" aria-live="polite">
-                {t('selected', { count: chosen.length })}
-              </p>
-              <Button disabled={!chosen.length} onClick={() => go('details')}>
-                {t('continue')} <ArrowRightIcon />
-              </Button>
-            </div>
-          </section>
-        )}
-
-        {step === 'details' && (
-          <section aria-labelledby="dbaccess-details" className="grid min-w-0 gap-4">
-            <h2 id="dbaccess-details" className="text-lg font-semibold">
-              {t('step.details')}
-            </h2>
-            {extend && !extended && (mine.isLoading || all.isLoading) ? (
-              <Skeleton className="h-40 w-full rounded-xl" />
-            ) : (
-              <ul className="grid gap-3">
-                {chosen.map(({ item, choice }) => (
-                  <DurationRow
-                    key={item.id}
-                    item={item}
-                    choice={choice}
-                    today={today}
-                    onChange={(c) => setChoice(item.id, c)}
-                  />
-                ))}
-              </ul>
-            )}
-            <div className="grid gap-2 rounded-xl border bg-card p-4 shadow-xs">
-              <Label htmlFor={ids.justification}>
-                {t('justification')}
-                {!needsJustification && (
-                  <span className="font-normal text-muted-foreground"> ({tc('optional')})</span>
-                )}
-              </Label>
-              <Textarea
-                id={ids.justification}
-                rows={4}
-                maxLength={2_000}
-                value={justification}
-                placeholder={t('justificationPlaceholder')}
-                onChange={(e) => setJustification(e.target.value)}
-                aria-describedby={`${ids.justification}-hint`}
-              />
-              <p id={`${ids.justification}-hint`} className="text-xs text-muted-foreground">
-                {t('justificationHint')}
-              </p>
-            </div>
-            {problem && (
-              <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {problem}
-              </p>
-            )}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              {extend ? (
-                <span />
-              ) : (
-                <Button variant="outline" onClick={() => go('choose')}>
-                  <ArrowLeftIcon /> {t('back')}
-                </Button>
+              <div className="grid gap-2 rounded-xl border bg-card p-4 shadow-xs">
+                <Label htmlFor={ids.justification}>
+                  {t('justification')}
+                  {!needsJustification && (
+                    <span className="font-normal text-muted-foreground"> ({tc('optional')})</span>
+                  )}
+                </Label>
+                <Textarea
+                  id={ids.justification}
+                  rows={4}
+                  maxLength={2_000}
+                  value={justification}
+                  placeholder={t('justificationPlaceholder')}
+                  onChange={(e) => setJustification(e.target.value)}
+                  aria-describedby={`${ids.justification}-hint`}
+                />
+                <p id={`${ids.justification}-hint`} className="text-xs text-muted-foreground">
+                  {t('justificationHint')}
+                </p>
+              </div>
+              {problem && (
+                <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {problem}
+                </p>
               )}
-              <Button disabled={!chosen.length} onClick={() => go('review')}>
-                {t('reviewStep')} <ArrowRightIcon />
-              </Button>
-            </div>
-          </section>
-        )}
-
-        {step === 'review' && (
-          <section aria-labelledby="dbaccess-review" className="grid min-w-0 gap-4">
-            <h2 id="dbaccess-review" className="text-lg font-semibold">
-              {t('step.review')}
-            </h2>
-            <ul className="divide-y rounded-xl border bg-card text-sm shadow-xs">
-              {chosen.map(({ item, choice }) => (
-                <li
-                  key={item.id}
-                  className="flex min-w-0 flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{l(item.name)}</span>
-                    <span className="block truncate text-muted-foreground">{item.server.displayName}</span>
-                  </span>
-                  <RiskBadge risk={item.risk} />
-                  <span className="shrink-0">
-                    {choice.expiresOn ? t('until', { date: day(choice.expiresOn) }) : t('noEndDate')}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="grid gap-3 rounded-xl border bg-card p-4 shadow-xs">
-              <h3 className="text-sm font-semibold">{t('whoApproves')}</h3>
-              <ol className="grid gap-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <UserCheckIcon className="size-4 text-muted-foreground" aria-hidden />
-                  {t('approver.manager')}
-                </li>
-                <li className="flex items-start gap-2">
-                  <UsersIcon className="mt-0.5 size-4 text-muted-foreground" aria-hidden />
-                  <span>
-                    {t('approver.owner', {
-                      owners:
-                        [...new Set(chosen.map((c) => c.item.owner?.name).filter(Boolean))].join(', ') || '—',
-                    })}
-                  </span>
-                </li>
-                {highRisk && (
-                  <li className="flex items-center gap-2">
-                    <ShieldAlertIcon className="size-4 text-destructive" aria-hidden />
-                    {t('approver.security')}
-                  </li>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {extend ? (
+                  <span />
+                ) : (
+                  <Button variant="outline" onClick={() => go('choose')}>
+                    <ArrowLeftIcon /> {t('back')}
+                  </Button>
                 )}
-              </ol>
-              <p className="text-xs text-muted-foreground">{t('afterApproval')}</p>
-            </div>
-            {submit.error && (
-              <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {errorText(submit.error)}
-              </p>
-            )}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Button variant="outline" onClick={() => go('details')}>
-                <ArrowLeftIcon /> {t('back')}
-              </Button>
-              <Button loading={submit.isPending} onClick={() => submit.mutate(undefined)}>
-                <SendIcon /> {t('send')}
-              </Button>
-            </div>
-          </section>
-        )}
+                <Button disabled={!chosen.length} onClick={() => go('review')}>
+                  {t('reviewStep')} <ArrowRightIcon />
+                </Button>
+              </div>
+            </section>
+          )}
+
+          {step === 'review' && (
+            <section
+              aria-labelledby="dbaccess-review"
+              className="grid min-w-0 gap-6 lg:grid-cols-[1fr_minmax(0,22rem)]"
+            >
+              <div className="grid min-w-0 content-start gap-5 rounded-xl border bg-card p-5 shadow-xs sm:p-6">
+                <h2 id="dbaccess-review" className="text-base font-semibold">
+                  {ta('summary')}
+                </h2>
+                <ul className="divide-y rounded-lg border text-sm">
+                  {chosen.map(({ item, choice }) => (
+                    <li
+                      key={item.id}
+                      className="flex min-w-0 flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium">{l(item.name)}</span>
+                        <span className="block truncate text-muted-foreground">
+                          {item.server.displayName}
+                        </span>
+                      </span>
+                      <RiskBadge risk={item.risk} />
+                      <span className="shrink-0">
+                        {choice.expiresOn ? t('until', { date: day(choice.expiresOn) }) : t('noEndDate')}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {justification.trim() && (
+                  <dl className="text-sm">
+                    <dt className="text-xs text-muted-foreground">{ta('why')}</dt>
+                    <dd className="mt-0.5 whitespace-pre-line">{justification.trim()}</dd>
+                  </dl>
+                )}
+                {submit.error && (
+                  <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {errorText(submit.error)}
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <Button variant="ghost" onClick={() => go('details')}>
+                    <ArrowLeftIcon /> {t('back')}
+                  </Button>
+                  <Button loading={submit.isPending} onClick={() => submit.mutate(undefined)}>
+                    <SendIcon /> {t('send')}
+                  </Button>
+                </div>
+              </div>
+              <aside
+                className="grid min-w-0 content-start gap-3 rounded-xl border bg-muted/30 p-5"
+                aria-live="polite"
+              >
+                <h2 className="text-base font-semibold">{ta('path.title')}</h2>
+                <p className="text-sm text-muted-foreground">{ta('path.description')}</p>
+                {preview.isError ? (
+                  <p className="text-sm text-destructive">{errorText(preview.error)}</p>
+                ) : !preview.data ? (
+                  <Skeleton className="h-32 w-full rounded-lg" />
+                ) : chosen.length === 1 ? (
+                  <PreviewPath steps={pathOf.get(chosen[0]!.item.id) ?? []} />
+                ) : (
+                  chosen.map(({ item }) => (
+                    <section
+                      key={item.id}
+                      className="grid gap-3 border-t pt-3 first-of-type:border-t-0 first-of-type:pt-0"
+                    >
+                      <h3 className="text-sm font-semibold [overflow-wrap:anywhere]">{l(item.name)}</h3>
+                      <PreviewPath steps={pathOf.get(item.id) ?? []} />
+                    </section>
+                  ))
+                )}
+                <p className="text-xs text-muted-foreground">{t('afterApproval')}</p>
+              </aside>
+            </section>
+          )}
+        </StepTransition>
       </div>
     </>
   );

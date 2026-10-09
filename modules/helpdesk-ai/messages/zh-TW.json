@@ -28,9 +28,9 @@
   },
   "settings": {
     "triageEnabled": "為新工單提供分派建議",
-    "autoTriage": "自動套用高信心度的建議",
+    "autoTriage": "自動套用高信賴度的建議",
     "autoTriageHelp": "服務台 AI 只會填入尚未設定的欄位，絕不覆寫服務人員的選擇。",
-    "autoTriageThreshold": "自動分派的最低信心度（0–1）",
+    "autoTriageThreshold": "自動分派的最低信賴度（0–1）",
     "autoTriageThresholdHelp": "0.8 表示相似工單高度一致時才會自動套用建議。",
     "virtualAgentEnabled": "虛擬客服（詢問 IT）",
     "suggestReplies": "為服務人員提供回覆草稿"
@@ -44,10 +44,12 @@
     "conversation_escalated": "從虛擬客服建立工單"
   },
   "mode": {
-    "builtin": "內建 · 未使用 LLM",
     "builtinHint": "尚未設定語言模型：答案來自知識庫搜尋、相似工單與範本。",
     "llm": "語言模型",
-    "llmHint": "答案由語言模型（{provider}）依據知識庫撰寫。個人資料會在離開平台前遮罩。"
+    "llmHint": "答案由語言模型（{provider}）依據知識庫撰寫。個人資料會在離開平台前遮罩。",
+    "basic": "基本模式",
+    "chatBuiltin": "答案來自知識庫",
+    "chatLlm": "AI 依據知識庫回答"
   },
   "language": {
     "en": "英文",
@@ -82,7 +84,13 @@
     "applyAll": "全部套用",
     "dismiss": "略過",
     "rerun": "重新建議",
-    "confidence": "信心度",
+    "confidence": "信賴度",
+    "lowConfidence": "信賴度低，套用前請確認",
+    "neighbour": "{reference}（{percent}%）",
+    "basedOn": "最相似的已解決工單：{list}。",
+    "noNeighbours": "找不到相似的已解決工單；影響範圍與緊急程度使用預設值。",
+    "keywords": "依關鍵字調高：{list}。",
+    "keyword": "「{word}」",
     "fallback": "AI 模型無法使用，此建議僅依據相似工單。",
     "decidedBy": "由 {name} 處理"
   },
@@ -95,8 +103,16 @@
   },
   "similar": {
     "title": "相似的已解決工單",
+    "problemTitle": "相似的事件",
     "match": "相符 {percent}%",
-    "none": "尚無相似的已解決工單。"
+    "none": "尚無相似的已解決工單。",
+    "showMore": "顯示更多",
+    "showLess": "顯示較少",
+    "link": "連結至此問題",
+    "linkFor": "將 {reference} 連結至此問題",
+    "linked": "已連結",
+    "linkedToast": "已將 {reference} 連結至此問題",
+    "open": "處理中"
   },
   "resolution": {
     "solved": "已解決",
@@ -115,9 +131,9 @@
     "insertText": "這篇文章應該能幫上忙：{link}"
   },
   "generated": {
-    "builtin": "內建範本 — 傳送前請先檢查",
+    "builtin": "基本範本 — 傳送前請先檢查",
     "llm": "由 {model} 撰寫 — 傳送前請先檢查",
-    "fallback": "AI 模型無法使用 — 顯示內建版本"
+    "fallback": "AI 模型無法使用 — 顯示基本版本"
   },
   "reply": {
     "title": "撰寫回覆草稿",
@@ -191,10 +207,10 @@
     "searching": "正在搜尋知識庫…",
     "checkingTickets": "正在查詢您的工單…",
     "loading": "正在載入對話",
-    "didItHelp": "問題解決了嗎？",
-    "solved": "已解決",
-    "stillNeedHelp": "仍需要協助",
-    "stillNeedHelpMessage": "這樣沒有解決，我仍需要協助。",
+    "didItHelp": "是否已解決？",
+    "solved": "是，謝謝",
+    "stillNeedHelp": "否，建立工單",
+    "stillNeedHelpMessage": "這樣沒有解決，請幫我建立工單。",
     "resolved": "很高興幫上忙！有問題隨時再問。",
     "ticketRaised": "已建立工單 {reference}，服務台會在工單中與您聯繫。",
     "viewTicket": "檢視工單",
@@ -223,19 +239,20 @@
   "proposal": {
     "title": "建立工單",
     "hint": "請確認內容。您確認之前不會建立任何工單。",
-    "cta": "還是沒解決嗎？我已為服務台準備好一張工單。",
-    "review": "檢視工單",
     "fields": {
       "title": "標題",
       "description": "說明",
-      "urgency": "緊急程度",
       "type": "類型"
     },
     "titleTooShort": "工單標題至少需要 3 個字元。",
-    "urgency": {
-      "1": "高 — 我無法工作",
-      "2": "中 — 工作受到影響",
-      "3": "低 — 可以稍後處理"
+    "impactLegend": "對您的影響有多大？",
+    "impact": {
+      "blocked": "我無法工作",
+      "blockedHint": "工作已經停擺",
+      "slow": "拖慢了我的工作",
+      "slowHint": "暫時還有其他辦法",
+      "minor": "影響不大",
+      "minorHint": "有空再處理即可"
     },
     "type": {
       "incident": "有東西故障了",
@@ -258,12 +275,15 @@
     "description": "服務台 AI 的分派與回答成效，以及所需成本。",
     "period": "期間",
     "lastDays": "最近 {days} 天",
-    "configure": "設定 AI"
+    "configure": "設定 AI",
+    "sections": "報表",
+    "serviceDesk": "服務台",
+    "forbidden": "您沒有存取此頁面的權限。"
   },
   "kpi": {
     "acceptance": "分派建議採用率",
     "acceptanceHint": "已處理的 {decided} 項建議中採用 {accepted} 項",
-    "deflection": "自助解決率",
+    "deflection": "免開單解決率",
     "deflectionHint": "解決 {deflected} 件 · 轉為工單 {escalated} 件",
     "conversations": "對話數",
     "conversationsHint": "{open} 件仍在進行中",
@@ -288,6 +308,7 @@
   "config": {
     "title": "目前的 AI 設定",
     "description": "答案的來源，以及已啟用的自動化功能。",
+    "technical": "技術細節",
     "mode": "回答方式",
     "embeddings": "嵌入模型",
     "vectorStore": "向量搜尋",
@@ -297,7 +318,7 @@
     },
     "triage": "分派建議",
     "autoTriage": "自動分派",
-    "threshold": "信心度達 {percent}%",
+    "threshold": "信賴度達 {percent}%",
     "virtualAgent": "虛擬客服",
     "replies": "回覆草稿",
     "on": "開啟",
@@ -306,8 +327,19 @@
   "breakdown": {
     "title": "服務人員如何處理分派建議",
     "description": "此期間共 {total, plural, other {# 項建議}}。",
-    "confidence": "平均信心度 {percent}%。",
-    "kbDrafts": "從已解決工單建立了 {count, plural, other {# 篇知識文章草稿}}。"
+    "confidence": "平均信賴度 {percent}%。",
+    "kbDrafts": "從已解決工單建立了 {count, plural, other {# 篇知識文章草稿}}。",
+    "showPending": "檢視工單"
+  },
+  "pending": {
+    "title": "等待服務人員處理的建議",
+    "description": "分派建議與工單內容仍不同，且尚無人套用或略過的處理中工單。",
+    "ticket": "工單",
+    "suggested": "建議",
+    "confidence": "信賴度",
+    "raised": "建議時間",
+    "empty": "沒有待處理的建議：每張處理中的工單都已符合建議或已處理。",
+    "more": "{count, plural, other {還有 # 張工單等待處理}}"
   },
   "usage": {
     "title": "各功能的 AI 用量",
@@ -318,14 +350,15 @@
     "cost": "成本",
     "errors": "{count, plural, other {# 次失敗}}",
     "none": "此期間沒有模型呼叫",
-    "noneBuiltin": "內建模式不使用語言模型，因此不產生費用。"
+    "noneBuiltin": "基本模式不使用語言模型，因此不產生費用。"
   },
   "features": {
     "triage": "分派",
     "reply": "回覆草稿",
     "summary": "摘要",
     "kb_draft": "知識文章草稿",
-    "chat": "虛擬客服"
+    "chat": "虛擬客服",
+    "similar": "相似事件"
   },
   "table": {
     "title": "最近的對話",
@@ -363,9 +396,10 @@
       "offerTicket": "如果這樣仍無法解決，我可以為您向服務台建立工單 — 請確認下方內容。",
       "offerTicketNone": "我可以為您建立工單，讓服務台協助處理 — 請確認下方內容。",
       "defaultTitle": "需要 IT 協助",
-      "proposalIntro": "由虛擬客服（詢問 IT）建立。",
+      "proposalIntro": "由詢問 IT 建立。",
       "proposalUser": "我描述的問題：",
-      "proposalArticles": "已建議的文章：{list}",
+      "proposalArticles": "詢問 IT 建議了 {list}，但仍未解決問題。",
+      "proposalArticle": "「{title}」（{reference}）",
       "ticketCreated": "已為您建立 {reference}，服務台會在工單中與您聯繫。"
     },
     "triage": {

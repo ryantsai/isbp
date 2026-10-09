@@ -14,26 +14,27 @@ import {
 } from '@isbp/ui/alert-dialog';
 import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { EmptyState } from '@isbp/ui/empty-state';
-import { FadeIn } from '@isbp/ui/motion';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
+import { useListState } from '@isbp/ui/data-table';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RecordValues } from '@isbp/ui/record-picker';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { ArrowLeftIcon, FileQuestionIcon, PencilIcon, ShieldCheckIcon, Trash2Icon } from 'lucide-react';
-import Link from 'next/link';
+import { ArrowRightLeftIcon, FileQuestionIcon, PencilIcon, ShieldCheckIcon, Trash2Icon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useState } from 'react';
 import type { Asset, AssetEvent } from '../../contracts';
-import { AssetFormSheet } from '../asset-form';
+import { AssetFormSheet, ChangeStatusDialog } from '../asset-form';
 import { AssetStatusBadge, ValueBadge } from '../badges';
 import { CustomFieldsCard } from '../custom-fields';
 import { assetHref, INVALIDATE, useDay, useLocalized, useTaxonomy } from '../lib';
 import { LinksAndFiles } from '../record-panels';
 
-type Tab = 'overview' | 'history' | 'links';
+const TABS = ['overview', 'history', 'links'] as const;
+type Tab = (typeof TABS)[number];
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -122,8 +123,10 @@ export default function AssetPage({ params }: WebPageProps) {
     error,
   } = useApiQuery<Asset>(`/isms/assets/${encodeURIComponent(params.ref ?? '')}`);
   const { data: taxonomy } = useTaxonomy();
-  const [tab, setTab] = useState<Tab>('overview');
+  const [state, set] = useListState();
+  const tab: Tab = TABS.includes(state.tab as Tab) ? (state.tab as Tab) : 'overview';
   const [editing, setEditing] = useState(false);
+  const [changing, setChanging] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const remove = useApiMutation(() => api.delete(`/isms/assets/${asset!.id}`), {
     invalidate: INVALIDATE,
@@ -139,7 +142,8 @@ export default function AssetPage({ params }: WebPageProps) {
         <Skeleton className="h-72 w-full rounded-xl" />
       </div>
     );
-  if (error || !asset) return <EmptyState icon={<FileQuestionIcon />} title={t('asset.notFound')} />;
+  if (error) return <ErrorState kind="page" error={error} />;
+  if (!asset) return <EmptyState icon={<FileQuestionIcon />} title={t('asset.notFound')} />;
 
   const klass = taxonomy?.classes.find((c) => c.id === asset.class.id);
   const guidance = (dim: 'c' | 'i' | 'a', level: number) =>
@@ -147,54 +151,59 @@ export default function AssetPage({ params }: WebPageProps) {
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href="/isms">
-          <ArrowLeftIcon /> {t('register.title')}
-        </Link>
-      </Button>
+      <DetailHeader
+        back={{ href: '/isms', label: t('register.title'), highlight: asset.id }}
+        icon={<ShieldCheckIcon />}
+        reference={[
+          asset.number,
+          localized(asset.class.name),
+          asset.subclass ? localized(asset.subclass.name) : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+        title={asset.name}
+        status={<AssetStatusBadge status={asset.status} animate />}
+        badges={
+          <>
+            <ValueBadge value={asset.value} />
+            {asset.classification && (
+              <span className="text-sm text-muted-foreground">{localized(asset.classification.name)}</span>
+            )}
+          </>
+        }
+        actions={
+          asset.viewer.canManage
+            ? [
+                { id: 'edit', label: tc('edit'), icon: <PencilIcon />, onSelect: () => setEditing(true) },
+                {
+                  id: 'status',
+                  label: t('asset.changeStatus'),
+                  icon: <ArrowRightLeftIcon />,
+                  onSelect: () => setChanging(true),
+                },
+              ]
+            : []
+        }
+        menu={
+          asset.viewer.canManage
+            ? [
+                {
+                  id: 'delete',
+                  label: tc('delete'),
+                  icon: <Trash2Icon />,
+                  destructive: true,
+                  onSelect: () => setDeleting(true),
+                },
+              ]
+            : []
+        }
+      />
 
-      <FadeIn y={4} className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <ShieldCheckIcon aria-hidden className="size-6" />
-          </span>
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
-              <span className="font-mono">{asset.number}</span>
-              <span aria-hidden>·</span>
-              <span>
-                {asset.class.code} {localized(asset.class.name)}
-              </span>
-              {asset.subclass && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span>{localized(asset.subclass.name)}</span>
-                </>
-              )}
-            </p>
-            <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{asset.name}</h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <AssetStatusBadge status={asset.status} />
-              <ValueBadge value={asset.value} />
-              {asset.classification && (
-                <span className="text-sm text-muted-foreground">{localized(asset.classification.name)}</span>
-              )}
-            </div>
-          </div>
-        </div>
-        {asset.viewer.canManage && (
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setEditing(true)}>
-              <PencilIcon /> {tc('edit')}
-            </Button>
-            <Button variant="outline" onClick={() => setDeleting(true)}>
-              <Trash2Icon /> {tc('delete')}
-            </Button>
-          </div>
-        )}
-      </FadeIn>
-
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="gap-4">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => set({ tab: v === 'overview' ? undefined : v })}
+        className="gap-4"
+      >
         <TabsList className="max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="overview">{tc('overview')}</TabsTrigger>
           <TabsTrigger value="history">{t('history.title')}</TabsTrigger>
@@ -286,6 +295,7 @@ export default function AssetPage({ params }: WebPageProps) {
         </TabsContent>
       </Tabs>
 
+      {asset.viewer.canManage && changing && <ChangeStatusDialog asset={asset} onOpenChange={setChanging} />}
       {asset.viewer.canManage && (
         <AssetFormSheet
           open={editing}
@@ -304,6 +314,17 @@ export default function AssetPage({ params }: WebPageProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
+            {asset.status !== 'disposed' && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDeleting(false);
+                  setChanging(true);
+                }}
+              >
+                {t('asset.markDisposedInstead')}
+              </Button>
+            )}
             <AlertDialogAction
               className="bg-destructive text-white hover:bg-destructive/90"
               onClick={(e) => {

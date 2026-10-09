@@ -176,7 +176,16 @@ export async function search(
   if (!q) return [];
   const [projectHits, taskHits] = await Promise.all([
     projectRecords.search(q, ctx, auth, Math.max(1, Math.ceil(limit / 2))),
-    taskRecords.search(q, ctx, auth, limit),
+    // Tasks only for the people who work on them (record pickers still find every task the caller may see).
+    services(ctx)
+      .tasks.searchTasks(q, auth, limit, { membersOnly: true })
+      .then((rows) =>
+        taskSummaries(
+          ctx,
+          auth,
+          rows.map((r) => ({ task: r.task, project: r.project })),
+        ),
+      ),
   ]);
   const hits: SearchHit[] = [
     ...projectHits.map((p) => ({

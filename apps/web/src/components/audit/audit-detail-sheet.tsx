@@ -13,6 +13,7 @@ import { AuditIcon, useActionLabel } from '@/components/audit-action';
 import { DateTime, RelativeTime } from '@/components/relative-time';
 import { useApiMutation } from '@/lib/api';
 import { ActorCell, CategoryBadge, CopyButton, OutcomeBadge, TargetCell } from './audit-parts';
+import { useAuditText } from './audit-text';
 
 function Section({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
   return (
@@ -37,11 +38,24 @@ function compact(v: unknown): string {
 const isPrimitiveArray = (v: unknown): v is (string | number | boolean | null)[] =>
   Array.isArray(v) && v.every((x) => x === null || ['string', 'number', 'boolean'].includes(typeof x));
 
-/** Before/after cell: arrays of primitives highlight the items that were removed/added. */
-function ValueCell({ value, other, side }: { value: unknown; other: unknown; side: 'before' | 'after' }) {
+/** Before/after cell: arrays of primitives highlight the items that were removed/added; ids show as names. */
+function ValueCell({
+  log,
+  field,
+  value,
+  other,
+  side,
+}: {
+  log: AuditLog;
+  field: string;
+  value: unknown;
+  other: unknown;
+  side: 'before' | 'after';
+}) {
   const t = useTranslations('audit.detail');
+  const text = useAuditText();
   if (value === null || value === undefined || value === '')
-    return <span className="text-muted-foreground italic">{t('emptyValue')}</span>;
+    return <span className="text-muted-foreground">—</span>;
   if (isPrimitiveArray(value) && (isPrimitiveArray(other) || other === null || other === undefined)) {
     const others = new Set((other ?? []).map(compact));
     return (
@@ -49,11 +63,14 @@ function ValueCell({ value, other, side }: { value: unknown; other: unknown; sid
         {value.length === 0 && <span className="text-muted-foreground italic">{t('emptyList')}</span>}
         {value.map((item, i) => {
           const changed = !others.has(compact(item));
+          const shown = text.valueText(log, field, item);
+          const named = shown !== null && shown !== compact(item);
           return (
-            <code
+            <span
               key={i}
               className={cn(
-                'rounded px-1 py-0.5 font-mono text-[11px] break-all',
+                'rounded px-1 py-0.5 text-[11px] break-all',
+                !named && 'font-mono',
                 !changed && 'bg-muted text-muted-foreground',
                 changed &&
                   side === 'before' &&
@@ -64,37 +81,39 @@ function ValueCell({ value, other, side }: { value: unknown; other: unknown; sid
               {changed && (
                 <span className="sr-only">{side === 'before' ? t('removedItem') : t('addedItem')} </span>
               )}
-              {compact(item)}
-            </code>
+              {shown ?? compact(item)}
+            </span>
           );
         })}
       </span>
     );
   }
+  const shown = text.valueText(log, field, value);
   return (
     <span
       className={cn(
         'rounded px-1 py-0.5 break-words',
-        typeof value === 'object' && 'font-mono text-[11px]',
+        shown === null && 'font-mono text-[11px]',
         side === 'before' ? 'bg-destructive/10 text-destructive' : 'bg-success/12 text-success',
       )}
     >
-      {compact(value)}
+      {shown ?? compact(value)}
     </span>
   );
 }
 
-function ChangesTable({ changes }: { changes: NonNullable<AuditLog['changes']> }) {
+function ChangesTable({ log }: { log: AuditLog }) {
   const t = useTranslations('audit.detail');
-  const rows = Object.entries(changes);
+  const text = useAuditText();
+  const rows = Object.entries(log.changes ?? {});
   if (!rows.length) return <p className="text-sm text-muted-foreground">{t('empty')}</p>;
   return (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-x-auto rounded-lg border">
       <table className="w-full table-fixed text-sm">
         <caption className="sr-only">{t('changes')}</caption>
         <thead className="bg-muted/40 text-left text-xs text-muted-foreground">
           <tr>
-            <th scope="col" className="w-[28%] px-3 py-2 font-medium">
+            <th scope="col" className="w-[30%] px-3 py-2 font-medium">
               {t('field')}
             </th>
             <th scope="col" className="px-3 py-2 font-medium">
@@ -106,22 +125,54 @@ function ChangesTable({ changes }: { changes: NonNullable<AuditLog['changes']> }
           </tr>
         </thead>
         <tbody className="divide-y">
-          {rows.map(([field, [before, after]]) => (
-            <tr key={field} className="align-top">
-              <th scope="row" className="px-3 py-2 text-left font-mono text-xs font-medium break-all">
-                {field}
-              </th>
-              <td className="px-3 py-2">
-                <ValueCell value={before} other={after} side="before" />
-              </td>
-              <td className="px-3 py-2">
-                <ValueCell value={after} other={before} side="after" />
-              </td>
-            </tr>
-          ))}
+          {rows.map(([field, [before, after]]) => {
+            const label = text.fieldLabel(field);
+            return (
+              <tr key={field} className="align-top">
+                <th
+                  scope="row"
+                  className={cn(
+                    'px-3 py-2 text-left font-medium break-words',
+                    !label && 'font-mono text-xs break-all',
+                  )}
+                >
+                  {label ?? field}
+                </th>
+                <td className="px-3 py-2">
+                  <ValueCell log={log} field={field} value={before} other={after} side="before" />
+                </td>
+                <td className="px-3 py-2">
+                  <ValueCell log={log} field={field} value={after} other={before} side="after" />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
+  );
+}
+
+/** Details that name things (groups joined, roles removed, people added), as names. The JSON follows. */
+function NamedDetails({ log }: { log: AuditLog }) {
+  const text = useAuditText();
+  const rows = Object.entries(log.metadata ?? {}).flatMap(([key, value]) => {
+    const label = text.fieldLabel(key);
+    const items = Array.isArray(value) ? value : [value];
+    if (!label || !items.length) return [];
+    const names = items.map((v) => text.refName(log, v)).filter((n): n is string => Boolean(n));
+    return names.length === items.length ? [{ key, label, names }] : [];
+  });
+  if (!rows.length) return null;
+  return (
+    <dl className="divide-y rounded-lg border px-3 text-sm">
+      {rows.map((r) => (
+        <div key={r.key} className="grid grid-cols-[minmax(0,8rem)_1fr] gap-2 py-1.5">
+          <dt className="text-muted-foreground">{r.label}</dt>
+          <dd className="min-w-0 wrap-break-word">{r.names.join(', ')}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -202,6 +253,7 @@ export function AuditDetailSheet({
 }) {
   const t = useTranslations('audit');
   const tc = useTranslations('common');
+  const tr = useTranslations();
   const actionLabel = useActionLabel();
   // Keep the last record so the content doesn't blank out while the sheet slides away.
   const [last, setLast] = useState(log);
@@ -256,7 +308,7 @@ export function AuditDetailSheet({
               )}
 
               <Section title={t('detail.changes')}>
-                <ChangesTable changes={shown.changes ?? {}} />
+                <ChangesTable log={shown} />
               </Section>
 
               {shown.metadata && Object.keys(shown.metadata).length > 0 && (
@@ -269,6 +321,7 @@ export function AuditDetailSheet({
                     />
                   }
                 >
+                  <NamedDetails log={shown} />
                   <pre
                     tabIndex={0}
                     aria-label={t('detail.metadata')}
@@ -285,7 +338,15 @@ export function AuditDetailSheet({
                   <ContextRow label={t('detail.requestId')} value={shown.requestId} />
                   <ContextRow label={t('detail.ip')} value={shown.ip} />
                   <ContextRow label={t('detail.userAgent')} value={shown.userAgent} mono={false} />
-                  <ContextRow label={t('columns.module')} value={shown.moduleId} />
+                  <ContextRow
+                    label={t('columns.module')}
+                    value={
+                      shown.moduleId && tr.has(`${shown.moduleId}.meta.name`)
+                        ? tr(`${shown.moduleId}.meta.name`)
+                        : shown.moduleId
+                    }
+                    mono={false}
+                  />
                 </dl>
               </Section>
 

@@ -103,10 +103,24 @@ export const HEALTH: Record<Health, Meta> = {
   unknown: { icon: CircleHelpIcon, tone: 'muted' },
 };
 
-export function HealthBadge({ health, enabled = true }: { health: Health; enabled?: boolean }) {
+/**
+ * The connection's health, honest about problems: a working connection with open conflicts or failed records reads
+ * "Working · needs attention" in the warning tone.
+ */
+export function HealthBadge({
+  health,
+  enabled = true,
+  attention = false,
+}: {
+  health: Health;
+  enabled?: boolean;
+  attention?: boolean;
+}) {
   const t = useTranslations('integrations');
   if (!enabled)
     return <ToneBadge meta={{ icon: CirclePauseIcon, tone: 'muted' }} label={t('common.disabled')} />;
+  if (health === 'ok' && attention)
+    return <ToneBadge meta={{ icon: TriangleAlertIcon, tone: 'warning' }} label={t('health.attention')} />;
   return <ToneBadge meta={HEALTH[health]} label={t(`health.${health}`)} />;
 }
 

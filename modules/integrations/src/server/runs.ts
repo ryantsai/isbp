@@ -42,7 +42,7 @@ export class RunLog {
 
   private add(level: LogLevel, message: string, ref?: LogRef) {
     const entry: LogEntry = { at: new Date().toISOString(), level, message: message.slice(0, 2_000) };
-    if (ref && (ref.remote || ref.local || ref.linkId)) entry.ref = ref;
+    if (ref && (ref.remote || ref.local || ref.linkId || ref.fields?.length)) entry.ref = ref;
     const next = appendCapped(this.entries, entry, this.dropped);
     this.entries = next.log;
     this.dropped = next.dropped;

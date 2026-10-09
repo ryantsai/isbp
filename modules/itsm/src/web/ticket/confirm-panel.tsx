@@ -6,7 +6,7 @@ import { Label } from '@isbp/ui/label';
 import { useApiMutation } from '@isbp/ui/query';
 import { Textarea } from '@isbp/ui/textarea';
 import { CheckIcon, PartyPopperIcon, RotateCcwIcon, StarIcon } from 'lucide-react';
-import { motion } from 'motion/react';
+import { FadeIn } from '@isbp/ui/motion';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import type { TicketDetail } from '../../contracts';
@@ -88,10 +88,8 @@ export function ConfirmPanel({ ticket }: { ticket: TicketDetail }) {
   const reasonInvalid = reason.trim().length < 3;
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+    <FadeIn
+      role="region"
       aria-labelledby={`${id}-title`}
       className="grid gap-4 rounded-xl border border-success/30 bg-success/5 p-4 sm:p-5"
     >
@@ -188,6 +186,6 @@ export function ConfirmPanel({ ticket }: { ticket: TicketDetail }) {
           </div>
         </form>
       )}
-    </motion.section>
+    </FadeIn>
   );
 }

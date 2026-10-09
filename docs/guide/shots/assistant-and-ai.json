@@ -6,9 +6,18 @@
     "waitFor": "main h1",
     "steps": [
       {
-        "click": { "role": "button", "name": { "en": "Assistant", "zh-TW": "助理", "ja-JP": "アシスタント" } }
+        "click": {
+          "role": "button",
+          "name": {
+            "en": "Assistant",
+            "zh-TW": "助理",
+            "ja-JP": "アシスタント"
+          }
+        }
       },
-      { "wait": 1500 }
+      {
+        "wait": 1500
+      }
     ],
     "clip": "[role=\"dialog\"]"
   },
@@ -28,7 +37,31 @@
           }
         }
       },
-      { "wait": 2000 }
+      {
+        "wait": 2000
+      }
+    ],
+    "clip": null
+  },
+  {
+    "name": "assistant-and-ai-packs",
+    "as": "admin",
+    "path": "/assistant/packs",
+    "waitFor": "main h1",
+    "steps": [
+      {
+        "click": {
+          "role": "button",
+          "name": {
+            "en": "What it creates",
+            "zh-TW": "會建立的內容",
+            "ja-JP": "作成される内容"
+          }
+        }
+      },
+      {
+        "wait": 2000
+      }
     ],
     "clip": null
   },

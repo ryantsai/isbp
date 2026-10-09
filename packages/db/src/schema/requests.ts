@@ -18,9 +18,10 @@ export const accessRequests = core.table(
     beneficiaryId: uuid('beneficiary_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    // History outlives the role: a role (or its application) with access requests on record can't be deleted.
     roleId: uuid('role_id')
       .notNull()
-      .references(() => roles.id, { onDelete: 'cascade' }),
+      .references(() => roles.id, { onDelete: 'restrict' }),
     scopeType: scopeType('scope_type').notNull().default('global'),
     scopeDepartmentId: uuid('scope_department_id').references(() => departments.id, { onDelete: 'cascade' }),
     /** Requested duration; null = permanent. */

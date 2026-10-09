@@ -19,6 +19,7 @@ import { type ApprovedSoftware, LICENSE_MODELS } from '../../contracts';
 import { ApprovalStatusBadge } from '../badges';
 import { ApprovedSoftwareSheet } from '../approved-software-sheet';
 import { licenseHref, useDay, useDepartments } from '../lib';
+import { SoftwareSections } from '../sections';
 
 const ALL = '__all__';
 /** Quick tabs → status / state filters. */
@@ -39,6 +40,7 @@ const VIEW_KEYS = Object.keys(VIEWS) as View[];
 export default function ApprovedSoftwarePage() {
   const t = useTranslations('itam.approvedSoftware');
   const tm = useTranslations('itam.licenseModel');
+  const tn = useTranslations('itam.nav');
   const tc = useTranslations('common');
   const locale = useLocale();
   const day = useDay();
@@ -54,12 +56,15 @@ export default function ApprovedSoftwarePage() {
     department: str('department'),
     ...VIEWS[view],
   };
-  const { data, isLoading, isFetching } = useApiQuery<Page<ApprovedSoftware>>('/itam/approved-software', {
-    page: state.page,
-    pageSize: state.pageSize,
-    sort: state.sort,
-    ...filters,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<ApprovedSoftware>>(
+    '/itam/approved-software',
+    {
+      page: state.page,
+      pageSize: state.pageSize,
+      sort: state.sort,
+      ...filters,
+    },
+  );
   const filtered = Boolean(state.q || str('model') || str('department'));
   const exportHref = `/api/v1/itam/approved-software/export?${new URLSearchParams(
     Object.entries({ ...filters, sort: state.sort, locale }).filter(
@@ -189,7 +194,7 @@ export default function ApprovedSoftwarePage() {
   return (
     <>
       <PageHeader
-        title={t('title')}
+        title={tn('software')}
         description={t('description')}
         actions={
           <div className="flex flex-wrap gap-2">
@@ -206,6 +211,7 @@ export default function ApprovedSoftwarePage() {
           </div>
         }
       />
+      <SoftwareSections />
       <Tabs
         value={view}
         onValueChange={(v) => set({ view: v === 'allowed' ? undefined : v })}
@@ -232,6 +238,8 @@ export default function ApprovedSoftwarePage() {
                 onSortChange={(sort) => set({ sort })}
                 loading={isLoading}
                 fetching={isFetching}
+                error={error}
+                onRetry={() => refetch()}
                 getRowId={(r) => r.id}
                 onPageChange={(page) => set({ page })}
                 onPageSizeChange={(pageSize) => set({ pageSize })}

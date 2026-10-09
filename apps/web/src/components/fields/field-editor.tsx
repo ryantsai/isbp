@@ -17,24 +17,17 @@ import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { Checkbox } from '@isbp/ui/checkbox';
 import { ConditionBuilder } from '@isbp/ui/condition-builder';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { FieldControl } from '@isbp/ui/form-renderer';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
+import { Disclosure } from '@isbp/ui/motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Switch } from '@isbp/ui/switch';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
   CheckIcon,
-  ChevronDownIcon,
   ChevronRightIcon,
   Columns2Icon,
   LockIcon,
@@ -48,6 +41,7 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useId, useMemo, useState } from 'react';
 import { Segmented } from '@/components/roles/segmented';
+import { useShowFieldKeys } from './field-keys';
 import { ElementTypeIcon, FIELD_TYPE_ORDER } from './field-types';
 import {
   CHOICE_TYPES,
@@ -58,6 +52,7 @@ import {
   elementIssues,
   type FieldIssue,
   fieldFacts,
+  hasText,
   isAutoKey,
   isFieldElement,
   type IssueTarget,
@@ -210,15 +205,15 @@ export function FieldTypeSelect({
   const t = useTranslations('fields.types');
   return (
     <Select value={value} onValueChange={(v) => onChange(v as FieldType)} disabled={disabled}>
-      <SelectTrigger id={id} className="h-auto min-h-9 w-full py-1.5" aria-describedby={describedBy}>
+      <SelectTrigger id={id} className="h-auto min-h-9 w-full py-1" aria-describedby={describedBy}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {types.map((type) => (
           <SelectItem key={type} value={type}>
-            <ElementTypeIcon type={type} size="sm" />
-            <span className="flex flex-col text-left">
-              <span>{t(`${type}.name`)}</span>
+            <span className="flex min-w-0 items-center gap-2">
+              <ElementTypeIcon type={type} size="sm" />
+              <span className="truncate">{t(`${type}.name`)}</span>
             </span>
           </SelectItem>
         ))}
@@ -227,6 +222,9 @@ export function FieldTypeSelect({
   );
 }
 
+const CUSTOM = '__custom__';
+
+/** "Format" of a short text: a preset (digits, a code, a phone number…) or, last, a custom regular expression. */
 function PatternEditor({
   value,
   onChange,
@@ -239,51 +237,59 @@ function PatternEditor({
   const t = useTranslations('fields.editor');
   const uid = useId();
   const [sample, setSample] = useState('');
+  const [customMode, setCustomMode] = useState(false);
+  const preset = PATTERN_PRESETS.find((p) => p.pattern === value);
+  const mode = value ? (preset?.id ?? CUSTOM) : customMode ? CUSTOM : NONE;
   const safe = value ? isSafePattern(value) : false;
   const matches = value && safe && sample ? new RegExp(`^(?:${value})$`, 'u').test(sample.trim()) : null;
   return (
-    <Row
-      label={t('pattern')}
-      htmlFor={`${uid}-pattern`}
-      optional
-      hint={t('patternHint')}
-      hintId={`${uid}-hint`}
-      issues={issues}
-      issueId={`${uid}-issues`}
-      aside={
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" size="sm" className="-my-1 h-7 text-xs">
-              {t('patternPresets')} <ChevronDownIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
-            <DropdownMenuLabel>{t('patternPresets')}</DropdownMenuLabel>
+    <div className="grid gap-3">
+      <Row label={t('format')} htmlFor={`${uid}-format`}>
+        <Select
+          value={mode}
+          onValueChange={(v) => {
+            setCustomMode(v === CUSTOM);
+            if (v === NONE) onChange(undefined);
+            else if (v !== CUSTOM) onChange(PATTERN_PRESETS.find((p) => p.id === v)?.pattern);
+          }}
+        >
+          <SelectTrigger id={`${uid}-format`} className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NONE}>{t('formatAny')}</SelectItem>
             {PATTERN_PRESETS.map((p) => (
-              <DropdownMenuItem
-                key={p.id}
-                onSelect={() => onChange(p.pattern)}
-                className="flex-col items-start gap-0.5"
-              >
-                <span>{t(`presets.${p.id}`)}</span>
-                <code className="font-mono text-[11px] text-muted-foreground">{p.pattern}</code>
-              </DropdownMenuItem>
+              <SelectItem key={p.id} value={p.id}>
+                {t(`presets.${p.id}`)}
+              </SelectItem>
             ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      }
-    >
-      <Input
-        id={`${uid}-pattern`}
-        value={value ?? ''}
-        maxLength={200}
-        spellCheck={false}
-        placeholder="[A-Z]{2}-\d{4}"
-        className="font-mono text-sm"
-        aria-invalid={issues.length > 0 || undefined}
-        aria-describedby={`${uid}-hint ${uid}-issues`}
-        onChange={(e) => onChange(e.target.value || undefined)}
-      />
+            <SelectItem value={CUSTOM}>{t('formatCustom')}</SelectItem>
+          </SelectContent>
+        </Select>
+      </Row>
+      {mode === CUSTOM && (
+        <Row
+          label={t('pattern')}
+          htmlFor={`${uid}-pattern`}
+          hint={t('patternHint')}
+          hintId={`${uid}-hint`}
+          issues={issues}
+          issueId={`${uid}-issues`}
+        >
+          <Input
+            id={`${uid}-pattern`}
+            value={value ?? ''}
+            maxLength={200}
+            spellCheck={false}
+            placeholder="[A-Z]{2}-\d{4}"
+            className="font-mono text-sm"
+            aria-invalid={issues.length > 0 || undefined}
+            aria-describedby={`${uid}-hint ${uid}-issues`}
+            onChange={(e) => onChange(e.target.value || undefined)}
+          />
+        </Row>
+      )}
+      {mode !== CUSTOM && <IssueText id={`${uid}-issues`} issues={issues} />}
       {value && safe && (
         <div className="flex items-center gap-2">
           <Input
@@ -307,7 +313,7 @@ function PatternEditor({
           </span>
         </div>
       )}
-    </Row>
+    </div>
   );
 }
 
@@ -453,6 +459,8 @@ function FieldPropsEditor({
   const uid = useId();
   const facts = useMemo(() => fieldFacts(siblings, locale), [siblings, locale]);
   const takenKeys = useMemo(() => new Set(siblings.map((f) => f.key)), [siblings]);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const of = (target: IssueTarget) => issues.filter((i) => i.target === target);
   const described = (target: IssueTarget, hint?: string) =>
     [hint, of(target).length ? `${uid}-${target}-issues` : undefined].filter(Boolean).join(' ') || undefined;
@@ -467,28 +475,46 @@ function FieldPropsEditor({
   const choice = CHOICE_TYPES.includes(field.type);
   const hasLength = LENGTH_TYPES.includes(field.type);
   const hasRange = field.type === 'number' || field.type === 'multiselect';
+  const hasWidth = !column && field.type !== 'rows';
+  const hasDefault = field.type !== 'user' && field.type !== 'record' && field.type !== 'rows';
+
+  // "More options" and "Advanced" open by themselves while something in them needs fixing.
+  const moreIssues = (['validation', 'pattern', 'defaultValue', 'visibleWhen'] as const).some(
+    (target) => of(target).length > 0,
+  );
+  const keyIssues = of('key').length > 0;
+  const showMore = moreOpen || moreIssues;
+  const showAdvanced = advancedOpen || keyIssues;
+  // What "More options" holds already, so a closed section doesn't hide that a field has, say, a condition.
+  const moreSet = [
+    hasText(field.help) && t('editor.help'),
+    hasText(field.placeholder) && t('editor.placeholder'),
+    hasWidth && field.width === 'half' && t('editor.widthHalf'),
+    field.validation && t('editor.sections.validation'),
+    field.defaultValue !== undefined && t('editor.defaultValue'),
+    field.visibleWhen && t('editor.conditional'),
+  ].filter((x): x is string => Boolean(x));
 
   return (
     <div className={cn('grid gap-6', className)}>
-      {!hideType && (
-        <Row
-          label={t('editor.type')}
-          htmlFor={`${uid}-type`}
-          hint={lockedType ? t('editor.typeLocked') : undefined}
-          hintId={`${uid}-type-hint`}
-        >
-          <FieldTypeSelect
-            id={`${uid}-type`}
-            value={field.type}
-            types={types}
-            disabled={lockedType}
-            describedBy={lockedType ? `${uid}-type-hint` : undefined}
-            onChange={(type) => onChange(changeFieldType(field, type, defaultOptions))}
-          />
-        </Row>
-      )}
-
-      <Section title={t('editor.sections.basics')}>
+      <div className="grid gap-4">
+        {!hideType && (
+          <Row
+            label={t('editor.type')}
+            htmlFor={`${uid}-type`}
+            hint={lockedType ? t('editor.typeLocked') : undefined}
+            hintId={`${uid}-type-hint`}
+          >
+            <FieldTypeSelect
+              id={`${uid}-type`}
+              value={field.type}
+              types={types}
+              disabled={lockedType}
+              describedBy={lockedType ? `${uid}-type-hint` : undefined}
+              onChange={(type) => onChange(changeFieldType(field, type, defaultOptions))}
+            />
+          </Row>
+        )}
         <Row
           label={t('editor.label')}
           htmlFor={`${uid}-label`}
@@ -507,68 +533,6 @@ function FieldPropsEditor({
             }}
           />
         </Row>
-        <Row
-          label={t('editor.key')}
-          htmlFor={`${uid}-key`}
-          hint={lockedKey ? t('editor.keyLocked') : t('editor.keyHint')}
-          hintId={`${uid}-key-hint`}
-          issues={of('key')}
-          issueId={`${uid}-key-issues`}
-          aside={
-            auto && (
-              <Badge variant="muted" className="font-normal">
-                <WandSparklesIcon aria-hidden /> {t('editor.keyAuto')}
-              </Badge>
-            )
-          }
-        >
-          <div className="relative">
-            <Input
-              id={`${uid}-key`}
-              value={field.key}
-              readOnly={lockedKey}
-              maxLength={64}
-              spellCheck={false}
-              autoComplete="off"
-              aria-invalid={of('key').length > 0 || undefined}
-              aria-describedby={described('key', `${uid}-key-hint`)}
-              onChange={(e) => set({ key: e.target.value.replace(/[^A-Za-z0-9_]/g, '') })}
-              className="font-mono text-sm read-only:bg-muted/50 read-only:text-muted-foreground"
-            />
-            {lockedKey && (
-              <LockIcon
-                aria-hidden
-                className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 text-muted-foreground"
-              />
-            )}
-          </div>
-        </Row>
-        <Row
-          label={t('editor.help')}
-          htmlFor={`${uid}-help`}
-          optional
-          hint={t('editor.helpHint')}
-          hintId={`${uid}-help-hint`}
-        >
-          <LocalizedInput
-            id={`${uid}-help`}
-            value={field.help}
-            aria-describedby={`${uid}-help-hint`}
-            onChange={(help) => set({ help })}
-          />
-        </Row>
-        {PLACEHOLDER_TYPES.includes(field.type) && (
-          <Row label={t('editor.placeholder')} htmlFor={`${uid}-placeholder`} optional>
-            <LocalizedInput
-              id={`${uid}-placeholder`}
-              value={field.placeholder}
-              onChange={(placeholder) => set({ placeholder })}
-            />
-          </Row>
-        )}
-      </Section>
-
-      <Section title={t('editor.sections.layout')}>
         <label
           htmlFor={`${uid}-required`}
           className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border p-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50"
@@ -585,27 +549,7 @@ function FieldPropsEditor({
             onCheckedChange={(required) => set({ required })}
           />
         </label>
-        {!column && field.type !== 'rows' && (
-          <div className="grid gap-1.5">
-            <span className="text-sm font-medium" id={`${uid}-width`}>
-              {t('editor.width')}
-            </span>
-            <Segmented
-              label={t('editor.width')}
-              value={field.width === 'half' ? 'half' : 'full'}
-              onChange={(width) => set({ width })}
-              options={[
-                {
-                  value: 'full',
-                  label: t('editor.widthFull'),
-                  icon: <RectangleHorizontalIcon aria-hidden />,
-                },
-                { value: 'half', label: t('editor.widthHalf'), icon: <Columns2Icon aria-hidden /> },
-              ]}
-            />
-          </div>
-        )}
-      </Section>
+      </div>
 
       {choice && (
         <Section title={t('editor.sections.options')}>
@@ -632,99 +576,207 @@ function FieldPropsEditor({
         </Section>
       )}
 
-      {(hasRange || hasLength) && (
-        <Section title={t('editor.sections.validation')}>
-          {hasRange && (
-            <div className="grid grid-cols-2 gap-3">
-              <Row
-                label={field.type === 'number' ? t('editor.min') : t('editor.minChoices')}
-                htmlFor={`${uid}-min`}
-              >
-                <NumberBox
-                  id={`${uid}-min`}
-                  value={field.validation?.min}
-                  integer={field.type === 'multiselect'}
-                  min={field.type === 'multiselect' ? 0 : undefined}
-                  invalid={of('validation').length > 0}
-                  describedBy={described('validation')}
-                  onChange={(min) => setValidation({ min })}
+      <div className="grid gap-1 border-t pt-2">
+        <Disclosure
+          open={showMore}
+          onOpenChange={setMoreOpen}
+          summary={
+            <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+              <span>{t('editor.moreOptions')}</span>
+              {moreSet.length > 0 && (
+                <span className="truncate text-xs font-normal text-muted-foreground">
+                  {moreSet.join(' · ')}
+                </span>
+              )}
+            </span>
+          }
+          contentClassName="grid gap-6 pt-2 pb-2"
+        >
+          <div className="grid gap-4">
+            <Row
+              label={t('editor.help')}
+              htmlFor={`${uid}-help`}
+              optional
+              hint={t('editor.helpHint')}
+              hintId={`${uid}-help-hint`}
+            >
+              <LocalizedInput
+                id={`${uid}-help`}
+                value={field.help}
+                aria-describedby={`${uid}-help-hint`}
+                onChange={(help) => set({ help })}
+              />
+            </Row>
+            {PLACEHOLDER_TYPES.includes(field.type) && (
+              <Row label={t('editor.placeholder')} htmlFor={`${uid}-placeholder`} optional>
+                <LocalizedInput
+                  id={`${uid}-placeholder`}
+                  value={field.placeholder}
+                  onChange={(placeholder) => set({ placeholder })}
                 />
               </Row>
-              <Row
-                label={field.type === 'number' ? t('editor.max') : t('editor.maxChoices')}
-                htmlFor={`${uid}-max`}
-              >
-                <NumberBox
-                  id={`${uid}-max`}
-                  value={field.validation?.max}
-                  integer={field.type === 'multiselect'}
-                  min={field.type === 'multiselect' ? 1 : undefined}
-                  invalid={of('validation').length > 0}
-                  describedBy={described('validation')}
-                  onChange={(max) => setValidation({ max })}
+            )}
+            {hasWidth && (
+              <div className="grid gap-1.5">
+                <span className="text-sm font-medium" id={`${uid}-width`}>
+                  {t('editor.width')}
+                </span>
+                <Segmented
+                  label={t('editor.width')}
+                  value={field.width === 'half' ? 'half' : 'full'}
+                  onChange={(width) => set({ width })}
+                  options={[
+                    {
+                      value: 'full',
+                      label: t('editor.widthFull'),
+                      icon: <RectangleHorizontalIcon aria-hidden />,
+                    },
+                    { value: 'half', label: t('editor.widthHalf'), icon: <Columns2Icon aria-hidden /> },
+                  ]}
                 />
-              </Row>
-            </div>
-          )}
-          {hasLength && (
-            <div className="grid grid-cols-2 gap-3">
-              <Row label={t('editor.minLength')} htmlFor={`${uid}-minlen`}>
-                <NumberBox
-                  id={`${uid}-minlen`}
-                  value={field.validation?.minLength}
-                  integer
-                  min={0}
-                  max={10_000}
-                  invalid={of('validation').length > 0}
-                  describedBy={described('validation')}
-                  onChange={(minLength) => setValidation({ minLength })}
-                />
-              </Row>
-              <Row label={t('editor.maxLength')} htmlFor={`${uid}-maxlen`}>
-                <NumberBox
-                  id={`${uid}-maxlen`}
-                  value={field.validation?.maxLength}
-                  integer
-                  min={1}
-                  max={10_000}
-                  invalid={of('validation').length > 0}
-                  describedBy={described('validation')}
-                  onChange={(maxLength) => setValidation({ maxLength })}
-                />
-              </Row>
-            </div>
-          )}
-          <IssueText id={`${uid}-validation-issues`} issues={of('validation')} />
-          {field.type === 'text' && (
-            <PatternEditor
-              value={field.validation?.pattern}
-              issues={of('pattern')}
-              onChange={(pattern) => setValidation({ pattern })}
-            />
-          )}
-        </Section>
-      )}
+              </div>
+            )}
+          </div>
 
-      {field.type !== 'user' && field.type !== 'record' && field.type !== 'rows' && (
-        <Section title={t('editor.sections.default')}>
-          <DefaultValueEditor
-            field={field}
-            issues={of('defaultValue')}
-            onChange={(defaultValue) => set({ defaultValue })}
-          />
-        </Section>
-      )}
+          {(hasRange || hasLength) && (
+            <Section title={t('editor.sections.validation')}>
+              {field.type === 'text' && (
+                <PatternEditor
+                  value={field.validation?.pattern}
+                  issues={of('pattern')}
+                  onChange={(pattern) => setValidation({ pattern })}
+                />
+              )}
+              {hasRange && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Row
+                    label={field.type === 'number' ? t('editor.min') : t('editor.minChoices')}
+                    htmlFor={`${uid}-min`}
+                  >
+                    <NumberBox
+                      id={`${uid}-min`}
+                      value={field.validation?.min}
+                      integer={field.type === 'multiselect'}
+                      min={field.type === 'multiselect' ? 0 : undefined}
+                      invalid={of('validation').length > 0}
+                      describedBy={described('validation')}
+                      onChange={(min) => setValidation({ min })}
+                    />
+                  </Row>
+                  <Row
+                    label={field.type === 'number' ? t('editor.max') : t('editor.maxChoices')}
+                    htmlFor={`${uid}-max`}
+                  >
+                    <NumberBox
+                      id={`${uid}-max`}
+                      value={field.validation?.max}
+                      integer={field.type === 'multiselect'}
+                      min={field.type === 'multiselect' ? 1 : undefined}
+                      invalid={of('validation').length > 0}
+                      describedBy={described('validation')}
+                      onChange={(max) => setValidation({ max })}
+                    />
+                  </Row>
+                </div>
+              )}
+              {hasLength && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Row label={t('editor.minLength')} htmlFor={`${uid}-minlen`}>
+                    <NumberBox
+                      id={`${uid}-minlen`}
+                      value={field.validation?.minLength}
+                      integer
+                      min={0}
+                      max={10_000}
+                      invalid={of('validation').length > 0}
+                      describedBy={described('validation')}
+                      onChange={(minLength) => setValidation({ minLength })}
+                    />
+                  </Row>
+                  <Row label={t('editor.maxLength')} htmlFor={`${uid}-maxlen`}>
+                    <NumberBox
+                      id={`${uid}-maxlen`}
+                      value={field.validation?.maxLength}
+                      integer
+                      min={1}
+                      max={10_000}
+                      invalid={of('validation').length > 0}
+                      describedBy={described('validation')}
+                      onChange={(maxLength) => setValidation({ maxLength })}
+                    />
+                  </Row>
+                </div>
+              )}
+              <IssueText id={`${uid}-validation-issues`} issues={of('validation')} />
+            </Section>
+          )}
 
-      {!column && (
-        <Section title={t('editor.sections.logic')}>
-          <LogicEditor
-            value={field.visibleWhen}
-            onChange={(visibleWhen) => set({ visibleWhen })}
-            facts={facts}
-            issues={of('visibleWhen')}
-          />
-        </Section>
-      )}
+          {hasDefault && (
+            <Section title={t('editor.sections.default')}>
+              <DefaultValueEditor
+                field={field}
+                issues={of('defaultValue')}
+                onChange={(defaultValue) => set({ defaultValue })}
+              />
+            </Section>
+          )}
+
+          {!column && (
+            <Section title={t('editor.sections.logic')}>
+              <LogicEditor
+                value={field.visibleWhen}
+                onChange={(visibleWhen) => set({ visibleWhen })}
+                facts={facts}
+                issues={of('visibleWhen')}
+              />
+            </Section>
+          )}
+        </Disclosure>
+
+        <Disclosure
+          open={showAdvanced}
+          onOpenChange={setAdvancedOpen}
+          summary={t('editor.advanced')}
+          contentClassName="grid gap-4 pt-2 pb-2"
+        >
+          <Row
+            label={t('editor.key')}
+            htmlFor={`${uid}-key`}
+            hint={lockedKey ? t('editor.keyLocked') : t('editor.keyHint')}
+            hintId={`${uid}-key-hint`}
+            issues={of('key')}
+            issueId={`${uid}-key-issues`}
+            aside={
+              auto && (
+                <Badge variant="muted" className="font-normal">
+                  <WandSparklesIcon aria-hidden /> {t('editor.keyAuto')}
+                </Badge>
+              )
+            }
+          >
+            <div className="relative">
+              <Input
+                id={`${uid}-key`}
+                value={field.key}
+                readOnly={lockedKey}
+                maxLength={64}
+                spellCheck={false}
+                autoComplete="off"
+                aria-invalid={of('key').length > 0 || undefined}
+                aria-describedby={described('key', `${uid}-key-hint`)}
+                onChange={(e) => set({ key: e.target.value.replace(/[^A-Za-z0-9_]/g, '') })}
+                className="font-mono text-sm read-only:bg-muted/50 read-only:text-muted-foreground"
+              />
+              {lockedKey && (
+                <LockIcon
+                  aria-hidden
+                  className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 text-muted-foreground"
+                />
+              )}
+            </div>
+          </Row>
+        </Disclosure>
+      </div>
     </div>
   );
 }
@@ -750,6 +802,7 @@ function RowsEditor({
   const columns = rows.fields;
   const [open, setOpen] = useState<number | null>(columns.length === 1 ? 0 : null);
   const [announcement, setAnnouncement] = useState('');
+  const [showKeys] = useShowFieldKeys();
   const set = (patch: Partial<NonNullable<FieldDef['rows']>>) => onChange({ ...rows, ...patch });
   const nameOf = (c: FieldDef) => localize(c.label, locale) || c.key;
   const setColumn = (i: number, next: FieldDef) =>
@@ -845,9 +898,11 @@ function RowsEditor({
                     />
                     <ElementTypeIcon type={c.type} size="sm" />
                     <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
-                    <code className="hidden shrink-0 font-mono text-[11px] text-muted-foreground sm:inline">
-                      {c.key}
-                    </code>
+                    {showKeys && (
+                      <code className="hidden shrink-0 font-mono text-[11px] text-muted-foreground sm:inline">
+                        {c.key}
+                      </code>
+                    )}
                     {invalid && (
                       <Badge variant="destructive" className="shrink-0">
                         <TriangleAlertIcon aria-hidden /> {t('needsAttention')}
@@ -934,7 +989,7 @@ function LogicEditor({
           {t('noOtherFields')}
         </p>
       ) : (
-        <ConditionBuilder value={value} onChange={onChange} facts={facts} />
+        <ConditionBuilder value={value} onChange={onChange} facts={facts} emptyText={t('visibleWhenEmpty')} />
       )}
       <IssueText id={`${uid}-issues`} issues={issues} />
     </div>

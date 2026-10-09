@@ -1,7 +1,9 @@
 'use client';
 
+import { useReducedMotion } from '@isbp/ui/motion';
 import { cn } from '@isbp/ui';
 import { motion } from 'motion/react';
+import Link from 'next/link';
 import { type DateTimeFormatOptions, useFormatter, useTranslations } from 'next-intl';
 import { niceTicks } from '../logic';
 import {
@@ -175,6 +177,7 @@ export function LineChart({
   ariaLabel: string;
   height?: number;
 }) {
+  const reduce = useReducedMotion();
   const format = useFormatter();
   const [ref, width] = useWidth<HTMLDivElement>();
   const [active, setActive] = useState<number | null>(null);
@@ -268,9 +271,9 @@ export function LineChart({
               strokeLinejoin="round"
               strokeLinecap="round"
               className={STROKE[s.color]}
-              initial={{ pathLength: 0 }}
+              initial={reduce ? false : { pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.8, delay: si * 0.1, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.25, delay: si * 0.06, ease: [0.22, 1, 0.36, 1] }}
             />
           ))}
           {active !== null && (
@@ -338,11 +341,13 @@ export function HBars({
   formatValue,
   ariaLabel,
 }: {
-  items: { key: string; label: ReactNode; value: number; hint?: string }[];
+  /** `href`: the bar's label opens the matching list (e.g. the open P1 tickets). */
+  items: { key: string; label: ReactNode; value: number; hint?: string; href?: string }[];
   formatValue?: (v: number) => string;
   ariaLabel: string;
 }) {
   const format = useFormatter();
+  const reduce = useReducedMotion();
   const max = Math.max(1, ...items.map((i) => i.value));
   const fmt = formatValue ?? ((v: number) => format.number(v));
   return (
@@ -353,13 +358,22 @@ export function HBars({
           className="group grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] items-center gap-3 text-sm sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]"
           title={it.hint}
         >
-          <span className="min-w-0 truncate text-muted-foreground">{it.label}</span>
+          {it.href ? (
+            <Link
+              href={it.href}
+              className="min-w-0 truncate text-muted-foreground underline-offset-4 outline-none hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:underline"
+            >
+              {it.label}
+            </Link>
+          ) : (
+            <span className="min-w-0 truncate text-muted-foreground">{it.label}</span>
+          )}
           <span className="flex min-w-0 items-center gap-2">
             <motion.span
               className="h-3.5 min-w-[2px] rounded-r-[4px] bg-chart-1 transition-opacity group-hover:opacity-80"
-              initial={{ width: 0 }}
+              initial={reduce ? false : { width: 0 }}
               animate={{ width: `${(it.value / max) * 85}%` }}
-              transition={{ duration: 0.6, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.25, delay: Math.min(i * 0.02, 0.12), ease: [0.22, 1, 0.36, 1] }}
               aria-hidden
             />
             <span className="shrink-0 font-medium tabular-nums">{fmt(it.value)}</span>
@@ -380,6 +394,7 @@ export function Columns({
   ariaLabel: string;
   height?: number;
 }) {
+  const reduce = useReducedMotion();
   const format = useFormatter();
   const [hover, setHover] = useState<number | null>(null);
   const max = Math.max(1, ...items.map((i) => i.value));
@@ -414,9 +429,9 @@ export function Columns({
                 'w-6 min-h-[2px] rounded-t-[4px] bg-chart-1 transition-opacity',
                 hover !== null && hover !== i && 'opacity-50',
               )}
-              initial={{ height: 0 }}
+              initial={reduce ? false : { height: 0 }}
               animate={{ height: `${(it.value / max) * (height - 28)}px` }}
-              transition={{ duration: 0.6, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.25, delay: Math.min(i * 0.02, 0.12), ease: [0.22, 1, 0.36, 1] }}
               aria-hidden
             />
           </li>

@@ -20,6 +20,8 @@ import {
   mySummarySchema,
   reasonSchema,
   requestableRoleSchema,
+  requestPreviewInputSchema,
+  requestPreviewSchema,
   requestSchema,
   revealSchema,
   reviewItemQuerySchema,
@@ -41,6 +43,8 @@ import { services } from './services';
 
 const idParams = z.object({ id: z.uuid() });
 const refParams = z.object({ ref: z.string().trim().min(1).max(64) });
+/** An access review by its reference (`REV-0001`, as in links) or its id. */
+const reviewParams = z.object({ id: z.string().trim().min(1).max(64) });
 const items = <T extends z.ZodType>(item: T) => z.object({ items: z.array(item) });
 const ok = z.object({ ok: z.literal(true) });
 
@@ -120,6 +124,21 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       },
     },
     async (req, reply) => reply.status(201).send({ items: await s().requests.submit(req.body, req.auth) }),
+  );
+
+  app.post(
+    '/requests/preview',
+    {
+      config: { permission: PERMISSIONS.request },
+      schema: {
+        tags: self,
+        summary:
+          'Who would approve these roles (a dry run of the approval workflow per role, nothing is saved)',
+        body: requestPreviewInputSchema,
+        response: { 200: requestPreviewSchema },
+      },
+    },
+    async (req) => s().requests.preview(req.body, req.auth),
   );
 
   app.get(
@@ -565,11 +584,11 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       schema: {
         tags: rev,
         summary: 'A campaign with its totals',
-        params: idParams,
+        params: reviewParams,
         response: { 200: reviewSchema },
       },
     },
-    async (req) => s().reviews.detail(req.params.id, req.auth),
+    async (req) => s().reviews.detail(await s().reviews.idOf(req.params.id), req.auth),
   );
 
   app.get(
@@ -579,12 +598,12 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       schema: {
         tags: rev,
         summary: 'Items of a campaign (view: mine, undecided, decided, all)',
-        params: idParams,
+        params: reviewParams,
         querystring: reviewItemQuerySchema,
         response: { 200: pageSchema(reviewItemSchema) },
       },
     },
-    async (req) => s().reviews.items(req.params.id, req.query, req.auth),
+    async (req) => s().reviews.items(await s().reviews.idOf(req.params.id), req.query, req.auth),
   );
 
   app.post(
@@ -594,12 +613,12 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       schema: {
         tags: rev,
         summary: 'Keep or revoke items (bulk), with a comment; 409 REVIEW_CLOSED once closed',
-        params: idParams,
+        params: reviewParams,
         body: decideSchema,
         response: { 200: z.object({ updated: z.number().int() }) },
       },
     },
-    async (req) => s().reviews.decide(req.params.id, req.body, req.auth),
+    async (req) => s().reviews.decide(await s().reviews.idOf(req.params.id), req.body, req.auth),
   );
 
   app.post(
@@ -609,13 +628,14 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
       schema: {
         tags: rev,
         summary: 'Close: apply decisions and the policy for undecided items, queue revocations',
-        params: idParams,
+        params: reviewParams,
         response: { 200: reviewSchema },
       },
     },
     async (req) => {
-      await s().reviews.close(req.params.id, req.auth);
-      return s().reviews.detail(req.params.id, req.auth);
+      const id = await s().reviews.idOf(req.params.id);
+      await s().reviews.close(id, req.auth);
+      return s().reviews.detail(id, req.auth);
     },
   );
 
@@ -623,10 +643,10 @@ export function routes(app: ModuleRouter, ctx: ModuleContext) {
     '/reviews/:id/report.csv',
     {
       config: { permission: PERMISSIONS.request, scoped: true },
-      schema: { tags: rev, summary: 'The campaign report as CSV', params: idParams },
+      schema: { tags: rev, summary: 'The campaign report as CSV', params: reviewParams },
     },
     async (req, reply) => {
-      const { filename, body } = await s().reviews.csv(req.params.id, req.auth);
+      const { filename, body } = await s().reviews.csv(await s().reviews.idOf(req.params.id), req.auth);
       return reply
         .header('content-type', 'text/csv; charset=utf-8')
         .header('content-disposition', `attachment; filename="${filename}"`)

@@ -4,7 +4,7 @@ import type { ModuleInfo } from '@isbp/contracts';
 import { cn } from '@isbp/ui';
 import { Badge } from '@isbp/ui/badge';
 import { Card, CardContent } from '@isbp/ui/card';
-import { ArrowDownLeftIcon, ArrowUpRightIcon, LockIcon } from 'lucide-react';
+import { LockIcon, SlidersHorizontalIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { NavIcon } from '@/components/nav-icon';
 import { ModuleSwitch } from './module-switch';
@@ -27,50 +27,6 @@ export function ModuleIconTile({
     >
       <NavIcon name={m.icon ?? undefined} className="size-5" />
     </span>
-  );
-}
-
-/** Compact counts: permissions, events out/in, AI tools, jobs. */
-export function ModuleStats({ module: m, className }: { module: ModuleInfo; className?: string }) {
-  const t = useTranslations('modules.stats');
-  const cells = [
-    {
-      key: 'permissions',
-      value: <span>{m.permissions.length}</span>,
-      label: t('permissions', { count: m.permissions.length }),
-    },
-    {
-      key: 'events',
-      value: (
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-flex items-center">
-            <ArrowUpRightIcon className="size-3 text-muted-foreground" aria-hidden />
-            {m.events.emits.length}
-          </span>
-          <span className="inline-flex items-center">
-            <ArrowDownLeftIcon className="size-3 text-muted-foreground" aria-hidden />
-            {m.events.consumes.length}
-          </span>
-        </span>
-      ),
-      label: t('events'),
-      sr: t('eventsDetail', { emits: m.events.emits.length, consumes: m.events.consumes.length }),
-    },
-    { key: 'ai', value: <span>{m.aiTools.length}</span>, label: t('aiTools', { count: m.aiTools.length }) },
-    { key: 'jobs', value: <span>{m.jobs.length}</span>, label: t('jobs', { count: m.jobs.length }) },
-  ];
-  return (
-    <dl className={cn('grid grid-cols-4 gap-2 border-t pt-3', className)}>
-      {cells.map((c) => (
-        <div key={c.key} className="min-w-0">
-          <dt className="truncate text-[11px] text-muted-foreground">{c.label}</dt>
-          <dd className="text-sm font-medium tabular-nums">
-            <span aria-hidden={c.sr ? true : undefined}>{c.value}</span>
-            {c.sr && <span className="sr-only">{c.sr}</span>}
-          </dd>
-        </div>
-      ))}
-    </dl>
   );
 }
 
@@ -110,8 +66,7 @@ export function ModuleCard({
                 {name}
               </button>
             </h2>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-              <span className="font-mono">v{m.version}</span>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground empty:hidden">
               {m.system && (
                 <Badge variant="secondary" className="px-1.5 py-0">
                   <LockIcon aria-hidden /> {tc('system')}
@@ -136,7 +91,12 @@ export function ModuleCard({
         >
           {m.description ? text(m.description) : t('noDescription')}
         </p>
-        <ModuleStats module={m} className="mt-auto" />
+        {m.enabled && m.settings.length > 0 && (
+          <p className="mt-auto flex items-center gap-1.5 border-t pt-3 text-xs text-muted-foreground">
+            <SlidersHorizontalIcon className="size-3.5" aria-hidden />
+            {t('hasSettings', { count: m.settings.length })}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

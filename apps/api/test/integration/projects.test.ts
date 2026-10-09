@@ -262,6 +262,42 @@ describe('projects', () => {
     });
   });
 
+  it('never shows an approved status with a pending approval (one read of the project)', async () => {
+    await newProject('pm', { name: 'Race one', key: 'RCE', budgetHours: 120 });
+    const [row] = await h.kernel.db.select().from(projects).where(eq(projects.key, 'RCE'));
+    // The approval's completion changes status and approval in one statement; flip them back and forth
+    // while the page is read, as approving does once.
+    let done = false;
+    const flipper = (async () => {
+      let approved = false;
+      while (!done) {
+        approved = !approved;
+        await h.kernel.db
+          .update(projects)
+          .set(
+            approved
+              ? { status: 'active', approvalStatus: 'approved' }
+              : { status: 'proposed', approvalStatus: 'pending' },
+          )
+          .where(eq(projects.id, row!.id));
+      }
+    })();
+    const seen: string[] = [];
+    try {
+      for (let round = 0; round < 15; round++) {
+        const pages = await Promise.all(
+          Array.from({ length: 8 }, () => h.call(s.pm!, 'GET', `${API}/projects/RCE`)),
+        );
+        for (const p of pages) seen.push(`${p.body.status}/${p.body.approval?.status}`);
+      }
+    } finally {
+      done = true;
+      await flipper;
+    }
+    expect(seen).toHaveLength(120);
+    expect([...new Set(seen)].filter((v) => v !== 'active/approved' && v !== 'proposed/pending')).toEqual([]);
+  });
+
   it('routes proposals on the project custom fields (attributes.<key>)', async () => {
     const admin = s.admin!;
     const field = await h.call(admin, 'POST', '/api/v1/custom-fields', {
@@ -872,6 +908,24 @@ describe('records, search and AI tools', () => {
     expect(
       await h.kernel.registry.get('projects')!.search!('firewall', ctx(), await authOf(ids.carol), 10),
     ).toEqual([]);
+    // Tasks of internal projects reach the command palette of their members only; pickers still find them.
+    await activeProject('PUB', { visibility: 'internal' });
+    await newTask('alice', 'PUB', { title: 'Patch the public firewall' });
+    const palette = await h.kernel.registry.get('projects')!.search!(
+      'public firewall',
+      ctx(),
+      await authOf(ids.carol),
+      10,
+    );
+    expect(palette.filter((x) => x.type === 'task')).toEqual([]);
+    expect(
+      (
+        await h.kernel.records.search('public firewall', {
+          auth: await authOf(ids.carol),
+          types: ['projects.task'],
+        })
+      ).map((r) => r.title),
+    ).toContain('Patch the public firewall');
 
     // Deleting the task forgets its links.
     await h.call(s.pm!, 'DELETE', `${API}/tasks/${t.reference}`);

@@ -1,4 +1,4 @@
-import type { NavItem, SessionResponse } from '@isbp/contracts';
+import type { Navigation, SessionResponse } from '@isbp/contracts';
 import { headers } from 'next/headers';
 import { cache } from 'react';
 
@@ -50,9 +50,11 @@ export const getSession = cache(async (): Promise<SessionResponse | null> => {
   }
 });
 
-export const getNavigation = cache(
-  async (): Promise<NavItem[]> => (await serverApi<{ items: NavItem[] }>('/platform/navigation')).items,
-);
+/** The person's sidebar (`items`) and Administration hub entries (`admin`). */
+export const getNavigation = cache(async (): Promise<Navigation> => {
+  const nav = await serverApi<Navigation>('/platform/navigation');
+  return { items: nav.items, admin: nav.admin ?? [] };
+});
 
 export async function currentPath(): Promise<string> {
   return (await headers()).get('x-isbp-path') ?? '/';

@@ -34,7 +34,7 @@ test('the approved software list filters by status, adds an entry and exports th
   page,
 }) => {
   await page.goto('/itam/approved-software');
-  await expect(page.getByRole('heading', { name: 'Approved software', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Software', level: 1 })).toBeVisible();
   const table = page.getByRole('table', { name: 'Approved software' });
   await expect(table.getByRole('button', { name: 'Google Chrome' })).toBeVisible();
   await page.getByRole('tab', { name: 'Blocked' }).click();
@@ -47,6 +47,9 @@ test('the approved software list filters by status, adds an entry and exports th
   const title = `E2E Diagram Tool ${Date.now() % 100000}`;
   await sheet.getByLabel('Software').fill(title);
   await sheet.getByLabel('Version').fill('3');
+  // No licence type is assumed: "Free" would be wrong for shareware or paid software.
+  await sheet.getByRole('combobox', { name: 'Licence type' }).click();
+  await page.getByRole('option', { name: 'Free', exact: true }).click();
   await sheet.getByRole('radio', { name: 'Departments' }).check();
   await sheet.getByRole('checkbox').first().check();
   await sheet.getByLabel('Valid until').fill('2030-12-31');

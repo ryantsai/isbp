@@ -739,6 +739,8 @@ describe('pipelines', () => {
     );
     expect(failed.body.status).toBe('failed');
     expect(failed.body.error).toMatch(/22001/);
+    // The run says in plain words what went wrong and which connection it was writing to.
+    expect(failed.body.problem).toMatchObject({ kind: 'db_data', connection: { id: conn.data } });
     const dim = await exec(`select count(*)::int as n from ${SCHEMA}.customer_dim where name = 'x'`);
     expect(dim.rows[0]).toEqual({ n: 0 });
     const notified = await eventually(
@@ -764,6 +766,29 @@ describe('pipelines', () => {
       `${API}/pipelines/${pipelineId}/runs/${blocking!.id}/cancel`,
     );
     expect(cancelled.body.status).toBe('cancelled');
+  });
+
+  it('starts one run when two "Run now" requests arrive at the same time', async () => {
+    const count = async () =>
+      (
+        await h.kernel.db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(pipelineRuns)
+          .where(eq(pipelineRuns.pipelineId, pipelineId))
+      )[0]!.n;
+    const before = await count();
+    const [a, b] = await Promise.all([
+      h.call(s.dev!, 'POST', `${API}/pipelines/${pipelineId}/run`),
+      h.call(s.dev!, 'POST', `${API}/pipelines/${pipelineId}/run`),
+    ]);
+    expect([a.status, b.status].sort()).toEqual([202, 409]);
+    const [won, lost] = a.status === 202 ? [a, b] : [b, a];
+    expect(lost.body.error.code).toBe('JOB_RUNNING');
+    expect(await count()).toBe(before + 1);
+    await eventually(
+      () => h.call(s.dev!, 'GET', `${API}/pipelines/${pipelineId}/runs/${won.body.id}`),
+      (r) => ['succeeded', 'failed', 'cancelled'].includes(r.body.status),
+    );
   });
 
   it('runs as the etl.pipeline task type for Scheduled Jobs', async () => {
@@ -817,7 +842,8 @@ describe('pipelines', () => {
     };
     const outcome = await ctx.taskTypes.run('etl.pipeline', { pipelineId }, task);
     expect(outcome.metrics).toEqual({ rowsRead: 30, rowsWritten: 30, rowsRejected: 0 });
-    expect(outcome.summary).toBe('30 rows written (30 read, 0 rejected)');
+    expect(outcome.summary).toBe('etl.results.pipeline');
+    expect(outcome.summaryParams).toEqual({ written: 30, read: 30, rejected: 0 });
     expect(outcome.href).toMatch(new RegExp(`^/etl/pipelines/${pipelineId}/runs/`));
     expect(lines.some((l) => l.startsWith('Committed'))).toBe(true);
     const [scheduled] = await h.kernel.db

@@ -1,8 +1,8 @@
 'use client';
 
-import type { FormSummary } from '@isbp/contracts';
+import type { FormsHeaderSlotProps, FormSummary } from '@isbp/contracts';
 import { localize } from '@isbp/sdk';
-import { useCan } from '@isbp/sdk/web';
+import { Slot, useCan } from '@isbp/sdk/web';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
@@ -25,6 +25,7 @@ import { useCallback, useMemo } from 'react';
 import { RelativeTime } from '@/components/relative-time';
 import { useApiQuery } from '@/lib/api';
 import { CreateFormDialog } from './create-form-dialog';
+import { useCategoryLabel } from './form-inputs';
 import { FormIconTile, FormStatusBadges } from './form-meta';
 
 const PAGE_SIZE = 25;
@@ -42,12 +43,16 @@ export function FormsView() {
   const sp = useSearchParams();
   const canManage = useCan('core.forms.manage');
   const workflowName = useWorkflowName();
+  const { label: categoryLabel } = useCategoryLabel();
   const [state, set] = useListState({ pageSize: PAGE_SIZE });
   const includeArchived = state.archived === 'true';
-  const { data, isLoading, isFetching } = useApiQuery<{ items: FormSummary[] }>(canManage ? '/forms' : null, {
-    q: state.q,
-    includeArchived,
-  });
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<{ items: FormSummary[] }>(
+    canManage ? '/forms' : null,
+    {
+      q: state.q,
+      includeArchived,
+    },
+  );
   const all = useMemo(() => data?.items ?? [], [data]);
   const page = Math.max(1, state.page);
   const rows = all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -90,7 +95,7 @@ export function FormsView() {
         cell: ({ row }) =>
           row.original.category ? (
             <Badge variant="outline" className="font-normal">
-              {row.original.category}
+              {categoryLabel(row.original.category)}
             </Badge>
           ) : (
             '—'
@@ -155,7 +160,7 @@ export function FormsView() {
         cell: ({ row }) => <RelativeTime date={row.original.updatedAt} />,
       },
     ],
-    [t, locale, workflowName],
+    [t, locale, workflowName, categoryLabel],
   );
 
   const createOpen = sp.get('create') === '1';
@@ -182,9 +187,16 @@ export function FormsView() {
         title={t('title')}
         description={t('description')}
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <PlusIcon /> {t('add')}
-          </Button>
+          <>
+            {/* Modules add their own ways to start a process here (the assistant: "Install a process pack"). */}
+            <Slot<FormsHeaderSlotProps>
+              name="core.forms.header"
+              props={{ empty: !isLoading && !all.length }}
+            />
+            <Button onClick={() => setCreateOpen(true)}>
+              <PlusIcon /> {t('add')}
+            </Button>
+          </>
         }
       />
       <DataTable
@@ -196,6 +208,8 @@ export function FormsView() {
         pageSize={PAGE_SIZE}
         loading={isLoading}
         fetching={isFetching}
+        error={error}
+        onRetry={() => refetch()}
         getRowId={(f) => f.id}
         onRowClick={(f) => router.push(`/admin/forms/${f.id}`)}
         onPageChange={(p) => set({ page: p })}

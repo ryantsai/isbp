@@ -36,7 +36,17 @@ export const userDetailSchema = userSummarySchema.extend({
   onboardedAt: dateTime.nullable(),
   offboardedAt: dateTime.nullable(),
   updatedAt: dateTime,
-  groups: z.array(z.object({ id, key: z.string(), name: z.string() })),
+  groups: z.array(
+    z.object({
+      id,
+      key: z.string(),
+      name: z.string(),
+      /** `manual` (added here) or `sync` (kept by a directory sync: change it in the directory). */
+      source: z.string(),
+      /** Where the group comes from: `local`, `ldap`, `oidc` or `saml`. */
+      groupSource: z.string(),
+    }),
+  ),
   directReports: z.number().int(),
   activeSessions: z.number().int(),
 });
@@ -106,6 +116,65 @@ export const offboardUserSchema = z.object({
   transferReportsTo: id.nullish(),
 });
 export type OffboardUserInput = z.input<typeof offboardUserSchema>;
+
+/** Add a person to groups and take them out of others, in one change. */
+export const changeUserGroupsSchema = z
+  .object({
+    add: z.array(id).max(100).default([]),
+    remove: z.array(id).max(100).default([]),
+  })
+  .refine((v) => v.add.length + v.remove.length > 0, { message: 'Nothing to change' });
+export type ChangeUserGroupsInput = z.input<typeof changeUserGroupsSchema>;
+
+/**
+ * Move a person to another department in one change: the department, their manager and job title (omitted: kept),
+ * the groups they leave and join, and the department-scoped role assignments to remove.
+ */
+export const transferUserSchema = z.object({
+  departmentId: id.nullable(),
+  /** Omitted: keep the current manager; `null`: no manager. */
+  managerId: id.nullish(),
+  /** Omitted: keep the current job title; empty or `null`: clear it. */
+  jobTitle: z.string().trim().max(200).nullish(),
+  leaveGroupIds: z.array(id).max(100).default([]),
+  joinGroupIds: z.array(id).max(100).default([]),
+  revokeAssignmentIds: z.array(id).max(100).default([]),
+});
+export type TransferUserInput = z.input<typeof transferUserSchema>;
+
+export const transferOptionsQuerySchema = z.object({ departmentId: id.optional() });
+
+/** What a move to `departmentId` suggests: the department's manager, groups to leave and join, roles to review. */
+export const transferOptionsSchema = z.object({
+  department: z
+    .object({
+      id,
+      name: z.string(),
+      manager: z.object({ id, displayName: z.string() }).nullable(),
+    })
+    .nullable(),
+  /** Groups the person is in that most of their current department shares and most of the new one doesn't. */
+  leave: z.array(id),
+  /** Groups most of the new department belongs to that the person isn't in. */
+  join: z.array(id),
+  /** The person's department-scoped role assignments; `oldDepartment`: scoped to the current department or below. */
+  roles: z.array(
+    z.object({
+      assignmentId: id,
+      role: z.object({ id, key: z.string(), name: z.string(), moduleId: z.string().nullable() }),
+      application: z.string().nullable(),
+      scope: z.object({ id, name: z.string() }),
+      oldDepartment: z.boolean(),
+    }),
+  ),
+});
+export type TransferOptions = z.input<typeof transferOptionsSchema>;
+
+export const transferResultSchema = z.object({
+  joined: z.number().int(),
+  left: z.number().int(),
+  revoked: z.number().int(),
+});
 
 export const setUserStatusSchema = z.object({
   status: z.enum(['active', 'suspended']),

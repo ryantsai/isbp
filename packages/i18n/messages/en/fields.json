@@ -46,6 +46,7 @@
     },
     "divider": { "name": "Divider", "description": "A line between sections" }
   },
+  "showKeys": "Show field keys",
   "badges": {
     "required": "Required",
     "conditionalWhen": "Shown when {condition}",
@@ -71,6 +72,9 @@
     "keyHint": "Where the answer is stored. Starts with a lowercase letter; letters, digits and _ only.",
     "keyLocked": "Locked: answers are already stored under this key.",
     "keyAuto": "From the English label",
+    "moreOptions": "More options",
+    "advanced": "Advanced",
+    "conditional": "Shown conditionally",
     "help": "Help text",
     "helpHint": "Shown under the field.",
     "placeholder": "Placeholder",
@@ -96,7 +100,9 @@
     "maxLength": "Maximum length",
     "pattern": "Pattern",
     "patternHint": "A regular expression the whole answer must match.",
-    "patternPresets": "Presets",
+    "format": "Format",
+    "formatAny": "Any text",
+    "formatCustom": "Custom pattern (regular expression)",
     "patternTest": "Try a value…",
     "patternMatches": "Matches",
     "patternNoMatch": "Doesn't match",
@@ -113,6 +119,7 @@
     "checkedByDefault": "Ticked by default",
     "visibleWhen": "Show this field only when…",
     "visibleWhenHint": "Hidden fields are skipped and never stored.",
+    "visibleWhenEmpty": "No conditions: the field is always shown.",
     "noOtherFields": "Add another field first; conditions compare this one with the answers to other fields.",
     "text": "Text",
     "dividerHint": "A divider has nothing to edit, but it can be shown conditionally.",
@@ -125,7 +132,8 @@
       "where": "Only records where…",
       "whereHint": "Filters what can be picked by the records’ own data, e.g. only production CIs. The server checks it too.",
       "chooseTypeFirst": "Choose a record type first.",
-      "noFacts": "These record types have no data to filter by."
+      "noFacts": "These record types have no data to filter by.",
+      "whereEmpty": "No conditions: any record of these types can be picked."
     },
     "rows": {
       "min": "Fewest rows",
@@ -175,9 +183,17 @@
   },
   "custom": {
     "title": "Custom fields",
-    "description": "Extra fields for people, groups and departments. Values are stored with each record, shown on its page and usable in filters.",
+    "description": "Extra fields for people, groups, departments and module records such as tickets and assets. Values are stored with each record, shown on its page and usable in filters.",
     "noAccess": "You don't have access to manage custom fields.",
     "entities": "Record types",
+    "plural": {
+      "itsm": { "ticket": "Tickets" },
+      "cmdb": { "ci": "Configuration items" },
+      "itam": { "asset": "Hardware assets", "contract": "Contracts" },
+      "alm": { "application": "Applications" },
+      "isms": { "asset": "Information assets" },
+      "projects": { "task": "Tasks", "project": "Projects" }
+    },
     "listTitle": "Fields on {entity}",
     "listDescription": "Drag to change the order they appear in on the record's form.",
     "showArchived": "Show archived",

@@ -42,7 +42,15 @@ export const syncTask: TaskTypeHandler<SyncTaskConfig> = {
         onLog: (e) => task.log(e.message, e.level),
       });
       const c = run.counts;
-      const summary = `${c.read} read, ${c.created + c.remoteCreated} created, ${c.updated} updated, ${c.pushed} pushed, ${c.conflicts} conflicts, ${c.errors} errors`;
+      const summary = 'integrations.results.sync';
+      const summaryParams = {
+        read: c.read,
+        created: c.created + c.remoteCreated,
+        updated: c.updated,
+        pushed: c.pushed,
+        conflicts: c.conflicts,
+        errors: c.errors,
+      };
       if (run.status === 'failed')
         throw new HttpError(422, ErrorCodes.INVALID_STATE, run.error ?? 'The sync failed', {
           runId: run.id,
@@ -52,6 +60,7 @@ export const syncTask: TaskTypeHandler<SyncTaskConfig> = {
         task.log('The remote system is rate limiting; the sync continues on its own', 'warn');
       return {
         summary,
+        summaryParams,
         metrics: {
           read: c.read,
           created: c.created + c.remoteCreated,
@@ -65,7 +74,7 @@ export const syncTask: TaskTypeHandler<SyncTaskConfig> = {
     } catch (err) {
       if (err instanceof HttpError && err.code === ErrorCodes.SYNC_RUNNING) {
         task.log('A sync of this profile is already running; nothing to do', 'warn');
-        return { summary: 'Already running', href: connectionHref(p.connectionId) };
+        return { summary: 'integrations.results.alreadyRunning', href: connectionHref(p.connectionId) };
       }
       throw err;
     }

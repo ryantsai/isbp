@@ -12,8 +12,16 @@
       "started": "已開始執行"
     }
   },
-  "nav": { "group": "排程作業", "overview": "總覽", "jobs": "作業", "runs": "執行紀錄" },
-  "entities": { "job": "排程作業" },
+  "nav": {
+    "group": "排程作業",
+    "overview": "總覽",
+    "jobs": "作業",
+    "runs": "執行紀錄",
+    "sections": "排程作業區段"
+  },
+  "entities": {
+    "job": "排程作業"
+  },
   "systemRoles": {
     "scheduler-viewer": {
       "name": "排程作業檢視者",
@@ -45,9 +53,18 @@
     "misfireGraceMinutesHelp": "排程器停止期間錯過的執行，若延遲未超過此時間仍會執行一次；更早的則記錄為已錯過。"
   },
   "taskTypes": {
-    "http": { "name": "HTTP 要求", "description": "呼叫 URL 並檢查回應狀態" },
-    "sql": { "name": "SQL 陳述式", "description": "在資料庫連線上執行一個陳述式" },
-    "script": { "name": "指令碼", "description": "在沙箱中執行 Python、Node.js、PowerShell 或 Shell" }
+    "http": {
+      "name": "HTTP 要求",
+      "description": "呼叫 URL 並檢查回應狀態"
+    },
+    "sql": {
+      "name": "SQL 陳述式",
+      "description": "在資料庫連線上執行一個陳述式"
+    },
+    "script": {
+      "name": "指令碼",
+      "description": "在沙箱中執行 Python、Node.js、PowerShell 或 Shell"
+    }
   },
   "audit": {
     "job_created": "建立排程作業",
@@ -88,15 +105,28 @@
     "skipped": "已略過",
     "skippedBecause": "已略過（{reason, select, missed {已錯過} other {前次仍在執行}}）"
   },
-  "runTrigger": { "schedule": "排程", "manual": "立即執行", "dependency": "接續作業", "retry": "再次執行" },
-  "triggerKind": { "cron": "Cron", "interval": "間隔", "after": "接續其他作業", "manual": "手動" },
+  "runTrigger": {
+    "schedule": "排程",
+    "manual": "立即執行",
+    "dependency": "接續作業",
+    "retry": "再次執行"
+  },
+  "triggerKind": {
+    "cron": "依排程",
+    "interval": "間隔",
+    "after": "接續其他作業",
+    "manual": "手動"
+  },
   "triggerKindHint": {
-    "cron": "在指定時間執行，可設定時區",
+    "cron": "每天、每週或每月在固定時間",
     "interval": "每隔數分鐘或數小時",
     "after": "其他作業成功後執行",
     "manual": "僅在有人執行時"
   },
-  "concurrency": { "skip": "前次仍在執行時略過", "queue": "等待前次執行完成" },
+  "concurrency": {
+    "skip": "前次仍在執行時略過",
+    "queue": "等待前次執行完成"
+  },
   "series": {
     "succeeded": "成功",
     "failed": "失敗",
@@ -131,7 +161,9 @@
     "weekdays": "平日 {time}",
     "weekly": "每週{days} {time}",
     "monthly": "每月 {day} 日 {time}",
-    "custom": "Cron {cron}"
+    "custom": "Cron {cron}",
+    "quarterly": "每季第 {day} 天 {time}",
+    "yearly": "每年 {date} {time}"
   },
   "trigger": {
     "withZone": "{text}（{zone}）",
@@ -158,7 +190,7 @@
   },
   "overview": {
     "title": "排程作業",
-    "description": "作業的執行狀況：過去一天的執行、失敗中、執行緩慢及即將執行的作業。",
+    "description": "先看需要處理的項目，再看作業狀況與接下來的執行。",
     "unavailable": "目前無法顯示儀表板。",
     "kpis": "關鍵數據",
     "kpi": {
@@ -171,7 +203,9 @@
       "failingHint": "上次執行失敗",
       "runningNow": "執行中",
       "avgDuration": "平均耗時（24 小時）",
-      "avgDurationHint": "以已完成的執行計算"
+      "avgDurationHint": "以已完成的執行計算",
+      "successHint7d": "最近 7 天：{rate}",
+      "avgHint": "平均執行：{duration}"
     },
     "hourly": "每小時執行次數",
     "hourlyHint": "過去 24 小時，依狀態",
@@ -181,16 +215,25 @@
     "upcomingHint": "未來 24 小時內的排程",
     "noUpcoming": "未來 24 小時內沒有排程。",
     "failing": "失敗中的作業",
-    "failingHint": "上次執行失敗的作業",
-    "noFailing": "沒有失敗中的作業。",
+    "failingHint": "上次執行失敗的作業：原因與處理方式",
+    "noFailing": "目前沒有失敗的作業。",
     "streak": "{count, plural, one {失敗 # 次} other {連續 # 次}}",
     "slowest": "最慢的作業",
     "slowestHint": "過去 7 天成功執行的第 95 百分位耗時",
     "noRuns": "過去 7 天沒有成功的執行。",
     "p95": "{duration} · {runs, plural, other {# 次執行}}",
-    "viewAll": "檢視全部"
+    "viewAll": "檢視全部",
+    "lastFailed": "上次失敗",
+    "seeRun": "查看執行",
+    "runNowJob": "立即執行 {job}",
+    "nextAt": "下次 {time}",
+    "runsIn24h": "24 小時內 {count} 次"
   },
-  "charts": { "viewAs": "顯示方式", "chart": "圖表", "table": "表格" },
+  "charts": {
+    "viewAs": "顯示方式",
+    "chart": "圖表",
+    "table": "表格"
+  },
   "jobs": {
     "title": "作業",
     "description": "依排程、接續其他作業或隨需執行的所有作業。",
@@ -237,7 +280,10 @@
     "deleteHint": "作業及其執行紀錄將被刪除，且無法復原。",
     "runningNow": "執行中",
     "typeUnavailable": "提供 {type} 的模組已停用：在重新啟用前，此作業的執行都會失敗。",
-    "tabs": { "overview": "總覽", "runs": "執行紀錄" },
+    "tabs": {
+      "overview": "總覽",
+      "runs": "執行紀錄"
+    },
     "schedule": "排程",
     "nextRun": "下次執行",
     "notScheduledDisabled": "未排程：作業已停用",
@@ -269,12 +315,19 @@
     "alertsOff": "不傳送失敗通知",
     "alertsChannels": "失敗也會張貼至組織的通道",
     "autoDisableValue": "連續失敗 {count} 次後停用",
-    "runsOf": "{job} 的執行紀錄"
+    "runsOf": "{job} 的執行紀錄",
+    "nextRunMeta": "下次執行",
+    "seeLastRun": "查看上次執行",
+    "timeout": "逾時"
   },
   "runs": {
     "title": "執行紀錄",
     "description": "所有作業的每一次執行，最新的在前。",
-    "views": { "all": "全部", "failed": "失敗", "active": "進行中" },
+    "views": {
+      "all": "全部",
+      "failed": "失敗",
+      "active": "進行中"
+    },
     "job": "作業",
     "status": "狀態",
     "scheduledFor": "排定時間",
@@ -289,7 +342,11 @@
     "allTriggers": "所有觸發方式",
     "period": "期間",
     "anyTime": "不限時間",
-    "periods": { "h24": "過去 24 小時", "h168": "過去 7 天", "h720": "過去 30 天" },
+    "periods": {
+      "h24": "過去 24 小時",
+      "h168": "過去 7 天",
+      "h720": "過去 30 天"
+    },
     "empty": "沒有執行紀錄",
     "emptyFiltered": "請嘗試其他篩選條件。",
     "emptyHint": "作業依排程執行或有人執行時，會顯示於此。"
@@ -327,9 +384,17 @@
     "download": "下載",
     "waiting": "正在等待第一行記錄…",
     "empty": "此執行沒有寫入記錄檔。",
-    "level": { "info": "資訊", "warn": "警告", "error": "錯誤" }
+    "level": {
+      "info": "資訊",
+      "warn": "警告",
+      "error": "錯誤"
+    }
   },
-  "secret": { "stored": "已儲存（隱藏）", "replace": "取代", "secret": "機密" },
+  "secret": {
+    "stored": "已儲存（隱藏）",
+    "replace": "取代",
+    "secret": "機密"
+  },
   "http": {
     "request": "要求",
     "method": "方法",
@@ -356,7 +421,11 @@
     "token": "權杖",
     "body": "本文",
     "bodyType": "本文類型",
-    "bodyTypes": { "none": "無本文", "json": "JSON", "text": "文字" }
+    "bodyTypes": {
+      "none": "無本文",
+      "json": "JSON",
+      "text": "文字"
+    }
   },
   "sql": {
     "connection": "資料庫連線",
@@ -364,10 +433,18 @@
     "pickConnection": "選擇連線",
     "loading": "載入中…",
     "readOnly": "唯讀",
-    "engines": { "mssql": "SQL Server", "postgres": "PostgreSQL", "mysql": "MySQL", "oracle": "Oracle" },
+    "engines": {
+      "mssql": "SQL Server",
+      "postgres": "PostgreSQL",
+      "mysql": "MySQL",
+      "oracle": "Oracle"
+    },
     "noConnections": "沒有可用的資料連線。請系統管理員在「系統管理 → 資料庫連線」新增。",
     "mode": "模式",
-    "modes": { "query": "查詢：記錄資料列數與預覽", "execute": "執行：記錄受影響的資料列" },
+    "modes": {
+      "query": "查詢：記錄資料列數與預覽",
+      "execute": "執行：記錄受影響的資料列"
+    },
     "modeHint": {
       "query": "在資料庫支援時，於唯讀交易中執行。",
       "execute": "用於變更資料的陳述式，例如清理作業與預存程序。"
@@ -417,7 +494,12 @@
     "runnerLocal": "開發用執行器：指令碼直接在背景服務上執行，沒有隔離（未使用沙箱）。切勿用於正式環境。",
     "runnerIsolated": "指令碼在隔離的容器（{runner}）中執行：沒有認證資訊、唯讀檔案系統，且僅在允許時才能使用網路。",
     "language": "語言",
-    "languages": { "python": "Python", "node": "Node.js", "powershell": "PowerShell", "shell": "Shell" },
+    "languages": {
+      "python": "Python",
+      "node": "Node.js",
+      "powershell": "PowerShell",
+      "shell": "Shell"
+    },
     "image": "容器映像",
     "pickImage": "選擇映像",
     "script": "指令碼",
@@ -432,8 +514,14 @@
     "cpu": "CPU（核心）",
     "memory": "記憶體（MB）",
     "network": "網路",
-    "networks": { "none": "無網路", "egress": "允許對外連線" },
-    "networkHint": { "none": "指令碼無法連線至任何位置。", "egress": "指令碼可以對外連線。" }
+    "networks": {
+      "none": "無網路",
+      "egress": "允許對外連線"
+    },
+    "networkHint": {
+      "none": "指令碼無法連線至任何位置。",
+      "egress": "指令碼可以對外連線。"
+    }
   },
   "json": {
     "hint": "此工作類型沒有專屬的編輯器：請以 JSON 輸入設定。",
@@ -486,7 +574,10 @@
     "loading": "載入中…",
     "upstreamRequired": "請至少選擇一個作業",
     "mode": "條件",
-    "modes": { "all": "全部成功", "any": "任一成功" },
+    "modes": {
+      "all": "全部成功",
+      "any": "任一成功"
+    },
     "modeHint": {
       "all": "所有選擇的作業在此作業上次執行後都成功時，執行一次。",
       "any": "任一選擇的作業每次成功後都會執行。"
@@ -498,7 +589,10 @@
     "maxAttempts": "嘗試次數",
     "maxAttemptsHint": "1 表示不重試（最多 10 次）",
     "backoff": "退避方式",
-    "backoffs": { "fixed": "固定", "exponential": "指數" },
+    "backoffs": {
+      "fixed": "固定",
+      "exponential": "指數"
+    },
     "backoffHint": {
       "fixed": "每次重試前等待相同時間。",
       "exponential": "每次等待時間加倍，最長一小時。"
@@ -524,7 +618,28 @@
     "checkFields": "請檢查標示的欄位",
     "create": "建立作業",
     "created": "作業已建立",
-    "saved": "變更已儲存"
+    "saved": "變更已儲存",
+    "repeats": "重複頻率",
+    "repeat": {
+      "hourly": "每小時",
+      "daily": "每天",
+      "weekdays": "每個工作日",
+      "weekly": "每週",
+      "monthly": "每月",
+      "quarterly": "每季",
+      "yearly": "每年",
+      "custom": "自訂（cron）"
+    },
+    "onWeekday": "星期",
+    "inMonth": "月份",
+    "onDay": "日期",
+    "onDayQuarterHint": "每季第一個月的日期",
+    "atMinute": "每小時的第幾分",
+    "atTime": "時間",
+    "advanced": "進階設定",
+    "advancedHint": "時限、重試、重疊執行與自動停用。預設值適用於大多數作業。",
+    "runFirst": "現在也先執行一次",
+    "runFirstHint": "立即開啟本期的工作，不必等到第一次排程執行。"
   },
   "attention": {
     "title": "失敗中的作業",
@@ -545,5 +660,14 @@
         "every": "間隔（分鐘）"
       }
     }
+  },
+  "results": {
+    "http": "HTTP {status} · {ms} 毫秒",
+    "affected": "影響 {count} 列",
+    "rows": "{count} 列",
+    "rowsCapped": "{count}+ 列（受連線上限限制）",
+    "script": "在 {ms} 毫秒內完成",
+    "skippedOverlap": "已略過：上一次執行仍在進行",
+    "missed": "錯過 {count} 次排程執行"
   }
 }

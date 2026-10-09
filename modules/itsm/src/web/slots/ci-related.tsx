@@ -1,6 +1,7 @@
 'use client';
 
 import type { Page } from '@isbp/sdk';
+import { ErrorState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { ArrowRightIcon, LifeBuoyIcon } from 'lucide-react';
@@ -13,7 +14,7 @@ import { ticketHref } from '../lib';
 /** `cmdb.ci.related`: open tickets that affect the CI (agents with `itsm.tickets.read`). */
 export default function CiRelatedTickets({ ci }: { ci: { id: string; number: number; name: string } }) {
   const t = useTranslations('itsm.ciRelated');
-  const { data, isLoading, error } = useApiQuery<Page<TicketListItem>>('/itsm/tickets', {
+  const { data, isLoading, error, refetch } = useApiQuery<Page<TicketListItem>>('/itsm/tickets', {
     ciId: ci.id,
     status: 'open',
     pageSize: 5,
@@ -32,7 +33,7 @@ export default function CiRelatedTickets({ ci }: { ci: { id: string; number: num
         </h3>
         {data && data.total > 5 && (
           <Link
-            href={`/itsm?view=all&ciId=${ci.id}`}
+            href={`/itsm?type=__all__&ciId=${ci.id}`}
             className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
           >
             {t('viewAll')}
@@ -43,7 +44,7 @@ export default function CiRelatedTickets({ ci }: { ci: { id: string; number: num
       {isLoading ? (
         <Skeleton className="h-16 w-full" />
       ) : error ? (
-        <p className="text-sm text-muted-foreground">{t('unavailable')}</p>
+        <ErrorState compact error={error} onRetry={() => void refetch()} title={t('unavailable')} />
       ) : !data?.items.length ? (
         <p className="text-sm text-muted-foreground">{t('none')}</p>
       ) : (

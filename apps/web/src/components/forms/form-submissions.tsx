@@ -27,7 +27,7 @@ export function FormSubmissions({ formId }: { formId: string }) {
   const status = SUBMISSION_STATUSES.includes(state.status as SubmissionStatus)
     ? (state.status as SubmissionStatus)
     : undefined;
-  const { data, isLoading, isFetching } = useApiQuery<Page<SubmissionSummary>>(
+  const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<SubmissionSummary>>(
     `/forms/${formId}/submissions`,
     {
       page: state.page,
@@ -106,6 +106,8 @@ export function FormSubmissions({ formId }: { formId: string }) {
       pageSize={state.pageSize}
       loading={isLoading}
       fetching={isFetching}
+      error={error}
+      onRetry={() => refetch()}
       getRowId={(s) => s.id}
       onRowClick={(s) => router.push(`/requests/${s.reference}`)}
       onPageChange={(page) => set({ page })}

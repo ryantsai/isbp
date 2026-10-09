@@ -13,6 +13,7 @@ import {
   customFields,
   formAssignments,
   forms,
+  formSubmissions,
   groupMembers,
   groups,
   notifications,
@@ -972,8 +973,47 @@ describe('after it is applied', () => {
     expect((await h.call(admin, 'POST', `${A}/change-sets/${again.body.id}/discard`)).status).toBe(200);
   });
 
-  it('rolls back in one step: groups and jobs deleted, forms, workflows, categories and the field archived', async () => {
-    const res = await h.call(admin, 'POST', `${A}/change-sets/${changeSetId}/rollback`, { confirm: true });
+  it('rolls back once its open work is ended, in one step: groups and jobs deleted, forms, workflows, categories and the field archived', async () => {
+    // The processes are in use: requests in approval, approvals and tickets in the pack's queues still need its groups,
+    // so the rollback is refused and says what (decision 93). An administrator ends those, then rolls back.
+    const ended = new Set<string>();
+    let refusals = 0;
+    let res = { status: 0, body: null as LooseJson };
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const refused = await h.call(admin, 'POST', `${A}/change-sets/${changeSetId}/rollback`, {
+        confirm: true,
+      });
+      res = refused;
+      if (refused.status !== 409) break;
+      expect(refused.body.error.code, JSON.stringify(refused.body).slice(0, 2000)).toBe('IN_USE');
+      refusals++;
+      for (const r of refused.body.error.details.references as LooseJson[]) {
+        const ref = (r.href as string).split('/').pop()!;
+        if (ended.has(ref)) continue;
+        ended.add(ref);
+        if (r.kind === 'work') {
+          const cancelled = await h.call(admin, 'POST', `/api/v1/itsm/tickets/${ref}/transition`, {
+            status: 'cancelled',
+            resolutionCode: 'no_fault_found',
+            resolutionNotes: 'Rolling the ISMS processes back',
+          });
+          expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200);
+        } else {
+          expect(['request', 'approval']).toContain(r.kind);
+          const [sub] = await h.kernel.db
+            .select({ instanceId: formSubmissions.workflowInstanceId })
+            .from(formSubmissions)
+            .where(eq(formSubmissions.number, Number(ref.replace(/\D/g, ''))));
+          if (sub?.instanceId)
+            await h.call(admin, 'POST', `/api/v1/workflow-instances/${sub.instanceId}/cancel`, {
+              reason: 'Rolling the ISMS processes back',
+            });
+        }
+      }
+      // A cancelled approval reaches its request through the outbox.
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    expect(refusals).toBeGreaterThan(0);
     expect(res.status, JSON.stringify(res.body).slice(0, 2000)).toBe(200);
     expect(res.body.status).toBe('rolled_back');
     expect(await h.kernel.db.select().from(groups).where(like(groups.key, 'isms-%'))).toEqual([]);

@@ -5,7 +5,7 @@
   },
   "nav": {
     "chat": "IT に質問",
-    "insights": "AI インサイト"
+    "insights": "AI 分析"
   },
   "systemRoles": {
     "helpdesk-ai-user": {
@@ -28,9 +28,9 @@
   },
   "settings": {
     "triageEnabled": "新しいチケットにトリアージを提案する",
-    "autoTriage": "確度の高い提案を自動的に適用する",
+    "autoTriage": "信頼度の高い提案を自動的に適用する",
     "autoTriageHelp": "ヘルプデスク AI は未設定の項目だけを入力します。担当者の選択を上書きすることはありません。",
-    "autoTriageThreshold": "自動トリアージの最低確度 (0–1)",
+    "autoTriageThreshold": "自動トリアージの最低信頼度 (0–1)",
     "autoTriageThresholdHelp": "0.8 は、類似チケットの一致度が高い場合にのみ提案を適用することを意味します。",
     "virtualAgentEnabled": "バーチャル エージェント (IT に質問)",
     "suggestReplies": "担当者に返信の下書きを提案する"
@@ -44,10 +44,12 @@
     "conversation_escalated": "バーチャル エージェントからチケットを作成しました"
   },
   "mode": {
-    "builtin": "組み込み · LLM なし",
     "builtinHint": "言語モデルが構成されていません。回答はナレッジ ベースの検索、類似チケット、テンプレートから作成されます。",
     "llm": "言語モデル",
-    "llmHint": "回答は言語モデル ({provider}) がナレッジ ベースに基づいて作成します。個人データはプラットフォーム外に送信される前にマスクされます。"
+    "llmHint": "回答は言語モデル ({provider}) がナレッジ ベースに基づいて作成します。個人データはプラットフォーム外に送信される前にマスクされます。",
+    "basic": "基本モード",
+    "chatBuiltin": "ナレッジ ベースからの回答",
+    "chatLlm": "ナレッジ ベースに基づく AI の回答"
   },
   "language": {
     "en": "英語",
@@ -82,7 +84,13 @@
     "applyAll": "すべて適用",
     "dismiss": "却下",
     "rerun": "再提案",
-    "confidence": "確度",
+    "confidence": "信頼度",
+    "lowConfidence": "信頼度が低いため、適用前に確認してください",
+    "neighbour": "{reference} ({percent}%)",
+    "basedOn": "最も類似した解決済みチケット: {list}。",
+    "noNeighbours": "解決済みの類似チケットが見つからないため、影響度と緊急度は既定値です。",
+    "keywords": "キーワードにより引き上げ: {list}。",
+    "keyword": "「{word}」",
     "fallback": "AI モデルを利用できなかったため、この提案は類似チケットのみに基づいています。",
     "decidedBy": "{name} が処理"
   },
@@ -95,8 +103,16 @@
   },
   "similar": {
     "title": "解決済みの類似チケット",
+    "problemTitle": "類似のインシデント",
     "match": "一致度 {percent}%",
-    "none": "解決済みの類似チケットはまだありません。"
+    "none": "解決済みの類似チケットはまだありません。",
+    "showMore": "さらに表示",
+    "showLess": "表示を減らす",
+    "link": "この問題にリンク",
+    "linkFor": "{reference} をこの問題にリンク",
+    "linked": "リンク済み",
+    "linkedToast": "{reference} をこの問題にリンクしました",
+    "open": "対応中"
   },
   "resolution": {
     "solved": "解決",
@@ -115,9 +131,9 @@
     "insertText": "こちらの記事が参考になります: {link}"
   },
   "generated": {
-    "builtin": "組み込みテンプレート — 送信前に確認してください",
+    "builtin": "基本テンプレート — 送信前に確認してください",
     "llm": "{model} が作成 — 送信前に確認してください",
-    "fallback": "AI モデルを利用できません — 組み込み版を表示しています"
+    "fallback": "AI モデルを利用できないため、基本バージョンを表示しています"
   },
   "reply": {
     "title": "返信の下書き",
@@ -192,9 +208,9 @@
     "checkingTickets": "チケットを確認しています…",
     "loading": "会話を読み込んでいます",
     "didItHelp": "解決しましたか?",
-    "solved": "解決しました",
-    "stillNeedHelp": "まだ解決しません",
-    "stillNeedHelpMessage": "解決しませんでした。引き続きサポートが必要です。",
+    "solved": "はい、解決しました",
+    "stillNeedHelp": "いいえ、チケットを作成",
+    "stillNeedHelpMessage": "解決しませんでした。チケットを作成してください。",
     "resolved": "お役に立ててよかったです。いつでもご質問ください。",
     "ticketRaised": "チケット {reference} を作成しました。サービス デスクがチケットで対応します。",
     "viewTicket": "チケットを表示",
@@ -223,19 +239,20 @@
   "proposal": {
     "title": "チケットを作成",
     "hint": "内容を確認してください。確認するまでチケットは作成されません。",
-    "cta": "まだ解決しませんか? サービス デスク向けのチケットを準備しました。",
-    "review": "チケットを確認",
     "fields": {
       "title": "タイトル",
       "description": "説明",
-      "urgency": "緊急度",
       "type": "種類"
     },
     "titleTooShort": "チケットのタイトルは 3 文字以上で入力してください。",
-    "urgency": {
-      "1": "高 — 仕事ができない",
-      "2": "中 — 仕事に支障がある",
-      "3": "低 — 後でもかまわない"
+    "impactLegend": "どのくらい影響がありますか?",
+    "impact": {
+      "blocked": "仕事ができない",
+      "blockedHint": "作業が止まっている",
+      "slow": "仕事が遅れる",
+      "slowHint": "今のところ回避できる",
+      "minor": "軽微",
+      "minorHint": "時間のあるときで構わない"
     },
     "type": {
       "incident": "何かが故障している",
@@ -254,16 +271,19 @@
     "proposed": "チケットを提案: {title}"
   },
   "insights": {
-    "title": "AI インサイト",
+    "title": "AI 分析",
     "description": "ヘルプデスク AI のトリアージと回答の成果、およびコスト。",
     "period": "期間",
     "lastDays": "過去 {days} 日間",
-    "configure": "AI を構成"
+    "configure": "AI を構成",
+    "sections": "レポート",
+    "serviceDesk": "サービス デスク",
+    "forbidden": "このページへのアクセス許可がありません。"
   },
   "kpi": {
     "acceptance": "トリアージ採用率",
     "acceptanceHint": "処理済みの提案 {decided} 件中 {accepted} 件",
-    "deflection": "自己解決率",
+    "deflection": "チケットなしで解決した割合",
     "deflectionHint": "解決 {deflected} 件 · チケット化 {escalated} 件",
     "conversations": "会話",
     "conversationsHint": "対応中 {open} 件",
@@ -288,6 +308,7 @@
   "config": {
     "title": "現在の AI 構成",
     "description": "回答の作成元と、有効になっている自動化。",
+    "technical": "技術的な詳細",
     "mode": "回答",
     "embeddings": "埋め込み",
     "vectorStore": "ベクトル検索",
@@ -297,7 +318,7 @@
     },
     "triage": "トリアージの提案",
     "autoTriage": "自動トリアージ",
-    "threshold": "確度 {percent}% 以上",
+    "threshold": "信頼度 {percent}% 以上",
     "virtualAgent": "バーチャル エージェント",
     "replies": "返信の下書き",
     "on": "オン",
@@ -306,8 +327,19 @@
   "breakdown": {
     "title": "トリアージ提案への担当者の対応",
     "description": "この期間の提案: {total, plural, other {# 件}}。",
-    "confidence": "平均確度 {percent}%。",
-    "kbDrafts": "解決済みチケットから作成したナレッジ記事の下書き: {count, plural, other {# 件}}。"
+    "confidence": "平均信頼度 {percent}%。",
+    "kbDrafts": "解決済みチケットから作成したナレッジ記事の下書き: {count, plural, other {# 件}}。",
+    "showPending": "チケットを表示"
+  },
+  "pending": {
+    "title": "担当者の対応を待っている提案",
+    "description": "トリアージの提案がチケットの内容と異なり、まだ誰も適用または却下していない対応中のチケットです。",
+    "ticket": "チケット",
+    "suggested": "提案",
+    "confidence": "信頼度",
+    "raised": "提案日時",
+    "empty": "対応待ちの提案はありません。対応中のチケットはすべて提案と一致しているか、処理済みです。",
+    "more": "{count, plural, other {ほかに # 件のチケットが対応を待っています}}"
   },
   "usage": {
     "title": "機能別の AI 使用量",
@@ -318,14 +350,15 @@
     "cost": "コスト",
     "errors": "{count, plural, other {# 件失敗}}",
     "none": "この期間のモデル呼び出しはありません",
-    "noneBuiltin": "組み込みモードは言語モデルを使用しないため、コストはかかりません。"
+    "noneBuiltin": "基本モードでは言語モデルを使用しないため、コストはかかりません。"
   },
   "features": {
     "triage": "トリアージ",
     "reply": "返信の下書き",
     "summary": "要約",
     "kb_draft": "ナレッジ記事の下書き",
-    "chat": "バーチャル エージェント"
+    "chat": "バーチャル エージェント",
+    "similar": "類似インシデント"
   },
   "table": {
     "title": "最近の会話",
@@ -363,9 +396,10 @@
       "offerTicket": "これで解決しない場合は、サービス デスク向けにチケットを作成できます。下の内容を確認してください。",
       "offerTicketNone": "サービス デスクが対応できるようにチケットを作成できます。下の内容を確認してください。",
       "defaultTitle": "IT のサポートが必要です",
-      "proposalIntro": "バーチャル エージェント (IT に質問) から作成されました。",
+      "proposalIntro": "IT に質問から作成されました。",
       "proposalUser": "問題の説明:",
-      "proposalArticles": "提案された記事: {list}",
+      "proposalArticles": "IT に質問で {list} が提案されましたが、解決しませんでした。",
+      "proposalArticle": "「{title}」({reference})",
       "ticketCreated": "{reference} を作成しました。サービス デスクがチケットで対応します。"
     },
     "triage": {

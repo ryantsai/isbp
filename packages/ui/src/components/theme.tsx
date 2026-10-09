@@ -33,6 +33,8 @@ function apply(resolved: 'light' | 'dark') {
   root.classList.toggle('light', resolved === 'light');
   root.style.colorScheme = resolved;
   requestAnimationFrame(() => requestAnimationFrame(() => style.remove()));
+  // A background tab draws no frames: without this, every transition would stay off until the tab is shown.
+  setTimeout(() => style.remove(), 100);
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

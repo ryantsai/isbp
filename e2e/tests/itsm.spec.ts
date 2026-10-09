@@ -53,9 +53,17 @@ test('report an issue, get it resolved, confirm the fix with a rating', async ({
   baseURL,
 }) => {
   const title = `My VPN disconnects every few minutes at home (e2e ${Date.now().toString(36)})`;
-  const helpdesk = await signInAs(browser, baseURL!, 'helpdesk');
-  const p = helpdesk.page;
+  // A plain employee (no service desk role) reports it, so they get the requester's view of their ticket.
+  const requester = await signInAs(browser, baseURL!, 'employee');
+  // Whatever happens, give the demo user their own language back.
+  try {
+    await reportResolveConfirm(requester.page, page, title);
+  } finally {
+    await requester.close();
+  }
+});
 
+async function reportResolveConfirm(p: Page, page: Page, title: string) {
   // The requester describes the issue; knowledge articles are suggested while they type.
   await p.goto('/itsm/report');
   await expect(p.getByRole('heading', { name: 'Report an issue' })).toBeVisible();
@@ -71,30 +79,37 @@ test('report an issue, get it resolved, confirm the fix with a rating', async ({
   reference = p.url().split('/').pop()!;
   await expect(p.getByRole('heading', { name: title })).toBeVisible();
 
-  // The agent (admin) replies to the requester and resolves it with a resolution code.
+  // On their own ticket the requester writes to the service desk (never "Reply to requester").
+  await expect(p.getByRole('textbox', { name: 'Message the service desk' })).toBeVisible();
+  await expect(p.getByRole('tab', { name: 'Reply to requester' })).toHaveCount(0);
+
+  // The agent (admin) asks a question, then resolves with the fix in one step ("Send and resolve").
   await page.goto(`/itsm/tickets/${reference}`);
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
-  const reply = 'Thanks! Please update the VPN client to the latest version and try again.';
-  await page.getByRole('textbox', { name: 'Reply to requester' }).fill(reply);
+  const question = 'Which VPN client version do you have?';
+  await page.getByRole('textbox', { name: 'Reply to requester' }).fill(question);
   await page.getByRole('button', { name: 'Send reply' }).click();
-  await expect(page.getByText(reply)).toBeVisible();
-  await page
-    .getByRole('toolbar', { name: 'Ticket actions' })
-    .getByRole('button', { name: 'Resolve' })
-    .click();
+  await expect(page.getByText(question)).toBeVisible();
+  const reply = 'Updated the VPN client to 5.3; the connection is stable again.';
+  await page.getByRole('textbox', { name: 'Reply to requester' }).fill(reply);
+  await page.getByRole('button', { name: 'Send and resolve' }).click();
   const dialog = page.getByRole('dialog', { name: 'Resolve the ticket' });
-  // Notes are required.
+  // The reply becomes the resolution notes (one message to the requester); notes are still required.
+  await expect(dialog.getByLabel('Resolution notes')).toHaveValue(reply);
+  await dialog.getByLabel('Resolution notes').fill('');
   await dialog.getByRole('button', { name: 'Resolve' }).click();
   await expect(dialog.getByText('Tell the requester what was done.')).toBeVisible();
-  await dialog
-    .getByLabel('Resolution notes')
-    .fill('Updated the VPN client to 5.3; the connection is stable again.');
+  await dialog.getByLabel('Resolution notes').fill(reply);
   await dialog.getByRole('button', { name: 'Resolve' }).click();
   await expect(dialog).toBeHidden();
   await expect(page.getByText('Status changed to Resolved')).toBeVisible();
+  // Finished: the fields are read-only and the next step is "Reopen".
+  await expect(page.getByRole('button', { name: 'Reopen' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Priority' })).toHaveCount(0);
 
-  // The requester sees the reply, confirms the fix and rates the service.
+  // The requester sees the answer and the resolution, confirms the fix and rates the service.
   await p.reload();
+  await expect(p.getByText(question)).toBeVisible();
   await expect(p.getByText(reply)).toBeVisible();
   const fixed = p.getByRole('region', { name: 'Is it fixed?' });
   await fixed.getByRole('button', { name: 'Yes, close it' }).click();
@@ -103,16 +118,18 @@ test('report an issue, get it resolved, confirm the fix with a rating', async ({
   await fixed.getByRole('button', { name: 'Close the ticket' }).click();
   await expect(p.getByText('Thanks! Your ticket is closed.')).toBeVisible();
   await expect(p.getByText('Rated 5 out of 5')).toBeVisible();
-  await helpdesk.close();
-});
+}
 
 test('agent workspace: switch queues', async ({ page }) => {
   await page.goto('/itsm');
   const queues = page.getByRole('navigation', { name: 'Queues' });
   await expect(queues).toBeVisible();
-  await queues.getByRole('button', { name: /^Breached SLA/ }).click();
-  await expect(page).toHaveURL(/[?&]view=breached/);
-  await expect(page.getByRole('table', { name: 'Breached SLA' })).toBeVisible();
+  await settle(page);
+  await queues.getByRole('button', { name: /^SLA attention/ }).click();
+  await expect(page).toHaveURL(/[?&]view=attention/);
+  await expect(page.getByRole('table', { name: 'SLA attention' })).toBeVisible();
+  // The queues hold incidents and service requests (problems and changes have their own pages).
+  await expect(page.getByRole('combobox', { name: 'Type' })).toHaveText('Incidents & requests');
   await queues.getByRole('button', { name: /^Major incidents/ }).click();
   await expect(page.getByRole('table', { name: 'Major incidents' })).toBeVisible();
   await queues.getByRole('button', { name: /^All open/ }).click();
@@ -129,24 +146,70 @@ test('agent workspace: switch queues', async ({ page }) => {
 
 test('change calendar: month grid, navigation, agenda and list', async ({ page }) => {
   await page.goto('/itsm/changes');
-  await expect(page.getByRole('tab', { name: 'Calendar' })).toHaveAttribute('aria-selected', 'true');
+  await settle(page);
+  const views = page.getByRole('group', { name: 'View' });
+  await expect(views.getByRole('button', { name: 'Month' })).toHaveAttribute('aria-pressed', 'true');
   const grid = page.getByRole('table', { name: /^Changes planned in/ });
   await expect(grid).toBeVisible();
-  const caption = grid.locator('caption');
-  const month = (await caption.textContent()) ?? '';
+  const month = (await grid.locator('caption').textContent()) ?? '';
+  // The grid slides to the next month: both months are on screen until the old one has left.
+  const grids = page.getByRole('table', { name: /^Changes planned in/ });
+  const thisMonth = page.getByRole('table', { name: month, exact: true });
   await page.getByRole('button', { name: 'Next month' }).click();
   await expect(page).toHaveURL(/[?&]month=\d{4}-\d{2}/);
-  await expect(caption).not.toHaveText(month);
+  await expect(thisMonth).toHaveCount(0);
+  await expect(grids).toHaveCount(1);
   await page.getByRole('button', { name: 'Today' }).click();
-  await expect(caption).toHaveText(month);
-  await page.getByRole('button', { name: 'Agenda', exact: true }).click();
+  await expect(thisMonth).toBeVisible();
+  await expect(grids).toHaveCount(1);
+  await views.getByRole('button', { name: 'Agenda' }).click();
   await expect(page.getByRole('table', { name: /^Changes planned in/ })).toBeHidden();
-  await page.getByRole('tab', { name: 'List' }).click();
+  await views.getByRole('button', { name: 'List' }).click();
+  await expect(page).toHaveURL(/[?&]view=list/);
   await expect(page.getByRole('table', { name: 'Changes' })).toBeVisible();
 });
 
+test('a draft change goes to approval from its own page, and asks for the window first', async ({ page }) => {
+  const title = `Rotate the gateway certificate (e2e ${Date.now().toString(36)})`;
+  await page.goto('/itsm/changes');
+  await settle(page);
+  await page.getByRole('button', { name: 'New change' }).click();
+  const sheet = page.getByRole('dialog', { name: 'New change' });
+  await sheet.getByLabel('What will change?').fill(title);
+  await sheet.getByRole('button', { name: 'Save draft' }).click();
+  await expect(page).toHaveURL(/\/itsm\/tickets\/CHG-\d{5}$/);
+  await expect(page.getByRole('heading', { name: title })).toBeVisible();
+  // No window yet: "Submit for approval" opens the plan to set it (instead of failing).
+  await page.getByRole('button', { name: 'Submit for approval' }).click();
+  const plan = page.getByRole('dialog', { name: 'Plan the window to submit' });
+  await expect(plan).toBeVisible();
+  await expect(plan.getByRole('button', { name: 'Save and submit for approval' })).toBeVisible();
+  await plan.getByRole('button', { name: 'Cancel' }).click();
+  await expect(plan).toBeHidden();
+});
+
+test('a problem raised from an incident starts with the incident linked', async ({ page, request }) => {
+  const list = (await (
+    await request.get('/api/v1/itsm/tickets?pageSize=1&type=incident&status=open')
+  ).json()) as { items: { reference: string; title: string }[] };
+  const incident = list.items[0]!;
+  await page.goto(`/itsm/tickets/${incident.reference}`);
+  await settle(page);
+  await page.getByRole('button', { name: 'More actions' }).click();
+  await page.getByRole('menuitem', { name: 'Create problem' }).click();
+  const dialog = page.getByRole('dialog', { name: 'New problem' });
+  await expect(dialog.getByLabel('Title')).toHaveValue(incident.title);
+  await expect(dialog.getByRole('list', { name: 'Chosen tickets' })).toContainText(incident.reference);
+  await dialog.getByRole('button', { name: 'Create problem' }).click();
+  await expect(page).toHaveURL(/\/itsm\/tickets\/PRB-\d{5}$/);
+  // The problem lists the incidents it causes ("1 linked incident"); Related doesn't repeat them.
+  const incidents = page.getByRole('list', { name: /linked incident/ });
+  await expect(incidents.getByRole('link', { name: incident.reference })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start investigating' })).toBeVisible();
+});
+
 test('service desk pages have no accessibility violations (light and dark)', async ({ page, request }) => {
-  // 16 page loads with axe scans.
+  // 22 page loads with axe scans.
   test.setTimeout(240_000);
   if (!reference) {
     const list = (await (await request.get('/api/v1/itsm/tickets?pageSize=1&type=incident')).json()) as {
@@ -158,7 +221,9 @@ test('service desk pages have no accessibility violations (light and dark)', asy
     ['/itsm', (p) => expect(p.getByRole('navigation', { name: 'Queues' })).toBeVisible()],
     [`/itsm/tickets/${reference}`, (p) => expect(p.getByRole('heading', { name: 'Activity' })).toBeVisible()],
     ['/itsm/report', (p) => expect(p.getByRole('heading', { name: 'Report an issue' })).toBeVisible()],
-    ['/itsm/changes', (p) => expect(p.getByRole('tab', { name: 'Calendar' })).toBeVisible()],
+    ['/itsm/changes', (p) => expect(p.getByRole('group', { name: 'View' })).toBeVisible()],
+    ['/itsm/changes?view=list', (p) => expect(p.getByRole('table', { name: 'Changes' })).toBeVisible()],
+    ['/itsm/problems', (p) => expect(p.getByRole('heading', { name: 'Problems' })).toBeVisible()],
     ['/itsm/reports', (p) => expect(p.getByText('Created vs. resolved')).toBeVisible()],
     ['/itsm/settings', (p) => expect(p.getByRole('heading', { name: 'Categories' })).toBeVisible()],
     ['/itsm/settings?tab=sla', (p) => expect(p.getByRole('heading', { name: 'SLA policies' })).toBeVisible()],

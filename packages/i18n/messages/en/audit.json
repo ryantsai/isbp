@@ -11,7 +11,7 @@
     "category": "Category"
   },
   "filters": {
-    "search": "Search actor, target or action…",
+    "search": "Search people, records or actions…",
     "category": "Category",
     "outcome": "Outcome",
     "module": "Module",
@@ -25,7 +25,12 @@
     "entityType": "Target type",
     "entityId": "Target",
     "action": "Action",
-    "removeFilter": "Remove filter: {filter}"
+    "removeFilter": "Remove filter: {filter}",
+    "changed": "What changed",
+    "anything": "Anything",
+    "period": "When",
+    "userId": "Person",
+    "roleId": "Role"
   },
   "category": {
     "data": "Data",
@@ -199,6 +204,117 @@
     "core_workflow-definition_restored": "Restored an approval workflow",
     "core_workflow-definition_updated": "Changed an approval workflow",
     "core_workflow_completed": "Approval completed",
-    "core_workflow_started": "Approval started"
-  }
+    "core_workflow_started": "Approval started",
+    "core_user_transferred": "Moved to another department"
+  },
+  "changed": {
+    "people": "People",
+    "signIns": "Sign-ins",
+    "groups": "Groups",
+    "departments": "Departments",
+    "roles": "Roles",
+    "roleGrants": "Role grants",
+    "applications": "Application access and API clients",
+    "forms": "Forms and custom fields",
+    "requests": "Requests",
+    "workflows": "Workflows",
+    "approvals": "Approvals",
+    "changeSets": "Settings changes",
+    "modules": "Modules, notifications and AI",
+    "signInProviders": "Sign-in providers"
+  },
+  "period": {
+    "any": "Any time",
+    "today": "Today",
+    "7d": "Last 7 days",
+    "30d": "Last 30 days",
+    "custom": "Choose dates…"
+  },
+  "people": "{count, plural, one {# person} other {# people}}",
+  "fieldSeparator": ", ",
+  "activity": {
+    "empty": "Nothing recorded yet.",
+    "system": "System",
+    "openAuditLog": "Open in the audit log"
+  },
+  "values": {
+    "yes": "Yes",
+    "no": "No",
+    "riskLevel": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "status": {
+      "active": "Active",
+      "pending": "Pre-boarded",
+      "suspended": "Suspended",
+      "offboarded": "Offboarded"
+    },
+    "scopeType": {
+      "global": "Everywhere",
+      "department": "One department",
+      "record": "One record"
+    }
+  },
+  "fields": {
+    "displayName": "Display name",
+    "email": "Email",
+    "username": "Username",
+    "givenName": "Given name",
+    "familyName": "Family name",
+    "jobTitle": "Job title",
+    "phone": "Phone",
+    "employeeId": "Employee ID",
+    "departmentId": "Department",
+    "managerId": "Manager",
+    "locale": "Language",
+    "timezone": "Time zone",
+    "status": "Status",
+    "attributes": "Custom fields",
+    "name": "Name",
+    "description": "Description",
+    "permissions": "Permissions",
+    "requestable": "People can request it",
+    "riskLevel": "Risk",
+    "ownerId": "Owner",
+    "maxDurationDays": "Longest access (days)",
+    "requestWorkflowId": "Approval workflow",
+    "parentId": "Parent department",
+    "code": "Code",
+    "groupsJoined": "Groups joined",
+    "groupsLeft": "Groups left",
+    "rolesRevoked": "Roles removed",
+    "userIds": "People",
+    "scopeType": "Applies to",
+    "scopeDepartmentId": "Department",
+    "roleId": "Role",
+    "expiresAt": "Ends",
+    "reason": "Reason"
+  },
+  "entityTypes": {
+    "user": "Person",
+    "group": "Group",
+    "department": "Department",
+    "role": "Role",
+    "application": "Application access",
+    "api_client": "API client",
+    "access_request": "Access request",
+    "form": "Form",
+    "form_submission": "Request",
+    "form_assignment": "Form assignment",
+    "workflow_definition": "Workflow",
+    "workflow_instance": "Approval",
+    "custom_field": "Custom field",
+    "module": "Module",
+    "identity_provider": "Sign-in provider",
+    "db-connection": "Database connection",
+    "notification_channel": "Notification channel",
+    "file": "File",
+    "record_link": "Link",
+    "ai": "AI settings",
+    "ai_tool": "AI tool",
+    "core_user": "Person"
+  },
+  "core_approval_already_approved": "Earlier approval counted"
 }

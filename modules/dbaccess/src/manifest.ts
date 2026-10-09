@@ -119,44 +119,57 @@ export const manifest = defineManifest({
   dependsOn: [],
   navigation: [
     {
+      // A personal entry for the people who hold database access (their accounts, end dates, one-time passwords).
       id: 'mine',
       label: 'dbaccess.nav.mine',
       href: '/dbaccess',
-      icon: 'database',
+      icon: 'key-square',
       permission: PERMISSIONS.request,
       section: 'main',
-      group: 'dbaccess.nav.group',
-      order: 64,
+      order: 3.5,
+      check: true,
     },
     {
-      id: 'grants',
-      label: 'dbaccess.nav.grants',
+      // For the people who run database access. Requesters find their access under Requests (portal card) and the
+      // reviews they take part in on My work.
+      id: 'database-access',
+      label: 'dbaccess.nav.group',
       href: '/dbaccess/grants',
-      icon: 'key-round',
-      permission: PERMISSIONS.grantsRead,
+      icon: 'database',
       section: 'main',
-      group: 'dbaccess.nav.group',
       order: 65,
+      children: [
+        {
+          id: 'grants',
+          label: 'dbaccess.nav.grants',
+          href: '/dbaccess/grants',
+          icon: 'key-round',
+          permission: PERMISSIONS.grantsRead,
+        },
+        {
+          id: 'reviews',
+          label: 'dbaccess.nav.reviews',
+          href: '/dbaccess/reviews',
+          icon: 'clipboard-check',
+          permission: [PERMISSIONS.reviewsRead, PERMISSIONS.reviewsManage],
+        },
+        {
+          id: 'servers',
+          label: 'dbaccess.nav.servers',
+          href: '/dbaccess/servers',
+          icon: 'server-cog',
+          permission: PERMISSIONS.servers,
+        },
+      ],
     },
+  ],
+  work: [
     {
-      id: 'reviews',
-      label: 'dbaccess.nav.reviews',
-      href: '/dbaccess/reviews',
+      key: 'reviews',
+      label: 'dbaccess.work.reviews',
+      kind: 'review',
       icon: 'clipboard-check',
       permission: PERMISSIONS.request,
-      section: 'main',
-      group: 'dbaccess.nav.group',
-      order: 66,
-    },
-    {
-      id: 'servers',
-      label: 'dbaccess.nav.servers',
-      href: '/dbaccess/servers',
-      icon: 'server-cog',
-      permission: PERMISSIONS.servers,
-      section: 'main',
-      group: 'dbaccess.nav.group',
-      order: 67,
     },
   ],
   permissions: [
@@ -180,7 +193,7 @@ export const manifest = defineManifest({
       key: 'dbaccess-dba',
       name: 'Database access administrator',
       description:
-        'Configure servers and requestable roles, run inventory syncs, see all access, revoke, adopt unmanaged access and retry provisioning',
+        'Configure servers and requestable roles, run inventory syncs, see all access, revoke, assign access without a request to a person and retry provisioning',
       permissions: [PERMISSIONS.servers, PERMISSIONS.grantsRead, PERMISSIONS.grantsManage],
     },
     {
@@ -192,7 +205,7 @@ export const manifest = defineManifest({
     {
       key: 'dbaccess-review-manager',
       name: 'Database access review manager',
-      description: 'Run access review campaigns: start, follow up, close and export them',
+      description: 'Run access reviews: start, follow up, close and export them',
       permissions: [PERMISSIONS.reviewsManage, PERMISSIONS.reviewsRead, PERMISSIONS.grantsRead],
     },
   ],

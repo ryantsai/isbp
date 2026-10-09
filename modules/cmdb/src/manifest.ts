@@ -65,6 +65,7 @@ export const manifest = defineManifest({
       icon: 'network',
       permission: 'cmdb.cis.read',
       section: 'main',
+      parent: 'itsm.service-desk',
       order: 40,
     },
   ],

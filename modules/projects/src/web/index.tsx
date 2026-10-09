@@ -13,12 +13,5 @@ export default defineWebModule(manifest, {
     { path: '/tasks/:ref', load: () => import('./pages/task-page'), permission: PERMISSIONS.use },
     { path: '/:key', load: () => import('./pages/project-page'), permission: PERMISSIONS.use },
   ],
-  slots: [
-    {
-      slot: 'core.dashboard.work',
-      load: () => import('./slots/dashboard-work'),
-      permission: PERMISSIONS.use,
-      order: 30,
-    },
-  ],
+  // Assigned tasks reach people through My work (`manifest.work` → "Tasks") and its summary on Home.
 });

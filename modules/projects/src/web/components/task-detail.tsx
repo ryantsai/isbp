@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@isbp/ui/dropdown-menu';
 import { Input } from '@isbp/ui/input';
+import { Disclosure } from '@isbp/ui/motion';
 import { Label } from '@isbp/ui/label';
 import { Markdown } from '@isbp/ui/markdown';
 import { useApiMutation } from '@isbp/ui/query';
@@ -353,50 +354,59 @@ function Properties({ task, project }: { task: TaskDetail; project: ProjectDetai
       <div className="hidden sm:block" aria-hidden />
       {date('startDate', t('startDate'))}
       {date('dueDate', t('dueDate'))}
-      <FieldRow label={t('estimateHours')} htmlFor={`${id}-estimate`}>
-        <HoursInput
-          key={`e:${task.estimateHours ?? ''}`}
-          id={`${id}-estimate`}
-          value={task.estimateHours}
-          disabled={!can}
-          onSave={(estimateHours) => void update({ estimateHours })}
-        />
-      </FieldRow>
-      <FieldRow label={t('remainingHours')} htmlFor={`${id}-remaining`}>
-        <HoursInput
-          key={`r:${task.remainingHours ?? ''}`}
-          id={`${id}-remaining`}
-          value={task.remainingHours}
-          disabled={!can}
-          onSave={(remainingHours) => void update({ remainingHours })}
-        />
-      </FieldRow>
-      <div className="sm:col-span-2">
-        <FieldRow label={t('labels')} htmlFor={`${id}-labels`}>
-          {can ? (
-            <LabelInput
-              id={`${id}-labels`}
-              value={task.labels}
-              suggestions={project?.labels ?? []}
-              placeholder={t('labelsPlaceholder')}
-              onChange={(labels) => void update({ labels })}
+      <Disclosure
+        summary={t('planning')}
+        defaultOpen={Boolean(task.estimateHours || task.remainingHours || task.labels.length)}
+        className="sm:col-span-2"
+        triggerClassName="w-auto justify-start py-1 text-sm font-medium text-muted-foreground"
+      >
+        <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2">
+          <FieldRow label={t('estimateHours')} htmlFor={`${id}-estimate`}>
+            <HoursInput
+              key={`e:${task.estimateHours ?? ''}`}
+              id={`${id}-estimate`}
+              value={task.estimateHours}
+              disabled={!can}
+              onSave={(estimateHours) => void update({ estimateHours })}
             />
-          ) : task.labels.length ? (
-            <span className="flex flex-wrap gap-1.5">
-              {task.labels.map((l) => (
-                <span
-                  key={l}
-                  className="rounded-md bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
-                >
-                  {l}
+          </FieldRow>
+          <FieldRow label={t('remainingHours')} htmlFor={`${id}-remaining`}>
+            <HoursInput
+              key={`r:${task.remainingHours ?? ''}`}
+              id={`${id}-remaining`}
+              value={task.remainingHours}
+              disabled={!can}
+              onSave={(remainingHours) => void update({ remainingHours })}
+            />
+          </FieldRow>
+          <div className="sm:col-span-2">
+            <FieldRow label={t('labels')} htmlFor={`${id}-labels`}>
+              {can ? (
+                <LabelInput
+                  id={`${id}-labels`}
+                  value={task.labels}
+                  suggestions={project?.labels ?? []}
+                  placeholder={t('labelsPlaceholder')}
+                  onChange={(labels) => void update({ labels })}
+                />
+              ) : task.labels.length ? (
+                <span className="flex flex-wrap gap-1.5">
+                  {task.labels.map((l) => (
+                    <span
+                      key={l}
+                      className="rounded-md bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
+                    >
+                      {l}
+                    </span>
+                  ))}
                 </span>
-              ))}
-            </span>
-          ) : (
-            <span className="text-sm text-muted-foreground">—</span>
-          )}
-        </FieldRow>
-      </div>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )}
+            </FieldRow>
+          </div>
+        </div>
+      </Disclosure>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@isbp/ui';
 import { CornerDownRightIcon, PlusIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useApproverText } from '@isbp/ui/workflow-diagram';
 import { useId } from 'react';
 import { UserPicker } from '../pickers/user-picker';
 import { GroupPicker } from '../roles/group-picker';
@@ -56,6 +57,7 @@ export function ApproverRuleEditor({
 }) {
   const t = useTranslations('workflows.builder.approvers');
   const { facts, names, roles, remember, readOnly } = useBuilder();
+  const describe = useApproverText({ ...names, facts });
   const id = useId();
   const types = APPROVER_TYPES.filter((x) => x !== 'requester' || allowRequester).flatMap((x): Choice[] =>
     x === 'fact' ? ['fact', 'fact-group'] : [x],
@@ -101,6 +103,11 @@ export function ApproverRuleEditor({
           </Select>
           <div className="min-w-0">
             {rule.type === 'user' && (
+              <Label htmlFor={`${id}-user`} className="sr-only">
+                {t('types.user')}
+              </Label>
+            )}
+            {rule.type === 'user' && (
               <UserPicker
                 id={`${id}-user`}
                 value={rule.userId ? { id: rule.userId, displayName: names.users[rule.userId] ?? '…' } : null}
@@ -109,6 +116,11 @@ export function ApproverRuleEditor({
                   onChange({ ...rule, userId: u?.id ?? '' });
                 }}
               />
+            )}
+            {rule.type === 'group' && (
+              <Label htmlFor={`${id}-group`} className="sr-only">
+                {t('types.group')}
+              </Label>
             )}
             {rule.type === 'group' && (
               <GroupPicker
@@ -221,7 +233,17 @@ export function ApproverRuleEditor({
           </div>
         </div>
         {onRemove && !readOnly && (
-          <Button type="button" size="icon" variant="ghost" aria-label={t('remove')} onClick={onRemove}>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label={
+              depth > 0
+                ? t('removeFallback', { name: describe({ ...rule, fallback: undefined } as ApproverRule) })
+                : t('removeApprover', { name: describe({ ...rule, fallback: undefined } as ApproverRule) })
+            }
+            onClick={onRemove}
+          >
             {depth > 0 ? <XIcon /> : <Trash2Icon />}
           </Button>
         )}

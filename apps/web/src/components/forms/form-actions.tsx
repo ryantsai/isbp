@@ -5,6 +5,7 @@ import {
   type ApprovalStep,
   type Condition,
   evaluateCondition,
+  FIELD_KEY_RE,
   type FieldDef,
   type FieldError,
   type FormAction,
@@ -15,7 +16,10 @@ import {
   localize,
   PROCESS_ACTION_OUTCOMES,
   type ProcessActionOutcome,
+  renderTemplate,
   STEP_FACTS_ROOT,
+  templatePaths,
+  todayFact,
   validateFields,
   walkSteps,
 } from '@isbp/sdk';
@@ -38,6 +42,7 @@ import { FieldControl, useFieldErrorText } from '@isbp/ui/form-renderer';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
+import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
@@ -49,7 +54,6 @@ import {
   SheetTitle,
 } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Textarea } from '@isbp/ui/textarea';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   ArrowDownIcon,
@@ -64,13 +68,19 @@ import {
   TriangleAlertIcon,
   WorkflowIcon,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { cleanElement, hasText, newElementId, useTodayFact } from '@/components/fields/field-utils';
+import {
+  cleanElement,
+  hasText,
+  incompleteConditions,
+  newElementId,
+  useTodayFact,
+} from '@/components/fields/field-utils';
 import { NavIcon } from '@/components/nav-icon';
 import { fieldType, useFieldFacts } from '@/components/workflows/field-facts';
 import { useApiQuery } from '@/lib/api';
+import { type TemplateInputHandle, type TemplateLabel, TemplateInput } from './template-input';
 
 /* ───────────────────────── catalog and issues ───────────────────────── */
 
@@ -199,47 +209,161 @@ interface TemplateValue {
   path: string;
   label: string;
   group: 'answers' | 'records' | 'request';
+  /** What it could look like on a request, for the "e.g." line. */
+  sample: string;
+  /** The sample is only a stand-in ("[Application]"): the menu doesn't show it. */
+  standIn?: boolean;
 }
 
-/** Values a text field can insert: the form's answers (raw and as shown), picked records' facts, the request. */
-function useTemplateValues(fields: readonly FieldDef[]): TemplateValue[] {
+/** Field types whose stored value isn't what people read (option values, ids): text uses `answers.<key>`. */
+const SHOWN_TYPES = new Set(['select', 'multiselect', 'user', 'boolean', 'record', 'rows']);
+
+/** The values a text setting can insert, with sample values. */
+interface TemplateValues {
+  /** What the "Insert value" menu offers. */
+  items: TemplateValue[];
+  /** The chip label of any path (offered or not, e.g. typed by hand or kept from an older form). */
+  labelOf: (path: string) => TemplateLabel;
+  /** Sample values by path, for the example line. */
+  context: Record<string, unknown>;
+}
+
+/** `a.b.c` → `{ a: { b: { c: value } } }` (merged into `target`). */
+function setPath(target: Record<string, unknown>, path: string, value: unknown) {
+  const segs = path.split('.');
+  let cur = target;
+  for (const seg of segs.slice(0, -1)) {
+    const next = cur[seg];
+    cur = (next && typeof next === 'object' ? next : (cur[seg] = {})) as Record<string, unknown>;
+  }
+  cur[segs[segs.length - 1]!] = value;
+}
+
+/**
+ * Values a text setting can insert: the answers as people read them (option labels, people's names, "Yes"), the name
+ * of each picked record and the records' readable facts, and the request. Never ids (a person's or a group's) or
+ * stored option values: a ticket title would show them as they are.
+ */
+function useTemplateValues(fields: readonly FieldDef[], formName?: LocalizedText): TemplateValues {
   const t = useTranslations('forms.actions.values');
+  const ts = useTranslations('forms.actions.sample');
   const locale = useLocale();
   const facts = useFieldFacts(fields, 'data');
   return useMemo(() => {
-    const shown = new Set(['select', 'multiselect', 'user', 'boolean']);
-    const answers: TemplateValue[] = facts
-      .filter((f) => f.path.startsWith('data.'))
-      .flatMap((f) => {
-        const key = f.path.slice(5);
-        const field = fields.find((x) => x.key === key);
-        const own = { path: f.path, label: f.label, group: 'answers' as const };
-        return field && shown.has(field.type)
-          ? [
-              own,
-              {
-                path: `answers.${key}`,
-                label: t('asShown', { field: localize(field.label, locale) || key }),
-                group: 'answers' as const,
-              },
-            ]
-          : [own];
+    const en = (text: LocalizedText | undefined) => localize(text, 'en') || localize(text, locale);
+    const labelOfField = (f: FieldDef) => localize(f.label, locale) || f.key;
+    const hint = (f: FieldDef) =>
+      (localize(f.placeholder, locale) ?? '').replace(/^(e\.g\.|eg\.|例如|例)\s*[:：]?\s*/i, '').trim();
+    // A plausible value, as the server renders it (English option labels, ISO dates, "Yes").
+    const sampleOf = (f: FieldDef): string => {
+      const dv = f.defaultValue;
+      const option = (v: unknown) => en(f.options?.find((o) => o.value === v)?.label) || String(v);
+      switch (f.type) {
+        case 'select':
+          return typeof dv === 'string' && dv ? option(dv) : f.options?.[0] ? option(f.options[0].value) : '';
+        case 'multiselect':
+          return (Array.isArray(dv) && dv.length ? dv : (f.options ?? []).slice(0, 2).map((o) => o.value))
+            .map(option)
+            .join(', ');
+        case 'boolean':
+          return 'Yes';
+        case 'user':
+          return ts('person');
+        case 'number':
+          return String(typeof dv === 'number' ? dv : (f.validation?.min ?? 1200));
+        case 'date':
+          return typeof dv === 'string' && dv ? dv : todayFact();
+        case 'email':
+          return ts('email');
+        case 'url':
+          return 'https://example.com';
+        case 'rows':
+          return (f.rows?.fields ?? [])
+            .slice(0, 3)
+            .map((c) => `${en(c.label) || c.key}: ${sampleOf(c)}`)
+            .join(' · ');
+        case 'record':
+          return ts('record', { field: labelOfField(f) });
+        default:
+          return (typeof dv === 'string' && dv) || hint(f) || ts('answer', { field: labelOfField(f) });
+      }
+    };
+
+    const items: TemplateValue[] = [];
+    const labels = new Map<string, TemplateLabel>();
+    const offer = (v: TemplateValue) => {
+      items.push(v);
+      labels.set(v.path, { label: v.label, known: true });
+    };
+    const named = fields.filter((f) => FIELD_KEY_RE.test(f.key));
+    for (const f of named) {
+      const label = labelOfField(f);
+      const sample = sampleOf(f);
+      const standIn = sample === ts('answer', { field: label }) || sample === ts('record', { field: label });
+      if (f.type === 'record')
+        offer({
+          path: `answers.${f.key}`,
+          label: t('recordName', { field: label }),
+          group: 'records',
+          sample,
+          standIn,
+        });
+      else
+        offer({
+          path: SHOWN_TYPES.has(f.type) ? `answers.${f.key}` : `data.${f.key}`,
+          label,
+          group: 'answers',
+          sample,
+          standIn,
+        });
+      // Older templates may use the other form of the same answer: shown, but not offered.
+      const other = SHOWN_TYPES.has(f.type) ? `data.${f.key}` : `answers.${f.key}`;
+      if (!labels.has(other))
+        labels.set(other, {
+          label: SHOWN_TYPES.has(f.type) ? t('stored', { field: label }) : label,
+          known: !SHOWN_TYPES.has(f.type),
+        });
+    }
+    for (const f of facts.filter((x) => x.path.startsWith('records.'))) {
+      // A person's or a group's id, a key: never readable text.
+      const readable = !f.ref && f.type !== 'id';
+      if (!readable) {
+        labels.set(f.path, { label: f.label, known: false });
+        continue;
+      }
+      offer({
+        path: f.path,
+        label: f.label,
+        group: 'records',
+        sample: f.options?.[0]?.label ?? ts('answer', { field: f.label }),
+        standIn: !f.options?.length,
       });
-    const records: TemplateValue[] = facts
-      .filter((f) => f.path.startsWith('records.'))
-      .map((f) => ({ path: f.path, label: f.label, group: 'records' }));
-    const request: TemplateValue[] = (
+    }
+    const origin = typeof window === 'undefined' ? '' : window.location.origin;
+    const reference = 'REQ-01042';
+    (
       [
-        ['request.reference', 'reference'],
-        ['request.url', 'url'],
-        ['request.form', 'form'],
-        ['requester.displayName', 'requesterName'],
-        ['requester.email', 'requesterEmail'],
-        ['decidedBy.displayName', 'decidedBy'],
+        ['request.reference', 'reference', reference],
+        ['request.url', 'url', `${origin}/requests/${reference}`],
+        ['request.form', 'form', en(formName) || ts('form')],
+        ['requester.displayName', 'requesterName', ts('person')],
+        ['requester.email', 'requesterEmail', ts('email')],
+        ['decidedBy.displayName', 'decidedBy', ts('approver')],
       ] as const
-    ).map(([path, key]) => ({ path, label: t(key), group: 'request' }));
-    return [...answers, ...records, ...request];
-  }, [facts, fields, locale, t]);
+    ).forEach(([path, key, sample]) => offer({ path, label: t(key), group: 'request', sample }));
+
+    const context: Record<string, unknown> = {};
+    for (const v of items) setPath(context, v.path, v.sample);
+    const labelOf = (path: string): TemplateLabel => {
+      const known = labels.get(path);
+      if (known) return known;
+      // A field that is gone, or a path typed by hand.
+      const key = /^(?:data|answers)\.([^.]+)/.exec(path)?.[1];
+      const field = key ? fields.find((f) => f.key === key) : undefined;
+      return { label: field ? labelOfField(field) : path, known: false };
+    };
+    return { items, labelOf, context };
+  }, [facts, fields, formName, locale, t, ts]);
 }
 
 function InsertValueMenu({
@@ -278,7 +402,11 @@ function InsertValueMenu({
             {items.map((v) => (
               <DropdownMenuItem key={v.path} onSelect={() => onInsert(v.path)} className="grid gap-0.5">
                 <span className="truncate">{v.label}</span>
-                <code className="truncate font-mono text-[11px] text-muted-foreground">{`{{${v.path}}}`}</code>
+                {v.sample && !v.standIn && (
+                  <span className="truncate text-xs text-muted-foreground">
+                    {t('example', { text: v.sample })}
+                  </span>
+                )}
               </DropdownMenuItem>
             ))}
           </DropdownMenuGroup>
@@ -307,30 +435,20 @@ function ConfigField({
   secret: boolean;
   /** A secret is stored on the server (shown as `{ set: true }`). */
   stored: boolean;
-  values: readonly TemplateValue[];
+  values: TemplateValues;
   disabled?: boolean;
 }) {
   const t = useTranslations('forms.actions');
   const locale = useLocale();
   const id = useId();
-  const ref = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
+  const editor = useRef<TemplateInputHandle>(null);
   const label = localize(field.label, locale) || field.key;
   const describedBy = `${id}-hint`;
   const help = error ?? (secret && stored ? t('secretStored') : localize(field.help, locale));
   const templated = !secret && (field.type === 'text' || field.type === 'textarea');
   const text = typeof value === 'string' ? value : '';
-
-  const insert = (path: string) => {
-    const token = `{{${path}}}`;
-    const el = ref.current;
-    const start = el?.selectionStart ?? text.length;
-    const end = el?.selectionEnd ?? text.length;
-    onChange(text.slice(0, start) + token + text.slice(end));
-    requestAnimationFrame(() => {
-      el?.focus();
-      el?.setSelectionRange(start + token.length, start + token.length);
-    });
-  };
+  // The text with sample values, once it holds at least one value from the request.
+  const example = templated && templatePaths(text).length ? renderTemplate(text, values.context).trim() : '';
 
   const common = {
     id,
@@ -342,7 +460,12 @@ function ConfigField({
   return (
     <div className={field.width === 'half' ? 'grid min-w-0 gap-1.5' : 'grid min-w-0 gap-1.5 sm:col-span-2'}>
       <div className="flex min-w-0 items-end justify-between gap-2">
-        <Label htmlFor={id} className="min-w-0">
+        <Label
+          id={`${id}-label`}
+          htmlFor={templated ? undefined : id}
+          onClick={templated ? () => editor.current?.focus() : undefined}
+          className="min-w-0"
+        >
           <span className="truncate">{label}</span>
           {field.required && (
             <span aria-hidden className="text-destructive">
@@ -351,14 +474,18 @@ function ConfigField({
           )}
         </Label>
         {templated && (
-          <InsertValueMenu values={values} fieldLabel={label} onInsert={insert} disabled={disabled} />
+          <InsertValueMenu
+            values={values.items}
+            fieldLabel={label}
+            onInsert={(path) => editor.current?.insert(path)}
+            disabled={disabled}
+          />
         )}
       </div>
       {secret ? (
         <div className="flex gap-2">
           <Input
             {...common}
-            ref={ref}
             type="password"
             autoComplete="new-password"
             value={text}
@@ -370,17 +497,24 @@ function ConfigField({
             </Button>
           )}
         </div>
-      ) : field.type === 'textarea' ? (
-        <Textarea
-          {...common}
-          ref={ref}
-          rows={field.key === 'body' ? 8 : 4}
+      ) : templated ? (
+        <TemplateInput
+          id={id}
+          handleRef={editor}
           value={text}
-          onChange={(e) => onChange(e.target.value)}
-          className={field.key === 'body' ? 'font-mono text-xs' : undefined}
+          onChange={onChange}
+          labelOf={values.labelOf}
+          multiline={field.type === 'textarea'}
+          rows={field.key === 'body' ? 8 : 4}
+          mono={field.key === 'body'}
+          placeholder={localize(field.placeholder, locale) || undefined}
+          disabled={disabled}
+          invalid={Boolean(error)}
+          labelledBy={`${id}-label`}
+          describedBy={
+            [help && describedBy, example && `${id}-example`].filter(Boolean).join(' ') || undefined
+          }
         />
-      ) : field.type === 'text' ? (
-        <Input {...common} ref={ref} value={text} onChange={(e) => onChange(e.target.value)} />
       ) : (
         <FieldControl
           field={field}
@@ -392,6 +526,14 @@ function ConfigField({
           aria-invalid={error ? true : undefined}
           aria-describedby={help ? describedBy : undefined}
         />
+      )}
+      {example && (
+        <p
+          id={`${id}-example`}
+          className="line-clamp-3 text-xs break-words whitespace-pre-line text-muted-foreground"
+        >
+          {t('example', { text: example })}
+        </p>
       )}
       {help && (
         <p
@@ -412,6 +554,7 @@ function ActionSheet({
   item,
   isNew,
   fields,
+  formName,
   facts,
   hasApproval,
   readOnly,
@@ -422,6 +565,7 @@ function ActionSheet({
   item: ProcessActionType | undefined;
   isNew: boolean;
   fields: readonly FieldDef[];
+  formName?: LocalizedText;
   /** What "Only when…" can test. */
   facts: readonly FactOption[];
   hasApproval: boolean;
@@ -435,15 +579,16 @@ function ActionSheet({
   const uid = useId();
   const [value, setValue] = useState<FormAction>(action);
   const [tried, setTried] = useState(false);
-  const values = useTemplateValues(fields);
+  const values = useTemplateValues(fields, formName);
   const errors = actionErrors(value, item);
+  const whenIncomplete = incompleteConditions(value.when) > 0;
   const secrets = new Set(item?.secrets ?? []);
   const shown = item ? visibleFields(item.fields, value.config) : [];
   const setConfig = (key: string, v: unknown) =>
     setValue((cur) => ({ ...cur, config: { ...cur.config, [key]: v } }));
   const save = () => {
     setTried(true);
-    if (Object.keys(errors).length) return;
+    if (Object.keys(errors).length || whenIncomplete) return;
     const name = value.name && hasText(value.name) ? value.name : undefined;
     const { name: _name, when, ...rest } = value;
     onSave({ ...rest, ...(name ? { name } : {}), ...(when ? { when } : {}) });
@@ -513,6 +658,7 @@ function ActionSheet({
             <ConditionBuilder
               value={value.when}
               facts={facts}
+              emptyText={t('whenEmpty')}
               onChange={(when: Condition | undefined) =>
                 setValue((cur) => {
                   const { when: _w, ...rest } = cur;
@@ -520,6 +666,11 @@ function ActionSheet({
                 })
               }
             />
+            {tried && whenIncomplete && (
+              <p role="alert" className="text-xs font-medium text-destructive">
+                {t('whenIncomplete')}
+              </p>
+            )}
           </fieldset>
           {item ? (
             <fieldset className="grid gap-x-4 gap-y-4 sm:grid-cols-2">
@@ -638,11 +789,14 @@ export function FormActions({
   loading,
   hasApproval,
   workflowId,
+  formName,
   readOnly,
   onChange,
 }: {
   actions: readonly FormAction[];
   elements: readonly FormElement[];
+  /** The form's name: "Form name" values in the examples. */
+  formName?: LocalizedText;
   items: readonly ProcessActionType[] | null;
   loading: boolean;
   hasApproval: boolean;
@@ -704,22 +858,15 @@ export function FormActions({
           className="rounded-xl border border-dashed"
         />
       ) : (
-        <ol className="grid gap-3" aria-label={t('title')}>
-          <AnimatePresence initial={false}>
-            {actions.map((a, i) => {
-              const item = itemOf(a.type);
-              const problems = issues.get(a.id) ?? 0;
-              const name = nameOf(a);
-              const locked = Boolean(item && !item.allowed);
-              return (
-                <motion.li
-                  key={a.id}
-                  layout
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="grid gap-2 rounded-xl border bg-card p-4"
-                >
+        <AnimatedList as="ol" className="-mb-3" aria-label={t('title')}>
+          {actions.map((a, i) => {
+            const item = itemOf(a.type);
+            const problems = issues.get(a.id) ?? 0;
+            const name = nameOf(a);
+            const locked = Boolean(item && !item.allowed);
+            return (
+              <AnimatedItem key={a.id} className="pb-3">
+                <div className="grid gap-2 rounded-xl border bg-card p-4">
                   <div className="flex items-start gap-3">
                     <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4">
                       <NavIcon name={item?.icon ?? undefined} />
@@ -806,11 +953,11 @@ export function FormActions({
                       </Badge>
                     </div>
                   )}
-                </motion.li>
-              );
-            })}
-          </AnimatePresence>
-        </ol>
+                </div>
+              </AnimatedItem>
+            );
+          })}
+        </AnimatedList>
       )}
       <p aria-live="polite" className="sr-only">
         {announcement}
@@ -840,6 +987,7 @@ export function FormActions({
           item={itemOf(editing.action.type)}
           isNew={editing.isNew}
           fields={fields}
+          formName={formName}
           facts={facts}
           hasApproval={hasApproval}
           readOnly={

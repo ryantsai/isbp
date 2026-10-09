@@ -45,8 +45,10 @@
     "desk": "工單",
     "problems": "問題",
     "changes": "變更",
-    "reports": "服務台報表",
-    "settings": "服務台"
+    "reports": "報表",
+    "settings": "服務台設定",
+    "settingsAbout": "SLA、類別、服務時間與服務目錄",
+    "settingsKeywords": "SLA, 類別, 服務時間, 行事曆, 服務目錄"
   },
   "portal": {
     "report": "回報問題",
@@ -118,10 +120,10 @@
     "change": "變更"
   },
   "status": {
-    "new": "新建",
+    "new": "新進",
     "pending_approval": "待簽核",
     "in_progress": "處理中",
-    "on_hold": "暫停",
+    "on_hold": "擱置中",
     "resolved": "已解決",
     "fulfilled": "已完成",
     "closed": "已結案",
@@ -208,11 +210,11 @@
     },
     "duplicate_of": {
       "outgoing": "重複於",
-      "incoming": "被重複"
+      "incoming": "有重複工單"
     },
     "parent_of": {
-      "outgoing": "上層工單",
-      "incoming": "下層工單"
+      "outgoing": "母工單",
+      "incoming": "子工單"
     },
     "implements": {
       "outgoing": "實施修正",
@@ -380,7 +382,16 @@
       "clear": "取消連結文章"
     },
     "linkedTo": "連結至",
-    "unlink": "不要連結此紀錄"
+    "unlink": "不要連結此紀錄",
+    "ticketPicker": {
+      "selected": "{count, plural, other {已選 # 張工單}}",
+      "placeholder": "以編號或標題尋找工單",
+      "search": "編號或標題…",
+      "loading": "搜尋中…",
+      "noResults": "找不到工單。",
+      "chosen": "已選工單",
+      "remove": "移除 {reference}"
+    }
   },
   "columns": {
     "reference": "編號",
@@ -394,7 +405,11 @@
     "category": "類別",
     "window": "預計時段",
     "updated": "更新時間",
-    "created": "建立時間"
+    "created": "建立時間",
+    "ticket": "工單",
+    "owner": "負責人",
+    "changeType": "類型",
+    "risk": "風險"
   },
   "filters": {
     "search": "搜尋工單…",
@@ -411,22 +426,34 @@
     "anyAssignee": "任何人",
     "category": "類別",
     "anyCategory": "任何類別",
-    "assignee": "處理人員"
+    "assignee": "處理人員",
+    "deskTypes": "事件與服務請求",
+    "sort": "排序",
+    "sortCustom": "依欄位排序",
+    "sorts": {
+      "newest": "最新建立",
+      "oldest": "最早建立",
+      "urgent": "SLA 最緊急",
+      "updated": "最近更新"
+    },
+    "ci": "組態項目",
+    "ciSet": "您來自的組態項目"
   },
   "desk": {
     "title": "工單",
-    "description": "等待服務台處理的事件與服務請求，以及各自的 SLA。",
+    "description": "等待服務台處理的事件與服務請求，以及其 SLA。",
     "new": "新增工單",
     "queues": {
       "label": "佇列",
-      "assigned": "指派給我",
+      "assigned": "我的工單",
       "groups": "我的群組",
       "unassigned": "未指派",
       "all": "所有未結案",
       "breached": "已違反 SLA",
       "at_risk": "即將逾期",
       "major": "重大事件",
-      "tickets": "{count, plural, other {張工單}}"
+      "tickets": "{count, plural, other {張工單}}",
+      "attention": "SLA 需注意"
     },
     "empty": {
       "assigned": "目前沒有指派給您的工單。",
@@ -437,7 +464,8 @@
       "at_risk": "沒有即將違反 SLA 的工單。",
       "major": "目前沒有重大事件。",
       "filtered": "沒有符合篩選條件的工單",
-      "filteredHint": "試試其他狀態，或清除篩選條件。"
+      "filteredHint": "試試其他狀態，或清除篩選條件。",
+      "attention": "沒有已違反或即將違反 SLA 的工單。"
     }
   },
   "newTicket": {
@@ -469,15 +497,23 @@
   },
   "newChange": {
     "title": "新增變更",
-    "description": "說明要變更什麼、何時進行，以及如何回復。一般與緊急變更需經 CAB 簽核。",
+    "description": "要變更什麼、涉及哪些 CI、何時進行。計畫可以在核准前補齊。",
     "titleLabel": "要變更什麼？",
     "titlePlaceholder": "例如：升級核心交換器韌體",
     "titleTooShort": "請至少輸入 3 個字元",
     "descriptionLabel": "詳細內容",
     "cis": "組態項目",
-    "cisHint": "用來找出同一批 CI 上已排定的其他變更。",
-    "submit": "建立變更",
-    "created": "已建立 {reference}（草稿）"
+    "cisHint": "用於衝突檢查、影響分析與 CAB 規則（涉及關鍵 CI 需 CAB 簽核）。",
+    "created": "已建立 {reference}（草稿）",
+    "whatAndWhen": "內容與時段",
+    "requester": "申請人（負責驗收）",
+    "requesterHint": "實施後由此人驗收；此人的部門也決定由誰簽核。",
+    "plans": "原因與計畫",
+    "plansHint": "請在 CAB 審查前填寫。",
+    "saveDraft": "儲存草稿",
+    "createAndSubmit": "建立並送出簽核",
+    "createdAndSubmitted": "已建立 {reference} 並送出簽核",
+    "windowPast": "時段已經開始，請改到之後的時間才能送出簽核。"
   },
   "ticket": {
     "back": "工單",
@@ -494,7 +530,12 @@
     "notFound": "找不到工單",
     "notFoundHint": "{reference} 不存在，或您沒有檢視權限。",
     "forbidden": "您沒有存取此工單的權限",
-    "loadFailed": "無法載入工單"
+    "loadFailed": "無法載入工單",
+    "backTo": {
+      "tickets": "工單",
+      "problems": "問題",
+      "changes": "變更"
+    }
   },
   "actions": {
     "label": "工單動作",
@@ -528,7 +569,9 @@
       "notesRequired": "請告訴申請人做了哪些處理。",
       "cancelHint": "系統會通知申請人此工單已取消。",
       "reason": "原因",
-      "reasonRequired": "請告訴申請人取消的原因。"
+      "reasonRequired": "請告訴申請人取消的原因。",
+      "article": "使用的知識文章（選填）",
+      "articleHint": "會連結到工單，讓知識庫知道哪些文章真正解決了問題。"
     },
     "edit": {
       "title": "編輯工單",
@@ -538,12 +581,36 @@
       "markdownHint": "支援 Markdown 格式。"
     },
     "withdrawResolution": "撤回解決方案",
-    "sentForSignOff": "已送出解決方案簽核"
+    "sentForSignOff": "已送出解決方案簽核",
+    "otherStatus": "其他狀態",
+    "submitted": "已送出簽核",
+    "waitingForAcceptance": "等待申請人驗收",
+    "editPlan": "編輯計畫",
+    "createProblem": "建立問題",
+    "next": {
+      "resolve": "解決",
+      "fulfil": "完成",
+      "reopen": "重新開啟",
+      "startInvestigating": "開始調查",
+      "markKnownError": "標示為已知錯誤",
+      "closeProblem": "結案",
+      "submitForApproval": "送出簽核",
+      "revise": "修改後重新送出",
+      "startImplementation": "開始實施",
+      "finishImplementation": "完成實施",
+      "closeChange": "結案"
+    },
+    "errors": {
+      "editPlan": "編輯計畫",
+      "windowMissing": "請先規劃變更時段：何時開始、何時結束？",
+      "windowPast": "規劃的時段已經開始，請先改到之後的時間。",
+      "acceptanceRequired": "申請人尚未驗收此變更。"
+    }
   },
   "details": {
     "title": "詳細資料",
     "requester": "申請人",
-    "requestedFor": "受益人",
+    "requestedFor": "使用人",
     "sameAsRequester": "與申請人相同",
     "category": "類別",
     "group": "指派群組",
@@ -551,19 +618,27 @@
     "impact": "影響範圍",
     "urgency": "緊急程度",
     "priority": "優先順序",
-    "priorityAuto": "依影響範圍 × 緊急程度（{priority}）",
+    "priorityAuto": "自動（{priority}）",
     "priorityMatrix": "由影響範圍與緊急程度計算。",
     "priorityOverridden": "已手動調整，變更記錄在活動紀錄中。",
     "major": "重大事件",
-    "channel": "來源通道",
+    "channel": "來源管道",
     "department": "部門",
     "created": "建立時間",
-    "firstResponse": "首次回應"
+    "firstResponse": "首次回應",
+    "priorityFrom": "依影響範圍「{impact}」× 緊急程度「{urgency}」",
+    "majorShort": "重大事件",
+    "majorOn": "是",
+    "majorOff": "否",
+    "more": "更多詳細資料"
   },
   "cis": {
     "title": "受影響的 CI",
     "none": "尚未連結任何組態項目。",
-    "critical": "關鍵"
+    "critical": "關鍵",
+    "remove": "移除 {name}",
+    "editTitle": "受影響的組態項目",
+    "editHint": "用於影響分析、衝突檢查與 CAB 規則。"
   },
   "links": {
     "title": "關聯",
@@ -577,18 +652,24 @@
     "targetInvalid": "請輸入工單編號，例如 INC-00042。",
     "added": "已建立關聯",
     "removed": "已移除關聯",
-    "remove": "移除與 {reference} 的關聯"
+    "remove": "移除與 {reference} 的關聯",
+    "targets": "工單",
+    "targetsHint": "以編號或標題搜尋，可選取多張。",
+    "addCount": "{count, plural, =0 {建立關聯} other {關聯 # 張工單}}"
   },
   "slas": {
     "title": "SLA",
     "none": "此工單不適用任何 SLA。",
     "due": "期限",
-    "stopped": "停止於"
+    "stopped": "停止於",
+    "policy": "依 SLA 原則「{name}」設定"
   },
   "customFields": {
     "title": "其他資訊",
     "editTitle": "編輯其他資訊",
-    "notSet": "未設定"
+    "notSet": "未設定",
+    "empty": "尚未填寫其他資訊。",
+    "add": "填寫資訊"
   },
   "timeline": {
     "label": "活動紀錄",
@@ -686,7 +767,11 @@
       "rejected": "解決方案未核准",
       "cancelled": "已撤回解決方案簽核",
       "updated": "解決方案簽核已更新"
-    }
+    },
+    "requestForm": "申請表單「{name}」",
+    "requestFormUnnamed": "申請表單",
+    "articleUsed": "使用的文章：",
+    "systemUpdates": "{count, plural, other {# 則系統更新}}"
   },
   "composer": {
     "label": "加入對話",
@@ -700,7 +785,16 @@
     "send": "送出回覆",
     "addNote": "新增備註",
     "sent": "已送出回覆",
-    "noteAdded": "已新增工作備註"
+    "noteAdded": "已新增工作備註",
+    "sendAndResolve": "送出並解決",
+    "sendAndFulfil": "送出並完成",
+    "requester": {
+      "label": "傳訊息給服務台",
+      "placeholder": "補充說明，或回覆服務台的問題…",
+      "send": "傳送",
+      "sent": "已傳送訊息",
+      "hint": "送出快速鍵"
+    }
   },
   "confirm": {
     "title": "問題解決了嗎？",
@@ -725,7 +819,7 @@
     "reopenedToast": "您的工單已重新開啟"
   },
   "requester": {
-    "back": "我的申請",
+    "back": "申請",
     "cancelled": "此工單已取消。",
     "conversation": "對話",
     "noMessages": "目前還沒有訊息。我們會在這裡回覆，您也可以在下方補充資訊。",
@@ -745,7 +839,7 @@
     },
     "steps": {
       "label": "處理進度",
-      "reported": "已回報",
+      "reported": "已收到",
       "inProgress": "處理中",
       "resolved": "已解決",
       "fulfilled": "已完成",
@@ -763,13 +857,19 @@
     "rootCauseEmpty": "尚未找出。",
     "workaround": "暫時解法",
     "workaroundEmpty": "尚無暫時解法。",
-    "knownErrorSwitch": "已知錯誤",
-    "knownErrorHint": "原因與暫時解法均已記錄，處理人員可套用到新的事件。",
     "incidents": "{count, plural, =0 {關聯的事件} other {# 個關聯的事件}}",
     "noIncidents": "尚未有事件關聯到此問題。",
     "kbArticle": "知識文章",
     "kbArticleHint": "記錄此已知錯誤的文章，供處理人員處理此問題造成的事件時參考。只會列出您可以閱讀的文章。",
-    "openArticle": "開啟文章"
+    "openArticle": "開啟文章",
+    "writeArticle": "撰寫已知錯誤文章",
+    "writeArticleHint": "把因應方式分享給服務台：系統會依此問題預先填好草稿。",
+    "articleDrafted": "已建立草稿 {reference}，請檢查後發佈",
+    "article": {
+      "title": "已知錯誤：{title}",
+      "symptoms": "症狀",
+      "empty": "請說明症狀、原因與因應方式。"
+    }
   },
   "problems": {
     "title": "問題",
@@ -821,14 +921,27 @@
       "title": "CAB 簽核",
       "notStarted": "計畫準備好後，即可送出簽核。",
       "unavailable": "無法顯示簽核資訊。",
-      "waitingFor": "等待",
-      "openInbox": "開啟我的簽核",
       "status": {
         "running": "待簽核",
         "approved": "已核准",
         "rejected": "已駁回",
         "cancelled": "已撤回"
-      }
+      },
+      "stepStatus": {
+        "active": "等待中",
+        "approved": "已核准",
+        "rejected": "已駁回",
+        "skipped": "已略過"
+      },
+      "waitingForPeople": "{more, plural, =0 {等待 {names}} other {等待 {names} 等 # 人以上}}",
+      "due": "期限",
+      "fellBack": "此步驟沒有指定的簽核人，因此改由備援的 {count} 人簽核，第一位回覆者決定。",
+      "firstAnswer": "任一人都可決定，以第一位回覆為準。",
+      "approvedBy": "{name} 已核准",
+      "rejectedBy": "{name} 已駁回",
+      "skippedCondition": "已略過：此變更不符合此步驟的條件",
+      "skippedNobody": "已略過：沒有人可以簽核此步驟",
+      "wholeFlow": "顯示完整流程"
     },
     "facts": {
       "type": "變更類型",
@@ -837,7 +950,28 @@
       "ciCount": "CI 數量",
       "durationHours": "時長（小時）",
       "criticalCis": "涉及關鍵 CI"
-    }
+    },
+    "windowPassed": "時段已過",
+    "submitTitle": "規劃時段後送出簽核",
+    "submitHint": "變更須有尚未開始的規劃時段，才能送出簽核。",
+    "saveAndSubmit": "儲存並送出簽核",
+    "decide": {
+      "title": "需要您簽核",
+      "hint": "請確認下方的計畫、時段與受影響的 CI 後再決定。",
+      "dueHint": "請確認下方計畫後決定，期限",
+      "approve": "核准",
+      "reject": "駁回",
+      "openTask": "開啟簽核",
+      "approveTitle": "核准此變更",
+      "rejectTitle": "駁回此變更",
+      "comment": "意見（選填）",
+      "reason": "駁回原因",
+      "reasonRequired": "請說明原因，讓申請人可以修正。",
+      "commentHint": "申請人與變更團隊會看到這段內容。",
+      "approved": "已核准變更",
+      "rejected": "已駁回變更"
+    },
+    "windowRequired": "請規劃時段，才能送出簽核。"
   },
   "changes": {
     "title": "變更",
@@ -846,24 +980,35 @@
     "search": "搜尋變更…",
     "listLabel": "變更",
     "empty": "沒有符合的變更。",
-    "tabs": {
-      "calendar": "行事曆",
-      "list": "清單"
-    },
     "calendar": {
       "previous": "上個月",
       "next": "下個月",
       "today": "今天",
-      "display": "顯示方式",
-      "month": "月",
-      "agenda": "議程",
       "legend": "圖例",
       "conflict": "衝突",
       "caption": "{month}已排定的變更",
       "changesOn": "{day}的變更",
       "more": "還有 {count} 項",
       "empty": "本月沒有排定的變更。",
-      "loadFailed": "無法載入行事曆"
+      "loadFailed": "無法載入行事曆",
+      "loadingMore": "正在載入更多變更…",
+      "showMore": "顯示更多",
+      "allShown": "已顯示全部 {count, number} 項變更。",
+      "capped": "目前只顯示前 {count, number} 項變更。請切換到議程，並選擇「顯示更多」以載入其餘變更。",
+      "partialFailed": "部分變更無法載入。",
+      "stage": {
+        "notSubmitted": "尚未送出",
+        "waiting": "等待 CAB 簽核",
+        "scheduled": "已核准並排程",
+        "done": "已完成",
+        "cancelled": "已取消"
+      }
+    },
+    "views": {
+      "label": "檢視方式",
+      "month": "月",
+      "agenda": "議程",
+      "list": "清單"
     }
   },
   "report": {
@@ -918,7 +1063,7 @@
       "open": "未結案工單",
       "openHint": "所有類型",
       "majorOpen": "{count, plural, other {# 個重大事件處理中}}",
-      "breached": "SLA 違反次數",
+      "breached": "期間內 SLA 違反次數",
       "breachedHint": "回應 {response} · 解決 {resolution}",
       "mttr": "平均解決時間",
       "mttrHint": "{count, plural, other {依 # 張已解決工單計算}}",
@@ -955,27 +1100,32 @@
       "description": "最近 {days} 天內已解決工單的平均值。",
       "hours": "平均時間",
       "resolved": "已解決"
+    },
+    "sections": {
+      "label": "報表分頁",
+      "serviceDesk": "服務台",
+      "ai": "AI 分析"
     }
   },
   "settingsPage": {
     "title": "服務台設定",
-    "description": "類別、SLA 政策、營業行事曆與服務目錄。",
+    "description": "類別、SLA 原則、營業行事曆與服務目錄。",
     "tabs": {
       "categories": "類別",
-      "sla": "SLA 政策",
+      "sla": "SLA 原則",
       "calendars": "行事曆",
       "catalog": "服務目錄"
     },
     "categories": {
       "title": "類別",
-      "description": "為工單分類，並轉給預設群組處理。",
+      "description": "為工單分類、轉給群組處理，並設定 SLA 目標時間。",
       "new": "新增類別",
       "empty": "尚未建立類別。",
       "inactive": "已停用",
       "tickets": "{count, plural, other {# 張工單}}",
       "createTitle": "新增類別",
       "editTitle": "編輯類別",
-      "sheetHint": "名稱會以使用者的語言顯示。",
+      "sheetHint": "此類別的工單會轉給其預設群組，並套用其 SLA 目標時間。",
       "name": "名稱",
       "nameRequired": "請至少以一種語言輸入名稱。",
       "key": "代碼",
@@ -986,52 +1136,99 @@
       "typesRequired": "請至少選擇一種工單類型。",
       "defaultGroup": "預設群組",
       "defaultGroupHint": "此類別的新工單會轉給這個群組。",
-      "sortOrder": "排序",
       "active": "啟用",
       "deleteTitle": "要刪除此類別嗎？",
-      "deleteBody": "已有工單或子類別的類別無法刪除，請改為停用。"
+      "deleteBody": "已有工單或子類別的類別無法刪除，請改為停用。",
+      "nameHint": "請填入使用者會用到的每種語言；未填的語言會顯示英文名稱。",
+      "keyHintEdit": "用於 SLA 規則與整合；變更後可能使使用它的設定失效。",
+      "keyInvalid": "請檢查「進階」中的代碼：只能使用小寫英文字母、數字與連字號。",
+      "activeHint": "已停用的類別無法用於新工單；既有工單會保留此類別。",
+      "allTypes": "所有工單類型",
+      "slaOwn": "SLA：{names}",
+      "slaStandard": "標準 SLA",
+      "sla": {
+        "title": "SLA",
+        "standard": "使用標準目標時間",
+        "own": "為此類別設定目標時間",
+        "standardHint": "標準：{names}。",
+        "noStandard": "這些工單類型目前沒有適用的 SLA。",
+        "ownHint": "套用到此類別及其子類別。",
+        "types": "使用這些目標時間的工單類型",
+        "calendar": "營業行事曆",
+        "placed": "會在「{name}」之前檢查，因此這些目標時間會套用到此類別及其子類別。",
+        "subcategories": "這些目標時間會套用到此類別及其子類別。",
+        "editPolicy": "編輯此原則的所有設定",
+        "related": "{count, plural, other {另有 # 個原則使用此類別}}"
+      }
     },
     "sla": {
-      "title": "SLA 政策",
-      "description": "依優先順序設定回應與解決目標，並依營業行事曆計時。系統會套用第一個符合的政策。",
-      "new": "新增政策",
-      "empty": "尚未建立 SLA 政策。",
+      "title": "SLA 原則",
+      "description": "由上而下檢查：第一個符合工單的原則決定其目標時間，並依該原則的行事曆計算上班時間。",
+      "new": "新增原則",
+      "empty": "尚未建立 SLA 原則。",
       "inactive": "已停用",
       "appliesTo": "適用於",
       "calendar": "營業行事曆",
       "calendarPlaceholder": "選擇行事曆",
-      "createTitle": "新增 SLA 政策",
-      "editTitle": "編輯 SLA 政策",
+      "createTitle": "新增 SLA 原則",
+      "editTitle": "編輯 SLA 原則",
       "sheetHint": "目標只計算營業時間，並會在您選擇的狀態下暫停計時。",
       "name": "名稱",
       "nameRequired": "請輸入名稱。",
       "descriptionLabel": "說明",
       "types": "工單類型",
       "condition": "僅在以下情況",
-      "conditionHint": "選填。若未設定規則，政策會套用到這些類型的所有工單。",
+      "conditionHint": "選填。若未設定規則，此原則會套用到這些類型的所有工單。",
       "targets": "目標",
       "priority": "優先順序",
       "targetsInvalid": "每個目標至少需要 1 分鐘。",
-      "hoursOf": "{target}：小時",
-      "minutesOf": "{target}：分鐘",
-      "h": "小時",
-      "m": "分",
       "warnAt": "提醒門檻",
       "warnAtHint": "目標時間經過此比例時，會提醒處理人員。",
       "pauseStatuses": "工單處於以下狀態時暫停計時",
-      "sortOrder": "排序",
-      "sortOrderHint": "數字越小越先比對。",
       "active": "啟用",
-      "deleteTitle": "要刪除此 SLA 政策嗎？",
-      "deleteBody": "進行中的 SLA 會保留原目標，新工單將不再使用此政策。",
+      "deleteTitle": "要刪除此 SLA 原則嗎？",
+      "deleteBody": "進行中的 SLA 會保留原目標時間，新工單將不再使用此原則。",
       "facts": {
         "priority": "優先順序（1–4）",
-        "category": "類別",
+        "category": "類別（僅此類別）",
         "major": "重大事件",
         "channel": "來源通道",
         "impact": "影響範圍（1–3）",
-        "urgency": "緊急程度（1–3）"
-      }
+        "urgency": "緊急程度（1–3）",
+        "categoryTree": "類別（含子類別）"
+      },
+      "nameHint": "會以各使用者的語言顯示在工單上。",
+      "calendarAlwaysOpen": "{name}（24×7）",
+      "calendarHint": "只在此行事曆的上班時間內計時。",
+      "moreOptions": "更多選項",
+      "activeHint": "新工單會略過已停用的原則；進行中的 SLA 維持原目標時間。",
+      "fixErrors": "請檢查上方標示的欄位。",
+      "positionHint": "依此順序檢查",
+      "position": "{position, selectordinal, other {第 # 個檢查}}",
+      "allPriorities": "所有優先順序",
+      "samePriorities": "所有優先順序相同",
+      "copiedFrom": "複製自「{name}」",
+      "onlyPriorities": "只有 {priorities} 工單符合這些規則，因此只顯示其目標時間。",
+      "durationHint": "依下方行事曆計算的上班時間，例如 4h、30m 或 1h 30m（3 個 9 小時的工作天 = 27h）。",
+      "durationInvalid": "請以小時與分鐘輸入每個目標時間，例如 4h、30m 或 1h 30m。",
+      "typesInSentence": {
+        "incident": "事件",
+        "service_request": "服務請求",
+        "problem": "問題",
+        "change": "變更"
+      },
+      "reach": {
+        "never": "此原則不會生效：「{name}」(#{position}) 會先符合這些工單。",
+        "neverNoMatch": "此原則不會生效：沒有工單能符合其規則。",
+        "notFor": "此原則不會套用到{types}：「{name}」(#{position}) 會先符合這些工單。",
+        "notForNoMatch": "此原則不會套用到{types}：沒有這類工單能符合其規則。",
+        "checkFirst": "優先檢查此原則",
+        "keepPlace": "維持原順序",
+        "willMove": "儲存後，會在「{name}」(#{position}) 之前檢查此原則。",
+        "placedBefore": "此原則會排在「{name}」(#{position}) 之前檢查，因此會套用到這些工單。",
+        "shadows": "之後{names}將不再套用到這些工單。"
+      },
+      "quoted": "「{name}」"
     },
     "calendars": {
       "title": "營業行事曆",
@@ -1041,7 +1238,7 @@
       "summary": "每週 {days} 天，{start}–{end}",
       "closedAllWeek": "整週休息",
       "holidayCount": "{count, plural, =0 {無假日} other {# 個假日}}",
-      "usedBy": "{count, plural, =0 {未被任何政策使用} other {有 # 個政策使用}}",
+      "usedBy": "{count, plural, =0 {未被任何原則使用} other {有 # 個原則使用}}",
       "createTitle": "新增行事曆",
       "editTitle": "編輯行事曆",
       "sheetHint": "時間以行事曆本身的時區為準。",
@@ -1068,7 +1265,7 @@
       "holidayInvalid": "每個假日都需要日期與名稱。",
       "deleteTitle": "要刪除此行事曆嗎？",
       "deleteBody": "此動作無法復原。",
-      "deleteInUse": "{count, plural, other {有 # 個 SLA 政策使用此行事曆，須先改用其他行事曆才能刪除。}}"
+      "deleteInUse": "{count, plural, other {有 # 個 SLA 原則使用此行事曆，須先改用其他行事曆才能刪除。}}"
     },
     "catalog": {
       "title": "服務目錄",
@@ -1099,8 +1296,20 @@
       },
       "stopTitle": "要停止處理此表單嗎？",
       "stopBody": "新的申請將不會開立服務請求，現有工單會保留。",
-      "stopped": "已移除處理設定"
-    }
+      "stopped": "已移除處理設定",
+      "setUpItem": "設定「{name}」"
+    },
+    "moveUp": "將「{name}」上移",
+    "moveDown": "將「{name}」下移",
+    "editItem": "編輯「{name}」",
+    "advanced": "進階",
+    "otherGroups": "其他群組",
+    "duration": {
+      "hours": "{hours} 小時",
+      "minutes": "{minutes} 分鐘",
+      "both": "{hours} 小時 {minutes} 分鐘"
+    },
+    "serviceDeskGroups": "服務台群組"
   },
   "ciRelated": {
     "title": "未結案工單",
@@ -1203,5 +1412,64 @@
     "sendProblem": "回報問題",
     "acceptedToast": "已驗收變更",
     "problemToast": "已回報問題"
+  },
+  "related": {
+    "title": "相關項目",
+    "add": "新增",
+    "addCi": "受影響的組態項目",
+    "addTicket": "相關工單",
+    "addRecord": "其他紀錄（資產、文章…）",
+    "none": "尚未連結任何項目。可用「新增」連結 CI、工單與其他紀錄。",
+    "cis": "受影響的 CI",
+    "tickets": "工單",
+    "records": "其他紀錄",
+    "hidden": "{count, plural, other {另有 # 筆您無法檢視的連結紀錄}}",
+    "affects": "{more, plural, =0 {影響：{services}} other {影響：{services} 等另 # 項}}",
+    "removeRecord": "移除與 {name} 的連結",
+    "recordLinked": "已連結紀錄",
+    "recordRemoved": "已移除連結",
+    "addRecordTitle": "連結紀錄",
+    "addRecordHint": "資產、文章、發行版本…任何與此工單有關的紀錄。",
+    "record": "紀錄",
+    "linkRecord": "連結"
+  },
+  "newProblem": {
+    "title": "新增問題",
+    "description": "記錄根本原因調查。",
+    "created": "已建立問題 {reference}",
+    "titleLabel": "標題",
+    "titleRequired": "請至少輸入 3 個字元",
+    "incidents": "此問題造成的事件",
+    "incidentsHint": "會以「肇因於」此問題的關係連結，之後也可以再新增。",
+    "details": "目前已知的情況",
+    "category": "類別",
+    "noCategory": "不指定類別",
+    "group": "指派群組",
+    "defaultGroup": "預設群組",
+    "cis": "受影響的 CI",
+    "submit": "建立問題"
+  },
+  "requesterStatus": {
+    "new": "已收到",
+    "pending_approval": "等待簽核",
+    "in_progress": "處理中",
+    "on_hold": "擱置中",
+    "resolved": "已解決，請確認",
+    "fulfilled": "已完成",
+    "closed": "已結案",
+    "cancelled": "已取消",
+    "rejected": "已駁回",
+    "draft": "草稿",
+    "assessment": "評估中",
+    "authorization": "等待簽核",
+    "scheduled": "已排程",
+    "implementing": "實施中",
+    "review": "已完成，請驗收",
+    "investigating": "處理中",
+    "known_error": "處理中"
+  },
+  "work": {
+    "acceptChanges": "待您驗收的變更",
+    "confirmFixes": "待您確認的解決結果"
   }
 }

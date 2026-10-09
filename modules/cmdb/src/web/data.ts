@@ -23,7 +23,7 @@ export function useClasses(enabled = true) {
     () => classes.map((c) => ({ value: c.key, label: localize(c.name, locale), icon: c.icon })),
     [classes, locale],
   );
-  return { classes, options, isLoading: query.isLoading };
+  return { classes, options, isLoading: query.isLoading, error: query.error, refetch: query.refetch };
 }
 
 /** Support groups / departments for pickers and filters (served by the CMDB to its readers). */

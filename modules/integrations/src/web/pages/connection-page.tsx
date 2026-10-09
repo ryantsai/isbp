@@ -5,15 +5,14 @@ import { useCan } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useListState } from '@isbp/ui/data-table';
-import { EmptyState } from '@isbp/ui/empty-state';
-import { FadeIn } from '@isbp/ui/motion';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
+import { Disclosure } from '@isbp/ui/motion';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
-  ArrowLeftIcon,
-  FileQuestionIcon,
   KeyRoundIcon,
   PencilIcon,
   PlayIcon,
@@ -34,6 +33,7 @@ import { ConnectionSheet, TestResultNote } from '../connection/connection-sheet'
 import { CopyButton, SecretDialog } from '../connection/secret-dialog';
 import { WebhookHints } from '../connection/webhook-hints';
 import { ConflictsTable } from '../conflicts';
+import { NeedsAttention } from '../connection/attention';
 import {
   INVALIDATE,
   newProfileHref,
@@ -85,6 +85,9 @@ function OverviewTab({ c, canManage }: { c: Connection; canManage: boolean }) {
   const url = `${origin}${webhookPath(c.id)}`;
   return (
     <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-2">
+      <div className="min-w-0 lg:col-span-2">
+        <NeedsAttention c={c} />
+      </div>
       <Card className="min-w-0">
         <CardHeader>
           <CardTitle>{t('health')}</CardTitle>
@@ -111,10 +114,12 @@ function OverviewTab({ c, canManage }: { c: Connection; canManage: boolean }) {
               </span>
             </Field>
             {c.healthMessage && <Field label={t('message')}>{c.healthMessage}</Field>}
-            <Field label={t('account')}>{c.account}</Field>
-            <Field label={t('lastChecked')}>
-              {c.lastCheckedAt ? <DateTime date={c.lastCheckedAt} /> : null}
-            </Field>
+            {c.account && <Field label={t('account')}>{c.account}</Field>}
+            {c.lastCheckedAt && (
+              <Field label={t('lastChecked')}>
+                <DateTime date={c.lastCheckedAt} />
+              </Field>
+            )}
             <Field label={t('lastSync')}>
               {c.stats.lastSyncAt ? <RelativeTime date={c.stats.lastSyncAt} /> : null}
             </Field>
@@ -125,22 +130,27 @@ function OverviewTab({ c, canManage }: { c: Connection; canManage: boolean }) {
         </CardContent>
       </Card>
 
-      <Card className="min-w-0">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Disclosure
+        summary={
+          <span className="flex items-center gap-2">
             <WebhookIcon className="size-4 text-muted-foreground" aria-hidden />
-            {tw('title')}
-          </CardTitle>
-          <CardDescription>{c.connector.webhooks ? tw('description') : tw('notSupported')}</CardDescription>
+            {tw('setup')}
+          </span>
+        }
+        className="min-w-0 rounded-xl border bg-card px-4 shadow-xs sm:px-6"
+        triggerClassName="py-4 font-semibold"
+      >
+        <div className="grid gap-3 pb-6">
+          <p className="text-sm text-muted-foreground">
+            {c.connector.webhooks ? tw('description') : tw('notSupported')}
+          </p>
           {canManage && (
-            <CardAction>
+            <div>
               <Button variant="outline" size="sm" onClick={() => setConfirmRotate(true)}>
                 <KeyRoundIcon /> {tw('rotate')}
               </Button>
-            </CardAction>
+            </div>
           )}
-        </CardHeader>
-        <CardContent className="grid gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <code className="min-w-0 flex-1 truncate rounded-md border bg-muted/40 px-2 py-1.5 font-mono text-xs">
               {url}
@@ -154,8 +164,8 @@ function OverviewTab({ c, canManage }: { c: Connection; canManage: boolean }) {
             </Field>
           </dl>
           <WebhookHints type={c.type} />
-        </CardContent>
-      </Card>
+        </div>
+      </Disclosure>
 
       <ConfirmDialog
         open={confirmRotate}
@@ -328,41 +338,52 @@ export default function ConnectionPage({ params }: WebPageProps) {
         <Skeleton className="h-72 w-full rounded-xl" />
       </div>
     );
-  if (error || !c) return <EmptyState icon={<FileQuestionIcon />} title={t('notFound')} />;
+  if (error || !c) return <ErrorState error={error} kind="page" />;
   const connector = catalogue.connectors.get(c.type) ?? null;
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href="/integrations">
-          <ArrowLeftIcon /> {t('back')}
-        </Link>
-      </Button>
-      <FadeIn y={4} className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-            <ModuleIcon name={c.connector.icon} className="size-6" />
-          </span>
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <p className="text-sm text-muted-foreground">{label(c.connector.name)}</p>
-            <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{c.name}</h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <HealthBadge health={c.health} enabled={c.enabled} />
-              {c.allowInsecureHttp && <InsecureBadge />}
-            </div>
-          </div>
-        </div>
-        {canManage && (
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setEditing(true)} disabled={!connector}>
-              <PencilIcon /> {tc('edit')}
-            </Button>
-            <Button variant="outline" onClick={() => setDeleting(true)}>
-              <Trash2Icon /> {tc('delete')}
-            </Button>
-          </div>
-        )}
-      </FadeIn>
+      <DetailHeader
+        className="pb-0"
+        back={{ href: '/integrations', label: t('back') }}
+        icon={<ModuleIcon name={c.connector.icon} />}
+        reference={label(c.connector.name)}
+        title={c.name}
+        status={
+          <>
+            <HealthBadge
+              health={c.health}
+              enabled={c.enabled}
+              attention={c.stats.conflicts > 0 || c.stats.errors > 0}
+            />
+            {c.allowInsecureHttp && <InsecureBadge />}
+          </>
+        }
+        actions={
+          canManage
+            ? [
+                {
+                  label: tc('edit'),
+                  icon: <PencilIcon />,
+                  disabled: !connector,
+                  onSelect: () => setEditing(true),
+                },
+              ]
+            : []
+        }
+        menu={
+          canManage
+            ? [
+                {
+                  label: tc('delete'),
+                  icon: <Trash2Icon />,
+                  destructive: true,
+                  onSelect: () => setDeleting(true),
+                },
+              ]
+            : []
+        }
+      />
 
       <Tabs
         value={tab}

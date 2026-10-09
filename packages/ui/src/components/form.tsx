@@ -76,15 +76,18 @@ export function FormControl(props: React.ComponentProps<typeof Slot.Root>) {
     <Slot.Root
       data-slot="form-control"
       id={formItemId}
-      aria-describedby={!error ? formDescriptionId : `${formDescriptionId} ${formMessageId}`}
+      // The error replaces the hint (FormDescription hides while there is one).
+      aria-describedby={!error ? formDescriptionId : formMessageId}
       aria-invalid={!!error}
       {...props}
     />
   );
 }
 
+/** The hint under a field. It gives way to the error message while the field is invalid. */
 export function FormDescription({ className, ...props }: React.ComponentProps<'p'>) {
-  const { formDescriptionId } = useFormField();
+  const { formDescriptionId, error } = useFormField();
+  if (error) return null;
   return (
     <p
       data-slot="form-description"

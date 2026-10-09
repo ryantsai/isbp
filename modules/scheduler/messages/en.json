@@ -16,7 +16,8 @@
     "group": "Scheduled jobs",
     "overview": "Overview",
     "jobs": "Jobs",
-    "runs": "Runs"
+    "runs": "Runs",
+    "sections": "Scheduled jobs sections"
   },
   "entities": {
     "job": "Scheduled job"
@@ -111,13 +112,13 @@
     "retry": "Run again"
   },
   "triggerKind": {
-    "cron": "Cron",
+    "cron": "On a schedule",
     "interval": "Interval",
     "after": "After other jobs",
     "manual": "Manual"
   },
   "triggerKindHint": {
-    "cron": "At set times, in a time zone",
+    "cron": "Every day, week or month at set times",
     "interval": "Every few minutes or hours",
     "after": "When other jobs succeed",
     "manual": "Only when someone runs it"
@@ -160,7 +161,9 @@
     "weekdays": "Weekdays at {time}",
     "weekly": "{days} at {time}",
     "monthly": "Monthly on day {day} at {time}",
-    "custom": "Cron {cron}"
+    "custom": "Cron {cron}",
+    "quarterly": "Quarterly on day {day} at {time}",
+    "yearly": "Every year on {date} at {time}"
   },
   "trigger": {
     "withZone": "{text} ({zone})",
@@ -187,7 +190,7 @@
   },
   "overview": {
     "title": "Scheduled jobs",
-    "description": "How the jobs are doing: runs over the last day, what is failing, what is slow and what comes next.",
+    "description": "What needs attention first, then how the jobs are doing and what comes next.",
     "unavailable": "The dashboard is unavailable right now.",
     "kpis": "Key figures",
     "kpi": {
@@ -200,7 +203,9 @@
       "failingHint": "Last run failed",
       "runningNow": "Running now",
       "avgDuration": "Average duration (24 h)",
-      "avgDurationHint": "Of finished runs"
+      "avgDurationHint": "Of finished runs",
+      "successHint7d": "Last 7 days: {rate}",
+      "avgHint": "Average run: {duration}"
     },
     "hourly": "Runs per hour",
     "hourlyHint": "The last 24 hours, by status",
@@ -210,14 +215,19 @@
     "upcomingHint": "Scheduled in the next 24 hours",
     "noUpcoming": "Nothing scheduled in the next 24 hours.",
     "failing": "Failing jobs",
-    "failingHint": "Jobs whose last run failed",
-    "noFailing": "No job is failing.",
+    "failingHint": "Jobs whose last run failed: why, and what to do",
+    "noFailing": "Nothing is failing.",
     "streak": "{count, plural, one {# failure} other {# in a row}}",
     "slowest": "Slowest jobs",
     "slowestHint": "95th percentile duration of successful runs, last 7 days",
     "noRuns": "No successful runs in the last 7 days.",
     "p95": "{duration} · {runs, plural, one {# run} other {# runs}}",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "lastFailed": "Last failed",
+    "seeRun": "See the run",
+    "runNowJob": "Run {job} now",
+    "nextAt": "Next {time}",
+    "runsIn24h": "{count, plural, one {# run} other {# runs}} in 24 h"
   },
   "charts": {
     "viewAs": "Show as",
@@ -305,7 +315,10 @@
     "alertsOff": "No failure notifications",
     "alertsChannels": "Failures are also posted to the organisation's channels",
     "autoDisableValue": "Disabled after {count} failures in a row",
-    "runsOf": "Runs of {job}"
+    "runsOf": "Runs of {job}",
+    "nextRunMeta": "Next run",
+    "seeLastRun": "See the last run",
+    "timeout": "Timeout"
   },
   "runs": {
     "title": "Runs",
@@ -605,7 +618,28 @@
     "checkFields": "Check the highlighted fields",
     "create": "Create job",
     "created": "Job created",
-    "saved": "Changes saved"
+    "saved": "Changes saved",
+    "repeats": "Repeats",
+    "repeat": {
+      "hourly": "Every hour",
+      "daily": "Every day",
+      "weekdays": "Every weekday",
+      "weekly": "Every week",
+      "monthly": "Every month",
+      "quarterly": "Every quarter",
+      "yearly": "Every year",
+      "custom": "Custom (cron)"
+    },
+    "onWeekday": "On",
+    "inMonth": "In",
+    "onDay": "On day",
+    "onDayQuarterHint": "Of the quarter's first month",
+    "atMinute": "Minutes past the hour",
+    "atTime": "At",
+    "advanced": "Advanced settings",
+    "advancedHint": "Time limit, retries, overlapping runs and automatic disabling. The defaults suit most jobs.",
+    "runFirst": "Also run it once now",
+    "runFirstHint": "Opens this period's work right away instead of waiting for the first scheduled run."
   },
   "attention": {
     "title": "Failing jobs",
@@ -626,5 +660,14 @@
         "every": "Every (minutes)"
       }
     }
+  },
+  "results": {
+    "http": "HTTP {status} · {ms} ms",
+    "affected": "{count, plural, one {# row affected} other {# rows affected}}",
+    "rows": "{count, plural, one {# row} other {# rows}}",
+    "rowsCapped": "{count}+ rows (capped by the connection)",
+    "script": "Finished in {ms} ms",
+    "skippedOverlap": "Skipped: the previous run was still going",
+    "missed": "{count, plural, one {Missed # scheduled run} other {Missed # scheduled runs}}"
   }
 }

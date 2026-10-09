@@ -38,6 +38,7 @@ import { formatAssetTag, formatLicenseRef, parseRef } from '../model';
 import { all, HARDWARE_MANAGE, SOFTWARE_MANAGE } from './access';
 import { INACTIVE_DEVICE, type LicenseService, lower } from './licenses';
 import {
+  approvedSoftware,
   type AssetRow,
   assets,
   discoveryReports,
@@ -46,6 +47,9 @@ import {
   softwareTitleRules,
 } from './schema';
 import { actingUserId, actorOf, peopleByIds, pgCode, UNIQUE_VIOLATION } from './support';
+import en from '../../messages/en.json';
+import ja from '../../messages/ja-JP.json';
+import zh from '../../messages/zh-TW.json';
 
 type DiscoveryData = z.output<typeof discoverySchema>;
 type ImportData = z.output<typeof discoveryImportSchema>;
@@ -54,6 +58,8 @@ type RuleQuery = z.output<typeof titleRuleQuerySchema>;
 type PageQuery = { page: number; pageSize: number; q?: string };
 
 const RULE_ENTITY = 'itam.title-rule';
+const TICKET_TOOL = 'itsm.create_ticket';
+const CATALOGS = { en, 'zh-TW': zh as typeof en, 'ja-JP': ja as typeof en };
 
 const assetRef = (a: Pick<AssetRow, 'id' | 'number' | 'name' | 'category' | 'status'>) => ({
   id: a.id,
@@ -100,59 +106,66 @@ export class DiscoveryService {
   }
 
   /**
-   * An inventory tool reports the **complete** list of products on one device. Reported products are
-   * upserted (`last_seen_at` = now); products of an earlier report that are missing now were uninstalled
-   * and are deleted. Manually recorded installs are kept. A title with a mapping rule is stored as its
-   * licence's product (`reported_as` keeps the title). Compliance of the affected products follows, and the
-   * report is listed on the Discovery page.
+   * An inventory tool reports the **complete** list of products on one device. Reported titles are upserted
+   * (`last_seen_at` = now); titles of an earlier report that are missing now were uninstalled and are deleted.
+   * Manually recorded installs are kept. Installs are keyed by what the device reported: a title with a mapping rule
+   * is stored as its licence's product with `reported_as` keeping the title, so a device reporting both the title and
+   * the product keeps both. Reports for one device run one after the other (the device row is locked). Compliance of
+   * the affected products follows, and the report is listed on the Discovery page.
    */
   async discover(input: DiscoveryData, auth: AuthContext, opts: { fileName?: string | null } = {}) {
     auth.require(HARDWARE_MANAGE);
-    const asset = await this.assetOf(input);
-    if (!asset) throw httpErrors.notFound('Asset not found');
-    const mapped = await this.mappedTitles(
-      this.db,
-      input.products.map((p) => lower(p.product)),
-    );
-    type Incoming = (typeof input.products)[number] & { reportedAs: string | null };
+    const found = await this.assetOf(input);
+    if (!found) throw httpErrors.notFound('Asset not found');
+    type Incoming = (typeof input.products)[number];
     const reported = new Map<string, Incoming>();
     for (const p of input.products) {
-      const product = mapped.get(lower(p.product));
-      const key = lower(product ?? p.product);
-      if (!reported.has(key))
-        reported.set(key, { ...p, product: product ?? p.product, reportedAs: product ? p.product : null });
+      const key = lower(p.product);
+      if (!reported.has(key)) reported.set(key, p);
     }
     const now = new Date();
     const actor = actorOf(auth);
     const result = await this.ctx.transaction(async (tx) => {
+      // One report per device at a time: a second one waits and then sees the first one's installs.
+      const [asset] = await tx.select().from(assets).where(eq(assets.id, found.id)).for('no key update');
+      if (!asset) throw httpErrors.notFound('Asset not found');
+      // Read inside the transaction, so a rule created meanwhile applies to this report.
+      const mapped = await this.mappedTitles(tx, [...reported.keys()]);
       const existing = await tx
         .select()
         .from(softwareInstallations)
         .where(eq(softwareInstallations.assetId, asset.id))
         .for('update');
-      const byProduct = new Map(existing.map((e) => [lower(e.product), e]));
+      const byTitle = new Map(existing.map((e) => [lower(e.reportedAs ?? e.product), e]));
       let added = 0;
       let updated = 0;
       const touched = new Set<string>();
       for (const [key, p] of reported) {
-        const row = byProduct.get(key);
+        const row = byTitle.get(key);
+        // A title reported again in other letter case keeps the spelling it was first seen with.
+        const title = row ? (row.reportedAs ?? row.product) : p.product;
+        const product = mapped.get(key) ?? title;
+        const reportedAs = mapped.has(key) ? title : null;
         if (row) {
+          const manual = row.source === 'manual';
           await tx
             .update(softwareInstallations)
             .set({
+              product: manual ? row.product : product,
+              reportedAs: manual ? row.reportedAs : reportedAs,
               publisher: p.publisher ?? row.publisher,
               version: p.version ?? row.version,
-              reportedAs: row.source === 'manual' ? row.reportedAs : p.reportedAs,
               lastSeenAt: now,
-              source: row.source === 'manual' ? 'manual' : input.source,
+              source: manual ? 'manual' : input.source,
             })
             .where(eq(softwareInstallations.id, row.id));
+          if (!manual && lower(row.product) !== lower(product)) touched.add(row.product).add(product);
           updated++;
         } else {
           await tx.insert(softwareInstallations).values({
             assetId: asset.id,
-            product: p.product,
-            reportedAs: p.reportedAs,
+            product,
+            reportedAs,
             publisher: p.publisher,
             version: p.version,
             firstSeenAt: now,
@@ -160,10 +173,12 @@ export class DiscoveryService {
             source: input.source,
           });
           added++;
-          touched.add(p.product);
+          touched.add(product);
         }
       }
-      const gone = existing.filter((e) => !reported.has(lower(e.product)) && e.source !== 'manual');
+      const gone = existing.filter(
+        (e) => !reported.has(lower(e.reportedAs ?? e.product)) && e.source !== 'manual',
+      );
       if (gone.length)
         await tx.delete(softwareInstallations).where(
           inArray(
@@ -193,16 +208,17 @@ export class DiscoveryService {
         { tx },
       );
       await this.licenses.recomputeProducts(tx, [...touched]);
-      return { added, updated, removed: gone.length };
+      return { asset, added, updated, removed: gone.length };
     });
+    const asset = result.asset;
     const coverage = await this.licenses.installations(
       { assetId: asset.id },
       { page: 1, pageSize: 2000, unlicensed: true },
     );
     return {
       asset: assetRef(asset),
-      ...result,
-      unlicensed: coverage.items.filter((i) => i.managed).map((i) => i.product),
+      ...pick(result),
+      unlicensed: [...new Set(coverage.items.filter((i) => i.managed).map((i) => i.product))],
     };
   }
 
@@ -303,13 +319,19 @@ export class DiscoveryService {
       notInArray(assets.status, INACTIVE_DEVICE),
       sql`not exists (select 1 from ${licenses} l where lower(l.product) = ${key})`,
       sql`not exists (select 1 from ${softwareTitleRules} r where lower(r.title) = ${key})`,
+      // Free and open-source software on the approved list needs no licence: nothing to review.
+      sql`not exists (select 1 from ${approvedSoftware} s
+            where lower(s.title) = ${key} and s.status = 'allowed' and s.license_model in ('free', 'open_source'))`,
       q.q ? ilike(softwareInstallations.product, likePattern(q.q)) : undefined,
     );
+    // Spellings of one title differ only in case: pick one by byte order ("C"), so the result doesn't depend
+    // on the database's collation (most put lowercase first, "C" puts capitals first).
+    const title = sql<string>`min(${softwareInstallations.product} collate "C")`;
     const [rows, [total]] = await Promise.all([
       this.db
         .select({
-          title: sql<string>`min(${softwareInstallations.product})`,
-          publisher: sql<string | null>`min(${softwareInstallations.publisher})`,
+          title,
+          publisher: sql<string | null>`min(${softwareInstallations.publisher} collate "C")`,
           devices,
           lastSeenAt: sql<Date>`max(${softwareInstallations.lastSeenAt})`,
         })
@@ -317,7 +339,7 @@ export class DiscoveryService {
         .innerJoin(assets, eq(assets.id, softwareInstallations.assetId))
         .where(where)
         .groupBy(key)
-        .orderBy(sql`${devices} desc`, sql`min(${softwareInstallations.product}) asc`)
+        .orderBy(sql`${devices} desc`, sql`${title} asc`)
         .limit(q.pageSize)
         .offset((q.page - 1) * q.pageSize),
       this.db
@@ -440,18 +462,19 @@ export class DiscoveryService {
           .returning();
         let devices = 0;
         if (license) {
-          // The device already reports the licence's product under its own name: keep that install.
-          await tx.execute(sql`
-            delete from ${softwareInstallations} i
-             where lower(i.product) = ${lower(title)}
-               and exists (select 1 from ${softwareInstallations} j
-                            where j.asset_id = i.asset_id and lower(j.product) = ${lower(license.product)})`);
+          // Every install of the title now counts as the licence's product; `reported_as` keeps the title, so
+          // removing the rule restores it. A device that also reports the product keeps both installs.
           const renamed = await tx
             .update(softwareInstallations)
             .set({ product: license.product, reportedAs: sql`${softwareInstallations.product}` })
-            .where(eq(sql`lower(${softwareInstallations.product})`, lower(title)))
-            .returning({ id: softwareInstallations.id });
-          devices = renamed.length;
+            .where(
+              and(
+                eq(sql`lower(${softwareInstallations.product})`, lower(title)),
+                isNull(softwareInstallations.reportedAs),
+              ),
+            )
+            .returning({ assetId: softwareInstallations.assetId });
+          devices = new Set(renamed.map((r) => r.assetId)).size;
           await this.licenses.recomputeProducts(tx, [license.product]);
         }
         await this.ctx.audit.record(
@@ -481,6 +504,69 @@ export class DiscoveryService {
     }
   }
 
+  /**
+   * "Ask to remove": raises a service desk request (through ITSM's own tool, as the caller, so ITSM's rules apply)
+   * to uninstall software that is blocked or not on the approved list from one device, and links it to the device.
+   */
+  async askRemoval(installationId: string, auth: AuthContext) {
+    auth.require(HARDWARE_MANAGE);
+    if (!this.ctx.ai.tools.list(auth).some((t) => t.name === TICKET_TOOL))
+      throw new HttpError(409, ErrorCodes.INVALID_STATE, 'Asking for a removal needs the service desk', {
+        reason: 'ticketsUnavailable',
+      });
+    const [row] = await this.db
+      .select({ i: softwareInstallations, a: assets })
+      .from(softwareInstallations)
+      .innerJoin(assets, eq(assets.id, softwareInstallations.assetId))
+      .where(eq(softwareInstallations.id, installationId));
+    if (!row) throw httpErrors.notFound('Installation not found');
+    const { i, a } = row;
+    const title = i.reportedAs ?? i.product;
+    const device = `${formatAssetTag(a.number)} ${a.name}`;
+    const people = await peopleByIds(this.db, [a.assignedTo]);
+    const user = a.assignedTo ? people.get(a.assignedTo) : undefined;
+    const locale = (
+      auth.user?.locale && auth.user.locale in CATALOGS ? auth.user.locale : 'en'
+    ) as keyof typeof CATALOGS;
+    const words = CATALOGS[locale].discovery.removal;
+    const ticket = await this.ctx.ai.tools.invoke<{ id?: string; reference?: string; href?: string }>(
+      TICKET_TOOL,
+      {
+        type: 'service_request',
+        title: words.ticketTitle.replace('{title}', title).replace('{device}', device).slice(0, 200),
+        description: [
+          words.ticketBody.replace('{title}', title).replace('{device}', device),
+          i.version ? `${words.version}: ${i.version}` : null,
+          user ? `${words.user}: ${user.displayName}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+        channel: 'portal',
+      },
+      { auth },
+    );
+    if (!ticket?.id)
+      throw new HttpError(502, ErrorCodes.INTERNAL, 'The service desk did not create a ticket');
+    await this.ctx.transaction(async (tx) => {
+      await this.ctx.records.link(
+        { type: 'itsm.ticket', id: ticket.id! },
+        { type: 'itam.asset', id: a.id },
+        { tx },
+      );
+      await this.ctx.audit.record(
+        {
+          action: 'itam.discovery.removal_requested',
+          entityType: 'itam.asset',
+          entityId: a.id,
+          entityLabel: device,
+          metadata: { title, ticket: ticket.reference ?? ticket.id },
+        },
+        { tx },
+      );
+    });
+    return { reference: ticket.reference ?? null, href: ticket.href ?? null };
+  }
+
   /** Removes a rule: a mapped title's installs go back to the reported title, and compliance follows. */
   async deleteRule(id: string, auth: AuthContext) {
     auth.require(SOFTWARE_MANAGE);
@@ -495,12 +581,7 @@ export class DiscoveryService {
         ? await tx.select().from(licenses).where(eq(licenses.id, rule.licenseId))
         : [];
       if (license) {
-        // A device that also has the title recorded by hand keeps that entry.
-        await tx.execute(sql`
-          delete from ${softwareInstallations} i
-           where lower(i.reported_as) = ${lower(rule.title)}
-             and exists (select 1 from ${softwareInstallations} j
-                          where j.asset_id = i.asset_id and lower(j.product) = ${lower(rule.title)})`);
+        // The installs go back to the title the devices reported (each device has one install per title).
         await tx
           .update(softwareInstallations)
           .set({ product: sql`${softwareInstallations.reportedAs}`, reportedAs: null })

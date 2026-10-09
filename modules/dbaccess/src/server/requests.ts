@@ -19,8 +19,10 @@ import type {
   AccessRequestOut as AccessRequest,
   CatalogItemOut as CatalogItem,
   CreateRequestInput,
+  RequestPreview,
+  RequestPreviewInput,
 } from '../contracts';
-import { createRequestSchema } from '../contracts';
+import { createRequestSchema, requestPreviewInputSchema } from '../contracts';
 import { REQUEST_TRIGGER, type RequestFacts } from '../manifest';
 import {
   checkDuration,
@@ -128,6 +130,70 @@ export class RequestService {
         pendingRequest: p ? { id: p.id, reference: formatRequestRef(p.number) } : null,
       };
     });
+  }
+
+  /* ───────────── preview ───────────── */
+
+  /** What the request workflow decides on: the role's risk, owners (its approvers), environment and duration. */
+  private async factsFor(
+    db: Db,
+    role: typeof requestableRoles.$inferSelect,
+    server: Pick<typeof servers.$inferSelect, 'environment'>,
+    expiresOn: string | null,
+    today: string,
+  ): Promise<RequestFacts> {
+    const approverIds = role.ownerUserId
+      ? [role.ownerUserId]
+      : role.ownerGroupId
+        ? await activeMembers(db, role.ownerGroupId)
+        : [];
+    return {
+      role: {
+        risk: role.risk,
+        approverIds,
+        environment: server.environment,
+        permanent: expiresOn === null,
+        days: expiresOn ? daysBetween(today, expiresOn) : 0,
+      },
+    };
+  }
+
+  /**
+   * "Who will approve it" before sending: a dry run of the request workflow for each role (nothing is saved), with
+   * the same facts `submit` starts it with. Roles that can't be requested are left out; `steps` is empty when no
+   * workflow would run.
+   */
+  async preview(raw: RequestPreviewInput, auth: AuthContext): Promise<RequestPreview> {
+    const input = requestPreviewInputSchema.parse(raw);
+    const me = personOf(auth);
+    if (!me) throw httpErrors.forbidden('Only people can request database access');
+    const person = await personById(this.db, me);
+    const today = todayIn(auth.user?.timezone ?? person?.timezone ?? 'UTC');
+    const roleRows = await this.db
+      .select()
+      .from(requestableRoles)
+      .where(
+        inArray(
+          requestableRoles.id,
+          input.items.map((i) => i.roleId),
+        ),
+      );
+    const roleBy = new Map(roleRows.map((r) => [r.id, r]));
+    const serverBy = await this.serversSvc.rowsByIds(roleRows.map((r) => r.serverId));
+    const items: RequestPreview['items'] = [];
+    for (const item of input.items) {
+      const role = roleBy.get(item.roleId);
+      const server = role ? serverBy.get(role.serverId) : undefined;
+      if (!role?.active || !server) continue;
+      const facts = await this.factsFor(this.db, role, server, item.expiresOn, today);
+      const path = await this.ctx.workflows.preview(REQUEST_TRIGGER, {
+        facts,
+        requesterId: me,
+        subjectUserId: me,
+      });
+      items.push({ roleId: role.id, steps: path?.steps ?? [] });
+    }
+    return { items };
   }
 
   /* ───────────── submit ───────────── */
@@ -249,20 +315,7 @@ export class RequestService {
           .returning();
         const r = row!;
         const reference = formatRequestRef(r.number);
-        const approverIds = role.ownerUserId
-          ? [role.ownerUserId]
-          : role.ownerGroupId
-            ? await activeMembers(tx, role.ownerGroupId)
-            : [];
-        const facts: RequestFacts = {
-          role: {
-            risk: role.risk,
-            approverIds,
-            environment: server.environment,
-            permanent: item.expiresOn === null,
-            days: item.expiresOn ? daysBetween(today, item.expiresOn) : 0,
-          },
-        };
+        const facts = await this.factsFor(tx, role, server, item.expiresOn, today);
         const label = Object.fromEntries(
           (['en', 'zh-TW', 'ja-JP'] as const).map((l) => [
             l,

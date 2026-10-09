@@ -1,4 +1,10 @@
-import type { AiTicket, AiTriageOptions } from '@isbp/module-itsm/contracts';
+import {
+  type AiTicket,
+  type AiTicketList,
+  type AiTriageOptions,
+  DONE_STATUSES,
+  priorityFor,
+} from '@isbp/module-itsm/contracts';
 import {
   type AiSearchHit,
   type AuthContext,
@@ -10,27 +16,27 @@ import {
 } from '@isbp/sdk/server';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import type {
-  AiInfo,
-  ChatLocale,
-  Citation,
-  InsightFeedbackInput,
-  InsightFeedbackRecord,
-  InsightStatus,
-  Out,
-  SimilarTicket,
-  SummarySections,
-  TriageData,
-  TriageField,
+import {
+  type AiInfo,
+  type ChatLocale,
+  type Citation,
+  type InsightFeedbackInput,
+  type InsightFeedbackRecord,
+  type InsightStatus,
+  type Out,
+  SHOW_SIMILARITY,
+  type SimilarTicket,
+  type SummarySections,
+  type TriageData,
+  type TriageField,
 } from '../contracts';
 import { CitationRegistry, citationsIn, RELEVANCE, relevantHits, teaser } from '../lib/citations';
 import { detectLanguage, LANGUAGE_NAMES, normalizeLocale } from '../lib/language';
 import { extractNumberedSteps, firstSentence, plainText, truncate } from '../lib/markdown';
-import { builtinTriage, clamp01, MIN_SIMILARITY, type Neighbour, validateSuggestion } from '../lib/triage';
+import { builtinTriage, clamp01, type Neighbour, validateSuggestion } from '../lib/triage';
 import { type InsightRow, insights } from './schema';
 import { joinList, sentences, texts } from './text';
-import { Tools } from './tools';
-import { priorityFor } from '@isbp/module-itsm/contracts';
+import { itemsOf, Tools } from './tools';
 
 export interface HelpdeskSettings {
   triageEnabled: boolean;
@@ -61,6 +67,7 @@ export async function aiInfo(ctx: ModuleContext): Promise<AiInfo & { mode: 'buil
 }
 
 export const TRIAGE_TYPES = ['incident', 'service_request'] as const;
+/** Tickets that can become knowledge articles. */
 const DONE = ['resolved', 'fulfilled', 'closed'];
 
 const str = (v: unknown) => (typeof v === 'string' && v ? v : null);
@@ -417,25 +424,40 @@ export class AssistService {
 
   /* ───────────────────────────── assist panel ───────────────────────────── */
 
+  /**
+   * What the panel shows for a ticket. Incidents and requests get triage (while open), similar resolved tickets
+   * and articles; a problem gets its candidate incidents (open and resolved) to link; a change only its summary
+   * and KB draft. Matches below `SHOW_SIMILARITY` are left out.
+   */
   async assist(ticketId: string, auth: AuthContext): Promise<Out['Assist']> {
     const ticket = await this.tools.ticket(auth, { id: ticketId });
     const query = ticketQuery(ticket);
-    const [ai, settings, rows, hits, articles] = await Promise.all([
+    const change = ticket.type === 'change';
+    const problem = ticket.type === 'problem';
+    const [ai, settings, rows, hits, articles, open] = await Promise.all([
       aiInfo(this.ctx),
       readSettings(this.ctx),
       this.ctx.db.select().from(insights).where(eq(insights.ticketId, ticket.id)),
-      this.ctx.ai.index.search(query, {
-        types: ['itsm.ticket'],
-        auth,
-        limit: 5,
-        excludeIds: [ticket.id],
-      }),
-      this.tools.searchArticles(auth, query, { limit: 5 }),
+      change
+        ? []
+        : this.ctx.ai.index.search(query, {
+            types: ['itsm.ticket'],
+            auth,
+            limit: 8,
+            excludeIds: [ticket.id],
+            ...(problem ? { filter: { type: 'incident' } } : {}),
+          }),
+      change ? [] : this.tools.searchArticles(auth, query, { limit: 6 }),
+      problem ? this.openIncidents(ticket, auth) : [],
     ]);
-    const triage = rows.find((r) => r.kind === 'triage');
+    const triage =
+      (TRIAGE_TYPES as readonly string[]).includes(ticket.type) && !DONE_STATUSES.includes(ticket.status)
+        ? rows.find((r) => r.kind === 'triage')
+        : undefined;
     const summary = rows.find((r) => r.kind === 'summary');
     const kb = rows.find((r) => r.kind === 'kb_draft');
     const viewerLocale = normalizeLocale(auth.user?.locale);
+    const resolved = hits.filter((h) => h.similarity >= SHOW_SIMILARITY).map(toSimilar);
     return {
       ai: { mode: ai.mode, provider: ai.provider, model: ai.model },
       settings: { triageEnabled: settings.triageEnabled, suggestReplies: settings.suggestReplies },
@@ -443,9 +465,10 @@ export class AssistService {
       summary:
         summary && isFresh(summary, ticket, ai.mode, viewerLocale) ? toSummaryDto(summary, true) : null,
       kbDraft: kb ? toKbDto(kb, true) : null,
-      similar: hits.filter((h) => h.similarity >= MIN_SIMILARITY).map(toSimilar),
+      similar: [...open, ...resolved.filter((r) => !open.some((o) => o.id === r.id))],
       articles: articles
-        .filter((a) => a.similarity >= RELEVANCE.context.floor / 2)
+        .filter((a) => a.similarity >= SHOW_SIMILARITY)
+        .sort((a, b) => b.similarity - a.similarity)
         .map((a) => ({
           id: a.id,
           reference: a.reference,
@@ -456,6 +479,28 @@ export class AssistService {
           similarity: a.similarity,
         })),
     };
+  }
+
+  /**
+   * Open incidents that look like this problem, most similar first. They aren't in the semantic index (only
+   * resolved tickets are), so the newest open incidents the caller can read are ranked by embedding their titles.
+   */
+  async openIncidents(problem: AiTicket, auth: AuthContext): Promise<SimilarTicket[]> {
+    if (!this.tools.available('itsm.find_tickets', auth)) return [];
+    try {
+      const found = itemsOf<AiTicketList['items'][number]>(
+        await this.tools.call('itsm.find_tickets', { status: 'open', type: 'incident', limit: 25 }, auth),
+      ).filter((t) => t.id !== problem.id);
+      if (!found.length) return [];
+      const [query, ...titles] = await this.ctx.ai.embed(
+        [`${problem.title}\n${firstSentence(problem.description, 300)}`, ...found.map((t) => t.title)],
+        { feature: 'helpdesk-ai.similar' },
+      );
+      return rankOpenIncidents(found, query!, titles);
+    } catch (err) {
+      this.ctx.logger.warn({ err, ticketId: problem.id }, 'could not rank open incidents');
+      return [];
+    }
   }
 
   /* ───────────────────────────── reply draft ───────────────────────────── */
@@ -745,7 +790,35 @@ function toSimilar(hit: AiSearchHit): SimilarTicket {
     similarity: hit.similarity,
     resolutionCode: n.resolutionCode,
     href: n.href ?? `/itsm/tickets/${n.reference}`,
+    type: str(hit.metadata?.type),
+    status: null,
   };
+}
+
+const dot = (a: readonly number[], b: readonly number[]) => a.reduce((s, v, i) => s + v * (b[i] ?? 0), 0);
+
+/** Open incidents ranked by the similarity of their title embeddings to the problem's (unit vectors). */
+export function rankOpenIncidents(
+  found: readonly AiTicketList['items'][number][],
+  query: readonly number[],
+  titles: readonly (readonly number[])[],
+): SimilarTicket[] {
+  return found
+    .map((t, i) => ({ t, similarity: clamp01(dot(query, titles[i] ?? [])) }))
+    .filter((x) => x.similarity >= SHOW_SIMILARITY)
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 8)
+    .map(({ t, similarity }) => ({
+      id: t.id,
+      reference: t.reference,
+      title: t.title,
+      snippet: '',
+      similarity,
+      resolutionCode: null,
+      href: t.href,
+      type: t.type,
+      status: t.status,
+    }));
 }
 
 function isFresh(row: InsightRow, ticket: { updatedAt: string }, mode: string, locale: ChatLocale) {

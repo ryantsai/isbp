@@ -39,7 +39,8 @@
     "spendPercent": "已使用每月預算的 {percent}",
     "budgetUsed": "已使用預算的 {percent}",
     "budgetNear": "已使用 {percent}，預算即將用完",
-    "budgetSpent": "預算已用完：下個月之前將拒絕 AI 呼叫"
+    "budgetSpent": "預算已用完：下個月之前將拒絕 AI 呼叫",
+    "technical": "技術細節"
   },
   "models": {
     "provider": "供應商",
@@ -324,10 +325,10 @@
   },
   "mcp": {
     "endpoint": "端點",
-    "description": "Claude Code、Claude Desktop 與 IDE 代理程式可透過 Model Context Protocol 使用 ISBP 的工具與自訂類型，並適用與助理相同的權限檢查及稽核日誌。",
+    "description": "Claude Code、Claude Desktop 與 IDE 代理程式可透過 Model Context Protocol 使用 ISBP，並適用與助理相同的權限檢查及稽核日誌。",
     "endpointUrl": "MCP 端點 URL",
     "copyEndpoint": "複製 MCP 端點 URL",
-    "endpointHint": "Streamable HTTP，回應為 JSON，不使用工作階段。來自其他網站的要求會被拒絕。",
+    "endpointHint": "來自其他網站的要求會被拒絕。",
     "versions": "通訊協定修訂版本",
     "stateless": "無狀態",
     "legacy": "使用 initialize",
@@ -338,14 +339,17 @@
     "clientsEmpty": "目前沒有可使用 MCP 的 API 用戶端。請在「系統管理 → API 用戶端」中授予權限。",
     "manageClients": "管理 API 用戶端",
     "offered": "代理程式可使用的內容",
-    "offeredTools": "工具：API 用戶端可使用的所有非破壞性工具，名稱為 module__tool，並標示是否為唯讀。",
-    "offeredResources": "資源：用戶端可讀取的自訂類型（isbp://customizations）、各類型的結構描述與指南，以及其物件與版本。",
+    "offeredTools": "工具：API 用戶端可執行、且不會破壞資料的所有操作。唯讀工具會加以標示。",
+    "offeredResources": "設定：代理程式可變更的設定，以及其目前的值與指南，讓代理程式可以提出變更。",
     "offeredChangeSets": "變更會成為變更集：代理程式提出變更，在人員於 ISBP 中檢閱並套用之前不會生效。",
     "offeredNoDestructive": "破壞性工具需要人員在 ISBP 中確認，因此不會提供。",
     "connect": "連線 Claude Code",
     "connectBody": "在終端機執行此命令，再將預留位置替換為可使用 MCP 之用戶端的 API 金鑰。",
     "command": "命令",
     "copyCommand": "複製命令",
-    "placeholderHint": "金鑰僅為預留位置：切勿將實際金鑰貼到共用筆記或聊天中。"
+    "placeholderHint": "金鑰僅為預留位置：切勿將實際金鑰貼到共用筆記或聊天中。",
+    "technical": "技術細節",
+    "transport": "傳輸方式：Streamable HTTP，回應為 JSON，不使用工作階段。",
+    "naming": "工具名稱為 module__tool。代理程式可變更的設定列在 isbp://customizations 之下，各自附有結構描述、指南與物件。"
   }
 }

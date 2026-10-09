@@ -52,11 +52,21 @@ export function CreateFromSheet({
   );
 }
 
-function LevelSelect({ id, value, onChange }: { id: string; value: number; onChange: (v: number) => void }) {
+function LevelSelect({
+  id,
+  value,
+  onChange,
+  placeholder,
+}: {
+  id: string;
+  value: number | null;
+  onChange: (v: number) => void;
+  placeholder: string;
+}) {
   return (
-    <Select value={String(value)} onValueChange={(v) => onChange(Number(v))}>
+    <Select value={value === null ? undefined : String(value)} onValueChange={(v) => onChange(Number(v))}>
       <SelectTrigger id={id} className="w-full">
-        <SelectValue />
+        <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
         {CIA_LEVELS.map((l) => (
@@ -86,7 +96,12 @@ function CreateFrom({ onDone }: { onDone: () => void }) {
   const [siteId, setSiteId] = useState('');
   const [labelId, setLabelId] = useState(NONE);
   const [managerId, setManagerId] = useState<string | null>(null);
-  const [cia, setCia] = useState({ confidentiality: 2, integrity: 2, availability: 2 });
+  // No default score (as in the asset form): the value drives risk and stocktakes.
+  const [cia, setCia] = useState<Record<'confidentiality' | 'integrity' | 'availability', number | null>>({
+    confidentiality: null,
+    integrity: null,
+    availability: null,
+  });
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{
     created: { id: string; number: string; name: string }[];
@@ -129,6 +144,10 @@ function CreateFrom({ onDone }: { onDone: () => void }) {
     setError(null);
     if (!classId || !siteId) {
       setError(t('createFrom.needClassSite'));
+      return;
+    }
+    if (cia.confidentiality === null || cia.integrity === null || cia.availability === null) {
+      setError(t('createFrom.needScores'));
       return;
     }
     try {
@@ -314,7 +333,12 @@ function CreateFrom({ onDone }: { onDone: () => void }) {
                 <Label htmlFor={id} className="truncate">
                   {t(`fields.${k}`)}
                 </Label>
-                <LevelSelect id={id} value={cia[k]} onChange={(v) => setCia((c) => ({ ...c, [k]: v }))} />
+                <LevelSelect
+                  id={id}
+                  value={cia[k]}
+                  placeholder={t('assetForm.notScored')}
+                  onChange={(v) => setCia((c) => ({ ...c, [k]: v }))}
+                />
               </div>
             ))}
           </div>

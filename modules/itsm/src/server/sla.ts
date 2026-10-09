@@ -38,8 +38,15 @@ export const clockOf = (r: SlaRow): SlaClock => ({
   stoppedAt: r.stoppedAt,
 });
 
-/** Facts an SLA policy condition is evaluated against. */
-export function slaFacts(t: TicketRow, categoryKey: string | null) {
+/**
+ * Facts an SLA policy condition is evaluated against. `categoryKeys` is the category's key and its ancestors' keys
+ * (nearest first), so "category is Hardware" on `ticket.categoryKeys` also matches Hardware › Laptop.
+ */
+export function slaFacts(
+  t: TicketRow,
+  categoryKey: string | null,
+  categoryKeys: readonly string[] = categoryKey ? [categoryKey] : [],
+) {
   return {
     ticket: {
       type: t.type,
@@ -47,10 +54,21 @@ export function slaFacts(t: TicketRow, categoryKey: string | null) {
       impact: t.impact,
       urgency: t.urgency,
       categoryKey,
+      categoryKeys: [...categoryKeys],
       major: t.major,
       channel: t.channel,
     },
   };
+}
+
+/** The category's key and its ancestors' keys, nearest first. */
+async function categoryKeysOf(db: Db, categoryId: string | null) {
+  if (!categoryId) return { key: null, keys: [] as string[] };
+  const cats = await categoryMap(db);
+  const c = cats.get(categoryId);
+  if (!c) return { key: null, keys: [] as string[] };
+  const ancestors = [...c.ancestors].reverse().map((a) => cats.get(a.id)?.key);
+  return { key: c.key, keys: [c.key, ...ancestors.filter((k): k is string => Boolean(k))] };
 }
 
 /** First active policy (by sort order) for the ticket's type whose condition holds. */
@@ -84,8 +102,8 @@ export class SlaService {
 
   /** Starts response and resolution timers from the first matching policy. */
   async attach(tx: Db, t: TicketRow, now = new Date()): Promise<void> {
-    const category = t.categoryId ? (await categoryMap(this.ctx.db)).get(t.categoryId) : undefined;
-    const policy = matchPolicy(await activePolicies(this.ctx.db), slaFacts(t, category?.key ?? null));
+    const category = await categoryKeysOf(this.ctx.db, t.categoryId);
+    const policy = matchPolicy(await activePolicies(this.ctx.db), slaFacts(t, category.key, category.keys));
     if (!policy) return;
     const cal = await this.calendarFor(policy);
     const paused = policy.pauseStatuses.includes(t.status);

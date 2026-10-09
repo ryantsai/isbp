@@ -6,6 +6,7 @@ import type {
 } from '@isbp/contracts';
 import type { roleRequestSettingsSchema } from '@isbp/contracts';
 import {
+  accessRequests,
   applications,
   departments,
   groups,
@@ -89,7 +90,33 @@ export class AccessService {
     }));
   }
 
-  async listRoles(q: { q?: string }, applicationId?: string) {
+  /** One page of `listRoles` (same order) and the total. */
+  async listRolesPage(q: { q?: string }, page: number, pageSize: number, applicationId?: string) {
+    const appId = applicationId ?? (await this.platformAppId());
+    const where = and(
+      eq(roles.applicationId, appId),
+      q.q ? or(ilike(roles.name, likePattern(q.q)), ilike(roles.key, likePattern(q.q))) : undefined,
+    );
+    const [[total], ids] = await Promise.all([
+      this.db.select({ n: count() }).from(roles).where(where),
+      this.db
+        .select({ id: roles.id })
+        .from(roles)
+        .where(where)
+        .orderBy(sql`${roles.isSystem} desc`, roles.name, roles.id)
+        .limit(pageSize)
+        .offset((page - 1) * pageSize),
+    ]);
+    const items = await this.listRoles(
+      q,
+      appId,
+      ids.map((r) => r.id),
+    );
+    return { items, total: total?.n ?? 0 };
+  }
+
+  async listRoles(q: { q?: string }, applicationId?: string, onlyIds?: string[]) {
+    if (onlyIds && !onlyIds.length) return [];
     const appId = applicationId ?? (await this.platformAppId());
     const assignmentCounts = this.db
       .select({ roleId: roleAssignments.roleId, n: count().as('n') })
@@ -114,9 +141,10 @@ export class AccessService {
         and(
           eq(roles.applicationId, appId),
           q.q ? or(ilike(roles.name, likePattern(q.q)), ilike(roles.key, likePattern(q.q))) : undefined,
+          onlyIds ? inArray(roles.id, onlyIds) : undefined,
         ),
       )
-      .orderBy(sql`${roles.isSystem} desc`, roles.name);
+      .orderBy(sql`${roles.isSystem} desc`, roles.name, roles.id);
     const perms = await this.db
       .select()
       .from(rolePermissions)
@@ -283,11 +311,31 @@ export class AccessService {
     if (!ok) throw httpErrors.notFound('Role not found');
   }
 
+  /**
+   * Access requests outlive their role: who asked for what, who approved it and when stays on record (the database
+   * refuses too). Retire such a role instead — not requestable, no members.
+   */
+  async assertNoRequestHistory(roleIds: string[]) {
+    if (!roleIds.length) return;
+    const [row] = await this.db
+      .select({ n: count() })
+      .from(accessRequests)
+      .where(inArray(accessRequests.roleId, roleIds));
+    if (row && row.n > 0)
+      throw new HttpError(
+        409,
+        ErrorCodes.ROLE_HAS_HISTORY,
+        'People have requested this access before: turn off requests and remove its members instead of deleting it',
+        { requests: row.n },
+      );
+  }
+
   async deleteRole(id: string, opts: { applicationId?: string } = {}) {
     const role = await this.getRole(id);
     this.assertSameApp(role, opts.applicationId);
     if (role.isSystem)
       throw new HttpError(409, ErrorCodes.SYSTEM_ROLE_READONLY, 'System roles cannot be deleted');
+    await this.assertNoRequestHistory([id]);
     await this.ctx.transaction(async (tx) => {
       await tx.delete(roles).where(eq(roles.id, id));
       await this.ctx.audit.record(
@@ -510,6 +558,7 @@ export class AccessService {
           metadata: {
             assignmentId: a!.id,
             role: role.key,
+            roleId: role.id,
             scopeType: input.scopeType,
             scopeDepartmentId: input.scopeDepartmentId ?? null,
             expiresAt: input.expiresAt?.toISOString() ?? null,
@@ -615,6 +664,7 @@ export class AccessService {
           metadata: {
             assignmentId: a!.id,
             role: role.key,
+            roleId: role.id,
             scopeType: 'global',
             expiresAt: input.expiresAt?.toISOString() ?? null,
             reason: input.reason,
@@ -671,7 +721,7 @@ export class AccessService {
           category: 'security',
           entityType: a.userId ? 'user' : 'group',
           entityId: a.userId ?? a.groupId,
-          metadata: { assignmentId: id, role: role.key, scopeType: a.scopeType },
+          metadata: { assignmentId: id, role: role.key, roleId: role.id, scopeType: a.scopeType },
         },
         { tx },
       );

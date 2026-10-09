@@ -19,10 +19,12 @@ import {
   getFact,
   HttpError,
   httpErrors,
+  type LocalizedText,
   type ModuleContext,
   type NotifyStep,
   type SlotOutcome,
   type StartWorkflowInput,
+  splitRepeatApprovers,
   type WorkflowCompletion,
   type WorkflowGraph,
   type WorkflowService,
@@ -35,7 +37,7 @@ import {
   validateStepFields,
   withToday,
 } from '@isbp/sdk/server';
-import { and, eq, isNotNull, isNull, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, isNull, lte, ne, sql } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import {
   type CustomFieldRegistry,
@@ -114,6 +116,9 @@ function factValues(v: unknown): unknown[] {
   );
 }
 
+/** Where an approver decides a task: the approvals page with that decision open. */
+export const approvalHref = (taskId: string) => `/approvals?task=${taskId}`;
+
 export class WorkflowEngine {
   readonly resolver: ApproverResolver;
   private readonly graphs = new Map<string, WorkflowGraph>();
@@ -169,9 +174,13 @@ export class WorkflowEngine {
         for (const id of ids) names.set(id, await this.userName(this.db, id));
         return {
           definition: p.definition,
-          steps: p.steps.map(({ people, ...s }) => ({
-            ...s,
-            people: people.map((id) => ({ id, displayName: names.get(id) ?? id })),
+          steps: p.steps.map((s) => ({
+            id: s.id,
+            name: s.name,
+            type: s.type,
+            // A step whose approvers all approved an earlier step asks nobody: modules see it as skipped.
+            outcome: s.outcome === 'already-approved' ? 'skipped' : s.outcome,
+            people: s.people.map((id) => ({ id, displayName: names.get(id) ?? id })),
           })),
         };
       },
@@ -356,19 +365,25 @@ export class WorkflowEngine {
   async preview(
     triggerKey: string,
     input: Omit<StartWorkflowInput, 'subject'>,
+    /** A graph being built (not saved): walk it instead of the published version. */
+    opts: { graph?: WorkflowGraph } = {},
   ): Promise<{
     definition: { id: string; name: string };
     steps: {
       id: string;
       name: WorkflowStep['name'];
       type: 'approval' | 'notify';
-      outcome: 'ask' | 'skipped' | 'no-approver' | 'reject';
+      outcome: 'ask' | 'skipped' | 'no-approver' | 'reject' | 'already-approved';
       people: string[];
+      /** Who already approved an earlier step (`repeatApprovers: 'skip'`): not asked again, with that step's name. */
+      counted?: { id: string; approvedAt: LocalizedText }[];
     }[];
   } | null> {
     const trigger = this.trigger(triggerKey);
     if (!trigger) throw new Error(`Workflow trigger "${triggerKey}" is not declared in a manifest`);
-    const definition = await this.definitionFor(this.db, triggerKey, input.definitionId ?? null);
+    const definition = opts.graph
+      ? { id: input.definitionId ?? '', name: '', publishedVersion: null }
+      : await this.definitionFor(this.db, triggerKey, input.definitionId ?? null);
     if (!definition) {
       if (trigger.def.required)
         throw new HttpError(
@@ -378,7 +393,7 @@ export class WorkflowEngine {
         );
       return null;
     }
-    const graph = await this.graph(definition.id, definition.publishedVersion!);
+    const graph = opts.graph ?? (await this.graph(definition.id, definition.publishedVersion!));
     const subjectUserId = input.subjectUserId ?? input.requesterId;
     const facts = {
       ...(input.facts ?? {}),
@@ -387,6 +402,9 @@ export class WorkflowEngine {
     };
     const fake = { requesterId: input.requesterId, subjectUserId, facts } as unknown as InstanceRow;
     const steps: NonNullable<Awaited<ReturnType<WorkflowEngine['preview']>>>['steps'] = [];
+    /** `skip` in a dry run: the person → the approval step they approved (see below). */
+    const earlier = new Map<string, string>();
+    const names = new Map<string, LocalizedText>();
     let state = emptyWorkflowState();
     for (let pass = 0; pass < 100; pass++) {
       // `today` is read when conditions are evaluated ("the planned start is within a week").
@@ -405,21 +423,34 @@ export class WorkflowEngine {
       if (r.outcome !== 'running') break;
       for (const step of r.activated) {
         const slots = await this.resolveSlots(this.db, fake, step);
-        const people = [...new Set(slots.flatMap((s) => s.assignees.map((a) => a.userId)))];
+        names.set(step.id, step.name);
+        const split = splitRepeatApprovers(
+          step,
+          slots,
+          graph.repeatApprovers === 'skip' ? earlier : new Map<string, string>(),
+        );
+        const people = [...new Set(split.asked.map((a) => a.assignee.userId))];
+        const counted = split.counted.map((c) => ({
+          id: c.assignee.userId,
+          approvedAt: names.get(c.fromStepId) ?? { en: '' },
+        }));
         const none = step.ifNoApprover === 'skip' ? 'no-approver' : 'reject';
+        const outcome = split.outcome === 'approved' ? 'already-approved' : people.length ? 'ask' : none;
         steps.push({
           id: step.id,
           name: step.name,
           type: 'approval',
-          outcome: people.length ? 'ask' : none,
+          outcome,
           people,
+          ...(counted.length ? { counted } : {}),
         });
-        state = {
-          steps: {
-            ...state.steps,
-            [step.id]: { status: people.length || step.ifNoApprover === 'skip' ? 'approved' : 'rejected' },
-          },
-        };
+        const approved = outcome === 'already-approved' || people.length || step.ifNoApprover === 'skip';
+        state = { steps: { ...state.steps, [step.id]: { status: approved ? 'approved' : 'rejected' } } };
+        // A dry run can't tell who decides a step with several people, so only a step with one person in it counts as
+        // that person's approval for the steps after it.
+        const everyone = [...new Set(slots.flatMap((s) => s.assignees.map((a) => a.userId)))];
+        if (graph.repeatApprovers === 'skip' && everyone.length === 1 && !earlier.has(everyone[0]!))
+          earlier.set(everyone[0]!, step.id);
       }
     }
     return { definition: { id: definition.id, name: definition.name }, steps };
@@ -472,7 +503,22 @@ export class WorkflowEngine {
           changed = true;
           continue;
         }
-        await this.createTasks(tx, inst, step, slots);
+        // With `skip`, people who already approved an earlier step of this instance are not asked again.
+        const repeat =
+          graph.repeatApprovers === 'skip' ? await this.earlierApprovals(tx, inst.id, step.id) : undefined;
+        const placed = await this.createTasks(tx, inst, step, slots, { repeat });
+        if (placed.outcome === 'approved') {
+          // Everyone the step needs approved an earlier step: it completes without anybody being asked.
+          const from = placed.counted[0] ? repeat?.get(placed.counted[0].assigneeId) : undefined;
+          state = {
+            steps: {
+              ...state.steps,
+              [step.id]: { status: 'approved', reason: 'already-approved', ...(from ? { from } : {}) },
+            },
+          };
+          await this.event(tx, inst.id, { type: 'step_approved', stepId: step.id });
+          changed = true;
+        }
       }
       if (!changed) {
         await tx.update(workflowInstances).set({ state }).where(eq(workflowInstances.id, inst.id));
@@ -514,53 +560,122 @@ export class WorkflowEngine {
     return slots;
   }
 
+  /**
+   * The people whose approval of an earlier step of the instance counts again (`repeatApprovers: 'skip'`), each mapped to
+   * the first step they approved. A delegate's approval counts for the person who decided it. Rejections, approvals no
+   * one made (SLA auto-decisions) and the step itself never count.
+   */
+  private async earlierApprovals(tx: Db, instanceId: string, stepId: string): Promise<Map<string, string>> {
+    const rows = await tx
+      .select({ userId: approvalTasks.decidedById, stepId: approvalTasks.stepId })
+      .from(approvalTasks)
+      .where(
+        and(
+          eq(approvalTasks.instanceId, instanceId),
+          eq(approvalTasks.status, 'approved'),
+          isNotNull(approvalTasks.decidedById),
+          ne(approvalTasks.stepId, stepId),
+        ),
+      )
+      .orderBy(asc(approvalTasks.decidedAt), asc(approvalTasks.createdAt));
+    const out = new Map<string, string>();
+    for (const r of rows) if (r.userId && !out.has(r.userId)) out.set(r.userId, r.stepId);
+    return out;
+  }
+
+  /**
+   * Opens the tasks of a step's slots and returns the outcome they settle (`decideStep`). With `repeat` (see
+   * `earlierApprovals`), a person whose approval counts gets an approved task: nobody is notified for it, and the rest of
+   * their slot is not asked (`splitRepeatApprovers`).
+   */
   private async createTasks(
     tx: Db,
     inst: InstanceRow,
     step: ApprovalStep,
     slots: { slot: number; assignees: Assignee[] }[],
-    opts: { escalation?: boolean } = {},
-  ) {
+    opts: { escalation?: boolean; repeat?: ReadonlyMap<string, string> } = {},
+  ): Promise<{ asked: TaskRow[]; counted: TaskRow[]; outcome: SlotOutcome }> {
     const now = Date.now();
     const dueAt = !opts.escalation && step.sla ? new Date(now + step.sla.dueHours * HOUR) : null;
     const remindAt =
       !opts.escalation && step.sla?.remindHours ? new Date(now + step.sla.remindHours * HOUR) : null;
-    const rows = slots.flatMap((s) =>
-      s.assignees.map((a) => ({
+    const repeat = opts.repeat ?? new Map<string, string>();
+    const split = splitRepeatApprovers(step, slots, repeat);
+    const rows = [
+      ...split.counted.map(({ slot, assignee }) => ({
         instanceId: inst.id,
         stepId: step.id,
-        slot: s.slot,
-        assigneeId: a.userId,
-        delegatedFromId: a.delegatedFromId,
+        slot,
+        assigneeId: assignee.userId,
+        delegatedFromId: assignee.delegatedFromId,
+        isEscalation: Boolean(opts.escalation),
+        status: 'approved' as const,
+        decidedAt: new Date(now),
+        decidedById: assignee.userId,
+      })),
+      ...split.asked.map(({ slot, assignee }) => ({
+        instanceId: inst.id,
+        stepId: step.id,
+        slot,
+        assigneeId: assignee.userId,
+        delegatedFromId: assignee.delegatedFromId,
         isEscalation: Boolean(opts.escalation),
         dueAt,
         remindAt,
       })),
-    );
-    if (!rows.length) return [];
-    const created = await tx.insert(approvalTasks).values(rows).returning();
+    ];
+    if (!rows.length) return { asked: [], counted: [], outcome: split.outcome };
+    const inserted = await tx.insert(approvalTasks).values(rows).returning();
+    const asked = inserted.filter((t) => t.status === 'pending');
+    const counted = inserted.filter((t) => t.status === 'approved');
     if (!opts.escalation)
       await this.event(tx, inst.id, {
         type: 'step_started',
         stepId: step.id,
-        data: { assignees: created.length, dueAt: dueAt?.toISOString() ?? null },
+        data: { assignees: asked.length, dueAt: dueAt?.toISOString() ?? null },
       });
-    await this.deps.core().notifications.notify(
-      {
-        type: opts.escalation ? 'core.approval.escalated' : 'core.approval.assigned',
-        recipients: created.map((t) => t.assigneeId),
-        params: {
-          requester: await this.userName(tx, inst.requesterId),
-          subject: inst.subjectLabel,
-          step: step.name,
-          dueAt,
+    for (const task of counted) {
+      const fromStepId = repeat.get(task.assigneeId) ?? null;
+      await this.event(tx, inst.id, {
+        type: 'task_already_approved',
+        taskId: task.id,
+        stepId: step.id,
+        actor: { id: task.assigneeId, name: await this.userName(tx, task.assigneeId) },
+        data: { fromStepId },
+      });
+      await this.deps.core().audit.record(
+        {
+          action: 'core.approval.already_approved',
+          entityType: 'workflow_instance',
+          entityId: inst.id,
+          entityLabel: localize(inst.subjectLabel, 'en'),
+          metadata: {
+            taskId: task.id,
+            stepId: step.id,
+            fromStepId,
+            assigneeId: task.assigneeId,
+            triggerKey: inst.triggerKey,
+          },
         },
-        href: '/approvals',
-        data: { instanceId: inst.id, stepId: step.id },
-      },
-      { tx },
-    );
-    return created;
+        { tx },
+      );
+    }
+    // One notification per task, so each opens that decision (`/approvals?task=`) and is read once it is decided.
+    if (asked.length) {
+      const requester = await this.userName(tx, inst.requesterId);
+      for (const task of asked)
+        await this.deps.core().notifications.notify(
+          {
+            type: opts.escalation ? 'core.approval.escalated' : 'core.approval.assigned',
+            recipients: [task.assigneeId],
+            params: { requester, subject: inst.subjectLabel, step: step.name, dueAt },
+            href: approvalHref(task.id),
+            data: { instanceId: inst.id, stepId: step.id, taskId: task.id },
+          },
+          { tx },
+        );
+    }
+    return { asked, counted, outcome: split.outcome };
   }
 
   private async notifyStep(tx: Db, inst: InstanceRow, step: NotifyStep) {
@@ -581,6 +696,23 @@ export class WorkflowEngine {
     await this.event(tx, inst.id, { type: 'notified', stepId: step.id, data: { recipients: ids.size } });
   }
 
+  /**
+   * Approval notifications of tasks that are no longer waiting (decided by someone, delegated, cancelled) are marked
+   * read, so the bell agrees with My work.
+   */
+  private async settleNotifications(tx: Db, instanceId: string) {
+    await tx.execute(sql`
+      update core.notifications n set read_at = now()
+       where n.read_at is null
+         and n.user_id in (select t.assignee_id from core.approval_tasks t where t.instance_id = ${instanceId})
+         and n.type like 'core.approval.%'
+         and n.data->>'instanceId' = ${instanceId}
+         and n.data ? 'taskId'
+         and not exists (
+           select 1 from core.approval_tasks t
+            where t.id::text = n.data->>'taskId' and t.status = 'pending')`);
+  }
+
   private async complete(
     tx: Db,
     inst: InstanceRow,
@@ -592,6 +724,7 @@ export class WorkflowEngine {
       .update(approvalTasks)
       .set({ status: 'cancelled' })
       .where(and(eq(approvalTasks.instanceId, inst.id), eq(approvalTasks.status, 'pending')));
+    await this.settleNotifications(tx, inst.id);
     await tx
       .update(workflowInstances)
       .set({ status: outcome, state, completedAt: new Date(), outcomeComment: comment })
@@ -765,7 +898,9 @@ export class WorkflowEngine {
         },
         { tx },
       );
-      return this.afterSlotDecision(tx, inst, graph, step, task.slot, note);
+      const outcome = await this.afterSlotDecision(tx, inst, graph, step, task.slot, note);
+      await this.settleNotifications(tx, inst.id);
+      return outcome;
     });
   }
 
@@ -823,7 +958,7 @@ export class WorkflowEngine {
     opts: { asAdmin?: boolean } = {},
   ) {
     return this.db.transaction(async (tx) => {
-      const { inst, task, step } = await this.lock(tx, taskId);
+      const { inst, task, step, graph } = await this.lock(tx, taskId);
       const mine = task.assigneeId === auth.user?.id;
       if (!mine && !opts.asAdmin) throw httpErrors.forbidden('This approval is assigned to someone else');
       this.assertPending(inst, task);
@@ -864,6 +999,13 @@ export class WorkflowEngine {
           decidedById: auth.user?.id ?? null,
         })
         .where(eq(approvalTasks.id, task.id));
+      await this.settleNotifications(tx, inst.id);
+      // With `skip`, a delegate who already approved an earlier step of the instance is not asked again: it counts.
+      const repeat =
+        graph.repeatApprovers === 'skip'
+          ? await this.earlierApprovals(tx, inst.id, step.id)
+          : new Map<string, string>();
+      const counted = repeat.has(toUserId);
       const [created] = await tx
         .insert(approvalTasks)
         .values({
@@ -873,8 +1015,9 @@ export class WorkflowEngine {
           assigneeId: toUserId,
           delegatedFromId: task.assigneeId,
           isEscalation: task.isEscalation,
-          dueAt: task.dueAt,
-          remindAt: task.remindedAt ? null : task.remindAt,
+          dueAt: counted ? null : task.dueAt,
+          remindAt: counted || task.remindedAt ? null : task.remindAt,
+          ...(counted ? { status: 'approved' as const, decidedAt: new Date(), decidedById: toUserId } : {}),
         })
         .returning();
       const actor = actorOf(auth);
@@ -901,12 +1044,41 @@ export class WorkflowEngine {
         },
         { tx },
       );
+      if (counted) {
+        // Their approval of an earlier step counts, so they are not asked and nothing is sent to them.
+        const fromStepId = repeat.get(toUserId) ?? null;
+        await this.event(tx, inst.id, {
+          type: 'task_already_approved',
+          taskId: created!.id,
+          stepId: step.id,
+          actor: { id: target.id, name: target.name },
+          data: { fromStepId },
+        });
+        await this.deps.core().audit.record(
+          {
+            action: 'core.approval.already_approved',
+            entityType: 'workflow_instance',
+            entityId: inst.id,
+            entityLabel: localize(inst.subjectLabel, 'en'),
+            metadata: {
+              taskId: created!.id,
+              stepId: step.id,
+              fromStepId,
+              assigneeId: target.id,
+              triggerKey: inst.triggerKey,
+            },
+          },
+          { tx },
+        );
+        await this.afterSlotDecision(tx, inst, graph, step, task.slot, null);
+        return created!;
+      }
       await this.deps.core().notifications.notify(
         {
           type: 'core.approval.delegated',
           recipients: [target.id],
           params: { actor: actor.name, subject: inst.subjectLabel, step: step.name, comment: note },
-          href: '/approvals',
+          href: approvalHref(created!.id),
           data: { instanceId: inst.id, taskId: created!.id },
         },
         { tx },
@@ -967,7 +1139,7 @@ export class WorkflowEngine {
             type: 'core.approval.reminder',
             recipients: [task.assigneeId],
             params: { subject: inst.subjectLabel, step: step.name, dueAt: task.dueAt },
-            href: '/approvals',
+            href: approvalHref(id),
             data: { instanceId: inst.id, taskId: id },
           },
           { tx },
@@ -1056,6 +1228,7 @@ export class WorkflowEngine {
           { tx },
         );
         await this.afterSlotDecision(tx, inst, graph, step, slot, null);
+        await this.settleNotifications(tx, inst.id);
         return true;
       }
 
@@ -1078,18 +1251,20 @@ export class WorkflowEngine {
           for (const id of await this.resolver.resolve(rule, this.resolveContext(inst), skip, tx))
             ids.add(id);
         if (ids.size) {
-          const created = await this.createTasks(
+          const repeat =
+            graph.repeatApprovers === 'skip' ? await this.earlierApprovals(tx, inst.id, stepId) : undefined;
+          const placed = await this.createTasks(
             tx,
             inst,
             step,
             [{ slot, assignees: [...ids].map((userId) => ({ userId, delegatedFromId: null })) }],
-            { escalation: true },
+            { escalation: true, repeat },
           );
           await this.event(tx, inst.id, {
             type: 'task_escalated',
             stepId,
             actor: SYSTEM,
-            data: { added: created.length, from: assignees },
+            data: { added: placed.asked.length, from: assignees },
           });
           await this.deps.core().audit.record(
             {
@@ -1101,21 +1276,24 @@ export class WorkflowEngine {
             },
             { tx },
           );
+          // Someone it escalated to already approved an earlier step: that approval settles the slot.
+          if (placed.counted.length) await this.afterSlotDecision(tx, inst, graph, step, slot, null);
           return true;
         }
       }
 
       await this.event(tx, inst.id, { type: 'task_overdue', stepId, actor: SYSTEM, data: { assignees } });
-      await this.deps.core().notifications.notify(
-        {
-          type: 'core.approval.overdue',
-          recipients: assignees,
-          params: { subject: inst.subjectLabel, step: step.name },
-          href: '/approvals',
-          data: { instanceId: inst.id },
-        },
-        { tx },
-      );
+      for (const task of overdue)
+        await this.deps.core().notifications.notify(
+          {
+            type: 'core.approval.overdue',
+            recipients: [task.assigneeId],
+            params: { subject: inst.subjectLabel, step: step.name },
+            href: approvalHref(task.id),
+            data: { instanceId: inst.id, taskId: task.id },
+          },
+          { tx },
+        );
       return true;
     });
   }

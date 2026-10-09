@@ -4,7 +4,7 @@ import { localize } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
 import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
-import { EmptyState } from '@isbp/ui/empty-state';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { Label } from '@isbp/ui/label';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
@@ -14,6 +14,7 @@ import {
   SheetContent,
   SheetDescription,
   SheetFooter,
+  SheetForm,
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
@@ -21,16 +22,15 @@ import { Skeleton } from '@isbp/ui/skeleton';
 import { Switch } from '@isbp/ui/switch';
 import { ArrowUpRightIcon, FileTextIcon, GavelIcon, PencilIcon, StoreIcon } from 'lucide-react';
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
-import { motion } from 'motion/react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useState } from 'react';
 import type { z } from 'zod';
 import type { CatalogItem, upsertCatalogItemSchema } from '../../contracts';
 import { PriorityBadge } from '../components/badges';
-import { CategorySelect, GroupSelect } from '../components/pickers';
+import { CategorySelect } from '../components/pickers';
 import { INVALIDATE, useCategoryLabel } from '../lib';
-import { DeleteButton } from './shared';
+import { DefaultGroupSelect, DeleteButton } from './shared';
 
 type CatalogInput = z.input<typeof upsertCatalogItemSchema>;
 type FulfilOn = 'submitted' | 'approved';
@@ -89,8 +89,7 @@ function CatalogSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-lg" closeLabel={tc('close')}>
-        <form
-          className="flex h-full flex-col gap-4"
+        <SheetForm
           onSubmit={(e) => {
             e.preventDefault();
             save.mutate({ active, categoryId, groupId, priority, fulfilOn });
@@ -103,7 +102,7 @@ function CatalogSheet({
             </SheetTitle>
             <SheetDescription>{t('sheetHint')}</SheetDescription>
           </SheetHeader>
-          <SheetBody className="grid content-start gap-5">
+          <SheetBody className="grid content-start gap-5 pb-6">
             <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
               <Label htmlFor={`${id}-active`} className="flex-col items-start gap-0.5">
                 <span>{t('active')}</span>
@@ -122,7 +121,7 @@ function CatalogSheet({
             </div>
             <div className="grid gap-2">
               <Label htmlFor={`${id}-group`}>{t('group')}</Label>
-              <GroupSelect id={`${id}-group`} value={groupId} onChange={setGroupId} />
+              <DefaultGroupSelect id={`${id}-group`} value={groupId} onChange={setGroupId} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor={`${id}-priority`}>{t('priority')}</Label>
@@ -185,7 +184,7 @@ function CatalogSheet({
               {tc('save')}
             </Button>
           </SheetFooter>
-        </form>
+        </SheetForm>
       </SheetContent>
     </Sheet>
   );
@@ -194,10 +193,11 @@ function CatalogSheet({
 /** Published Phase 1 forms and how the service desk fulfils each (category, group, priority, moment). */
 export function CatalogTab() {
   const t = useTranslations('itsm.settingsPage.catalog');
+  const ts = useTranslations('itsm.settingsPage');
   const tc = useTranslations('common');
   const locale = useLocale();
   const categoryLabel = useCategoryLabel();
-  const { data, isLoading } = useApiQuery<{ items: CatalogItem[] }>('/itsm/catalog');
+  const { data, isLoading, error, refetch } = useApiQuery<{ items: CatalogItem[] }>('/itsm/catalog');
   const [editing, setEditing] = useState<CatalogItem | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -217,7 +217,9 @@ export function CatalogTab() {
           </Link>
         </Button>
       </div>
-      {isLoading ? (
+      {error ? (
+        <ErrorState error={error} onRetry={() => refetch()} kind="list" className="rounded-xl border" />
+      ) : isLoading ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : !data?.items.length ? (
         <EmptyState
@@ -228,15 +230,12 @@ export function CatalogTab() {
         />
       ) : (
         <ul className="divide-y overflow-hidden rounded-xl border bg-card shadow-xs">
-          {data.items.map((item, i) => {
+          {data.items.map((item) => {
             const f = item.fulfilment;
             const name = localize(item.formName, locale);
             return (
-              <motion.li
+              <li
                 key={item.formKey}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.2, delay: Math.min(i, 12) * 0.03 }}
                 className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_auto] sm:items-center"
               >
                 <div className="flex min-w-0 items-center gap-3">
@@ -245,15 +244,12 @@ export function CatalogTab() {
                   </span>
                   <div className="min-w-0">
                     <p className="truncate font-medium">{name}</p>
-                    <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                      <span className="font-mono">{item.formKey}</span>
-                      {item.hasApproval && (
-                        <Badge variant="info" className="gap-1">
-                          <GavelIcon aria-hidden />
-                          {t('approval')}
-                        </Badge>
-                      )}
-                    </p>
+                    {item.hasApproval && (
+                      <Badge variant="info" className="mt-0.5 gap-1">
+                        <GavelIcon aria-hidden />
+                        {t('approval')}
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <div className="min-w-0 text-sm">
@@ -283,12 +279,12 @@ export function CatalogTab() {
                     setEditing(item);
                     setOpen(true);
                   }}
-                  aria-label={`${f ? tc('edit') : t('setUp')} ${name}`}
+                  aria-label={f ? ts('editItem', { name }) : t('setUpItem', { name })}
                 >
                   <PencilIcon />
                   {f ? tc('edit') : t('setUp')}
                 </Button>
-              </motion.li>
+              </li>
             );
           })}
         </ul>

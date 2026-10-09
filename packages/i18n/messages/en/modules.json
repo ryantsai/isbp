@@ -29,13 +29,6 @@
     "blockedTitle": "{count, plural, one {Another module depends on it. Disable it first:} other {# modules depend on it. Disable them first:}}",
     "inactiveDependents": "Also required by {names} (currently disabled)."
   },
-  "stats": {
-    "permissions": "{count, plural, one {Permission} other {Permissions}}",
-    "events": "Events",
-    "eventsDetail": "{emits, plural, one {# emitted} other {# emitted}}, {consumes, plural, one {# consumed} other {# consumed}}",
-    "aiTools": "{count, plural, one {AI tool} other {AI tools}}",
-    "jobs": "{count, plural, one {Job} other {Jobs}}"
-  },
   "tabs": {
     "overview": "Overview",
     "permissions": "Permissions",
@@ -43,7 +36,8 @@
     "aiTools": "AI tools",
     "ai": "AI",
     "jobs": "Jobs",
-    "settings": "Settings"
+    "settings": "Settings",
+    "technical": "Technical details"
   },
   "overview": {
     "id": "Module ID",
@@ -100,10 +94,6 @@
     "number": "Enter a number.",
     "tooLong": "Use at most {max} characters."
   },
-  "howTo": {
-    "title": "How modules work",
-    "body": "Every capability — including the core platform — is a module: a manifest that declares its pages, API routes, permissions, events, background jobs, settings and AI tools. Built-in and custom modules use the same SDK.",
-    "scaffold": "To build your own, scaffold one from the repository root:",
-    "placeholder": "name"
-  }
+  "technicalHint": "What the module declares: for developers and support.",
+  "hasSettings": "{count, plural, one {# setting} other {# settings}}"
 }

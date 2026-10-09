@@ -355,7 +355,9 @@ export const softwareInstallations = itamSchema.table(
     product: varchar('product', { length: 200 }).notNull(),
     /**
      * The title the inventory tool reported, when a title rule counts it as a licence's product (`product` then
-     * holds the licence's product). Removing the rule restores it.
+     * holds the licence's product). Removing the rule restores it. A device is unique per reported title
+     * (`coalesce(reported_as, product)`), so a device reporting both a mapped title and the licence's product keeps
+     * both installs, and mapping and unmapping never lose one.
      */
     reportedAs: varchar('reported_as', { length: 200 }),
     publisher: varchar('publisher', { length: 200 }),
@@ -366,7 +368,11 @@ export const softwareInstallations = itamSchema.table(
     updatedAt: updatedAt(),
   },
   (t) => [
-    uniqueIndex('software_installations_asset_product_uq').on(t.assetId, sql`lower(${t.product})`),
+    uniqueIndex('software_installations_asset_title_uq').on(
+      t.assetId,
+      sql`lower(coalesce(${t.reportedAs}, ${t.product}))`,
+    ),
+    index('software_installations_asset_product_idx').on(t.assetId, sql`lower(${t.product})`),
     index('software_installations_product_idx').on(sql`lower(${t.product})`),
     index('software_installations_reported_as_idx')
       .on(sql`lower(${t.reportedAs})`)

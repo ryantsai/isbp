@@ -1,4 +1,5 @@
 import { createdAt, id, updatedAt, users } from '@isbp/db/schema';
+import type { RunProblem } from '@isbp/sdk';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
@@ -185,6 +186,8 @@ export const pipelineRuns = etlSchema.table(
     triggeredBy: uuid('triggered_by').references(() => users.id, { onDelete: 'set null' }),
     /** Scheduled Jobs run id (trigger `schedule`). */
     taskRunId: varchar('task_run_id', { length: 64 }),
+    /** Scheduled Jobs job id (trigger `schedule`): the pipeline page links to the job that runs it. */
+    taskJobId: varchar('task_job_id', { length: 64 }),
     rowsRead: integer('rows_read').notNull().default(0),
     rowsWritten: integer('rows_written').notNull().default(0),
     rowsRejected: integer('rows_rejected').notNull().default(0),
@@ -197,6 +200,8 @@ export const pipelineRuns = etlSchema.table(
     heartbeatAt: timestamp('heartbeat_at', { withTimezone: true }),
     cancelRequested: boolean('cancel_requested').notNull().default(false),
     error: text('error'),
+    /** Why it failed, as a kind the UI explains in the reader's language (`error` keeps the raw text). */
+    problem: jsonb('problem').$type<RunProblem>(),
     log: jsonb('log').$type<RunLogEntry[]>().notNull().default([]),
     createdAt: createdAt(),
   },

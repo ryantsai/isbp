@@ -47,17 +47,17 @@ const failedRun = (request: APIRequestContext) => first(request, '/runs?view=fai
 
 test.describe.configure({ mode: 'serial' });
 
-test('the dashboard shows KPIs, runs per hour with a table twin and what is failing', async ({ page }) => {
+test('the dashboard leads with what is failing and why, then key figures and runs per hour', async ({
+  page,
+}) => {
   await page.goto('/scheduler');
   await expect(page.getByRole('heading', { name: 'Scheduled jobs', level: 1 })).toBeVisible();
+  // Overview | Jobs | Runs are the area's sections.
+  const sections = page.getByRole('navigation', { name: 'Scheduled jobs sections' });
+  for (const s of ['Overview', 'Jobs', 'Runs'])
+    await expect(sections.getByRole('link', { name: s })).toBeVisible();
   const kpis = page.getByRole('group', { name: 'Key figures' });
-  for (const tile of [
-    'Runs (24 h)',
-    'Success rate (24 h)',
-    'Success rate (7 days)',
-    'Failing jobs',
-    'Running now',
-  ])
+  for (const tile of ['Runs (24 h)', 'Success rate (24 h)', 'Running now'])
     await expect(kpis.getByText(tile, { exact: true })).toBeVisible();
 
   const chart = page.getByRole('region', { name: 'Runs per hour' });
@@ -67,9 +67,11 @@ test('the dashboard shows KPIs, runs per hour with a table twin and what is fail
   await expect(chart.getByRole('columnheader', { name: 'Succeeded' })).toBeVisible();
   await chart.getByRole('button', { name: 'Chart', exact: true }).click();
 
-  // The partner feed has been failing since this morning.
+  // The partner feed has been failing since this morning: why, in plain words, with what to do.
   const failing = page.getByRole('region', { name: 'Failing jobs' });
   await expect(failing.getByRole('link', { name: 'Partner feed import' })).toBeVisible();
+  await expect(failing.getByText(/couldn't be reached|answered 502/).first()).toBeVisible();
+  await expect(failing.getByRole('button', { name: 'Run Partner feed import now' })).toBeVisible();
   await expect(
     page.getByRole('region', { name: 'Upcoming runs' }).getByRole('listitem').first(),
   ).toBeVisible();
@@ -80,7 +82,7 @@ test('the dashboard shows KPIs, runs per hour with a table twin and what is fail
 
 test('the jobs list filters by view; a failing job shows its streak and run history', async ({ page }) => {
   await page.goto('/scheduler/jobs');
-  await expect(page.getByRole('heading', { name: 'Jobs', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Scheduled jobs', level: 1 })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Platform health check' })).toBeVisible();
   await page.getByRole('tab', { name: 'Failing' }).click();
   await expect(page).toHaveURL(/view=failing/);
@@ -90,6 +92,8 @@ test('the jobs list filters by view; a failing job shows its streak and run hist
   await page.getByRole('link', { name: 'Partner feed import' }).click();
   await expect(page.getByRole('heading', { name: 'Partner feed import', level: 1 })).toBeVisible();
   await expect(page.getByText(/failures in a row/).first()).toBeVisible();
+  // Why it fails is on the job page itself, with the way to the run.
+  await expect(page.getByRole('link', { name: 'See the last run' })).toBeVisible();
   await expect(page.getByText('Every hour at :05 (Asia/Taipei)')).toBeVisible();
   // Secret header values never reach the page.
   await expect(page.getByText('demo-partner-key')).toHaveCount(0);
@@ -154,6 +158,10 @@ test('an invalid cron expression is explained before saving', async ({ page }) =
   await page.goto('/scheduler/jobs/new');
   await page.getByLabel('Name', { exact: true }).fill('E2E invalid cron');
   await page.getByLabel('Request', { exact: true }).fill('https://example.com/');
+  // The usual schedules are picked in words; a cron expression only under "Custom (cron)".
+  await expect(page.getByRole('combobox', { name: 'Repeats' })).toHaveText(/Every day/);
+  await page.getByRole('combobox', { name: 'Repeats' }).click();
+  await page.getByRole('option', { name: 'Custom (cron)' }).click();
   const cron = page.getByLabel('Cron expression');
   await expect(cron).toHaveValue('0 7 * * *');
   await expect(page.getByRole('list', { name: 'Next runs' }).getByRole('listitem')).toHaveCount(5);
@@ -169,7 +177,7 @@ test('an invalid cron expression is explained before saving', async ({ page }) =
 
 test('the runs list filters by view, status and job', async ({ page }) => {
   await page.goto('/scheduler/runs');
-  await expect(page.getByRole('heading', { name: 'Runs', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Scheduled jobs', level: 1 })).toBeVisible();
   await page.getByRole('tab', { name: 'Failed' }).click();
   await expect(page).toHaveURL(/view=failed/);
   const panel = page.getByRole('tabpanel');

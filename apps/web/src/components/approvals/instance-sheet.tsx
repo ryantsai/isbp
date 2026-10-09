@@ -1,16 +1,28 @@
 'use client';
 
-import type { WorkflowInstance } from '@isbp/contracts';
+import type { RequestPath, WorkflowInstance } from '@isbp/contracts';
 import { findStep, localize } from '@isbp/sdk';
 import { useCan, usePlatform } from '@isbp/sdk/web';
+import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
+import { Disclosure } from '@isbp/ui/motion';
+import { RelativeTime } from '@isbp/ui/relative-time';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { ArrowUpRightIcon, CheckIcon, ForwardIcon, InfoIcon, XIcon } from 'lucide-react';
+import {
+  ArrowUpRightIcon,
+  CheckIcon,
+  CircleCheckIcon,
+  ForwardIcon,
+  HourglassIcon,
+  InfoIcon,
+  XIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useState } from 'react';
 import { useApiQuery } from '@/lib/api';
+import { ApprovalPathList, pathSteps } from '../requests/approval-path';
 import { InstanceProgress } from '../workflows/instance-progress';
 import { InstanceTimeline } from '../workflows/instance-timeline';
 import { StatusBadge } from '../workflows/status-badges';
@@ -29,11 +41,14 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 /** Everything about one workflow instance, with the viewer's own decision buttons when it's their turn. */
 export function InstanceSheet({
   instanceId,
+  taskId,
   open,
   onOpenChange,
   triggerName,
 }: {
   instanceId: string | null;
+  /** The task the person came for (`/approvals?task=`): when it is no longer theirs to decide, say who decided. */
+  taskId?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   triggerName?: string;
@@ -42,9 +57,12 @@ export function InstanceSheet({
   const locale = useLocale();
   const { user } = usePlatform();
   const isAdmin = useCan('core.workflows.manage');
+  const canReadWorkflows = useCan('core.workflows.read');
   const { data } = useApiQuery<WorkflowInstance>(
     instanceId && open ? `/workflow-instances/${instanceId}` : null,
   );
+  // The same linear path requesters see: done, waiting (who, since when), next (who would be asked).
+  const path = useApiQuery<RequestPath>(instanceId && open ? `/workflow-instances/${instanceId}/path` : null);
   const [decision, setDecision] = useState<Decision | null>(null);
   const [delegating, setDelegating] = useState(false);
   const subject = data ? localize(data.subject.label, locale) : '';
@@ -53,6 +71,14 @@ export function InstanceSheet({
   const instructions = step?.type === 'approval' ? step.instructions : undefined;
   const canDelegate = step?.type === 'approval' ? step.allowDelegation !== false : false;
   const assignees = data?.tasks.filter((x) => x.status === 'pending').map((x) => x.assignee.id) ?? [];
+  const asked = taskId ? data?.tasks.find((x) => x.id === taskId) : undefined;
+  const decided =
+    asked && asked.status !== 'pending'
+      ? (data?.tasks
+          .filter((x) => x.stepId === asked.stepId && x.decidedAt && x.decidedBy)
+          .sort((a, b) => String(b.decidedAt).localeCompare(String(a.decidedAt)))[0] ?? null)
+      : null;
+  const waitingForMe = Boolean(myTask && myTask.status === 'pending');
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -60,9 +86,17 @@ export function InstanceSheet({
         <SheetHeader className="sticky top-0 z-10 border-b bg-background/95 px-6 py-4 backdrop-blur">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {triggerName && <span>{triggerName}</span>}
-            {data && <StatusBadge status={data.status} kind="instance" />}
+            {data &&
+              (waitingForMe ? (
+                <Badge variant="warning">
+                  <HourglassIcon aria-hidden />
+                  {t('waitingForYou')}
+                </Badge>
+              ) : (
+                <StatusBadge status={data.status} kind="instance" />
+              ))}
           </div>
-          <SheetTitle className="text-lg leading-snug">
+          <SheetTitle className="text-lg leading-snug [overflow-wrap:anywhere]">
             {subject || <Skeleton className="h-6 w-64" />}
           </SheetTitle>
           {data && (
@@ -78,6 +112,22 @@ export function InstanceSheet({
           </div>
         ) : (
           <div className="grid gap-8 px-6 py-6">
+            {asked && asked.status !== 'pending' && (
+              <div
+                role="status"
+                className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border bg-muted/50 px-3 py-2.5 text-sm"
+              >
+                <CircleCheckIcon className="size-4 shrink-0 text-success" aria-hidden />
+                <span>
+                  {decided?.decidedBy
+                    ? t('alreadyDecided', { name: decided.decidedBy.displayName })
+                    : t('noLongerWaiting')}
+                </span>
+                {decided?.decidedAt && (
+                  <RelativeTime date={decided.decidedAt} className="text-muted-foreground" />
+                )}
+              </div>
+            )}
             {instructions && (
               <div className="flex gap-2 rounded-lg border border-info/30 bg-info/5 px-3 py-2.5 text-sm">
                 <InfoIcon className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
@@ -85,7 +135,10 @@ export function InstanceSheet({
               </div>
             )}
             <Section title={t('details')}>
-              <SubjectDetails instance={data} />
+              {/* Long answers (a justification pasted without spaces) wrap inside the sheet on a phone. */}
+              <div className="min-w-0 [overflow-wrap:anywhere]">
+                <SubjectDetails instance={data} />
+              </div>
               {data.subject.href && (
                 <Button asChild variant="link" className="h-auto justify-start p-0">
                   <Link href={data.subject.href}>
@@ -95,26 +148,48 @@ export function InstanceSheet({
                 </Button>
               )}
             </Section>
-            <Section title={t('progress')}>
-              <InstanceProgress instance={data} />
+            <Section title={t('path')}>
+              {path.data ? (
+                <ApprovalPathList steps={pathSteps(path.data)} />
+              ) : (
+                <div className="grid gap-3">
+                  <Skeleton className="h-14 w-full rounded-lg" />
+                  <Skeleton className="h-14 w-full rounded-lg" />
+                </div>
+              )}
             </Section>
-            <Section title={t('timeline')}>
+            <Disclosure
+              summary={t('timeline')}
+              className="rounded-lg border"
+              triggerClassName="w-full justify-between px-4 py-3 text-sm font-medium"
+              contentClassName="px-4 pb-4"
+            >
               <InstanceTimeline instance={data} />
-            </Section>
+            </Disclosure>
+            {canReadWorkflows && (
+              <Disclosure
+                summary={t('workflowDetails')}
+                className="rounded-lg border"
+                triggerClassName="w-full justify-between px-4 py-3 text-sm font-medium"
+                contentClassName="px-4 pb-4"
+              >
+                <InstanceProgress instance={data} />
+              </Disclosure>
+            )}
           </div>
         )}
         {data && myTask && myTask.status === 'pending' && (
           <div className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t bg-background/95 px-6 py-3 backdrop-blur">
-            <Button onClick={() => setDecision('approve')}>
+            <Button className="h-11 min-w-28 sm:h-9" onClick={() => setDecision('approve')}>
               <CheckIcon />
               {t('approve')}
             </Button>
-            <Button variant="outline" onClick={() => setDecision('reject')}>
+            <Button variant="outline" className="h-11 min-w-28 sm:h-9" onClick={() => setDecision('reject')}>
               <XIcon />
               {t('reject')}
             </Button>
             {(canDelegate || isAdmin) && (
-              <Button variant="ghost" className="ml-auto" onClick={() => setDelegating(true)}>
+              <Button variant="ghost" className="ml-auto h-11 sm:h-9" onClick={() => setDelegating(true)}>
                 <ForwardIcon />
                 {t('delegate')}
               </Button>

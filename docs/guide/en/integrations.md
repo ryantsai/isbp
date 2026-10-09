@@ -9,8 +9,8 @@ teams what they see on records that are synced, and where to make a change so it
 - Understand [what syncs with what](#what-syncs-with-what) and [where to edit a synced record](#where-to-edit-a-synced-record)
 - [Add a connection](#add-a-connection) to a ServiceDesk Plus server or an Azure DevOps Server collection
 - [Check a connection's health](#check-a-connections-health) and [set up webhooks](#set-up-webhooks-for-faster-sync)
-- [Create a sync profile](#create-a-sync-profile), [map fields and values](#map-fields-and-values) and
-  [preview it](#preview-a-profile-before-it-runs)
+- [Create a sync rule](#create-a-sync-rule), [map fields and values](#map-fields-and-values) and
+  [preview it](#preview-a-rule-before-it-runs)
 - [Run a sync and read its log](#run-a-sync-and-read-the-log) and [manage linked records](#manage-linked-records)
 - [See what a record is synced with](#see-what-a-record-is-synced-with) on its own page
 - [Resolve a sync conflict](#resolve-a-sync-conflict)
@@ -20,7 +20,8 @@ teams what they see on records that are synced, and where to make a change so it
 ## What syncs with what
 
 The Integrations Hub links a kind of record in the other system with a kind of record in ISBP. Each link between two
-kinds is a **sync profile**, and each profile has a direction: **Into ISBP**, **Out of ISBP** or **Both ways**.
+kinds is a **sync rule**, and each rule has a direction: **Into IS Big Platform**, **Out of IS Big Platform** or
+**Both ways**.
 
 | Outside system      | Their record                  | ISBP record                                      | Notes                                                                          |
 | ------------------- | ----------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------ |
@@ -40,42 +41,42 @@ Whitfield have no ISBP account, so you can see these warnings.
 ## Where to edit a synced record
 
 When a record is synced one way, the source system owns it. When it's synced both ways, either side can change it,
-and the profile's **Conflict rule** decides what happens when both sides change the same field before the next sync.
+and the rule's **Conflict rule** decides what happens when both sides change the same field before the next sync.
 Edit a record where the table below says, and your change won't be overwritten.
 
 In the demo, the two connections are **Contoso ServiceDesk Plus** and **Contoso Azure DevOps Server**:
 
-| Profile in the demo                       | Direction | When both sides change a field | Where to edit                                                                                         |
-| ----------------------------------------- | --------- | ------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| Requests ↔ tickets                        | Both ways | Ask a person                   | Either system. Work each ticket in one place to avoid conflicts; conflicts wait in the conflicts list |
-| Problems → tickets                        | Into ISBP | ServiceDesk Plus wins          | ServiceDesk Plus                                                                                      |
-| Changes → changes                         | Into ISBP | ServiceDesk Plus wins          | The change details in ServiceDesk Plus; approval and status in ISBP                                   |
-| Assets ↔ assets                           | Both ways | ServiceDesk Plus wins          | ServiceDesk Plus keeps the asset register; disposal only through ISBP's disposal approval             |
-| Solutions → knowledge                     | Into ISBP | ServiceDesk Plus wins          | ServiceDesk Plus                                                                                      |
-| Team projects → projects                  | Into ISBP | Azure DevOps wins              | Azure DevOps Server (the profile links existing projects by name; it doesn't create projects)         |
-| ERP work items ↔ tasks                    | Both ways | Azure DevOps wins              | Either system; the team plans in Azure DevOps, so its values win when both changed                    |
-| Network work items → tasks                | Into ISBP | Azure DevOps wins              | Azure DevOps Server                                                                                   |
-| ERP / Network repositories → applications | Into ISBP | Azure DevOps wins              | Azure DevOps Server (the Git status on Finance ERP and Remote Access VPN is read-only in ISBP)        |
+| Sync rule in the demo                     | Direction            | When both sides change a field | Where to edit                                                                                         |
+| ----------------------------------------- | -------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Requests ↔ tickets                        | Both ways            | Ask a person                   | Either system. Work each ticket in one place to avoid conflicts; conflicts wait in the conflicts list |
+| Problems → tickets                        | Into IS Big Platform | ServiceDesk Plus wins          | ServiceDesk Plus                                                                                      |
+| Changes → changes                         | Into IS Big Platform | ServiceDesk Plus wins          | The change details in ServiceDesk Plus; approval and status in ISBP                                   |
+| Assets ↔ assets                           | Both ways            | ServiceDesk Plus wins          | ServiceDesk Plus keeps the asset register; disposal only through ISBP's disposal approval             |
+| Solutions → knowledge                     | Into IS Big Platform | ServiceDesk Plus wins          | ServiceDesk Plus                                                                                      |
+| Team projects → projects                  | Into IS Big Platform | Azure DevOps wins              | Azure DevOps Server (the rule links existing projects by name; it doesn't create projects)            |
+| ERP work items ↔ tasks                    | Both ways            | Azure DevOps wins              | Either system; the team plans in Azure DevOps, so its values win when both changed                    |
+| Network work items → tasks                | Into IS Big Platform | Azure DevOps wins              | Azure DevOps Server                                                                                   |
+| ERP / Network repositories → applications | Into IS Big Platform | Azure DevOps wins              | Azure DevOps Server (the Git status on Finance ERP and Remote Access VPN is read-only in ISBP)        |
 
-With a one-way **Into ISBP** profile, changes you make in ISBP stay in ISBP and are not sent back. They're
+With a one-way **Into IS Big Platform** rule, changes you make in ISBP stay in ISBP and are not sent back. They're
 overwritten as soon as the other system changes the same field, so make lasting changes in the source system.
 
 > **Tip:** The **Synced with** card on a record's page tells you which system a record is linked to. If you don't
-> know which way a profile goes, ask an integration administrator or open the profile (you can read it if you have
+> know which way a rule goes, ask an integration administrator or open the rule (you can read it if you have
 > the **Integrations viewer** role).
 
 ## Who can do what
 
-| Role                           | What it allows                                                                                                  |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| **Integrations viewer**        | See connections, sync profiles, runs, linked records and conflicts (never credentials)                          |
-| **Integrations administrator** | Add, edit and test connections, set up sync profiles for every syncable record, run syncs and resolve conflicts |
+| Role                           | What it allows                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **Integrations viewer**        | See connections, sync rules, runs, linked records and conflicts (never credentials)                          |
+| **Integrations administrator** | Add, edit and test connections, set up sync rules for every syncable record, run syncs and resolve conflicts |
 
-The pages are **Administration → Integrations** and **Administration → Sync conflicts**. If you don't see them, ask
+The pages are **Administration → Connections** and **Administration → Sync conflicts** (under **Integrations**). If you don't see them, ask
 an administrator for one of the roles above. In the demo, IT administrators are integration administrators, and the
 service desk, the development team and the PMO are integration viewers.
 
-Creating or changing a profile that writes a kind of record also needs that record's sync permission (for example
+Creating or changing a sync rule that writes a kind of record also needs that record's sync permission (for example
 "write tickets through integrations"). The **Integrations administrator** role includes them all. This way nobody can
 use the hub to write records they couldn't write themselves.
 
@@ -95,7 +96,7 @@ Before you start, get the credentials from the other system's administrator:
 - **Azure DevOps Server:** a personal access token of a service account, with the scopes **Work Items: Read &
   write**, **Code: Read** and **Project and Team: Read**. Windows sign-in (NTLM or Kerberos) isn't supported.
 
-1. Go to **Administration → Integrations** and select **Add connection**.
+1. Go to **Administration → Connections** and select **Add connection**.
 2. Choose **ServiceDesk Plus (on-premises)** or **Azure DevOps Server (on-premises)**.
 3. Enter a **Connection name**. It's shown in lists, run logs and on synced records.
 4. Fill in the connection settings:
@@ -109,7 +110,7 @@ Before you start, get the credentials from the other system's administrator:
 
 **What happens next:** ISBP shows the connection's **Webhook secret** once. Copy it if you plan to
 [set up webhooks](#set-up-webhooks-for-faster-sync), then select **I’ve copied it**. The connection page opens.
-Nothing syncs until you [create a sync profile](#create-a-sync-profile). Credentials are stored encrypted and are
+Nothing syncs until you [create a sync rule](#create-a-sync-rule). Credentials are stored encrypted and are
 never shown again; when you edit the connection, leave a credential empty to keep it.
 
 > **Important:** Use `https://` addresses. A server that only answers on plain HTTP (ServiceDesk Plus listens on
@@ -125,10 +126,14 @@ error, ask the ISBP operator to trust that authority (see `docs/deployment.md` �
 
 ISBP tests every connection every 15 minutes and on every sync. Check here first when synced records stop updating.
 
-1. Go to **Administration → Integrations**. Each card shows the connection's health (**Working**, **Failing** or
-   **Not checked**), its profiles, linked records, open conflicts, errors and the last sync.
-2. Open a connection. The **Overview** tab shows **Health**: status, the message from the last check, **Signed in
-   as**, **Last checked** and **Last sync**.
+1. Go to **Administration → Connections**. Each card shows the connection's health (**Working**, **Working · needs
+   attention** when records are waiting for you, **Failing** or **Not checked**), its sync rules, linked records,
+   open conflicts, errors and the last sync. Select **Resolve** next to the open conflicts, or **View** next to the
+   errors, to go straight to them.
+2. Open a connection. The **Overview** tab starts with **Needs attention**: the open conflicts (each with
+   **Resolve**), the records that didn't sync and the sync rules whose last run had problems (**View the run**).
+   Then **Health** shows the status, the message from the last check, **Signed in as**, **Last checked** and **Last
+   sync**.
 3. Select **Test** to check it now.
 
 **What happens next:** When the other system refuses the credentials (an expired API key or token), the connection
@@ -139,12 +144,12 @@ key or token in the other system, select **Edit** on the connection, paste the n
 
 ## Set up webhooks for faster sync
 
-Without webhooks, profiles sync on their schedule (every 15 minutes by default). With webhooks, the other system
+Without webhooks, sync rules run on their schedule (every 15 minutes by default). With webhooks, the other system
 tells ISBP which record changed and ISBP reads it within seconds. Polling keeps running as a safety net, so a missed
 webhook is caught up on the next scheduled sync.
 
-1. Open the connection. On the **Overview** tab, the **Webhook** card shows the **Webhook URL**. Select **Copy webhook
-   URL**.
+1. Open the connection. On the **Overview** tab, open **Setup: instant updates (webhook)**: it shows the **Webhook
+   URL**. Select **Copy webhook URL**.
 2. In the other system, create the webhook with the custom header `X-ISBP-Webhook-Secret` set to the connection's
    secret:
    - ServiceDesk Plus: **Admin › Developer Space › Webhooks**, one webhook per module (request, problem or change),
@@ -158,56 +163,59 @@ webhook is caught up on the next scheduled sync.
 record changed; ISBP then reads the record through the other system's API, so a forged webhook can't put data into
 ISBP. The other system calls ISBP from inside our network, so nothing needs to be published to the internet.
 
-If you lose the secret, select **Rotate secret** on the **Webhook** card. A new secret is shown once, and the old one
+If you lose the secret, select **Rotate secret** in the same section. A new secret is shown once, and the old one
 stops working, so update the webhook in the other system straight away.
 
-## Create a sync profile
+## Create a sync rule
 
-A sync profile says what syncs with what, in which direction, and how fields map. Create one for each kind of record
+A sync rule says what syncs with what, in which direction, and how fields map. Create one for each kind of record
 you want to sync.
 
-1. Open the connection and select the **Sync profiles** tab, then **New sync profile**.
+1. Open the connection and select the **Sync rules** tab, then **New sync rule**.
 2. Under **What syncs with what**, choose the record **In** the other system, **Where** it lives (for Azure DevOps
-   work items and repositories, the team project), and the record **In ISBP** (for tasks, the ISBP project; for
-   repositories, the application). The profile name is filled in for you; change it if you like. These choices can't
-   change after the profile is created.
-3. Under **Direction**, choose **Into ISBP**, **Out of ISBP** or **Both ways**. Each option explains in words which
+   work items and repositories, the team project), and the record **In IS Big Platform** (for tasks, the project;
+   for repositories, the application). The **Rule name** is filled in for you; change it if you like. These choices
+   can't change after the rule is created.
+3. Under **Direction**, choose **Into IS Big Platform**, **Out of IS Big Platform** or **Both ways**. Each option explains in words which
    edits travel.
 4. Under **Records**, decide what happens to records that exist on one side only:
-   - **Create records in ISBP**: new records in the other system are created in ISBP.
+   - **Create records in IS Big Platform**: new records in the other system are created in ISBP.
    - **Create records in** the other system: new ISBP records that pass **Which records to create** are created
      there. Add conditions (for example "Status is not Closed"); with no conditions, every record is created.
    - **Match existing records**: pick a field in ISBP and a field in the other system (for example the serial number
      for assets). Records both sides already have are linked instead of duplicated.
 5. Under **Schedule**, set **Minutes between syncs** (0 turns scheduled syncs off; webhooks, **Run now** and
-   Scheduled Jobs still work). A profile that only goes **Out of ISBP** pushes changes as soon as they happen.
+   Scheduled Jobs still work). A rule that only goes **Out of IS Big Platform** pushes changes as soon as they
+   happen.
 6. Under **Conflicts and comments**, choose the **Conflict rule**:
    - **Ask a person**: both values stay as they are and the conflict waits in the conflicts list. Other fields still sync.
-   - **… wins** (the other system), **ISBP wins** or **Latest change wins**.
+   - **… wins** (the other system), **IS Big Platform wins** or **Latest change wins**.
 
-   With a one-way profile, the source always wins. Turn on **Sync comments** to copy new comments both ways, each
+   With a one-way rule, the source always wins. Turn on **Sync comments** to copy new comments both ways, each
    once, with their author.
 
 7. Check the **Field mapping** (see [Map fields and values](#map-fields-and-values)), then select
-   [**Preview**](#preview-a-profile-before-it-runs).
-8. Select **Create profile**.
+   [**Preview**](#preview-a-rule-before-it-runs).
+8. Select **Create rule**.
 
-**What happens next:** The profile syncs on its schedule. The first run reads every record of that kind, so it can
+**What happens next:** The rule syncs on its schedule. The first run reads every record of that kind, so it can
 take a while. To start at once, select **Run now**.
 
-> **Tip:** Start with **Into ISBP** and **Ask a person**, check the first runs, then switch to **Both ways** once the
+> **Tip:** Start with **Into IS Big Platform** and **Ask a person**, check the first runs, then switch to **Both ways** once the
 > mappings are right.
 
-![The sync profile editor for Requests ↔ tickets in the demo](../../../apps/web/public/help/en/integrations-profile.jpg)
+![The sync rule editor for Requests ↔ tickets in the demo](../../../apps/web/public/help/en/integrations-profile.jpg)
 
 ## Map fields and values
 
 The **Field mapping** decides which ISBP field matches which field in the other system. ISBP suggests a mapping for
 each pair; most of the time you only add the fields that are specific to our installation.
 
-1. In the profile, go to **Field mapping**. Select **Use suggested mapping** to start from the connector's defaults.
-2. To add a field, select **Add field**, then pick the **ISBP field** and the **Remote field**. Each row has its own
-   direction: **Both ways**, **Into ISBP only** or **Out of ISBP only**. Read-only fields can only flow one way.
+1. In the rule, go to **Field mapping**. Select **Use suggested mapping** to start from the connector's defaults. The
+   columns are headed **In IS Big Platform**, **Direction** and **In** the other system.
+2. To add a field, select **Add field**, then pick the **IS Big Platform field** and the **Remote field**. Each row has
+   its own direction: **Both ways**, **Only from** the other system or **Only to** the other system. Read-only fields
+   can only flow one way.
 3. For choice fields (status, priority, category, …), select **Values** to open the value map. Each row says which ISBP
    value a value from the other system becomes, and back. Values that are the same on both sides need no row. Select
    **Add … values of** the other system to list every value it has.
@@ -216,7 +224,7 @@ each pair; most of the time you only add the fields that are specific to our ins
 ISBP converts values for you: HTML becomes Markdown in ISBP and Markdown becomes HTML in the other system, people
 match by email, tags become `;`-separated text, and parent work items map through the links ISBP already has.
 
-Several values in the other system can become one ISBP value with **Into ISBP only** rows, and one row says what the
+Several values in the other system can become one ISBP value with **Only from** rows, and one row says what the
 ISBP value becomes when it goes out. In the demo, ServiceDesk Plus "Resolved" comes in as _Resolved_ for incidents,
 and an ISBP service request that is _Fulfilled_ goes out as "Resolved".
 
@@ -225,13 +233,14 @@ and an ISBP service request that is _Fulfilled_ goes out as "Resolved".
 > Scrum or Basic process, edit the value maps for work item types and states (for example _User story_ → Product Backlog
 > Item, _Done_ → Done).
 
-## Preview a profile before it runs
+## Preview a rule before it runs
 
 A preview is a dry run on the next changes: nothing is written and the sync position doesn't move. Use it after you
 change a mapping or a conflict rule.
 
-1. Open the profile and select **Preview** under **Preview**.
-2. Read the list. Each record shows what would happen: **Create in ISBP**, **Link existing**, **Update in ISBP**,
+1. Open the rule and select **Preview** under **Preview**.
+2. Read the list. Each record shows what would happen: **Create in IS Big Platform**, **Link existing**, **Update
+   in IS Big Platform**,
    **Update in** the other system, **Create in** the other system, **Conflict**, **No change** or **Deleted on one
    side**, with the fields that would change and their new values.
 
@@ -240,18 +249,22 @@ run. Fields that can't be converted are listed, so you can fix the value map bef
 
 ## Run a sync and read the log
 
-Run a sync by hand after you change a profile, or when someone asks why a record hasn't arrived.
+Run a sync by hand after you change a rule, or when someone asks why a record hasn't arrived.
 
-1. Open the connection and select the **Sync profiles** tab. Each profile shows its direction, linked records,
-   conflicts, errors, its last run and its schedule.
-2. Select **Run now** on the profile. The run opens and its log follows live.
-3. To send existing ISBP records to a profile that creates records in the other system, open the profile and select
+1. Open the connection and select the **Sync rules** tab. Each rule shows its direction, linked records, conflicts,
+   errors, its last run and its schedule.
+2. Select **Run now** on the rule (or at the top of the rule's page). The run opens and its log follows live. The
+   rule's page shows **Last run:** with its errors and conflicts, a link to the run and the next scheduled run.
+3. To send existing ISBP records to a rule that creates records in the other system, open the rule and select
    **Push existing records to** that system.
 4. The **Runs** tab of the connection lists every run with its trigger (**Scheduled**, **Manual**, **Webhook** or
-   **Change in ISBP**), status and counts. Filter by status to find failures.
+   **Change in IS Big Platform**), status and counts. Filter by status to find failures.
 
-A run's page shows **Counts** (read, created and updated in ISBP, pushed, created remotely, linked, conflicts,
-skipped, errors), **Details** and the **Log**.
+A run's page shows **Counts** (**Read**, **Created here**, **Updated here**, **Sent** and **Errors**, plus **Created
+there**, **Linked**, **Conflicts** and **Unchanged or skipped** when there were any), **Details** and the **Log**.
+When records failed, a list of the problems names each record, in words, with **Find in linked records**. When the
+whole run failed, the page says why in plain words, for example that the other system refused the stored
+credentials, with **Open connection**.
 
 | Run status                | What it means                                                                                  |
 | ------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -260,15 +273,15 @@ skipped, errors), **Details** and the **Log**.
 | **Failed**                | The run stopped, for example because the credentials were refused                              |
 | **Paused (rate limited)** | The other system asked ISBP to slow down; the run continues at the time shown                  |
 
-Only one run of a profile happens at a time. Runs older than 30 days are removed.
+Only one run of a rule happens at a time. Runs older than 30 days are removed.
 
-> **Tip:** You can also run a profile from **Scheduled jobs** with the **Integration sync** task type, for example at
+> **Tip:** You can also run a rule from **Scheduled jobs** with the **Integration sync** task type, for example at
 > a fixed time each night, with the job's retries and failure alerts. See [Data and automation](data-and-automation.md).
 
 ## Manage linked records
 
 The **Linked records** tab of a connection lists every ISBP record and the remote record it's linked to, with the
-profile and the last sync. Use it to find records in error or deleted on one side.
+sync rule and the last sync. Use it to find records in error or deleted on one side.
 
 1. Open the connection and select **Linked records**.
 2. Filter with the tabs **All**, **In sync**, **Conflict**, **Error** and **Deleted on one side**, or search by
@@ -292,11 +305,11 @@ state: **In sync**, **Conflict**, **Error** or **Deleted on one side**. If the l
 card says why. Integration administrators also see **Sync now**.
 
 Anyone who can read the record sees the card. Changes you make in ISBP reach the other system within moments when
-the profile syncs both ways; changes there arrive with the next webhook or scheduled sync.
+the rule syncs both ways; changes there arrive with the next webhook or scheduled sync.
 
 ## Resolve a sync conflict
 
-A conflict happens when a profile's rule is **Ask a person** and the same field was changed on both sides, to
+A conflict happens when a sync rule's conflict rule is **Ask a person** and the same field was changed on both sides, to
 different values, since the last sync. Both values stay as they are until someone decides; the record's other fields
 keep syncing.
 
@@ -305,14 +318,16 @@ finance floor"), so there's one open conflict to try.
 
 1. Go to **Administration → Sync conflicts** (all connections), or open the connection's **Conflicts** tab.
 2. On the **Open** tab, select **Resolve** on the conflict.
-3. For each field, compare the **Last synced value** with ISBP's value and the other system's value, and choose
-   **Keep ISBP’s value** or **Keep the value from** the other system.
-4. Select **Apply**. Or select **Keep both as they are** to leave each side with its own value.
+3. For each field, compare the **Last synced value** with the value here and the other system's value. Each side
+   says who changed it and when (**Changed by …**, **Changed in** the other system). Choose **Keep the value here**
+   or **Keep the value from** the other system.
+4. Select **Apply**. Or select **Don’t sync this change** to leave each side with its own value; later changes
+   sync normally.
 
 **What happens next:** The chosen values are written to both sides and the link goes back to **In sync**. A resolved
-conflict moves to the **Resolved** tab, and one closed with **Keep both as they are** to **Kept both**, with who
+conflict moves to the **Resolved** tab, and one closed with **Don’t sync this change** to **Kept both**, with who
 decided and when. Resolving needs the **Integrations administrator** role; integration administrators get a
-notification for new conflicts (at most one per profile per hour).
+notification for new conflicts (at most one per sync rule per hour).
 
 ![The sync conflicts list with the demo conflict](../../../apps/web/public/help/en/integrations-conflicts.jpg)
 
@@ -338,7 +353,7 @@ When a record is deleted in one system, ISBP never deletes its partner in the ot
 one side** and shows on the **Linked records** tab. Deleting data in another system is a decision for a person: look
 at the remaining record and delete or close it yourself if it should go.
 
-Deleting a sync profile or a connection removes its links, runs and conflicts, but no record in ISBP or in the other
+Deleting a sync rule or a connection removes its links, runs and conflicts, but no record in ISBP or in the other
 system.
 
 ## Fix common problems
@@ -349,7 +364,7 @@ system.
 | This connection uses plain HTTP                           | Use an `https://` URL, or turn on **Allow insecure HTTP** only for a server on a trusted network                 |
 | The connected system is limiting requests                 | Nothing: the run pauses and continues. On ServiceDesk Plus 14500 or later, its administrator can raise the limit |
 | The connected system refused the change                   | Open the run log or the link's error: usually a value the other system doesn't accept. Fix the value map         |
-| A sync for this profile is already running                | Wait for the current run to finish                                                                               |
+| A sync of this rule was already running                   | Wait for the current run to finish                                                                               |
 | A person field stays empty                                | The person has no ISBP account with the same email. Check the run log's warning                                  |
 
 ## How it connects
@@ -360,6 +375,6 @@ system.
 - [Projects](projects.md) and [Changes and releases](changes-and-releases.md): tasks synced with Azure DevOps work
   items, and Git status on applications.
 - [Data and automation](data-and-automation.md): running syncs from Scheduled jobs.
-- [Assistant and AI](assistant-and-ai.md#what-the-assistant-can-change): the assistant can prepare sync profile
+- [Assistant and AI](assistant-and-ai.md#what-the-assistant-can-change): the assistant can prepare sync rule
   changes as a change set.
 - [Administrators](administrators.md): roles, the audit log and notification settings.

@@ -36,7 +36,9 @@
     "rejectedToast": "已駁回，並已通知申請人原因",
     "fieldsTitle": "需填寫的欄位",
     "fieldsHint": "會與您的決定一併保存，並顯示在申請上。標示 * 的欄位為核准時必填。",
-    "fieldsOptionalHint": "駁回時可不填；填寫的內容會與您的決定一併保存，並顯示在申請上。"
+    "fieldsOptionalHint": "駁回時可不填；填寫的內容會與您的決定一併保存，並顯示在申請上。",
+    "approvedNamed": "已核准：{subject}",
+    "rejectedNamed": "已駁回：{subject}"
   },
   "delegate": {
     "title": "將此簽核交給其他人",
@@ -57,6 +59,14 @@
     "timeline": "歷程",
     "approve": "核准",
     "reject": "駁回",
-    "delegate": "轉交"
-  }
+    "delegate": "轉交",
+    "alreadyDecided": "已由 {name} 決定",
+    "noLongerWaiting": "此項目已不再等待您處理",
+    "path": "由誰簽核",
+    "waitingForYou": "等候您簽核",
+    "workflowDetails": "簽核流程細節"
+  },
+  "requestedBy": "申請人：{name}",
+  "loadFailed": "無法載入待簽核項目",
+  "retry": "重試"
 }

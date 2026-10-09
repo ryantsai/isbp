@@ -7,6 +7,8 @@ import { createContext, type ReactNode, use, useEffect } from 'react';
 
 export const BADGES_PATH = '/me/badges';
 
+const EMPTY: Badges = { approvals: 0, notifications: 0, work: 0 };
+
 /**
  * Navigation counters, kept live by Server-Sent Events (`/me/notifications/stream`). Each `badges`
  * event updates the cache and refreshes the notification and approval lists; a slow poll is the
@@ -24,8 +26,13 @@ function useLiveBadges(): Badges {
         const next = JSON.parse(e.data) as Badges;
         const prev = client.getQueryData<Badges>([BADGES_PATH, {}]);
         client.setQueryData([BADGES_PATH, {}], next);
-        if (prev && (prev.notifications !== next.notifications || prev.approvals !== next.approvals))
-          void invalidatePaths(client, ['/me/notifications', '/me/approvals', '/me/requests']);
+        if (
+          prev &&
+          (prev.notifications !== next.notifications ||
+            prev.approvals !== next.approvals ||
+            prev.work !== next.work)
+        )
+          void invalidatePaths(client, ['/me/notifications', '/me/approvals', '/me/requests', '/me/work']);
       } catch {
         /* ignore malformed events */
       }
@@ -37,10 +44,10 @@ function useLiveBadges(): Badges {
     };
   }, [client]);
 
-  return data ?? { approvals: 0, notifications: 0 };
+  return data ?? EMPTY;
 }
 
-const BadgesContext = createContext<Badges>({ approvals: 0, notifications: 0 });
+const BadgesContext = createContext<Badges>(EMPTY);
 
 /** One live stream per tab, shared by the sidebar, the mobile drawer and the bell. */
 export function BadgesProvider({ children }: { children: ReactNode }) {

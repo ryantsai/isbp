@@ -6,6 +6,8 @@ import { z } from 'zod';
  * Knowledge Base API contracts (mounted at /api/v1/knowledge):
  *
  *   GET    /articles                       → page of articleListItemSchema
+ *   GET    /articles/counts                → articleCountsSchema (the management tabs)
+ *   GET    /articles/submit-outcome        → submitOutcomeSchema (what "submit" would do for the caller)
  *   POST   /articles                       → articleSchema (a draft)
  *   GET    /articles/:ref                  → articleSchema (ref = uuid or KB-00042)
  *   PATCH  /articles/:ref                  → articleSchema
@@ -33,7 +35,10 @@ export const ARTICLE_STATUSES = ['draft', 'in_review', 'published', 'retired'] a
 export const articleStatusSchema = z.enum(ARTICLE_STATUSES);
 export type ArticleStatus = z.infer<typeof articleStatusSchema>;
 
-/** Where a generated draft came from, e.g. `{ type: 'itsm.ticket', id, reference: 'INC-00042' }`. */
+/**
+ * Where a draft came from, e.g. `{ type: 'itsm.ticket', id, reference: 'INC-00042' }` or a problem's known-error
+ * article `{ type: 'itsm.problem', id, reference: 'PRB-00012' }`. Shown on the article as "Based on INC-00042", linked.
+ */
 export const articleSourceSchema = z.object({
   type: z.string().trim().min(1).max(100),
   id: z.string().trim().min(1).max(200),
@@ -108,9 +113,9 @@ export function parseArticleRef(ref: string): { id: string } | { number: number 
   return Number.isSafeInteger(n) && n > 0 ? { number: n } : null;
 }
 
-/** Link to the record a draft was generated from (e.g. the ITSM ticket). */
+/** Link to the record a draft was written from (an ITSM ticket, or a problem's known-error article). */
 export function sourceHref(source: ArticleSource): string | null {
-  if (source.type === 'itsm.ticket')
+  if (source.type === 'itsm.ticket' || source.type === 'itsm.problem')
     return `/itsm/tickets/${encodeURIComponent(source.reference ?? source.id)}`;
   return null;
 }
@@ -190,6 +195,8 @@ export const articleSchema = articleListItemSchema.extend({
   canDelete: z.boolean(),
   /** Transitions the caller may trigger now. */
   actions: z.array(z.enum(['submit', 'withdraw', 'publish', 'retire', 'restore'])),
+  /** What `submit` does for the caller now (null when they can't submit): see `submitOutcomeSchema`. */
+  submitOutcome: z.enum(['publish', 'review', 'approval']).nullable(),
   myFeedback: z.object({ helpful: z.boolean(), comment: z.string().nullable() }).nullable(),
   /** Files attached to the article (the core attachments panel; readers download, editors change them). */
   attachments: z.number().int(),
@@ -233,7 +240,11 @@ export const createArticleSchema = z.object({
   body: z.string().max(50_000).default(''),
   categoryId: id.nullish(),
   tags: z.array(tagSchema).max(10).default([]),
-  locale: articleLocaleSchema.default('en'),
+  /**
+   * Language of the text. Omitted: the author's language (their profile; English when it isn't an article language),
+   * or for a translation whose group already has that language, the first language the group doesn't have yet.
+   */
+  locale: articleLocaleSchema.optional(),
   audience: articleAudienceSchema.default('everyone'),
   /** Make this article a translation of another one (joins its translation group). */
   translationOf: id.nullish(),
@@ -260,6 +271,45 @@ export const updateArticleSchema = z
   })
   .partial();
 export type UpdateArticleInput = z.input<typeof updateArticleSchema>;
+
+/** Filters of the management list that the tab counts follow (the tabs themselves set status and owner). */
+export const articleCountsQuerySchema = articleQuerySchema.pick({
+  q: true,
+  category: true,
+  audience: true,
+  locale: true,
+  classification: true,
+});
+export type ArticleCountsQuery = z.input<typeof articleCountsQuerySchema>;
+
+/**
+ * Articles per management tab, with the same filters: the caller's drafts, in review, published, retired and published
+ * past their review date (editors: everyone's; authors: their own).
+ */
+export const articleCountsSchema = z.object({
+  mine: z.number().int(),
+  review: z.number().int(),
+  published: z.number().int(),
+  retired: z.number().int(),
+  due: z.number().int(),
+});
+export type ArticleCounts = z.input<typeof articleCountsSchema>;
+
+/** The facts that decide what submitting an article does (a review workflow's conditions read them). */
+export const submitOutcomeQuerySchema = z.object({
+  audience: articleAudienceSchema.default('everyone'),
+  locale: articleLocaleSchema.optional(),
+  /** Category id. */
+  categoryId: id.optional(),
+});
+export type SubmitOutcomeQuery = z.input<typeof submitOutcomeQuerySchema>;
+
+/**
+ * What "submit" does for the caller: `publish` (they publish and no approval workflow applies: it goes live now),
+ * `review` (it waits for an editor) or `approval` (the bound review workflow decides).
+ */
+export const submitOutcomeSchema = z.object({ outcome: z.enum(['publish', 'review', 'approval']) });
+export type SubmitOutcome = z.infer<typeof submitOutcomeSchema>['outcome'];
 
 export const feedbackInputSchema = z.object({
   helpful: z.boolean(),
@@ -422,7 +472,8 @@ export const aiCreateDraftInput = z.object({
   body: z.string().min(1).max(50_000),
   categoryKey: z.string().trim().max(64).optional(),
   tags: z.array(z.string().trim().min(1).max(40)).max(10).optional(),
-  locale: articleLocaleSchema.default('en'),
+  /** Language of the text; omitted: the caller's language (English when theirs isn't an article language). */
+  locale: articleLocaleSchema.optional(),
   audience: articleAudienceSchema.default('agents'),
   source: articleSourceSchema.optional(),
 });

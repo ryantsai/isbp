@@ -19,7 +19,7 @@ extension point is in [api-reference.md](api-reference.md) and [recipes.md](reci
 | `dbaccess`      | Database access                   | —                   | Request database roles on SQL Server, Oracle and PostgreSQL: approval, automated provisioning, time-bound access, access reviews and drift |
 | `etl`           | Data APIs & ETL                   | —                   | REST endpoints from parameterized SQL and stored procedures, and ETL pipelines between databases                                           |
 | `helpdesk-ai`   | Helpdesk AI                       | `itsm`, `knowledge` | AI triage, similar tickets, grounded reply drafts, summaries and the self-service virtual agent.                                           |
-| `integrations`  | Integrations                      | —                   | Connections to outside systems, sync profiles with field mappings, two-way sync, runs, linked records and conflicts                        |
+| `integrations`  | Integrations                      | —                   | Connections to outside systems, sync rules with field mappings, two-way sync, runs, linked records and conflicts                           |
 | `isms`          | Information security              | —                   | Information asset register with C/I/A values, stocktakes, shared accounts and account reviews                                              |
 | `itam`          | Assets                            | `cmdb`              | Hardware, software licences, contracts and vendors                                                                                         |
 | `itsm`          | Service desk                      | `cmdb`              | Incidents, service requests, problems and changes with SLAs                                                                                |
@@ -61,7 +61,7 @@ Configuration surfaces the AI agent builds change sets for (`manifest.customizat
 | `core.module-settings`      | `core`         | Module settings         | `core.modules.read`             | `core.modules.manage`             | update                          |
 | `etl.pipeline`              | `etl`          | ETL pipeline            | `etl.pipelines.read`            | `etl.pipelines.manage`            | create, update, archive, delete |
 | `etl.endpoint`              | `etl`          | Data API                | `etl.endpoints.read`            | `etl.endpoints.manage`            | create, update, delete          |
-| `integrations.profile`      | `integrations` | Sync profile            | `integrations.connections.read` | `integrations.connections.manage` | create, update, archive, delete |
+| `integrations.profile`      | `integrations` | Sync rule               | `integrations.connections.read` | `integrations.connections.manage` | create, update, archive, delete |
 | `isms.asset-class`          | `isms`         | Information asset class | `isms.assets.read`              | `isms.config.manage`              | create, update, archive         |
 | `itsm.category`             | `itsm`         | Ticket category         | `itsm.config.manage`            | `itsm.config.manage`              | create, update, archive         |
 | `itsm.sla-policy`           | `itsm`         | SLA policy              | `itsm.config.manage`            | `itsm.config.manage`              | create, update, archive         |
@@ -102,112 +102,116 @@ What request forms can do after they are sent, approved or rejected (`manifest.p
 Hosts render `<Slot name=… props=… />`; modules contribute with `defineWebModule({ slots })`. Template names
 (`${…}`) are families: contribute the concrete name, e.g. `scheduler.task-config.etl.pipeline`.
 
-| Slot                                        | Hosted in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Contributed by                                                                                                                                                                                        |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `assistant.preview.${moduleId}.${name}`     | `modules/assistant/src/web/change-set/item-card.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | —                                                                                                                                                                                                     |
-| `cmdb.ci.related`                           | `modules/cmdb/src/web/pages/detail-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | alm (alm.apps.read), itam (itam.hardware.read), itsm (itsm.tickets.read)                                                                                                                              |
-| `core.dashboard.work`                       | `apps/web/src/components/dashboard/dashboard-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | alm (alm.apps.read), dbaccess (dbaccess.self.request), isms (isms.self.use), itam (itam.hardware.manage), itsm (itsm.tickets.work), projects (projects.projects.use), scheduler (scheduler.jobs.read) |
-| `core.record.files`                         | `apps/web/src/components/records/record-files.tsx`<br>`apps/web/src/components/requests/request-evidence.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/isms/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/itsm/src/web/ticket/requester-view.tsx`<br>`modules/knowledge/src/web/pages/article-page.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx`      | —                                                                                                                                                                                                     |
-| `core.record.links`                         | `apps/web/src/components/records/linked-records.tsx`<br>`apps/web/src/components/requests/request-evidence.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/isms/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/knowledge/src/web/pages/article-page.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/projects/src/web/project/overview-tab.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx` | integrations                                                                                                                                                                                          |
-| `core.requests.assist`                      | `apps/web/src/components/requests/requests-home.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                                                    |
-| `core.shell.header`                         | `apps/web/src/components/shell/app-shell.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | assistant (assistant.agent.use)                                                                                                                                                                       |
-| `core.user.overview`                        | `apps/web/src/components/users/user-detail-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | dbaccess (dbaccess.self.request), itam (itam.hardware.read)                                                                                                                                           |
-| `integrations.connector-config.${type}`     | `modules/integrations/src/web/connection/connection-sheet.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | —                                                                                                                                                                                                     |
-| `integrations.connector-config.azdo.server` | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | azdo                                                                                                                                                                                                  |
-| `integrations.connector-config.sdp.server`  | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | sdp                                                                                                                                                                                                   |
-| `itsm.ticket.aside`                         | `modules/itsm/src/web/ticket/agent-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | alm (alm.apps.read), helpdesk-ai (helpdesk-ai.assist.use)                                                                                                                                             |
-| `knowledge.home.assist`                     | `modules/knowledge/src/web/pages/home-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                                                    |
-| `scheduler.task-config.dbaccess.sync`       | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | dbaccess (dbaccess.servers.manage)                                                                                                                                                                    |
-| `scheduler.task-config.etl.pipeline`        | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | etl (etl.pipelines.run)                                                                                                                                                                               |
-| `scheduler.task-config.integrations.sync`   | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | integrations (integrations.connections.manage)                                                                                                                                                        |
+| Slot                                        | Hosted in                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Contributed by                                                                                                                                                      |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assistant.preview.${moduleId}.${name}`     | `modules/assistant/src/web/change-set/item-card.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | —                                                                                                                                                                   |
+| `cmdb.ci.related`                           | `modules/cmdb/src/web/pages/detail-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | alm (alm.apps.read), itam (itam.hardware.read), itsm (itsm.tickets.read)                                                                                            |
+| `core.dashboard.work`                       | `apps/web/src/components/dashboard/dashboard-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | alm (alm.apps.read), dbaccess (dbaccess.self.request), isms (isms.self.use), itam (itam.hardware.manage), itsm (itsm.tickets.work), scheduler (scheduler.jobs.read) |
+| `core.forms.header`                         | `apps/web/src/components/forms/forms-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | assistant (assistant.agent.use)                                                                                                                                     |
+| `core.home.news`                            | `apps/web/src/components/dashboard/dashboard-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | announcements (announcements.posts.read)                                                                                                                            |
+| `core.record.files`                         | `apps/web/src/components/records/record-files.tsx`<br>`apps/web/src/components/requests/request-evidence.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/isms/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/agent-view.tsx`<br>`modules/itsm/src/web/ticket/requester-view.tsx`<br>`modules/knowledge/src/web/pages/article-page.tsx`<br>`modules/knowledge/src/web/pages/editor-page.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx` | —                                                                                                                                                                   |
+| `core.record.links`                         | `apps/web/src/components/records/linked-records.tsx`<br>`apps/web/src/components/requests/request-evidence.tsx`<br>`modules/alm/src/web/pages/application-page.tsx`<br>`modules/alm/src/web/pages/release-page.tsx`<br>`modules/cmdb/src/web/pages/detail-page.tsx`<br>`modules/etl/src/web/record-panels.tsx`<br>`modules/isms/src/web/record-panels.tsx`<br>`modules/itam/src/web/record-panels.tsx`<br>`modules/itsm/src/web/ticket/aside-cards.tsx`<br>`modules/knowledge/src/web/pages/article-page.tsx`<br>`modules/projects/src/web/components/task-detail.tsx`<br>`modules/projects/src/web/project/overview-tab.tsx`<br>`modules/scheduler/src/web/pages/job-page.tsx`                                                | integrations                                                                                                                                                        |
+| `core.requests.assist`                      | `apps/web/src/components/requests/requests-home.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                  |
+| `core.shell.header`                         | `apps/web/src/components/shell/app-shell.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | assistant (assistant.agent.use)                                                                                                                                     |
+| `core.user.overview`                        | `apps/web/src/components/users/user-detail-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | dbaccess (dbaccess.self.request), itam (itam.hardware.read)                                                                                                         |
+| `integrations.connector-config.${type}`     | `modules/integrations/src/web/connection/connection-sheet.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | —                                                                                                                                                                   |
+| `integrations.connector-config.azdo.server` | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | azdo                                                                                                                                                                |
+| `integrations.connector-config.sdp.server`  | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | sdp                                                                                                                                                                 |
+| `itsm.ticket.aside`                         | `modules/itsm/src/web/ticket/agent-view.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | alm (alm.apps.read), helpdesk-ai (helpdesk-ai.assist.use)                                                                                                           |
+| `knowledge.home.assist`                     | `modules/knowledge/src/web/pages/home-page.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | helpdesk-ai (helpdesk-ai.chat.use)                                                                                                                                  |
+| `scheduler.task-config.dbaccess.sync`       | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | dbaccess (dbaccess.servers.manage)                                                                                                                                  |
+| `scheduler.task-config.etl.pipeline`        | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | etl (etl.pipelines.run)                                                                                                                                             |
+| `scheduler.task-config.integrations.sync`   | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | integrations (integrations.connections.manage)                                                                                                                      |
 
 ## Error codes
 
 Throw `new HttpError(status, ErrorCodes.X, message, details)`. The UI translates by code (`errors.json`).
 
-| Code                          | Message (en)                                                                                                               |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `ACCOUNT_INACTIVE`            | This account is not active. Contact your administrator.                                                                    |
-| `ACCOUNT_LOCKED`              | Too many failed attempts. Try again in a few minutes.                                                                      |
-| `AI_BUDGET_EXCEEDED`          | This month's AI budget has been used up.                                                                                   |
-| `AI_NOT_CONFIGURED`           | No AI model is set up yet. An administrator can add one under Administration → AI.                                         |
-| `AI_PROVIDER_ERROR`           | The AI service didn't respond. Try again in a moment.                                                                      |
-| `ALREADY_GRANTED`             | This person already has this access.                                                                                       |
-| `ASSIGNMENT_CLOSED`           | This to-do was already done or cancelled.                                                                                  |
-| `BAD_REQUEST`                 | The request was not valid.                                                                                                 |
-| `CHANGE_REQUIRED`             | A production deployment needs an approved change.                                                                          |
-| `CHANGE_SET_STALE`            | Someone changed this configuration after the change set was prepared. Refresh the change set, review it again, then retry. |
-| `COMMENT_REQUIRED`            | Add a comment to explain your decision.                                                                                    |
-| `CONFIRMATION_REQUIRED`       | Confirm this action before it runs.                                                                                        |
-| `CONFLICT`                    | That conflicts with existing data.                                                                                         |
-| `CONFLICT_RESOLVED`           | Someone has already resolved this conflict.                                                                                |
-| `CONNECTION_DISABLED`         | That database connection is disabled.                                                                                      |
-| `CONNECTION_PURPOSE`          | That database connection can't be used for this.                                                                           |
-| `CONNECTION_READ_ONLY`        | That database connection is read-only.                                                                                     |
-| `CSRF_INVALID`                | Your session token is out of date. Reload the page and try again.                                                          |
-| `DATABASE_ERROR`              | The database returned an error.                                                                                            |
-| `DELEGATION_NOT_ALLOWED`      | This approval can't be delegated.                                                                                          |
-| `DELIVERY_FAILED`             | The message couldn't be delivered.                                                                                         |
-| `DUPLICATE_REQUEST`           | There's already an open request for this access.                                                                           |
-| `DURATION_TOO_LONG`           | That's longer than this access can be granted for.                                                                         |
-| `EMAIL_NOT_CONFIGURED`        | Email isn't set up yet.                                                                                                    |
-| `ENDPOINT_NOT_PUBLISHED`      | This Data API has no published version yet.                                                                                |
-| `ENDPOINT_RETIRED`            | This version of the Data API is retired.                                                                                   |
-| `FILE_REJECTED`               | That file can't be uploaded.                                                                                               |
-| `FILE_TOO_LARGE`              | That file is too large.                                                                                                    |
-| `FORBIDDEN`                   | You don't have permission to do that.                                                                                      |
-| `FORM_NOT_AVAILABLE`          | This form isn't available right now.                                                                                       |
-| `HAS_CHILDREN`                | Move or delete the sub-departments first.                                                                                  |
-| `INSECURE_HTTP`               | This connection uses plain HTTP, which isn't encrypted. Use HTTPS, or turn on “Allow insecure HTTP” for the connection.    |
-| `INTERNAL`                    | Something went wrong on our side.                                                                                          |
-| `INVALID_CLIENT`              | The client ID or secret is incorrect, or the client was revoked.                                                           |
-| `INVALID_CREDENTIALS`         | Incorrect username or password.                                                                                            |
-| `INVALID_DELEGATE`            | That person can't take this approval. Choose someone else.                                                                 |
-| `INVALID_PARENT`              | A department can't be moved under itself.                                                                                  |
-| `INVALID_STATE`               | That isn't possible in the current state.                                                                                  |
-| `INVALID_TRANSITION`          | That status change isn't possible from the current status.                                                                 |
-| `IN_USE`                      | This is still in use. Remove it from where it's used first.                                                                |
-| `JOB_CYCLE`                   | Those dependencies would make the job wait for itself.                                                                     |
-| `JOB_RUNNING`                 | The job is running. Wait for it to finish or cancel it first.                                                              |
-| `MODULE_DEPENDENCY`           | Other modules depend on this one — change them first.                                                                      |
-| `MODULE_DISABLED`             | This module is currently disabled.                                                                                         |
-| `NOT_FOUND`                   | That item no longer exists.                                                                                                |
-| `NOT_REQUESTABLE`             | This access can't be requested.                                                                                            |
-| `NOT_SUPPORTED`               | The connected system doesn't support this.                                                                                 |
-| `PACKAGE_UNSUPPORTED`         | This package needs modules that aren't enabled or kinds of configuration this platform doesn't have.                       |
-| `PASSWORD_MANAGED_EXTERNALLY` | This password is managed by the identity provider.                                                                         |
-| `PRINCIPAL_OFFBOARDED`        | This person has been offboarded.                                                                                           |
-| `PRINCIPAL_SUSPENDED`         | This person is suspended. Reactivate them first.                                                                           |
-| `PRIVILEGE_ESCALATION`        | You can only grant permissions you hold yourself.                                                                          |
-| `PROCESS_ACTION_FORBIDDEN`    | You can't add or change this action: it needs a permission you don't have.                                                 |
-| `PROCESS_ACTION_UNAVAILABLE`  | This action isn't available. Its module may be disabled.                                                                   |
-| `RATE_LIMITED`                | You're going a bit fast. Please wait a moment.                                                                             |
-| `RELATIONSHIP_INVALID`        | That relationship isn't allowed.                                                                                           |
-| `REMOTE_AUTH_FAILED`          | The connected system refused the connection's credentials. Check them in the connection settings.                          |
-| `REMOTE_CONFLICT`             | The record changed in the connected system at the same time. It will be compared again.                                    |
-| `REMOTE_RATE_LIMITED`         | The connected system is limiting requests. The sync will try again shortly.                                                |
-| `REMOTE_REJECTED`             | The connected system refused the change.                                                                                   |
-| `RESOLUTION_REQUIRED`         | Describe the resolution first.                                                                                             |
-| `REVEAL_EXPIRED`              | This credential was already shown or has expired.                                                                          |
-| `REVIEW_CLOSED`               | This access review is closed.                                                                                              |
-| `SANDBOX_UNAVAILABLE`         | Scripts can't run here: no sandbox is configured, or the image isn't allowed.                                              |
-| `SCHEDULE_CONFLICT`           | That time window isn't available.                                                                                          |
-| `SELF_LOCKOUT`                | That would lock you out of your own account or access.                                                                     |
-| `SYNC_RUNNING`                | A sync for this profile is already running.                                                                                |
-| `SYSTEM_GROUP`                | System groups can't be changed this way.                                                                                   |
-| `SYSTEM_MODULE`               | System modules can't be disabled.                                                                                          |
-| `SYSTEM_ROLE_READONLY`        | System roles are managed by their module and can't be changed.                                                             |
-| `TARGET_BLOCKED`              | That address isn't allowed.                                                                                                |
-| `TASK_NOT_PENDING`            | This approval has already been handled.                                                                                    |
-| `TEST_REQUIRED`               | Run a successful test of the current draft before publishing.                                                              |
-| `UNAUTHENTICATED`             | Your session has expired. Please sign in again.                                                                            |
-| `UPSTREAM_FAILED`             | The remote service couldn't be reached.                                                                                    |
-| `VALIDATION_FAILED`           | Some fields need your attention.                                                                                           |
-| `WEBHOOK_INVALID`             | The webhook secret is missing or wrong.                                                                                    |
-| `WEBHOOK_TARGET_INVALID`      | The webhook URL must use HTTPS and can't point at a private network.                                                       |
-| `WORKFLOW_INVALID`            | The workflow has problems that need fixing before it can be published.                                                     |
-| `WORKFLOW_NOT_CONFIGURED`     | No approval workflow is set up for this yet. Ask an administrator to publish one.                                          |
-| `WRITES_NOT_ALLOWED`          | This SQL changes data. Turn on "Allows writes" to save it.                                                                 |
+| Code                          | Message (en)                                                                                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ACCOUNT_INACTIVE`            | This account is not active. Contact your administrator.                                                                                                                  |
+| `ACCOUNT_LOCKED`              | Too many failed attempts. Try again in a few minutes.                                                                                                                    |
+| `AI_BUDGET_EXCEEDED`          | This month's AI budget has been used up.                                                                                                                                 |
+| `AI_NOT_CONFIGURED`           | No AI model is set up yet. An administrator can add one under Administration → AI.                                                                                       |
+| `AI_PROVIDER_ERROR`           | The AI service didn't respond. Try again in a moment.                                                                                                                    |
+| `ALREADY_GRANTED`             | This person already has this access.                                                                                                                                     |
+| `ASSIGNMENT_CLOSED`           | This to-do was already done or cancelled.                                                                                                                                |
+| `BAD_REQUEST`                 | The request was not valid.                                                                                                                                               |
+| `CHANGE_REQUIRED`             | A production deployment needs an approved change.                                                                                                                        |
+| `CHANGE_SET_BUSY`             | Another change set is being applied or tried right now. Try again in a moment.                                                                                           |
+| `CHANGE_SET_STALE`            | Someone changed this configuration after the change set was prepared. Refresh the change set, review it again, then retry.                                               |
+| `COMMENT_REQUIRED`            | Add a comment to explain your decision.                                                                                                                                  |
+| `CONFIRMATION_REQUIRED`       | Confirm this action before it runs.                                                                                                                                      |
+| `CONFLICT`                    | That conflicts with existing data.                                                                                                                                       |
+| `CONFLICT_RESOLVED`           | Someone has already resolved this conflict.                                                                                                                              |
+| `CONNECTION_DISABLED`         | That database connection is disabled.                                                                                                                                    |
+| `CONNECTION_PURPOSE`          | That database connection can't be used for this.                                                                                                                         |
+| `CONNECTION_READ_ONLY`        | That database connection is read-only.                                                                                                                                   |
+| `CSRF_INVALID`                | Your session token is out of date. Reload the page and try again.                                                                                                        |
+| `DATABASE_ERROR`              | The database returned an error.                                                                                                                                          |
+| `DELEGATION_NOT_ALLOWED`      | This approval can't be delegated.                                                                                                                                        |
+| `DELIVERY_FAILED`             | The message couldn't be delivered.                                                                                                                                       |
+| `DUPLICATE_REQUEST`           | There's already an open request for this access.                                                                                                                         |
+| `DURATION_TOO_LONG`           | That's longer than this access can be granted for.                                                                                                                       |
+| `EMAIL_NOT_CONFIGURED`        | Email isn't set up yet.                                                                                                                                                  |
+| `ENDPOINT_NOT_PUBLISHED`      | This Data API has no published version yet.                                                                                                                              |
+| `ENDPOINT_RETIRED`            | This version of the Data API is retired.                                                                                                                                 |
+| `FILE_REJECTED`               | That file can't be uploaded.                                                                                                                                             |
+| `FILE_TOO_LARGE`              | That file is too large.                                                                                                                                                  |
+| `FORBIDDEN`                   | You don't have permission to do that.                                                                                                                                    |
+| `FORM_NOT_AVAILABLE`          | This form isn't available right now.                                                                                                                                     |
+| `HAS_CHILDREN`                | Move or delete the sub-departments first.                                                                                                                                |
+| `INSECURE_HTTP`               | This connection uses plain HTTP, which isn't encrypted. Use HTTPS, or turn on “Allow insecure HTTP” for the connection.                                                  |
+| `INTERNAL`                    | Something went wrong on our side.                                                                                                                                        |
+| `INVALID_CLIENT`              | The client ID or secret is incorrect, or the client was revoked.                                                                                                         |
+| `INVALID_CREDENTIALS`         | Incorrect username or password.                                                                                                                                          |
+| `INVALID_DELEGATE`            | That person can't take this approval. Choose someone else.                                                                                                               |
+| `INVALID_PARENT`              | A department can't be moved under itself.                                                                                                                                |
+| `INVALID_STATE`               | That isn't possible in the current state.                                                                                                                                |
+| `INVALID_TRANSITION`          | That status change isn't possible from the current status.                                                                                                               |
+| `IN_USE`                      | This is still in use. Remove it from where it's used first.                                                                                                              |
+| `JOB_CYCLE`                   | Those dependencies would make the job wait for itself.                                                                                                                   |
+| `JOB_RUNNING`                 | The job is running. Wait for it to finish or cancel it first.                                                                                                            |
+| `MODULE_DEPENDENCY`           | Other modules depend on this one — change them first.                                                                                                                    |
+| `MODULE_DISABLED`             | This module is currently disabled.                                                                                                                                       |
+| `NOT_FOUND`                   | That item no longer exists.                                                                                                                                              |
+| `NOT_REQUESTABLE`             | This access can't be requested.                                                                                                                                          |
+| `NOT_SUPPORTED`               | The connected system doesn't support this.                                                                                                                               |
+| `PACKAGE_UNSUPPORTED`         | This package needs modules that aren't enabled or kinds of configuration this platform doesn't have.                                                                     |
+| `PASSWORD_MANAGED_EXTERNALLY` | This password is managed by the identity provider.                                                                                                                       |
+| `PRINCIPAL_OFFBOARDED`        | This person has been offboarded.                                                                                                                                         |
+| `PRINCIPAL_SUSPENDED`         | This person is suspended. Reactivate them first.                                                                                                                         |
+| `PRIVILEGE_ESCALATION`        | You can only grant permissions you hold yourself.                                                                                                                        |
+| `PROCESS_ACTION_FORBIDDEN`    | You can't add or change this action: it needs a permission you don't have.                                                                                               |
+| `PROCESS_ACTION_UNAVAILABLE`  | This action isn't available. Its module may be disabled.                                                                                                                 |
+| `RATE_LIMITED`                | You're going a bit fast. Please wait a moment.                                                                                                                           |
+| `RELATIONSHIP_INVALID`        | That relationship isn't allowed.                                                                                                                                         |
+| `REMOTE_AUTH_FAILED`          | The connected system refused the connection's credentials. Check them in the connection settings.                                                                        |
+| `REMOTE_CONFLICT`             | The record changed in the connected system at the same time. It will be compared again.                                                                                  |
+| `REMOTE_RATE_LIMITED`         | The connected system is limiting requests. The sync will try again shortly.                                                                                              |
+| `REMOTE_REJECTED`             | The connected system refused the change.                                                                                                                                 |
+| `RESOLUTION_REQUIRED`         | Describe the resolution first.                                                                                                                                           |
+| `REVEAL_EXPIRED`              | This credential was already shown or has expired.                                                                                                                        |
+| `REVIEW_CLOSED`               | This access review is closed.                                                                                                                                            |
+| `ROLE_HAS_HISTORY`            | People have requested this access before, and that history must be kept, so it can't be deleted. Turn off “People can request this role” and remove its members instead. |
+| `SANDBOX_UNAVAILABLE`         | Scripts can't run here: no sandbox is configured, or the image isn't allowed.                                                                                            |
+| `SCHEDULE_CONFLICT`           | That time window isn't available.                                                                                                                                        |
+| `SELF_LOCKOUT`                | That would lock you out of your own account or access.                                                                                                                   |
+| `SYNC_RUNNING`                | A sync for this profile is already running.                                                                                                                              |
+| `SYSTEM_GROUP`                | System groups can't be changed this way.                                                                                                                                 |
+| `SYSTEM_MODULE`               | System modules can't be disabled.                                                                                                                                        |
+| `SYSTEM_ROLE_READONLY`        | System roles are managed by their module and can't be changed.                                                                                                           |
+| `TARGET_BLOCKED`              | That address isn't allowed.                                                                                                                                              |
+| `TASK_NOT_PENDING`            | This approval has already been handled.                                                                                                                                  |
+| `TEST_REQUIRED`               | Run a successful test of the current draft before publishing.                                                                                                            |
+| `UNAUTHENTICATED`             | Your session has expired. Please sign in again.                                                                                                                          |
+| `UPSTREAM_FAILED`             | The remote service couldn't be reached.                                                                                                                                  |
+| `VALIDATION_FAILED`           | Some fields need your attention.                                                                                                                                         |
+| `WEBHOOK_INVALID`             | The webhook secret is missing or wrong.                                                                                                                                  |
+| `WEBHOOK_TARGET_INVALID`      | The webhook URL must use HTTPS and can't point at a private network.                                                                                                     |
+| `WORKFLOW_INVALID`            | The workflow has problems that need fixing before it can be published.                                                                                                   |
+| `WORKFLOW_NOT_CONFIGURED`     | No approval workflow is set up for this yet. Ask an administrator to publish one.                                                                                        |
+| `WRITES_NOT_ALLOWED`          | This SQL changes data. Turn on "Allows writes" to save it.                                                                                                               |
 
 ## `core` — Core platform
 
@@ -258,7 +262,7 @@ Identity, access control, audit and the module system that every other module bu
 | `platform-admin`       | Platform administrator            | `*`                                                                                                                                                                                           | —        |
 | `identity-admin`       | Identity administrator            | `core.users.*` `core.groups.*` `core.departments.*` `core.roles.read` `core.roles.assign` `core.audit.read` `core.access-requests.read` `core.custom-fields.read` `core.custom-fields.manage` | —        |
 | `workflow-admin`       | Workflow administrator            | `core.workflows.*` `core.forms.*` `core.custom-fields.*` `core.notifications.*` `core.access-requests.read`                                                                                   | —        |
-| `application-manager`  | Application manager               | `core.applications.*` `core.role-query.read`                                                                                                                                                  | —        |
+| `application-manager`  | Application access manager        | `core.applications.*` `core.role-query.read`                                                                                                                                                  | —        |
 | `security-auditor`     | Security auditor                  | `*.*.read`                                                                                                                                                                                    | —        |
 | `database-admin`       | Database connection administrator | `core.databases.*`                                                                                                                                                                            | —        |
 | `module-admin`         | Module administrator              | `core.modules.*`                                                                                                                                                                              | —        |
@@ -418,26 +422,33 @@ Identity, access control, audit and the module system that every other module bu
 
 ### Navigation
 
-| Label                | Path                        | Section | Group      | Order | Permission                  |
-| -------------------- | --------------------------- | ------- | ---------- | ----- | --------------------------- |
-| Dashboard            | `/`                         | main    | —          | 0     | —                           |
-| Approvals            | `/approvals`                | main    | —          | 1     | —                           |
-| Requests             | `/requests`                 | main    | —          | 2     | —                           |
-| People               | `/admin/users`              | admin   | Identity   | 10    | `core.users.read`           |
-| Groups               | `/admin/groups`             | admin   | Identity   | 20    | `core.groups.read`          |
-| Departments          | `/admin/departments`        | admin   | Identity   | 30    | `core.departments.read`     |
-| Roles & access       | `/admin/roles`              | admin   | Access     | 40    | `core.roles.read`           |
-| Applications         | `/admin/applications`       | admin   | Access     | 42    | `core.applications.read`    |
-| API clients          | `/admin/api-clients`        | admin   | Access     | 44    | `core.api-clients.manage`   |
-| Workflows            | `/admin/workflows`          | admin   | Automation | 46    | `core.workflows.read`       |
-| Forms                | `/admin/forms`              | admin   | Automation | 47    | `core.forms.manage`         |
-| Custom fields        | `/admin/custom-fields`      | admin   | Automation | 48    | `core.custom-fields.manage` |
-| Notifications        | `/admin/notifications`      | admin   | Automation | 49    | `core.notifications.manage` |
-| AI                   | `/admin/ai`                 | admin   | Automation | 49.5  | `core.ai.manage`            |
-| Audit log            | `/admin/audit`              | admin   | Platform   | 50    | `core.audit.read`           |
-| Modules              | `/admin/modules`            | admin   | Platform   | 60    | `core.modules.read`         |
-| Database connections | `/admin/databases`          | admin   | Platform   | 65    | `core.databases.read`       |
-| Sign-in providers    | `/admin/identity-providers` | admin   | Platform   | 70    | `core.idp.read`             |
+| Label                | Path                        | Placement                   | Order | Permission                                     |
+| -------------------- | --------------------------- | --------------------------- | ----- | ---------------------------------------------- |
+| Home                 | `/`                         | sidebar                     | 0     | —                                              |
+| My work              | `/my-work`                  | sidebar                     | 1     | —                                              |
+| Requests             | `/requests`                 | sidebar                     | 2     | —                                              |
+| People               | `/admin/users`              | Administration › people     | 10    | `core.users.read`                              |
+| Groups               | `/admin/groups`             | Administration › people     | 11    | `core.groups.read`                             |
+| Departments          | `/admin/departments`        | Administration › people     | 12    | `core.departments.manage` or `core.users.read` |
+| Roles & access       | `/admin/roles`              | Administration › people     | 13    | `core.roles.read`                              |
+| Application access   | `/admin/applications`       | Administration › people     | 14    | `core.applications.read`                       |
+| API clients          | `/admin/api-clients`        | Administration › people     | 15    | `core.api-clients.manage`                      |
+| Sign-in providers    | `/admin/identity-providers` | Administration › people     | 16    | `core.idp.read`                                |
+| Forms                | `/admin/forms`              | Administration › automation | 20    | `core.forms.manage`                            |
+| Workflows            | `/admin/workflows`          | Administration › automation | 21    | `core.workflows.read`                          |
+| Custom fields        | `/admin/custom-fields`      | Administration › automation | 22    | `core.custom-fields.manage`                    |
+| Notifications        | `/admin/notifications`      | Administration › automation | 23    | `core.notifications.manage`                    |
+| Database connections | `/admin/databases`          | Administration › modules    | 35    | `core.databases.read`                          |
+| AI                   | `/admin/ai`                 | Administration › modules    | 36    | `core.ai.manage`                               |
+| Modules              | `/admin/modules`            | Administration › platform   | 50    | `core.modules.read`                            |
+| Audit log            | `/admin/audit`              | Administration › platform   | 51    | `core.audit.read`                              |
+
+### My work sources
+
+| Source           | Kind     | Label            | Permission |
+| ---------------- | -------- | ---------------- | ---------- |
+| `core.approvals` | approval | Approvals        | —          |
+| `core.forms`     | todo     | Forms to fill in | —          |
 
 ### Custom-field entities
 
@@ -546,10 +557,10 @@ Application inventory, environments, releases and deployments, linked to change 
 
 ### Navigation
 
-| Label            | Path            | Section | Group        | Order | Permission      |
-| ---------------- | --------------- | ------- | ------------ | ----- | --------------- |
-| Applications     | `/alm`          | main    | Applications | 48    | `alm.apps.read` |
-| Release calendar | `/alm/releases` | main    | Applications | 49    | `alm.apps.read` |
+| Label            | Path            | Placement           | Order | Permission      |
+| ---------------- | --------------- | ------------------- | ----- | --------------- |
+| Applications     | `/alm`          | sidebar             | 48    | `alm.apps.read` |
+| Release calendar | `/alm/releases` | tab of Applications | —     | `alm.apps.read` |
 
 ### Custom-field entities
 
@@ -634,9 +645,9 @@ Service notices, maintenance windows and incident updates for everyone.
 
 ### Navigation
 
-| Label         | Path             | Section | Group | Order | Permission                 |
-| ------------- | ---------------- | ------- | ----- | ----- | -------------------------- |
-| Announcements | `/announcements` | main    | —     | 10    | `announcements.posts.read` |
+| Label         | Path             | Placement              | Order | Permission                   |
+| ------------- | ---------------- | ---------------------- | ----- | ---------------------------- |
+| Announcements | `/announcements` | in `itsm.service-desk` | 90    | `announcements.posts.manage` |
 
 ### Web routes
 
@@ -644,6 +655,12 @@ Service notices, maintenance windows and incident updates for everyone.
 | -------------------- | -------------------------- |
 | `/announcements`     | `announcements.posts.read` |
 | `/announcements/:id` | `announcements.posts.read` |
+
+### Slots contributed
+
+| Slot             | Permission                 |
+| ---------------- | -------------------------- |
+| `core.home.news` | `announcements.posts.read` |
 
 ### Background jobs
 
@@ -719,9 +736,10 @@ An AI agent that customises the platform with change sets people review, apply a
 
 ### Navigation
 
-| Label       | Path                     | Section | Group | Order | Permission            |
-| ----------- | ------------------------ | ------- | ----- | ----- | --------------------- |
-| Change sets | `/assistant/change-sets` | admin   | —     | 5     | `assistant.agent.use` |
+| Label         | Path                     | Placement                   | Order | Permission            |
+| ------------- | ------------------------ | --------------------------- | ----- | --------------------- |
+| Change sets   | `/assistant/change-sets` | Administration › automation | 24    | `assistant.agent.use` |
+| Process packs | `/assistant/packs`       | Administration › automation | 25    | `assistant.agent.use` |
 
 ### Web routes
 
@@ -730,12 +748,14 @@ An AI agent that customises the platform with change sets people review, apply a
 | `/assistant`                 | `assistant.agent.use` |
 | `/assistant/change-sets`     | `assistant.agent.use` |
 | `/assistant/change-sets/:id` | `assistant.agent.use` |
+| `/assistant/packs`           | `assistant.agent.use` |
 
 ### Slots contributed
 
 | Slot                | Permission            |
 | ------------------- | --------------------- |
 | `core.shell.header` | `assistant.agent.use` |
+| `core.forms.header` | `assistant.agent.use` |
 
 ## `azdo` — Azure DevOps Server (on-premises)
 
@@ -805,9 +825,9 @@ Configuration items, how they relate and what an outage would impact
 
 ### Navigation
 
-| Label               | Path    | Section | Group | Order | Permission      |
-| ------------------- | ------- | ------- | ----- | ----- | --------------- |
-| Configuration items | `/cmdb` | main    | —     | 40    | `cmdb.cis.read` |
+| Label               | Path    | Placement              | Order | Permission      |
+| ------------------- | ------- | ---------------------- | ----- | --------------- |
+| Configuration items | `/cmdb` | in `itsm.service-desk` | 40    | `cmdb.cis.read` |
 
 ### Custom-field entities
 
@@ -827,14 +847,14 @@ Request database roles on SQL Server, Oracle and PostgreSQL: approval, automated
 
 ### Permissions
 
-| Key                       | Scopes | Description                                                           |
-| ------------------------- | ------ | --------------------------------------------------------------------- |
-| `dbaccess.self.request`   | global | Request database roles and manage your own database access            |
-| `dbaccess.servers.manage` | global | Configure servers and requestable roles, run inventory syncs          |
-| `dbaccess.grants.read`    | global | See all database access, accounts, unmanaged access and orphans       |
-| `dbaccess.grants.manage`  | global | Revoke database access, adopt unmanaged access and retry provisioning |
-| `dbaccess.reviews.read`   | global | See database access review campaigns and their reports                |
-| `dbaccess.reviews.manage` | global | Run database access review campaigns                                  |
+| Key                       | Scopes | Description                                                                                |
+| ------------------------- | ------ | ------------------------------------------------------------------------------------------ |
+| `dbaccess.self.request`   | global | Request database roles and manage your own database access                                 |
+| `dbaccess.servers.manage` | global | Configure servers and requestable roles, run inventory syncs                               |
+| `dbaccess.grants.read`    | global | See all database access, accounts, access without a request and accounts that match nobody |
+| `dbaccess.grants.manage`  | global | Revoke database access, assign access without a request to a person and retry provisioning |
+| `dbaccess.reviews.read`   | global | See database access reviews and their reports                                              |
+| `dbaccess.reviews.manage` | global | Run database access reviews                                                                |
 
 ### Roles
 
@@ -908,18 +928,25 @@ Request database roles on SQL Server, Oracle and PostgreSQL: approval, automated
 
 ### Navigation
 
-| Label              | Path                | Section | Group           | Order | Permission                |
-| ------------------ | ------------------- | ------- | --------------- | ----- | ------------------------- |
-| My database access | `/dbaccess`         | main    | Database access | 64    | `dbaccess.self.request`   |
-| Access             | `/dbaccess/grants`  | main    | Database access | 65    | `dbaccess.grants.read`    |
-| Access reviews     | `/dbaccess/reviews` | main    | Database access | 66    | `dbaccess.self.request`   |
-| Servers            | `/dbaccess/servers` | main    | Database access | 67    | `dbaccess.servers.manage` |
+| Label              | Path                | Placement               | Order | Permission                                           |
+| ------------------ | ------------------- | ----------------------- | ----- | ---------------------------------------------------- |
+| My database access | `/dbaccess`         | sidebar                 | 3.5   | `dbaccess.self.request`                              |
+| Database access    | `/dbaccess/grants`  | sidebar group           | 65    | —                                                    |
+| Who has access     | `/dbaccess/grants`  | page of Database access | —     | `dbaccess.grants.read`                               |
+| Access reviews     | `/dbaccess/reviews` | page of Database access | —     | `dbaccess.reviews.read` or `dbaccess.reviews.manage` |
+| Servers            | `/dbaccess/servers` | page of Database access | —     | `dbaccess.servers.manage`                            |
+
+### My work sources
+
+| Source             | Kind   | Label                   | Permission              |
+| ------------------ | ------ | ----------------------- | ----------------------- |
+| `dbaccess.reviews` | review | Database access reviews | `dbaccess.self.request` |
 
 ### Portal entries
 
-| Entry                   | Path                | Permission              |
-| ----------------------- | ------------------- | ----------------------- |
-| Request database access | `/dbaccess/request` | `dbaccess.self.request` |
+| Entry                  | Path                | Permission              |
+| ---------------------- | ------------------- | ----------------------- |
+| Direct database access | `/dbaccess/request` | `dbaccess.self.request` |
 
 ### Web routes
 
@@ -1032,11 +1059,12 @@ REST endpoints from parameterized SQL and stored procedures, and ETL pipelines b
 
 ### Navigation
 
-| Label     | Path             | Section | Group           | Order | Permission           |
-| --------- | ---------------- | ------- | --------------- | ----- | -------------------- |
-| Data APIs | `/etl`           | main    | Data APIs & ETL | 56    | `etl.endpoints.read` |
-| Pipelines | `/etl/pipelines` | main    | Data APIs & ETL | 57    | `etl.pipelines.read` |
-| Call log  | `/etl/logs`      | main    | Data APIs & ETL | 58    | `etl.endpoints.read` |
+| Label             | Path             | Placement                 | Order | Permission           |
+| ----------------- | ---------------- | ------------------------- | ----- | -------------------- |
+| Data & automation | `/etl`           | sidebar group             | 56    | —                    |
+| Data APIs         | `/etl`           | page of Data & automation | —     | `etl.endpoints.read` |
+| Call log          | `/etl/logs`      | tab of Data APIs          | —     | `etl.endpoints.read` |
+| Pipelines         | `/etl/pipelines` | page of Data & automation | —     | `etl.pipelines.read` |
 
 ### Web routes
 
@@ -1112,16 +1140,15 @@ Helpdesk AI: `itsm.tickets.read` `itsm.tickets.triage` `knowledge.articles.read`
 
 ### Navigation
 
-| Label       | Path                | Section | Group        | Order | Permission                  |
-| ----------- | ------------------- | ------- | ------------ | ----- | --------------------------- |
-| Ask IT      | `/helpdesk-ai/chat` | main    | —            | 15    | `helpdesk-ai.chat.use`      |
-| AI insights | `/helpdesk-ai`      | main    | Service desk | 24    | `helpdesk-ai.insights.read` |
+| Label       | Path           | Placement         | Order | Permission                                         |
+| ----------- | -------------- | ----------------- | ----- | -------------------------------------------------- |
+| AI insights | `/helpdesk-ai` | in `itsm.reports` | 30    | `helpdesk-ai.insights.read` or `itsm.reports.read` |
 
 ### Web routes
 
 | Path                             | Permission                  |
 | -------------------------------- | --------------------------- |
-| `/helpdesk-ai`                   | `helpdesk-ai.insights.read` |
+| `/helpdesk-ai`                   | —                           |
 | `/helpdesk-ai/chat`              | `helpdesk-ai.chat.use`      |
 | `/helpdesk-ai/conversations/:id` | `helpdesk-ai.insights.read` |
 
@@ -1135,15 +1162,15 @@ Helpdesk AI: `itsm.tickets.read` `itsm.tickets.triage` `knowledge.articles.read`
 
 ## `integrations` — Integrations
 
-Connections to outside systems, sync profiles with field mappings, two-way sync, runs, linked records and conflicts
+Connections to outside systems, sync rules with field mappings, two-way sync, runs, linked records and conflicts
 
 ### Permissions
 
-| Key                               | Scopes | Description                                                        |
-| --------------------------------- | ------ | ------------------------------------------------------------------ |
-| `integrations.connections.read`   | global | See connections, sync profiles, runs, linked records and conflicts |
-| `integrations.connections.manage` | global | Add, edit and test connections, set up sync profiles and run syncs |
-| `integrations.conflicts.resolve`  | global | Resolve sync conflicts                                             |
+| Key                               | Scopes | Description                                                     |
+| --------------------------------- | ------ | --------------------------------------------------------------- |
+| `integrations.connections.read`   | global | See connections, sync rules, runs, linked records and conflicts |
+| `integrations.connections.manage` | global | Add, edit and test connections, set up sync rules and run syncs |
+| `integrations.conflicts.resolve`  | global | Resolve sync conflicts                                          |
 
 ### Roles
 
@@ -1185,10 +1212,10 @@ Integrations Hub: `*.*.sync`
 
 ### Navigation
 
-| Label          | Path                      | Section | Group        | Order | Permission                      |
-| -------------- | ------------------------- | ------- | ------------ | ----- | ------------------------------- |
-| Integrations   | `/integrations`           | admin   | Integrations | 70    | `integrations.connections.read` |
-| Sync conflicts | `/integrations/conflicts` | admin   | Integrations | 71    | `integrations.connections.read` |
+| Label          | Path                      | Placement                     | Order | Permission                      |
+| -------------- | ------------------------- | ----------------------------- | ----- | ------------------------------- |
+| Connections    | `/integrations`           | Administration › integrations | 40    | `integrations.connections.read` |
+| Sync conflicts | `/integrations/conflicts` | Administration › integrations | 41    | `integrations.connections.read` |
 
 ### Web routes
 
@@ -1318,13 +1345,22 @@ Information asset register with C/I/A values, stocktakes, shared accounts and ac
 
 ### Navigation
 
-| Label                | Path               | Section | Group                | Order | Permission           |
-| -------------------- | ------------------ | ------- | -------------------- | ----- | -------------------- |
-| Information assets   | `/isms`            | main    | Information security | 50    | `isms.assets.read`   |
-| Stocktakes           | `/isms/stocktakes` | main    | Information security | 50.1  | `isms.self.use`      |
-| Shared accounts      | `/isms/accounts`   | main    | Information security | 50.2  | `isms.self.use`      |
-| Account reviews      | `/isms/reviews`    | main    | Information security | 50.3  | `isms.self.use`      |
-| Information security | `/isms/settings`   | admin   | —                    | 62    | `isms.config.manage` |
+| Label                         | Path               | Placement                    | Order | Permission                                                                  |
+| ----------------------------- | ------------------ | ---------------------------- | ----- | --------------------------------------------------------------------------- |
+| Information security          | `/isms`            | sidebar group                | 50    | —                                                                           |
+| Information assets            | `/isms`            | page of Information security | —     | `isms.assets.read`                                                          |
+| Stocktakes                    | `/isms/stocktakes` | page of Information security | —     | `isms.assets.read` or `isms.stocktakes.manage` or `isms.stocktakes.signoff` |
+| Shared accounts               | `/isms/accounts`   | page of Information security | —     | `isms.accounts.read` or `isms.accounts.manage`                              |
+| Account reviews               | `/isms/reviews`    | page of Information security | —     | `isms.reviews.read` or `isms.reviews.manage` or `isms.reviews.signoff`      |
+| Information security settings | `/isms/settings`   | Administration › modules     | 32    | `isms.config.manage`                                                        |
+
+### My work sources
+
+| Source                  | Kind   | Label               | Permission      |
+| ----------------------- | ------ | ------------------- | --------------- |
+| `isms.stocktake-checks` | review | Stocktake checks    | `isms.self.use` |
+| `isms.account-reviews`  | review | Account reviews     | `isms.self.use` |
+| `isms.password-changes` | todo   | Passwords to change | `isms.self.use` |
 
 ### Custom-field entities
 
@@ -1467,16 +1503,18 @@ Hardware, software licences, contracts and vendors
 
 ### Navigation
 
-| Label             | Path                      | Section | Group  | Order | Permission             |
-| ----------------- | ------------------------- | ------- | ------ | ----- | ---------------------- |
-| Asset overview    | `/itam`                   | main    | Assets | 42    | `itam.hardware.read`   |
-| Hardware          | `/itam/hardware`          | main    | Assets | 43    | `itam.hardware.read`   |
-| Software          | `/itam/software`          | main    | Assets | 44    | `itam.software.read`   |
-| Approved software | `/itam/approved-software` | main    | Assets | 44.2  | `itam.software.read`   |
-| Discovery         | `/itam/discovery`         | main    | Assets | 44.5  | `itam.hardware.manage` |
-| Contracts         | `/itam/contracts`         | main    | Assets | 45    | `itam.contracts.read`  |
-| Vendors           | `/itam/vendors`           | main    | Assets | 46    | `itam.contracts.read`  |
-| Assets            | `/itam/settings`          | admin   | —      | 61    | `itam.config.manage`   |
+| Label              | Path                      | Placement                | Order | Permission             |
+| ------------------ | ------------------------- | ------------------------ | ----- | ---------------------- |
+| My devices         | `/itam/mine`              | sidebar                  | 3     | `itam.self.read`       |
+| Assets             | `/itam`                   | sidebar group            | 42    | —                      |
+| Overview           | `/itam`                   | page of Assets           | —     | `itam.hardware.read`   |
+| Hardware           | `/itam/hardware`          | page of Assets           | —     | `itam.hardware.read`   |
+| Software           | `/itam/software`          | page of Assets           | —     | `itam.software.read`   |
+| Approved software  | `/itam/approved-software` | tab of Software          | —     | `itam.software.read`   |
+| Installed software | `/itam/discovery`         | tab of Software          | —     | `itam.hardware.manage` |
+| Contracts          | `/itam/contracts`         | page of Assets           | —     | `itam.contracts.read`  |
+| Vendors            | `/itam/vendors`           | tab of Contracts         | —     | `itam.contracts.read`  |
+| Asset settings     | `/itam/settings`          | Administration › modules | 31    | `itam.config.manage`   |
 
 ### Portal entries
 
@@ -1643,13 +1681,21 @@ Incidents, service requests, problems and changes with SLAs
 
 ### Navigation
 
-| Label                | Path             | Section | Group        | Order | Permission           |
-| -------------------- | ---------------- | ------- | ------------ | ----- | -------------------- |
-| Tickets              | `/itsm`          | main    | Service desk | 20    | `itsm.tickets.work`  |
-| Problems             | `/itsm/problems` | main    | Service desk | 21    | `itsm.tickets.read`  |
-| Changes              | `/itsm/changes`  | main    | Service desk | 22    | `itsm.changes.read`  |
-| Service desk reports | `/itsm/reports`  | main    | Service desk | 23    | `itsm.reports.read`  |
-| Service desk         | `/itsm/settings` | admin   | —            | 60    | `itsm.config.manage` |
+| Label                 | Path             | Placement                | Order | Permission           |
+| --------------------- | ---------------- | ------------------------ | ----- | -------------------- |
+| Service desk          | `/itsm`          | sidebar group            | 20    | —                    |
+| Tickets               | `/itsm`          | page of Service desk     | —     | `itsm.tickets.work`  |
+| Problems              | `/itsm/problems` | page of Service desk     | —     | `itsm.tickets.read`  |
+| Changes               | `/itsm/changes`  | page of Service desk     | —     | `itsm.changes.read`  |
+| Reports               | `/itsm/reports`  | page of Service desk     | —     | `itsm.reports.read`  |
+| Service desk settings | `/itsm/settings` | Administration › modules | 30    | `itsm.config.manage` |
+
+### My work sources
+
+| Source                | Kind | Label             | Permission            |
+| --------------------- | ---- | ----------------- | --------------------- |
+| `itsm.accept-changes` | todo | Changes to accept | `itsm.tickets.create` |
+| `itsm.confirm-fixes`  | todo | Fixes to confirm  | `itsm.tickets.create` |
 
 ### Portal entries
 
@@ -1754,11 +1800,11 @@ Answers and how-to guides for everyone, troubleshooting guides for the service d
 
 ### AI tools
 
-| Tool                        | Permission                 | Kind      | Input                                                                                                                                |
-| --------------------------- | -------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `knowledge.search_articles` | `knowledge.articles.read`  | read-only | query: string, limit: integer, locale?: string                                                                                       |
-| `knowledge.get_article`     | `knowledge.articles.read`  | read-only | id?: string, reference?: string                                                                                                      |
-| `knowledge.create_draft`    | `knowledge.articles.write` | —         | title: string, summary?: string, body: string, categoryKey?: string, tags?: array, locale: string, audience: string, source?: object |
+| Tool                        | Permission                 | Kind      | Input                                                                                                                                 |
+| --------------------------- | -------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `knowledge.search_articles` | `knowledge.articles.read`  | read-only | query: string, limit: integer, locale?: string                                                                                        |
+| `knowledge.get_article`     | `knowledge.articles.read`  | read-only | id?: string, reference?: string                                                                                                       |
+| `knowledge.create_draft`    | `knowledge.articles.write` | —         | title: string, summary?: string, body: string, categoryKey?: string, tags?: array, locale?: string, audience: string, source?: object |
 
 ### Settings
 
@@ -1771,9 +1817,11 @@ Answers and how-to guides for everyone, troubleshooting guides for the service d
 
 ### Navigation
 
-| Label     | Path         | Section | Group | Order | Permission                |
-| --------- | ------------ | ------- | ----- | ----- | ------------------------- |
-| Knowledge | `/knowledge` | main    | —     | 30    | `knowledge.articles.read` |
+| Label           | Path                    | Placement        | Order | Permission                    |
+| --------------- | ----------------------- | ---------------- | ----- | ----------------------------- |
+| Knowledge       | `/knowledge`            | sidebar          | 4     | `knowledge.articles.read`     |
+| Manage articles | `/knowledge/manage`     | tab of Knowledge | —     | `knowledge.articles.write`    |
+| Categories      | `/knowledge/categories` | tab of Knowledge | —     | `knowledge.categories.manage` |
 
 ### Portal entries
 
@@ -1898,10 +1946,16 @@ Projects, tasks, milestones, boards, timelines and workload
 
 ### Navigation
 
-| Label    | Path                 | Section | Group    | Order | Permission              |
-| -------- | -------------------- | ------- | -------- | ----- | ----------------------- |
-| Projects | `/projects`          | main    | Projects | 52    | `projects.projects.use` |
-| My tasks | `/projects/my-tasks` | main    | Projects | 53    | `projects.projects.use` |
+| Label    | Path                 | Placement       | Order | Permission              |
+| -------- | -------------------- | --------------- | ----- | ----------------------- |
+| Projects | `/projects`          | sidebar         | 52    | `projects.projects.use` |
+| My tasks | `/projects/my-tasks` | tab of Projects | —     | `projects.projects.use` |
+
+### My work sources
+
+| Source           | Kind | Label         | Permission |
+| ---------------- | ---- | ------------- | ---------- |
+| `projects.tasks` | task | Project tasks | —          |
 
 ### Custom-field entities
 
@@ -1915,12 +1969,6 @@ Projects, tasks, milestones, boards, timelines and workload
 | `/projects/my-tasks`   | `projects.projects.use` |
 | `/projects/tasks/:ref` | `projects.projects.use` |
 | `/projects/:key`       | `projects.projects.use` |
-
-### Slots contributed
-
-| Slot                  | Permission              |
-| --------------------- | ----------------------- |
-| `core.dashboard.work` | `projects.projects.use` |
 
 ### Background jobs
 
@@ -2008,11 +2056,11 @@ HTTP calls, SQL tasks, sandboxed scripts and module tasks on a schedule, with re
 
 ### Navigation
 
-| Label    | Path              | Section | Group          | Order | Permission            |
-| -------- | ----------------- | ------- | -------------- | ----- | --------------------- |
-| Overview | `/scheduler`      | main    | Scheduled jobs | 60    | `scheduler.jobs.read` |
-| Jobs     | `/scheduler/jobs` | main    | Scheduled jobs | 61    | `scheduler.jobs.read` |
-| Runs     | `/scheduler/runs` | main    | Scheduled jobs | 62    | `scheduler.jobs.read` |
+| Label          | Path              | Placement             | Order | Permission            |
+| -------------- | ----------------- | --------------------- | ----- | --------------------- |
+| Scheduled jobs | `/scheduler`      | in `etl.data`         | 60    | `scheduler.jobs.read` |
+| Jobs           | `/scheduler/jobs` | tab of Scheduled jobs | —     | `scheduler.jobs.read` |
+| Runs           | `/scheduler/runs` | tab of Scheduled jobs | —     | `scheduler.jobs.read` |
 
 ### Web routes
 

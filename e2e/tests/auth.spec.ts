@@ -17,7 +17,7 @@ test.describe('sign-in', () => {
     // An unknown account: same generic error, and the real admin account never gets locked by test runs.
     await page.getByLabel('Email or username').fill('nobody-here');
     await page.getByLabel('Password').fill('definitely-wrong');
-    await page.getByRole('button', { name: 'Sign in' }).click();
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByText('Incorrect username or password.')).toBeVisible();
   });
 
@@ -25,7 +25,7 @@ test.describe('sign-in', () => {
     await page.goto('/login?next=%2Fadmin%2Fusers');
     await page.getByLabel('Email or username').fill(ADMIN.username);
     await page.getByLabel('Password').fill(ADMIN.password);
-    await page.getByRole('button', { name: 'Sign in' }).click();
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page).toHaveURL(/\/admin\/users$/);
     await expect(page.getByRole('heading', { name: 'People' })).toBeVisible();
   });
@@ -70,7 +70,7 @@ test.describe('required password change', () => {
       await hydrated();
       await page.getByLabel('Email or username').fill(username);
       await page.getByLabel('Password').fill(initial);
-      await page.getByRole('button', { name: 'Sign in' }).click();
+      await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 
       await expect(page).toHaveURL(/\/settings\?password=required&next=%2Frequests$/);
       await hydrated();

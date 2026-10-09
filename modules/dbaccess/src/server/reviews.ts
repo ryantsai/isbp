@@ -41,6 +41,7 @@ import {
   closeOutcome,
   formatReviewRef,
   nextCampaignDates,
+  REVIEW_REF_RE,
   REVIEW_REMIND_DAYS,
   type ReviewDecision,
   reviewerFor,
@@ -50,9 +51,19 @@ import {
 } from '../model';
 import { groupsOf, PERMISSIONS, personOf, requireAny } from './access';
 import type { GrantService } from './grants';
-import { grants, requestableRoles, reviewItems, reviews, servers } from './schema';
+import {
+  grants,
+  inventoryAccounts,
+  requestableRoles,
+  requests,
+  reviewItems,
+  reviews,
+  servers,
+} from './schema';
 import type { ServerService } from './servers';
 import { activeMembers, groupsByIds, peopleByIds, personRef, roleRef, serverRef } from './support';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type ReviewRow = typeof reviews.$inferSelect;
 const REVIEW_ENTITY = 'dbaccess.review';
@@ -74,6 +85,18 @@ export class ReviewService {
     const [row] = await this.db.select().from(reviews).where(eq(reviews.id, id));
     if (!row) throw httpErrors.notFound('Access review not found');
     return row;
+  }
+
+  /** The id of a review given its reference (`REV-0001`, used in links) or its id. */
+  async idOf(ref: string): Promise<string> {
+    const m = REVIEW_REF_RE.exec(ref);
+    if (!m && !UUID_RE.test(ref)) throw httpErrors.notFound('Access review not found');
+    const [row] = await this.db
+      .select({ id: reviews.id })
+      .from(reviews)
+      .where(m ? eq(reviews.number, Number(m[1])) : eq(reviews.id, ref));
+    if (!row) throw httpErrors.notFound('Access review not found');
+    return row.id;
   }
 
   private canRead(auth: AuthContext) {
@@ -154,13 +177,16 @@ export class ReviewService {
       .from(reviewItems)
       .where(inArray(reviewItems.reviewId, ids))
       .groupBy(reviewItems.reviewId, reviewItems.decision);
+    const reviewer = await this.reviewerCond(auth);
     const mine = await this.db
-      .select({ reviewId: reviewItems.reviewId, n: count() })
+      .select({
+        reviewId: reviewItems.reviewId,
+        n: count(),
+        pending: sql<number>`count(*) filter (where ${reviewItems.decision} is null)`.mapWith(Number),
+      })
       .from(reviewItems)
       .innerJoin(grants, eq(grants.id, reviewItems.grantId))
-      .where(
-        and(inArray(reviewItems.reviewId, ids), isNull(reviewItems.decision), await this.reviewerCond(auth)),
-      )
+      .where(and(inArray(reviewItems.reviewId, ids), reviewer))
       .groupBy(reviewItems.reviewId);
     const serverBy = await this.serversSvc.rowsByIds(rows.flatMap((r) => r.serverIds));
     const allServers = rows.some((r) => !r.serverIds.length) ? await this.db.select().from(servers) : [];
@@ -197,7 +223,8 @@ export class ReviewService {
           kept: sum('keep'),
           revoked: sum('revoke'),
           pending: sum(null),
-          mine: mine.find((m) => m.reviewId === r.id)?.n ?? 0,
+          mine: mine.find((m) => m.reviewId === r.id)?.pending ?? 0,
+          mineTotal: mine.find((m) => m.reviewId === r.id)?.n ?? 0,
         },
         canManage: canManage && r.status !== 'closed',
         createdAt: r.createdAt,
@@ -300,7 +327,7 @@ export class ReviewService {
             type: 'dbaccess.review.assigned',
             recipients: [userId],
             params: { name: r.name, count: n, dueOn: r.dueOn },
-            href: `/dbaccess/reviews/${id}`,
+            href: `/dbaccess/reviews/${formatReviewRef(r.number)}?view=mine`,
           },
           { tx },
         );
@@ -327,7 +354,15 @@ export class ReviewService {
 
   async items(
     id: string,
-    query: { page: number; pageSize: number; q?: string; view?: string; serverId?: string; sort?: string },
+    query: {
+      page: number;
+      pageSize: number;
+      q?: string;
+      view?: string;
+      mine?: boolean;
+      serverId?: string;
+      sort?: string;
+    },
     auth: AuthContext,
   ) {
     const r = await this.row(id);
@@ -335,7 +370,7 @@ export class ReviewService {
     const reviewer = await this.reviewerCond(auth);
     const where: (SQL | undefined)[] = [eq(reviewItems.reviewId, id)];
     const view = query.view ?? (reader ? 'all' : 'mine');
-    if (view === 'mine' || !reader) where.push(reviewer);
+    if (view === 'mine' || query.mine || !reader) where.push(reviewer);
     if (view === 'mine' || view === 'undecided') where.push(isNull(reviewItems.decision));
     if (view === 'decided') where.push(isNotNull(reviewItems.decision));
     if (query.serverId) where.push(eq(grants.serverId, query.serverId));
@@ -404,7 +439,59 @@ export class ReviewService {
     const me = personOf(auth);
     const myGroups = await groupsOf(this.db, auth);
     const manager = auth.can(PERMISSIONS.reviewsManage);
+    // Why the person has it and whether they use it: the request's reason and the account's last sign-in.
+    const requestIds = [...new Set(rows.map((x) => x.g.requestId).filter((v): v is string => Boolean(v)))];
+    const reasons = new Map(
+      requestIds.length
+        ? (
+            await this.db
+              .select({ id: requests.id, justification: requests.justification })
+              .from(requests)
+              .where(inArray(requests.id, requestIds))
+          ).map((q) => [q.id, q.justification])
+        : [],
+    );
+    const accountKeys = rows.filter((x) => x.g.accountName).map((x) => [x.g.serverId, x.g.accountName!]);
+    const logins = new Map(
+      accountKeys.length
+        ? (
+            await this.db
+              .select({
+                serverId: inventoryAccounts.serverId,
+                name: inventoryAccounts.name,
+                lastLoginAt: inventoryAccounts.lastLoginAt,
+                syncedAt: inventoryAccounts.syncedAt,
+              })
+              .from(inventoryAccounts)
+              .where(
+                or(
+                  ...accountKeys.map(([serverId, name]) =>
+                    and(
+                      eq(inventoryAccounts.serverId, serverId!),
+                      eq(sql`lower(${inventoryAccounts.name})`, name!.toLowerCase()),
+                    ),
+                  ),
+                ),
+              )
+          ).map((a) => [`${a.serverId}|${a.name.toLowerCase()}`, a])
+        : [],
+    );
+    // Only some engines report sign-ins (Oracle): a server whose accounts never show one doesn't report them.
+    const serverIds = [...new Set(rows.map((x) => x.g.serverId))];
+    const reporting = new Set(
+      serverIds.length
+        ? (
+            await this.db
+              .selectDistinct({ serverId: inventoryAccounts.serverId })
+              .from(inventoryAccounts)
+              .where(
+                and(inArray(inventoryAccounts.serverId, serverIds), isNotNull(inventoryAccounts.lastLoginAt)),
+              )
+          ).map((r) => r.serverId)
+        : [],
+    );
     return rows.map(({ item, g, role }) => {
+      const login = g.accountName ? logins.get(`${g.serverId}|${g.accountName.toLowerCase()}`) : undefined;
       const reviewerPerson = item.reviewerUserId ? people.get(item.reviewerUserId) : undefined;
       const reviewerGroup = item.reviewerGroupId ? groupBy.get(item.reviewerGroupId) : undefined;
       const assigned =
@@ -419,6 +506,11 @@ export class ReviewService {
         server: serverRef(serverBy.get(g.serverId)!),
         grantedAt: g.grantedAt,
         expiresAt: g.expiresAt,
+        reason: (g.requestId ? reasons.get(g.requestId) : null) || null,
+        signIn:
+          login && reporting.has(g.serverId)
+            ? { known: true, lastAt: login.lastLoginAt, checkedAt: login.syncedAt }
+            : { known: false, lastAt: null, checkedAt: null },
         reviewer: reviewerPerson
           ? { kind: 'user', id: reviewerPerson.id, name: reviewerPerson.displayName }
           : reviewerGroup
@@ -694,7 +786,7 @@ export class ReviewService {
             type: 'dbaccess.review.reminder',
             recipients: [userId],
             params: { name: r.name, pending: n, dueOn: r.dueOn, policy: r.policy },
-            href: `/dbaccess/reviews/${r.id}`,
+            href: `/dbaccess/reviews/${formatReviewRef(r.number)}?view=mine`,
           },
           { tx },
         );

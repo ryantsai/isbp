@@ -3,7 +3,7 @@ import { changes, problems, ticketLinks, tickets, ticketSlas } from '@isbp/modul
 import { and, count, eq, isNotNull, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hashPassword } from '../../src/kernel/passwords';
-import { createHarness, type Harness, type LooseJson, PASSWORD, type Session } from './harness';
+import { createHarness, everyPage, type Harness, type LooseJson, PASSWORD, type Session } from './harness';
 
 let h: Harness;
 let admin: Session;
@@ -165,13 +165,13 @@ describe('itsm demo seed', () => {
     expect(report.body.topCategories.length).toBeGreaterThan(3);
     const from = new Date(Date.now() - 30 * 86_400_000).toISOString();
     const to = new Date(Date.now() + 30 * 86_400_000).toISOString();
-    const calendar = await h.call(
+    const calendar = await everyPage(
+      h,
       admin,
-      'GET',
       `${API}/changes/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     );
     expect(
-      calendar.body.items
+      calendar.items
         .filter((c: LooseJson) => c.hasConflict)
         .map((c: LooseJson) => c.title)
         .sort(),

@@ -27,6 +27,7 @@ import {
   localize,
   type LocalizedText,
   type ModuleContext,
+  parseRecordRef,
   PermissionSet,
   type Principal,
   type ProcessActionDef,
@@ -684,8 +685,9 @@ export class ProcessActionRegistry {
         : null,
       decidedBy: decider ? { id: decider.id, displayName: decider.displayName } : null,
     };
-    // Display text of the answers (English option labels, people's names, Yes/No); a table is one line per row,
-    // "Column: value · Column: value".
+    const names = await this.recordNames(fields, sub.data, form.key);
+    // Display text of the answers (English option labels, people's names, records' names, Yes/No); a table is one
+    // line per row, "Column: value · Column: value".
     const shown = (f: FieldDef, v: unknown): string => {
       if (v === undefined || v === null || v === '') return '';
       if (f.type === 'rows')
@@ -707,9 +709,11 @@ export class ProcessActionRegistry {
         ? list.map(label).join(', ')
         : f.type === 'user'
           ? list.map((x) => people.get(String(x))?.displayName ?? String(x)).join(', ')
-          : f.type === 'boolean'
-            ? YES_NO[String(Boolean(v)) as 'true' | 'false']
-            : list.map(String).join(', ');
+          : f.type === 'record'
+            ? list.map((x) => names.get(String(x)) ?? String(x)).join(', ')
+            : f.type === 'boolean'
+              ? YES_NO[String(Boolean(v)) as 'true' | 'false']
+              : list.map(String).join(', ');
     };
     const answers: Record<string, string> = {};
     for (const f of fields) {
@@ -741,6 +745,34 @@ export class ProcessActionRegistry {
       decidedBy: decider ? { id: decider.id, displayName: decider.displayName } : {},
     };
     return { request, context };
+  }
+
+  /**
+   * Names (resolver titles) of the records picked in record fields, by `type:id`, for `answers.<field>` in templates.
+   * Each record type is read as its own module (the principal of `authFor`): the requester could read them when they
+   * picked them (R51), and a name the module no longer resolves keeps its reference.
+   */
+  private async recordNames(
+    fields: readonly FieldDef[],
+    data: Record<string, unknown>,
+    formKey: string,
+  ): Promise<Map<string, string>> {
+    const byModule = new Map<string, { type: string; id: string }[]>();
+    for (const f of fields.filter((x) => x.type === 'record')) {
+      const raw = data[f.key];
+      for (const v of Array.isArray(raw) ? raw : [raw]) {
+        const ref = typeof v === 'string' ? parseRecordRef(v) : null;
+        if (ref) byModule.set(ref.moduleId, [...(byModule.get(ref.moduleId) ?? []), ref]);
+      }
+    }
+    const names = new Map<string, string>();
+    await Promise.all(
+      [...byModule].map(async ([moduleId, refs]) => {
+        const resolved = await this.deps.records.resolve(refs, this.authFor(moduleId, formKey));
+        for (const [key, r] of resolved) names.set(key, r.title);
+      }),
+    );
+    return names;
   }
 
   /** A system principal named after the form, holding only the providing module's own permissions (decision 71). */

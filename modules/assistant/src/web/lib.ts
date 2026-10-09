@@ -13,7 +13,9 @@ import type {
   conversationSchema,
   kindInfoSchema,
   messageSchema,
+  packageContentSchema,
   packageInfoSchema,
+  packageListSchema,
 } from '../contracts';
 
 /* What the browser receives (dates as ISO strings). */
@@ -26,6 +28,8 @@ export type AssistantStatusDto = z.input<typeof assistantStatusSchema>;
 export type KindInfoDto = z.input<typeof kindInfoSchema>;
 export type ConfirmationDto = z.input<typeof confirmationSchema>;
 export type PackageInfoDto = z.input<typeof packageInfoSchema>;
+export type PackageContentDto = z.input<typeof packageContentSchema>;
+export type PackageListDto = z.input<typeof packageListSchema>;
 
 export const STATUS_PATH = '/assistant/status';
 export const CONVERSATIONS_PATH = '/assistant/conversations';
@@ -33,6 +37,11 @@ export const CHANGE_SETS_PATH = '/assistant/change-sets';
 export const changeSetApiPath = (id: string) => `${CHANGE_SETS_PATH}/${id}`;
 /** Built-in packages; `installPackagePath` makes a change set from one, `IMPORT_PATH` from a file. */
 export const PACKAGES_PATH = '/assistant/packages';
+/** What a built-in package holds, in the reader's language. */
+export const packageContentPath = (moduleId: string, key: string) =>
+  `${PACKAGES_PATH}/${encodeURIComponent(moduleId)}/${encodeURIComponent(key)}`;
+/** The process packs page (the web route). */
+export const PACKS_HREF = '/assistant/packs';
 export const installPackagePath = (moduleId: string, key: string) =>
   `${PACKAGES_PATH}/${encodeURIComponent(moduleId)}/${encodeURIComponent(key)}/install`;
 export const IMPORT_PATH = `${CHANGE_SETS_PATH}/import`;
@@ -76,6 +85,12 @@ export function useKindLabel(kinds: readonly KindInfoDto[] | undefined) {
 export function useCatalogText() {
   const t = useTranslations();
   return useCallback((key: string) => (/^[a-z][\w-]*\.[\w.-]+$/.test(key) && t.has(key) ? t(key) : key), [t]);
+}
+
+/** "Request form" → "request form" inside an English sentence (acronyms such as "SLA policy" stay). */
+export function kindInSentence(label: string, locale: string): string {
+  if (!locale.startsWith('en') || label.length < 2) return label;
+  return label[1] === label[1]!.toLowerCase() ? label[0]!.toLowerCase() + label.slice(1) : label;
 }
 
 export type CheckState = 'unchecked' | 'ok' | 'needsApprover' | 'failing';

@@ -86,6 +86,7 @@ const pad = (n: number, width = 5) => String(n).padStart(width, '0');
 export const formatRequestRef = (n: number) => `DBR-${pad(n)}`;
 export const formatReviewRef = (n: number) => `REV-${pad(n, 4)}`;
 export const REQUEST_REF_RE = /^DBR-(\d{1,9})$/i;
+export const REVIEW_REF_RE = /^REV-(\d{1,9})$/i;
 
 /* ───────────────────────────── naming ───────────────────────────── */
 
