@@ -104,17 +104,21 @@ describe('ClamdScanner', () => {
     );
   }
 
+  // A neutral marker, not the EICAR test string: Windows Defender quarantines EICAR on disk. The fake
+  // clamd only looks for this marker, so the dirty path is still exercised end to end.
+  const infected = 'ISBP-TEST-INFECTED-PAYLOAD';
+
   it('reports clean files and found signatures', async () => {
     const clamd = await fakeClamd((body) =>
-      body.toString().includes('EICAR') ? 'stream: Eicar-Test-Signature FOUND\0' : 'stream: OK\0',
+      body.toString().includes(infected) ? 'stream: ISBP-Test-Signature FOUND\0' : 'stream: OK\0',
     );
     const scanner = new ClamdScanner('127.0.0.1', clamd.port, 2_000);
     const clean = join(dir, 'clean.txt');
     const dirty = join(dir, 'dirty.txt');
     await writeFile(clean, 'just text');
-    await writeFile(dirty, 'X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*');
+    await writeFile(dirty, infected);
     expect(await scanner.scan(clean)).toEqual({ clean: true });
-    expect(await scanner.scan(dirty)).toEqual({ clean: false, signature: 'Eicar-Test-Signature' });
+    expect(await scanner.scan(dirty)).toEqual({ clean: false, signature: 'ISBP-Test-Signature' });
     clamd.close();
   });
 

@@ -12,6 +12,34 @@ test.describe('sign-in', () => {
     await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   });
 
+  for (const theme of ['light', 'dark'] as const) {
+    test(`preserves the saved ${theme} theme through hydration and a language refresh`, async ({ page }) => {
+      const errors: string[] = [];
+      page.on('console', (message) => {
+        if (message.type() === 'error') errors.push(message.text());
+      });
+      page.on('pageerror', (error) => errors.push(error.message));
+      await page.emulateMedia({ colorScheme: theme === 'light' ? 'dark' : 'light' });
+      await page.addInitScript((savedTheme) => localStorage.setItem('theme', savedTheme), theme);
+
+      const response = await page.goto('/login');
+      await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible();
+      await expect(page.locator('html')).toHaveClass(theme);
+      const nonce = response?.headers()['content-security-policy']?.match(/'nonce-([^']+)'/)?.[1];
+      expect(nonce).toBeTruthy();
+      expect(await page.locator('#theme-init').evaluate((script: HTMLScriptElement) => script.nonce)).toBe(
+        nonce,
+      );
+
+      await page.getByRole('button', { name: 'Language', exact: true }).click();
+      await page.getByRole('menuitemradio', { name: '繁體中文（台灣）', exact: true }).click();
+      await expect(page.locator('html')).toHaveAttribute('lang', 'zh-Hant-TW');
+      await expect(page.locator('html')).toHaveClass(theme);
+      await expect(page.locator('#theme-init')).toHaveCount(1);
+      expect(errors).toEqual([]);
+    });
+  }
+
   test('shows a friendly error for wrong credentials', async ({ page }) => {
     await page.goto('/login');
     // An unknown account: same generic error, and the real admin account never gets locked by test runs.

@@ -8,6 +8,7 @@ import { Toaster } from '@isbp/ui/sonner';
 import { themeInitScript } from '@isbp/ui/theme';
 import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
+import Script from 'next/script';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
@@ -43,8 +44,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang={htmlLang[locale]} suppressHydrationWarning>
       <head>
         {cjkFonts[locale] && <link rel="stylesheet" href={cjkFonts[locale]} />}
-        {/* Applies the saved theme before first paint (server-rendered, CSP nonce). */}
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        {/* Applies the saved theme before hydration, with the request's CSP nonce. */}
+        <Script id="theme-init" strategy="beforeInteractive" nonce={nonce}>
+          {themeInitScript}
+        </Script>
       </head>
       <body className="min-h-dvh font-sans">
         <NextIntlClientProvider>
