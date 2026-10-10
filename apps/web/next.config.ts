@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
@@ -12,7 +13,7 @@ const config: NextConfig = {
   poweredByHeader: false,
   // Workspace packages (incl. every installed module) ship TypeScript source.
   transpilePackages: Object.keys(pkg.dependencies).filter((d) => d.startsWith('@isbp/')),
-  outputFileTracingRoot: new URL('../..', import.meta.url).pathname,
+  outputFileTracingRoot: fileURLToPath(new URL('../..', import.meta.url)),
   typedRoutes: false,
   experimental: {
     // proxy.ts buffers request bodies it forwards to the API (default 10 MB, then *truncated*). Attachments

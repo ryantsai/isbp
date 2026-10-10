@@ -99,6 +99,12 @@ preparation task before launching Next.js. Both profiles load the root `.env` wh
 use the local defaults. The web debug port is fixed at 3000; if you change it in `.vscode/launch.json`, also
 update `PUBLIC_URL` for the API. To use Chrome, change `serverReadyAction.action` to `debugWithChrome`.
 
+If Windows startup fails with `ERR_SWC_NATIVE_CACHE`, the compiler rejected permissions on its native
+cache or a parent directory. Set `SWC_NATIVE_BINDING_CACHE` in the root `.env` to an absolute, private cache
+directory whose parents do not grant other accounts replacement rights. A cache inside a profile shared
+with sandbox accounts may still be rejected. The debug profile loads this setting automatically. See
+[SWC's native cache guide](https://github.com/swc-project/swc/blob/main/docs/native-addon-carriers.md).
+
 The launch profiles use VS Code's built-in JavaScript debugger and follow the
 [Next.js debugging guide](https://nextjs.org/docs/app/guides/debugging).
 
