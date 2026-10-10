@@ -179,11 +179,7 @@ function LayoutToggle({
 }) {
   const t = useTranslations('projects.portfolio');
   return (
-    <div
-      role="group"
-      aria-label={t('layout')}
-      className="inline-flex rounded-md border bg-background p-0.5 shadow-xs"
-    >
+    <div role="group" aria-label={t('layout')} className="inline-flex rounded-md border bg-background p-0.5">
       {options.map((o) => (
         <button
           key={o.value}

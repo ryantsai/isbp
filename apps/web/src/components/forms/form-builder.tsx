@@ -211,7 +211,7 @@ export function FormBuilderView({ id }: { id: string }) {
   );
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         {back}
         <div className="flex items-center gap-4">
           <Skeleton className="size-12 rounded-xl" />
@@ -226,7 +226,7 @@ export function FormBuilderView({ id }: { id: string }) {
     );
   if (error || !data)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         {back}
         <EmptyState
           icon={<FileQuestionMarkIcon />}
@@ -877,7 +877,7 @@ function FormBuilder({ form }: { form: FormDetail }) {
           <FormIconTile name={state.icon} className="size-12 rounded-xl" />
           <div className="min-w-0 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="min-w-0 text-2xl font-semibold tracking-tight break-words">{name}</h1>
+              <h1 className="min-w-0 text-xl font-semibold tracking-tight break-words">{name}</h1>
               <motion.span
                 key={`${form.publishedVersion}-${form.archived}`}
                 initial={{ scale: 0.85, opacity: 0 }}
@@ -1135,7 +1135,7 @@ function FormBuilder({ form }: { form: FormDetail }) {
               {mode !== 'compact' && (
                 <aside
                   aria-label={t('properties')}
-                  className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border bg-card p-4 shadow-xs"
+                  className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border bg-card p-4"
                 >
                   {properties}
                 </aside>
@@ -1429,7 +1429,7 @@ function PropertiesEmpty({
         </button>
       )}
       <div className="grid gap-2 text-xs text-muted-foreground">
-        <h3 className="font-semibold tracking-wide uppercase">{t('tips')}</h3>
+        <h3 className="font-semibold">{t('tips')}</h3>
         <p>{t('tipDrag')}</p>
         <p className="flex flex-wrap items-center gap-1">
           <Kbd>Alt</Kbd>+<Kbd>↑</Kbd>/<Kbd>↓</Kbd> {t('tipMove')}

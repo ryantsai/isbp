@@ -12,6 +12,7 @@ import {
 } from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { RecordPicker } from '@isbp/ui/record-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
@@ -100,6 +101,7 @@ function AccountForm({
     review: useId(),
     notes: useId(),
   };
+  const list = useFieldList();
   const [v, setV] = useState({
     accountName: account?.accountName ?? '',
     targetSystem: account?.targetSystem ?? '',
@@ -162,22 +164,22 @@ function AccountForm({
       <Input id={id} value={v[key]} onChange={(e) => setV({ ...v, [key]: e.target.value })} />
     </div>
   );
+  const detailsFilled = countFilled(
+    v.targetRef,
+    v.departmentId === NONE ? '' : v.departmentId,
+    v.project,
+    v.requestReference,
+    account ? '' : v.lastPasswordChangeOn,
+    v.nextReviewOn,
+    v.purpose,
+    v.notes,
+  );
   return (
     <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col" noValidate>
       <SheetBody className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {input('accountName', ids.name, t('fields.accountName'))}
           {input('targetSystem', ids.system, t('fields.targetSystem'))}
-        </div>
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={ids.target}>{t('fields.targetRecord')}</Label>
-          <RecordPicker
-            id={ids.target}
-            types={TARGET_TYPES}
-            value={v.targetRef ? [v.targetRef] : []}
-            onChange={(refs: string[]) => setV({ ...v, targetRef: refs[0] ?? null })}
-          />
-          <p className="text-xs text-muted-foreground">{t('accountForm.targetHint')}</p>
         </div>
         <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={ids.custodian}>{t('fields.custodian')}</Label>
@@ -198,7 +200,30 @@ function AccountForm({
           />
           {account && <p className="text-xs text-muted-foreground">{t('accountForm.removeHint')}</p>}
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <OptionalFields
+          hint={list([
+            t('fields.targetRecord'),
+            t('fields.department'),
+            t('fields.project'),
+            t('fields.requestReference'),
+            ...(account ? [] : [t('fields.lastPasswordChangeOn')]),
+            t('fields.nextReviewOn'),
+            t('fields.purpose'),
+            t('fields.notes'),
+          ])}
+          filled={detailsFilled}
+          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+        >
+          <div className="grid min-w-0 gap-1.5 sm:col-span-2">
+            <Label htmlFor={ids.target}>{t('fields.targetRecord')}</Label>
+            <RecordPicker
+              id={ids.target}
+              types={TARGET_TYPES}
+              value={v.targetRef ? [v.targetRef] : []}
+              onChange={(refs: string[]) => setV({ ...v, targetRef: refs[0] ?? null })}
+            />
+            <p className="text-xs text-muted-foreground">{t('accountForm.targetHint')}</p>
+          </div>
           <div className="grid min-w-0 gap-1.5">
             <Label htmlFor={ids.dept}>{t('fields.department')}</Label>
             <Select value={v.departmentId} onValueChange={(d) => setV({ ...v, departmentId: d })}>
@@ -237,25 +262,25 @@ function AccountForm({
               onChange={(e) => setV({ ...v, nextReviewOn: e.target.value })}
             />
           </div>
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor={ids.purpose}>{t('fields.purpose')}</Label>
-          <Textarea
-            id={ids.purpose}
-            rows={2}
-            value={v.purpose}
-            onChange={(e) => setV({ ...v, purpose: e.target.value })}
-          />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor={ids.notes}>{t('fields.notes')}</Label>
-          <Textarea
-            id={ids.notes}
-            rows={2}
-            value={v.notes}
-            onChange={(e) => setV({ ...v, notes: e.target.value })}
-          />
-        </div>
+          <div className="grid gap-1.5 sm:col-span-2">
+            <Label htmlFor={ids.purpose}>{t('fields.purpose')}</Label>
+            <Textarea
+              id={ids.purpose}
+              rows={2}
+              value={v.purpose}
+              onChange={(e) => setV({ ...v, purpose: e.target.value })}
+            />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-2">
+            <Label htmlFor={ids.notes}>{t('fields.notes')}</Label>
+            <Textarea
+              id={ids.notes}
+              rows={2}
+              value={v.notes}
+              onChange={(e) => setV({ ...v, notes: e.target.value })}
+            />
+          </div>
+        </OptionalFields>
         {error && (
           <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}

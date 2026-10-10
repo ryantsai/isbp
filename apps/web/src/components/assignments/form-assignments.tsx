@@ -300,7 +300,7 @@ export function FormAssignments({ form }: { form: FormDetail }) {
         : a.assignee.user.displayName;
 
   return (
-    <div className="grid min-w-0 gap-6">
+    <div className="grid min-w-0 gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="grid min-w-0 gap-1">
           <h2 className="text-lg font-semibold">{t('title')}</h2>

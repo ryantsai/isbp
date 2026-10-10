@@ -9,7 +9,6 @@ import {
   scopeTypeSchema,
   type UserDetail,
 } from '@isbp/contracts';
-import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import {
   Form,
@@ -21,6 +20,7 @@ import {
   FormMessage,
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
+import { OptionalFields } from '@isbp/ui/optional-fields';
 import {
   Select,
   SelectContent,
@@ -42,7 +42,6 @@ import {
 import { Textarea } from '@isbp/ui/textarea';
 import {
   AlertTriangleIcon,
-  ChevronDownIcon,
   FileKeyIcon,
   GlobeIcon,
   NetworkIcon,
@@ -278,7 +277,7 @@ export function GrantRoleSheet({
         </SheetHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
-            <SheetBody className="space-y-6 py-2">
+            <SheetBody className="space-y-5 py-2">
               {/* role */}
               <FormField
                 control={form.control}
@@ -472,114 +471,89 @@ export function GrantRoleSheet({
               />
 
               {/* advanced: scope */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setAdvanced((a) => !a)}
-                  aria-expanded={advanced}
-                  className="flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  <ChevronDownIcon
-                    className={`size-4 transition-transform duration-200 ${advanced ? 'rotate-180' : ''}`}
+              <OptionalFields
+                label={advanced ? tc('hideAdvanced') : t('limitScope')}
+                open={advanced}
+                onOpenChange={setAdvanced}
+                hint={scopeLabel}
+              >
+                <div className="grid gap-2">
+                  <span className="text-sm font-medium">{t('scope')}</span>
+                  <Segmented
+                    label={t('scope')}
+                    value={scopeType}
+                    onChange={(v) => {
+                      form.setValue('scopeType', v);
+                      form.clearErrors(['departmentId', 'recordType', 'recordId']);
+                    }}
+                    options={[
+                      { value: 'global', label: tc('scope_values.global'), icon: <GlobeIcon /> },
+                      {
+                        value: 'department',
+                        label: tc('scope_values.department'),
+                        icon: <NetworkIcon />,
+                      },
+                      { value: 'record', label: tc('scope_values.record'), icon: <FileKeyIcon /> },
+                    ]}
                   />
-                  {advanced ? tc('hideAdvanced') : t('limitScope')}
-                  {!advanced && scopeLabel && <Badge variant="info">{scopeLabel}</Badge>}
-                </button>
-                <AnimatePresence initial={false}>
-                  {advanced && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="space-y-4 px-0.5 pt-4 pb-0.5">
-                        <div className="grid gap-2">
-                          <span className="text-sm font-medium">{t('scope')}</span>
-                          <Segmented
-                            label={t('scope')}
-                            value={scopeType}
-                            onChange={(v) => {
-                              form.setValue('scopeType', v);
-                              form.clearErrors(['departmentId', 'recordType', 'recordId']);
-                            }}
-                            options={[
-                              { value: 'global', label: tc('scope_values.global'), icon: <GlobeIcon /> },
-                              {
-                                value: 'department',
-                                label: tc('scope_values.department'),
-                                icon: <NetworkIcon />,
-                              },
-                              { value: 'record', label: tc('scope_values.record'), icon: <FileKeyIcon /> },
-                            ]}
+                  <p className="text-xs text-muted-foreground">{t(`scopeHint.${scopeType}`)}</p>
+                </div>
+                {scopeType === 'department' && (
+                  <FormField
+                    control={form.control}
+                    name="departmentId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{tc('department')}</FormLabel>
+                        <FormControl>
+                          <DepartmentSelect
+                            value={field.value}
+                            onChange={field.onChange}
+                            noneLabel={t('chooseDepartment')}
                           />
-                          <p className="text-xs text-muted-foreground">{t(`scopeHint.${scopeType}`)}</p>
-                        </div>
-                        {scopeType === 'department' && (
-                          <FormField
-                            control={form.control}
-                            name="departmentId"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{tc('department')}</FormLabel>
-                                <FormControl>
-                                  <DepartmentSelect
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    noneLabel={t('chooseDepartment')}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-                        {scopeType === 'record' && (
-                          <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
-                            <FormField
-                              control={form.control}
-                              name="recordType"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>{t('recordType')}</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="group"
-                                      spellCheck={false}
-                                      autoComplete="off"
-                                      className="font-mono"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {scopeType === 'record' && (
+                  <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
+                    <FormField
+                      control={form.control}
+                      name="recordType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('recordType')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="group"
+                              spellCheck={false}
+                              autoComplete="off"
+                              className="font-mono"
+                              {...field}
                             />
-                            <FormField
-                              control={form.control}
-                              name="recordId"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>{t('recordId')}</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      spellCheck={false}
-                                      autoComplete="off"
-                                      className="font-mono"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="recordId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('recordId')}</FormLabel>
+                          <FormControl>
+                            <Input spellCheck={false} autoComplete="off" className="font-mono" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+              </OptionalFields>
 
               {rootError && (
                 <p

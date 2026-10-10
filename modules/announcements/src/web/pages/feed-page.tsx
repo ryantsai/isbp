@@ -34,7 +34,7 @@ function PostCard({ post, highlight }: { post: Post; highlight?: boolean }) {
     <Link
       href={`${FEED}/${post.id}`}
       onClick={() => rememberOpenedRow(FEED, post.id)}
-      className="group relative flex overflow-hidden rounded-xl border bg-card shadow-xs transition-[translate,box-shadow] duration-(--motion-base) hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+      className="group relative flex overflow-hidden rounded-xl border bg-card transition-[translate,box-shadow] duration-(--motion-base) hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none motion-reduce:hover:translate-y-0"
     >
       <span className={cn('w-1 shrink-0', severityBar(post.severity))} aria-hidden />
       {highlight && <span aria-hidden className="highlight-flash pointer-events-none absolute inset-0" />}

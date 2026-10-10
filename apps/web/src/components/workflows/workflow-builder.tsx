@@ -115,7 +115,7 @@ function SettingsPanel({
           </div>
         )}
       </fieldset>
-      <div className="mt-6 grid gap-2 text-sm">
+      <div className="mt-5 grid gap-2 text-sm">
         <h3 className="font-semibold">{t('usedBy')}</h3>
         {!def.usedBy.forms.length && !def.usedBy.roles.length ? (
           <p className="text-muted-foreground">
@@ -143,7 +143,7 @@ function SettingsPanel({
           <p className="text-xs text-muted-foreground">{t('editInForm')}</p>
         )}
       </div>
-      <div className="mt-6 grid gap-2 text-sm">
+      <div className="mt-5 grid gap-2 text-sm">
         <h3 className="font-semibold">{t('versions')}</h3>
         {!def.versions.length ? (
           <p className="text-muted-foreground">{t('noVersions')}</p>
@@ -163,7 +163,7 @@ function SettingsPanel({
         )}
       </div>
       {canAudit && (
-        <div className="mt-6 grid gap-2 text-sm">
+        <div className="mt-5 grid gap-2 text-sm">
           <h3 className="font-semibold">{t('activity')}</h3>
           <ActivityFeed subject={{ type: 'workflow', id: def.id }} description={t('activityDescription')} />
         </div>
@@ -216,7 +216,7 @@ function Editor({ def, trigger }: { def: WorkflowDefinition; trigger: WorkflowTr
             <ArrowLeftIcon className="size-3.5" aria-hidden />
             {t('back')}
           </Link>
-          <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{name}</h1>
+          <h1 className="text-xl font-semibold tracking-tight wrap-anywhere">{name}</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span>{trigger ? (tr.has(trigger.name) ? tr(trigger.name) : trigger.name) : def.triggerKey}</span>
             <motion.span

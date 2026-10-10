@@ -15,7 +15,8 @@ import {
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
-import { Disclosure, duration, useReducedMotion } from '@isbp/ui/motion';
+import { duration, useReducedMotion } from '@isbp/ui/motion';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
@@ -73,9 +74,7 @@ export function deriveDisplayName(given: string | null | undefined, family: stri
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <fieldset className="min-w-0 space-y-4">
-      <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {title}
-      </legend>
+      <legend className="mb-3 text-xs font-semibold text-muted-foreground">{title}</legend>
       {children}
     </fieldset>
   );
@@ -118,6 +117,7 @@ export function UserFormSheet({
   });
   const [managerFlash, setManagerFlash] = useState(0);
   const { byId: departments } = useDepartments();
+  const list = useFieldList();
 
   const custom = useEntityFields('core.user', open);
   const applyErrors = useApplyEntityErrors();
@@ -257,6 +257,10 @@ export function UserFormSheet({
 
   const status = useWatch({ control: form.control, name: 'status' });
   const groupIds = useWatch({ control: form.control, name: 'groupIds' }) ?? [];
+  const [employeeId, phone, password] = useWatch({
+    control: form.control,
+    name: ['employeeId', 'phone', 'password'],
+  });
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -414,6 +418,36 @@ export function UserFormSheet({
                     />
                   </div>
                 )}
+              </Section>
+
+              {!editing && (
+                <Section title={t('sections.account')}>
+                  <div role="radiogroup" aria-label={t('status')} className="grid grid-cols-2 gap-2">
+                    {(['active', 'pending'] as const).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        role="radio"
+                        aria-checked={status === s}
+                        onClick={() => form.setValue('status', s)}
+                        className="relative min-w-0 rounded-lg border p-3 text-left transition-colors hover:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none aria-checked:border-primary aria-checked:bg-primary/5 motion-reduce:transition-none"
+                      >
+                        <div className="text-sm font-medium">
+                          {s === 'active' ? t('statusActive') : t('statusPending')}
+                        </div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          {s === 'active' ? t('statusActiveHint') : t('statusPendingHint')}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </Section>
+              )}
+
+              <OptionalFields
+                hint={list([t('employeeId'), t('phone')])}
+                filled={countFilled(employeeId, phone)}
+              >
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <FormField
                     control={form.control}
@@ -440,114 +474,86 @@ export function UserFormSheet({
                     )}
                   />
                 </div>
-              </Section>
+              </OptionalFields>
+
+              <OptionalFields label={editing ? t('moreEditing') : t('more')} filled={countFilled(password)}>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="locale"
+                    render={({ field }) => (
+                      <FormItem className="min-w-0">
+                        <FormLabel>{t('locale')}</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {locales.map((l) => (
+                              <SelectItem key={l} value={l}>
+                                {localeLabels[l]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="timezone"
+                    render={({ field }) => (
+                      <FormItem className="min-w-0">
+                        <FormLabel>{t('timezone')}</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {[...new Set([field.value ?? 'UTC', ...TIMEZONES])].map((tz) => (
+                              <SelectItem key={tz} value={tz}>
+                                {tz}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                {!editing && (
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('password')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            autoComplete="new-password"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(e) => field.onChange(e.target.value || undefined)}
+                          />
+                        </FormControl>
+                        <FormDescription>{t('passwordHint')}</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </OptionalFields>
 
               <CustomFieldsSection
                 elements={custom.elements}
                 form={form as unknown as UseFormReturn<FieldValues>}
               />
 
-              {!editing && (
-                <Section title={t('sections.account')}>
-                  <div role="radiogroup" aria-label={t('status')} className="grid grid-cols-2 gap-2">
-                    {(['active', 'pending'] as const).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        role="radio"
-                        aria-checked={status === s}
-                        onClick={() => form.setValue('status', s)}
-                        className="relative min-w-0 rounded-lg border p-3 text-left transition-colors hover:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none aria-checked:border-primary aria-checked:bg-primary/5 motion-reduce:transition-none"
-                      >
-                        <div className="text-sm font-medium">
-                          {s === 'active' ? t('statusActive') : t('statusPending')}
-                        </div>
-                        <div className="mt-0.5 text-xs text-muted-foreground">
-                          {s === 'active' ? t('statusActiveHint') : t('statusPendingHint')}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </Section>
-              )}
-
-              <Disclosure
-                summary={editing ? t('moreEditing') : t('more')}
-                triggerClassName="text-muted-foreground"
-              >
-                <div className="space-y-4 pt-2 pb-1">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="locale"
-                      render={({ field }) => (
-                        <FormItem className="min-w-0">
-                          <FormLabel>{t('locale')}</FormLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {locales.map((l) => (
-                                <SelectItem key={l} value={l}>
-                                  {localeLabels[l]}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="timezone"
-                      render={({ field }) => (
-                        <FormItem className="min-w-0">
-                          <FormLabel>{t('timezone')}</FormLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {[...new Set([field.value ?? 'UTC', ...TIMEZONES])].map((tz) => (
-                                <SelectItem key={tz} value={tz}>
-                                  {tz}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  {!editing && (
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('password')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="password"
-                              autoComplete="new-password"
-                              {...field}
-                              value={field.value ?? ''}
-                              onChange={(e) => field.onChange(e.target.value || undefined)}
-                            />
-                          </FormControl>
-                          <FormDescription>{t('passwordHint')}</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </div>
-              </Disclosure>
               {form.formState.errors.root && (
                 <p role="alert" className="text-sm text-destructive">
                   {form.formState.errors.root.message}

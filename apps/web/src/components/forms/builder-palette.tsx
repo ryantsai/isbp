@@ -102,10 +102,7 @@ export function BuilderPalette({
     <nav aria-label={t('palette')} className={cn('grid grid-cols-1 gap-5', className)}>
       <p className="text-xs text-muted-foreground">{t('paletteHint')}</p>
       <section className="grid grid-cols-1 gap-1.5" aria-labelledby="palette-fields">
-        <h2
-          id="palette-fields"
-          className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-        >
+        <h2 id="palette-fields" className="text-xs font-semibold text-muted-foreground">
           {t('paletteFields')}
         </h2>
         {FIELD_TYPE_ORDER.map((type) => (
@@ -113,10 +110,7 @@ export function BuilderPalette({
         ))}
       </section>
       <section className="grid grid-cols-1 gap-1.5" aria-labelledby="palette-layout">
-        <h2
-          id="palette-layout"
-          className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-        >
+        <h2 id="palette-layout" className="text-xs font-semibold text-muted-foreground">
           {t('paletteLayout')}
         </h2>
         {DISPLAY_TYPE_ORDER.map((type) => (

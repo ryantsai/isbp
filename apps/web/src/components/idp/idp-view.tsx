@@ -21,7 +21,7 @@ import { TypePickerDialog } from './type-picker';
 function CardSkeleton() {
   return (
     <Card className="gap-0 py-0">
-      <div className="flex items-start gap-3 p-5">
+      <div className="flex items-start gap-3 p-4">
         <Skeleton className="size-10 rounded-lg" />
         <div className="flex-1 space-y-2">
           <Skeleton className="h-4 w-40" />
@@ -30,7 +30,7 @@ function CardSkeleton() {
         <Skeleton className="h-[1.15rem] w-8 rounded-full" />
       </div>
       <Skeleton className="h-14 rounded-none" />
-      <div className="flex gap-2 p-5">
+      <div className="flex gap-2 p-4">
         <Skeleton className="h-8 w-32" />
         <Skeleton className="h-8 w-20" />
       </div>
@@ -129,7 +129,7 @@ export function IdpView() {
         </Stagger>
       )}
 
-      <FadeIn delay={0.15} className="mt-6 flex items-start gap-2.5 text-sm text-muted-foreground">
+      <FadeIn delay={0.15} className="mt-5 flex items-start gap-2.5 text-sm text-muted-foreground">
         <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
         <p className="max-w-3xl">{t('localNote')}</p>
       </FadeIn>

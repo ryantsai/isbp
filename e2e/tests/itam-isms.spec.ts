@@ -46,12 +46,14 @@ test('the approved software list filters by status, adds an entry and exports th
   const sheet = page.getByRole('dialog', { name: 'Add software to the list' });
   const title = `E2E Diagram Tool ${Date.now() % 100000}`;
   await sheet.getByLabel('Software').fill(title);
-  await sheet.getByLabel('Version').fill('3');
   // No licence type is assumed: "Free" would be wrong for shareware or paid software.
   await sheet.getByRole('combobox', { name: 'Licence type' }).click();
   await page.getByRole('option', { name: 'Free', exact: true }).click();
   await sheet.getByRole('radio', { name: 'Departments' }).check();
   await sheet.getByRole('checkbox').first().check();
+  // Version and end date are optional: they wait under "More details".
+  await sheet.getByRole('button', { name: /^More details/ }).click();
+  await sheet.getByLabel('Version').fill('3');
   await sheet.getByLabel('Valid until').fill('2030-12-31');
   await sheet.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.getByText(`${title} added to the list`)).toBeVisible();

@@ -4,7 +4,7 @@ import { useCan, usePlatform } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
-import { Disclosure } from '@isbp/ui/motion';
+import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import {
@@ -96,6 +96,13 @@ export function NewChangeDialog({
   const plannedEnd = fromLocalInput(plan.plannedEnd);
   const submitBlocked = windowProblem({ changeType: plan.changeType, plannedStart, plannedEnd }, new Date());
   const dirty = Boolean(title.trim() || description.trim() || cis.length);
+  const plansFilled = countFilled(
+    description,
+    plan.reason,
+    plan.implementationPlan,
+    plan.backoutPlan,
+    plan.testPlan,
+  );
 
   const create = useApiMutation(
     async (a, { body, mode }: { body: CreateTicketInput; mode: 'draft' | 'submit' }) => {
@@ -226,16 +233,7 @@ export function NewChangeDialog({
                 </p>
               </div>
             </section>
-            <Disclosure
-              summary={
-                <span className="grid gap-0.5">
-                  <span>{t('plans')}</span>
-                  <span className="text-xs font-normal text-muted-foreground">{t('plansHint')}</span>
-                </span>
-              }
-              className="border-t pt-2"
-              contentClassName="grid gap-4 pt-2"
-            >
+            <OptionalFields label={t('plans')} hint={t('plansHint')} filled={plansFilled}>
               <div className="grid gap-2">
                 <Label htmlFor={`${id}-description`}>{t('descriptionLabel')}</Label>
                 <Textarea
@@ -246,7 +244,7 @@ export function NewChangeDialog({
                 />
               </div>
               <ChangePlanFields value={plan} onChange={setPlan} parts={['reason', 'plans']} />
-            </Disclosure>
+            </OptionalFields>
           </SheetBody>
           <SheetFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

@@ -13,6 +13,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation } from '@isbp/ui/query';
 import { Switch } from '@isbp/ui/switch';
 import { Textarea } from '@isbp/ui/textarea';
@@ -61,6 +62,7 @@ export function PostEditor({
 }) {
   const t = useTranslations('announcements');
   const tc = useTranslations('common');
+  const list = useFieldList();
   const form = useForm<Values>({
     resolver: zodResolver(formSchema),
     defaultValues: { title: '', body: '', severity: 'info', pinned: false, startsAt: '', endsAt: '' },
@@ -77,7 +79,10 @@ export function PostEditor({
     });
   }, [open, post, form]);
 
-  const severity = useWatch({ control: form.control, name: 'severity' });
+  const [severity, startsAt, endsAt, pinned] = useWatch({
+    control: form.control,
+    name: ['severity', 'startsAt', 'endsAt', 'pinned'],
+  });
 
   const save = useApiMutation(
     (api, { values, publish }: { values: Values; publish: boolean }) => {
@@ -158,49 +163,54 @@ export function PostEditor({
                 </FormItem>
               )}
             />
-            <div className="grid gap-3 sm:grid-cols-2">
+            <OptionalFields
+              hint={list([t('editor.startsAt'), t('editor.endsAt'), t('editor.pinned')])}
+              filled={countFilled(startsAt, endsAt, pinned)}
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="startsAt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('editor.startsAt')}</FormLabel>
+                      <FormControl>
+                        <Input type="datetime-local" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="endsAt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('editor.endsAt')}</FormLabel>
+                      <FormControl>
+                        <Input type="datetime-local" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <p className="-mt-2 text-xs text-muted-foreground">{t('editor.windowHint')}</p>
               <FormField
                 control={form.control}
-                name="startsAt"
+                name="pinned"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('editor.startsAt')}</FormLabel>
-                    <FormControl>
-                      <Input type="datetime-local" {...field} />
-                    </FormControl>
-                  </FormItem>
+                  <div className="flex items-center justify-between rounded-lg border px-3 py-2.5">
+                    <Label htmlFor="pinned" className="flex-col items-start gap-0.5">
+                      <span>{t('editor.pinned')}</span>
+                      <span className="text-xs font-normal text-muted-foreground">
+                        {t('editor.pinnedHint')}
+                      </span>
+                    </Label>
+                    <Switch id="pinned" checked={field.value} onCheckedChange={field.onChange} />
+                  </div>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="endsAt"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('editor.endsAt')}</FormLabel>
-                    <FormControl>
-                      <Input type="datetime-local" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <p className="-mt-2 text-xs text-muted-foreground">{t('editor.windowHint')}</p>
-            <FormField
-              control={form.control}
-              name="pinned"
-              render={({ field }) => (
-                <div className="flex items-center justify-between rounded-lg border px-3 py-2.5">
-                  <Label htmlFor="pinned" className="flex-col items-start gap-0.5">
-                    <span>{t('editor.pinned')}</span>
-                    <span className="text-xs font-normal text-muted-foreground">
-                      {t('editor.pinnedHint')}
-                    </span>
-                  </Label>
-                  <Switch id="pinned" checked={field.value} onCheckedChange={field.onChange} />
-                </div>
-              )}
-            />
+            </OptionalFields>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 {tc('cancel')}

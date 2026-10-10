@@ -177,7 +177,7 @@ function EntityFields({ entityType, entityName }: { entityType: string; entityNa
   const facts = useMemo(() => fieldFacts(serverActive.map(def), locale), [serverActive, locale]);
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
+    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
       <Card className="gap-0 overflow-hidden py-0">
         <CardHeader className="flex flex-col gap-3 border-b py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
@@ -236,7 +236,7 @@ function EntityFields({ entityType, entityName }: { entityType: string; entityNa
                   >
                     <h3
                       id="cf-archived"
-                      className="px-4 pt-4 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                      className="px-4 pt-4 pb-1 text-xs font-semibold text-muted-foreground"
                     >
                       {t('archivedTitle')}
                     </h3>
@@ -522,9 +522,7 @@ function LivePreview({ fields, entityName }: { fields: CustomField[]; entityName
       <CardContent>
         {elements.length ? (
           <div className="rounded-lg border border-dashed bg-muted/20 p-4">
-            <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              {t('previewSection')}
-            </p>
+            <p className="mb-3 text-xs font-semibold text-muted-foreground">{t('previewSection')}</p>
             <PreviewForm key={signature} elements={elements} />
           </div>
         ) : (

@@ -22,13 +22,14 @@ import {
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useId, useMemo, useState } from 'react';
-import { type FieldValues, useForm, type UseFormReturn } from 'react-hook-form';
+import { type FieldValues, useForm, type UseFormReturn, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import {
   APP_CODE_RE,
@@ -95,9 +96,7 @@ export function AppFormDialog({
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <fieldset className="grid min-w-0 gap-4">
-      <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {title}
-      </legend>
+      <legend className="mb-3 text-xs font-semibold text-muted-foreground">{title}</legend>
       {children}
     </fieldset>
   );
@@ -196,6 +195,28 @@ function AppForm({
     },
   });
   useAttributeDefaults(form as unknown as UseFormReturn<FieldValues>, fields, ready, true, app?.attributes);
+  const [disposition, description, vendor, techStack, documentationUrl, goLiveDate, retireDate] = useWatch({
+    control: form.control,
+    name: [
+      'disposition',
+      'description',
+      'vendor',
+      'techStack',
+      'documentationUrl',
+      'goLiveDate',
+      'retireDate',
+    ],
+  });
+  const detailsFilled = countFilled(
+    disposition === NONE ? '' : disposition,
+    description,
+    vendor,
+    techStack,
+    documentationUrl,
+    goLiveDate,
+    retireDate,
+    ci,
+  );
 
   const save = useApiMutation(
     (api, body: CreateAppInput) =>
@@ -328,7 +349,7 @@ function AppForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="grid gap-6" noValidate>
+      <form onSubmit={onSubmit} className="grid gap-4" noValidate>
         <Section title={t('form.sections.identity')}>
           <div className="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <FormField
@@ -390,12 +411,8 @@ function AppForm({
             {enumSelect('hosting', t('fields.hosting'), HOSTINGS, (v) => (
               <HostingLabel hosting={v as never} />
             ))}
-            {enumSelect(
-              'disposition',
-              t('fields.disposition'),
-              DISPOSITIONS,
-              (v) => t(`disposition.${v}`),
-              t('form.notDecided'),
+            {enumSelect('dataClassification', t('fields.dataClassification'), DATA_CLASSIFICATIONS, (v) =>
+              t(`classification.${v}`),
             )}
           </div>
         </Section>
@@ -424,12 +441,96 @@ function AppForm({
           </div>
         </Section>
 
-        <Section title={t('form.sections.details')}>
+        <OptionalFields
+          label={t('form.sections.details')}
+          filled={detailsFilled}
+          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+        >
+          {enumSelect(
+            'disposition',
+            t('fields.disposition'),
+            DISPOSITIONS,
+            (v) => t(`disposition.${v}`),
+            t('form.notDecided'),
+          )}
+          <FormField
+            control={form.control}
+            name="goLiveDate"
+            render={({ field }) => (
+              <FormItem className="min-w-0">
+                <FormLabel>{t('fields.goLiveDate')}</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="retireDate"
+            render={({ field }) => (
+              <FormItem className="min-w-0">
+                <FormLabel>{t('fields.retireDate')}</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="grid min-w-0 gap-2">
+            <Label htmlFor={ids.ci}>{t('fields.ci')}</Label>
+            <CiPicker id={ids.ci} value={ci} onChange={setCi} aria-describedby={ids.ciHint} />
+            <p id={ids.ciHint} className="text-xs text-muted-foreground">
+              {t('form.ciHint')}
+            </p>
+          </div>
+          <FormField
+            control={form.control}
+            name="vendor"
+            render={({ field }) => (
+              <FormItem className="min-w-0">
+                <FormLabel>{t('fields.vendor')}</FormLabel>
+                <FormControl>
+                  <Input maxLength={200} placeholder={t('form.vendorPlaceholder')} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="techStack"
+            render={({ field }) => (
+              <FormItem className="min-w-0">
+                <FormLabel>{t('fields.techStack')}</FormLabel>
+                <FormControl>
+                  <Input placeholder={t('form.techStackPlaceholder')} {...field} />
+                </FormControl>
+                <FormDescription>{t('form.techStackHint')}</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="documentationUrl"
+            render={({ field }) => (
+              <FormItem className="min-w-0 sm:col-span-2">
+                <FormLabel>{t('fields.documentationUrl')}</FormLabel>
+                <FormControl>
+                  <Input type="url" inputMode="url" placeholder="https://" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="description"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="sm:col-span-2">
                 <FormLabel>{t('fields.description')}</FormLabel>
                 <FormControl>
                   <Textarea rows={4} {...field} />
@@ -439,87 +540,7 @@ function AppForm({
               </FormItem>
             )}
           />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor={ids.ci}>{t('fields.ci')}</Label>
-              <CiPicker id={ids.ci} value={ci} onChange={setCi} aria-describedby={ids.ciHint} />
-              <p id={ids.ciHint} className="text-xs text-muted-foreground">
-                {t('form.ciHint')}
-              </p>
-            </div>
-            <FormField
-              control={form.control}
-              name="vendor"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.vendor')}</FormLabel>
-                  <FormControl>
-                    <Input maxLength={200} placeholder={t('form.vendorPlaceholder')} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="techStack"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.techStack')}</FormLabel>
-                  <FormControl>
-                    <Input placeholder={t('form.techStackPlaceholder')} {...field} />
-                  </FormControl>
-                  <FormDescription>{t('form.techStackHint')}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="documentationUrl"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.documentationUrl')}</FormLabel>
-                  <FormControl>
-                    <Input type="url" inputMode="url" placeholder="https://" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {enumSelect('dataClassification', t('fields.dataClassification'), DATA_CLASSIFICATIONS, (v) =>
-              t(`classification.${v}`),
-            )}
-            <FormField
-              control={form.control}
-              name="goLiveDate"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.goLiveDate')}</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="retireDate"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.retireDate')}</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </Section>
+        </OptionalFields>
 
         <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
 

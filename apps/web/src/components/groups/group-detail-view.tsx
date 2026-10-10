@@ -55,7 +55,7 @@ export function GroupDetailView({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         {back}
         <div className="flex items-center gap-4">
           <Skeleton className="size-14 rounded-xl" />
@@ -71,7 +71,7 @@ export function GroupDetailView({ id }: { id: string }) {
   }
   if (error || !group) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         {back}
         <EmptyState
           icon={<UsersRoundIcon />}
@@ -83,7 +83,7 @@ export function GroupDetailView({ id }: { id: string }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {back}
 
       <FadeIn y={4} className="flex flex-col gap-4 sm:flex-row sm:items-start">
@@ -95,7 +95,7 @@ export function GroupDetailView({ id }: { id: string }) {
         </span>
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight">{group.name}</h1>
+            <h1 className="min-w-0 truncate text-xl font-semibold tracking-tight">{group.name}</h1>
             <SourceBadge source={group.source} />
             {group.isSystem && <SystemBadge />}
           </div>

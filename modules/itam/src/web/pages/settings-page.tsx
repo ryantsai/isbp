@@ -28,6 +28,7 @@ import {
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { SavedIndicator } from '@isbp/ui/motion';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
@@ -283,7 +284,12 @@ function ModelDialog({ model, onClose }: { model?: Model; onClose: () => void })
       form.setError('root', { message: errorText(err) });
     }
   });
-  const category = useWatch({ control: form.control, name: 'category' });
+  const [category, partNumber, lifespanMonths] = useWatch({
+    control: form.control,
+    name: ['category', 'partNumber', 'lifespanMonths'],
+  });
+  const list = useFieldList();
+  const detailsFilled = countFilled(partNumber, lifespanMonths);
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent closeLabel={tc('close')}>
@@ -335,6 +341,26 @@ function ModelDialog({ model, onClose }: { model?: Model; onClose: () => void })
                   )}
                 />
               ))}
+            </div>
+            <FormField
+              control={form.control}
+              name="active"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center gap-3">
+                  <FormControl>
+                    <Switch id={activeId} checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <FormLabel htmlFor={activeId} className="font-normal">
+                    {t('settingsPage.activeModel')}
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            <OptionalFields
+              hint={list([t('settingsPage.partNumber'), t('settingsPage.lifespanMonths')])}
+              filled={detailsFilled}
+              contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+            >
               <FormField
                 control={form.control}
                 name="partNumber"
@@ -366,21 +392,7 @@ function ModelDialog({ model, onClose }: { model?: Model; onClose: () => void })
                   </FormItem>
                 )}
               />
-            </div>
-            <FormField
-              control={form.control}
-              name="active"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center gap-3">
-                  <FormControl>
-                    <Switch id={activeId} checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <FormLabel htmlFor={activeId} className="font-normal">
-                    {t('settingsPage.activeModel')}
-                  </FormLabel>
-                </FormItem>
-              )}
-            />
+            </OptionalFields>
             {form.formState.errors.root && (
               <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {form.formState.errors.root.message}

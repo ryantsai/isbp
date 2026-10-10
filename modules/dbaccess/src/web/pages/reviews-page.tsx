@@ -134,7 +134,7 @@ export default function ReviewsPage() {
           )
         }
       />
-      <div className="grid min-w-0 grid-cols-1 gap-6">
+      <div className="grid min-w-0 grid-cols-1 gap-4">
         {awaiting.length > 0 && (
           <section aria-labelledby="dbaccess-awaiting" className="grid gap-3">
             <h2 id="dbaccess-awaiting" className="text-lg font-semibold">
@@ -145,7 +145,7 @@ export default function ReviewsPage() {
                 <StaggerItem key={r.id} className="min-w-0">
                   <Link
                     href={`/dbaccess/reviews/${r.reference}?view=mine`}
-                    className="flex h-full min-w-0 items-center gap-3 rounded-xl border bg-card p-4 shadow-xs outline-none hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    className="flex h-full min-w-0 items-center gap-3 rounded-xl border bg-card p-4 outline-none hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     <ClipboardCheckIcon className="size-5 shrink-0 text-primary" aria-hidden />
                     <span className="grid min-w-0 flex-1">

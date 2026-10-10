@@ -69,11 +69,7 @@ function Toggle<T extends string>({
   label: string;
 }) {
   return (
-    <div
-      role="group"
-      aria-label={label}
-      className="inline-flex rounded-md border bg-background p-0.5 shadow-xs"
-    >
+    <div role="group" aria-label={label} className="inline-flex rounded-md border bg-background p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
@@ -235,7 +231,7 @@ function Bar({
         undefined
       }
       className={cn(
-        'group absolute top-1.5 flex h-6 items-center overflow-hidden rounded-md border text-left text-[11px] font-medium shadow-xs outline-none select-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
+        'group absolute top-1.5 flex h-6 items-center overflow-hidden rounded-md border text-left text-[11px] font-medium outline-none select-none focus-visible:ring-[3px] focus-visible:ring-ring/60',
         canEdit && 'cursor-grab touch-none active:cursor-grabbing',
         isClosed(task.status)
           ? 'border-success/40 bg-success/15 text-foreground'
@@ -395,7 +391,7 @@ function TimelineChart({
   return (
     <div
       ref={scroller}
-      className="relative min-w-0 overflow-x-auto rounded-xl border bg-card shadow-xs [--label:10rem] sm:[--label:16rem]"
+      className="relative min-w-0 overflow-x-auto rounded-xl border bg-card [--label:10rem] sm:[--label:16rem]"
       role="region"
       aria-label={t('chartLabel')}
       tabIndex={0}
@@ -623,8 +619,8 @@ function TimelineTable({ data, today }: { data: Timeline; today: string }) {
   const milestoneName = new Map(data.milestones.map((m) => [m.id, m.name]));
   const fmt = (d: string | null) => (d ? format.dateTime(dateValue(d), { dateStyle: 'medium' }) : '—');
   return (
-    <div className="grid min-w-0 gap-6">
-      <div className="relative min-w-0 overflow-x-auto rounded-xl border bg-card shadow-xs">
+    <div className="grid min-w-0 gap-4">
+      <div className="relative min-w-0 overflow-x-auto rounded-xl border bg-card">
         <Table aria-label={t('tableLabel')}>
           <TableHeader className="bg-muted/40">
             <TableRow>
@@ -675,7 +671,7 @@ function TimelineTable({ data, today }: { data: Timeline; today: string }) {
         </Table>
       </div>
       {data.milestones.length > 0 && (
-        <div className="relative min-w-0 overflow-x-auto rounded-xl border bg-card shadow-xs">
+        <div className="relative min-w-0 overflow-x-auto rounded-xl border bg-card">
           <Table aria-label={t('milestonesLabel')}>
             <TableHeader className="bg-muted/40">
               <TableRow>

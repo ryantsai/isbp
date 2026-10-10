@@ -176,7 +176,7 @@ function SecretsCard({ client, onAdd }: { client: ApiClient; onAdd?: () => void 
       </CardHeader>
       <CardContent>
         {secrets.length === 0 ? (
-          <EmptyState icon={<KeyRoundIcon />} title={t('empty')} className="py-8" />
+          <EmptyState icon={<KeyRoundIcon />} title={t('empty')} className="py-6" />
         ) : (
           <div className="overflow-x-auto rounded-lg border">
             <Table>
@@ -292,7 +292,7 @@ export function ApiClientDetailView({ id }: { id: string }) {
 
   if (!canManage) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         {back}
         <EmptyState
           icon={<LockIcon />}
@@ -304,7 +304,7 @@ export function ApiClientDetailView({ id }: { id: string }) {
   }
   if (isLoading) {
     return (
-      <div className="space-y-6" aria-busy>
+      <div className="space-y-5" aria-busy>
         {back}
         <div className="flex items-center gap-4">
           <Skeleton className="size-14 rounded-xl" />
@@ -319,7 +319,7 @@ export function ApiClientDetailView({ id }: { id: string }) {
   }
   if (error || !client) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         {back}
         <EmptyState icon={<PlugIcon />} title={t('detail.notFound')} />
       </div>
@@ -329,7 +329,7 @@ export function ApiClientDetailView({ id }: { id: string }) {
   const revoked = Boolean(client.revokedAt);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {back}
       <FadeIn y={4} className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <span
@@ -340,7 +340,7 @@ export function ApiClientDetailView({ id }: { id: string }) {
         </span>
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight">{client.name}</h1>
+            <h1 className="min-w-0 truncate text-xl font-semibold tracking-tight">{client.name}</h1>
             <ClientStatusBadge client={client} />
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -387,7 +387,7 @@ export function ApiClientDetailView({ id }: { id: string }) {
         </FadeIn>
       )}
 
-      <div className="grid min-w-0 grid-cols-1 gap-6">
+      <div className="grid min-w-0 grid-cols-1 gap-4">
         <Card>
           <CardHeader>
             <CardTitle>{t('detail.reach')}</CardTitle>

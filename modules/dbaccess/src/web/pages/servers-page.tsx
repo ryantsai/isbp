@@ -129,9 +129,9 @@ export default function ServersPage() {
           ))}
         </div>
       ) : (
-        <div className="grid min-w-0 grid-cols-1 gap-8">
+        <div className="grid min-w-0 grid-cols-1 gap-5">
           {data.items.length === 0 ? (
-            <div className="rounded-xl border bg-card shadow-xs">
+            <div className="rounded-xl border bg-card">
               <EmptyState icon={<ServerCogIcon />} title={t('empty')} description={t('emptyHint')} />
             </div>
           ) : (
@@ -149,7 +149,7 @@ export default function ServersPage() {
                 {t('unconfigured')}
               </h2>
               <p className="text-sm text-muted-foreground">{t('unconfiguredHint')}</p>
-              <ul className="divide-y rounded-xl border bg-card shadow-xs">
+              <ul className="divide-y rounded-xl border bg-card">
                 {data.unconfigured.map((c) => {
                   const managed = isManagedEngine(c.engine);
                   return (

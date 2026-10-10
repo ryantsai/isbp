@@ -43,7 +43,7 @@ export function TypePickerDialog({
                 onClick={() => onPick(choice)}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="group flex h-full w-full items-start gap-3 rounded-xl border bg-card p-4 text-left shadow-xs transition-[border-color,box-shadow] outline-none hover:border-primary/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="group flex h-full w-full items-start gap-3 rounded-xl border bg-card p-4 text-left transition-[border-color,box-shadow] outline-none hover:border-primary/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 <IdpTypeTile choice={choice} />
                 <span className="min-w-0 flex-1">

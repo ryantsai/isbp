@@ -59,7 +59,7 @@ export function ModelsPanel() {
   const { data } = useApiQuery<AiConfigInfo>(CONFIG_PATH);
   if (!data)
     return (
-      <div className="max-w-3xl space-y-6">
+      <div className="max-w-3xl space-y-5">
         {[0, 1].map((i) => (
           <Card key={i}>
             <CardContent className="space-y-4">
@@ -137,8 +137,8 @@ function ModelsForm({ config }: { config: AiConfigInfo }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} noValidate className="max-w-3xl space-y-6">
-        <div className="space-y-6">
+      <form onSubmit={onSubmit} noValidate className="max-w-3xl space-y-5">
+        <div className="space-y-5">
           <ChatCard config={config}>
             <TestConnection
               section="chat"
@@ -737,7 +737,7 @@ function Chips({
             aria-pressed={item.pressed}
             onClick={item.onSelect}
             className={cn(
-              'inline-flex max-w-full items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-xs font-medium shadow-xs transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50',
+              'inline-flex max-w-full items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-xs font-medium transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50',
               item.pressed && 'border-primary bg-primary/5 hover:bg-primary/10',
             )}
           >

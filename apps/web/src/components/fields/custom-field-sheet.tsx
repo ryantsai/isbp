@@ -158,7 +158,7 @@ export function CustomFieldSheet({
             void submit();
           }}
         >
-          <SheetBody className="space-y-6 pb-6">
+          <SheetBody className="space-y-5 pb-6">
             {editing && field!.usage > 0 && (
               <p className="flex items-start gap-2 rounded-lg bg-info/10 px-3 py-2 text-sm text-info">
                 <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />

@@ -86,10 +86,11 @@ outside service or a team. You need the **Information asset manager** role.
 4. Under **Confidentiality, integrity and availability**, choose a score for each, reading the guidance shown next
    to it. **Asset value** shows the result as you choose and says which score sets it (for example "set by
    Integrity"). Then check the **Classification**: it is suggested from the confidentiality score.
-5. Under **Who uses it and where it is**, choose the **People who use it**, or describe them under **Other users (as
-   text)** (for example "Finance department"), and enter the **Location**.
-6. Open **More details: brand, model, version, quantity** where they apply (it is open for hardware and software).
-7. Add **Notes** and any additional fields your administrators added, then select **Save**.
+5. Under **Who uses it and where it is**, choose the **People who use it** and enter the **Location**.
+6. Under **More details** (open for hardware and software), describe other users under **Other users (as text)**
+   (for example "Finance department"), enter the brand, model, version and quantity where they apply, and add
+   **Notes**.
+7. Fill in any additional fields your administrators added, then select **Save**.
 
 **What happens next:** the asset gets its number (for example `HQ01HW0003`), its page opens and its history starts
 with "Registered". The owner, or the members of the owning group, check it in every stocktake that includes it.
@@ -219,11 +220,11 @@ moved to rack B4.
 You need the **Information asset manager** or **Information security officer** role.
 
 1. Go to **Information security → Stocktakes** and select **New stocktake**.
-2. Enter the **Name**, the **Start date** (today, or a later date to schedule it), the **Due date** and whether it
-   **Repeats**: **Once**, **Every quarter** or **Every year**.
-3. Choose the scope: tick classes under **Class** and sites under **Site**, add people under **Owners** with **Add
-   an owner**, and tick groups under **Owning group**. Leave a list empty to include everything. Assets
-   that are in use or missing are included.
+2. Enter the **Name**, the **Start date** (today, or a later date to schedule it) and the **Due date**.
+3. Under **More details**, choose whether it **Repeats** (**Once**, **Every quarter** or **Every year**) and the
+   scope: tick classes under **Class** and sites under **Site**, add people under **Owners** with **Add an owner**,
+   and tick groups under **Owning group**. Leave a list empty to include everything. Assets that are in use or
+   missing are included.
 4. Select **Start**, or **Schedule** if it starts later.
 
 **What happens next:** every asset in scope becomes an item for its owner, or for the members of its owning group,
@@ -283,11 +284,11 @@ allowed to use it. When someone leaves the list, the password is changed that da
 You need the **Information security officer** role.
 
 1. Go to **Information security → Shared accounts** and select **Register a shared account**.
-2. Enter the **Account name** and the **Target system or device**. Optionally pick the **Linked application or
-   configuration item**.
+2. Enter the **Account name** and the **Target system or device**.
 3. Choose the **Primary custodian**, and add the **People using the account** with **Add a person**.
-4. Optionally fill in the **Requesting department**, **Project**, **Request reference**, **Password last changed**,
-   **Next review**, **Purpose** and **Notes**.
+4. Optionally, under **More details**, pick the **Linked application or configuration item** and fill in the
+   **Requesting department**, **Project**, **Request reference**, **Password last changed**, **Next review**,
+   **Purpose** and **Notes**.
 5. Select **Register**.
 
 **What happens next:** the account gets a reference such as `SHA-00003`. Its custodian and the people on the list see
@@ -381,12 +382,12 @@ the other accounts are still to decide.
 You need the **Information security officer** role.
 
 1. Go to **Information security → Account reviews** and select **New account review**.
-2. Enter the **System, device or IP** (for example "Core firewall, 10.0.0.1"), and optionally pick the **Linked
-   application or configuration item**.
-3. Choose the **Reviewer**, the **Start date**, the **Due date** and whether it **Repeats** (**Once**, **Every
-   quarter** or **Every year**).
-4. Under **Accounts**, choose **Imported from the system's account list**, or **Role holders of …** for an
-   application registered in ISBP: the review then starts with everyone holding one of its roles.
+2. Enter the **System, device or IP** (for example "Core firewall, 10.0.0.1").
+3. Choose the **Reviewer**, the **Start date** and the **Due date**.
+4. Under **More details**, optionally pick the **Linked application or configuration item** and whether it
+   **Repeats** (**Once**, **Every quarter** or **Every year**). Under **Accounts**, choose **Imported from the
+   system's account list**, or **Role holders of …** for an application registered in ISBP: the review then starts
+   with everyone holding one of its roles.
 5. Select **Start**, or **Schedule** if it starts later.
 
 **What happens next:** the reviewer is notified ("Review the accounts of …") with the due date and gets a reminder a

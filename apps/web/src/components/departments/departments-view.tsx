@@ -251,7 +251,7 @@ export function DepartmentsView() {
   let body: ReactNode;
   if (isLoading) {
     body = (
-      <div className="grid gap-6 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)]">
         <Card className="gap-2 p-3">
           <Skeleton className="mb-2 h-9 w-full" />
           {Array.from({ length: 8 }).map((_, i) => (
@@ -286,7 +286,7 @@ export function DepartmentsView() {
     );
   } else {
     body = (
-      <div className="grid gap-6 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)] lg:items-start xl:grid-cols-[24rem_minmax(0,1fr)]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)] lg:items-start xl:grid-cols-[24rem_minmax(0,1fr)]">
         <Card className="gap-0 overflow-hidden py-0 lg:sticky lg:top-20">
           <div className="flex items-center gap-1.5 border-b p-2.5">
             <SearchInput

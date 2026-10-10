@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import type * as React from 'react';
 import { cn } from '../lib/utils';
 import { Button } from './button';
+import { IconTile } from './icon-tile';
 import { useErrorText } from './query';
 
 /**
@@ -50,11 +51,13 @@ export function EmptyState({
   const filtered = variant === 'filtered';
   const shownIcon = icon ?? (filtered ? <FilterXIcon /> : null);
   return (
-    <div className={cn('flex flex-col items-center justify-center gap-3 px-6 py-14 text-center', className)}>
+    <div
+      className={cn('flex flex-col items-center justify-center gap-2.5 px-6 py-10 text-center', className)}
+    >
       {shownIcon && (
-        <div className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
+        <IconTile aria-hidden className="text-muted-foreground">
           {shownIcon}
-        </div>
+        </IconTile>
       )}
       <div className="space-y-1">
         <p className="font-medium">{title ?? (filtered ? t('filteredTitle') : null)}</p>
@@ -141,16 +144,11 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className={cn('flex flex-col items-center justify-center gap-3 px-6 py-14 text-center', className)}
+      className={cn('flex flex-col items-center justify-center gap-2.5 px-6 py-10 text-center', className)}
     >
-      <div
-        className={cn(
-          'flex size-11 items-center justify-center rounded-full [&_svg]:size-5',
-          forbidden || notFound ? 'bg-muted text-muted-foreground' : 'bg-destructive/10 text-destructive',
-        )}
-      >
-        <Icon aria-hidden />
-      </div>
+      <IconTile aria-hidden className={forbidden || notFound ? 'text-muted-foreground' : 'text-destructive'}>
+        <Icon />
+      </IconTile>
       <div className="space-y-1">
         <p className="font-medium">{heading}</p>
         <p className="mx-auto max-w-sm text-sm text-muted-foreground">{detail}</p>

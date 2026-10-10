@@ -15,7 +15,7 @@ import {
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
-import { easeOut } from '@isbp/ui/motion';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import {
   Select,
   SelectContent,
@@ -34,11 +34,9 @@ import {
   SheetTitle,
 } from '@isbp/ui/sheet';
 import { Textarea } from '@isbp/ui/textarea';
-import { ChevronDownIcon } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
-import { type FieldValues, type Resolver, type UseFormReturn, useForm } from 'react-hook-form';
+import { type FieldValues, type Resolver, type UseFormReturn, useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 import {
   attributesPayload,
@@ -107,7 +105,7 @@ function ParentSelect({
 
 /**
  * Create (no `department`; optional preset `parentId`) or edit / move a department. Simple by
- * default; the sibling sort order sits behind "advanced".
+ * default; the description and the sibling sort order sit behind "More details".
  */
 export function DepartmentFormSheet({
   open,
@@ -129,6 +127,7 @@ export function DepartmentFormSheet({
   const managerId = useId();
   const editing = Boolean(department);
   const [advanced, setAdvanced] = useState(false);
+  const list = useFieldList();
   const [manager, setManager] = useState<PickedUser | null>(null);
 
   const custom = useEntityFields('core.department', open);
@@ -186,6 +185,10 @@ export function DepartmentFormSheet({
     department?.attributes,
   );
 
+  const [descriptionValue, sortOrderValue] = useWatch({
+    control: form.control,
+    name: ['description', 'sortOrder'],
+  });
   const create = useApiMutation((api, values: Values) => api.post<{ id: string }>('/departments', values), {
     invalidate: DEPARTMENT_INVALIDATE,
     success: () => t('created', { name: form.getValues('name') }),
@@ -308,90 +311,67 @@ export function DepartmentFormSheet({
                   }}
                 />
               </div>
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t('description')}{' '}
-                      <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        rows={3}
-                        placeholder={t('descriptionPlaceholder')}
-                        {...field}
-                        value={field.value ?? ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <OptionalFields
+                hint={list([t('description'), t('sortOrder')])}
+                open={advanced}
+                onOpenChange={setAdvanced}
+                filled={countFilled(descriptionValue, sortOrderValue || '')}
+              >
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {t('description')}{' '}
+                        <span className="font-normal text-muted-foreground">({tc('optional')})</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          rows={3}
+                          placeholder={t('descriptionPlaceholder')}
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="sortOrder"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('sortOrder')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          inputMode="numeric"
+                          step={1}
+                          className="w-32"
+                          name={field.name}
+                          ref={field.ref}
+                          onBlur={field.onBlur}
+                          value={field.value ?? 0}
+                          onChange={(e) =>
+                            field.onChange(e.target.value === '' ? 0 : Math.trunc(Number(e.target.value)))
+                          }
+                        />
+                      </FormControl>
+                      <FormDescription>{t('sortOrderHint')}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </OptionalFields>
 
               <CustomFieldsSection
                 elements={custom.elements}
                 form={form as unknown as UseFormReturn<FieldValues>}
                 className="pt-1"
               />
-
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setAdvanced((a) => !a)}
-                  aria-expanded={advanced}
-                  className="flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  <ChevronDownIcon
-                    className={`size-4 transition-transform duration-200 ${advanced ? 'rotate-180' : ''}`}
-                    aria-hidden
-                  />
-                  {advanced ? tc('hideAdvanced') : tc('showAdvanced')}
-                </button>
-                <AnimatePresence initial={false}>
-                  {advanced && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2, ease: easeOut }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pt-4">
-                        <FormField
-                          control={form.control}
-                          name="sortOrder"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t('sortOrder')}</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  inputMode="numeric"
-                                  step={1}
-                                  className="w-32"
-                                  name={field.name}
-                                  ref={field.ref}
-                                  onBlur={field.onBlur}
-                                  value={field.value ?? 0}
-                                  onChange={(e) =>
-                                    field.onChange(
-                                      e.target.value === '' ? 0 : Math.trunc(Number(e.target.value)),
-                                    )
-                                  }
-                                />
-                              </FormControl>
-                              <FormDescription>{t('sortOrderHint')}</FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
               {form.formState.errors.root && (
                 <p role="alert" className="text-sm text-destructive">
                   {form.formState.errors.root.message}

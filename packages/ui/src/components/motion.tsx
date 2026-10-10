@@ -338,11 +338,9 @@ export function Collapse({
       )}
       {...props}
     >
-      <div
-        ref={content}
-        className={cn('min-h-0 overflow-hidden data-settled:overflow-visible', contentClassName)}
-      >
-        {children}
+      <div ref={content} className="min-h-0 overflow-hidden data-settled:overflow-visible">
+        {/* Padding lives inside the clipped box, so a closed region is really 0 px tall. */}
+        <div className={contentClassName}>{children}</div>
       </div>
     </div>
   );

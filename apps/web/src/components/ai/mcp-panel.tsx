@@ -77,7 +77,7 @@ export function McpPanel() {
   const command = `claude mcp add --transport http isbp ${url} --header "Authorization: Bearer ${KEY_PLACEHOLDER}"`;
 
   return (
-    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
       <Card className="min-w-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

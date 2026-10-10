@@ -39,8 +39,8 @@ import { CiPicker, NONE } from './pickers';
 /** Owners and managers: environments (with order), repositories, stage and lifecycle dates. */
 export function SettingsTab({ app }: { app: AppDetail }) {
   return (
-    <div className="grid min-w-0 items-start gap-6 xl:grid-cols-2">
-      <div className="grid min-w-0 gap-6">
+    <div className="grid min-w-0 items-start gap-4 xl:grid-cols-2">
+      <div className="grid min-w-0 gap-4">
         <EnvironmentsCard app={app} />
         <LifecycleCard key={String(app.updatedAt)} app={app} />
       </div>

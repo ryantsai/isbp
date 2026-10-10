@@ -12,6 +12,7 @@ import { Button } from '@isbp/ui/button';
 import { Checkbox } from '@isbp/ui/checkbox';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
@@ -24,7 +25,7 @@ import {
 } from '@isbp/ui/sheet';
 import { Switch } from '@isbp/ui/switch';
 import { Textarea } from '@isbp/ui/textarea';
-import { AlertTriangleIcon, ChevronDownIcon, InfoIcon, PlugZapIcon } from 'lucide-react';
+import { AlertTriangleIcon, InfoIcon, PlugZapIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { useApiMutation, useErrorText } from '@/lib/api';
@@ -85,6 +86,8 @@ function draftOf(c?: DbConnection): Draft {
   };
 }
 
+const NEW_DRAFT = draftOf();
+
 const slugify = (name: string) =>
   name
     .toLowerCase()
@@ -114,6 +117,7 @@ export function ConnectionFormSheet({
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const id = useId();
+  const list = useFieldList();
   const editing = Boolean(connection);
   const [draft, setDraft] = useState<Draft>(() => draftOf(connection));
   const [submitted, setSubmitted] = useState(false);
@@ -284,7 +288,7 @@ export function ConnectionFormSheet({
             submit();
           }}
         >
-          <SheetBody className="space-y-6 py-2">
+          <SheetBody className="space-y-5 py-2">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {field(
                 'name',
@@ -324,22 +328,6 @@ export function ConnectionFormSheet({
                 { error: show('key'), hint: t('keyHint') },
               )}
             </div>
-            {field(
-              'description',
-              <>
-                {t('description')} {optional}
-              </>,
-              (p) => (
-                <Textarea
-                  {...p}
-                  rows={2}
-                  maxLength={2000}
-                  value={draft.description}
-                  onChange={(e) => set({ description: e.target.value })}
-                />
-              ),
-            )}
-
             <fieldset className="min-w-0 space-y-4">
               <legend className="mb-3 text-sm font-semibold">{t('sectionServer')}</legend>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
@@ -428,37 +416,6 @@ export function ConnectionFormSheet({
                     { hint: t('instanceHint') },
                   )}
               </div>
-              {field('tls', t('tls'), (p) => (
-                <Select value={draft.tls} onValueChange={(v) => set({ tls: v as Draft['tls'] })}>
-                  <SelectTrigger id={p.id} className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="off">{t('tlsOff')}</SelectItem>
-                    <SelectItem value="require">{t('tlsRequire')}</SelectItem>
-                    <SelectItem value="verify">{t('tlsVerify')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              ))}
-              {draft.tls === 'verify' &&
-                field(
-                  'ca',
-                  <>
-                    {t('ca')} {optional}
-                  </>,
-                  (p) => (
-                    <Textarea
-                      {...p}
-                      rows={3}
-                      value={draft.ca}
-                      spellCheck={false}
-                      className="font-mono text-xs"
-                      placeholder="-----BEGIN CERTIFICATE-----"
-                      onChange={(e) => set({ ca: e.target.value })}
-                    />
-                  ),
-                  { hint: connection?.options.hasCa ? t('caStored') : undefined },
-                )}
             </fieldset>
 
             <fieldset className="min-w-0 space-y-4">
@@ -502,23 +459,6 @@ export function ConnectionFormSheet({
                   </Label>
                 </div>
               )}
-              {draft.engine === 'mssql' &&
-                field(
-                  'domain',
-                  <>
-                    {t('domain')} {optional}
-                  </>,
-                  (p) => (
-                    <Input
-                      {...p}
-                      value={draft.domain}
-                      spellCheck={false}
-                      autoComplete="off"
-                      onChange={(e) => set({ domain: e.target.value })}
-                    />
-                  ),
-                  { hint: t('domainHint') },
-                )}
             </fieldset>
 
             <fieldset
@@ -582,66 +522,131 @@ export function ConnectionFormSheet({
               </p>
             </fieldset>
 
-            <div>
-              <button
-                type="button"
-                onClick={() => setAdvanced((a) => !a)}
-                aria-expanded={advanced}
-                aria-controls={`${id}-limits`}
-                className="flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              >
-                <ChevronDownIcon
-                  className={`size-4 transition-transform duration-200 motion-reduce:transition-none ${advanced ? 'rotate-180' : ''}`}
-                  aria-hidden
-                />
-                {t('advanced')}
-              </button>
-              <div
-                id={`${id}-limits`}
-                hidden={!advanced}
-                className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-3"
-              >
-                {field(
-                  'pool',
-                  t('poolMax'),
+            <OptionalFields
+              hint={list([t('description'), t('tls'), t('ca'), t('domain')])}
+              filled={countFilled(
+                draft.description,
+                draft.ca || connection?.options.hasCa,
+                draft.domain,
+                draft.tls !== NEW_DRAFT.tls,
+              )}
+            >
+              {field(
+                'description',
+                <>
+                  {t('description')} {optional}
+                </>,
+                (p) => (
+                  <Textarea
+                    {...p}
+                    rows={2}
+                    maxLength={2000}
+                    value={draft.description}
+                    onChange={(e) => set({ description: e.target.value })}
+                  />
+                ),
+              )}
+              {field('tls', t('tls'), (p) => (
+                <Select value={draft.tls} onValueChange={(v) => set({ tls: v as Draft['tls'] })}>
+                  <SelectTrigger id={p.id} className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="off">{t('tlsOff')}</SelectItem>
+                    <SelectItem value="require">{t('tlsRequire')}</SelectItem>
+                    <SelectItem value="verify">{t('tlsVerify')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              ))}
+              {draft.tls === 'verify' &&
+                field(
+                  'ca',
+                  <>
+                    {t('ca')} {optional}
+                  </>,
+                  (p) => (
+                    <Textarea
+                      {...p}
+                      rows={3}
+                      value={draft.ca}
+                      spellCheck={false}
+                      className="font-mono text-xs"
+                      placeholder="-----BEGIN CERTIFICATE-----"
+                      onChange={(e) => set({ ca: e.target.value })}
+                    />
+                  ),
+                  { hint: connection?.options.hasCa ? t('caStored') : undefined },
+                )}
+              {draft.engine === 'mssql' &&
+                field(
+                  'domain',
+                  <>
+                    {t('domain')} {optional}
+                  </>,
                   (p) => (
                     <Input
                       {...p}
-                      inputMode="numeric"
-                      value={draft.poolMax}
-                      onChange={(e) => set({ poolMax: e.target.value.replace(/[^0-9]/g, '') })}
+                      value={draft.domain}
+                      spellCheck={false}
+                      autoComplete="off"
+                      onChange={(e) => set({ domain: e.target.value })}
                     />
                   ),
-                  { error: show('poolMax') },
+                  { hint: t('domainHint') },
                 )}
-                {field(
-                  'timeout',
-                  t('timeout'),
-                  (p) => (
-                    <Input
-                      {...p}
-                      inputMode="numeric"
-                      value={draft.timeoutSec}
-                      onChange={(e) => set({ timeoutSec: e.target.value.replace(/[^0-9]/g, '') })}
-                    />
-                  ),
-                  { error: show('timeoutSec') },
-                )}
-                {field(
-                  'rows',
-                  t('maxRows'),
-                  (p) => (
-                    <Input
-                      {...p}
-                      inputMode="numeric"
-                      value={draft.maxRows}
-                      onChange={(e) => set({ maxRows: e.target.value.replace(/[^0-9]/g, '') })}
-                    />
-                  ),
-                  { error: show('maxRows') },
-                )}
-              </div>
-            </div>
+            </OptionalFields>
+
+            <OptionalFields
+              label={t('advanced')}
+              open={advanced}
+              onOpenChange={setAdvanced}
+              filled={countFilled(
+                draft.poolMax !== NEW_DRAFT.poolMax,
+                draft.timeoutSec !== NEW_DRAFT.timeoutSec,
+                draft.maxRows !== NEW_DRAFT.maxRows,
+              )}
+              contentClassName="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-3"
+            >
+              {field(
+                'pool',
+                t('poolMax'),
+                (p) => (
+                  <Input
+                    {...p}
+                    inputMode="numeric"
+                    value={draft.poolMax}
+                    onChange={(e) => set({ poolMax: e.target.value.replace(/[^0-9]/g, '') })}
+                  />
+                ),
+                { error: show('poolMax') },
+              )}
+              {field(
+                'timeout',
+                t('timeout'),
+                (p) => (
+                  <Input
+                    {...p}
+                    inputMode="numeric"
+                    value={draft.timeoutSec}
+                    onChange={(e) => set({ timeoutSec: e.target.value.replace(/[^0-9]/g, '') })}
+                  />
+                ),
+                { error: show('timeoutSec') },
+              )}
+              {field(
+                'rows',
+                t('maxRows'),
+                (p) => (
+                  <Input
+                    {...p}
+                    inputMode="numeric"
+                    value={draft.maxRows}
+                    onChange={(e) => set({ maxRows: e.target.value.replace(/[^0-9]/g, '') })}
+                  />
+                ),
+                { error: show('maxRows') },
+              )}
+            </OptionalFields>
 
             <div aria-live="polite">{testResult && <TestResultNote result={testResult} />}</div>
             {rootError && (

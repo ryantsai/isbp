@@ -5,7 +5,7 @@ import { Button } from '@isbp/ui/button';
 import { Checkbox } from '@isbp/ui/checkbox';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
-import { Disclosure } from '@isbp/ui/motion';
+import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
@@ -39,6 +39,7 @@ import { TriggerEditor, type TriggerState } from './trigger-editor';
 const NONE = '__none__';
 /** Server paths of the fields under "Advanced settings" (opened when one of them has an error). */
 const ADVANCED_FIELDS = ['timeoutSeconds', 'retries', 'concurrency', 'alerts.autoDisableAfter'];
+const DEFAULT_TIMEOUT = 3_600;
 
 export interface JobFormInitial {
   type?: string;
@@ -129,7 +130,7 @@ export function JobForm({
     mode: job?.trigger.mode ?? 'all',
   });
   const [enabled, setEnabled] = useState(job?.enabled ?? true);
-  const [timeoutSeconds, setTimeoutSeconds] = useState(String(job?.timeoutSeconds ?? 3_600));
+  const [timeoutSeconds, setTimeoutSeconds] = useState(String(job?.timeoutSeconds ?? DEFAULT_TIMEOUT));
   const [maxAttempts, setMaxAttempts] = useState(
     String(job?.retries.maxAttempts ?? DEFAULT_RETRIES.maxAttempts),
   );
@@ -146,6 +147,14 @@ export function JobForm({
     String(job?.alerts.autoDisableAfter ?? DEFAULT_ALERTS.autoDisableAfter),
   );
   const [errors, setErrors] = useState<Errors>({});
+  const advancedFilled = countFilled(
+    Number(timeoutSeconds) !== DEFAULT_TIMEOUT,
+    Number(maxAttempts) !== DEFAULT_RETRIES.maxAttempts,
+    backoff !== DEFAULT_RETRIES.backoff,
+    Number(delaySeconds) !== DEFAULT_RETRIES.delaySeconds,
+    concurrency !== 'skip',
+    Number(autoDisable) !== DEFAULT_ALERTS.autoDisableAfter,
+  );
 
   const typeInfo = types.find((x) => x.type === type);
   const scriptBlocked = type === BUILTIN_TYPES.script && sandbox.runner === 'none';
@@ -258,7 +267,7 @@ export function JobForm({
   };
 
   return (
-    <form onSubmit={submit} noValidate className="grid min-w-0 gap-6">
+    <form onSubmit={submit} noValidate className="grid min-w-0 gap-4">
       <Section title={t('form.basics')}>
         <div className="grid min-w-0 gap-4 lg:grid-cols-2">
           <FormRow label={t('fields.name')} error={errors.name}>
@@ -404,15 +413,14 @@ export function JobForm({
         </div>
       </Section>
 
-      <Disclosure
-        summary={t('form.advanced')}
+      <OptionalFields
+        label={t('form.advanced')}
+        filled={advancedFilled}
         open={advancedOpen}
         onOpenChange={setAdvancedOpen}
-        className="min-w-0 rounded-xl border bg-card px-4 shadow-xs sm:px-6"
-        triggerClassName="py-4 font-semibold"
       >
-        <p className="-mt-2 pb-4 text-sm text-muted-foreground">{t('form.advancedHint')}</p>
-        <div className="grid min-w-0 gap-6 pb-6">
+        <p className="text-sm text-muted-foreground">{t('form.advancedHint')}</p>
+        <div className="grid min-w-0 gap-4">
           <Section title={t('form.execution')}>
             <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <FormRow label={t('fields.timeout')} hint={t('form.timeoutHint')} error={errors.timeoutSeconds}>
@@ -515,7 +523,7 @@ export function JobForm({
             </FormRow>
           </div>
         </div>
-      </Disclosure>
+      </OptionalFields>
 
       <Section title={t('form.state')}>
         <SwitchRow
@@ -529,7 +537,7 @@ export function JobForm({
       </Section>
 
       {!job && periodBased && (
-        <div className="flex items-start gap-3 rounded-xl border bg-card px-4 py-3 shadow-xs sm:px-6">
+        <div className="flex items-start gap-3 rounded-xl border bg-card px-4 py-3 sm:px-6">
           <Checkbox
             id="job-run-first"
             checked={runFirst}

@@ -54,7 +54,7 @@ export default function RunPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-16 w-full rounded-xl" />
         <Skeleton className="h-72 w-full rounded-xl" />
@@ -96,7 +96,7 @@ export default function RunPage({ params }: WebPageProps) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DetailHeader
         className="pb-0"
         back={{ href: `${connectionHref(run.connection.id)}?tab=runs`, label: run.connection.name }}

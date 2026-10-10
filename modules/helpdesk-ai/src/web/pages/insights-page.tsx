@@ -203,7 +203,7 @@ function Insights({ canReview, canReports }: { canReview: boolean; canReports: b
     : 1;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title={t('insights.title')}
         description={t('insights.description')}
@@ -252,7 +252,7 @@ function Insights({ canReview, canReports }: { canReview: boolean; canReports: b
         </div>
       ) : (
         <div
-          className={isFetching ? 'space-y-6 opacity-70 transition-opacity' : 'space-y-6 transition-opacity'}
+          className={isFetching ? 'space-y-5 opacity-70 transition-opacity' : 'space-y-5 transition-opacity'}
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Kpi
@@ -287,7 +287,7 @@ function Insights({ canReview, canReports }: { canReview: boolean; canReports: b
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <div className="min-w-0 xl:col-span-2">
               <Card className="h-full">
                 <CardHeader>
@@ -360,7 +360,7 @@ function Insights({ canReview, canReports }: { canReview: boolean; canReports: b
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="min-w-0">
               <Card className="h-full">
                 <CardHeader>
@@ -471,7 +471,7 @@ function Insights({ canReview, canReports }: { canReview: boolean; canReports: b
                       icon={<CoinsIcon />}
                       title={t('usage.none')}
                       description={data.ai.mode === 'builtin' ? t('usage.noneBuiltin') : undefined}
-                      className="py-8"
+                      className="py-6"
                     />
                   )}
                 </CardContent>

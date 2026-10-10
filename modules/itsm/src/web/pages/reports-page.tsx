@@ -97,9 +97,9 @@ export default function ReportsPage() {
           ]}
         />
       )}
-      <div className="mb-6 flex flex-wrap items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <div
-          className="flex items-center gap-0.5 rounded-lg border bg-card p-0.5 shadow-xs"
+          className="flex items-center gap-0.5 rounded-lg border bg-card p-0.5"
           role="group"
           aria-label={t('range')}
         >
@@ -135,7 +135,7 @@ export default function ReportsPage() {
         />
       ) : (
         <div
-          className={cn('grid gap-6 transition-opacity', isFetching && 'opacity-70')}
+          className={cn('grid gap-4 transition-opacity', isFetching && 'opacity-70')}
           aria-busy={isFetching || undefined}
         >
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
@@ -217,7 +217,7 @@ export default function ReportsPage() {
             }
           />
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <ChartFrame
               title={t('byPriority.title')}
               description={t('byPriority.description')}

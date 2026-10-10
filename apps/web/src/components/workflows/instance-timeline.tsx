@@ -2,8 +2,17 @@
 
 import type { WorkflowInstance } from '@isbp/contracts';
 import { childBranches, findStep, localize, walkSteps } from '@isbp/sdk';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { RelativeTime } from '@isbp/ui/relative-time';
-import { cn } from '@isbp/ui';
+import {
+  Timeline,
+  TimelineContent,
+  TimelineHeader,
+  TimelineIndicator,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineTitle,
+} from '@isbp/ui/timeline';
 import {
   AlarmClockIcon,
   BanIcon,
@@ -18,29 +27,28 @@ import {
   TrendingUpIcon,
   XCircleIcon,
 } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { DecisionValues } from './decision-values';
 
 const ICONS: Record<string, { icon: ReactNode; tone: string }> = {
-  started: { icon: <PlayIcon />, tone: 'bg-primary/10 text-primary' },
-  step_started: { icon: <CircleDotIcon />, tone: 'bg-muted text-muted-foreground' },
-  task_approved: { icon: <CheckCircle2Icon />, tone: 'bg-success/12 text-success' },
-  task_already_approved: { icon: <CheckCircle2Icon />, tone: 'bg-success/12 text-success' },
-  task_rejected: { icon: <XCircleIcon />, tone: 'bg-destructive/10 text-destructive' },
-  task_delegated: { icon: <ForwardIcon />, tone: 'bg-info/12 text-info' },
-  task_reminded: { icon: <AlarmClockIcon />, tone: 'bg-warning/15 text-warning-foreground' },
-  task_overdue: { icon: <AlarmClockIcon />, tone: 'bg-destructive/10 text-destructive' },
-  task_escalated: { icon: <TrendingUpIcon />, tone: 'bg-warning/15 text-warning-foreground' },
-  task_auto_decided: { icon: <AlarmClockIcon />, tone: 'bg-warning/15 text-warning-foreground' },
-  step_approved: { icon: <CheckCircle2Icon />, tone: 'bg-success/12 text-success' },
-  step_rejected: { icon: <XCircleIcon />, tone: 'bg-destructive/10 text-destructive' },
-  step_skipped: { icon: <SkipForwardIcon />, tone: 'bg-muted text-muted-foreground' },
-  branch_chosen: { icon: <SplitIcon />, tone: 'bg-muted text-muted-foreground' },
-  notified: { icon: <BellIcon />, tone: 'bg-info/12 text-info' },
-  completed: { icon: <FlagIcon />, tone: 'bg-primary/10 text-primary' },
-  cancelled: { icon: <BanIcon />, tone: 'bg-muted text-muted-foreground' },
+  started: { icon: <PlayIcon />, tone: 'text-primary' },
+  step_started: { icon: <CircleDotIcon />, tone: 'text-muted-foreground' },
+  task_approved: { icon: <CheckCircle2Icon />, tone: 'text-success' },
+  task_already_approved: { icon: <CheckCircle2Icon />, tone: 'text-success' },
+  task_rejected: { icon: <XCircleIcon />, tone: 'text-destructive' },
+  task_delegated: { icon: <ForwardIcon />, tone: 'text-info' },
+  task_reminded: { icon: <AlarmClockIcon />, tone: 'text-warning-foreground' },
+  task_overdue: { icon: <AlarmClockIcon />, tone: 'text-destructive' },
+  task_escalated: { icon: <TrendingUpIcon />, tone: 'text-warning-foreground' },
+  task_auto_decided: { icon: <AlarmClockIcon />, tone: 'text-warning-foreground' },
+  step_approved: { icon: <CheckCircle2Icon />, tone: 'text-success' },
+  step_rejected: { icon: <XCircleIcon />, tone: 'text-destructive' },
+  step_skipped: { icon: <SkipForwardIcon />, tone: 'text-muted-foreground' },
+  branch_chosen: { icon: <SplitIcon />, tone: 'text-muted-foreground' },
+  notified: { icon: <BellIcon />, tone: 'text-info' },
+  completed: { icon: <FlagIcon />, tone: 'text-primary' },
+  cancelled: { icon: <BanIcon />, tone: 'text-muted-foreground' },
 };
 
 /** What happened, in order: submitted, asked, approved/rejected/delegated, reminders, escalations. */
@@ -58,8 +66,8 @@ export function InstanceTimeline({ instance }: { instance: Pick<WorkflowInstance
   // Hide noise: a step's start is implied by the decisions on it.
   const events = instance.events.filter((e) => e.type !== 'step_approved' && e.type !== 'step_started');
   return (
-    <ol className="relative grid gap-4 before:absolute before:top-2 before:bottom-2 before:left-[15px] before:w-px before:bg-border">
-      {events.map((e, i) => {
+    <Timeline>
+      {events.map((e) => {
         const look = ICONS[e.type] ?? ICONS.step_started!;
         const data = (e.data ?? {}) as Record<string, unknown>;
         const branchStep = e.type === 'branch_chosen' ? stepName(String(data.branchId ?? '')) : '';
@@ -84,23 +92,15 @@ export function InstanceTimeline({ instance }: { instance: Pick<WorkflowInstance
             ? { fields: decided.fields, data: data.fields as Record<string, unknown> }
             : null;
         return (
-          <motion.li
-            key={e.seq}
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: Math.min(i * 0.03, 0.3) }}
-            className="relative flex gap-3"
-          >
-            <span
-              className={cn(
-                'relative z-10 grid size-8 shrink-0 place-items-center rounded-full ring-4 ring-background [&_svg]:size-4',
-                look.tone,
-              )}
-            >
-              {look.icon}
-            </span>
-            <div className="min-w-0 flex-1 pt-1">
-              <p className="text-sm">
+          <TimelineItem key={e.seq}>
+            <TimelineHeader>
+              <TimelineSeparator />
+              <TimelineIndicator asChild>
+                <IconTile size="xs" className={look.tone}>
+                  {look.icon}
+                </IconTile>
+              </TimelineIndicator>
+              <TimelineTitle className="font-normal">
                 {t(key, { ...values, type: e.type })}
                 {e.type === 'step_skipped' && values.reason && (
                   <span className="text-muted-foreground">
@@ -108,23 +108,23 @@ export function InstanceTimeline({ instance }: { instance: Pick<WorkflowInstance
                     — {t.has(`reasons.${values.reason}`) ? t(`reasons.${values.reason}`) : values.reason}
                   </span>
                 )}
-              </p>
+              </TimelineTitle>
+            </TimelineHeader>
+            <TimelineContent>
               {e.type === 'task_already_approved' && (
-                <p className="text-sm text-muted-foreground">
-                  {t('reasons.already-approved', { step: values.from })}
-                </p>
+                <p>{t('reasons.already-approved', { step: values.from })}</p>
               )}
               {(comment || reason) && (
-                <blockquote className="mt-1.5 rounded-lg border-l-2 border-primary/40 bg-muted/50 px-3 py-2 text-sm whitespace-pre-line text-foreground/90">
+                <blockquote className="mt-1 rounded-md border-l-2 border-primary/40 bg-muted/50 px-2.5 py-1.5 whitespace-pre-line text-foreground/90">
                   {comment ?? reason}
                 </blockquote>
               )}
-              {filled && <DecisionValues fields={filled.fields} data={filled.data} className="mt-1.5" />}
-              <RelativeTime date={e.createdAt} className="mt-0.5 block text-xs text-muted-foreground" />
-            </div>
-          </motion.li>
+              {filled && <DecisionValues fields={filled.fields} data={filled.data} className="mt-1" />}
+              <RelativeTime date={e.createdAt} className="mt-0.5 block text-xs" />
+            </TimelineContent>
+          </TimelineItem>
         );
       })}
-    </ol>
+    </Timeline>
   );
 }

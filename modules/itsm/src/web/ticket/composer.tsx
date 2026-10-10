@@ -166,7 +166,7 @@ export function Composer({
   if (audience === 'requester') {
     if (!canComment) return null;
     return (
-      <section aria-label={t('requester.label')} className="rounded-xl border bg-card p-3 shadow-xs sm:p-4">
+      <section aria-label={t('requester.label')} className="rounded-xl border bg-card p-3 sm:p-4">
         <Pane
           value={state.reply}
           onChange={state.setReply}
@@ -190,7 +190,7 @@ export function Composer({
   const active = tabs.includes(state.tab) ? state.tab : tabs[0]!;
 
   return (
-    <section aria-label={t('label')} className="rounded-xl border bg-card p-3 shadow-xs sm:p-4">
+    <section aria-label={t('label')} className="rounded-xl border bg-card p-3 sm:p-4">
       <Tabs value={active} onValueChange={(v) => state.setTab(v as ComposerTab)} className="gap-3">
         <TabsList>
           {canComment && (

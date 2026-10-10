@@ -32,7 +32,7 @@ export interface DataTableColumnMeta {
   /**
    * How much the column matters when the table is narrow (measured on the table itself, not the viewport):
    * `1` (default) always shown: the identifying column and status; `2` hidden below 672 px of table width (phones);
-   * `3` hidden below 1,152 px (a laptop with the sidebar open). Put a priority-2 column's essentials into the
+   * `3` hidden below 1,200 px (a 1,440 px laptop with the sidebar open). Put a priority-2 column's essentials into the
    * identifying cell with `DataTableSummary` so phones keep them.
    */
   priority?: 1 | 2 | 3;
@@ -44,7 +44,7 @@ export interface DataTableColumnMeta {
 
 const PRIORITY_CLASS: Record<number, string> = {
   2: 'hidden @2xl/table:table-cell',
-  3: 'hidden @6xl/table:table-cell',
+  3: 'hidden @min-[75rem]/table:table-cell',
 };
 
 /**
@@ -255,6 +255,9 @@ export function DataTable<T extends RowData>({
     },
   });
 
+  // With a wrapping (identifying) column, the others take just their content's width and it gets the rest: titles
+  // stay on one or two lines instead of being squeezed between half-empty status columns.
+  const hasWrap = columns.some((c) => c.meta?.wrap);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
@@ -272,8 +275,8 @@ export function DataTable<T extends RowData>({
   const staleAfterError = !!error && data.length > 0;
 
   return (
-    <div className={cn('@container/table overflow-hidden rounded-xl border bg-card shadow-xs', className)}>
-      {toolbar && <div className="flex flex-wrap items-center gap-2 border-b p-3">{toolbar}</div>}
+    <div className={cn('@container/table overflow-hidden rounded-lg border bg-card', className)}>
+      {toolbar && <div className="flex flex-wrap items-center gap-2 border-b p-2">{toolbar}</div>}
       {staleAfterError && (
         <ErrorState
           compact
@@ -305,7 +308,11 @@ export function DataTable<T extends RowData>({
                     <TableHead
                       key={header.id}
                       aria-sort={ariaSort}
-                      className={cn(meta?.priority && PRIORITY_CLASS[meta.priority], meta?.headerClassName)}
+                      className={cn(
+                        meta?.priority && PRIORITY_CLASS[meta.priority],
+                        hasWrap && !meta?.wrap && !header.column.columnDef.size && 'w-px',
+                        meta?.headerClassName,
+                      )}
                       style={
                         header.column.columnDef.size ? { width: header.column.columnDef.size } : undefined
                       }
@@ -396,7 +403,7 @@ export function DataTable<T extends RowData>({
                     <ErrorState kind="list" error={error} onRetry={onRetry} />
                   ) : (
                     (empty ?? (
-                      <div className="py-12 text-center text-sm text-muted-foreground">{t('empty')}</div>
+                      <div className="py-10 text-center text-sm text-muted-foreground">{t('empty')}</div>
                     ))
                   )}
                 </TableCell>
@@ -407,7 +414,7 @@ export function DataTable<T extends RowData>({
       </div>
       <div
         hidden={failed}
-        className="flex flex-col gap-3 border-t px-3 py-2.5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
+        className="flex flex-col gap-2 border-t px-3 py-1.5 text-[13px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
       >
         <div aria-live="polite">{failed ? null : t('showing', { from, to, total })}</div>
         <div className="flex items-center gap-3">

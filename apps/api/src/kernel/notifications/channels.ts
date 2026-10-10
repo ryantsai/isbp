@@ -231,16 +231,16 @@ export function renderEmail(m: OutboundMessage, preferencesUrl: string | null) {
     .filter(Boolean)
     .map((p) => `<p style="margin:0 0 12px;line-height:1.55">${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
     .join('');
-  const html = `<!doctype html><html lang="${escapeHtml(m.locale)}"><body style="margin:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC','Noto Sans JP','Hiragino Sans',sans-serif;color:#1f2430">
+  const html = `<!doctype html><html lang="${escapeHtml(m.locale)}"><body style="margin:0;background:#f3f6f9;font-family:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans TC','Noto Sans JP','Hiragino Sans',sans-serif;color:#131e28">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;border:1px solid #e3e5ea">
-<tr><td style="padding:20px 28px;border-bottom:1px solid #eceef2;font-size:13px;font-weight:600;color:#4b5263">${escapeHtml(m.productName)}</td></tr>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:8px;border:1px solid #dfe5ea;border-top:3px solid #4aa4dc">
+<tr><td style="padding:18px 28px;border-bottom:1px solid #e9eef2;font-size:13px;font-weight:600;color:#535e67">${escapeHtml(m.productName)}</td></tr>
 <tr><td style="padding:28px">
 <h1 style="margin:0 0 14px;font-size:19px;line-height:1.35">${escapeHtml(m.title)}</h1>
 ${paragraphs}
-${m.url ? `<p style="margin:22px 0 4px"><a href="${escapeHtml(m.url)}" style="display:inline-block;background:#3b5bdb;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">${escapeHtml(open)}</a></p>` : ''}
+${m.url ? `<p style="margin:22px 0 4px"><a href="${escapeHtml(m.url)}" style="display:inline-block;background:#0066a1;color:#ffffff;text-decoration:none;padding:9px 18px;border-radius:4px;font-weight:600;font-size:14px">${escapeHtml(open)}</a></p>` : ''}
 </td></tr>
-<tr><td style="padding:16px 28px;border-top:1px solid #eceef2;font-size:12px;color:#6b7280">${escapeHtml(FOOTER[m.locale] ?? FOOTER.en!)}${preferencesUrl ? ` <a href="${escapeHtml(preferencesUrl)}" style="color:#3b5bdb">${escapeHtml(PREFS[m.locale] ?? PREFS.en!)}</a>` : ''}</td></tr>
+<tr><td style="padding:16px 28px;border-top:1px solid #e9eef2;font-size:12px;color:#535e67">${escapeHtml(FOOTER[m.locale] ?? FOOTER.en!)}${preferencesUrl ? ` <a href="${escapeHtml(preferencesUrl)}" style="color:#0066a1">${escapeHtml(PREFS[m.locale] ?? PREFS.en!)}</a>` : ''}</td></tr>
 </table></td></tr></table></body></html>`;
   const text = [m.title, '', m.body ?? '', '', m.url ? `${open}: ${m.url}` : '', '', `— ${m.productName}`]
     .filter((l, i, a) => l !== '' || a[i - 1] !== '')

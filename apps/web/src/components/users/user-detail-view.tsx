@@ -115,7 +115,7 @@ export function UserDetailView({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <div className="space-y-6" aria-busy>
+      <div className="space-y-5" aria-busy>
         <div className="flex items-center gap-4">
           <Skeleton className="size-16 rounded-full" />
           <div className="space-y-2">
@@ -142,14 +142,14 @@ export function UserDetailView({ id }: { id: string }) {
   const movable = canUpdate && user.status !== 'offboarded';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <BackLink href="/admin/users" label={t('title')} highlight={user.id} />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <UserAvatar name={name} src={user.avatarUrl} className="size-16 text-lg" />
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight wrap-break-word">{name}</h1>
+            <h1 className="text-xl font-semibold tracking-tight wrap-break-word">{name}</h1>
             <UserStatusBadge status={user.status} />
             <SourceBadge source={user.authSource} />
           </div>
@@ -235,7 +235,7 @@ export function UserDetailView({ id }: { id: string }) {
           {canAudit && <TabsTrigger value="activity">{t('detail.tabs.activity')}</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="overview" className="grid items-start gap-6 lg:grid-cols-2">
+        <TabsContent value="overview" className="grid items-start gap-4 lg:grid-cols-2">
           <OverviewPanel user={user} />
         </TabsContent>
 
@@ -410,7 +410,7 @@ function OverviewPanel({ user }: { user: UserDetail }) {
   const format = useFormatter();
   return (
     <>
-      <div className="min-w-0 space-y-6">
+      <div className="min-w-0 space-y-5">
         <Card>
           <CardHeader>
             <CardTitle>{t('detail.profile')}</CardTitle>
@@ -445,7 +445,7 @@ function OverviewPanel({ user }: { user: UserDetail }) {
         </Card>
         <CustomFieldsCard entityType="core.user" attributes={user.attributes} />
       </div>
-      <div className="min-w-0 space-y-6">
+      <div className="min-w-0 space-y-5">
         <Card>
           <CardHeader>
             <CardTitle>{t('detail.organisation')}</CardTitle>
@@ -514,7 +514,7 @@ function OverviewPanel({ user }: { user: UserDetail }) {
         </Card>
       </div>
       {/* Modules' cards about this person (e.g. assigned assets and software). */}
-      <div className="grid min-w-0 gap-6 lg:col-span-2 lg:grid-cols-2 [&:empty]:hidden">
+      <div className="grid min-w-0 gap-4 lg:col-span-2 lg:grid-cols-2 [&:empty]:hidden">
         <Slot<UserOverviewSlotProps>
           name="core.user.overview"
           props={{
@@ -693,7 +693,7 @@ function GroupsPanel({
             icon={<UsersRoundIcon />}
             title={t('none')}
             description={canManage ? t('noneHint') : undefined}
-            className="py-8"
+            className="py-6"
           />
         ) : (
           <AnimatedList className="-mx-1 divide-y">

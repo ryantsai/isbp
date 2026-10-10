@@ -112,7 +112,7 @@ export function RequesterView({ ticket }: { ticket: TicketDetail }) {
   const open = !ended && ticket.status !== 'closed';
 
   return (
-    <div className="grid max-w-5xl gap-6">
+    <div className="grid max-w-5xl gap-4">
       <div className="grid gap-3">
         <BackLink href="/requests" label={t('back')} />
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
@@ -123,7 +123,7 @@ export function RequesterView({ ticket }: { ticket: TicketDetail }) {
           <TicketStatusBadge status={ticket.status} signOff={Boolean(ticket.signOff)} requester animate />
           <SourceChip ticket={ticket} />
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-balance break-words">{ticket.title}</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-balance break-words">{ticket.title}</h1>
       </div>
 
       <Card className="py-5">
@@ -147,7 +147,7 @@ export function RequesterView({ ticket }: { ticket: TicketDetail }) {
       <ConfirmPanel ticket={ticket} />
       <AcceptancePanel ticket={ticket} />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <section aria-labelledby="itsm-conversation" className="grid min-w-0 grid-cols-1 content-start gap-4">
           <h2 id="itsm-conversation" className="text-base font-semibold">
             {t('conversation')}

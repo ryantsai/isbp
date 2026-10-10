@@ -14,6 +14,7 @@ import {
 } from '@isbp/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -23,7 +24,7 @@ import { ExternalLinkIcon, MailIcon, PencilIcon, PhoneIcon, UserIcon } from 'luc
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import type { CreateVendorInput, Vendor, VendorDetail } from '../contracts';
 import { ComplianceBadge, ContractStatusBadge } from './badges';
@@ -111,6 +112,13 @@ function VendorForm({
       active: vendor?.active ?? true,
     },
   });
+  const list = useFieldList();
+  const details = useWatch({
+    control: form.control,
+    name: ['website', 'contactName', 'phone', 'contactEmail', 'notes'],
+  });
+  const detailsFilled = countFilled(...details);
+
   const save = useApiMutation(
     (api, body: CreateVendorInput) =>
       vendor
@@ -160,25 +168,6 @@ function VendorForm({
     <Form {...form}>
       <form onSubmit={onSubmit} className="grid gap-4" noValidate>
         {field('name', t('fields.name'))}
-        {field('website', t('vendors.website'), 'url')}
-        <div className="grid gap-4 sm:grid-cols-2">
-          {field('contactName', t('vendors.contact'))}
-          {field('phone', t('vendors.phone'), 'tel')}
-        </div>
-        {field('contactEmail', t('vendors.email'), 'email')}
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field: f }) => (
-            <FormItem>
-              <FormLabel>{t('fields.notes')}</FormLabel>
-              <FormControl>
-                <Textarea rows={3} {...f} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <FormField
           control={form.control}
           name="active"
@@ -193,6 +182,36 @@ function VendorForm({
             </FormItem>
           )}
         />
+        <OptionalFields
+          hint={list([
+            t('vendors.contact'),
+            t('vendors.phone'),
+            t('vendors.email'),
+            t('vendors.website'),
+            t('fields.notes'),
+          ])}
+          filled={detailsFilled}
+        >
+          {field('website', t('vendors.website'), 'url')}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {field('contactName', t('vendors.contact'))}
+            {field('phone', t('vendors.phone'), 'tel')}
+          </div>
+          {field('contactEmail', t('vendors.email'), 'email')}
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field: f }) => (
+              <FormItem>
+                <FormLabel>{t('fields.notes')}</FormLabel>
+                <FormControl>
+                  <Textarea rows={3} {...f} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </OptionalFields>
         {form.formState.errors.root && (
           <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {form.formState.errors.root.message}
@@ -237,7 +256,7 @@ export function VendorSheet({
               {v ? (v.active ? t('vendors.activeVendor') : t('vendors.inactiveVendor')) : ''}
             </SheetDescription>
           </SheetHeader>
-          <SheetBody className="space-y-6 pb-6">
+          <SheetBody className="space-y-5 pb-6">
             {isLoading || !v ? (
               <Skeleton className="h-64 w-full" />
             ) : (

@@ -7,6 +7,7 @@ import { EmptyState } from '@isbp/ui/empty-state';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
+import { IconTile } from '@isbp/ui/icon-tile';
 import {
   ArrowDownLeftIcon,
   ArrowUpRightIcon,
@@ -39,7 +40,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 function Section({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
   return (
     <section className="space-y-2.5">
-      <h3 className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <h3 className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
         {title}
         {count !== undefined && (
           <Badge variant="muted" className="px-1.5 py-0 tabular-nums">
@@ -88,9 +89,9 @@ function AiAgentCard({ agent }: { agent: NonNullable<ModuleInfo['aiAgent']> }) {
   return (
     <section aria-labelledby={titleId} className="rounded-lg border p-3">
       <div className="flex items-start gap-3">
-        <span className="grid size-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+        <IconTile aria-hidden size="sm">
           <BotIcon className="size-4" aria-hidden />
-        </span>
+        </IconTile>
         <div className="min-w-0 space-y-1">
           <h3 id={titleId} className="text-sm font-medium">
             {t('agentTitle', { name: agent.name })}
@@ -135,7 +136,7 @@ function ModuleChip({
     <button
       type="button"
       onClick={() => onNavigate(id)}
-      className="inline-flex items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-xs font-medium shadow-xs transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="inline-flex items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-xs font-medium transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       <NavIcon name={target.icon ?? undefined} className="size-3.5 text-muted-foreground" />
       {text(target.name)}
@@ -206,7 +207,7 @@ export function ModuleSheet({
                 </TabsList>
               </div>
               <SheetBody className="pt-5">
-                <TabsContent value="overview" className="space-y-6 pb-6">
+                <TabsContent value="overview" className="space-y-5 pb-6">
                   <dl className="divide-y">
                     <Row label={t('overview.lastChanged')}>
                       {m.enabledChangedAt ? (
@@ -240,7 +241,7 @@ export function ModuleSheet({
                   </Section>
                 </TabsContent>
 
-                <TabsContent value="technical" className="space-y-6 pb-6">
+                <TabsContent value="technical" className="space-y-5 pb-6">
                   <p className="text-sm text-muted-foreground">{t('technicalHint')}</p>
                   <dl className="divide-y">
                     <Row label={t('overview.id')}>

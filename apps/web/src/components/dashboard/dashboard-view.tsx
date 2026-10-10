@@ -4,6 +4,7 @@ import type { MyWork } from '@isbp/contracts';
 import { Slot, usePlatform } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { useApiQuery } from '@isbp/ui/query';
+import { IconTile } from '@isbp/ui/icon-tile';
 import {
   CircleCheckIcon,
   ClipboardListIcon,
@@ -70,19 +71,19 @@ function QuickActions() {
   const actions = useQuickActions();
   return (
     <section aria-label={t('label')}>
-      <ul className={cn('grid grid-cols-1 gap-3 sm:grid-cols-2', actions.length >= 4 && 'xl:grid-cols-4')}>
+      <ul className={cn('grid grid-cols-2 gap-2 sm:gap-3', actions.length >= 4 && 'xl:grid-cols-4')}>
         {actions.map((a) => (
           <li key={a.id} className="min-w-0">
             <Link
               href={a.href}
-              className="group flex h-full min-w-0 items-center gap-3 rounded-xl border bg-card p-3 shadow-xs outline-none transition-[translate,box-shadow,border-color] duration-(--motion-base) hover:-translate-y-0.5 hover:border-ring/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+              className="group flex h-full min-w-0 items-center gap-3 rounded-lg border bg-card px-3 py-2.5 outline-none transition-[translate,box-shadow,border-color] duration-(--motion-base) hover:-translate-y-px hover:border-primary/50 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
             >
-              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+              <IconTile aria-hidden size="sm" className="sm:size-10">
                 {a.icon}
-              </span>
+              </IconTile>
               <span className="min-w-0">
                 <span className="block font-medium">{a.label}</span>
-                <span className="block text-xs text-muted-foreground">{a.hint}</span>
+                <span className="hidden text-xs text-muted-foreground sm:block">{a.hint}</span>
               </span>
             </Link>
           </li>
@@ -108,12 +109,12 @@ export function DashboardView({ initialWork }: { initialWork: MyWork | null }) {
   const waiting = work?.total ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <header className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">
           {format.dateTime(now, { weekday: 'long', month: 'long', day: 'numeric' })}
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-xl font-semibold tracking-tight">
           {t(`greeting.${greeting}`, { name: user.displayName })}
         </h1>
         {work && waiting === 0 ? (

@@ -26,7 +26,7 @@ function parseConfig(raw: string | null): Record<string, unknown> | undefined {
 
 function Loading() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Skeleton className="h-8 w-64" />
       <Skeleton className="h-48 w-full rounded-xl" />
       <Skeleton className="h-72 w-full rounded-xl" />

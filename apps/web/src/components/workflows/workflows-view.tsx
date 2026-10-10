@@ -32,6 +32,7 @@ import { Skeleton } from '@isbp/ui/skeleton';
 import { Switch } from '@isbp/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { Textarea } from '@isbp/ui/textarea';
+import { IconTile } from '@isbp/ui/icon-tile';
 import {
   ArchiveIcon,
   ChevronRightIcon,
@@ -207,9 +208,9 @@ function DefinitionRow({
         href={`/admin/workflows/${d.id}`}
         className="group flex items-center gap-3 px-4 py-3 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 motion-reduce:transition-none"
       >
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+        <IconTile aria-hidden>
           <WorkflowIcon className="size-4" aria-hidden />
-        </span>
+        </IconTile>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
             <span className="min-w-0 truncate font-medium group-hover:underline">{label(d.name)}</span>
@@ -372,7 +373,7 @@ function DefinitionsTab({ onCreate }: { onCreate: (trigger: string | null) => vo
   const builtInHeading = useId();
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput value={q} onChange={setQ} placeholder={t('search')} className="sm:w-72" />
         <label className="flex items-center gap-2 text-sm">
@@ -383,7 +384,7 @@ function DefinitionsTab({ onCreate }: { onCreate: (trigger: string | null) => vo
       {triggers.isLoading || defs.isLoading ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : (
-        <Stagger className="grid gap-8">
+        <Stagger className="grid gap-5">
           {formTrigger && (
             <StaggerItem>
               <section aria-labelledby={formsHeading} className="grid gap-2">
@@ -418,9 +419,7 @@ function DefinitionsTab({ onCreate }: { onCreate: (trigger: string | null) => vo
               <div className="grid gap-4">
                 {areas.map((a) => (
                   <div key={a.name} className="overflow-hidden rounded-xl border bg-card">
-                    <p className="border-b px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                      {a.name}
-                    </p>
+                    <p className="border-b px-4 py-2 text-xs font-semibold text-muted-foreground">{a.name}</p>
                     {a.list.map((tr) => (
                       <TriggerSection
                         key={tr.key}
@@ -613,7 +612,7 @@ export function WorkflowsView() {
       <Tabs
         value={tab}
         onValueChange={(v) => set({ tab: v === 'definitions' ? undefined : v })}
-        className="gap-6"
+        className="gap-4"
       >
         <TabsList>
           <TabsTrigger value="definitions">{t('tabs.definitions')}</TabsTrigger>

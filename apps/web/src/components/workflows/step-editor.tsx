@@ -562,7 +562,7 @@ export function StepEditor({
   const { readOnly } = useBuilder();
   const id = useId();
   return (
-    <fieldset disabled={readOnly} className="grid gap-6">
+    <fieldset disabled={readOnly} className="grid gap-4">
       <legend className="sr-only">{t('legend')}</legend>
       {issues.length > 0 && (
         <ul

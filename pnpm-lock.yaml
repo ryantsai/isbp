@@ -530,9 +530,21 @@ importers:
       '@dnd-kit/utilities':
         specifier: 'catalog:'
         version: 3.2.2(react@19.3.0)
+      '@fontsource-variable/ibm-plex-sans':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/ibm-plex-mono':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@hookform/resolvers':
         specifier: 'catalog:'
         version: 5.9.1(ajv@8.20.0)(react-hook-form@7.89.0(@types/react@19.3.0)(react@19.3.0))(zod@4.6.5)
+      '@ibm/plex-sans-jp':
+        specifier: ^3.0.0
+        version: 3.0.0
+      '@ibm/plex-sans-tc':
+        specifier: ^1.1.1
+        version: 1.1.1
       '@isbp/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -605,9 +617,6 @@ importers:
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
-      geist:
-        specifier: ^1.7.2
-        version: 1.7.2(next@16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
       lucide-react:
         specifier: 'catalog:'
         version: 1.52.0(@types/react@19.3.0)(react@19.3.0)
@@ -3377,6 +3386,12 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
+  '@fontsource-variable/ibm-plex-sans@5.3.0':
+    resolution: {integrity: sha512-agG8tXFEo0hD9+J7npa4vbbWult52eMLVaQ6WQRlhs/iCAojrMAoejru85W9HTVXHfyUj96KM7gp/KGAS87XaQ==}
+
+  '@fontsource/ibm-plex-mono@5.3.0':
+    resolution: {integrity: sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q==}
+
   '@formatjs/fast-memoize@3.1.7':
     resolution: {integrity: sha512-zXfhLpvA6T7+efdt9JLbBwZ00tT7NsBMDVnDu8rpHeNNv8KfRZAMo2gkG0k9lK/Nzc//3kJ9pImsfuJxk3KhUA==}
 
@@ -3501,6 +3516,16 @@ packages:
   '@humanwhocodes/retry@0.4.3':
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
+
+  '@ibm/plex-sans-jp@3.0.0':
+    resolution: {integrity: sha512-/v46f2qWBwOg0U/At3R9yVIWrHZKYHM0ByCz2lnNk60VqTHATcCHUT9djTmYBlRwaepybLzDsvx2DtxpHpIPvA==}
+
+  '@ibm/plex-sans-tc@1.1.1':
+    resolution: {integrity: sha512-pM4DfRkKL4Vqrew/GDrqfXe1sqAcLuYR49Xks0yCAVQHhoMna0yJ5sV3KfC542h455oAK3XrH9CtSd0sfq+u9Q==}
+
+  '@ibm/telemetry-js@1.12.0':
+    resolution: {integrity: sha512-tNgmk2k8loNDTnPInlu7yMP9YOCr9UMwSnXN7SCEsGIV8xHfTawhXlDnp1PV0Lbv+2GoLQKSgkShlJeGPi4jTg==}
+    hasBin: true
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -7078,11 +7103,6 @@ packages:
     resolution: {integrity: sha512-iJ9KMsiu+xKtNRX0PmGLSaIU3bUBAyzWTyqKemKPzNPsmmsBCQYmlNg+brEbES7IHSXtdVwzBPzx1vz3FAaipw==}
     engines: {node: '>=18'}
 
-  geist@1.7.2:
-    resolution: {integrity: sha512-Gu5lDFa3pLRyoBlBPf0QIFHVdWAnpco7fS1bJm41jyLPFoguBgiubseUN2oLXMgqZ7uxAxDoXcHMhCY/fOTTgg==}
-    peerDependencies:
-      next: '>=13.2.0'
-
   generate-function@2.3.1:
     resolution: {integrity: sha512-eeB5GfMNeevm/GRYq20ShmsaGcmI81kIX2K9XQx5miC8KdHaC6Jm0qQ8ZNeGOi7wYB8OsdxKs+Y2oVuTFuVwKQ==}
 
@@ -10237,6 +10257,10 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
+  '@fontsource-variable/ibm-plex-sans@5.3.0': {}
+
+  '@fontsource/ibm-plex-mono@5.3.0': {}
+
   '@formatjs/fast-memoize@3.1.7': {}
 
   '@formatjs/icu-messageformat-parser@3.5.18':
@@ -10290,6 +10314,16 @@ snapshots:
   '@humanwhocodes/module-importer@1.0.1': {}
 
   '@humanwhocodes/retry@0.4.3': {}
+
+  '@ibm/plex-sans-jp@3.0.0':
+    dependencies:
+      '@ibm/telemetry-js': 1.12.0
+
+  '@ibm/plex-sans-tc@1.1.1':
+    dependencies:
+      '@ibm/telemetry-js': 1.12.0
+
+  '@ibm/telemetry-js@1.12.0': {}
 
   '@img/colour@1.1.0':
     optional: true
@@ -13952,10 +13986,6 @@ snapshots:
       json-bigint: 1.0.0
     transitivePeerDependencies:
       - supports-color
-
-  geist@1.7.2(next@16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)):
-    dependencies:
-      next: 16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@24.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
 
   generate-function@2.3.1:
     dependencies:

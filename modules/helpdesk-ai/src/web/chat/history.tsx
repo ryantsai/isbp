@@ -30,9 +30,7 @@ export function ConversationHistory({
       <Button variant="outline" className="w-full justify-start" onClick={onNew}>
         <PlusIcon /> {t('history.new')}
       </Button>
-      <h2 className="px-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {t('history.title')}
-      </h2>
+      <h2 className="px-1 text-xs font-semibold text-muted-foreground">{t('history.title')}</h2>
       {error && !data ? (
         <ErrorState error={error} onRetry={() => void refetch()} kind="list" compact />
       ) : isLoading ? (

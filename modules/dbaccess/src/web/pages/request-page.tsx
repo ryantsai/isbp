@@ -316,7 +316,7 @@ export default function RequestPage() {
         title={extend ? t('extendTitle') : t('title')}
         description={extend ? t('extendDescription') : t('description')}
       />
-      <div className="grid min-w-0 grid-cols-1 gap-6">
+      <div className="grid min-w-0 grid-cols-1 gap-4">
         <Stepper
           steps={STEPS.map((s) => ({ id: s, label: t(`step.${s}`) }))}
           current={STEPS.indexOf(step)}
@@ -328,7 +328,7 @@ export default function RequestPage() {
               <h2 id="dbaccess-choose" className="sr-only">
                 {t('step.choose')}
               </h2>
-              <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3 shadow-xs">
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
                 <SearchInput value={q} onChange={setQ} placeholder={t('search')} className="sm:w-72" />
                 <Select value={serverId} onValueChange={setServerId}>
                   <SelectTrigger className="w-full sm:w-56" aria-label={t('server')} id={ids.server}>
@@ -374,7 +374,7 @@ export default function RequestPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="min-w-0 overflow-hidden rounded-xl border bg-card shadow-xs">
+              <div className="min-w-0 overflow-hidden rounded-xl border bg-card">
                 {catalog.isLoading ? (
                   <Skeleton className="h-64 w-full" />
                 ) : !catalog.data?.items.length ? (
@@ -425,7 +425,7 @@ export default function RequestPage() {
                   ))}
                 </ul>
               )}
-              <div className="grid gap-2 rounded-xl border bg-card p-4 shadow-xs">
+              <div className="grid gap-2 rounded-xl border bg-card p-4">
                 <Label htmlFor={ids.justification}>
                   {t('justification')}
                   {!needsJustification && (
@@ -468,9 +468,9 @@ export default function RequestPage() {
           {step === 'review' && (
             <section
               aria-labelledby="dbaccess-review"
-              className="grid min-w-0 gap-6 lg:grid-cols-[1fr_minmax(0,22rem)]"
+              className="grid min-w-0 gap-4 lg:grid-cols-[1fr_minmax(0,22rem)]"
             >
-              <div className="grid min-w-0 content-start gap-5 rounded-xl border bg-card p-5 shadow-xs sm:p-6">
+              <div className="grid min-w-0 content-start gap-5 rounded-xl border bg-card p-4 sm:p-5">
                 <h2 id="dbaccess-review" className="text-base font-semibold">
                   {ta('summary')}
                 </h2>
@@ -514,7 +514,7 @@ export default function RequestPage() {
                 </div>
               </div>
               <aside
-                className="grid min-w-0 content-start gap-3 rounded-xl border bg-muted/30 p-5"
+                className="grid min-w-0 content-start gap-3 rounded-xl border bg-muted/30 p-4"
                 aria-live="polite"
               >
                 <h2 className="text-base font-semibold">{ta('path.title')}</h2>
@@ -564,7 +564,7 @@ function DurationRow({
   const max = maxDateFor(item, today);
   const permanent = choice.expiresOn === null;
   return (
-    <li className="grid min-w-0 gap-3 rounded-xl border bg-card p-4 shadow-xs sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+    <li className="grid min-w-0 gap-3 rounded-xl border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
       <div className="grid min-w-0 gap-1">
         <p className="truncate font-medium">{l(item.name)}</p>
         <p className="truncate text-sm text-muted-foreground">{item.server.displayName}</p>

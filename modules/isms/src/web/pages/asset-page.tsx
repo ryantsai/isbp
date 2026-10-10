@@ -136,7 +136,7 @@ export default function AssetPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-10 w-80" />
         <Skeleton className="h-72 w-full rounded-xl" />
@@ -150,7 +150,7 @@ export default function AssetPage({ params }: WebPageProps) {
     klass ? localized(klass.guidance[dim][String(level) as '1']) : '';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DetailHeader
         back={{ href: '/isms', label: t('register.title'), highlight: asset.id }}
         icon={<ShieldCheckIcon />}
@@ -209,8 +209,8 @@ export default function AssetPage({ params }: WebPageProps) {
           <TabsTrigger value="history">{t('history.title')}</TabsTrigger>
           <TabsTrigger value="links">{t('links.title')}</TabsTrigger>
         </TabsList>
-        <TabsContent value="overview" className="min-w-0 space-y-6">
-          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
+        <TabsContent value="overview" className="min-w-0 space-y-5">
+          <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className="min-w-0">
               <CardHeader>
                 <CardTitle>{t('asset.about')}</CardTitle>

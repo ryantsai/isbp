@@ -22,6 +22,7 @@ import {
   FormMessage,
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { Textarea } from '@isbp/ui/textarea';
 import { AlertTriangleIcon, LockIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -51,6 +52,7 @@ export function ApplicationFormDialog({
   const router = useRouter();
   const errorText = useErrorText();
   const editing = Boolean(app);
+  const list = useFieldList();
 
   const schema = useMemo(
     () =>
@@ -157,6 +159,10 @@ export function ApplicationFormDialog({
   });
 
   const owner = useWatch({ control: form.control, name: 'owner' });
+  const [description, homepageUrl] = useWatch({
+    control: form.control,
+    name: ['description', 'homepageUrl'],
+  });
   const rootError = form.formState.errors.root?.message;
 
   return (
@@ -213,45 +219,6 @@ export function ApplicationFormDialog({
               />
             </div>
             <p className="-mt-3 text-xs text-muted-foreground">{editing ? t('keyLocked') : t('keyHint')}</p>
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {t('description')}{' '}
-                    <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea rows={2} placeholder={t('descriptionPlaceholder')} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="homepageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {t('homepageUrl')}{' '}
-                    <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type="url"
-                      inputMode="url"
-                      autoComplete="url"
-                      placeholder="https://erp.example.com"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>{t('homepageHint')}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <div className="grid gap-2">
               <label htmlFor="app-owner" className="text-sm font-medium">
                 {t('owner')} <span className="font-normal text-muted-foreground">({tc('optional')})</span>
@@ -264,6 +231,50 @@ export function ApplicationFormDialog({
               />
               <p className="text-xs text-muted-foreground">{t('ownerHint')}</p>
             </div>
+            <OptionalFields
+              hint={list([t('description'), t('homepageUrl')])}
+              filled={countFilled(description, homepageUrl)}
+            >
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t('description')}{' '}
+                      <span className="font-normal text-muted-foreground">({tc('optional')})</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea rows={2} placeholder={t('descriptionPlaceholder')} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="homepageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t('homepageUrl')}{' '}
+                      <span className="font-normal text-muted-foreground">({tc('optional')})</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="url"
+                        inputMode="url"
+                        autoComplete="url"
+                        placeholder="https://erp.example.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>{t('homepageHint')}</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </OptionalFields>
             {rootError && (
               <p
                 role="alert"

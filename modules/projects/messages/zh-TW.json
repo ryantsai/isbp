@@ -555,7 +555,6 @@
     "titlePlaceholder": "例如：更換 9 樓存取交換器",
     "datesInvalid": "到期日早於開始日。",
     "created": "已建立 {reference}",
-    "moreDetails": "更多詳細資料",
     "titleRequired": "請輸入工作項目標題。"
   },
   "form": {

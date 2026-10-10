@@ -194,7 +194,7 @@ export function FormPreview({
   // Laid out by the space it gets: the builder's preview tab, or a narrow card on a change set's page.
   return (
     <div className="@container min-w-0">
-      <div className="grid min-w-0 items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid min-w-0 items-start gap-4 @3xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

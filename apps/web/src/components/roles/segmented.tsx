@@ -76,7 +76,7 @@ export function Segmented<T extends string>({
               <motion.span
                 layoutId={layoutId}
                 aria-hidden
-                className="absolute inset-0 rounded-md border bg-background shadow-xs"
+                className="absolute inset-0 rounded-md border bg-background"
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
               />
             )}

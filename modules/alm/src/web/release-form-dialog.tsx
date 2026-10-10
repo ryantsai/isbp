@@ -21,12 +21,13 @@ import {
   FormMessage,
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { applyServerErrors, useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { type CreateReleaseInput, type ReleaseDetail, VERSION_RE } from '../contracts';
 import { ReleaseStatusBadge } from './badges';
@@ -111,6 +112,10 @@ function ReleaseForm({
       notes: release?.notes ?? '',
     },
   });
+  const list = useFieldList();
+  const [releaseName, status, notes] = useWatch({ control: form.control, name: ['name', 'status', 'notes'] });
+  // The status starts as "planned": only a change from that is something the person chose.
+  const detailsFilled = countFilled(releaseName, status === 'planned' ? '' : status, notes);
   const save = useApiMutation(
     (api, body: CreateReleaseInput) =>
       release
@@ -186,6 +191,12 @@ function ReleaseForm({
               </FormItem>
             )}
           />
+        </div>
+        <OptionalFields
+          hint={list([t('fields.releaseName'), t('fields.status'), t('fields.notes')])}
+          filled={detailsFilled}
+          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+        >
           <FormField
             control={form.control}
             name="name"
@@ -225,21 +236,21 @@ function ReleaseForm({
               )}
             />
           )}
-        </div>
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('fields.notes')}</FormLabel>
-              <FormControl>
-                <Textarea rows={6} placeholder={t('releaseForm.notesPlaceholder')} {...field} />
-              </FormControl>
-              <FormDescription>{t('form.markdownHint')}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>{t('fields.notes')}</FormLabel>
+                <FormControl>
+                  <Textarea rows={6} placeholder={t('releaseForm.notesPlaceholder')} {...field} />
+                </FormControl>
+                <FormDescription>{t('form.markdownHint')}</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </OptionalFields>
         {form.formState.errors.root && (
           <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {form.formState.errors.root.message}

@@ -474,7 +474,7 @@ export function SettingsTab({ project }: { project: ProjectDetail }) {
     el?.querySelector<HTMLElement>('input, button')?.focus({ preventScroll: true });
   }, [section]);
   return (
-    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <Card className="min-w-0 gap-4 lg:col-span-2">
         <CardHeader>
           <CardTitle>{t('details')}</CardTitle>

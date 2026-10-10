@@ -19,7 +19,7 @@ function Section({ title, children, aside }: { title: string; children: ReactNod
   return (
     <section className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground">{title}</h3>
         {aside}
       </div>
       {children}
@@ -293,7 +293,7 @@ export function AuditDetailSheet({
                 </Badge>
               </div>
             </SheetHeader>
-            <SheetBody className="space-y-6 pb-6">
+            <SheetBody className="space-y-5 pb-6">
               {(shown.entityType || shown.entityLabel) && (
                 <Section title={t('columns.target')}>
                   <div className="rounded-lg border px-3 py-2 text-sm">

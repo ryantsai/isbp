@@ -71,7 +71,7 @@ export default function RunPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-12 w-80 max-w-full" />
         <Skeleton className="h-72 w-full rounded-xl" />

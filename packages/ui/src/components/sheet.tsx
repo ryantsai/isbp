@@ -36,6 +36,7 @@ export function SheetContent({
   children,
   side = 'right',
   closeLabel,
+  closeClassName,
   dirty = false,
   onEscapeKeyDown,
   onInteractOutside,
@@ -43,6 +44,8 @@ export function SheetContent({
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: 'top' | 'right' | 'bottom' | 'left';
   closeLabel?: string;
+  /** Restyles the ✕ (e.g. on a dark surface). */
+  closeClassName?: string;
   /** The form has unsaved changes: confirm before closing by Esc, outside click or ✕. */
   dirty?: boolean;
 }) {
@@ -69,7 +72,7 @@ export function SheetContent({
           }
         }}
         className={cn(
-          'fixed z-50 flex flex-col gap-4 bg-background shadow-xl data-[state=closed]:animate-out data-[state=closed]:duration-(--motion-base) data-[state=closed]:ease-exit data-[state=open]:animate-in data-[state=open]:duration-(--motion-slow) data-[state=open]:ease-enter',
+          'fixed z-50 flex flex-col gap-3 bg-background shadow-xl data-[state=closed]:animate-out data-[state=closed]:duration-(--motion-base) data-[state=closed]:ease-exit data-[state=open]:animate-in data-[state=open]:duration-(--motion-slow) data-[state=open]:ease-enter',
           side === 'right' &&
             'inset-y-0 right-0 h-full w-full border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-md',
           side === 'left' &&
@@ -88,7 +91,7 @@ export function SheetContent({
             <button
               type="button"
               onClick={() => setConfirming(true)}
-              className={closeButtonClass}
+              className={cn(closeButtonClass, closeClassName)}
               aria-label={closeLabel ?? t('close')}
             >
               <XIcon aria-hidden />
@@ -96,7 +99,10 @@ export function SheetContent({
             <SheetPrimitive.Close ref={closeRef} hidden tabIndex={-1} />
           </>
         ) : (
-          <SheetPrimitive.Close className={closeButtonClass} aria-label={closeLabel ?? t('close')}>
+          <SheetPrimitive.Close
+            className={cn(closeButtonClass, closeClassName)}
+            aria-label={closeLabel ?? t('close')}
+          >
             <XIcon aria-hidden />
           </SheetPrimitive.Close>
         )}
@@ -125,13 +131,13 @@ export function SheetContent({
 }
 
 const closeButtonClass =
-  'absolute top-3 right-3 grid size-9 place-items-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none [&_svg]:size-4';
+  'absolute top-2.5 right-2.5 grid size-8 place-items-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none [&_svg]:size-4';
 
 export function SheetHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn('flex flex-col gap-1.5 p-5 pr-14 pb-0', className)}
+      className={cn('flex flex-col gap-1 p-4 pr-12 pb-0', className)}
       {...props}
     />
   );
@@ -140,13 +146,13 @@ export function SheetHeader({ className, ...props }: React.ComponentProps<'div'>
 /** A form that fills the sheet: put `SheetBody` and `SheetFooter` inside so the footer stays visible. */
 export function SheetForm({ className, ...props }: React.ComponentProps<'form'>) {
   return (
-    <form data-slot="sheet-form" className={cn('flex min-h-0 flex-1 flex-col gap-4', className)} {...props} />
+    <form data-slot="sheet-form" className={cn('flex min-h-0 flex-1 flex-col gap-3', className)} {...props} />
   );
 }
 
 export function SheetBody({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <div data-slot="sheet-body" className={cn('min-h-0 flex-1 overflow-y-auto px-5', className)} {...props} />
+    <div data-slot="sheet-body" className={cn('min-h-0 flex-1 overflow-y-auto px-4', className)} {...props} />
   );
 }
 
@@ -155,7 +161,7 @@ export function SheetFooter({ className, ...props }: React.ComponentProps<'div'>
     <div
       data-slot="sheet-footer"
       className={cn(
-        'mt-auto flex flex-col-reverse gap-2 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end',
+        'mt-auto flex flex-col-reverse gap-2 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end',
         className,
       )}
       {...props}
@@ -167,7 +173,7 @@ export function SheetTitle({ className, ...props }: React.ComponentProps<typeof 
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn('text-lg font-semibold text-foreground', className)}
+      className={cn('text-base font-semibold text-foreground', className)}
       {...props}
     />
   );

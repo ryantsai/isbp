@@ -238,7 +238,7 @@ export default function ChangeSetsPage() {
           </Button>
         }
       />
-      <div className="grid min-w-0 grid-cols-1 gap-6">
+      <div className="grid min-w-0 grid-cols-1 gap-4">
         {canReadAll ? (
           <Tabs value={scope} onValueChange={(v) => set({ scope: v === 'mine' ? undefined : v })}>
             <TabsList aria-label={t('tabs.label')}>

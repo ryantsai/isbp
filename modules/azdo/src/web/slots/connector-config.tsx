@@ -77,7 +77,7 @@ export default function AzdoServerConfig({
   );
 
   return (
-    <div className="grid min-w-0 gap-6">
+    <div className="grid min-w-0 gap-4">
       <fieldset className="grid min-w-0 gap-4" disabled={disabled}>
         <legend className="mb-3 text-sm font-semibold">{t('server')}</legend>
         {field(

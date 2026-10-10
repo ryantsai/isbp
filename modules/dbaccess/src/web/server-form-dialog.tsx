@@ -12,6 +12,7 @@ import {
 } from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Switch } from '@isbp/ui/switch';
@@ -33,6 +34,7 @@ import {
 import { INVALIDATE } from './lib';
 
 const NONE = '__none__';
+const DEFAULT_PATTERN = '{username}';
 
 type Target = { kind: 'create'; connection: ConnectionInfo } | { kind: 'edit'; server: Server };
 
@@ -92,6 +94,7 @@ function ServerForm({
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const { user } = usePlatform();
+  const list = useFieldList();
   const ids = {
     name: useId(),
     env: useId(),
@@ -108,7 +111,7 @@ function ServerForm({
   const [v, setV] = useState({
     displayName: s?.displayName ?? (target.kind === 'create' ? target.connection.name : ''),
     environment: s?.environment ?? 'production',
-    accountPattern: s?.accountPattern ?? '{username}',
+    accountPattern: s?.accountPattern ?? DEFAULT_PATTERN,
     authMode: (s?.authMode ?? 'password') as AuthMode,
     windowsDomain: s?.windowsDomain ?? '',
     passwordLength: s?.passwordLength ?? PASSWORD_LENGTH.default,
@@ -127,6 +130,11 @@ function ServerForm({
   const patch = (p: Partial<typeof v>) => setV((x) => ({ ...x, ...p }));
   const preview = accountNameFor(v.accountPattern, { username: user.username, email: user.email }, managed);
   const problem = patternProblem(v.accountPattern);
+  const detailsFilled = countFilled(
+    v.accountPattern !== DEFAULT_PATTERN,
+    v.authMode === 'password' && v.passwordLength !== PASSWORD_LENGTH.default,
+    !v.autoSync,
+  );
 
   return (
     <form
@@ -183,21 +191,6 @@ function ServerForm({
           </Select>
         </div>
       </div>
-      <div className="grid gap-2">
-        <Label htmlFor={ids.pattern}>{t('pattern.label')}</Label>
-        <Input
-          id={ids.pattern}
-          className="font-mono"
-          value={v.accountPattern}
-          maxLength={60}
-          aria-invalid={Boolean(problem) || undefined}
-          aria-describedby={`${ids.pattern}-hint`}
-          onChange={(e) => patch({ accountPattern: e.target.value })}
-        />
-        <p id={`${ids.pattern}-hint`} className="text-xs text-muted-foreground">
-          {problem ? t(`pattern.${problem}`) : t('pattern.preview', { name: preview ?? '—' })}
-        </p>
-      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="grid min-w-0 gap-2">
           <Label htmlFor={ids.auth}>{t('authMode')}</Label>
@@ -226,23 +219,7 @@ function ServerForm({
               onChange={(e) => patch({ windowsDomain: e.target.value })}
             />
           </div>
-        ) : v.authMode === 'password' ? (
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={ids.length}>{t('passwordLength')}</Label>
-            <Input
-              id={ids.length}
-              type="number"
-              min={PASSWORD_LENGTH.min}
-              max={PASSWORD_LENGTH.max}
-              value={v.passwordLength}
-              aria-describedby={`${ids.length}-hint`}
-              onChange={(e) => patch({ passwordLength: Number(e.target.value) || PASSWORD_LENGTH.default })}
-            />
-            <p id={`${ids.length}-hint`} className="text-xs text-muted-foreground">
-              {t('passwordHint', { min: PASSWORD_LENGTH.min, max: PASSWORD_LENGTH.max })}
-            </p>
-          </div>
-        ) : (
+        ) : v.authMode === 'password' ? null : (
           <p className="self-end text-xs text-muted-foreground">{t('externalHint')}</p>
         )}
       </div>
@@ -269,13 +246,51 @@ function ServerForm({
             {t('ownerGroupHint')}
           </p>
         </div>
+      </div>
+      <OptionalFields
+        hint={list([t('pattern.label'), t('passwordLength'), t('autoSync')])}
+        filled={detailsFilled}
+        contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+      >
+        <div className="grid gap-2 sm:col-span-2">
+          <Label htmlFor={ids.pattern}>{t('pattern.label')}</Label>
+          <Input
+            id={ids.pattern}
+            className="font-mono"
+            value={v.accountPattern}
+            maxLength={60}
+            aria-invalid={Boolean(problem) || undefined}
+            aria-describedby={`${ids.pattern}-hint`}
+            onChange={(e) => patch({ accountPattern: e.target.value })}
+          />
+          <p id={`${ids.pattern}-hint`} className="text-xs text-muted-foreground">
+            {problem ? t(`pattern.${problem}`) : t('pattern.preview', { name: preview ?? '—' })}
+          </p>
+        </div>
+        {v.authMode === 'password' && (
+          <div className="grid min-w-0 gap-2">
+            <Label htmlFor={ids.length}>{t('passwordLength')}</Label>
+            <Input
+              id={ids.length}
+              type="number"
+              min={PASSWORD_LENGTH.min}
+              max={PASSWORD_LENGTH.max}
+              value={v.passwordLength}
+              aria-describedby={`${ids.length}-hint`}
+              onChange={(e) => patch({ passwordLength: Number(e.target.value) || PASSWORD_LENGTH.default })}
+            />
+            <p id={`${ids.length}-hint`} className="text-xs text-muted-foreground">
+              {t('passwordHint', { min: PASSWORD_LENGTH.min, max: PASSWORD_LENGTH.max })}
+            </p>
+          </div>
+        )}
         <div className="flex items-center gap-3 self-center">
           <Switch id={ids.sync} checked={v.autoSync} onCheckedChange={(x) => patch({ autoSync: x })} />
           <Label htmlFor={ids.sync} className="font-normal">
             {t('autoSync')}
           </Label>
         </div>
-      </div>
+      </OptionalFields>
       {error && (
         <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}

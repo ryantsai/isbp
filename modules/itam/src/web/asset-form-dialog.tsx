@@ -3,7 +3,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ApiError } from '@isbp/sdk/web';
 import { Button } from '@isbp/ui/button';
-import { Collapse, Disclosure } from '@isbp/ui/motion';
+import { Collapse } from '@isbp/ui/motion';
+import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
 import {
   Form,
   FormControl,
@@ -180,14 +181,11 @@ function AssetForm({
   const dirty = form.formState.isDirty || Boolean(assignee);
   useEffect(() => onDirty(dirty), [dirty, onDirty]);
   const showCi = CI_CATEGORIES.has(category) || Boolean(ci);
-  const hasPurchase = Boolean(
-    asset &&
-    (asset.vendor ||
-      asset.purchaseDate ||
-      asset.purchaseCost !== null ||
-      asset.warrantyEnd ||
-      asset.invoiceNumber),
-  );
+  const purchase = useWatch({
+    control: form.control,
+    name: ['vendorId', 'invoiceNumber', 'purchaseDate', 'purchaseCost', 'warrantyEnd'],
+  });
+  const purchaseFilled = countFilled(...purchase.map((v) => (v === NONE ? '' : v)));
 
   const save = useApiMutation(
     (api, body: CreateAssetInput) =>
@@ -269,9 +267,9 @@ function AssetForm({
   return (
     <Form {...form}>
       <SheetForm onSubmit={onSubmit} noValidate>
-        <SheetBody className="space-y-6">
+        <SheetBody className="space-y-5">
           <fieldset className="grid gap-4 sm:grid-cols-2">
-            <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <legend className="mb-3 text-xs font-semibold text-muted-foreground">
               {t('assetForm.identity')}
             </legend>
             <FormField
@@ -376,7 +374,7 @@ function AssetForm({
           </fieldset>
 
           <fieldset className="grid gap-4 sm:grid-cols-2">
-            <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <legend className="mb-3 text-xs font-semibold text-muted-foreground">
               {t('assetForm.placement')}
             </legend>
             <FormField
@@ -417,57 +415,55 @@ function AssetForm({
             </Collapse>
           </fieldset>
 
-          <Disclosure
-            summary={t('assetForm.purchase')}
-            defaultOpen={hasPurchase}
-            triggerClassName="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+          <OptionalFields
+            label={t('assetForm.purchase')}
+            filled={purchaseFilled}
+            contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
           >
-            <div className="grid gap-4 pt-3 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="vendorId"
+              render={({ field }) => (
+                <FormItem className="min-w-0">
+                  <FormLabel htmlFor={ids.vendor}>{t('fields.vendor')}</FormLabel>
+                  <VendorSelect id={ids.vendor} value={field.value} onChange={field.onChange} />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {text('invoiceNumber', t('fields.invoiceNumber'))}
+            {date('purchaseDate', t('fields.purchaseDate'))}
+            <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
               <FormField
                 control={form.control}
-                name="vendorId"
+                name="purchaseCost"
                 render={({ field }) => (
                   <FormItem className="min-w-0">
-                    <FormLabel htmlFor={ids.vendor}>{t('fields.vendor')}</FormLabel>
-                    <VendorSelect id={ids.vendor} value={field.value} onChange={field.onChange} />
+                    <FormLabel>{t('fields.purchaseCost')}</FormLabel>
+                    <FormControl>
+                      <Input inputMode="decimal" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              {text('invoiceNumber', t('fields.invoiceNumber'))}
-              {date('purchaseDate', t('fields.purchaseDate'))}
-              <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
-                <FormField
-                  control={form.control}
-                  name="purchaseCost"
-                  render={({ field }) => (
-                    <FormItem className="min-w-0">
-                      <FormLabel>{t('fields.purchaseCost')}</FormLabel>
-                      <FormControl>
-                        <Input inputMode="decimal" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="currency"
-                  render={({ field }) => (
-                    <FormItem className="min-w-0">
-                      <FormLabel>{t('fields.currency')}</FormLabel>
-                      <FormControl>
-                        <Input maxLength={3} className="uppercase" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              {date('warrantyEnd', t('fields.warrantyEnd'))}
-              {asset && date('retireOn', t('fields.retireOn'), t('assetForm.retireOnHint'))}
+              <FormField
+                control={form.control}
+                name="currency"
+                render={({ field }) => (
+                  <FormItem className="min-w-0">
+                    <FormLabel>{t('fields.currency')}</FormLabel>
+                    <FormControl>
+                      <Input maxLength={3} className="uppercase" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-          </Disclosure>
+            {date('warrantyEnd', t('fields.warrantyEnd'))}
+            {asset && date('retireOn', t('fields.retireOn'), t('assetForm.retireOnHint'))}
+          </OptionalFields>
 
           <FormField
             control={form.control}

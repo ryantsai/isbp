@@ -8,7 +8,8 @@ import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
-import { AnimatedItem, AnimatedList, Disclosure } from '@isbp/ui/motion';
+import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
+import { OptionalFields } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
@@ -404,33 +405,31 @@ function CategoryForm({
             </div>
           )}
 
-          <Disclosure
-            summary={ts('advanced')}
-            className="rounded-lg border px-3"
-            contentClassName="grid gap-2 pb-4"
-            defaultOpen={touched && errors.key}
-          >
-            <Label htmlFor={`${id}-key`} className="pt-1">
-              {t('key')}
-            </Label>
-            <Input
-              id={`${id}-key`}
-              value={key}
-              onChange={(e) => {
-                setKey(e.target.value.toLowerCase());
-                setKeyTouched(true);
-              }}
-              className="font-mono"
-              aria-invalid={touched && errors.key ? true : undefined}
-              aria-describedby={`${id}-key-hint`}
-            />
-            <p
-              id={`${id}-key-hint`}
-              className={cn('text-xs', touched && errors.key ? 'text-destructive' : 'text-muted-foreground')}
-            >
-              {category ? t('keyHintEdit') : t('keyHint')}
-            </p>
-          </Disclosure>
+          <OptionalFields label={ts('advanced')} hint={t('key')}>
+            <div className="grid gap-2">
+              <Label htmlFor={`${id}-key`}>{t('key')}</Label>
+              <Input
+                id={`${id}-key`}
+                value={key}
+                onChange={(e) => {
+                  setKey(e.target.value.toLowerCase());
+                  setKeyTouched(true);
+                }}
+                className="font-mono"
+                aria-invalid={touched && errors.key ? true : undefined}
+                aria-describedby={`${id}-key-hint`}
+              />
+              <p
+                id={`${id}-key-hint`}
+                className={cn(
+                  'text-xs',
+                  touched && errors.key ? 'text-destructive' : 'text-muted-foreground',
+                )}
+              >
+                {category ? t('keyHintEdit') : t('keyHint')}
+              </p>
+            </div>
+          </OptionalFields>
           {touched && invalid && (
             <p role="alert" className="text-sm text-destructive">
               {errors.key && !errors.name ? t('keyInvalid') : ts('sla.fixErrors')}
@@ -517,10 +516,7 @@ export function CategoriesTab() {
           className="rounded-xl border border-dashed"
         />
       ) : (
-        <AnimatedList
-          className="divide-y overflow-hidden rounded-xl border bg-card shadow-xs"
-          aria-label={t('title')}
-        >
+        <AnimatedList className="divide-y overflow-hidden rounded-xl border bg-card" aria-label={t('title')}>
           {tree.map((n) => {
             const c = n.category;
             const siblings = siblingsOf(c);

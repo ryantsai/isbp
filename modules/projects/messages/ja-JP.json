@@ -555,7 +555,6 @@
     "titlePlaceholder": "例: 9 階のアクセス スイッチを交換",
     "datesInvalid": "期限が開始日より前です。",
     "created": "{reference} を作成しました",
-    "moreDetails": "その他の詳細",
     "titleRequired": "タスクのタイトルを入力してください。"
   },
   "form": {

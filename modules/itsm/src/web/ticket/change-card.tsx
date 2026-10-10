@@ -155,7 +155,7 @@ export type PlanMode = 'edit' | 'submit' | null;
 function PlanSection({ title, text, empty }: { title: string; text: string; empty: string }) {
   return (
     <section className="grid min-w-0 grid-cols-1 gap-1.5">
-      <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</h3>
+      <h3 className="text-xs font-semibold text-muted-foreground">{title}</h3>
       {text ? <Markdown>{text}</Markdown> : <p className="text-sm text-muted-foreground">{empty}</p>}
     </section>
   );

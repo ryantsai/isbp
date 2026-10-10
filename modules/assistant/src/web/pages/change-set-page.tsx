@@ -371,7 +371,7 @@ export default function ChangeSetPage({ params }: WebPageProps) {
 
   if (query.isLoading && !detail)
     return (
-      <div className="space-y-6" aria-busy="true">
+      <div className="space-y-5" aria-busy="true">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-10 w-2/3" />
         <Skeleton className="h-64 w-full rounded-xl" />
@@ -463,7 +463,7 @@ function ChangeSetView({ detail, refetch }: { detail: ChangeSetDetailDto; refetc
   );
 
   return (
-    <div className="grid min-w-0 grid-cols-1 gap-6">
+    <div className="grid min-w-0 grid-cols-1 gap-4">
       <Button variant="ghost" size="sm" asChild className="-ml-2 justify-self-start text-muted-foreground">
         <Link href="/assistant/change-sets">
           <ArrowLeftIcon /> {t('back')}
@@ -482,7 +482,7 @@ function ChangeSetView({ detail, refetch }: { detail: ChangeSetDetailDto; refetc
             )}
           </div>
           <div className="flex min-w-0 items-start gap-1">
-            <h1 id={headingId} className="min-w-0 text-2xl font-semibold tracking-tight break-words">
+            <h1 id={headingId} className="min-w-0 text-xl font-semibold tracking-tight break-words">
               <span className="sr-only">{detail.reference} </span>
               {detail.title || t('untitled')}
             </h1>
@@ -607,7 +607,7 @@ function ChangeSetView({ detail, refetch }: { detail: ChangeSetDetailDto; refetc
         </p>
       )}
 
-      <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <aside className="grid min-w-0 gap-4 lg:sticky lg:top-20 lg:col-start-2 lg:row-start-1">
           <Card className="min-w-0">
             <CardHeader>
@@ -679,10 +679,7 @@ function ChangeSetView({ detail, refetch }: { detail: ChangeSetDetailDto; refetc
             </CardContent>
           </Card>
           {grouped && grouping.groups.length > 1 && (
-            <nav
-              aria-labelledby={`${headingId}-outline`}
-              className="min-w-0 rounded-xl border bg-card p-4 shadow-xs"
-            >
+            <nav aria-labelledby={`${headingId}-outline`} className="min-w-0 rounded-xl border bg-card p-4">
               <h2 id={`${headingId}-outline`} className="mb-2 flex items-center gap-2 text-sm font-semibold">
                 <ListTreeIcon className="size-4 text-muted-foreground" aria-hidden />
                 {t('outline')}

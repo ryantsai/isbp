@@ -383,9 +383,9 @@ export function PipelineEditor({
   };
 
   return (
-    <div className="grid min-w-0 gap-6">
-      <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-3">
-        <div className="grid min-w-0 gap-6 xl:col-span-2">
+    <div className="grid min-w-0 gap-4">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-3">
+        <div className="grid min-w-0 gap-4 xl:col-span-2">
           <Section title={t('pipelineEditor.source')} description={t('pipelineEditor.sourceHint')}>
             <Field id={`${id}-source`} label={t('fields.connection')} error={errors['source.connectionId']}>
               <Select value={s.sourceConnectionId} onValueChange={(v) => set({ sourceConnectionId: v })}>
@@ -595,7 +595,7 @@ export function PipelineEditor({
           </Section>
         </div>
 
-        <div className="grid min-w-0 gap-6">
+        <div className="grid min-w-0 gap-4">
           <Section title={t('editor.general')}>
             <Field id={`${id}-name`} label={t('fields.name')} error={errors.name}>
               <Input

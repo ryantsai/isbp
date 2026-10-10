@@ -166,7 +166,7 @@ export function TransferSheet({
             submit();
           }}
         >
-          <SheetBody className="space-y-6 py-2">
+          <SheetBody className="space-y-5 py-2">
             <Field
               id="transfer-department"
               label={
@@ -193,7 +193,7 @@ export function TransferSheet({
             </Field>
 
             {departmentId && !same && (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <Field
                   id="transfer-manager"
                   label={t('manager')}

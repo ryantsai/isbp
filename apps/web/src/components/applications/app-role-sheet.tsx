@@ -57,7 +57,7 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
   return (
     <fieldset className="space-y-4">
       <div className="space-y-0.5">
-        <legend className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</legend>
+        <legend className="text-xs font-semibold text-muted-foreground">{title}</legend>
         {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
       </div>
       {children}
@@ -215,7 +215,7 @@ export function AppRoleSheet({
         </SheetHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
-            <SheetBody className="space-y-8 py-2">
+            <SheetBody className="space-y-5 py-2">
               <Section title={t('sections.details')}>
                 <FormField
                   control={form.control}

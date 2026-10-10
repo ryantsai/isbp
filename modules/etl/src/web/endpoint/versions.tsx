@@ -100,7 +100,7 @@ export function VersionsTab({ endpoint }: { endpoint: EndpointDetail }) {
   ];
 
   return (
-    <div className="grid min-w-0 gap-6">
+    <div className="grid min-w-0 gap-4">
       <Card className="min-w-0">
         <CardHeader>
           <CardTitle role="heading" aria-level={2}>

@@ -110,7 +110,7 @@ function MonthGrid({ month, items, timeZone }: { month: string; items: CalendarI
     format.dateTime(new Date(msOf(key)), { dateStyle: 'full', timeZone: 'UTC' });
 
   return (
-    <div className="overflow-x-auto rounded-xl border bg-card shadow-xs">
+    <div className="overflow-x-auto rounded-xl border bg-card">
       <table className="w-full min-w-[44rem] table-fixed border-collapse text-sm">
         <caption className="sr-only">
           {t('caption', {
@@ -223,7 +223,7 @@ function Agenda({ items, timeZone }: { items: CalendarItem[]; timeZone: string }
               <li key={it.id}>
                 <Link
                   href={ticketHref(it.reference)}
-                  className="grid gap-2 rounded-xl border bg-card p-3 shadow-xs transition-colors hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:grid-cols-[9rem_minmax(0,1fr)]"
+                  className="grid gap-2 rounded-xl border bg-card p-3 transition-colors hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none sm:grid-cols-[9rem_minmax(0,1fr)]"
                 >
                   <span className="flex items-start gap-2 text-sm text-muted-foreground tabular-nums">
                     {(() => {

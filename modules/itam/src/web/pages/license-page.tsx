@@ -60,7 +60,7 @@ export default function LicensePage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-10 w-80" />
         <Skeleton className="h-48 w-full rounded-xl" />
@@ -72,7 +72,7 @@ export default function LicensePage({ params }: WebPageProps) {
   const available = lic.quantity === null ? null : Math.max(0, lic.quantity - lic.used);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DetailHeader
         back={{ href: '/itam/software', label: t('nav.software'), highlight: lic.id }}
         icon={<KeyRoundIcon />}
@@ -95,7 +95,7 @@ export default function LicensePage({ params }: WebPageProps) {
         }
       />
 
-      <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3">
         <Card className="min-w-0 lg:col-span-2">
           <CardHeader>
             <CardTitle>{t('license.usageTitle')}</CardTitle>
@@ -136,7 +136,7 @@ export default function LicensePage({ params }: WebPageProps) {
             )}
           </CardContent>
         </Card>
-        <div className="min-w-0 space-y-6">
+        <div className="min-w-0 space-y-5">
           <Card>
             <CardHeader>
               <CardTitle>{t('license.terms')}</CardTitle>

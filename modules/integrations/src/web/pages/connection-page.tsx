@@ -84,7 +84,7 @@ function OverviewTab({ c, canManage }: { c: Connection; canManage: boolean }) {
   );
   const url = `${origin}${webhookPath(c.id)}`;
   return (
-    <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-2">
+    <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-2">
       <div className="min-w-0 lg:col-span-2">
         <NeedsAttention c={c} />
       </div>
@@ -137,7 +137,7 @@ function OverviewTab({ c, canManage }: { c: Connection; canManage: boolean }) {
             {tw('setup')}
           </span>
         }
-        className="min-w-0 rounded-xl border bg-card px-4 shadow-xs sm:px-6"
+        className="min-w-0 rounded-xl border bg-card px-4 sm:px-6"
         triggerClassName="py-4 font-semibold"
       >
         <div className="grid gap-3 pb-6">
@@ -332,7 +332,7 @@ export default function ConnectionPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-16 w-full rounded-xl" />
         <Skeleton className="h-72 w-full rounded-xl" />
@@ -342,7 +342,7 @@ export default function ConnectionPage({ params }: WebPageProps) {
   const connector = catalogue.connectors.get(c.type) ?? null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DetailHeader
         className="pb-0"
         back={{ href: '/integrations', label: t('back') }}

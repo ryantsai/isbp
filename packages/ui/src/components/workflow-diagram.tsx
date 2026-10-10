@@ -202,9 +202,7 @@ function StepCard({
             <TypeIcon type={step.type} className="size-4" />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-              {t(`types.${step.type}`)}
-            </div>
+            <div className="text-[11px] font-semibold text-muted-foreground">{t(`types.${step.type}`)}</div>
             <div className="truncate text-sm font-semibold">{localize(step.name, locale) || '—'}</div>
           </div>
           {status && (

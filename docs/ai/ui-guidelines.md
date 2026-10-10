@@ -3,6 +3,46 @@
 How pages look and behave, so a new module feels like part of the product. Copy from the modules named under
 "See". Accessibility (WCAG 2.1 AA), three languages and 375 px phones are requirements, not extras (R27–R33).
 
+## Look and feel
+
+The visual language follows Tokyo Electron's logo: TEL blue with a splash of green, square-cut shapes, and a compact,
+information-dense layout that shows the essentials first. All of it lives in tokens (`apps/web/src/app/globals.css`)
+and the shared components: page code uses the tokens and never hard-codes colours, radii or fonts.
+
+- **Colour.** `primary` is the logo blue deepened for AA (white text on it); `brand` is the logo blue itself and
+  `brand-green` its green square. The green is a splash: it marks "you are here" (the current page in the navigation,
+  the brand mark) and nothing else, never a status (that is `success`) or a decoration. The navigation rail is TEL navy
+  (`sidebar` tokens) in both themes; content surfaces stay quiet (`background` light grey, `card` white). Every text
+  pair, status text on its own tint included, is checked for AA in light and dark: re-check when you change a token.
+- **Type.** IBM Plex everywhere, self-hosted so Windows, macOS, Linux and phones render the same: Plex Sans (Latin,
+  variable), Plex Sans TC / JP (loaded only for zh-TW / ja-JP, split by unicode-range by `apps/web/scripts/fonts.mjs`)
+  and Plex Mono (code, references). Scale: page title `text-xl` semibold, card title 15 px semibold, body and table
+  text `text-sm`, labels 13 px medium, meta `text-xs`. Sentence case only: no all-caps labels or eyebrows (they
+  don't exist in Chinese and Japanese anyway). Numbers in tables are tabular.
+- **Shape.** Radii are 2 / 4 / 6 / 8 px (`rounded-sm` … `rounded-xl`): controls 4 px, cards 6 px, chips 3 px.
+  Surfaces are flat: a 1 px border, no resting shadow (shadows are for overlays and hover lifts).
+- **Density.** Controls are 32 px (`h-8`; `sm` 28, `lg` 36), table rows about 36 px, cards pad 16 px, page sections
+  sit 16–20 px apart, the content area is up to 1,600 px wide. Don't add your own padding on top of the shared
+  components' (no `p-6` cards, no `gap-8` page grids).
+- **Show the essentials first.** A record form opens on its required fields and the one or two everyone fills; the
+  rest goes behind one `OptionalFields` row ("More details", with a `hint` naming what is inside and the `filled`
+  count). Detail pages lead with the facts people act on; history, technical details and rarely used settings sit
+  behind a `Disclosure` or a tab.
+- **Icons on a surface** (record headers, KPI tiles, empty states, quick links) use `IconTile` (`@isbp/ui/icon-tile`):
+  one square tinted by a text colour class (`text-success`, `text-muted-foreground`, …). Event histories use
+  `Timeline` (`@isbp/ui/timeline`) with an `IconTile size="xs"` as the indicator.
+
+### Add-on components (ReUI)
+
+The add-on collection is [ReUI](https://reui.io) in its compact `radix-mira` style: shadcn/ui-compatible, Radix-based
+and made for dense admin screens (data grid, filters, timeline, tree, kanban, gantt, date selector). `IconTile` and
+`Timeline` come from it. To add another, read it first with `pnpm dlx shadcn@latest view @reui/<name>` in
+`packages/ui` (the registry is in `packages/ui/components.json`), then port it by hand into
+`packages/ui/src/components/<name>.tsx`: relative imports (`../lib/utils`), our tokens and square radii, `'use client'`
+when it holds state, every string from a catalog in three languages, and a credit line at the top. Don't run
+`shadcn add` for ReUI items: it would install their `cn` placeholder as an npm package. Prefer a component we already
+have (`DataTable`, `FilterBar`, `Stepper`) over a second one that does the same.
+
 ## Page patterns
 
 | Page            | Structure                                                                                                                                                                                                                                                                                   | See                                                           |
@@ -66,7 +106,7 @@ const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<Asset>>
 ```
 
 - `DataTable` columns: `meta.priority` is measured on the **table's own width** (container query): `2` hides below
-  672 px, `3` below 1,152 px (a 1,440 px laptop with the sidebar open). The identifying column and status stay
+  672 px, `3` below 1,200 px (a 1,440 px laptop with the sidebar open). The identifying column and status stay
   (priority 1); give the identifying column `meta.wrap` so long titles wrap on a phone. Put the essentials of hidden
   columns into the identifying cell with `<DataTableSummary>` (shown only while they're hidden). Drop columns that are mostly "—". No table may scroll sideways at 1,280 or 1,440 px.
 - `FilterBar`: search + at most 2 `primary` filters inline; the rest behind **Filters** (popover; a bottom sheet on a
@@ -154,7 +194,12 @@ Each tab is its own URL (a query such as `?tab=approved` works too), so deep lin
   a dialog. Error toasts stay 8 s; an error that blocks the task also shows inline.
 - Show async results (tests, previews) in a live region (`role="status"`, or `aria-live="polite"`). Settings that
   save on change show `<SavedIndicator at={savedAt} />`.
-- Advanced settings in long configuration forms start collapsed (`Disclosure`).
+- Optional fields go behind one `OptionalFields` row (`@isbp/ui/optional-fields`) after the essentials and before
+  custom fields: forms with 5+ fields, 2+ optional ones. Keep required fields, fields that change what else shows,
+  identifying fields and custom fields visible. Pass `filled={countFilled(...)}` so an edit form shows that hidden
+  fields hold data, and `hint={list([...labels])}` (`useFieldList`) with the default "More details" label. Fields
+  stay mounted and the row opens itself when one of them is invalid. A section that already has a name (Purchase
+  details, Advanced settings) keeps it as `label`.
 - Code (SQL, scripts, JSON) uses `CodeEditor`, labelled with `aria-labelledby`. Tab leaves the editor.
 - Secrets: password inputs with `autocomplete="new-password"`. After saving, show "Stored. Leave empty to keep it."
   and offer an explicit "Remove" when clearing is allowed.

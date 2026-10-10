@@ -16,6 +16,7 @@ import {
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
 import { LocalizedInput } from '@isbp/ui/localized-input';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import {
   Sheet,
@@ -28,7 +29,7 @@ import {
 } from '@isbp/ui/sheet';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { CLASS_KEY_RE, type CiClass, type CreateClassInput } from '../contracts';
 import { CLASS_ICONS } from './class-icon';
@@ -89,6 +90,10 @@ function ClassForm({ cls, onDone }: { cls: CiClass | null; onDone: () => void })
     },
   });
 
+  const list = useFieldList();
+  const watchedDescription = useWatch({ control: form.control, name: 'description' });
+  const detailsFilled = countFilled(Object.values(watchedDescription).some((v) => v?.trim()));
+
   const save = useApiMutation(
     (api, v: z.output<typeof schema>) => {
       const description = Object.values(v.description ?? {}).some(Boolean) ? v.description : null;
@@ -148,101 +153,106 @@ function ClassForm({ cls, onDone }: { cls: CiClass | null; onDone: () => void })
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('classDescription')}</FormLabel>
-                <FormControl>
-                  <LocalizedInput multiline value={field.value} onChange={field.onChange} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="icon"
-            render={({ field }) => (
-              <FormItem>
-                <span id={iconLabel} className="text-sm leading-none font-medium">
-                  {t('icon')}
-                </span>
-                <div
-                  role="radiogroup"
-                  aria-labelledby={iconLabel}
-                  className="grid grid-cols-6 gap-1.5 sm:grid-cols-8"
-                >
-                  {Object.entries(CLASS_ICONS).map(([name, Icon]) => {
-                    const checked = field.value === name;
-                    return (
-                      <button
-                        key={name}
-                        type="button"
-                        role="radio"
-                        aria-checked={checked}
-                        aria-label={ti.has(name) ? ti(name) : name}
-                        title={ti.has(name) ? ti(name) : name}
-                        tabIndex={checked || (!field.value && name === 'box') ? 0 : -1}
-                        onClick={() => field.onChange(name)}
-                        onKeyDown={(e) => {
-                          const names = Object.keys(CLASS_ICONS);
-                          const i = names.indexOf(name);
-                          const step =
-                            e.key === 'ArrowRight' || e.key === 'ArrowDown'
-                              ? 1
-                              : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
-                                ? -1
-                                : 0;
-                          if (!step) return;
-                          e.preventDefault();
-                          const next = names[(i + step + names.length) % names.length]!;
-                          field.onChange(next);
-                          (
-                            e.currentTarget.parentElement?.querySelector(
-                              `[data-icon="${next}"]`,
-                            ) as HTMLElement | null
-                          )?.focus();
-                        }}
-                        data-icon={name}
-                        className={cn(
-                          'grid aspect-square place-items-center rounded-lg border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
-                          checked &&
-                            'border-primary bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
-                        )}
-                      >
-                        <Icon className="size-4" aria-hidden />
-                      </button>
-                    );
-                  })}
-                </div>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="sortOrder"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('sortOrder')}</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={10000}
-                    className="w-32"
-                    name={field.name}
-                    ref={field.ref}
-                    onBlur={field.onBlur}
-                    value={String(field.value ?? '')}
-                    onChange={(e) => field.onChange(e.target.value)}
-                  />
-                </FormControl>
-                <FormDescription>{t('sortOrderHint')}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <OptionalFields
+            hint={list([t('classDescription'), t('icon'), t('sortOrder')])}
+            filled={detailsFilled}
+          >
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('classDescription')}</FormLabel>
+                  <FormControl>
+                    <LocalizedInput multiline value={field.value} onChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="icon"
+              render={({ field }) => (
+                <FormItem>
+                  <span id={iconLabel} className="text-sm leading-none font-medium">
+                    {t('icon')}
+                  </span>
+                  <div
+                    role="radiogroup"
+                    aria-labelledby={iconLabel}
+                    className="grid grid-cols-6 gap-1.5 sm:grid-cols-8"
+                  >
+                    {Object.entries(CLASS_ICONS).map(([name, Icon]) => {
+                      const checked = field.value === name;
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          role="radio"
+                          aria-checked={checked}
+                          aria-label={ti.has(name) ? ti(name) : name}
+                          title={ti.has(name) ? ti(name) : name}
+                          tabIndex={checked || (!field.value && name === 'box') ? 0 : -1}
+                          onClick={() => field.onChange(name)}
+                          onKeyDown={(e) => {
+                            const names = Object.keys(CLASS_ICONS);
+                            const i = names.indexOf(name);
+                            const step =
+                              e.key === 'ArrowRight' || e.key === 'ArrowDown'
+                                ? 1
+                                : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
+                                  ? -1
+                                  : 0;
+                            if (!step) return;
+                            e.preventDefault();
+                            const next = names[(i + step + names.length) % names.length]!;
+                            field.onChange(next);
+                            (
+                              e.currentTarget.parentElement?.querySelector(
+                                `[data-icon="${next}"]`,
+                              ) as HTMLElement | null
+                            )?.focus();
+                          }}
+                          data-icon={name}
+                          className={cn(
+                            'grid aspect-square place-items-center rounded-lg border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                            checked &&
+                              'border-primary bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
+                          )}
+                        >
+                          <Icon className="size-4" aria-hidden />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="sortOrder"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('sortOrder')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={10000}
+                      className="w-32"
+                      name={field.name}
+                      ref={field.ref}
+                      onBlur={field.onBlur}
+                      value={String(field.value ?? '')}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  </FormControl>
+                  <FormDescription>{t('sortOrderHint')}</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </OptionalFields>
           {form.formState.errors.root && (
             <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {form.formState.errors.root.message}

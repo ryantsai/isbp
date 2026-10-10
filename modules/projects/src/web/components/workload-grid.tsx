@@ -177,7 +177,7 @@ export function WorkloadGrid({ path, inSheet }: { path: string; inSheet?: boolea
         <EmptyState icon={<UsersIcon />} title={t('empty')} description={t('emptyHint')} />
       ) : (
         <div
-          className="relative min-w-0 overflow-x-auto rounded-xl border bg-card shadow-xs"
+          className="relative min-w-0 overflow-x-auto rounded-xl border bg-card"
           role="region"
           aria-label={t('tableLabel')}
           tabIndex={0}

@@ -152,7 +152,7 @@ export default function OverviewPage() {
     <>
       <PageHeader title={t('overview.title')} description={t('overview.description')} />
       {isLoading || !d ? (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 4 }, (_, i) => (
               <Skeleton key={i} className="h-24 rounded-xl" />
@@ -161,7 +161,7 @@ export default function OverviewPage() {
           <Skeleton className="h-72 rounded-xl" />
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <Stagger className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Kpi
               icon={PackageIcon}
@@ -246,7 +246,7 @@ export default function OverviewPage() {
             )}
           </Stagger>
 
-          <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
             <ChartFrame
               title={t('overview.byCategory')}
               description={t('overview.byCategoryHint')}
@@ -353,7 +353,7 @@ export default function OverviewPage() {
             <h2 id="itam-attention" className="text-lg font-semibold">
               {t('overview.attention')}
             </h2>
-            <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
               <AttentionCard
                 title={t('overview.warrantiesTitle')}
                 description={t('overview.warrantiesHint')}

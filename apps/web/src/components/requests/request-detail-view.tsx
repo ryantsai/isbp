@@ -358,7 +358,7 @@ function ApprovalSection({
   return (
     <section
       aria-labelledby="request-path"
-      className="grid min-w-0 grid-cols-1 gap-4 rounded-xl border bg-card p-5 sm:p-6"
+      className="grid min-w-0 grid-cols-1 gap-4 rounded-xl border bg-card p-4 sm:p-5"
     >
       <div className="grid min-w-0 gap-0.5">
         <h2 id="request-path" className="text-base font-semibold">
@@ -432,7 +432,7 @@ function RequestBody({
   const toDo = todoId !== null && !isAccess;
 
   return (
-    <div className="grid grid-cols-1 gap-8">
+    <div className="grid grid-cols-1 gap-5">
       <DetailHeader
         back={{ href: '/requests', label: t('back') }}
         icon={isAccess ? <KeyRoundIcon /> : <NavIcon name={lookup.submission.form.icon} />}

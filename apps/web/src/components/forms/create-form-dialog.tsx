@@ -25,6 +25,7 @@ import {
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useRef } from 'react';
@@ -60,6 +61,7 @@ export function CreateFormDialog({
   const router = useRouter();
   const errorText = useErrorText();
   const iconLabel = useId();
+  const list = useFieldList();
 
   const schema = useMemo(
     () =>
@@ -88,6 +90,10 @@ export function CreateFormDialog({
 
   // The key follows the English name (or any latin name) until it is edited by hand.
   const name = useWatch({ control: form.control, name: 'name' });
+  const [descriptionValue, categoryValue] = useWatch({
+    control: form.control,
+    name: ['description', 'category'],
+  });
   useEffect(() => {
     if (form.getFieldState('key').isDirty) return;
     form.setValue('key', suggestKey(name?.en || name?.[locale as keyof LocalizedText] || ''), {
@@ -169,48 +175,60 @@ export function CreateFormDialog({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {t('descriptionLabel')}{' '}
-                    <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                  </FormLabel>
-                  <FormControl>
-                    <LocalizedInput multiline value={field.value} onChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
+            <OptionalFields
+              hint={list([t('descriptionLabel'), t('icon'), t('category')])}
+              filled={countFilled(
+                Object.values(descriptionValue).some((x) => x?.trim()),
+                categoryValue,
               )}
-            />
-            <div className="grid gap-5 sm:grid-cols-[1fr_12rem]">
+            >
               <FormField
                 control={form.control}
-                name="icon"
+                name="description"
                 render={({ field }) => (
-                  <div className="grid gap-2">
-                    <Label id={iconLabel}>{t('icon')}</Label>
-                    <IconPicker value={field.value} onChange={field.onChange} labelledBy={iconLabel} />
-                  </div>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem className="content-start">
+                  <FormItem>
                     <FormLabel>
-                      {t('category')}{' '}
+                      {t('descriptionLabel')}{' '}
                       <span className="font-normal text-muted-foreground">({tc('optional')})</span>
                     </FormLabel>
                     <FormControl>
-                      <CategoryInput value={field.value} onChange={field.onChange} suggestions={categories} />
+                      <LocalizedInput multiline value={field.value} onChange={field.onChange} />
                     </FormControl>
                   </FormItem>
                 )}
               />
-            </div>
+              <div className="grid gap-5 sm:grid-cols-[1fr_12rem]">
+                <FormField
+                  control={form.control}
+                  name="icon"
+                  render={({ field }) => (
+                    <div className="grid gap-2">
+                      <Label id={iconLabel}>{t('icon')}</Label>
+                      <IconPicker value={field.value} onChange={field.onChange} labelledBy={iconLabel} />
+                    </div>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem className="content-start">
+                      <FormLabel>
+                        {t('category')}{' '}
+                        <span className="font-normal text-muted-foreground">({tc('optional')})</span>
+                      </FormLabel>
+                      <FormControl>
+                        <CategoryInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          suggestions={categories}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </OptionalFields>
             {form.formState.errors.root && (
               <p role="alert" className="text-sm text-destructive">
                 {form.formState.errors.root.message}

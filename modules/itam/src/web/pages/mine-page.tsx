@@ -37,7 +37,7 @@ export default function MyDevicesPage() {
           ))}
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-5">
           <section aria-labelledby="itam-mine-devices" className="space-y-3">
             <h2 id="itam-mine-devices" className="text-lg font-semibold">
               {t('devices', { count: data.devices.length })}

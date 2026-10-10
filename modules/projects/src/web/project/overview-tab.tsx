@@ -136,9 +136,7 @@ function HealthCard({ project }: { project: ProjectDetail }) {
         </div>
         {history.length > 0 && (
           <section className="grid gap-2 border-t pt-3">
-            <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              {t('history')}
-            </h3>
+            <h3 className="text-xs font-semibold text-muted-foreground">{t('history')}</h3>
             <ol className="grid gap-2.5">
               {history.map((u) => (
                 <li key={u.id} className="grid gap-0.5 text-sm">
@@ -457,8 +455,8 @@ export function OverviewTab({
     document.getElementById('overview-milestones')?.scrollIntoView({ block: 'nearest' });
   };
   return (
-    <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3">
-      <div className="grid min-w-0 gap-6 lg:col-span-2">
+    <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3">
+      <div className="grid min-w-0 gap-4 lg:col-span-2">
         {fresh && (
           <GetStarted
             project={project}
@@ -506,7 +504,7 @@ export function OverviewTab({
         {!noTasks && <StatusBreakdown project={project} />}
         <MilestonesCard project={project} onManage={onManage} adding={adding} onAdding={setAdding} />
       </div>
-      <div className="grid min-w-0 gap-6">
+      <div className="grid min-w-0 gap-4">
         <ApprovalCard project={project} />
         <HealthCard project={project} />
         <MembersCard project={project} onManage={onManage} />

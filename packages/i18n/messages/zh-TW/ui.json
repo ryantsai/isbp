@@ -396,5 +396,9 @@
       "work": "進行中的工作",
       "setting": "設定"
     }
+  },
+  "optionalFields": {
+    "label": "更多詳細資料",
+    "filled": "已填 {count} 項"
   }
 }

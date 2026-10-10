@@ -22,6 +22,7 @@ import {
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
@@ -30,7 +31,7 @@ import { Textarea } from '@isbp/ui/textarea';
 import { KeyRoundIcon, PlusIcon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useId, useMemo, useState } from 'react';
-import { type FieldValues, useForm, type UseFormReturn } from 'react-hook-form';
+import { type FieldValues, useForm, type UseFormReturn, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import {
   addDays,
@@ -186,6 +187,12 @@ function ContractForm({
     true,
     contract?.attributes,
   );
+  const list = useFieldList();
+  const [cost, notes, autoRenew, draft] = useWatch({
+    control: form.control,
+    name: ['cost', 'notes', 'autoRenew', 'draft'],
+  });
+  const detailsFilled = countFilled(cost, notes, autoRenew, draft, owner);
 
   const save = useApiMutation(
     (api, body: CreateContractInput & { activate?: boolean }) =>
@@ -281,7 +288,7 @@ function ContractForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-6" noValidate>
+      <form onSubmit={onSubmit} className="space-y-5" noValidate>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">{input('title', t('fields.title'))}</div>
           <FormField
@@ -298,6 +305,12 @@ function ContractForm({
           {select('kind', t('fields.kind'), CONTRACT_KINDS, 'contractKind')}
           {input('startDate', t('fields.startDate'), { type: 'date' })}
           {input('endDate', t('fields.endDate'), { type: 'date' })}
+        </div>
+        <OptionalFields
+          hint={list([t('fields.noticeDays'), t('fields.cost'), t('fields.owner'), t('fields.notes')])}
+          filled={detailsFilled}
+          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+        >
           {input('noticeDays', t('fields.noticeDays'), {
             inputMode: 'numeric',
             hint: t('contractForm.noticeHint'),
@@ -316,8 +329,6 @@ function ContractForm({
               </FormItem>
             )}
           />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
             <FormField
               control={form.control}
@@ -357,41 +368,41 @@ function ContractForm({
             />
             <p className="text-xs text-muted-foreground">{t('contractForm.ownerHint')}</p>
           </div>
-        </div>
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('fields.notes')}</FormLabel>
-              <FormControl>
-                <Textarea rows={5} {...field} />
-              </FormControl>
-              <FormDescription>{t('contractForm.notesHint')}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {!contract && (
           <FormField
             control={form.control}
-            name="draft"
+            name="notes"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center gap-2">
+              <FormItem className="sm:col-span-2">
+                <FormLabel>{t('fields.notes')}</FormLabel>
                 <FormControl>
-                  <Checkbox
-                    id={ids.draft}
-                    checked={field.value}
-                    onCheckedChange={(c) => field.onChange(c === true)}
-                  />
+                  <Textarea rows={5} {...field} />
                 </FormControl>
-                <FormLabel htmlFor={ids.draft} className="font-normal">
-                  {t('contractForm.draft')}
-                </FormLabel>
+                <FormDescription>{t('contractForm.notesHint')}</FormDescription>
+                <FormMessage />
               </FormItem>
             )}
           />
-        )}
+          {!contract && (
+            <FormField
+              control={form.control}
+              name="draft"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center gap-2 sm:col-span-2">
+                  <FormControl>
+                    <Checkbox
+                      id={ids.draft}
+                      checked={field.value}
+                      onCheckedChange={(c) => field.onChange(c === true)}
+                    />
+                  </FormControl>
+                  <FormLabel htmlFor={ids.draft} className="font-normal">
+                    {t('contractForm.draft')}
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+          )}
+        </OptionalFields>
         <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
         {form.formState.errors.root && (
           <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">

@@ -73,7 +73,7 @@ export function AssignmentBanner({
       className="grid gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm"
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-primary uppercase">
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
           <ClipboardCheckIcon className="size-4" aria-hidden />
           {t('label')}
         </span>

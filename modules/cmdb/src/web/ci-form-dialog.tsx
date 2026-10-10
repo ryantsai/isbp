@@ -22,13 +22,14 @@ import {
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
-import { type FieldValues, useForm, type UseFormReturn } from 'react-hook-form';
+import { type FieldValues, useForm, type UseFormReturn, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import {
   CI_CRITICALITIES,
@@ -153,6 +154,17 @@ function CiForm({
     },
   });
   useAttributeDefaults(form as unknown as UseFormReturn<FieldValues>, fields, ready, true, ci?.attributes);
+  const list = useFieldList();
+  const [environment, departmentId, description, tags] = useWatch({
+    control: form.control,
+    name: ['environment', 'departmentId', 'description', 'tags'],
+  });
+  const detailsFilled = countFilled(
+    environment === NONE ? '' : environment,
+    departmentId === NONE ? '' : departmentId,
+    description,
+    tags,
+  );
 
   const save = useApiMutation(
     (api, body: CreateCiInput) =>
@@ -269,7 +281,7 @@ function CiForm({
           />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="status"
@@ -286,33 +298,6 @@ function CiForm({
                     {CI_STATUSES.map((s) => (
                       <SelectItem key={s} value={s}>
                         <CiStatusBadge status={s} quiet={false} />
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="environment"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.environment')}</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={NONE}>
-                      <span className="text-muted-foreground">{t('fields.notSet')}</span>
-                    </SelectItem>
-                    {CI_ENVIRONMENTS.map((e) => (
-                      <SelectItem key={e} value={e}>
-                        {t(`environment.${e}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -347,7 +332,7 @@ function CiForm({
           />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid min-w-0 gap-2">
             <Label htmlFor={ids.owner}>{t('fields.owner')}</Label>
             <PersonPicker
@@ -366,42 +351,79 @@ function CiForm({
             )}
           </div>
           {select('supportGroupId', t('fields.supportGroup'), t('form.groupPlaceholder'), groups.items)}
-          {select('departmentId', t('fields.department'), t('form.departmentPlaceholder'), departments.items)}
         </div>
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('fields.description')}</FormLabel>
-              <FormControl>
-                <Textarea rows={3} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="tags"
-          render={({ field, fieldState }) => (
-            <FormItem>
-              <FormLabel htmlFor={ids.tags}>{t('fields.tags')}</FormLabel>
-              <TagInput
-                id={ids.tags}
-                value={field.value}
-                onChange={field.onChange}
-                placeholder={t('form.tagsPlaceholder')}
-                aria-describedby={ids.tagsHint}
-                invalid={Boolean(fieldState.error)}
-              />
-              <FormDescription id={ids.tagsHint}>{t('form.tagsHint')}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <OptionalFields
+          hint={list([
+            t('fields.environment'),
+            t('fields.department'),
+            t('fields.description'),
+            t('fields.tags'),
+          ])}
+          filled={detailsFilled}
+          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+        >
+          <FormField
+            control={form.control}
+            name="environment"
+            render={({ field }) => (
+              <FormItem className="min-w-0">
+                <FormLabel>{t('fields.environment')}</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NONE}>
+                      <span className="text-muted-foreground">{t('fields.notSet')}</span>
+                    </SelectItem>
+                    {CI_ENVIRONMENTS.map((e) => (
+                      <SelectItem key={e} value={e}>
+                        {t(`environment.${e}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {select('departmentId', t('fields.department'), t('form.departmentPlaceholder'), departments.items)}
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>{t('fields.description')}</FormLabel>
+                <FormControl>
+                  <Textarea rows={3} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="tags"
+            render={({ field, fieldState }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel htmlFor={ids.tags}>{t('fields.tags')}</FormLabel>
+                <TagInput
+                  id={ids.tags}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder={t('form.tagsPlaceholder')}
+                  aria-describedby={ids.tagsHint}
+                  invalid={Boolean(fieldState.error)}
+                />
+                <FormDescription id={ids.tagsHint}>{t('form.tagsHint')}</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </OptionalFields>
 
         <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
 

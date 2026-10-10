@@ -66,7 +66,7 @@ export default function ClassesPage() {
           className="rounded-xl border border-dashed"
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <div className="overflow-hidden rounded-xl border bg-card">
           <Table aria-label={t('title')}>
             <TableHeader className="bg-muted/40">
               <TableRow className="hover:bg-transparent">

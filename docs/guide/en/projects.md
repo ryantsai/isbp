@@ -41,10 +41,11 @@ New work starts as a proposal, so the plan can be checked before anyone books ti
 1. Go to **Projects** and select **New project**.
 2. Enter the **Name** (for example "Network refresh 2026") and a **Key** of 2–10 letters or digits. Task
    references start with the key, for example `NET-12`. The key can't change once the project has tasks.
-3. Choose the **Project manager** (also a manager of the project), the **Department**, the **Start date** and
-   **Target date**, the **Visibility** and the **Priority**.
-4. Enter the **Planned effort (hours)**. It decides whether the proposal needs approval.
-5. Describe the scope in **Description** (Markdown is supported) and select **Create project**.
+3. Choose the **Project manager** (also a manager of the project), the **Start date** and **Target date**, the
+   **Visibility** and the **Priority**.
+4. Under **More details**, choose the **Department**, enter the **Planned effort (hours)** (it decides whether the
+   proposal needs approval) and describe the scope in **Description** (Markdown is supported).
+5. Select **Create project**.
 
 **What happens next:** the project is **Proposed**. Its **Overview** opens with a **Get started** checklist: **Plan
 the milestones** (**Add milestone**), **Add the first tasks** (**New task**), **Add the team** (**Add members**) and,

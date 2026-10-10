@@ -55,7 +55,7 @@ export default function EndpointPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-12 w-80 max-w-full" />
         <Skeleton className="h-72 w-full rounded-xl" />
@@ -73,7 +73,7 @@ export default function EndpointPage({ params }: WebPageProps) {
   const needsTest = !endpoint.draftTested && (endpoint.latestVersion === null || endpoint.draftChanged);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DetailHeader
         className="pb-0"
         back={{ href: '/etl', label: t('endpoints.title'), highlight: endpoint.id }}
@@ -154,7 +154,7 @@ export default function EndpointPage({ params }: WebPageProps) {
           ))}
         </TabsList>
 
-        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-3">
+        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-3">
           {tab === 'overview' && (
             <>
               <div className="min-w-0 xl:col-span-2">

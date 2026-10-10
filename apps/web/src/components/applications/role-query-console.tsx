@@ -103,7 +103,7 @@ function ResultView({ result }: { result: RoleQueryResult }) {
   const tc = useTranslations('common');
   const u = result.user;
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-3">
         <UserAvatar name={u.displayName} className="size-10" />
         <div className="min-w-0 flex-1">
@@ -422,7 +422,7 @@ export function RoleQueryConsole({ app }: { app: Application }) {
   const examplePermission = lastPermission ?? catalog.data?.items[0]?.key ?? 'invoices.approve';
 
   return (
-    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
       <Card className="min-w-0">
         <CardHeader>
           <CardTitle>{t('title')}</CardTitle>
@@ -434,7 +434,7 @@ export function RoleQueryConsole({ app }: { app: Application }) {
             </Label>
           </CardAction>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-5">
           <div className="grid gap-2">
             <Label htmlFor={`${id}-person`}>{t('person')}</Label>
             <UserPicker

@@ -125,9 +125,7 @@ function QueueRail({
   const t = useTranslations('itsm.desk.queues');
   return (
     <nav aria-label={t('label')} className="hidden lg:block">
-      <h2 className="mb-2 px-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {t('label')}
-      </h2>
+      <h2 className="mb-2 px-2 text-xs font-semibold text-muted-foreground">{t('label')}</h2>
       <ul className="grid gap-0.5">
         {QUEUES.filter((q) => !q.hidden || q.id === active).map((q) => {
           const count = counts?.[q.count];
@@ -384,7 +382,7 @@ export default function DeskPage() {
           </Button>
         }
       />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
         <QueueRail
           active={queue}
           counts={counts}

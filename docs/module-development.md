@@ -517,9 +517,10 @@ Pages are client components that receive `{ params }`. Use the same building blo
 | `@isbp/ui/localized-input`  | `LocalizedInput` — text admins write in en / zh-TW / ja-JP                                                                                                                                                                                                                       |
 
 UX conventions (docs/ai/ui-guidelines.md): `PageHeader`/`DetailHeader` on every page, skeletons while loading,
-`ErrorState` when a request fails and `EmptyState` for empty results, advanced options behind a `Disclosure`,
-permission-gated actions (`useCan`), and motion through the shared `@isbp/ui/motion` components (they honour
-`prefers-reduced-motion`).
+`ErrorState` when a request fails and `EmptyState` for empty results, optional form fields behind one
+`OptionalFields` row ("More details"), the TEL tokens and compact density of the shared components (no colours, fonts
+or extra padding of your own), permission-gated actions (`useCan`), and motion through the shared `@isbp/ui/motion`
+components (they honour `prefers-reduced-motion`).
 
 ### i18n
 

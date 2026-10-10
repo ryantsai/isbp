@@ -396,5 +396,9 @@
       "work": "進行中の作業",
       "setting": "設定"
     }
+  },
+  "optionalFields": {
+    "label": "その他の詳細",
+    "filled": "{count} 件入力済み"
   }
 }

@@ -1,4 +1,12 @@
 {
   "extends": "@isbp/tsconfig/react.json",
+  "compilerOptions": {
+    // For the shadcn CLI (components.json): `@isbp/ui/<name>` is a component, as in package.json "exports".
+    "paths": {
+      "@isbp/ui/lib/*": ["./src/lib/*"],
+      "@isbp/ui/hooks/*": ["./src/hooks/*"],
+      "@isbp/ui/*": ["./src/components/*"]
+    }
+  },
   "include": ["src"]
 }

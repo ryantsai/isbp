@@ -13,6 +13,7 @@ import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
+import { IconTile } from '@isbp/ui/icon-tile';
 import {
   CheckIcon,
   ChevronRightIcon,
@@ -72,9 +73,9 @@ function ApprovalCard({
         onClick={onOpen}
         className="group flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+        <IconTile aria-hidden>
           <TriggerIcon item={item} />
-        </span>
+        </IconTile>
         <span className="min-w-0 flex-1">
           <span className="block text-xs font-medium text-muted-foreground">
             {localize(item.step.name, locale)}
@@ -206,7 +207,7 @@ export function ApprovalsView() {
         <AnimatedList aria-label={t(status === 'pending' ? 'tabs.pending' : 'tabs.done')} className="grid">
           {items.map((item) => (
             <AnimatedItem key={item.task.id} as="li" className="pb-3 last:pb-0">
-              <div className="rounded-xl border bg-card shadow-xs transition-shadow hover:shadow-md">
+              <div className="rounded-xl border bg-card transition-shadow hover:shadow-md">
                 <ApprovalCard
                   item={item}
                   now={now}

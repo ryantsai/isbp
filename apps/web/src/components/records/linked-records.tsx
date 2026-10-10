@@ -138,7 +138,7 @@ function LinkDialog({
               ))}
             </div>
           ) : items.length === 0 ? (
-            <p className="p-6 text-center text-sm text-muted-foreground">{t('picker.noResults')}</p>
+            <p className="p-5 text-center text-sm text-muted-foreground">{t('picker.noResults')}</p>
           ) : (
             <ul className="divide-y px-3">
               {items.map((r) => {

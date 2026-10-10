@@ -29,7 +29,7 @@ export function AgentAvatar() {
 export function UserMessage({ content, label }: { content: string; label: string }) {
   return (
     <AnimatedItem className="flex justify-end pb-4">
-      <div className="max-w-[85%] min-w-0 rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-sm whitespace-pre-wrap text-primary-foreground shadow-xs wrap-anywhere">
+      <div className="max-w-[85%] min-w-0 rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-sm whitespace-pre-wrap text-primary-foreground wrap-anywhere">
         <span className="sr-only">{label}: </span>
         {content}
       </div>
@@ -68,7 +68,7 @@ export function AssistantMessage({
       <div className="min-w-0 flex-1 space-y-2">
         <div
           className={cn(
-            'w-fit max-w-full min-w-0 rounded-2xl rounded-tl-md border bg-card px-3.5 py-2.5 shadow-xs',
+            'w-fit max-w-full min-w-0 rounded-2xl rounded-tl-md border bg-card px-3.5 py-2.5',
             typing && 'text-sm text-muted-foreground',
           )}
         >

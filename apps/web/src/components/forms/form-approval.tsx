@@ -24,6 +24,7 @@ import {
 } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { toast } from '@isbp/ui/sonner';
+import { IconTile } from '@isbp/ui/icon-tile';
 import {
   ArrowUpRightIcon,
   InfoIcon,
@@ -189,9 +190,9 @@ export function FormApproval({
       <FadeIn>
         <Card className="mx-auto w-full max-w-2xl">
           <CardHeader className="flex items-start gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+            <IconTile aria-hidden>
               <UserCheckIcon className="size-5" aria-hidden />
-            </span>
+            </IconTile>
             <div className="grid gap-1">
               <CardTitle className="text-base">
                 <h2>{t('emptyTitle')}</h2>

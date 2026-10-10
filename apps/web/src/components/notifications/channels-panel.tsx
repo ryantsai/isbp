@@ -190,7 +190,7 @@ function ChannelCard({
 
   return (
     <Card className="h-full gap-0 overflow-hidden py-0">
-      <div className="flex items-start gap-3 p-5">
+      <div className="flex items-start gap-3 p-4">
         <ChannelTile kind={c.type} />
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-semibold" title={c.name}>

@@ -6,7 +6,7 @@ import { getTranslations } from 'next-intl/server';
 export default async function RootNotFound() {
   const t = await getTranslations('shell');
   return (
-    <main className="grid min-h-dvh place-items-center p-6">
+    <main className="grid min-h-dvh place-items-center p-5">
       <div className="flex max-w-sm flex-col items-center gap-3 text-center">
         <div className="grid size-12 place-items-center rounded-full bg-muted text-muted-foreground">
           <CompassIcon className="size-5" />

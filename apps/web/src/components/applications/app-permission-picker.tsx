@@ -123,7 +123,7 @@ export function AppPermissionPicker({
     <div className="space-y-2">
       <div
         className={cn(
-          'flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border bg-background px-2 py-1.5 shadow-xs dark:bg-input/30',
+          'flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border bg-background px-2 py-1.5 dark:bg-input/30',
           disabled && 'opacity-50',
         )}
       >

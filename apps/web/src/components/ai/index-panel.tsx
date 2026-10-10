@@ -36,7 +36,7 @@ export function IndexPanel() {
 
   if (!data)
     return (
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Skeleton className="h-48 rounded-xl" />
         <Skeleton className="h-48 rounded-xl lg:col-span-2" />
       </div>
@@ -49,7 +49,7 @@ export function IndexPanel() {
   };
 
   return (
-    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
       <Card className="min-w-0">
         <CardHeader>
           <CardTitle>{t('store.title')}</CardTitle>

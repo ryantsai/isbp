@@ -176,7 +176,7 @@ export function AgentView({ ticket, refetch }: { ticket: TicketDetail; refetch: 
       : null;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <DetailHeader
         className="pb-0"
         back={{ href: back.href, label: tt(`ticket.backTo.${back.key}`), highlight: ticket.id }}
@@ -218,8 +218,8 @@ export function AgentView({ ticket, refetch }: { ticket: TicketDetail; refetch: 
       <ConfirmPanel ticket={ticket} />
       {ticket.type === 'change' && <CabAttention ticket={ticket} />}
       {ticket.type === 'change' && ticket.viewer.canAccept && <AcceptancePanel ticket={ticket} />}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="grid min-w-0 grid-cols-1 content-start gap-6">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="grid min-w-0 grid-cols-1 content-start gap-4">
           <ResolutionCard ticket={ticket} />
           <Card className="gap-4">
             <CardHeader>

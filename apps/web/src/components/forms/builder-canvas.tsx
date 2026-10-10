@@ -47,7 +47,7 @@ function Box({ children, className }: { children?: ReactNode; className?: string
   return (
     <div
       className={cn(
-        'flex h-9 w-full items-center gap-2 rounded-md border border-input bg-background/60 px-3 text-sm text-muted-foreground shadow-xs dark:bg-input/20',
+        'flex h-9 w-full items-center gap-2 rounded-md border border-input bg-background/60 px-3 text-sm text-muted-foreground dark:bg-input/20',
         className,
       )}
     >
@@ -77,7 +77,7 @@ function ControlMock({ field }: { field: FieldDef }) {
         <div className="flex h-9 items-center">
           <span
             className={cn(
-              'grid size-4 place-items-center rounded-[4px] border border-input shadow-xs',
+              'grid size-4 place-items-center rounded-[4px] border border-input',
               dv === true && 'border-primary bg-primary',
             )}
           />
@@ -527,7 +527,7 @@ export function BuilderCanvas({
           {tf('showKeys')}
         </label>
       </div>
-      <div className="mx-auto grid max-w-3xl gap-5 rounded-xl border bg-background p-4 shadow-xs sm:p-6">
+      <div className="mx-auto grid max-w-3xl gap-5 rounded-xl border bg-background p-4 sm:p-5">
         {header}
         <SortableContext items={elements.map((e) => e.id)} strategy={noSortingTransforms}>
           <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">

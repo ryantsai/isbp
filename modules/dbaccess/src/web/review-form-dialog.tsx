@@ -12,6 +12,7 @@ import {
 } from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { useTranslations } from 'next-intl';
@@ -70,6 +71,7 @@ function ReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const today = useToday();
+  const list = useFieldList();
   const ids = {
     name: useId(),
     due: useId(),
@@ -92,6 +94,7 @@ function ReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
     recurrence: 'quarterly',
   });
   const [error, setError] = useState<string | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const create = useApiMutation(
     (api, body: CreateReviewInput) => api.post<Review>('/dbaccess/reviews', body),
     {
@@ -102,6 +105,7 @@ function ReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
     },
   );
   const patch = (p: Partial<CreateReviewInput>) => setV((x) => ({ ...x, ...p }));
+  const detailsFilled = countFilled(v.startOn !== today, v.recurrence !== 'quarterly');
   const selected = new Set(v.serverIds ?? []);
   return (
     <form
@@ -110,7 +114,10 @@ function ReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
       onSubmit={(e) => {
         e.preventDefault();
         if (v.name.trim().length < 3) return setError(t('nameRequired'));
-        if (!v.dueOn || v.dueOn <= (v.startOn ?? today)) return setError(t('dueAfterStart'));
+        if (!v.dueOn || v.dueOn <= (v.startOn ?? today)) {
+          setMoreOpen(true);
+          return setError(t('dueAfterStart'));
+        }
         setError(null);
         create.mutate({ ...v, name: v.name.trim() }, { onError: (err) => setError(errorText(err)) });
       }}
@@ -185,16 +192,6 @@ function ReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
           </Select>
         </div>
         <div className="grid min-w-0 gap-2">
-          <Label htmlFor={ids.start}>{t('startOn')}</Label>
-          <Input
-            id={ids.start}
-            type="date"
-            min={today}
-            value={v.startOn ?? ''}
-            onChange={(e) => patch({ startOn: e.target.value || null })}
-          />
-        </div>
-        <div className="grid min-w-0 gap-2">
           <Label htmlFor={ids.due}>{t('dueOn')}</Label>
           <Input
             id={ids.due}
@@ -219,6 +216,24 @@ function ReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
             </SelectContent>
           </Select>
         </div>
+      </div>
+      <OptionalFields
+        hint={list([t('startOn'), t('recurrence')])}
+        filled={detailsFilled}
+        open={moreOpen}
+        onOpenChange={setMoreOpen}
+        contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+      >
+        <div className="grid min-w-0 gap-2">
+          <Label htmlFor={ids.start}>{t('startOn')}</Label>
+          <Input
+            id={ids.start}
+            type="date"
+            min={today}
+            value={v.startOn ?? ''}
+            onChange={(e) => patch({ startOn: e.target.value || null })}
+          />
+        </div>
         <div className="grid min-w-0 gap-2">
           <Label htmlFor={ids.rec}>{t('recurrence')}</Label>
           <Select
@@ -237,7 +252,7 @@ function ReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: 
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </OptionalFields>
       {error && (
         <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}

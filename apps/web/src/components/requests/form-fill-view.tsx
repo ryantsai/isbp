@@ -87,7 +87,7 @@ function ApprovalPreviewPanel({
     return out;
   }, [debounced, preview.data, schema, locale]);
   return (
-    <section aria-labelledby={uid} className="grid gap-3 rounded-xl border bg-muted/30 p-5">
+    <section aria-labelledby={uid} className="grid gap-3 rounded-xl border bg-muted/30 p-4">
       <div className="grid gap-0.5">
         <h2 id={uid} className="text-base font-semibold">
           {t('title')}
@@ -159,7 +159,7 @@ function FormBody({
       <form
         noValidate
         onSubmit={form.handleSubmit((values) => submit.mutate(values, { onError }))}
-        className="grid gap-2 rounded-xl border bg-card p-5 sm:p-6"
+        className="grid gap-2 rounded-xl border bg-card p-4 sm:p-5"
       >
         {published.hasApproval && (
           <div className="mb-4 flex gap-2 rounded-lg border border-info/30 bg-info/5 px-3 py-2.5 text-sm">

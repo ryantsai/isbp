@@ -108,7 +108,7 @@ function RuleSheet({
           <SheetTitle>{isNew ? t('addTitle') : t('editTitle')}</SheetTitle>
           <SheetDescription>{t('sheetHint')}</SheetDescription>
         </SheetHeader>
-        <SheetBody className="grid gap-6 pb-6">
+        <SheetBody className="grid gap-4 pb-6">
           <section aria-labelledby={`${uid}-when`} className="grid gap-2">
             <h3 id={`${uid}-when`} className="text-sm font-medium">
               {t('when')}

@@ -64,7 +64,7 @@ export function RequestEvidence({ submissionId }: { submissionId: string }) {
   if (!links.length && !files.length) return null;
   const props: RecordPanelSlotProps = { record: { type: 'core.request', id: submissionId } };
   return (
-    <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-2">
+    <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-2">
       <div className="min-w-0">
         <Slot
           name="core.record.files"

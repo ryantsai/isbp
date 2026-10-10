@@ -119,9 +119,7 @@ export function PermissionEditor({
       <div className={cn('space-y-4', className)}>
         {patterns.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              {t('patterns')}
-            </p>
+            <p className="text-xs font-semibold text-muted-foreground">{t('patterns')}</p>
             <ul className="flex flex-wrap gap-1.5" aria-label={t('patterns')}>
               <AnimatePresence initial={false}>
                 {patterns.map((p) => {
@@ -134,7 +132,7 @@ export function PermissionEditor({
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ duration: 0.15 }}
-                      className="inline-flex items-center gap-1.5 rounded-md border bg-card py-1 pr-1 pl-2 text-xs shadow-xs"
+                      className="inline-flex items-center gap-1.5 rounded-md border bg-card py-1 pr-1 pl-2 text-xs"
                     >
                       {isWildcard(p) ? (
                         <AsteriskIcon className="size-3.5 text-primary" aria-hidden />

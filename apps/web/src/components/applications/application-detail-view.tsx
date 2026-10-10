@@ -74,7 +74,7 @@ export function ApplicationDetailView({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <div className="space-y-6" aria-busy>
+      <div className="space-y-5" aria-busy>
         {back}
         <div className="flex items-center gap-4">
           <Skeleton className="size-14 rounded-xl" />
@@ -90,7 +90,7 @@ export function ApplicationDetailView({ id }: { id: string }) {
   }
   if (error || !app) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         {back}
         <EmptyState
           icon={<AppWindowIcon />}
@@ -104,14 +104,14 @@ export function ApplicationDetailView({ id }: { id: string }) {
   const { name, description } = appText(app);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {back}
 
       <FadeIn y={4} className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <AppTile app={app} size="lg" />
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight">{name}</h1>
+            <h1 className="min-w-0 truncate text-xl font-semibold tracking-tight">{name}</h1>
             {app.isSystem && <Badge>{t('platform.badge')}</Badge>}
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -142,7 +142,7 @@ export function ApplicationDetailView({ id }: { id: string }) {
       {app.isSystem ? (
         <FadeIn
           delay={0.05}
-          className="flex flex-col items-start gap-3 rounded-xl border bg-muted/40 p-5 sm:flex-row sm:items-center"
+          className="flex flex-col items-start gap-3 rounded-xl border bg-muted/40 p-4 sm:flex-row sm:items-center"
         >
           <div className="min-w-0 flex-1 space-y-1">
             <p className="font-medium">{t('platform.title')}</p>

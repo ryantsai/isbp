@@ -195,13 +195,13 @@ export default function MyAccessPage() {
           ))}
         </div>
       ) : (
-        <div className="grid min-w-0 grid-cols-1 gap-8">
+        <div className="grid min-w-0 grid-cols-1 gap-5">
           {pending.length > 0 && (
             <section aria-labelledby="dbaccess-pending" className="grid gap-3">
               <h2 id="dbaccess-pending" className="text-lg font-semibold">
                 {t('pending', { count: pending.length })}
               </h2>
-              <ul className="divide-y rounded-xl border bg-card shadow-xs">
+              <ul className="divide-y rounded-xl border bg-card">
                 {pending.map((r) => (
                   <li key={r.id}>
                     <Link
@@ -231,7 +231,7 @@ export default function MyAccessPage() {
               {t('access', { count: live.length })}
             </h2>
             {live.length === 0 ? (
-              <div className="rounded-xl border bg-card shadow-xs">
+              <div className="rounded-xl border bg-card">
                 <EmptyState
                   icon={<DatabaseIcon />}
                   title={t('empty')}
@@ -264,7 +264,7 @@ export default function MyAccessPage() {
                 <HistoryIcon className="size-4 text-muted-foreground" aria-hidden />
                 {t('history')}
               </h2>
-              <ul className="divide-y rounded-xl border bg-card text-sm shadow-xs">
+              <ul className="divide-y rounded-xl border bg-card text-sm">
                 {ended.map((g) => (
                   <li
                     key={g.id}

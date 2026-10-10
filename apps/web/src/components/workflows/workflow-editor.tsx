@@ -713,7 +713,7 @@ export function WorkflowCanvas({
                     </BuilderContext>
                   </motion.div>
                 ) : (
-                  <div className="grid justify-items-center gap-2 py-8 text-center text-sm text-muted-foreground">
+                  <div className="grid justify-items-center gap-2 py-6 text-center text-sm text-muted-foreground">
                     <MousePointerClickIcon className="size-5" aria-hidden />
                     <p className="max-w-64">{draft.steps.length ? t('selectStep') : t('startHint')}</p>
                   </div>

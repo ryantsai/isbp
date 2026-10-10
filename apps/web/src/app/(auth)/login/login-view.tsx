@@ -76,23 +76,8 @@ export function LoginView({
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
       {/* Brand panel */}
-      <aside className="relative hidden overflow-hidden bg-[oklch(0.22_0.06_272)] p-12 text-white lg:flex lg:flex-col">
-        <motion.div
-          aria-hidden
-          className="absolute -top-40 -left-40 size-[520px] rounded-full bg-indigo-500/40 blur-3xl"
-          animate={{ x: [0, 60, 0], y: [0, 40, 0] }}
-          transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          aria-hidden
-          className="absolute -right-32 bottom-0 size-[460px] rounded-full bg-violet-500/30 blur-3xl"
-          animate={{ x: [0, -50, 0], y: [0, -30, 0] }}
-          transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-[0.07] [background-image:linear-gradient(white_1px,transparent_1px),linear-gradient(90deg,white_1px,transparent_1px)] [background-size:44px_44px]"
-        />
+      <aside className="relative hidden overflow-hidden bg-sidebar p-12 text-white lg:flex lg:flex-col">
+        <Wafer />
         <div className="relative flex items-center gap-3">
           <BrandMark className="size-10" />
           <span className="text-lg font-semibold tracking-tight">{productName}</span>
@@ -102,7 +87,7 @@ export function LoginView({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: easeOut }}
-            className="text-4xl leading-tight font-semibold tracking-tight text-balance"
+            className="text-[2.5rem] leading-[1.15] font-semibold tracking-tight text-balance"
           >
             {t('tagline')}
           </motion.h2>
@@ -117,7 +102,7 @@ export function LoginView({
           <Stagger className="space-y-3 pt-2">
             {features.map(({ icon: Icon, label }) => (
               <StaggerItem key={label} className="flex items-center gap-3 text-sm text-white/85">
-                <span className="grid size-8 place-items-center rounded-lg bg-white/10 ring-1 ring-white/15">
+                <span className="grid size-8 place-items-center rounded-md bg-white/10 ring-1 ring-white/15">
                   <Icon className="size-4" />
                 </span>
                 {label}
@@ -285,5 +270,46 @@ export function LoginView({
         </motion.div>
       </main>
     </div>
+  );
+}
+
+/** A wafer of dies in outline, one die lit in TEL green: what the company makes, drawn quietly behind the tagline. */
+function Wafer() {
+  const pitch = 36;
+  const lines = Array.from({ length: Math.floor(600 / pitch) + 1 }, (_, i) => i * pitch + 12);
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 600 600"
+      className="pointer-events-none absolute -top-24 -right-56 size-[680px] text-white"
+      fill="none"
+    >
+      <defs>
+        <clipPath id="wafer-clip">
+          <circle cx="300" cy="300" r="276" />
+        </clipPath>
+      </defs>
+      <g clipPath="url(#wafer-clip)" stroke="currentColor" strokeOpacity="0.09">
+        {lines.map((x) => (
+          <line key={`v${x}`} x1={x} y1="0" x2={x} y2="600" />
+        ))}
+        {lines.map((y) => (
+          <line key={`h${y}`} x1="0" y1={y} x2="600" y2={y} />
+        ))}
+      </g>
+      <path
+        // The wafer's edge, with its orientation notch at the bottom.
+        d="M 312 575.74 A 276 276 0 1 0 288 575.74 A 12 12 0 0 1 312 575.74 Z"
+        stroke="currentColor"
+        strokeOpacity="0.22"
+      />
+      <rect
+        x={12 + pitch * 6 + 3}
+        y={12 + pitch * 7 + 3}
+        width={pitch - 6}
+        height={pitch - 6}
+        className="fill-brand-green"
+      />
+    </svg>
   );
 }

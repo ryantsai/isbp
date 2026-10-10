@@ -141,7 +141,7 @@ export function DepartmentDetail({
         <p className="text-sm text-muted-foreground">{node.description || t('noDescription')}</p>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-5">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border bg-muted/20 p-4">
             <p className="text-sm text-muted-foreground">{t('peopleDirect')}</p>

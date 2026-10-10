@@ -349,7 +349,6 @@
     "hint": "Name it, say who owns it, then score confidentiality, integrity and availability with the asset type’s guidance: the asset value is the highest of the three.",
     "identity": "Asset",
     "responsibility": "Owner",
-    "details": "More details: brand, model, version, quantity",
     "cia": "Confidentiality, integrity and availability",
     "ciaHint": "Choose the highest score whose description fits, so the value isn’t underestimated.",
     "ciaPickClass": "Choose an asset type to see what each score means for it.",

@@ -264,7 +264,7 @@ export function TemplatesView({
           icon={<WandSparklesIcon />}
           title={t('noTemplates')}
           description={t('noTemplatesHint')}
-          className="py-8"
+          className="py-6"
         />
       ) : (
         <section aria-labelledby={listId} className="grid gap-3">
@@ -281,7 +281,7 @@ export function TemplatesView({
                     setPicked({ kind: k, template: tpl });
                   }}
                   className={cn(
-                    'group flex w-full min-w-0 items-center gap-3 rounded-xl border bg-card px-3.5 py-3 text-left shadow-xs outline-none transition-all',
+                    'group flex w-full min-w-0 items-center gap-3 rounded-xl border bg-card px-3.5 py-3 text-left outline-none transition-all',
                     'hover:border-ring/40 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
                   )}
                 >

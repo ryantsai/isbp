@@ -15,6 +15,7 @@ import { Button } from '@isbp/ui/button';
 import { Checkbox } from '@isbp/ui/checkbox';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { applyServerErrors, useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
@@ -152,6 +153,17 @@ function EntryForm({
   const [errors, setErrors] = useState<Errors>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const list = useFieldList();
+  const detailsFilled = countFilled(
+    publisher,
+    version,
+    license,
+    canContracts ? contract : null,
+    validUntil,
+    requestReference,
+    notes,
+  );
+
   const save = useApiMutation(
     (api, body: CreateApprovedSoftwareInput) =>
       entry
@@ -224,26 +236,6 @@ function EntryForm({
           />
         </Field>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field id={f('publisher')} label={t('fields.publisher')}>
-            <Input
-              id={f('publisher')}
-              value={publisher}
-              maxLength={200}
-              onChange={(e) => setPublisher(e.target.value)}
-            />
-          </Field>
-          <Field id={f('version')} label={t('fields.version')} hint={t('form.versionHint')}>
-            <Input
-              id={f('version')}
-              value={version}
-              maxLength={64}
-              placeholder={t('anyVersion')}
-              aria-describedby={`${f('version')}-hint`}
-              onChange={(e) => setVersion(e.target.value)}
-            />
-          </Field>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field id={f('status')} label={t('fields.status')}>
             <Select value={status} onValueChange={(v) => setStatus(v as ApprovalStatus)}>
               <SelectTrigger id={f('status')} className="w-full">
@@ -281,14 +273,6 @@ function EntryForm({
             </Select>
           </Field>
         </div>
-        <Field id={f('license')} label={t('fields.license')} hint={t('form.licenseHint')}>
-          <LicensePicker id={f('license')} value={license} onChange={setLicense} />
-        </Field>
-        {canContracts && (
-          <Field id={f('contract')} label={t('fields.contract')}>
-            <ContractPicker id={f('contract')} value={contract} onChange={setContract} />
-          </Field>
-        )}
         <fieldset className="grid min-w-0 gap-2">
           <legend className="mb-2 text-sm font-medium">{t('fields.scope')}</legend>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
@@ -338,40 +322,80 @@ function EntryForm({
             </p>
           )}
         </fieldset>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field
-            id={f('until')}
-            label={t('fields.validUntil')}
-            hint={t('form.validUntilHint')}
-            error={errors.validUntil}
-          >
-            <Input
+        <OptionalFields
+          hint={list([
+            t('fields.publisher'),
+            t('fields.version'),
+            t('fields.license'),
+            t('fields.validUntil'),
+            t('fields.notes'),
+          ])}
+          filled={detailsFilled}
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field id={f('publisher')} label={t('fields.publisher')}>
+              <Input
+                id={f('publisher')}
+                value={publisher}
+                maxLength={200}
+                onChange={(e) => setPublisher(e.target.value)}
+              />
+            </Field>
+            <Field id={f('version')} label={t('fields.version')} hint={t('form.versionHint')}>
+              <Input
+                id={f('version')}
+                value={version}
+                maxLength={64}
+                placeholder={t('anyVersion')}
+                aria-describedby={`${f('version')}-hint`}
+                onChange={(e) => setVersion(e.target.value)}
+              />
+            </Field>
+          </div>
+          <Field id={f('license')} label={t('fields.license')} hint={t('form.licenseHint')}>
+            <LicensePicker id={f('license')} value={license} onChange={setLicense} />
+          </Field>
+          {canContracts && (
+            <Field id={f('contract')} label={t('fields.contract')}>
+              <ContractPicker id={f('contract')} value={contract} onChange={setContract} />
+            </Field>
+          )}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field
               id={f('until')}
-              type="date"
-              value={validUntil}
-              aria-describedby={describedBy('validUntil', true) ?? `${f('until')}-hint`}
-              onChange={(e) => setValidUntil(e.target.value)}
+              label={t('fields.validUntil')}
+              hint={t('form.validUntilHint')}
+              error={errors.validUntil}
+            >
+              <Input
+                id={f('until')}
+                type="date"
+                value={validUntil}
+                aria-invalid={errors.validUntil ? true : undefined}
+                aria-describedby={describedBy('validUntil', true) ?? `${f('until')}-hint`}
+                onChange={(e) => setValidUntil(e.target.value)}
+              />
+            </Field>
+            <Field id={f('request')} label={t('fields.request')} hint={t('form.requestHint')}>
+              <Input
+                id={f('request')}
+                value={requestReference}
+                maxLength={40}
+                aria-describedby={`${f('request')}-hint`}
+                onChange={(e) => setRequestReference(e.target.value)}
+              />
+            </Field>
+          </div>
+          <Field id={f('notes')} label={t('fields.notes')}>
+            <Textarea
+              id={f('notes')}
+              rows={3}
+              value={notes}
+              maxLength={5000}
+              onChange={(e) => setNotes(e.target.value)}
             />
           </Field>
-          <Field id={f('request')} label={t('fields.request')} hint={t('form.requestHint')}>
-            <Input
-              id={f('request')}
-              value={requestReference}
-              maxLength={40}
-              aria-describedby={`${f('request')}-hint`}
-              onChange={(e) => setRequestReference(e.target.value)}
-            />
-          </Field>
-        </div>
-        <Field id={f('notes')} label={t('fields.notes')}>
-          <Textarea
-            id={f('notes')}
-            rows={3}
-            value={notes}
-            maxLength={5000}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </Field>
+        </OptionalFields>
         {errors.root && (
           <p role="alert" className="text-sm text-destructive">
             {errors.root}

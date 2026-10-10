@@ -229,7 +229,7 @@ export function RequestAccessView() {
   ];
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-6">
+    <div className="mx-auto grid max-w-5xl gap-4">
       <PageHeader
         eyebrow={
           <Link href="/requests" className="inline-flex items-center gap-1 hover:text-foreground">
@@ -274,7 +274,7 @@ export function RequestAccessView() {
                 className="rounded-xl border border-dashed"
               />
             ) : (
-              <div className="grid gap-6">
+              <div className="grid gap-4">
                 {groups
                   .filter((g) => !g.isPlatform)
                   .map((g) => (
@@ -349,7 +349,7 @@ export function RequestAccessView() {
         )}
 
         {step === 1 && role && (
-          <div className="grid gap-6 rounded-xl border bg-card p-5 sm:p-6">
+          <div className="grid gap-4 rounded-xl border bg-card p-4 sm:p-5">
             <div className="flex items-center gap-3">
               <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
                 <KeyRoundIcon className="size-5" />
@@ -499,8 +499,8 @@ export function RequestAccessView() {
         )}
 
         {step === 2 && role && (
-          <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,22rem)]">
-            <div className="grid content-start gap-5 rounded-xl border bg-card p-5 sm:p-6">
+          <div className="grid gap-4 lg:grid-cols-[1fr_minmax(0,22rem)]">
+            <div className="grid content-start gap-5 rounded-xl border bg-card p-4 sm:p-5">
               <h2 className="text-base font-semibold">{t('summary')}</h2>
               <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
                 <div>
@@ -544,7 +544,7 @@ export function RequestAccessView() {
                 </Button>
               </div>
             </div>
-            <aside className="grid content-start gap-3 rounded-xl border bg-muted/30 p-5" aria-live="polite">
+            <aside className="grid content-start gap-3 rounded-xl border bg-muted/30 p-4" aria-live="polite">
               <h2 className="text-base font-semibold">{t('path.title')}</h2>
               <p className="text-sm text-muted-foreground">{t('path.description')}</p>
               {previewQuery.isError ? (

@@ -59,7 +59,7 @@ export function FilterBar({
   const appliedMore = applied.filter((f) => !primary.includes(f));
 
   const fieldList = (list: readonly FilterDef[]) => (
-    <div className="grid gap-4">
+    <div className="grid gap-3">
       {list.map((f) => (
         <label key={f.id} className="grid min-w-0 gap-1.5 [&_[data-slot=select-trigger]]:w-full">
           <span className="text-sm font-medium">{f.label}</span>

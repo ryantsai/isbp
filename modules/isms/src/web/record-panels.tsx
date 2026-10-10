@@ -18,7 +18,7 @@ export function LinksAndFiles({ type, id }: { type: 'isms.asset' | 'isms.account
       <EmptyState icon={<PaperclipIcon />} title={t('unavailable')} description={t('unavailableHint')} />
     );
   return (
-    <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-2">
+    <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-2">
       <div className="min-w-0">
         <Slot
           name="core.record.links"

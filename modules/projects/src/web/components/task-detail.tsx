@@ -751,7 +751,7 @@ export function TaskDetailView({
   const main = (
     <>
       <Card className="min-w-0 gap-4">
-        <CardContent className="grid gap-6">
+        <CardContent className="grid gap-4">
           <DescriptionSection task={task} />
           <Relations task={task} onOpen={onOpenTask} />
         </CardContent>
@@ -772,10 +772,10 @@ export function TaskDetailView({
     );
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       {header}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <div className="grid min-w-0 content-start gap-6">{main}</div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="grid min-w-0 content-start gap-4">{main}</div>
         <aside className="grid min-w-0 content-start gap-4" aria-label={t('aside')}>
           {properties}
           {custom}

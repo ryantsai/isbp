@@ -128,7 +128,7 @@ export default function SdpConnectorConfig({
   const optional = <span className="font-normal text-muted-foreground">{t('optional')}</span>;
 
   return (
-    <div className="grid min-w-0 gap-6">
+    <div className="grid min-w-0 gap-4">
       <fieldset className="grid min-w-0 gap-4">
         <legend className="mb-2 text-sm font-semibold">{t('server')}</legend>
         <Field id={`${id}-url`} label={t('baseUrl')} hint={t('baseUrlHint')} error={error('config.baseUrl')}>

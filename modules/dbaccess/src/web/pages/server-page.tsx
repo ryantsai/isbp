@@ -56,7 +56,7 @@ function RolesTab({ server }: { server: Server }) {
           <PlusIcon /> {t('addRole')}
         </Button>
       </div>
-      <div className="min-w-0 overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="min-w-0 overflow-hidden rounded-xl border bg-card">
         {isLoading ? (
           <Skeleton className="h-40 w-full" />
         ) : !data?.items.length ? (
@@ -155,7 +155,7 @@ function InventoryTab({ server }: { server: Server }) {
           {t('seeAccounts')}
         </Link>
       </p>
-      <div className="min-w-0 overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="min-w-0 overflow-hidden rounded-xl border bg-card">
         {isLoading ? (
           <Skeleton className="h-40 w-full" />
         ) : !data?.roles.length ? (
@@ -247,8 +247,8 @@ export default function ServerPage({ params }: WebPageProps) {
       >
         {canManage && <SyncButton serverId={server.id} name={server.displayName} />}
       </DetailHeader>
-      <div className="grid min-w-0 grid-cols-1 gap-6">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border bg-card px-4 py-3 text-sm shadow-xs">
+      <div className="grid min-w-0 grid-cols-1 gap-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border bg-card px-4 py-3 text-sm">
           <EngineLabel engine={server.engine} className="text-sm" />
           <EnvironmentBadge environment={server.environment} />
           <SyncStatus status={server.lastSyncStatus} />

@@ -77,7 +77,7 @@ export default function ContractPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-10 w-96" />
         <Skeleton className="h-64 w-full rounded-xl" />
@@ -90,7 +90,7 @@ export default function ContractPage({ params }: WebPageProps) {
   const licenses = c.items.filter((i) => i.license);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
         <Link href="/itam/contracts">
           <ArrowLeftIcon /> {t('contracts.title')}
@@ -114,7 +114,7 @@ export default function ContractPage({ params }: WebPageProps) {
                 </>
               )}
             </p>
-            <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{c.title}</h1>
+            <h1 className="text-xl font-semibold tracking-tight wrap-anywhere">{c.title}</h1>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <ContractStatusBadge status={c.status} />
               {c.autoRenew && (
@@ -165,14 +165,14 @@ export default function ContractPage({ params }: WebPageProps) {
           <TabsTrigger value="links">{t('contract.tabs.links')}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3">
-          <div className="min-w-0 space-y-6 lg:col-span-2">
+        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3">
+          <div className="min-w-0 space-y-5 lg:col-span-2">
             <Card>
               <CardHeader>
                 <CardTitle>{t('contract.terms')}</CardTitle>
                 <CardDescription>{t('contract.termsHint', { days: c.noticeDays })}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-5">
                 <RenewalTimeline
                   startDate={c.startDate}
                   noticeDate={c.noticeDate}
@@ -223,7 +223,7 @@ export default function ContractPage({ params }: WebPageProps) {
             </Card>
             <CustomFieldsCard entityType="itam.contract" attributes={c.attributes} />
           </div>
-          <div className="min-w-0 space-y-6">
+          <div className="min-w-0 space-y-5">
             <Card>
               <CardHeader>
                 <CardTitle>{t('contract.coverage')}</CardTitle>

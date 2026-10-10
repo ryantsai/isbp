@@ -326,7 +326,7 @@ export function RequestsHome() {
 
       <TodoLink />
 
-      <section aria-labelledby="new-request" className="grid gap-6">
+      <section aria-labelledby="new-request" className="grid gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="grid gap-1">
             <h2 id="new-request" className="text-lg font-semibold">

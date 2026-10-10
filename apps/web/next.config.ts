@@ -30,6 +30,11 @@ const config: NextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
         ],
       },
+      {
+        // CJK font slices (scripts/fonts.mjs): the package version is in the path.
+        source: '/fonts/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
     ];
   },
 };

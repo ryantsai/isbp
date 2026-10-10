@@ -18,7 +18,7 @@ import {
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
 import { Markdown } from '@isbp/ui/markdown';
-import { Disclosure } from '@isbp/ui/motion';
+import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
 import { PageHeader } from '@isbp/ui/page-header';
 import { applyServerErrors, useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
@@ -128,17 +128,6 @@ function toValues(a: Article): Values {
   };
 }
 
-/** Whether a "More settings" field holds something other than its default (then the section opens by itself). */
-function moreSet(v: Values, authorLocale: ArticleLocale) {
-  return (
-    v.classification !== NONE ||
-    v.tags.length > 0 ||
-    v.locale !== authorLocale ||
-    v.translationOf !== null ||
-    v.reviewAt !== ''
-  );
-}
-
 /**
  * Writes and edits articles: title, summary, Markdown body with a formatting toolbar and a preview, then category
  * and audience; the rarely needed settings sit under "More settings". The main button says what happens: "Publish"
@@ -177,11 +166,10 @@ export default function EditorPage({ params }: WebPageProps) {
     if (existing.data) {
       const values = toValues(existing.data);
       form.reset(values);
-      setMoreOpen(moreSet(values, authorLocale));
       const first = existing.data.translations[0];
       setTranslationLabel(first ? { reference: first.reference, title: first.title } : null);
     }
-  }, [existing.data, form, authorLocale]);
+  }, [existing.data, form]);
   useEffect(() => {
     const o = original.data;
     if (!o) return;
@@ -210,6 +198,15 @@ export default function EditorPage({ params }: WebPageProps) {
   const translationOf = useWatch({ control: form.control, name: 'translationOf' });
   const language = useWatch({ control: form.control, name: 'locale' });
   const tags = useWatch({ control: form.control, name: 'tags' });
+  const classification = useWatch({ control: form.control, name: 'classification' });
+  const reviewAt = useWatch({ control: form.control, name: 'reviewAt' });
+  const moreFilled = countFilled(
+    classification === NONE ? '' : classification,
+    reviewAt,
+    translationOf,
+    tags,
+    language === authorLocale ? '' : language,
+  );
 
   const status = existing.data?.status ?? 'draft';
   // What "submit" will do with the values as they are now: an approval workflow's conditions read the audience,
@@ -317,7 +314,7 @@ export default function EditorPage({ params }: WebPageProps) {
         <form
           onSubmit={run(false)}
           noValidate
-          className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"
+          className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
         >
           <Card className="min-w-0">
             <CardContent className="grid gap-5">
@@ -473,25 +470,19 @@ export default function EditorPage({ params }: WebPageProps) {
                   )}
                 />
 
-                <Disclosure
+                <OptionalFields
                   open={moreOpen}
                   onOpenChange={setMoreOpen}
-                  className="-mt-1 border-t pt-2"
-                  summary={
-                    <span className="grid gap-0.5">
-                      <span>{t('moreSettings')}</span>
-                      <span className="text-xs font-normal text-muted-foreground">
-                        {t('moreSettingsSummary', { language: LOCALE_LABEL[language], tags: tags.length })}
-                      </span>
-                    </span>
-                  }
-                  contentClassName="grid gap-5"
+                  label={t('moreSettings')}
+                  hint={t('moreSettingsSummary', { language: LOCALE_LABEL[language], tags: tags.length })}
+                  filled={moreFilled}
+                  contentClassName="grid gap-5 pt-3"
                 >
                   <FormField
                     control={form.control}
                     name="locale"
                     render={({ field }) => (
-                      <FormItem className="pt-3">
+                      <FormItem>
                         <FormLabel>{t('language')}</FormLabel>
                         <Select value={field.value} onValueChange={(v) => field.onChange(v as ArticleLocale)}>
                           <FormControl>
@@ -600,7 +591,7 @@ export default function EditorPage({ params }: WebPageProps) {
                       </FormItem>
                     )}
                   />
-                </Disclosure>
+                </OptionalFields>
               </CardContent>
             </Card>
 

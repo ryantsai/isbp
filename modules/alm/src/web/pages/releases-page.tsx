@@ -113,7 +113,7 @@ function Agenda({ items, from }: { items: ReleaseSummary[]; from: string }) {
           <section
             key={b.week}
             aria-labelledby={headingId}
-            className="overflow-hidden rounded-xl border bg-card shadow-xs"
+            className="overflow-hidden rounded-xl border bg-card"
           >
             <h2
               id={headingId}
@@ -154,7 +154,7 @@ function MonthGrid({ items, month }: { items: ReleaseSummary[]; month: string })
     .slice(0, 7)
     .map((d) => format.dateTime(dateOnly(d), { weekday: 'short', timeZone: 'UTC' }));
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+    <div className="overflow-hidden rounded-xl border bg-card">
       <div
         className="grid grid-cols-7 border-b bg-muted/40 text-center text-xs font-medium text-muted-foreground"
         aria-hidden
@@ -269,7 +269,7 @@ export default function ReleasesPage() {
       <PageHeader title={t('inventory.title')} description={t('calendar.description')} />
       <AlmTabs />
       <div className="grid gap-4">
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3 shadow-xs">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
           <div className="flex items-center gap-1">
             <Button
               variant="outline"

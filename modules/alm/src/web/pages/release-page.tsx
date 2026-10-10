@@ -166,7 +166,7 @@ export default function ReleasePage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-10 w-72" />
         <Skeleton className="h-14 w-full rounded-xl" />
@@ -180,7 +180,7 @@ export default function ReleasePage({ params }: WebPageProps) {
     release.viewer.canDeploy && release.status !== 'cancelled' && Boolean(app?.environments.length);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DetailHeader
         className="pb-0"
         back={{ href: appHref(release.application.code), label: release.application.name }}
@@ -238,8 +238,8 @@ export default function ReleasePage({ params }: WebPageProps) {
 
       <StatusStepper status={release.status} />
 
-      <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3">
-        <div className="grid min-w-0 gap-6 lg:col-span-2">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3">
+        <div className="grid min-w-0 gap-4 lg:col-span-2">
           <Card className="min-w-0">
             <CardHeader>
               <CardTitle>{t('release.pipeline')}</CardTitle>
@@ -279,7 +279,7 @@ export default function ReleasePage({ params }: WebPageProps) {
             />
           </section>
         </div>
-        <div className="grid min-w-0 gap-6">
+        <div className="grid min-w-0 gap-4">
           <ReadinessCard
             release={release}
             onEditNotes={release.viewer.canManageReleases ? () => setDialog('edit') : undefined}

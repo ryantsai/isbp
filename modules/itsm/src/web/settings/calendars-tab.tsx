@@ -214,7 +214,7 @@ function CalendarSheet({
             <SheetTitle>{calendar ? t('editTitle') : t('createTitle')}</SheetTitle>
             <SheetDescription>{t('sheetHint')}</SheetDescription>
           </SheetHeader>
-          <SheetBody className="grid content-start gap-6 pb-6">
+          <SheetBody className="grid content-start gap-4 pb-6">
             <div className="grid gap-2">
               <Label htmlFor={`${id}-name`}>{t('name')}</Label>
               <Input
@@ -383,7 +383,7 @@ export function CalendarsTab() {
           {data.items.map((c) => (
             <li
               key={c.id}
-              className="flex min-w-0 items-start justify-between gap-3 rounded-xl border bg-card p-4 shadow-xs"
+              className="flex min-w-0 items-start justify-between gap-3 rounded-xl border bg-card p-4"
             >
               <div className="grid min-w-0 gap-1">
                 <h3 className="flex flex-wrap items-center gap-2 font-medium">

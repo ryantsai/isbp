@@ -82,7 +82,7 @@ export function FormSettings({
   const set = (patch: Partial<BuilderState>, tag?: string) => onChange((s) => ({ ...s, ...patch }), tag);
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-2">
+    <div className="grid items-start gap-4 lg:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle>{t('detailsTitle')}</CardTitle>
@@ -123,7 +123,7 @@ export function FormSettings({
         </CardContent>
       </Card>
 
-      <div className="grid gap-6">
+      <div className="grid gap-4">
         <Card>
           <CardHeader>
             <CardTitle>{t('availabilityTitle')}</CardTitle>

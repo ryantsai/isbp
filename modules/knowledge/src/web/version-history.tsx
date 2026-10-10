@@ -106,7 +106,7 @@ export function VersionHistory({
               ))}
             </ol>
           ) : (
-            <p className="py-8 text-center text-sm text-muted-foreground">{t('empty')}</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">{t('empty')}</p>
           )}
         </SheetBody>
       </SheetContent>

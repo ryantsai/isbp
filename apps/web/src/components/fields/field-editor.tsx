@@ -78,7 +78,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   const id = useId();
   return (
     <section aria-labelledby={id} className="grid gap-4 border-t pt-4 first:border-t-0 first:pt-0">
-      <h3 id={id} className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      <h3 id={id} className="text-xs font-semibold text-muted-foreground">
         {title}
       </h3>
       {children}
@@ -496,7 +496,7 @@ function FieldPropsEditor({
   ].filter((x): x is string => Boolean(x));
 
   return (
-    <div className={cn('grid gap-6', className)}>
+    <div className={cn('grid gap-4', className)}>
       <div className="grid gap-4">
         {!hideType && (
           <Row
@@ -1015,7 +1015,7 @@ function DisplayEditor({
   const facts = useMemo(() => fieldFacts(siblings, locale), [siblings, locale]);
   const textIssues = issues.filter((i) => i.target === 'text');
   return (
-    <div className={cn('grid gap-6', className)}>
+    <div className={cn('grid gap-4', className)}>
       {value.type !== 'divider' ? (
         <Section title={t('editor.sections.content')}>
           <Row

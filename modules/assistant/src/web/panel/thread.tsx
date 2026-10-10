@@ -54,7 +54,7 @@ export function ToolChips({ tools }: { tools: readonly { name: string; status: T
           <li
             key={`${tool.name}-${i}`}
             className={cn(
-              'inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-xs shadow-xs',
+              'inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-xs',
               tool.status === 'error' && 'border-destructive/40 text-destructive',
             )}
           >
@@ -86,7 +86,7 @@ export function ToolChips({ tools }: { tools: readonly { name: string; status: T
 export function UserMessage({ content, label }: { content: string; label: string }) {
   return (
     <motion.li {...fadeIn} className="flex justify-end">
-      <div className="max-w-[85%] min-w-0 rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-sm whitespace-pre-wrap text-primary-foreground shadow-xs wrap-anywhere">
+      <div className="max-w-[85%] min-w-0 rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-sm whitespace-pre-wrap text-primary-foreground wrap-anywhere">
         <span className="sr-only">{label}: </span>
         {content}
       </div>
@@ -113,7 +113,7 @@ export function AssistantMessage({
       <div className="min-w-0 flex-1 space-y-2">
         <ToolChips tools={tools} />
         {content.trim() && (
-          <div className="w-fit max-w-full min-w-0 rounded-2xl rounded-tl-md border bg-card px-3.5 py-2.5 shadow-xs">
+          <div className="w-fit max-w-full min-w-0 rounded-2xl rounded-tl-md border bg-card px-3.5 py-2.5">
             <span className="sr-only">{label}: </span>
             <Markdown>{content}</Markdown>
           </div>
@@ -130,7 +130,7 @@ export function TypingIndicator() {
   return (
     <li className="flex gap-2.5" aria-busy="true">
       <AgentAvatar />
-      <div className="flex items-center gap-2 rounded-2xl rounded-tl-md border bg-card px-3.5 py-2.5 text-sm text-muted-foreground shadow-xs">
+      <div className="flex items-center gap-2 rounded-2xl rounded-tl-md border bg-card px-3.5 py-2.5 text-sm text-muted-foreground">
         <span className="flex items-center gap-1" aria-hidden>
           {[0, 1, 2].map((i) => (
             <motion.span

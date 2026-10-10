@@ -98,7 +98,8 @@ test('the demo configuration change request: CIs from the CMDB, its rules and wh
   await page.getByRole('button', { name: 'Submit' }).click();
   await expect(page).toHaveURL(/\/requests\/REQ-\d{5}$/);
   reference = page.url().split('/').pop()!;
-  await expect(page.getByRole('region', { name: 'Status' }).getByText('Waiting for approval')).toBeVisible();
+  // "Waiting for approval" until the path loads, then "Waiting for <approvers>".
+  await expect(page.getByRole('region', { name: 'Status' }).getByText(/^Waiting for /)).toBeVisible();
   await expect(page.getByRole('link', { name: /erp-db-01/ }).first()).toBeVisible();
   await expectAccessible(page);
 });

@@ -248,7 +248,7 @@ export function ConnectionSheet({
             submit();
           }}
         >
-          <SheetBody className="space-y-6 py-2">
+          <SheetBody className="space-y-5 py-2">
             <div className="grid min-w-0 gap-2">
               <Label htmlFor={`${id}-name`}>{t('name')}</Label>
               <Input

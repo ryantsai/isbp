@@ -105,7 +105,7 @@ export function ConfirmationCard({
       transition={{ duration: 0.2 }}
       aria-label={t('region', { label: confirmation.label })}
       className={cn(
-        'grid min-w-0 gap-2 rounded-xl border-2 bg-card px-3.5 py-3 shadow-xs',
+        'grid min-w-0 gap-2 rounded-xl border-2 bg-card px-3.5 py-3',
         pending ? 'border-info/50' : 'border-border',
       )}
     >

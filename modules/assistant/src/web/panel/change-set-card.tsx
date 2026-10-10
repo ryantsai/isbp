@@ -69,7 +69,7 @@ export function ChangeSetCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       aria-label={t('title', { reference: cs.reference })}
-      className="grid min-w-0 gap-1.5 rounded-xl border bg-card px-3.5 py-3 shadow-xs"
+      className="grid min-w-0 gap-1.5 rounded-xl border bg-card px-3.5 py-3"
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <GitPullRequestArrowIcon className="size-4 shrink-0 text-primary" aria-hidden />

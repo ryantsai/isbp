@@ -188,7 +188,7 @@ export default function CiDetailPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6" aria-busy="true">
+      <div className="space-y-5" aria-busy="true">
         <Skeleton className="h-5 w-40" />
         <div className="flex items-center gap-4">
           <Skeleton className="size-11 rounded-xl" />
@@ -205,7 +205,7 @@ export default function CiDetailPage({ params }: WebPageProps) {
   if (!ci) {
     const missing = error instanceof ApiError && error.status === 404;
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <BackLink href={back.href} label={back.label} />
         <ErrorState
           kind="page"
@@ -274,7 +274,7 @@ export default function CiDetailPage({ params }: WebPageProps) {
         }
       />
 
-      <div className="space-y-6">
+      <div className="space-y-5">
         {ci.status === 'retired' && (
           <p className="flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
             <ArchiveIcon className="size-4 shrink-0" aria-hidden />
@@ -300,12 +300,12 @@ export default function CiDetailPage({ params }: WebPageProps) {
           */}
           <TabsContent
             value="overview"
-            className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3 lg:grid-rows-[auto_1fr]"
+            className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3 lg:grid-rows-[auto_1fr]"
           >
             <div className="min-w-0 lg:col-start-3 lg:row-start-1">
               <ImpactSummary ci={ci} onOpen={() => setTab('impact')} />
             </div>
-            <div className="min-w-0 space-y-6 lg:col-span-2 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+            <div className="min-w-0 space-y-5 lg:col-span-2 lg:col-start-1 lg:row-span-2 lg:row-start-1">
               <Card>
                 <CardHeader>
                   <CardTitle>{t('detail.details')}</CardTitle>
@@ -338,7 +338,7 @@ export default function CiDetailPage({ params }: WebPageProps) {
               <DescriptionCard ci={ci} />
               <CustomFieldsCard attributes={ci.attributes} />
             </div>
-            <div className="min-w-0 space-y-6 lg:col-start-3 lg:row-start-2">
+            <div className="min-w-0 space-y-5 lg:col-start-3 lg:row-start-2">
               <RelatedWork ci={ci} />
               <Slot<RecordPanelSlotProps>
                 name="core.record.links"

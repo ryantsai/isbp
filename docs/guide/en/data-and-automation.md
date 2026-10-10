@@ -50,18 +50,19 @@ place, encrypted, and every change is audited.
    the connection by the key, and it can't be changed later.
 3. Under **Server**, choose the **Engine** (**SQL Server**, **PostgreSQL**, **MySQL** or **Oracle**) and enter the
    **Host**, **Port** and **Database** (for Oracle, the **Service name**; for a named SQL Server instance, the
-   **Instance name**). Choose the **Encryption**: **Off**, **Encrypt without verifying the certificate** or
-   **Encrypt and verify the certificate** (optionally with a **CA certificate (PEM)**).
-4. Under **Sign-in**, enter the **User name** and **Password**. For SQL Server Windows authentication with a
-   service account, add the **Windows domain**.
+   **Instance name**).
+4. Under **Sign-in**, enter the **User name** and **Password**.
 5. Under **Use**, tick what it is **Used for**:
    - **Data**: Data APIs, ETL pipelines and SQL jobs;
    - **Account admin**: creates accounts and grants roles (Database access). It is never usable by Data APIs.
 6. Turn on **Read-only** for reporting connections. Writes are then refused, and queries run in read-only
    transactions where the engine has them.
-7. Under **Limits**, set **Connections per process**, **Statement timeout (seconds)** and **Maximum rows per
+7. Open **More details** to choose the **Encryption**: **Off**, **Encrypt without verifying the certificate** or
+   **Encrypt and verify the certificate** (optionally with a **CA certificate (PEM)**). For SQL Server Windows
+   authentication with a service account, add the **Windows domain** there too.
+8. Open **Limits** to set **Connections per process**, **Statement timeout (seconds)** and **Maximum rows per
    result**.
-8. Select **Test connection**, then **Add connection**.
+9. Select **Test connection**, then **Add connection**.
 
 > **Important:** Use a dedicated login with only the privileges it needs: read-only for Data APIs, role
 > administration only for account management. SQL Server has no read-only transactions, so there the login's own
@@ -104,8 +105,9 @@ another system can read company data without a database login.
    **Integer**, **Decimal**, **Yes/no**, **Date**, **Date and time**, **UUID**), **Required**, **Default**, and under
    **More** the limits, **Pattern**, **Allowed values**, **Description** and **Example**. Mark personal data as
    **Sensitive (masked in logs)**.
-5. Under **Response and limits**, choose the **Response** (**All rows (array)** or **First row (404 when none)**),
-   **Max rows**, **Timeout (seconds)** and **Cache for (seconds)** (0 turns caching off).
+5. Under **Response and limits**, choose the **Response** (**All rows (array)** or **First row (404 when none)**).
+   The limits are under **More details**: **Max rows**, **Timeout (seconds)** and **Cache for (seconds)** (0 turns
+   caching off).
 6. Select **Save draft**.
 
 Invalid input is answered with an error that names each wrong parameter, before the database is called. If the
@@ -367,14 +369,15 @@ DBAs decide which roles people may request, who approves them and for how long.
 
 1. Make sure an administrator registered the server as a connection for **Account admin**.
 2. Go to **Database access → Servers**. Under **Admin connections not managed yet**, select **Manage accounts**.
-   Set the **Display name**, **Environment**, **Account name pattern** (for example `{username}`), how **New accounts
-   sign in with** (**Generated password**, **Windows / Active Directory** or **External directory**), the **DBA
-   group** (alerted when provisioning fails) and **Sync every night**. Select **Manage accounts**.
+   Set the **Display name**, **Environment**, how **New accounts sign in with** (**Generated password**, **Windows /
+   Active Directory** or **External directory**) and the **DBA group** (alerted when provisioning fails). Under
+   **More details**, set the **Account name pattern** (for example `{username}`) and **Sync every night**. Select
+   **Manage accounts**.
 3. Select **Sync now** to read the server's accounts, roles and memberships.
 4. Open the server and select **Make a role requestable**. Choose the **Role on the server** from the synced
    inventory, give it a **Display name** and say **What it gives access to**, choose the **Owner (approver)** (a group
-   or a person), the **Risk**, the **Default (days)** and **Maximum (days)**, and whether to **Allow permanent
-   access** and require a justification. Select **Make requestable**.
+   or a person) and the **Risk**. Under **More details**, set the **Default (days)** and **Maximum (days)**, whether
+   to **Allow permanent access** and whether **Requests need a justification**. Select **Make requestable**.
 
 SQL Server, Oracle and PostgreSQL accounts are managed; MySQL accounts are not. Account and role names are checked
 against the synced inventory, and statements are built by the database server itself from bound values, never by
@@ -410,9 +413,9 @@ Auditors expect someone to confirm, periodically, that people still need their d
 
 1. Go to **Database access → Access reviews** and select **New access review** (review managers only).
 2. Enter the **Name**, the **Servers** (none means every server), **Grants to include** (by risk), the
-   **Reviewers** (**Role owners** or **The person's manager**), the **Start** and **Due** dates, what happens **At
-   the due date** (**Revoke undecided access** or **Keep undecided access**) and **Repeat** (**Once** or **Every
-   quarter**). Select **Start access review**.
+   **Reviewers** (**Role owners** or **The person's manager**), the **Due** date and what happens **At the due date**
+   (**Revoke undecided access** or **Keep undecided access**). Under **More details**, set the **Start** date and
+   **Repeat** (**Once** or **Every quarter**). Select **Start access review**.
 3. Reviewers are notified and find the review on **My work** and under **Reviews awaiting you**. It opens on **To
    do**: the access still to decide. Each row shows the person, the role, the reason given in the request, when the
    access ends and the last sign-in (**Never signed in** when the server reports none).

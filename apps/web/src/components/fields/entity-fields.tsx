@@ -118,9 +118,7 @@ export function CustomFieldsSection({
   if (!elements.length) return null;
   return (
     <fieldset className={cn('space-y-4', className)}>
-      <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {t('sectionTitle')}
-      </legend>
+      <legend className="mb-3 text-xs font-semibold text-muted-foreground">{t('sectionTitle')}</legend>
       <FormFields elements={elements} form={form} namePrefix="attributes" className="-mb-4" />
     </fieldset>
   );

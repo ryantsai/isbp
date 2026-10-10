@@ -212,7 +212,7 @@ function EmailForm({ settings }: { settings: EmailSettings }) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={onSubmit} noValidate className="space-y-6">
+          <form onSubmit={onSubmit} noValidate className="space-y-5">
             <FormField
               control={form.control}
               name="enabled"

@@ -183,7 +183,7 @@ export default function StocktakesPage() {
     />
   );
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title={t('stocktakes.title')}
         description={t('stocktakes.description')}

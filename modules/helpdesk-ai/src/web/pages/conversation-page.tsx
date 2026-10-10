@@ -87,7 +87,7 @@ export default function ConversationPage({ params }: WebPageProps) {
           </>
         }
       />
-      <div className="rounded-xl border bg-card p-4 shadow-xs sm:p-6">
+      <div className="rounded-xl border bg-card p-4 sm:p-5">
         {/* An AnimatedList, so the transcript shows at once (its items only animate when added). */}
         <AnimatedList as="ol" aria-label={t('chat.log')}>
           {data.messages.map((m) =>

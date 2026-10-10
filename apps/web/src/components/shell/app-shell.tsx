@@ -171,7 +171,8 @@ export function AppShell({
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetContent
                   side="left"
-                  className="w-72 max-w-[85vw] gap-0 bg-sidebar p-0"
+                  className="w-72 max-w-[85vw] gap-0 border-0 bg-sidebar p-0 text-sidebar-foreground"
+                  closeClassName="top-2 right-2 size-8 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-primary"
                   closeLabel={t('toggleSidebar')}
                   onOpenAutoFocus={(e) => {
                     // Start on the current page's entry rather than on the close button.
@@ -199,7 +200,7 @@ export function AppShell({
               </Sheet>
 
               <div className="flex min-w-0 flex-1 flex-col">
-                <header className="sticky top-0 z-30 flex h-14 items-center gap-1 border-b bg-background/80 px-2 backdrop-blur-md supports-[backdrop-filter]:bg-background/70 sm:gap-2 sm:px-5">
+                <header className="sticky top-0 z-30 flex h-12 items-center gap-1 border-b bg-card/90 px-2 backdrop-blur-md supports-[backdrop-filter]:bg-card/80 sm:gap-2 sm:px-4">
                   <MenuButton onOpen={() => setMobileOpen(true)} />
                   {/* Phones get an icon; wider screens the search box with its shortcut. */}
                   <Button
@@ -214,7 +215,7 @@ export function AppShell({
                   <button
                     type="button"
                     onClick={() => setPaletteOpen(true)}
-                    className="group hidden h-9 w-full min-w-0 max-w-md items-center gap-2 rounded-lg border bg-card/60 px-3 text-sm text-muted-foreground shadow-xs transition-[border-color,background-color,box-shadow] duration-(--motion-fast) hover:border-ring/40 hover:bg-card hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none sm:flex"
+                    className="group hidden h-8 w-full min-w-0 max-w-md items-center gap-2 rounded-md border bg-background px-2.5 text-[13px] text-muted-foreground transition-[border-color,background-color] duration-(--motion-fast) hover:border-ring/60 hover:bg-card focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none sm:flex"
                   >
                     <SearchIcon className="size-4" />
                     <span className="truncate">{t('searchPlaceholder')}</span>
@@ -240,7 +241,7 @@ export function AppShell({
                   session.user.authSource === 'local' &&
                   pathname !== '/settings' && (
                     // Shown after client-side navigation away from the password card (full loads redirect there).
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-warning/40 bg-warning/10 px-4 py-2 text-sm text-warning-foreground sm:px-6 lg:px-8">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-warning/40 bg-warning/10 px-4 py-1.5 text-sm text-warning-foreground sm:px-5 lg:px-6">
                       <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
                       <span className="min-w-0">{t('passwordRequired')}</span>
                       <Link
@@ -254,7 +255,7 @@ export function AppShell({
                 <main
                   id="main"
                   tabIndex={-1}
-                  className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8 lg:py-8"
+                  className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-4 outline-none sm:px-5 lg:px-6 lg:py-5"
                 >
                   {children}
                 </main>

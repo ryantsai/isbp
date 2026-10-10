@@ -6,7 +6,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "public/fonts/**"],
       "env": ["API_INTERNAL_URL", "NEXT_PUBLIC_*"]
     },
     "dev": {

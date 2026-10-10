@@ -34,6 +34,7 @@ import {
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
 import { LocalizedInput } from '@isbp/ui/localized-input';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { PageHeader } from '@isbp/ui/page-header';
 import { applyServerErrors, useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
@@ -122,6 +123,9 @@ function CategorySheet({
     });
   }, [open, category, all.length, form]);
   const icon = useWatch({ control: form.control, name: 'icon' });
+  const descriptionValue = useWatch({ control: form.control, name: 'description' });
+  const list = useFieldList();
+  const hasDescription = Object.values(descriptionValue).some((x) => Boolean(x?.trim()));
 
   const save = useApiMutation(
     (api, v: Values) => {
@@ -205,18 +209,6 @@ function CategorySheet({
               />
               <FormField
                 control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('descriptionLabel')}</FormLabel>
-                    <FormControl>
-                      <LocalizedInput multiline value={field.value} onChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="parentId"
                 render={({ field }) => (
                   <FormItem>
@@ -240,50 +232,67 @@ function CategorySheet({
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <OptionalFields
+                hint={list([t('descriptionLabel'), t('icon'), t('sortOrder')])}
+                filled={countFilled(hasDescription, icon === 'book-open' ? '' : icon)}
+              >
                 <FormField
                   control={form.control}
-                  name="icon"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('icon')}</FormLabel>
-                      <div className="flex items-center gap-2">
-                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4">
-                          <CategoryIcon name={icon} />
-                        </span>
-                        <FormControl>
-                          <Input {...field} className="font-mono" />
-                        </FormControl>
-                      </div>
-                      <FormDescription>{t('iconHint')}</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="sortOrder"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('sortOrder')}</FormLabel>
+                      <FormLabel>{t('descriptionLabel')}</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={10000}
-                          name={field.name}
-                          ref={field.ref}
-                          onBlur={field.onBlur}
-                          value={Number.isFinite(field.value) ? field.value : ''}
-                          onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                        />
+                        <LocalizedInput multiline value={field.value} onChange={field.onChange} />
                       </FormControl>
-                      <FormDescription>{t('sortOrderHint')}</FormDescription>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="icon"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('icon')}</FormLabel>
+                        <div className="flex items-center gap-2">
+                          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary [&_svg]:size-4">
+                            <CategoryIcon name={icon} />
+                          </span>
+                          <FormControl>
+                            <Input {...field} className="font-mono" />
+                          </FormControl>
+                        </div>
+                        <FormDescription>{t('iconHint')}</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="sortOrder"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('sortOrder')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={10000}
+                            name={field.name}
+                            ref={field.ref}
+                            onBlur={field.onBlur}
+                            value={Number.isFinite(field.value) ? field.value : ''}
+                            onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                          />
+                        </FormControl>
+                        <FormDescription>{t('sortOrderHint')}</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </OptionalFields>
             </SheetBody>
             <SheetFooter>
               <Button type="button" variant="outline" onClick={onClose}>
@@ -340,7 +349,7 @@ export default function CategoriesPage() {
         }
       />
       <KnowledgeSections />
-      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="overflow-hidden rounded-xl border bg-card">
         {isLoading ? (
           <div className="grid gap-px">
             {[0, 1, 2, 3].map((i) => (

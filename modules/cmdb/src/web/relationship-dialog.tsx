@@ -36,7 +36,7 @@ const PROPAGATING = new Set<RelationshipType>([...IMPACT_FROM_TARGET, ...IMPACT_
 
 function CiChip({ ci }: { ci: Pick<CiRef, 'name' | 'reference' | 'class'> }) {
   return (
-    <span className="inline-flex min-w-0 items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-sm shadow-xs">
+    <span className="inline-flex min-w-0 items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-sm">
       <ClassIcon name={ci.class.icon} className="size-3.5 shrink-0 text-primary" />
       <span className="truncate font-medium">{ci.name}</span>
     </span>

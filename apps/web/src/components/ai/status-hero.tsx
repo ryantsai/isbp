@@ -32,7 +32,7 @@ export function StatusHero({ status, config }: { status?: AiStatusInfo; config?:
   const t = useTranslations('ai.status');
   if (!status || !config)
     return (
-      <Card className="mb-6">
+      <Card className="mb-4">
         <CardContent className="space-y-4">
           <Skeleton className="h-5 w-32" />
           <Skeleton className="h-7 w-2/3" />
@@ -51,7 +51,7 @@ export function StatusHero({ status, config }: { status?: AiStatusInfo; config?:
     status.chat.provider === 'anthropic' ? t('providers.anthropic') : t('providers.openaiCompatible');
 
   return (
-    <FadeIn y={4} className="mb-6">
+    <FadeIn y={4} className="mb-4">
       <Card className="relative overflow-hidden">
         <div
           aria-hidden

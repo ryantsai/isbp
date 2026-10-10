@@ -74,7 +74,7 @@ export function ProfileCard({ me }: { me: Me | undefined }) {
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-5">
         <div className="flex items-center gap-4">
           <UserAvatar name={liveName} src={user.avatarUrl} className="size-16 text-lg" />
           <div className="min-w-0">

@@ -204,7 +204,7 @@ export function PreferencesCard({ me }: { me: Me | undefined }) {
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-8">
+      <CardContent className="space-y-5">
         <Group legend={t('language.label')} hint={t('language.hint')}>
           <div className="grid gap-2 sm:grid-cols-3">
             {locales.map((l) => {

@@ -74,7 +74,7 @@ function Suggestions({ articles }: { articles: ArticleHit[] }) {
               >
                 <Link
                   href={a.href}
-                  className="group grid gap-1 rounded-xl border bg-card p-3 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:hover:translate-y-0"
+                  className="group grid gap-1 rounded-xl border bg-card p-3 transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:hover:translate-y-0"
                 >
                   <span className="flex items-start gap-2 text-sm font-medium group-hover:underline">
                     <BookOpenIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
@@ -156,11 +156,11 @@ export default function ReportPage() {
         title={t('title')}
         description={t('description')}
       />
-      <div className={cn('grid grid-cols-1 gap-6', knowledge && 'lg:grid-cols-[minmax(0,1fr)_20rem]')}>
+      <div className={cn('grid grid-cols-1 gap-4', knowledge && 'lg:grid-cols-[minmax(0,1fr)_20rem]')}>
         <form
           noValidate
           onSubmit={onSubmit}
-          className="grid min-w-0 gap-6 rounded-xl border bg-card p-5 shadow-xs sm:p-6"
+          className="grid min-w-0 gap-4 rounded-xl border bg-card p-4 sm:p-5"
         >
           {link && <LinkedRecordChip record={link} onRemove={() => setDropLink(true)} />}
           <div className="grid gap-2">

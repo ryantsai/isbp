@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Switch } from '@isbp/ui/switch';
 import { CheckIcon, LightbulbIcon, LockIcon } from 'lucide-react';
@@ -78,6 +79,7 @@ export function ChannelFormDialog({
   const errorText = useErrorText();
   const editing = Boolean(channel);
   const typeGroupId = useId();
+  const list = useFieldList();
 
   const schema = useMemo(
     () =>
@@ -127,6 +129,7 @@ export function ChannelFormDialog({
   }, [open, channel, form]);
 
   const type = useWatch({ control: form.control, name: 'type' });
+  const [locale, enabled] = useWatch({ control: form.control, name: ['locale', 'enabled'] });
 
   const create = useApiMutation((api, v: Values) => api.post<Created>(CHANNELS_PATH, v), {
     invalidate: [CHANNELS_PATH],
@@ -310,31 +313,6 @@ export function ChannelFormDialog({
             />
             <FormField
               control={form.control}
-              name="locale"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('locale')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="w-full sm:w-64">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {MESSAGE_LOCALES.map((l) => (
-                        <SelectItem key={l} value={l} lang={l}>
-                          {localeLabel(l)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>{t('localeHint')}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
               name="types"
               render={({ field, fieldState }) => (
                 <FormItem>
@@ -351,21 +329,51 @@ export function ChannelFormDialog({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="enabled"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between gap-4 rounded-lg border px-3 py-2.5">
-                  <div className="space-y-0.5">
-                    <FormLabel>{t('enabled')}</FormLabel>
-                    <FormDescription>{t('enabledHint')}</FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            <OptionalFields
+              hint={list([t('locale'), t('enabled')])}
+              filled={countFilled(locale === 'en' ? '' : locale, !enabled)}
+            >
+              <FormField
+                control={form.control}
+                name="locale"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('locale')}</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className="w-full sm:w-64">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {MESSAGE_LOCALES.map((l) => (
+                          <SelectItem key={l} value={l} lang={l}>
+                            {localeLabel(l)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>{t('localeHint')}</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="enabled"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between gap-4 rounded-lg border px-3 py-2.5">
+                    <div className="space-y-0.5">
+                      <FormLabel>{t('enabled')}</FormLabel>
+                      <FormDescription>{t('enabledHint')}</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </OptionalFields>
             {form.formState.errors.root && (
               <p role="alert" className="text-sm text-destructive">
                 {form.formState.errors.root.message}

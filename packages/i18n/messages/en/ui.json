@@ -396,5 +396,9 @@
       "work": "Open work",
       "setting": "Setting"
     }
+  },
+  "optionalFields": {
+    "label": "More details",
+    "filled": "{count, plural, one {# filled} other {# filled}}"
   }
 }

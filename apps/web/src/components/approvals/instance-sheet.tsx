@@ -83,7 +83,7 @@ export function InstanceSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full gap-0 overflow-y-auto p-0 sm:max-w-2xl" closeLabel={t('close')}>
-        <SheetHeader className="sticky top-0 z-10 border-b bg-background/95 px-6 py-4 backdrop-blur">
+        <SheetHeader className="sticky top-0 z-10 border-b bg-background/95 px-5 py-4 backdrop-blur">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {triggerName && <span>{triggerName}</span>}
             {data &&
@@ -106,12 +106,12 @@ export function InstanceSheet({
           )}
         </SheetHeader>
         {!data ? (
-          <div className="grid gap-4 p-6">
+          <div className="grid gap-4 p-5">
             <Skeleton className="h-28 w-full" />
             <Skeleton className="h-64 w-full" />
           </div>
         ) : (
-          <div className="grid gap-8 px-6 py-6">
+          <div className="grid gap-5 px-5 py-6">
             {asked && asked.status !== 'pending' && (
               <div
                 role="status"
@@ -179,7 +179,7 @@ export function InstanceSheet({
           </div>
         )}
         {data && myTask && myTask.status === 'pending' && (
-          <div className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t bg-background/95 px-6 py-3 backdrop-blur">
+          <div className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t bg-background/95 px-5 py-3 backdrop-blur">
             <Button className="h-11 min-w-28 sm:h-9" onClick={() => setDecision('approve')}>
               <CheckIcon />
               {t('approve')}

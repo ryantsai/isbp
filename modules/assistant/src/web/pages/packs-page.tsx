@@ -210,10 +210,7 @@ function PackCard({
     ...(r.unsupported.length ? [t('unsupported')] : []),
   ];
   return (
-    <article
-      aria-labelledby={`${id}-name`}
-      className="min-w-0 overflow-hidden rounded-xl border bg-card shadow-xs"
-    >
+    <article aria-labelledby={`${id}-name`} className="min-w-0 overflow-hidden rounded-xl border bg-card">
       <div className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
         <div className="flex min-w-0 items-start gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -355,7 +352,7 @@ export default function PacksPage() {
         </TabsContent>
         <TabsContent value="file" className="min-w-0 pt-2">
           {tab === 'file' && (
-            <div className="max-w-2xl rounded-xl border bg-card p-4 shadow-xs">
+            <div className="max-w-2xl rounded-xl border bg-card p-4">
               <ImportFile onCreated={created} />
             </div>
           )}

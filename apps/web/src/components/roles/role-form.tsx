@@ -52,7 +52,7 @@ function Section({
 }) {
   return (
     <fieldset className="space-y-4">
-      <legend className="mb-3 flex w-full items-center justify-between text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <legend className="mb-3 flex w-full items-center justify-between text-xs font-semibold text-muted-foreground">
         {title}
         {aside}
       </legend>

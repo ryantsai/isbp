@@ -2,7 +2,6 @@
 
 import type { ApiClient, CreateApiClientInput, CreatedSecret, UpdateApiClientInput } from '@isbp/contracts';
 import { isPermissionPattern } from '@isbp/sdk';
-import { Badge } from '@isbp/ui/badge';
 import { Button } from '@isbp/ui/button';
 import {
   Dialog,
@@ -14,9 +13,9 @@ import {
 } from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
 import { Textarea } from '@isbp/ui/textarea';
-import { AlertTriangleIcon, ChevronDownIcon, InfoIcon } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AlertTriangleIcon, InfoIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useAccessErrorText, useGrantable } from '@/components/roles/role-utils';
@@ -235,80 +234,55 @@ export function ClientFormDialog({
             />
           )}
 
-          <div>
-            <button
-              type="button"
-              onClick={() => setAdvanced((a) => !a)}
-              aria-expanded={advanced}
-              className="flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              <ChevronDownIcon
-                className={`size-4 transition-transform duration-200 ${advanced ? 'rotate-180' : ''}`}
-                aria-hidden
+          <OptionalFields
+            label={t('advanced')}
+            open={advanced}
+            onOpenChange={setAdvanced}
+            filled={countFilled(draft.permissions, draft.cidrs)}
+          >
+            <div className="grid gap-2">
+              <Label htmlFor={`${id}-perms`}>{t('permissions')}</Label>
+              <ChipsInput
+                id={`${id}-perms`}
+                value={draft.permissions}
+                onChange={(permissions) => set({ permissions })}
+                validate={(p) => (isPlatformPattern(p) ? null : t('permissionInvalid'))}
+                placeholder="core.users.read"
+                addLabel={tc('add')}
+                removeLabel={(p) => t('removeEntry', { value: p })}
+                chipClassName={(p) =>
+                  blocked.includes(p) ? 'border-destructive/50 text-destructive' : undefined
+                }
+                describedBy={`${id}-perms-hint`}
               />
-              {advanced ? tc('hideAdvanced') : t('advanced')}
-              {!advanced && (draft.permissions.length > 0 || draft.cidrs.length > 0) && (
-                <Badge variant="info">
-                  {t('advancedSet', { count: draft.permissions.length + draft.cidrs.length })}
-                </Badge>
+              {blocked.length > 0 ? (
+                <p className="flex items-start gap-1.5 text-xs text-destructive" role="alert">
+                  <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                  {t('notHeld', { permissions: blocked.join(', ') })}
+                </p>
+              ) : (
+                <p id={`${id}-perms-hint`} className="text-xs text-muted-foreground">
+                  {t('permissionsHint')}
+                </p>
               )}
-            </button>
-            <AnimatePresence initial={false}>
-              {advanced && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="space-y-5 px-0.5 pt-4 pb-0.5">
-                    <div className="grid gap-2">
-                      <Label htmlFor={`${id}-perms`}>{t('permissions')}</Label>
-                      <ChipsInput
-                        id={`${id}-perms`}
-                        value={draft.permissions}
-                        onChange={(permissions) => set({ permissions })}
-                        validate={(p) => (isPlatformPattern(p) ? null : t('permissionInvalid'))}
-                        placeholder="core.users.read"
-                        addLabel={tc('add')}
-                        removeLabel={(p) => t('removeEntry', { value: p })}
-                        chipClassName={(p) =>
-                          blocked.includes(p) ? 'border-destructive/50 text-destructive' : undefined
-                        }
-                        describedBy={`${id}-perms-hint`}
-                      />
-                      {blocked.length > 0 ? (
-                        <p className="flex items-start gap-1.5 text-xs text-destructive" role="alert">
-                          <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                          {t('notHeld', { permissions: blocked.join(', ') })}
-                        </p>
-                      ) : (
-                        <p id={`${id}-perms-hint`} className="text-xs text-muted-foreground">
-                          {t('permissionsHint')}
-                        </p>
-                      )}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor={`${id}-cidrs`}>{t('cidrs')}</Label>
-                      <ChipsInput
-                        id={`${id}-cidrs`}
-                        value={draft.cidrs}
-                        onChange={(cidrs) => set({ cidrs })}
-                        validate={(c) => (c.length <= 64 && CIDR_RE.test(c) ? null : t('cidrInvalid'))}
-                        placeholder="10.0.0.0/8"
-                        addLabel={tc('add')}
-                        removeLabel={(c) => t('removeEntry', { value: c })}
-                        describedBy={`${id}-cidrs-hint`}
-                      />
-                      <p id={`${id}-cidrs-hint`} className="text-xs text-muted-foreground">
-                        {t('cidrsHint')}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor={`${id}-cidrs`}>{t('cidrs')}</Label>
+              <ChipsInput
+                id={`${id}-cidrs`}
+                value={draft.cidrs}
+                onChange={(cidrs) => set({ cidrs })}
+                validate={(c) => (c.length <= 64 && CIDR_RE.test(c) ? null : t('cidrInvalid'))}
+                placeholder="10.0.0.0/8"
+                addLabel={tc('add')}
+                removeLabel={(c) => t('removeEntry', { value: c })}
+                describedBy={`${id}-cidrs-hint`}
+              />
+              <p id={`${id}-cidrs-hint`} className="text-xs text-muted-foreground">
+                {t('cidrsHint')}
+              </p>
+            </div>
+          </OptionalFields>
 
           {rootError && (
             <p

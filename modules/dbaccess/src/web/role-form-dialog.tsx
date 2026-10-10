@@ -13,6 +13,7 @@ import {
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
@@ -32,6 +33,8 @@ import {
 import { INVALIDATE } from './lib';
 
 const SERVER_LEVEL = '__server__';
+const DEFAULT_DAYS = 30;
+const DEFAULT_MAX_DAYS = 90;
 
 type Target = { kind: 'create'; server: Server } | { kind: 'edit'; server: Server; role: RequestableRole };
 
@@ -61,6 +64,7 @@ function RoleForm({ target, onDone }: { target: Target; onDone: () => void }) {
   const tr = useTranslations('dbaccess.risk');
   const tc = useTranslations('common');
   const errorText = useErrorText();
+  const list = useFieldList();
   const ids = {
     db: useId(),
     role: useId(),
@@ -92,14 +96,21 @@ function RoleForm({ target, onDone }: { target: Target; onDone: () => void }) {
       : null) as PersonOption | null,
     ownerGroupId: role?.owner?.kind === 'group' ? role.owner.id : null,
     risk: (role?.risk ?? 'medium') as Risk,
-    defaultDays: role ? role.defaultDays : 30,
-    maxDays: role ? role.maxDays : 90,
+    defaultDays: role ? role.defaultDays : DEFAULT_DAYS,
+    maxDays: role ? role.maxDays : DEFAULT_MAX_DAYS,
     allowPermanent: role?.allowPermanent ?? false,
     justificationRequired: role?.justificationRequired ?? true,
     active: role?.active ?? true,
   });
   const [error, setError] = useState<string | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const patch = (p: Partial<typeof v>) => setV((x) => ({ ...x, ...p }));
+  const detailsFilled = countFilled(
+    v.defaultDays !== DEFAULT_DAYS,
+    v.maxDays !== DEFAULT_MAX_DAYS,
+    v.allowPermanent,
+    !v.justificationRequired,
+  );
   const save = useApiMutation(
     (api, body: Partial<CreateRoleInput>) =>
       target.kind === 'edit'
@@ -125,7 +136,10 @@ function RoleForm({ target, onDone }: { target: Target; onDone: () => void }) {
         const ownerGroupId = v.ownerKind === 'group' ? v.ownerGroupId : null;
         if (!ownerUserId && !ownerGroupId) return setError(t('ownerRequired'));
         const problem = durationPolicyProblem(v);
-        if (problem) return setError(t(`problems.${problem}`));
+        if (problem) {
+          setMoreOpen(true);
+          return setError(t(`problems.${problem}`));
+        }
         setError(null);
         const common = {
           name: v.name,
@@ -263,44 +277,57 @@ function RoleForm({ target, onDone }: { target: Target; onDone: () => void }) {
           </p>
         </div>
       </div>
-      <fieldset className="grid gap-3 rounded-lg border p-4">
-        <legend className="px-1 text-sm font-medium">{t('duration')}</legend>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={ids.def}>{t('defaultDays')}</Label>
-            <Input
-              id={ids.def}
-              type="number"
-              min={1}
-              value={v.defaultDays ?? ''}
-              placeholder={v.allowPermanent ? t('permanentPlaceholder') : ''}
-              onChange={(e) => patch({ defaultDays: num(e.target.value) })}
-            />
-          </div>
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={ids.max}>{t('maxDays')}</Label>
-            <Input
-              id={ids.max}
-              type="number"
-              min={1}
-              value={v.maxDays ?? ''}
-              placeholder={v.allowPermanent ? t('noLimitPlaceholder') : ''}
-              onChange={(e) => patch({ maxDays: num(e.target.value) })}
-            />
-          </div>
-        </div>
+      {role && (
         <div className="flex items-center gap-3">
-          <Switch
-            id={ids.perm}
-            checked={v.allowPermanent}
-            onCheckedChange={(x) => patch({ allowPermanent: x })}
-          />
-          <Label htmlFor={ids.perm} className="font-normal">
-            {t('allowPermanent')}
+          <Switch id={ids.active} checked={v.active} onCheckedChange={(x) => patch({ active: x })} />
+          <Label htmlFor={ids.active} className="font-normal">
+            {t('active')}
           </Label>
         </div>
-      </fieldset>
-      <div className="flex flex-wrap items-center gap-6">
+      )}
+      <OptionalFields
+        hint={list([t('duration'), t('justificationRequired')])}
+        filled={detailsFilled}
+        open={moreOpen}
+        onOpenChange={setMoreOpen}
+      >
+        <fieldset className="grid gap-3 rounded-lg border p-4">
+          <legend className="px-1 text-sm font-medium">{t('duration')}</legend>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid min-w-0 gap-2">
+              <Label htmlFor={ids.def}>{t('defaultDays')}</Label>
+              <Input
+                id={ids.def}
+                type="number"
+                min={1}
+                value={v.defaultDays ?? ''}
+                placeholder={v.allowPermanent ? t('permanentPlaceholder') : ''}
+                onChange={(e) => patch({ defaultDays: num(e.target.value) })}
+              />
+            </div>
+            <div className="grid min-w-0 gap-2">
+              <Label htmlFor={ids.max}>{t('maxDays')}</Label>
+              <Input
+                id={ids.max}
+                type="number"
+                min={1}
+                value={v.maxDays ?? ''}
+                placeholder={v.allowPermanent ? t('noLimitPlaceholder') : ''}
+                onChange={(e) => patch({ maxDays: num(e.target.value) })}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Switch
+              id={ids.perm}
+              checked={v.allowPermanent}
+              onCheckedChange={(x) => patch({ allowPermanent: x })}
+            />
+            <Label htmlFor={ids.perm} className="font-normal">
+              {t('allowPermanent')}
+            </Label>
+          </div>
+        </fieldset>
         <div className="flex items-center gap-3">
           <Switch
             id={ids.just}
@@ -311,15 +338,7 @@ function RoleForm({ target, onDone }: { target: Target; onDone: () => void }) {
             {t('justificationRequired')}
           </Label>
         </div>
-        {role && (
-          <div className="flex items-center gap-3">
-            <Switch id={ids.active} checked={v.active} onCheckedChange={(x) => patch({ active: x })} />
-            <Label htmlFor={ids.active} className="font-normal">
-              {t('active')}
-            </Label>
-          </div>
-        )}
-      </div>
+      </OptionalFields>
       {error && (
         <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}

@@ -405,7 +405,7 @@ export default function ApplicationPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <div className="flex items-center gap-4">
           <Skeleton className="size-12 rounded-xl" />
@@ -425,7 +425,7 @@ export default function ApplicationPage({ params }: WebPageProps) {
   const record: RecordPanelSlotProps['record'] = { type: 'alm.application', id: app.id };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
         <Link href="/alm">
           <ArrowLeftIcon /> {t('inventory.title')}
@@ -449,7 +449,7 @@ export default function ApplicationPage({ params }: WebPageProps) {
                 </>
               )}
             </p>
-            <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{app.name}</h1>
+            <h1 className="text-xl font-semibold tracking-tight wrap-anywhere">{app.name}</h1>
             <div className="flex flex-wrap items-center gap-2">
               <StageBadge stage={app.stage} />
               <CriticalityBadge criticality={app.criticality} />
@@ -512,8 +512,8 @@ export default function ApplicationPage({ params }: WebPageProps) {
           {app.viewer.canEdit && <TabsTrigger value="settings">{t('app.tabs.settings')}</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3">
-          <div className="grid min-w-0 gap-6 lg:col-span-2">
+        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3">
+          <div className="grid min-w-0 gap-4 lg:col-span-2">
             <Card className="min-w-0">
               <CardHeader>
                 <CardTitle>{t('pipeline.title')}</CardTitle>
@@ -538,7 +538,7 @@ export default function ApplicationPage({ params }: WebPageProps) {
             <RepositoriesCard app={app} />
             <CustomFieldsCard attributes={app.attributes} />
           </div>
-          <div className="grid min-w-0 gap-6">
+          <div className="grid min-w-0 gap-4">
             <OwnershipCard app={app} />
             <CiCard app={app} />
             <DetailsCard app={app} />

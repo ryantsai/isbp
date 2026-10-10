@@ -332,8 +332,8 @@ retires a workflow after you confirm. The **Workflow** tab lists the approval's 
 
 Request forms are what people fill in from the portal: equipment, software, anything IT provides.
 
-1. Go to **Administration → Forms** and select **New form**. Enter a **Name**, a **Key**, an **Icon** and a
-   **Category**, then select **Create and open builder**.
+1. Go to **Administration → Forms** and select **New form**. Enter a **Name** and a **Key**; under **More details**,
+   choose an **Icon** and a **Category**. Select **Create and open builder**.
 2. On **Questions**, drag fields from **Add elements** onto the form, or click one to add it. Select a field to set its
    **Label** (in English, 繁體中文 and 日本語), **Key**, **Help text**, **Required**, its options, and **Show this field
    only when…** for conditional fields. A **Record** field lets people pick configuration items, applications,
@@ -409,8 +409,9 @@ channel or another system, such as escalations to the IT on-call channel.
 2. On **Email**, turn on **Send notification emails**, enter the **SMTP server**, **Port**, **Encryption**, sign-in and
    **Sender**, and select **Save changes**. Select **Send test email** to check it.
 3. On **Channels**, select **Add channel**. Choose the **Type** (**Microsoft Teams**, **Slack** or **Webhook**), a
-   **Name**, the **Webhook URL** (the form explains where to get it), the **Message language**, and under
-   **Notifications** the types it receives (whole modules or single types). Select **Add channel**.
+   **Name**, the **Webhook URL** (the form explains where to get it) and under **Notifications** the types it
+   receives (whole modules or single types). The **Message language** is under **More details**. Select **Add
+   channel**.
 4. Select **Send test** on the channel to post a test message.
 
 **What happens next:** Webhook URLs are stored encrypted and never shown again. A generic webhook gets a signing

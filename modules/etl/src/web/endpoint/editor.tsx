@@ -9,6 +9,7 @@ import { Checkbox } from '@isbp/ui/checkbox';
 import { CodeEditor } from '@isbp/ui/code-editor';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Switch } from '@isbp/ui/switch';
@@ -35,6 +36,8 @@ import { problemOfError, RunProblemBanner } from '@isbp/ui/run-detail';
 import { type Errors, ParamsEditor } from './params-editor';
 
 const EMPTY_CLIENTS: ApiClientRef[] = [];
+const DEFAULT_MAX_ROWS = 1000;
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 function Section({
   title,
@@ -114,6 +117,7 @@ const stateOf = (e: EndpointDetail): State => ({
 export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
   const t = useTranslations('etl');
   const errorText = useErrorText();
+  const list = useFieldList();
   const id = useId();
   const initial = useMemo(() => stateOf(endpoint), [endpoint]);
   const [state, setState] = useState<State>(initial);
@@ -144,6 +148,11 @@ export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
     used,
   );
   const dirty = JSON.stringify(state) !== JSON.stringify(initial);
+  const limitsFilled = countFilled(
+    (draft.maxRows ?? DEFAULT_MAX_ROWS) !== DEFAULT_MAX_ROWS,
+    (draft.timeoutMs ?? DEFAULT_TIMEOUT_MS) !== DEFAULT_TIMEOUT_MS,
+    (draft.cacheTtlSeconds ?? 0) > 0,
+  );
 
   const save = useApiMutation(
     (api, body: UpdateEndpointInput) => api.patch<EndpointDetail>(`/etl/endpoints/${endpoint.id}`, body),
@@ -182,9 +191,9 @@ export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
   const procKey = draft.procedure ? `${draft.procedure.schema}.${draft.procedure.name}` : '';
 
   return (
-    <div className="grid min-w-0 gap-6">
-      <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-3">
-        <div className="grid min-w-0 gap-6 xl:col-span-2">
+    <div className="grid min-w-0 gap-4">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-3">
+        <div className="grid min-w-0 gap-4 xl:col-span-2">
           <Section title={t('editor.statement')} description={t(`editor.statementHint.${draft.kind}`)}>
             <div className="grid min-w-0 grid-cols-1 gap-4">
               <Field
@@ -395,7 +404,7 @@ export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
           </Section>
         </div>
 
-        <div className="grid min-w-0 gap-6">
+        <div className="grid min-w-0 gap-4">
           <Section title={t('editor.general')}>
             <Field id={`${id}-name`} label={t('fields.name')} error={errors.name}>
               <Input
@@ -434,44 +443,6 @@ export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
                 </SelectContent>
               </Select>
             </Field>
-            <div className="grid min-w-0 grid-cols-2 gap-4">
-              <Field
-                id={`${id}-maxRows`}
-                label={t('fields.maxRows')}
-                hint={t('editor.maxRowsHint')}
-                error={errors['draft.maxRows']}
-              >
-                <Input
-                  id={`${id}-maxRows`}
-                  type="number"
-                  min={1}
-                  value={draft.maxRows ?? 1000}
-                  onChange={(e) => setDraft({ maxRows: Number(e.target.value) || 1 })}
-                />
-              </Field>
-              <Field
-                id={`${id}-timeout`}
-                label={t('fields.timeoutSeconds')}
-                error={errors['draft.timeoutMs']}
-              >
-                <Input
-                  id={`${id}-timeout`}
-                  type="number"
-                  min={1}
-                  value={Math.round((draft.timeoutMs ?? 30_000) / 1000)}
-                  onChange={(e) => setDraft({ timeoutMs: Math.max(1, Number(e.target.value) || 1) * 1000 })}
-                />
-              </Field>
-            </div>
-            <Field id={`${id}-cache`} label={t('fields.cacheSeconds')} hint={t('editor.cacheHint')}>
-              <Input
-                id={`${id}-cache`}
-                type="number"
-                min={0}
-                value={draft.cacheTtlSeconds ?? 0}
-                onChange={(e) => setDraft({ cacheTtlSeconds: Math.max(0, Number(e.target.value) || 0) })}
-              />
-            </Field>
             <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
               <div className="grid gap-1">
                 <Label htmlFor={`${id}-writes`}>{t('fields.allowsWrites')}</Label>
@@ -483,6 +454,51 @@ export function EndpointEditor({ endpoint }: { endpoint: EndpointDetail }) {
                 onCheckedChange={(v) => setDraft({ allowsWrites: v })}
               />
             </div>
+            <OptionalFields
+              hint={list([t('fields.maxRows'), t('fields.timeoutSeconds'), t('fields.cacheSeconds')])}
+              filled={limitsFilled}
+            >
+              <div className="grid min-w-0 grid-cols-2 gap-4">
+                <Field
+                  id={`${id}-maxRows`}
+                  label={t('fields.maxRows')}
+                  hint={t('editor.maxRowsHint')}
+                  error={errors['draft.maxRows']}
+                >
+                  <Input
+                    id={`${id}-maxRows`}
+                    type="number"
+                    min={1}
+                    aria-invalid={Boolean(errors['draft.maxRows']) || undefined}
+                    value={draft.maxRows ?? DEFAULT_MAX_ROWS}
+                    onChange={(e) => setDraft({ maxRows: Number(e.target.value) || 1 })}
+                  />
+                </Field>
+                <Field
+                  id={`${id}-timeout`}
+                  label={t('fields.timeoutSeconds')}
+                  error={errors['draft.timeoutMs']}
+                >
+                  <Input
+                    id={`${id}-timeout`}
+                    type="number"
+                    min={1}
+                    aria-invalid={Boolean(errors['draft.timeoutMs']) || undefined}
+                    value={Math.round((draft.timeoutMs ?? DEFAULT_TIMEOUT_MS) / 1000)}
+                    onChange={(e) => setDraft({ timeoutMs: Math.max(1, Number(e.target.value) || 1) * 1000 })}
+                  />
+                </Field>
+              </div>
+              <Field id={`${id}-cache`} label={t('fields.cacheSeconds')} hint={t('editor.cacheHint')}>
+                <Input
+                  id={`${id}-cache`}
+                  type="number"
+                  min={0}
+                  value={draft.cacheTtlSeconds ?? 0}
+                  onChange={(e) => setDraft({ cacheTtlSeconds: Math.max(0, Number(e.target.value) || 0) })}
+                />
+              </Field>
+            </OptionalFields>
           </Section>
 
           <Section title={t('editor.access')} description={t('editor.accessHint')}>

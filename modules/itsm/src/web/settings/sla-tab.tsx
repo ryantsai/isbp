@@ -9,7 +9,8 @@ import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
-import { AnimatedItem, AnimatedList, Disclosure } from '@isbp/ui/motion';
+import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
@@ -286,6 +287,9 @@ function PolicyForm({ policy, calendars, policies, onDone }: FormProps) {
   const [initial] = useState(snapshot);
   const dirty = snapshot !== initial;
 
+  const list = useFieldList();
+  const moreFilled = countFilled(description);
+
   const save = useApiMutation(
     (api, body: PolicyInput) =>
       policy
@@ -326,7 +330,7 @@ function PolicyForm({ policy, calendars, policies, onDone }: FormProps) {
           <SheetTitle>{policy ? t('editTitle') : t('createTitle')}</SheetTitle>
           <SheetDescription>{t('sheetHint')}</SheetDescription>
         </SheetHeader>
-        <SheetBody className="grid content-start gap-6 pb-6">
+        <SheetBody className="grid content-start gap-4 pb-6">
           <div className="grid gap-2">
             <Label htmlFor={`${id}-name`}>{t('name')}</Label>
             <LocalizedInput
@@ -441,13 +445,21 @@ function PolicyForm({ policy, calendars, policies, onDone }: FormProps) {
             </p>
           </div>
 
-          <Disclosure
-            summary={t('moreOptions')}
-            className="rounded-lg border px-3"
-            contentClassName="grid gap-5 pb-4"
-            defaultOpen={Boolean(policy?.description)}
+          {policy && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
+              <Label htmlFor={`${id}-active`} className="flex-col items-start gap-0.5">
+                <span>{t('active')}</span>
+                <span className="text-xs font-normal text-muted-foreground">{t('activeHint')}</span>
+              </Label>
+              <Switch id={`${id}-active`} checked={active} onCheckedChange={setActive} />
+            </div>
+          )}
+          <OptionalFields
+            label={t('moreOptions')}
+            hint={list([t('descriptionLabel'), t('warnAt')])}
+            filled={moreFilled}
           >
-            <div className="grid gap-2 pt-1">
+            <div className="grid gap-2">
               <Label htmlFor={`${id}-description`}>{t('descriptionLabel')}</Label>
               <Textarea
                 id={`${id}-description`}
@@ -485,17 +497,7 @@ function PolicyForm({ policy, calendars, policies, onDone }: FormProps) {
               onChange={setPause}
               render={(s) => tt(`status.${s}`)}
             />
-          </Disclosure>
-
-          {policy && (
-            <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
-              <Label htmlFor={`${id}-active`} className="flex-col items-start gap-0.5">
-                <span>{t('active')}</span>
-                <span className="text-xs font-normal text-muted-foreground">{t('activeHint')}</span>
-              </Label>
-              <Switch id={`${id}-active`} checked={active} onCheckedChange={setActive} />
-            </div>
-          )}
+          </OptionalFields>
           {touched && invalid && (
             <p role="alert" className="text-sm text-destructive">
               {t('fixErrors')}
@@ -682,10 +684,7 @@ export function SlaTab() {
               <AnimatedItem key={p.id} className="pb-3">
                 <article
                   aria-labelledby={`sla-${p.id}-name`}
-                  className={cn(
-                    'grid gap-3 rounded-xl border bg-card p-4 shadow-xs',
-                    !p.active && 'bg-muted/30',
-                  )}
+                  className={cn('grid gap-3 rounded-xl border bg-card p-4', !p.active && 'bg-muted/30')}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="flex min-w-0 items-start gap-3">

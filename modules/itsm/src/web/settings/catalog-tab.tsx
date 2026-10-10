@@ -229,7 +229,7 @@ export function CatalogTab() {
           className="rounded-xl border border-dashed"
         />
       ) : (
-        <ul className="divide-y overflow-hidden rounded-xl border bg-card shadow-xs">
+        <ul className="divide-y overflow-hidden rounded-xl border bg-card">
           {data.items.map((item) => {
             const f = item.fulfilment;
             const name = localize(item.formName, locale);

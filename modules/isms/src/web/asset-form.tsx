@@ -22,6 +22,7 @@ import {
 } from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
@@ -33,7 +34,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { Disclosure } from '@isbp/ui/motion';
 import { StatusBadge } from '@isbp/ui/status';
 import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
@@ -190,6 +190,7 @@ function AssetForm({
   const { data: groups } = useGroups();
   const { fields, elements, ready } = useEntityFields('isms.asset');
   const ids = { manager: useId(), users: useId() };
+  const list = useFieldList();
 
   const schema = useMemo(
     () =>
@@ -270,6 +271,19 @@ function AssetForm({
     control: form.control,
     name: ['classId', 'confidentiality', 'integrity', 'availability'],
   });
+  const [usersText, brand, model, version, quantity, notes] = useWatch({
+    control: form.control,
+    name: ['usersText', 'brand', 'model', 'version', 'quantity', 'notes'],
+  });
+  // The quantity defaults to 1: that is not something a person entered.
+  const detailsFilled = countFilled(
+    usersText,
+    brand,
+    model,
+    version,
+    quantity === '1' ? '' : quantity,
+    notes,
+  );
   const klass: AssetClass | undefined = taxonomy?.classes.find((x) => x.id === classId);
   const scored = c !== null && i !== null && a !== null;
   const value = scored ? assetValue(c, i, a) : null;
@@ -397,9 +411,9 @@ function AssetForm({
   return (
     <Form {...form}>
       <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
-        <SheetBody className="space-y-6">
+        <SheetBody className="space-y-5">
           <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <legend className="mb-3 text-xs font-semibold text-muted-foreground">
               {t('assetForm.identity')}
             </legend>
             <div className="sm:col-span-2">{text('name', t('fields.name'), t('assetForm.nameHint'))}</div>
@@ -429,7 +443,7 @@ function AssetForm({
           </fieldset>
 
           <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <legend className="mb-3 text-xs font-semibold text-muted-foreground">
               {t('assetForm.responsibility')}
             </legend>
             <FormField
@@ -458,10 +472,7 @@ function AssetForm({
 
           <section aria-labelledby="isms-cia-heading" className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3
-                id="isms-cia-heading"
-                className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-              >
+              <h3 id="isms-cia-heading" className="text-xs font-semibold text-muted-foreground">
                 {t('assetForm.cia')}
               </h3>
               <p className="flex flex-wrap items-center gap-2 text-sm" aria-live="polite">
@@ -516,7 +527,7 @@ function AssetForm({
           </section>
 
           <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <legend className="mb-3 text-xs font-semibold text-muted-foreground">
               {t('assetForm.usersAndPlace')}
             </legend>
             <FormField
@@ -535,6 +546,23 @@ function AssetForm({
                 </FormItem>
               )}
             />
+            <div className="sm:col-span-2">{text('location', t('fields.location'))}</div>
+          </fieldset>
+
+          <OptionalFields
+            key={detailsOpenByDefault ? 'open' : 'closed'}
+            defaultOpen={detailsOpenByDefault}
+            hint={list([
+              t('fields.usersText'),
+              t('fields.brand'),
+              t('fields.model'),
+              t('fields.version'),
+              t('fields.quantity'),
+              t('fields.notes'),
+            ])}
+            filled={detailsFilled}
+            contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+          >
             <FormField
               control={form.control}
               name="usersText"
@@ -549,48 +577,37 @@ function AssetForm({
                 </FormItem>
               )}
             />
-            <div className="sm:col-span-2">{text('location', t('fields.location'))}</div>
-          </fieldset>
+            {text('brand', t('fields.brand'))}
+            {text('model', t('fields.model'))}
+            {text('version', t('fields.version'))}
+            <FormField
+              control={form.control}
+              name="quantity"
+              render={({ field }) => (
+                <FormItem className="min-w-0">
+                  <FormLabel>{t('fields.quantity')}</FormLabel>
+                  <FormControl>
+                    <Input inputMode="numeric" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem className="sm:col-span-2">
+                  <FormLabel>{t('fields.notes')}</FormLabel>
+                  <FormControl>
+                    <Textarea rows={3} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </OptionalFields>
 
-          <Disclosure
-            key={detailsOpenByDefault ? 'open' : 'closed'}
-            summary={t('assetForm.details')}
-            defaultOpen={detailsOpenByDefault || Boolean(asset?.brand || asset?.model || asset?.version)}
-            triggerClassName="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-          >
-            <div className="grid grid-cols-1 gap-4 pt-3 sm:grid-cols-2">
-              {text('brand', t('fields.brand'))}
-              {text('model', t('fields.model'))}
-              {text('version', t('fields.version'))}
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem className="min-w-0">
-                    <FormLabel>{t('fields.quantity')}</FormLabel>
-                    <FormControl>
-                      <Input inputMode="numeric" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </Disclosure>
-
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('fields.notes')}</FormLabel>
-                <FormControl>
-                  <Textarea rows={3} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
           {form.formState.errors.root && (
             <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">

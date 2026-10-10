@@ -31,7 +31,7 @@ export default function AskItCard() {
     <>
       <section
         aria-labelledby="hai-ask-it"
-        className="relative overflow-hidden rounded-xl border bg-card p-3 shadow-xs sm:p-4"
+        className="relative overflow-hidden rounded-xl border bg-card p-3 sm:p-4"
       >
         <div
           aria-hidden

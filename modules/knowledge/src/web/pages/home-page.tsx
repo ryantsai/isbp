@@ -95,7 +95,7 @@ function SearchPanel({ query, onQuery }: { query: string; onQuery: (q: string) =
 
   return (
     <section aria-labelledby="kb-search-label" className="grid gap-3">
-      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-card to-card p-4 shadow-xs sm:p-6">
+      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-card to-card p-4 sm:p-5">
         <label
           id="kb-search-label"
           htmlFor="kb-search"
@@ -127,7 +127,7 @@ function SearchPanel({ query, onQuery }: { query: string; onQuery: (q: string) =
             placeholder={t('searchPlaceholder')}
             aria-describedby={hintId}
             aria-controls="kb-search-results"
-            className="h-12 w-full rounded-xl border border-input bg-background pr-11 pl-12 text-base shadow-xs outline-none transition-[box-shadow,border-color] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none [&::-webkit-search-cancel-button]:hidden"
+            className="h-12 w-full rounded-xl border border-input bg-background pr-11 pl-12 text-base outline-none transition-[box-shadow,border-color] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none [&::-webkit-search-cancel-button]:hidden"
           />
           {draft && (
             <button
@@ -167,7 +167,7 @@ function SearchPanel({ query, onQuery }: { query: string; onQuery: (q: string) =
               className="rounded-xl border"
             />
           ) : items.length ? (
-            <FadeIn className="rounded-xl border bg-card p-1.5 shadow-xs">
+            <FadeIn className="rounded-xl border bg-card p-1.5">
               <ul ref={listRef} aria-label={t('results')} className="grid gap-0.5">
                 {items.map((item) => (
                   <li key={item.id}>
@@ -244,7 +244,7 @@ function CategoryGrid({ onPick }: { onPick: (key: string) => void }) {
                   e.preventDefault();
                   onPick(c.key);
                 }}
-                className="group flex h-full min-w-0 flex-col gap-3 rounded-xl border bg-card p-4 shadow-xs outline-none transition-[translate,box-shadow,border-color] duration-(--motion-fast) ease-move hover:-translate-y-0.5 hover:border-ring/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+                className="group flex h-full min-w-0 flex-col gap-3 rounded-xl border bg-card p-4 outline-none transition-[translate,box-shadow,border-color] duration-(--motion-fast) ease-move hover:-translate-y-0.5 hover:border-ring/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
               >
                 <span className="flex items-center justify-between gap-2">
                   <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary [&_svg]:size-5">
@@ -472,7 +472,7 @@ export default function HomePage() {
       />
       <KnowledgeSections />
       {/* A reading page: narrower than lists, but on the same left edge as every other page. */}
-      <div className="grid max-w-6xl gap-8">
+      <div className="grid max-w-6xl gap-5">
         <SearchPanel query={query} onQuery={(q) => set({ q: q || undefined, category: undefined })} />
 
         {/* Switching between the topics and one topic fades the new view in; the first view doesn't animate. */}
@@ -484,7 +484,7 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, transition: { duration: 0 } }}
               transition={{ duration: duration.base, ease: ease.enter }}
-              className="grid gap-8"
+              className="grid gap-5"
             >
               {category ? (
                 <CategoryView categoryKey={category} onBack={() => set({ category: undefined })} />
@@ -492,7 +492,7 @@ export default function HomePage() {
                 <>
                   <Slot<KnowledgeHomeAssistSlotProps> name="knowledge.home.assist" props={ASSIST_PROPS} />
                   <CategoryGrid onPick={(key) => set({ category: key })} />
-                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <ArticleList
                       id="kb-popular"
                       title={t('home.popular')}

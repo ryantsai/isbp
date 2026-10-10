@@ -132,7 +132,7 @@ function DependenciesCard({ job }: { job: JobDetail }) {
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">
         <div className="min-w-0">
-          <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          <h3 className="mb-2 text-xs font-semibold text-muted-foreground">
             {t('upstream', { mode: job.trigger.mode ?? 'all' })}
           </h3>
           {job.upstream.length ? (
@@ -151,9 +151,7 @@ function DependenciesCard({ job }: { job: JobDetail }) {
           )}
         </div>
         <div className="min-w-0">
-          <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            {t('downstream')}
-          </h3>
+          <h3 className="mb-2 text-xs font-semibold text-muted-foreground">{t('downstream')}</h3>
           {job.downstream.length ? (
             <ul className="grid gap-2" aria-label={t('downstreamList')}>
               {job.downstream.map((d) => (
@@ -216,7 +214,7 @@ export default function JobPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <div className="flex items-center gap-4">
           <Skeleton className="size-12 rounded-xl" />
@@ -241,7 +239,7 @@ export default function JobPage({ params }: WebPageProps) {
   const scriptBlocked = job.type === BUILTIN_TYPES.script && sandbox.runner === 'none';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DetailHeader
         className="pb-0"
         back={{ href: '/scheduler/jobs', label: t('nav.jobs'), highlight: job.id }}
@@ -350,8 +348,8 @@ export default function JobPage({ params }: WebPageProps) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3">
-          <div className="grid min-w-0 gap-6 lg:col-span-2">
+        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3">
+          <div className="grid min-w-0 gap-4 lg:col-span-2">
             <Card className="min-w-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -452,7 +450,7 @@ export default function JobPage({ params }: WebPageProps) {
               </Card>
             )}
           </div>
-          <div className="grid min-w-0 gap-6">
+          <div className="grid min-w-0 gap-4">
             <Card className="min-w-0">
               <CardHeader>
                 <CardTitle>{t('job.ownership')}</CardTitle>

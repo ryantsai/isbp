@@ -78,7 +78,7 @@ export function SettingsView() {
       {mustChange && (
         <div
           role="alert"
-          className="mb-6 flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning-foreground sm:flex-row sm:items-center"
+          className="mb-4 flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning-foreground sm:flex-row sm:items-center"
         >
           <TriangleAlertIcon className="size-5 shrink-0" aria-hidden />
           <div className="min-w-0 flex-1 space-y-0.5">
@@ -90,7 +90,7 @@ export function SettingsView() {
           </Button>
         </div>
       )}
-      <div className="grid gap-8 lg:grid-cols-[11rem_minmax(0,1fr)]">
+      <div className="grid gap-5 lg:grid-cols-[11rem_minmax(0,1fr)]">
         <nav aria-label={t('nav.label')} className="hidden lg:block">
           <ul className="sticky top-20 space-y-0.5">
             {SECTIONS.filter(({ id }) => approves || id !== 'out-of-office').map(
@@ -119,7 +119,7 @@ export function SettingsView() {
             )}
           </ul>
         </nav>
-        <Stagger className="min-w-0 max-w-3xl space-y-6">
+        <Stagger className="min-w-0 max-w-3xl space-y-5">
           <StaggerItem>
             <ProfileCard me={me.data} />
           </StaggerItem>

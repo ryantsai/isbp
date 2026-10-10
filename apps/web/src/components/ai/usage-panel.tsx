@@ -55,7 +55,7 @@ export function UsagePanel() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Segmented
         label={t('range')}
         value={String(days) as `${Range}`}
@@ -68,11 +68,11 @@ export function UsagePanel() {
       ) : (
         // Refetching for another range keeps the previous numbers, dimmed, instead of flashing.
         <div
-          className={cn('space-y-6 transition-opacity', isPlaceholderData && 'opacity-60')}
+          className={cn('space-y-5 transition-opacity', isPlaceholderData && 'opacity-60')}
           aria-busy={isPlaceholderData || undefined}
         >
           <Kpis report={data} />
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <DailyCard report={data} className="xl:col-span-2" />
             <ByModel report={data} />
           </div>
@@ -86,7 +86,7 @@ export function UsagePanel() {
 
 function UsageSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {Array.from({ length: 6 }, (_, i) => (
           <Skeleton key={i} className="h-24 rounded-xl" />

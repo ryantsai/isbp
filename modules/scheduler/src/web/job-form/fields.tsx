@@ -80,7 +80,7 @@ export function Section({
 }) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="grid min-w-0 gap-4 rounded-xl border bg-card p-5 shadow-xs">
+    <section aria-labelledby={id} className="grid min-w-0 gap-4 rounded-xl border bg-card p-4">
       <div className="-mb-1">
         <h2 id={id} className="font-semibold">
           {title}

@@ -208,7 +208,7 @@ export default function ReviewPage({ params }: WebPageProps) {
           },
         ]}
       />
-      <div className="grid min-w-0 grid-cols-1 gap-6">
+      <div className="grid min-w-0 grid-cols-1 gap-4">
         <DecisionProgress
           done={done}
           total={r.totals.items}

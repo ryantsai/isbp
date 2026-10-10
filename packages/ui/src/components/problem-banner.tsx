@@ -42,7 +42,11 @@ export function ProblemBanner({
   return (
     <div
       role={live ? 'alert' : undefined}
-      className={cn('flex items-start gap-3 rounded-xl border px-4 py-3 text-sm', toneClass[tone], className)}
+      className={cn(
+        'flex items-start gap-2.5 rounded-lg border px-3 py-2.5 text-sm',
+        toneClass[tone],
+        className,
+      )}
     >
       <Icon data-slot="problem-icon" className="mt-0.5 size-5 shrink-0" aria-hidden />
       <div className="min-w-0 flex-1 space-y-1">

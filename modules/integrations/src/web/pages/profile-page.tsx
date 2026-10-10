@@ -146,7 +146,7 @@ function LastRunStrip({ profile, connectionId }: { profile: Profile; connectionI
   const last = profile.lastRun;
   const when = last ? (last.finishedAt ?? last.startedAt) : null;
   return (
-    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border bg-card px-4 py-3 text-sm shadow-xs">
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border bg-card px-4 py-3 text-sm">
       <span className="text-muted-foreground">{t('lastRunLabel')}</span>
       {last ? (
         <>
@@ -375,7 +375,7 @@ export default function ProfilePage({ params }: WebPageProps) {
 
   if (connection.isLoading || (profileId && saved.isLoading))
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-10 w-80" />
         <Skeleton className="h-96 w-full rounded-xl" />
@@ -396,7 +396,7 @@ export default function ProfilePage({ params }: WebPageProps) {
   const pushable = draft.direction !== 'pull';
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-5 pb-24">
       <DetailHeader
         className="pb-0"
         back={{ href: `${connectionHref(connectionId)}?tab=profiles`, label: system }}
@@ -446,13 +446,13 @@ export default function ProfilePage({ params }: WebPageProps) {
 
       <form
         noValidate
-        className="grid min-w-0 gap-6"
+        className="grid min-w-0 gap-4"
         onSubmit={(e) => {
           e.preventDefault();
           save();
         }}
       >
-        <fieldset disabled={readOnly} className="grid min-w-0 gap-6">
+        <fieldset disabled={readOnly} className="grid min-w-0 gap-4">
           <Section title={t('what')} description={editingSaved ? t('whatFixed') : t('whatHint')}>
             <Field
               id={`${id}-name`}

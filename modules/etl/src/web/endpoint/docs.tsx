@@ -107,8 +107,8 @@ export function DocsTab({ endpoint }: { endpoint: EndpointDetail }) {
       .join(' · ');
 
   return (
-    <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-3">
-      <div className="grid min-w-0 gap-6 xl:col-span-2">
+    <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-3">
+      <div className="grid min-w-0 gap-4 xl:col-span-2">
         <Card className="min-w-0">
           <CardHeader>
             <CardTitle role="heading" aria-level={2}>

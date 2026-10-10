@@ -204,10 +204,9 @@ lifecycle, what version runs in each environment and how delivery is going.
 2. Open an application. The header shows its stage, criticality, the version **in production** and its owners.
    **Overview** shows the **Environments** with the version each one **Runs**, the **Delivery metrics**, the
    **Description**, the **Repositories**, **Ownership**, the **CMDB** configuration item and **Details**.
-3. Select **Edit** to change the name, stage, criticality, **Investment decision** (**Keep as is**, **Invest**,
-   **Replace or move** or **Retire**), hosting, owners, **Delivery team**, **Support group**, configuration item and
-   other details. The **Code** can't change: CI/CD pipelines
-   use it.
+3. Select **Edit** to change the name, stage, criticality, hosting, owners, **Delivery team** and **Support group**.
+   The **Investment decision** (**Keep as is**, **Invest**, **Replace or move** or **Retire**), the configuration
+   item and the other details are under **Details**. The **Code** can't change: CI/CD pipelines use it.
 4. Use the **Settings** tab to maintain **Environments** (in pipeline order; production environments are
    protected by the change policy), **Repositories** and the **Lifecycle** (stage, investment decision and dates).
 
@@ -223,7 +222,8 @@ A release is a version of an application on its way to production. Its readiness
 CAB, whether it can go.
 
 1. On the application, select **New release**. Enter the **Version** (unique within the application, for example
-   `12.1.0`), a **Name**, the **Planned date** and the **Release notes** (Markdown), and save.
+   `12.1.0`) and the **Planned date**; a **Name** and the **Release notes** (Markdown) are under **More details**.
+   Save.
 2. On the release page, follow its lifecycle (**Planned**, **In progress**, **Ready**, **Released**) under the
    header; move it with **Move to …** under **More actions**.
 3. Check **Readiness for production**: how many checks pass, and under each check that doesn't pass yet, what is

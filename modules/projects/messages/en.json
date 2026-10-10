@@ -555,7 +555,6 @@
     "titlePlaceholder": "e.g. Replace access switch on 9F",
     "datesInvalid": "The due date is before the start date.",
     "created": "{reference} created",
-    "moreDetails": "More details",
     "titleRequired": "Enter a title for the task."
   },
   "form": {

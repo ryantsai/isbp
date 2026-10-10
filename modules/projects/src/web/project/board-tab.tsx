@@ -270,7 +270,7 @@ function SortableCard({
         style={style}
         {...pointer}
         className={cn(
-          'grid gap-2 rounded-lg border bg-card p-2.5 shadow-xs transition-shadow hover:shadow-sm',
+          'grid gap-2 rounded-lg border bg-card p-2.5 transition-shadow hover:shadow-sm',
           canEdit && 'cursor-grab active:cursor-grabbing',
           isDragging && 'opacity-40',
         )}

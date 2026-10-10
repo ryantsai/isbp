@@ -192,7 +192,7 @@ export function ApplicationsView() {
           )
         }
       />
-      <div className="space-y-6">
+      <div className="space-y-5">
         <SearchInput value={q} onChange={(v) => set({ q: v || undefined })} placeholder={t('search')} />
 
         {isLoading || !data ? (
@@ -240,7 +240,7 @@ export function ApplicationsView() {
                         </Button>
                       )
                     }
-                    className="py-8"
+                    className="py-6"
                   />
                 </Card>
               </StaggerItem>

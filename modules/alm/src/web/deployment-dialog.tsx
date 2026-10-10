@@ -14,6 +14,7 @@ import {
 } from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -451,9 +452,7 @@ function DeploymentForm({
         aria-label={t('policyCheck')}
         className="grid min-w-0 gap-2"
       >
-        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          {t('policyCheck')}
-        </h3>
+        <h3 className="text-xs font-semibold text-muted-foreground">{t('policyCheck')}</h3>
         {!env ? null : !decision ? (
           <Skeleton className="h-16 w-full" />
         ) : (
@@ -514,34 +513,33 @@ function DeploymentForm({
           onChange={(e) => setNotes(e.target.value)}
         />
       </div>
-      <details className="group rounded-lg border px-3 py-2 text-sm">
-        <summary className="cursor-pointer text-muted-foreground outline-none focus-visible:underline">
-          {t('moreDetails')}
-        </summary>
-        <div className="mt-3 grid gap-4 sm:grid-cols-2">
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={ids.commit}>{t('commitSha')}</Label>
-            <Input
-              id={ids.commit}
-              className="font-mono"
-              value={commitSha}
-              maxLength={64}
-              onChange={(e) => setCommitSha(e.target.value)}
-            />
-          </div>
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={ids.pipeline}>{t('pipelineUrl')}</Label>
-            <Input
-              id={ids.pipeline}
-              type="url"
-              placeholder="https://"
-              value={pipelineUrl}
-              maxLength={500}
-              onChange={(e) => setPipelineUrl(e.target.value)}
-            />
-          </div>
+      <OptionalFields
+        label={t('moreDetails')}
+        filled={countFilled(commitSha, pipelineUrl)}
+        contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+      >
+        <div className="grid min-w-0 gap-2">
+          <Label htmlFor={ids.commit}>{t('commitSha')}</Label>
+          <Input
+            id={ids.commit}
+            className="font-mono"
+            value={commitSha}
+            maxLength={64}
+            onChange={(e) => setCommitSha(e.target.value)}
+          />
         </div>
-      </details>
+        <div className="grid min-w-0 gap-2">
+          <Label htmlFor={ids.pipeline}>{t('pipelineUrl')}</Label>
+          <Input
+            id={ids.pipeline}
+            type="url"
+            placeholder="https://"
+            value={pipelineUrl}
+            maxLength={500}
+            onChange={(e) => setPipelineUrl(e.target.value)}
+          />
+        </div>
+      </OptionalFields>
 
       {error && (
         <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">

@@ -84,9 +84,9 @@ see [the walkthrough](#walk-through-the-demo-configuration-change-request).
 
 Start with the questions; you add the approval and the actions to the same form afterwards.
 
-1. Go to **Administration → Forms** and select **New form**. Enter a **Name**, a **Key** and an **Icon**, pick a
-   **Category** (or type a new one and select **Add “…” as a new category**), then select **Create and open
-   builder**. The key is the end of the form's link (`/requests/forms/<key>`) and can't be changed later.
+1. Go to **Administration → Forms** and select **New form**. Enter a **Name** and a **Key**. Under **More details**,
+   choose an **Icon** and pick a **Category** (or type a new one and select **Add “…” as a new category**). Select
+   **Create and open builder**. The key is the end of the form's link (`/requests/forms/<key>`) and can't be changed later.
 2. On **Questions**, drag fields from **Add elements** onto the form, or click one to add it: **Short text**, **Long
    text**, **Number**, **Checkbox**, **Date**, **Dropdown**, **Multiple choice**, **Email**, **Link**, **Person** and
    **Record**.

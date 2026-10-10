@@ -58,7 +58,7 @@ export function CitationChips({ items, className }: { items: readonly Citation[]
         <li key={c.n} className="min-w-0 max-w-full">
           <Link
             href={c.href}
-            className="group inline-flex max-w-full items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-xs shadow-xs outline-none transition-colors hover:border-ring/40 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="group inline-flex max-w-full items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-xs outline-none transition-colors hover:border-ring/40 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50"
             title={`${c.reference} — ${c.title}`}
           >
             <span className="grid size-4 shrink-0 place-items-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary tabular-nums">
@@ -94,7 +94,7 @@ export function ArticleCards({
         <li key={c.n} className="min-w-0">
           <Link
             href={c.href}
-            className="group flex min-w-0 items-start gap-3 rounded-xl border bg-card px-3 py-2.5 shadow-xs outline-none transition-colors hover:border-ring/40 hover:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
+            className="group flex min-w-0 items-start gap-3 rounded-xl border bg-card px-3 py-2.5 outline-none transition-colors hover:border-ring/40 hover:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
           >
             <span
               aria-hidden

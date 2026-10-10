@@ -11,6 +11,7 @@ import {
 } from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { RecordPicker } from '@isbp/ui/record-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
@@ -96,6 +97,7 @@ function NewReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
     rec: useId(),
     app: useId(),
   };
+  const list = useFieldList();
   const [target, setTarget] = useState('');
   const [targetRef, setTargetRef] = useState<string | null>(null);
   const [reviewerId, setReviewerId] = useState<string | null>(null);
@@ -129,6 +131,11 @@ function NewReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
       setError(errorText(err));
     }
   };
+  const detailsFilled = countFilled(
+    targetRef,
+    recurrence === 'none' ? '' : recurrence,
+    applicationId === NONE ? '' : applicationId,
+  );
   return (
     <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col" noValidate>
       <SheetBody className="space-y-4">
@@ -142,19 +149,10 @@ function NewReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
           />
         </div>
         <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={ids.ref}>{t('fields.targetRecord')}</Label>
-          <RecordPicker
-            id={ids.ref}
-            types={TARGET_TYPES}
-            value={targetRef ? [targetRef] : []}
-            onChange={(r: string[]) => setTargetRef(r[0] ?? null)}
-          />
-        </div>
-        <div className="grid min-w-0 gap-1.5">
           <Label htmlFor={ids.reviewer}>{t('fields.reviewer')}</Label>
           <PersonField id={ids.reviewer} value={reviewerId} onChange={setReviewerId} clearable={false} />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label htmlFor={ids.start}>{t('fields.startOn')}</Label>
             <Input
@@ -175,6 +173,20 @@ function NewReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
               onChange={(e) => setDueOn(e.target.value)}
             />
           </div>
+        </div>
+        <OptionalFields
+          hint={list([t('fields.targetRecord'), t('fields.recurrence'), t('newReview.source')])}
+          filled={detailsFilled}
+        >
+          <div className="grid min-w-0 gap-1.5">
+            <Label htmlFor={ids.ref}>{t('fields.targetRecord')}</Label>
+            <RecordPicker
+              id={ids.ref}
+              types={TARGET_TYPES}
+              value={targetRef ? [targetRef] : []}
+              onChange={(r: string[]) => setTargetRef(r[0] ?? null)}
+            />
+          </div>
           <div className="grid gap-1.5">
             <Label htmlFor={ids.rec}>{t('fields.recurrence')}</Label>
             <Select value={recurrence} onValueChange={(v) => setRecurrence(v as typeof recurrence)}>
@@ -190,24 +202,24 @@ function NewReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
               </SelectContent>
             </Select>
           </div>
-        </div>
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={ids.app}>{t('newReview.source')}</Label>
-          <Select value={applicationId} onValueChange={setApplicationId}>
-            <SelectTrigger id={ids.app} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>{t('newReview.sourceCsv')}</SelectItem>
-              {(apps?.items ?? []).map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {t('newReview.sourceApp', { name: a.name })}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">{t('newReview.sourceHint')}</p>
-        </div>
+          <div className="grid min-w-0 gap-1.5">
+            <Label htmlFor={ids.app}>{t('newReview.source')}</Label>
+            <Select value={applicationId} onValueChange={setApplicationId}>
+              <SelectTrigger id={ids.app} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>{t('newReview.sourceCsv')}</SelectItem>
+                {(apps?.items ?? []).map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {t('newReview.sourceApp', { name: a.name })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">{t('newReview.sourceHint')}</p>
+          </div>
+        </OptionalFields>
         {error && (
           <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}

@@ -188,7 +188,7 @@ export default function ReviewPage({ params }: WebPageProps) {
   const raise = r.viewer.canRaiseTickets && r.viewer.ticketsToRaise > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DetailHeader
         back={{ href: '/isms/reviews', label: t('reviews.title'), highlight: r.id }}
         icon={<UserCheckIcon />}

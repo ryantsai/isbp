@@ -160,13 +160,13 @@ function PrivacyForm({ config }: { config: AiConfigInfo }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} noValidate className="max-w-3xl space-y-6">
+      <form onSubmit={onSubmit} noValidate className="max-w-3xl space-y-5">
         <Card>
           <CardHeader>
             <CardTitle>{t('masking.title')}</CardTitle>
             <CardDescription>{t('masking.description')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-5">
             <FormField
               control={form.control}
               name="enabled"

@@ -9,6 +9,7 @@ import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
 import { StatTile } from '@isbp/ui/stat-tile';
+import { IconTile } from '@isbp/ui/icon-tile';
 import {
   BlocksIcon,
   ClockAlertIcon,
@@ -66,11 +67,11 @@ function AdminCard({ item, status }: { item: NavItem; status: string | null }) {
     <li className="min-w-0">
       <Link
         href={item.href}
-        className="group flex h-full min-w-0 items-start gap-3 rounded-xl border bg-card p-4 shadow-xs outline-none transition-[translate,box-shadow,border-color] duration-(--motion-base) hover:-translate-y-0.5 hover:border-ring/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+        className="group flex h-full min-w-0 items-start gap-3 rounded-xl border bg-card p-4 outline-none transition-[translate,box-shadow,border-color] duration-(--motion-base) hover:-translate-y-0.5 hover:border-ring/40 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
       >
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+        <IconTile aria-hidden>
           <NavIcon name={item.icon} className="size-4" />
-        </span>
+        </IconTile>
         <span className="min-w-0 flex-1">
           <span className="block font-medium group-hover:underline">{label(item.label)}</span>
           {item.description && (
@@ -291,7 +292,7 @@ export function AdminHub({ entries, initialStats }: { entries: NavItem[]; initia
           className="rounded-xl border border-dashed"
         />
       ) : (
-        <div className="grid gap-8">
+        <div className="grid gap-5">
           {stats.error && !statsData ? (
             <ErrorState error={stats.error} onRetry={() => void stats.refetch()} compact />
           ) : (

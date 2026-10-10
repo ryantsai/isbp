@@ -43,7 +43,7 @@ export default function ChatPage() {
         <aside className="hidden h-[calc(100dvh-13rem)] min-h-[30rem] lg:block">
           <ConversationHistory selected={id} onSelect={select} onNew={() => select(undefined)} />
         </aside>
-        <div className="h-[calc(100dvh-13rem)] min-h-[30rem] min-w-0 overflow-hidden rounded-xl border bg-card shadow-xs">
+        <div className="h-[calc(100dvh-13rem)] min-h-[30rem] min-w-0 overflow-hidden rounded-xl border bg-card">
           <ChatPanel conversationId={id} onConversationChange={select} initialQuestion={question} />
         </div>
       </div>

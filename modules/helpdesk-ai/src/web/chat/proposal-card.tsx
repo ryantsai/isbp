@@ -44,7 +44,7 @@ export function ProposalCard({
   return (
     <form
       aria-labelledby={`${id}-title`}
-      className="@container space-y-3 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/8 via-card to-card p-4 shadow-xs"
+      className="@container space-y-3 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/8 via-card to-card p-4"
       onSubmit={(e) => {
         e.preventDefault();
         if (!invalid) onCreate({ title: title.trim(), description: description.trim(), urgency, type });

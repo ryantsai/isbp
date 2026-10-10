@@ -257,7 +257,7 @@ export function TemplateInput({
         onCut={(e) => copy(e, true)}
         style={multiline ? { minHeight: `${rows * 1.5 + 1}rem` } : undefined}
         className={cn(
-          'w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1.5 text-base leading-6 break-words whitespace-pre-wrap shadow-xs outline-none transition-[color,box-shadow] motion-reduce:transition-none md:text-sm dark:bg-input/30',
+          'w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1.5 text-base leading-6 break-words whitespace-pre-wrap outline-none transition-[color,box-shadow] motion-reduce:transition-none md:text-sm dark:bg-input/30',
           'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
           'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
           multiline ? 'py-2' : 'min-h-9',

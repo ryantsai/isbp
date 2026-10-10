@@ -25,6 +25,7 @@ import {
   FormMessage,
 } from '@isbp/ui/form';
 import { Input } from '@isbp/ui/input';
+import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
@@ -40,7 +41,6 @@ import { Textarea } from '@isbp/ui/textarea';
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
-  ChevronDownIcon,
   CircleCheckBigIcon,
   LockIcon,
   PlugZapIcon,
@@ -327,9 +327,7 @@ function hasAdvancedError(errors: FieldErrors<IdpFormValues>, choice: IdpChoice)
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <fieldset className="space-y-4">
-      <legend className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {title}
-      </legend>
+      <legend className="mb-3 text-xs font-semibold text-muted-foreground">{title}</legend>
       {children}
     </fieldset>
   );
@@ -759,6 +757,17 @@ export function IdpFormSheet({
     form.setValue('config.issuer', tid ? entraIssuer(tid) : '');
   }, [tenantId, choice, form]);
   const issuer = useWatch({ control: form.control, name: 'config.issuer' });
+  const [allowedDomains, groupMappings, defaultDepartmentId, groupBaseDn, groupFilter] = useWatch({
+    control: form.control,
+    name: [
+      'allowedDomains',
+      'groupMappings',
+      'defaultDepartmentId',
+      'config.groupBaseDn',
+      'config.groupFilter',
+    ],
+  });
+  const attributes = useWatch({ control: form.control, name: 'config.attributes' });
 
   const create = useApiMutation(
     (api, body: CreateIdpInput) => api.post<IdentityProvider>('/identity-providers', body),
@@ -866,7 +875,7 @@ export function IdpFormSheet({
               transition={{ duration: 0.25 }}
               className="flex min-h-0 flex-1 flex-col"
             >
-              <SheetBody className="space-y-6 py-2">
+              <SheetBody className="space-y-5 py-2">
                 <div className="flex flex-col items-center gap-3 py-4 text-center">
                   <motion.span
                     initial={{ scale: 0, rotate: -30 }}
@@ -1083,179 +1092,164 @@ export function IdpFormSheet({
                       )}
                     </Section>
 
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setAdvanced((a) => !a)}
-                        aria-expanded={advanced}
-                        className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-                      >
-                        <ChevronDownIcon
-                          className={`size-4 transition-transform duration-200 ${advanced ? 'rotate-180' : ''}`}
-                        />
-                        {advanced ? tc('hideAdvanced') : tc('showAdvanced')}
-                      </button>
-                      <AnimatePresence initial={false}>
-                        {advanced && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="space-y-4 pt-4">
-                              {type === 'oidc' && (
-                                <>
-                                  {choice === 'entra' && (
-                                    <TextField
-                                      control={form.control}
-                                      name="config.issuer"
-                                      label={tf('oidc.issuer')}
-                                      description={tf('entra.issuerOverride')}
-                                      placeholder={entraIssuer('<tenant-id>')}
-                                      mono
-                                    />
-                                  )}
-                                  <TextField
-                                    control={form.control}
-                                    name="config.scopes"
-                                    label={tf('oidc.scopes')}
-                                    placeholder={DEFAULT_SCOPES}
-                                    mono
-                                  />
-                                  <SubHeading>{tf('claimMapping')}</SubHeading>
-                                  <p className="-mt-2 text-xs text-muted-foreground">
-                                    {tf('claimMappingHint')}
-                                  </p>
-                                  <MappingFields
-                                    control={form.control}
-                                    prefix="config.claims"
-                                    keys={['email', 'name', 'username', 'groups']}
-                                    placeholders={ENTRA_CLAIMS}
-                                  />
-                                  <TextField
-                                    control={form.control}
-                                    name="allowedDomains"
-                                    label={tf('oidc.allowedDomains')}
-                                    placeholder="example.com, example.co.jp"
-                                    description={tf('oidc.allowedDomainsHint')}
-                                  />
-                                </>
-                              )}
-                              {type === 'saml' && (
-                                <>
-                                  <SubHeading>{tf('attributeMapping')}</SubHeading>
-                                  <p className="-mt-2 text-xs text-muted-foreground">
-                                    {tf('samlAttributeHint')}
-                                  </p>
-                                  <MappingFields
-                                    control={form.control}
-                                    prefix="config.attributes"
-                                    keys={['email', 'name', 'username', 'groups']}
-                                    placeholders={{
-                                      email: 'email',
-                                      name: 'displayName',
-                                      username: 'upn',
-                                      groups: 'groups',
-                                    }}
-                                  />
-                                  <SwitchField
-                                    control={form.control}
-                                    name="config.wantAssertionsSigned"
-                                    label={tf('saml.wantAssertionsSigned')}
-                                    description={tf('saml.wantAssertionsSignedHint')}
-                                  />
-                                </>
-                              )}
-                              {type === 'ldap' && (
-                                <>
-                                  <SubHeading>{tf('attributeMapping')}</SubHeading>
-                                  <MappingFields
-                                    control={form.control}
-                                    prefix="config.attributes"
-                                    keys={['username', 'email', 'name', 'memberOf']}
-                                    placeholders={{
-                                      username: 'sAMAccountName',
-                                      email: 'mail',
-                                      name: 'displayName',
-                                      memberOf: 'memberOf',
-                                    }}
-                                  />
-                                  <TextField
-                                    control={form.control}
-                                    name="config.groupBaseDn"
-                                    label={tf('ldap.groupBaseDn')}
-                                    placeholder="OU=Groups,DC=corp,DC=example"
-                                    mono
-                                  />
-                                  <TextField
-                                    control={form.control}
-                                    name="config.groupFilter"
-                                    label={tf('ldap.groupFilter')}
-                                    placeholder="(objectClass=group)"
-                                    mono
-                                  />
-                                  <SwitchField
-                                    control={form.control}
-                                    name="config.rejectUnauthorized"
-                                    label={tf('ldap.verifyTls')}
-                                    description={tf('ldap.verifyTlsHint')}
-                                  />
-                                </>
-                              )}
+                    <OptionalFields
+                      label={advanced ? tc('hideAdvanced') : tc('showAdvanced')}
+                      open={advanced}
+                      onOpenChange={setAdvanced}
+                      filled={countFilled(
+                        allowedDomains,
+                        groupMappings,
+                        defaultDepartmentId,
+                        groupBaseDn,
+                        groupFilter,
+                        ...Object.values(attributes),
+                      )}
+                      contentClassName="space-y-4 pt-4"
+                    >
+                      {type === 'oidc' && (
+                        <>
+                          {choice === 'entra' && (
+                            <TextField
+                              control={form.control}
+                              name="config.issuer"
+                              label={tf('oidc.issuer')}
+                              description={tf('entra.issuerOverride')}
+                              placeholder={entraIssuer('<tenant-id>')}
+                              mono
+                            />
+                          )}
+                          <TextField
+                            control={form.control}
+                            name="config.scopes"
+                            label={tf('oidc.scopes')}
+                            placeholder={DEFAULT_SCOPES}
+                            mono
+                          />
+                          <SubHeading>{tf('claimMapping')}</SubHeading>
+                          <p className="-mt-2 text-xs text-muted-foreground">{tf('claimMappingHint')}</p>
+                          <MappingFields
+                            control={form.control}
+                            prefix="config.claims"
+                            keys={['email', 'name', 'username', 'groups']}
+                            placeholders={ENTRA_CLAIMS}
+                          />
+                          <TextField
+                            control={form.control}
+                            name="allowedDomains"
+                            label={tf('oidc.allowedDomains')}
+                            placeholder="example.com, example.co.jp"
+                            description={tf('oidc.allowedDomainsHint')}
+                          />
+                        </>
+                      )}
+                      {type === 'saml' && (
+                        <>
+                          <SubHeading>{tf('attributeMapping')}</SubHeading>
+                          <p className="-mt-2 text-xs text-muted-foreground">{tf('samlAttributeHint')}</p>
+                          <MappingFields
+                            control={form.control}
+                            prefix="config.attributes"
+                            keys={['email', 'name', 'username', 'groups']}
+                            placeholders={{
+                              email: 'email',
+                              name: 'displayName',
+                              username: 'upn',
+                              groups: 'groups',
+                            }}
+                          />
+                          <SwitchField
+                            control={form.control}
+                            name="config.wantAssertionsSigned"
+                            label={tf('saml.wantAssertionsSigned')}
+                            description={tf('saml.wantAssertionsSignedHint')}
+                          />
+                        </>
+                      )}
+                      {type === 'ldap' && (
+                        <>
+                          <SubHeading>{tf('attributeMapping')}</SubHeading>
+                          <MappingFields
+                            control={form.control}
+                            prefix="config.attributes"
+                            keys={['username', 'email', 'name', 'memberOf']}
+                            placeholders={{
+                              username: 'sAMAccountName',
+                              email: 'mail',
+                              name: 'displayName',
+                              memberOf: 'memberOf',
+                            }}
+                          />
+                          <TextField
+                            control={form.control}
+                            name="config.groupBaseDn"
+                            label={tf('ldap.groupBaseDn')}
+                            placeholder="OU=Groups,DC=corp,DC=example"
+                            mono
+                          />
+                          <TextField
+                            control={form.control}
+                            name="config.groupFilter"
+                            label={tf('ldap.groupFilter')}
+                            placeholder="(objectClass=group)"
+                            mono
+                          />
+                          <SwitchField
+                            control={form.control}
+                            name="config.rejectUnauthorized"
+                            label={tf('ldap.verifyTls')}
+                            description={tf('ldap.verifyTlsHint')}
+                          />
+                        </>
+                      )}
 
-                              <SubHeading>{tf('provisioning')}</SubHeading>
-                              <SwitchField
-                                control={form.control}
-                                name="jitProvisioning"
-                                label={tf('jit')}
-                                description={tf('jitHint')}
+                      <SubHeading>{tf('provisioning')}</SubHeading>
+                      <SwitchField
+                        control={form.control}
+                        name="jitProvisioning"
+                        label={tf('jit')}
+                        description={tf('jitHint')}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="defaultDepartmentId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{tf('defaultDepartment')}</FormLabel>
+                            <FormControl>
+                              <DepartmentSelect
+                                value={field.value}
+                                onChange={field.onChange}
+                                noneLabel={tf('noDefaultDepartment')}
                               />
-                              <FormField
-                                control={form.control}
-                                name="defaultDepartmentId"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>{tf('defaultDepartment')}</FormLabel>
-                                    <FormControl>
-                                      <DepartmentSelect
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                        noneLabel={tf('noDefaultDepartment')}
-                                      />
-                                    </FormControl>
-                                    <FormDescription>{tf('defaultDepartmentHint')}</FormDescription>
-                                  </FormItem>
-                                )}
-                              />
-                              <GroupMappingsField control={form.control} choice={choice} enabled={open} />
-
-                              {type === 'ldap' && (
-                                <>
-                                  <SubHeading>{tf('directorySync')}</SubHeading>
-                                  <SwitchField
-                                    control={form.control}
-                                    name="syncEnabled"
-                                    label={tf('syncEnabled')}
-                                    description={tf('syncEnabledHint')}
-                                  />
-                                  <CronField control={form.control} />
-                                </>
-                              )}
-
-                              <SubHeading>{tf('display')}</SubHeading>
-                              <TextField
-                                control={form.control}
-                                name="displayOrder"
-                                label={tf('displayOrder')}
-                                description={tf('displayOrderHint')}
-                                type="number"
-                              />
-                            </div>
-                          </motion.div>
+                            </FormControl>
+                            <FormDescription>{tf('defaultDepartmentHint')}</FormDescription>
+                          </FormItem>
                         )}
-                      </AnimatePresence>
-                    </div>
+                      />
+                      <GroupMappingsField control={form.control} choice={choice} enabled={open} />
+
+                      {type === 'ldap' && (
+                        <>
+                          <SubHeading>{tf('directorySync')}</SubHeading>
+                          <SwitchField
+                            control={form.control}
+                            name="syncEnabled"
+                            label={tf('syncEnabled')}
+                            description={tf('syncEnabledHint')}
+                          />
+                          <CronField control={form.control} />
+                        </>
+                      )}
+
+                      <SubHeading>{tf('display')}</SubHeading>
+                      <TextField
+                        control={form.control}
+                        name="displayOrder"
+                        label={tf('displayOrder')}
+                        description={tf('displayOrderHint')}
+                        type="number"
+                      />
+                    </OptionalFields>
                     {form.formState.errors.root && (
                       <p role="alert" className="text-sm text-destructive">
                         {form.formState.errors.root.message}

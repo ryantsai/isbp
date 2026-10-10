@@ -54,13 +54,13 @@ export function UnmanagedList({ serverId }: { serverId?: string }) {
   const items = data?.items ?? [];
   if (!items.length)
     return (
-      <div className="rounded-xl border bg-card shadow-xs">
+      <div className="rounded-xl border bg-card">
         <EmptyState icon={<ShieldCheckIcon />} title={t('empty')} description={t('emptyHint')} />
       </div>
     );
   return (
     <>
-      <ul className="divide-y rounded-xl border bg-card shadow-xs" aria-label={t('title')}>
+      <ul className="divide-y rounded-xl border bg-card" aria-label={t('title')}>
         {items.map((u) => (
           <li key={keyOf(u)} className="flex min-w-0 flex-col gap-3 px-4 py-3 md:flex-row md:items-center">
             <ShieldQuestionIcon

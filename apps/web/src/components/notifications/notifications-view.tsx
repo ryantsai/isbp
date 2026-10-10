@@ -180,7 +180,7 @@ export function NotificationsView() {
           )}
         </motion.div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <AnimatePresence initial={false}>
             {groups.map((g) => (
               <motion.section
@@ -193,7 +193,7 @@ export function NotificationsView() {
               >
                 <h2
                   id={`day-${g.key}`}
-                  className="sticky top-14 z-10 -mx-1 mb-1 bg-background/85 px-1 py-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase backdrop-blur supports-[backdrop-filter]:bg-background/70"
+                  className="sticky top-14 z-10 -mx-1 mb-1 bg-background/85 px-1 py-1.5 text-xs font-semibold text-muted-foreground backdrop-blur supports-[backdrop-filter]:bg-background/70"
                 >
                   {dayLabel(g)}
                 </h2>

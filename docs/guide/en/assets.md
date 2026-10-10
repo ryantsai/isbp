@@ -202,12 +202,12 @@ Record what the company owns so you can compare it with what is used.
 
 1. Go to **Assets → Software**. Its tabs are **Licences**, **Approved list** and **Installed**: what you own, what
    may be installed and what devices report. On **Licences**, select **New licence**.
-2. Enter the **Product** (installs reported by inventory tools are matched by this name), the publisher and
-   vendor, the **Licence type** (**Per user**, **Per device**, **Concurrent**, **Site** or **Subscription**), and
+2. Enter the **Product** (installs reported by inventory tools are matched by this name), the vendor, the
+   **Licence type** (**Per user**, **Per device**, **Concurrent**, **Site** or **Subscription**), and
    **Entitlements** (leave it empty for unlimited or site licences).
-3. Enter the cost, **Billing**, start and end dates (leave **End date** empty for a perpetual licence) and the
-   **Contract** it was bought under.
-4. Optionally store the **Licence key**. It is stored encrypted.
+3. Enter the start and end dates (leave **End date** empty for a perpetual licence).
+4. Under **More details**, enter the publisher, the cost, **Billing** and the **Contract** it was bought under, and
+   optionally store the **Licence key**. It is stored encrypted.
 5. Save. Then open the licence and, on the **Seats** tab, use **Assign to a person** or **Assign to a device**
    (depending on the licence type) and select **Assign**.
 
@@ -306,7 +306,8 @@ ProPlus**: map it to **Microsoft 365 E3**. Two laptops run **WinRAR** (not on th
 **Keep the approved list.** **Assets → Software → Approved list** is the software allow list: each entry allows (or
 blocks) a title, optionally one **Version** (empty for any), for the **Whole company** or some **Departments**,
 optionally **Valid until** a date for short-term use, with its **Licence type** (always chosen, never assumed), the
-licence or contract it is used under and the request it was approved with. Asset managers select **Add software**;
+licence or contract it is used under and the request it was approved with (the optional ones are under **More
+details**). Asset managers select **Add software**;
 everyone with access to software sees the list, and **Export CSV** downloads it in the allow-list layout. The
 device's **Software** tab shows the same labels as **Not allowed**, and the home dashboard counts them. A software
 install request form can add the title for you with the **Approve software** action.
@@ -317,10 +318,10 @@ Support, maintenance, lease and subscription contracts renew or lapse on fixed d
 and keeps the signed document with the contract.
 
 1. Go to **Assets → Contracts** (its tabs are **Contracts** and **Vendors**) and select **New contract**.
-2. Enter the title, vendor, **Kind**, start and end dates, the **Notice period** (days before the end when the
-   reminder goes out), whether it **Auto-renews**, the cost and billing, and the **Owner**, who receives the
-   renewal reminders. Choose **Save as a draft (no reminders until it is activated)** if it isn't signed yet; later
-   select **Activate**.
+2. Enter the title, vendor, **Kind**, and start and end dates. Under **More details**, set the **Notice period**
+   (days before the end when the reminder goes out), whether it **Auto-renews**, the cost and billing, and the
+   **Owner**, who receives the renewal reminders. Choose **Save as a draft (no reminders until it is activated)**
+   there if it isn't signed yet; later select **Activate**.
 3. Open the contract's **Covered items** tab, select **Edit items**, and use **Add an asset** and **Add a licence**.
 4. Open **Links & files** and upload the signed PDF under **Attachments** (drag the file in, or select **Upload**).
 
@@ -353,8 +354,9 @@ notice period, and has `Dell-ProSupport-Plus-signed.pdf` attached.
 Models set the depreciation lifespan of the devices bought as them, so keep them right.
 
 1. Go to **Administration → Asset settings**. On the **Models** tab select **New model**.
-2. Enter the **Manufacturer**, **Model name**, **Category**, **Part number** and **Lifespan (months)** (leave it
-   empty for the category default). Turn off **Available for new assets** for models you no longer buy.
+2. Enter the **Manufacturer**, **Model name** and **Category**. Under **More details**, enter the **Part number**
+   and **Lifespan (months)** (leave it empty for the category default). Turn off **Available for new assets** for
+   models you no longer buy.
 3. The **General** tab holds the **Default currency**, the **Warranty reminder window** (default 30 days), the
    **Under-used threshold** and the data-wipe months and reminder days. Platform administrators change them right
    there and select **Save**; others see the values.

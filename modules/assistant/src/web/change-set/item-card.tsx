@@ -298,10 +298,7 @@ export function ItemCard({
   const hasPreview = previews.length > 0 && isRecord(preview.value);
 
   return (
-    <article
-      aria-labelledby={`${id}-title`}
-      className="min-w-0 overflow-hidden rounded-xl border bg-card shadow-xs"
-    >
+    <article aria-labelledby={`${id}-title`} className="min-w-0 overflow-hidden rounded-xl border bg-card">
       <div className="flex min-w-0 items-start gap-3 p-4">
         <span
           aria-hidden

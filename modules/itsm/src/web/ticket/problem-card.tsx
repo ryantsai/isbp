@@ -36,7 +36,7 @@ function ArticleLink({ article, label }: { article: { reference: string }; label
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="grid min-w-0 grid-cols-1 gap-1.5">
-      <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</h3>
+      <h3 className="text-xs font-semibold text-muted-foreground">{title}</h3>
       {children}
     </section>
   );

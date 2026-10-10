@@ -5,6 +5,7 @@ import { Button } from '@isbp/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
@@ -79,6 +80,7 @@ export function ProjectForm({
   const errorText = useErrorText();
   const { user } = usePlatform();
   const id = useId();
+  const list = useFieldList();
   const departments = useApiQuery<{ items: { id: string; name: string; hint: string }[] }>(
     '/projects/lookups/departments',
   );
@@ -213,25 +215,8 @@ export function ProjectForm({
             onChange={setOwner}
           />
         </Field>
-        <Field id={`${id}-department`} label={tf('department')}>
-          <Select value={departmentId} onValueChange={setDepartmentId}>
-            <SelectTrigger id={`${id}-department`} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>
-                <span className="text-muted-foreground">{t('noDepartment')}</span>
-              </SelectItem>
-              {(departments.data?.items ?? []).map((d) => (
-                <SelectItem key={d.id} value={d.id}>
-                  {d.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field id={`${id}-start`} label={tf('startDate')}>
           <Input
             id={`${id}-start`}
@@ -248,24 +233,6 @@ export function ProjectForm({
             aria-invalid={Boolean(errors.targetDate) || undefined}
             aria-describedby={describedBy('targetDate')}
             onChange={(e) => setTargetDate(e.target.value)}
-          />
-        </Field>
-        <Field
-          id={`${id}-budget`}
-          label={tf('budgetHours')}
-          error={errors.budgetHours}
-          hint={t('budgetHint')}
-        >
-          <Input
-            id={`${id}-budget`}
-            type="number"
-            min={0}
-            step={1}
-            inputMode="numeric"
-            value={budget}
-            aria-invalid={Boolean(errors.budgetHours) || undefined}
-            aria-describedby={describedBy('budgetHours', true)}
-            onChange={(e) => setBudget(e.target.value)}
           />
         </Field>
       </div>
@@ -303,10 +270,51 @@ export function ProjectForm({
           </Select>
         </Field>
       </div>
-      <div className="grid gap-2">
-        <span className="text-sm font-medium">{tf('description')}</span>
-        <MarkdownEditor value={description} onChange={setDescription} label={tf('description')} rows={5} />
-      </div>
+      <OptionalFields
+        hint={list([tf('department'), tf('budgetHours'), tf('description')])}
+        filled={countFilled(departmentId === NONE ? '' : departmentId, budget, description)}
+        contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
+      >
+        <Field id={`${id}-department`} label={tf('department')}>
+          <Select value={departmentId} onValueChange={setDepartmentId}>
+            <SelectTrigger id={`${id}-department`} className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>
+                <span className="text-muted-foreground">{t('noDepartment')}</span>
+              </SelectItem>
+              {(departments.data?.items ?? []).map((d) => (
+                <SelectItem key={d.id} value={d.id}>
+                  {d.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field
+          id={`${id}-budget`}
+          label={tf('budgetHours')}
+          error={errors.budgetHours}
+          hint={t('budgetHint')}
+        >
+          <Input
+            id={`${id}-budget`}
+            type="number"
+            min={0}
+            step={1}
+            inputMode="numeric"
+            value={budget}
+            aria-invalid={Boolean(errors.budgetHours) || undefined}
+            aria-describedby={describedBy('budgetHours', true)}
+            onChange={(e) => setBudget(e.target.value)}
+          />
+        </Field>
+        <div className="grid gap-2 sm:col-span-2">
+          <span className="text-sm font-medium">{tf('description')}</span>
+          <MarkdownEditor value={description} onChange={setDescription} label={tf('description')} rows={5} />
+        </div>
+      </OptionalFields>
       {errors.root && (
         <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errors.root}

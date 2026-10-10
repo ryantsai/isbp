@@ -39,7 +39,7 @@ type View = (typeof VIEWS)[number];
 
 function ProjectSkeleton() {
   return (
-    <div className="grid gap-6" aria-busy>
+    <div className="grid gap-4" aria-busy>
       <Skeleton className="h-4 w-24" />
       <div className="grid gap-2">
         <Skeleton className="h-5 w-40" />
@@ -193,7 +193,7 @@ export default function ProjectPage({ params }: WebPageProps) {
   const view: View = views.includes(viewParam as View) ? (viewParam as View) : 'overview';
 
   return (
-    <div className="grid min-w-0 gap-6">
+    <div className="grid min-w-0 gap-4">
       <Header project={project} onNewTask={() => setCreating(true)} />
       <Tabs
         value={view}

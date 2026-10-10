@@ -14,14 +14,14 @@ import { RequesterView } from '../ticket/requester-view';
 
 function TicketSkeleton() {
   return (
-    <div className="grid gap-6" aria-busy>
+    <div className="grid gap-4" aria-busy>
       <div className="grid gap-3">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-4 w-40" />
         <Skeleton className="h-8 w-2/3" />
         <Skeleton className="h-6 w-56" />
       </div>
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="grid gap-4">
           <Skeleton className="h-40 w-full rounded-xl" />
           <Skeleton className="h-72 w-full rounded-xl" />

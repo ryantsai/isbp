@@ -9,6 +9,7 @@ import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { IconTile } from '@isbp/ui/icon-tile';
 import {
   ArrowRightIcon,
   ClipboardCheckIcon,
@@ -67,7 +68,7 @@ function SourceCard({ section, now }: { section: WorkSection; now: Date }) {
   const label = t.has(section.label) ? t(section.label) : section.label;
   const more = section.count - section.items.length;
   return (
-    <section aria-label={label} className="min-w-0 rounded-xl border bg-card p-3 shadow-xs sm:p-4">
+    <section aria-label={label} className="min-w-0 rounded-xl border bg-card p-3 sm:p-4">
       <div className="mb-1 flex items-center gap-2 px-2">
         <NavIcon name={section.icon ?? undefined} className="size-4 shrink-0 text-muted-foreground" />
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">{label}</h3>
@@ -131,14 +132,14 @@ export function MyWorkView() {
           className="rounded-xl border border-dashed"
         />
       ) : (
-        <div className="grid grid-cols-1 gap-8">
+        <div className="grid grid-cols-1 gap-5">
           {present.length > 1 && (
             <nav aria-label={t('sectionsLabel')} className="-mt-2 flex flex-wrap gap-2">
               {present.map(({ kind, icon }) => (
                 <a
                   key={kind}
                   href={`#work-${kind}`}
-                  className="inline-flex max-w-full items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-sm shadow-xs outline-none transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
                 >
                   {icon}
                   <span className="truncate">{t(`kinds.${kind}`)}</span>
@@ -158,9 +159,9 @@ export function MyWorkView() {
                 id={`work-${kind}-title`}
                 className="mb-1 flex min-w-0 items-center gap-2 text-base font-semibold"
               >
-                <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                <IconTile aria-hidden size="sm">
                   {icon}
-                </span>
+                </IconTile>
                 {t(`kinds.${kind}`)}
               </h2>
               <p className="mb-3 text-sm text-muted-foreground">{t(`kindHints.${kind}`)}</p>

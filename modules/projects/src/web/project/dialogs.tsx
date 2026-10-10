@@ -14,7 +14,7 @@ import {
 } from '@isbp/ui/dialog';
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
-import { Disclosure } from '@isbp/ui/motion';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Textarea } from '@isbp/ui/textarea';
@@ -253,6 +253,7 @@ export function NewTaskDialog({
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const id = useId();
+  const list = useFieldList();
   const [title, setTitle] = useState('');
   const [type, setType] = useState<TaskType>('task');
   const [priority, setPriority] = useState<TaskPriority>('medium');
@@ -391,81 +392,91 @@ export function NewTaskDialog({
               {t('datesInvalid')}
             </p>
           )}
-          <Disclosure
-            summary={t('moreDetails')}
+          <OptionalFields
             open={more}
             onOpenChange={setMore}
-            triggerClassName="w-auto justify-start py-1 text-sm text-muted-foreground"
+            hint={list([
+              ...(showType ? [tf('type')] : []),
+              tf('priority'),
+              tf('startDate'),
+              tf('estimateHours'),
+              tf('description'),
+            ])}
+            filled={countFilled(
+              type === 'task' ? '' : type,
+              priority === 'medium' ? '' : priority,
+              startDate,
+              estimate,
+              description,
+            )}
           >
-            <div className="grid gap-4 pt-2">
-              <div className="grid gap-4 sm:grid-cols-3">
-                {showType && (
-                  <div className="grid min-w-0 gap-2">
-                    <Label htmlFor={`${id}-type`}>{tf('type')}</Label>
-                    <Select value={type} onValueChange={(v) => setType(v as TaskType)}>
-                      <SelectTrigger id={`${id}-type`} className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TASK_TYPES.map((ty) => (
-                          <SelectItem key={ty} value={ty}>
-                            <TaskTypeIcon type={ty} label={false} />
-                            {tt(ty)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+            <div className="grid gap-4 sm:grid-cols-3">
+              {showType && (
                 <div className="grid min-w-0 gap-2">
-                  <Label htmlFor={`${id}-priority`}>{tf('priority')}</Label>
-                  <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
-                    <SelectTrigger id={`${id}-priority`} className="w-full">
+                  <Label htmlFor={`${id}-type`}>{tf('type')}</Label>
+                  <Select value={type} onValueChange={(v) => setType(v as TaskType)}>
+                    <SelectTrigger id={`${id}-type`} className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {TASK_PRIORITIES.map((p) => (
-                        <SelectItem key={p} value={p} textValue={tp(p)}>
-                          <PriorityLabel priority={p} className="text-sm font-normal" />
+                      {TASK_TYPES.map((ty) => (
+                        <SelectItem key={ty} value={ty}>
+                          <TaskTypeIcon type={ty} label={false} />
+                          {tt(ty)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid min-w-0 gap-2">
-                  <Label htmlFor={`${id}-start`}>{tf('startDate')}</Label>
-                  <Input
-                    id={`${id}-start`}
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                <div className="grid min-w-0 gap-2">
-                  <Label htmlFor={`${id}-estimate`}>{tf('estimateHours')}</Label>
-                  <Input
-                    id={`${id}-estimate`}
-                    type="number"
-                    min={0}
-                    step={0.5}
-                    inputMode="decimal"
-                    value={estimate}
-                    onChange={(e) => setEstimate(e.target.value)}
-                  />
-                </div>
+              )}
+              <div className="grid min-w-0 gap-2">
+                <Label htmlFor={`${id}-priority`}>{tf('priority')}</Label>
+                <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
+                  <SelectTrigger id={`${id}-priority`} className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TASK_PRIORITIES.map((p) => (
+                      <SelectItem key={p} value={p} textValue={tp(p)}>
+                        <PriorityLabel priority={p} className="text-sm font-normal" />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor={`${id}-description`}>{tf('description')}</Label>
-                <MarkdownEditor
-                  id={`${id}-description`}
-                  value={description}
-                  onChange={setDescription}
-                  label={tf('description')}
-                  rows={4}
+              <div className="grid min-w-0 gap-2">
+                <Label htmlFor={`${id}-start`}>{tf('startDate')}</Label>
+                <Input
+                  id={`${id}-start`}
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div className="grid min-w-0 gap-2">
+                <Label htmlFor={`${id}-estimate`}>{tf('estimateHours')}</Label>
+                <Input
+                  id={`${id}-estimate`}
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  inputMode="decimal"
+                  value={estimate}
+                  onChange={(e) => setEstimate(e.target.value)}
                 />
               </div>
             </div>
-          </Disclosure>
+            <div className="grid gap-2">
+              <Label htmlFor={`${id}-description`}>{tf('description')}</Label>
+              <MarkdownEditor
+                id={`${id}-description`}
+                value={description}
+                onChange={setDescription}
+                label={tf('description')}
+                rows={4}
+              />
+            </div>
+          </OptionalFields>
           {error && (
             <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {error}

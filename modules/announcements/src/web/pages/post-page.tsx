@@ -73,7 +73,7 @@ export default function PostPage({ params }: WebPageProps) {
   if (!post) {
     const missing = error instanceof ApiError && error.status === 404;
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <BackLink href={back.href} label={back.label} />
         <ErrorState
           kind="page"

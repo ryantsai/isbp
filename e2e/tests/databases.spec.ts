@@ -60,6 +60,7 @@ test('adds a connection after testing it, disables it, then deletes it', async (
   await sheet.getByRole('textbox', { name: 'Host' }).fill(PG.host);
   await sheet.getByRole('textbox', { name: 'Port' }).fill(PG.port);
   await sheet.getByRole('textbox', { name: /^Database/ }).fill(PG.database);
+  await sheet.getByRole('button', { name: /^More details/ }).click();
   await sheet.getByRole('combobox', { name: 'Encryption' }).click();
   await page.getByRole('option', { name: 'Off' }).click();
   await sheet.getByRole('textbox', { name: 'User name' }).fill(PG.user);

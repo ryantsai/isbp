@@ -17,5 +17,8 @@ test-results/
 blob-report/
 next-env.d.ts
 
+# IBM Plex CJK subsets published by apps/web/scripts/fonts.mjs
+apps/web/public/fonts/
+
 # Flow simulator: persona passwords, stack logs and reports (tooling/flow-sim)
 tooling/flow-sim/.state/

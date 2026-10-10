@@ -86,7 +86,7 @@ export default function StocktakePage({ params }: WebPageProps) {
   const filtered = Boolean(state.q || result);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DetailHeader
         back={{ href: '/isms/stocktakes', label: t('stocktakes.title'), highlight: s.id }}
         icon={<ClipboardCheckIcon />}

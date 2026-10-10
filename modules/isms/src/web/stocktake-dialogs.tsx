@@ -13,6 +13,7 @@ import {
 import { Input } from '@isbp/ui/input';
 import { Label } from '@isbp/ui/label';
 import { Collapse } from '@isbp/ui/motion';
+import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
@@ -303,6 +304,7 @@ function NewStocktakeForm({
   const { data: taxonomy } = useTaxonomy();
   const { data: groups } = useGroups();
   const ids = { name: useId(), start: useId(), due: useId(), recurrence: useId(), managers: useId() };
+  const list = useFieldList();
   const today = todayLocal(timeZone);
   const [name, setName] = useState(t('newStocktake.defaultName', { year: today.slice(0, 4) }));
   const [startOn, setStartOn] = useState(today);
@@ -339,6 +341,13 @@ function NewStocktakeForm({
       setError(errorText(err));
     }
   };
+  const detailsFilled = countFilled(
+    recurrence === 'none' ? '' : recurrence,
+    classIds,
+    siteIds,
+    managerIds,
+    managerGroupIds,
+  );
   return (
     <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col" noValidate>
       <SheetBody className="space-y-5">
@@ -346,7 +355,7 @@ function NewStocktakeForm({
           <Label htmlFor={ids.name}>{t('fields.stocktakeName')}</Label>
           <Input id={ids.name} value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label htmlFor={ids.start}>{t('fields.startOn')}</Label>
             <Input
@@ -367,6 +376,17 @@ function NewStocktakeForm({
               onChange={(e) => setDueOn(e.target.value)}
             />
           </div>
+        </div>
+        <OptionalFields
+          hint={list([
+            t('fields.recurrence'),
+            t('fields.class'),
+            t('fields.site'),
+            t('newStocktake.managers'),
+            t('fields.managerGroup'),
+          ])}
+          filled={detailsFilled}
+        >
           <div className="grid gap-1.5">
             <Label htmlFor={ids.recurrence}>{t('fields.recurrence')}</Label>
             <Select value={recurrence} onValueChange={(v) => setRecurrence(v as typeof recurrence)}>
@@ -382,38 +402,38 @@ function NewStocktakeForm({
               </SelectContent>
             </Select>
           </div>
-        </div>
-        <p className="text-xs text-muted-foreground">{t('newStocktake.scopeHint')}</p>
-        <CheckList
-          legend={t('fields.class')}
-          items={(taxonomy?.classes ?? []).map((c) => ({
-            id: c.id,
-            label: `${c.code} · ${localized(c.name)}`,
-          }))}
-          value={classIds}
-          onChange={setClassIds}
-        />
-        <CheckList
-          legend={t('fields.site')}
-          items={(taxonomy?.sites ?? []).map((s) => ({ id: s.id, label: `${s.code} · ${s.name}` }))}
-          value={siteIds}
-          onChange={setSiteIds}
-        />
-        <div className="grid gap-1.5">
-          <Label htmlFor={ids.managers}>{t('newStocktake.managers')}</Label>
-          <PeoplePicker
-            id={ids.managers}
-            value={managerIds}
-            onChange={setManagerIds}
-            addLabel={t('newStocktake.addManager')}
+          <p className="text-xs text-muted-foreground">{t('newStocktake.scopeHint')}</p>
+          <CheckList
+            legend={t('fields.class')}
+            items={(taxonomy?.classes ?? []).map((c) => ({
+              id: c.id,
+              label: `${c.code} · ${localized(c.name)}`,
+            }))}
+            value={classIds}
+            onChange={setClassIds}
           />
-        </div>
-        <CheckList
-          legend={t('fields.managerGroup')}
-          items={(groups?.items ?? []).map((g) => ({ id: g.id, label: g.name }))}
-          value={managerGroupIds}
-          onChange={setManagerGroupIds}
-        />
+          <CheckList
+            legend={t('fields.site')}
+            items={(taxonomy?.sites ?? []).map((s) => ({ id: s.id, label: `${s.code} · ${s.name}` }))}
+            value={siteIds}
+            onChange={setSiteIds}
+          />
+          <div className="grid gap-1.5">
+            <Label htmlFor={ids.managers}>{t('newStocktake.managers')}</Label>
+            <PeoplePicker
+              id={ids.managers}
+              value={managerIds}
+              onChange={setManagerIds}
+              addLabel={t('newStocktake.addManager')}
+            />
+          </div>
+          <CheckList
+            legend={t('fields.managerGroup')}
+            items={(groups?.items ?? []).map((g) => ({ id: g.id, label: g.name }))}
+            value={managerGroupIds}
+            onChange={setManagerGroupIds}
+          />
+        </OptionalFields>
         {error && (
           <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}

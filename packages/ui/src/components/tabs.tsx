@@ -28,7 +28,7 @@ export function Tabs({
           setInternal(v);
           onValueChange?.(v);
         }}
-        className={cn('flex flex-col gap-4', className)}
+        className={cn('flex flex-col gap-3', className)}
         {...props}
       />
     </TabsValueContext.Provider>
@@ -61,7 +61,7 @@ export function TabsTrigger({
       data-slot="tabs-trigger"
       value={value}
       className={cn(
-        "relative inline-flex h-9 items-center justify-center gap-1.5 px-3 text-sm font-medium whitespace-nowrap transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "relative inline-flex h-8 items-center justify-center gap-1.5 px-2.5 text-sm font-medium whitespace-nowrap transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}

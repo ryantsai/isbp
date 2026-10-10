@@ -218,7 +218,7 @@ export default function OverviewPage() {
     <>
       {header}
       {isLoading || !d ? (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <Skeleton className="h-28 rounded-xl" />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {Array.from({ length: 3 }, (_, i) => (
@@ -228,7 +228,7 @@ export default function OverviewPage() {
           <Skeleton className="h-72 rounded-xl" />
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-5">
           <FailingJobs failing={d.failing} />
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" role="group" aria-label={t('overview.kpis')}>
@@ -301,7 +301,7 @@ export default function OverviewPage() {
             }
           />
 
-          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
             <ListCard
               title={t('overview.upcoming')}
               description={t('overview.upcomingHint')}

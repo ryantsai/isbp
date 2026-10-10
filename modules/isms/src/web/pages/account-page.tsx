@@ -133,7 +133,7 @@ export default function AccountPage({ params }: WebPageProps) {
   const empty = details.filter(([, v]) => v === null || v === undefined || v === '');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DetailHeader
         back={{ href: '/isms/accounts', label: t('accounts.title'), highlight: a.id }}
         icon={<KeyRoundIcon />}
@@ -234,7 +234,7 @@ export default function AccountPage({ params }: WebPageProps) {
           <TabsTrigger value="links">{t('links.title')}</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="min-w-0">
-          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className="min-w-0">
               <CardHeader>
                 <CardTitle>{t('account.about')}</CardTitle>

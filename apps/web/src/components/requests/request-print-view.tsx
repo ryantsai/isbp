@@ -111,7 +111,7 @@ export function RequestPrintView({ reference }: { reference: string }) {
       </div>
 
       <header className="grid gap-1 border-b-2 border-foreground pb-3">
-        <p className="text-xs tracking-wide text-muted-foreground uppercase">{root('common.appName')}</p>
+        <p className="text-xs text-muted-foreground">{root('common.appName')}</p>
         <h1 className="text-2xl font-semibold">{formName}</h1>
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
           <span className="font-mono text-foreground">{s.reference}</span>

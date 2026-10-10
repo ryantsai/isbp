@@ -63,7 +63,7 @@ export function ChartFrame({
   return (
     <section
       aria-labelledby={`${id}-title`}
-      className="flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-5 text-card-foreground shadow-xs"
+      className="flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-4 text-card-foreground"
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">

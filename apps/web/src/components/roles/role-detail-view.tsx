@@ -133,7 +133,7 @@ export function RoleDetailView({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <div className="space-y-6" aria-busy>
+      <div className="space-y-5" aria-busy>
         <Skeleton className="h-8 w-32" />
         <div className="flex items-center gap-4">
           <Skeleton className="size-12 rounded-xl" />
@@ -164,7 +164,7 @@ export function RoleDetailView({ id }: { id: string }) {
   const editable = canManage && !role.isSystem;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <BackLink href="/admin/roles" label={t('title')} highlight={role.id} />
 
       <FadeIn y={4} className="flex flex-col gap-4 sm:flex-row sm:items-start">
@@ -176,7 +176,7 @@ export function RoleDetailView({ id }: { id: string }) {
         </span>
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-2xl font-semibold tracking-tight">{name}</h1>
+            <h1 className="truncate text-xl font-semibold tracking-tight">{name}</h1>
             {role.isSystem ? (
               <Badge variant="muted">
                 <LockIcon aria-hidden /> {t('badges.system')}
@@ -266,7 +266,7 @@ export function RoleDetailView({ id }: { id: string }) {
           </TabsList>
         )}
         <TabsContent value="permissions">
-          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
             <Card>
               <CardHeader>
                 <CardTitle>{t('detail.permissions')}</CardTitle>
@@ -294,7 +294,7 @@ export function RoleDetailView({ id }: { id: string }) {
               </CardContent>
             </Card>
 
-            <div className="grid min-w-0 gap-6">
+            <div className="grid min-w-0 gap-4">
               <RoleAssignmentsCard role={role} onGrant={canAssign ? () => setDialog('grant') : undefined} />
               <RoleRequestSettingsCard role={role} />
             </div>
@@ -446,7 +446,7 @@ function RoleAssignmentsCard({ role, onGrant }: { role: Role; onGrant?: () => vo
             ))}
           </div>
         ) : items.length === 0 ? (
-          <EmptyState icon={<UsersIcon />} title={t('detail.noAssignments')} className="py-8" />
+          <EmptyState icon={<UsersIcon />} title={t('detail.noAssignments')} className="py-6" />
         ) : (
           <AnimatedList className="-mx-1 divide-y">
             {items.map((a) => (

@@ -72,7 +72,7 @@ export function SectionTabs({
   const search = useSearchParams();
   const active = value ?? activeSectionTab(items, pathname, new URLSearchParams(search.toString()));
   return (
-    <nav aria-label={label} className={cn('-mt-2 mb-6 border-b', className)}>
+    <nav aria-label={label} className={cn('-mt-1 mb-4 border-b', className)}>
       <ul className="-mb-px flex max-w-full gap-1 overflow-x-auto">
         {items.map((item) => {
           const current = item.href === active;
@@ -82,7 +82,7 @@ export function SectionTabs({
                 href={item.href}
                 aria-current={current ? 'page' : undefined}
                 className={cn(
-                  "relative inline-flex h-10 items-center gap-1.5 px-3 text-sm font-medium whitespace-nowrap text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+                  "relative inline-flex h-9 items-center gap-1.5 px-2.5 text-sm font-medium whitespace-nowrap text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
                   current && 'text-foreground',
                 )}
               >

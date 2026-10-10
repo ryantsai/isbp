@@ -91,7 +91,7 @@ export default function AssetPage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <div className="flex items-center gap-4">
           <Skeleton className="size-12 rounded-xl" />
@@ -177,7 +177,7 @@ export default function AssetPage({ params }: WebPageProps) {
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DetailHeader
         back={{ href: '/itam/hardware', label: t('hardware.title'), highlight: asset.id }}
         icon={<CategoryIcon category={asset.category} />}
@@ -232,8 +232,8 @@ export default function AssetPage({ params }: WebPageProps) {
           <TabsTrigger value="links">{t('asset.tabs.links')}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3">
-          <div className="min-w-0 space-y-6 lg:col-span-2">
+        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3">
+          <div className="min-w-0 space-y-5 lg:col-span-2">
             <Card>
               <CardHeader>
                 <CardTitle>{t('asset.details')}</CardTitle>
@@ -317,7 +317,7 @@ export default function AssetPage({ params }: WebPageProps) {
             )}
             <CustomFieldsCard entityType="itam.asset" attributes={asset.attributes} />
           </div>
-          <div className="min-w-0 space-y-6">
+          <div className="min-w-0 space-y-5">
             <AssignmentCard asset={asset} />
             {asset.dataBearing && <WipeCard asset={asset} />}
             <CiCard asset={asset} />
@@ -519,7 +519,7 @@ function SoftwareTab({ asset }: { asset: AssetDetail }) {
   if (isLoading || !data) return <Skeleton className="h-48 w-full rounded-xl" />;
   const unlicensed = data.installations.filter((i) => i.managed && !i.licensed).length;
   return (
-    <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3">
+    <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3">
       <Card className="min-w-0 lg:col-span-2">
         <CardHeader>
           <CardTitle>{t('installed')}</CardTitle>

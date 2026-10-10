@@ -7,6 +7,7 @@ import * as React from 'react';
 import { pathOf, recallListHref, rememberOpenedRow } from '../lib/list-memory';
 import { cn } from '../lib/utils';
 import { Button } from './button';
+import { IconTile } from './icon-tile';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,12 +75,12 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn('flex flex-col gap-4 pb-6 sm:flex-row sm:items-end sm:justify-between', className)}>
-      <div className="min-w-0 space-y-1">
+    <div className={cn('flex flex-col gap-3 pb-4 sm:flex-row sm:items-end sm:justify-between', className)}>
+      <div className="min-w-0 space-y-0.5">
         {back && <BackLink href={back.href} label={back.label} className="mb-1" />}
         {eyebrow && <div className="text-sm text-muted-foreground">{eyebrow}</div>}
-        <h1 className="text-2xl font-semibold tracking-tight wrap-break-word">{title}</h1>
-        {description && <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>}
+        <h1 className="text-xl leading-7 font-semibold tracking-tight wrap-break-word">{title}</h1>
+        {description && <p className="max-w-3xl text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -141,18 +142,16 @@ export function DetailHeader({
   const destructive = overflow.filter((a) => a.destructive);
   const hasMenu = overflow.length > 0;
   return (
-    <header className={cn('space-y-3 pb-6', className)}>
+    <header className={cn('space-y-2 pb-4', className)}>
       {back && <BackLink href={back.href} label={back.label} highlight={back.highlight} />}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          {icon && (
-            <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary [&_svg]:size-5">
-              {icon}
-            </div>
-          )}
-          <div className="min-w-0 space-y-1.5">
-            {reference && <div className="text-sm text-muted-foreground wrap-break-word">{reference}</div>}
-            <h1 className="text-2xl leading-tight font-semibold tracking-tight wrap-break-word">{title}</h1>
+          {icon && <IconTile aria-hidden>{icon}</IconTile>}
+          <div className="min-w-0 space-y-1">
+            {reference && (
+              <div className="text-[13px] text-muted-foreground wrap-break-word">{reference}</div>
+            )}
+            <h1 className="text-xl leading-7 font-semibold tracking-tight wrap-break-word">{title}</h1>
             {(status || badges) && (
               <div className="flex flex-wrap items-center gap-2">
                 {status}

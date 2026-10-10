@@ -376,7 +376,7 @@ export default function ArticlePage({ params }: WebPageProps) {
     });
 
   return (
-    <div className="grid max-w-6xl gap-6">
+    <div className="grid max-w-6xl gap-4">
       <DetailHeader
         className="pb-0"
         back={{
@@ -457,8 +457,8 @@ export default function ArticlePage({ params }: WebPageProps) {
         menu={menu}
       />
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <article className="grid min-w-0 content-start gap-6" lang={LOCALE_LANG[article.locale]}>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <article className="grid min-w-0 content-start gap-4" lang={LOCALE_LANG[article.locale]}>
           {(article.summary || article.translations.length > 0) && (
             <div className="grid gap-3">
               {article.summary && <p className="text-base text-muted-foreground">{article.summary}</p>}
@@ -487,7 +487,7 @@ export default function ArticlePage({ params }: WebPageProps) {
         {/* Not sticky with the record panels: a taller aside would hide its end below the fold. */}
         <aside
           className={cn(
-            'grid min-w-0 content-start gap-6',
+            'grid min-w-0 content-start gap-4',
             !recordPanels && 'lg:sticky lg:top-6 lg:self-start',
           )}
         >

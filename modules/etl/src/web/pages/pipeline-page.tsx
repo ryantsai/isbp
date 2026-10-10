@@ -150,7 +150,7 @@ export default function PipelinePage({ params }: WebPageProps) {
 
   if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-12 w-80 max-w-full" />
         <Skeleton className="h-72 w-full rounded-xl" />
@@ -164,7 +164,7 @@ export default function PipelinePage({ params }: WebPageProps) {
   const lastFailed = p.lastRun?.status === 'failed';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DetailHeader
         className="pb-0"
         back={{ href: '/etl/pipelines', label: t('pipelines.title'), highlight: p.id }}
@@ -288,7 +288,7 @@ export default function PipelinePage({ params }: WebPageProps) {
             </TabsTrigger>
           ))}
         </TabsList>
-        <TabsContent value="overview" className="grid min-w-0 gap-6">
+        <TabsContent value="overview" className="grid min-w-0 gap-4">
           {tab === 'overview' && (
             <>
               <div
@@ -305,7 +305,7 @@ export default function PipelinePage({ params }: WebPageProps) {
                 />
                 <StatTile label={t('pipeline.tiles.rowsWritten')} value={p.stats.rowsWritten} />
               </div>
-              <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-2">
+              <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-2">
                 <DefinitionSummary pipeline={p} />
                 <Card className="min-w-0">
                   <CardHeader>

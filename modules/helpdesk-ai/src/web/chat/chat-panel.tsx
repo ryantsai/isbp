@@ -284,7 +284,7 @@ export function ChatPanel({
         <label htmlFor={inputId} className="sr-only">
           {t('chat.inputLabel')}
         </label>
-        <div className="flex items-end gap-2 rounded-xl border bg-background px-2 py-1.5 shadow-xs transition-shadow focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 motion-reduce:transition-none">
+        <div className="flex items-end gap-2 rounded-xl border bg-background px-2 py-1.5 transition-shadow focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 motion-reduce:transition-none">
           <Textarea
             id={inputId}
             ref={input}
@@ -396,7 +396,7 @@ function Welcome({ onPick, disabled }: { onPick: (q: string) => void; disabled: 
               disabled={disabled}
               onClick={() => onPick(t(`starters.${key}`))}
               className={cn(
-                'flex h-full w-full min-w-0 items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 text-left text-sm shadow-xs outline-none transition-colors',
+                'flex h-full w-full min-w-0 items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 text-left text-sm outline-none transition-colors',
                 'hover:border-ring/40 hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none',
               )}
             >

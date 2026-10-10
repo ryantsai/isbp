@@ -62,7 +62,7 @@ function IsmsOverviewCard() {
       <CardContent className="space-y-4 text-sm">
         {data.assets && data.assets.total > 0 && (
           <section aria-labelledby="isms-dash-value" className="space-y-1.5">
-            <h3 id="isms-dash-value" className="text-xs font-medium text-muted-foreground uppercase">
+            <h3 id="isms-dash-value" className="text-xs font-semibold text-muted-foreground">
               {t('byValue', { total: data.assets.total })}
             </h3>
             <table className="w-full text-xs">
@@ -89,7 +89,7 @@ function IsmsOverviewCard() {
         )}
         {data.stocktakes.length > 0 && (
           <section aria-labelledby="isms-dash-st" className="space-y-1">
-            <h3 id="isms-dash-st" className="text-xs font-medium text-muted-foreground uppercase">
+            <h3 id="isms-dash-st" className="text-xs font-semibold text-muted-foreground">
               {t('stocktakes')}
             </h3>
             <ul className="divide-y">
@@ -109,7 +109,7 @@ function IsmsOverviewCard() {
         )}
         {data.reviews.length > 0 && (
           <section aria-labelledby="isms-dash-rv" className="space-y-1">
-            <h3 id="isms-dash-rv" className="text-xs font-medium text-muted-foreground uppercase">
+            <h3 id="isms-dash-rv" className="text-xs font-semibold text-muted-foreground">
               {t('reviews')}
             </h3>
             <ul className="divide-y">
