@@ -79,7 +79,28 @@ pnpm dev               # API :4000 + worker (one process) and web :3000 → http
 Sign in as `admin` / `ChangeMe-2026!` (demo accounts `helpdesk`, `hr.partner`, `auditor` use `Demo-2026!pass`).
 
 The built-in defaults match this setup, so no `.env` is required. To override something, copy `.env.example`
-to `.env` and export it into your shell (`set -a; . ./.env; set +a`) — the apps do not load it on their own.
+to `.env`. The API's pnpm scripts load it automatically; export it into your shell
+(`set -a; . ./.env; set +a`) for the standard web dev command.
+
+### Local debugging in VS Code
+
+Open the repository root in VS Code after installing dependencies. Keep `pnpm dev:services` running in a
+separate terminal (or use the Docker services above), and run `pnpm db:seed` once if you want demo data.
+Stop any existing `pnpm dev` servers before starting a debug session.
+
+In **Run and Debug** (`Ctrl+Shift+D`), select **ISBP: Full stack** and press `F5`. The compound profile starts
+the API and worker together under `tsx watch` on port 4000 and Next.js on port 3000, then opens an Edge debug
+session. Set breakpoints in API routes, worker jobs, Server Components or browser code. The debugger attaches
+to child processes, including API restarts after edits. Stopping either server stops both servers; the browser
+debug session closes with the web server. Postgres and Redis stay running in their separate terminal.
+
+Use **ISBP: API + worker** or **ISBP: Web + browser** to debug just one app. The web profile runs the font
+preparation task before launching Next.js. Both profiles load the root `.env` when it exists and otherwise
+use the local defaults. The web debug port is fixed at 3000; if you change it in `.vscode/launch.json`, also
+update `PUBLIC_URL` for the API. To use Chrome, change `serverReadyAction.action` to `debugWithChrome`.
+
+The launch profiles use VS Code's built-in JavaScript debugger and follow the
+[Next.js debugging guide](https://nextjs.org/docs/app/guides/debugging).
 
 | Task              | Command                                                                                                                                                                 |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

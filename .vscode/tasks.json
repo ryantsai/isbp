@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "ISBP: Prepare web fonts",
+      "type": "process",
+      "command": "node",
+      "args": ["scripts/fonts.mjs"],
+      "options": {
+        "cwd": "${workspaceFolder}/apps/web"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

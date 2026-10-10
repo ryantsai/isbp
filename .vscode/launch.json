@@ -1,0 +1,51 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ISBP: API + worker",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/apps/api",
+      "program": "${workspaceFolder}/node_modules/tsx/dist/cli.mjs",
+      "args": [
+        "watch",
+        "--clear-screen=false",
+        "--env-file-if-exists=../../.env",
+        "--import",
+        "./src/telemetry.ts",
+        "src/dev.ts"
+      ],
+      "console": "integratedTerminal",
+      "autoAttachChildProcesses": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      "name": "ISBP: Web + browser",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/apps/web",
+      "runtimeArgs": ["--inspect=0"],
+      "envFile": "${workspaceFolder}/.env",
+      "program": "${workspaceFolder}/apps/web/node_modules/next/dist/bin/next",
+      "args": ["dev", "--port", "3000"],
+      "preLaunchTask": "ISBP: Prepare web fonts",
+      "console": "integratedTerminal",
+      "autoAttachChildProcesses": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "serverReadyAction": {
+        "action": "debugWithEdge",
+        "killOnServerStop": true,
+        "pattern": "- Local:.+(https?://\\S+)",
+        "uriFormat": "%s",
+        "webRoot": "${workspaceFolder}/apps/web"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "ISBP: Full stack",
+      "configurations": ["ISBP: API + worker", "ISBP: Web + browser"],
+      "stopAll": true
+    }
+  ]
+}
