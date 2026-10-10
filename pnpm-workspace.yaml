@@ -15,6 +15,7 @@ allowBuilds:
   '@embedded-postgres/darwin-x64': true
   '@embedded-postgres/linux-arm64': true
   '@embedded-postgres/linux-x64': true
+  '@embedded-postgres/windows-x64': true
   # IBM Plex CJK fonts: the script only sends IBM usage telemetry.
   '@ibm/plex-sans-jp': false
   '@ibm/plex-sans-tc': false

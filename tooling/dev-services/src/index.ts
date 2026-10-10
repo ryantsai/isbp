@@ -6,6 +6,7 @@
  * DEV_MOCKS_PORT (4100).
  */
 import { existsSync, mkdirSync } from 'node:fs';
+import { createServer } from 'node:net';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createMockServer } from '@isbp/integration-mocks';
@@ -18,6 +19,32 @@ const pgDir = join(dataDir, 'postgres');
 const pgPort = Number(process.env.DEV_PG_PORT ?? 5432);
 const redisPort = Number(process.env.DEV_REDIS_PORT ?? 6379);
 const mocksPort = Number(process.env.DEV_MOCKS_PORT ?? 4100);
+
+// Fail before starting anything: embedded-postgres rejects with undefined when its process exits early,
+// including when a second dev-services session tries to start the same cluster.
+async function assertPortAvailable(service: string, port: number) {
+  const server = createServer();
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', (error: NodeJS.ErrnoException) => {
+      reject(
+        new Error(
+          error.code === 'EADDRINUSE'
+            ? `${service} port ${port} is already in use. If pnpm dev:services is running in another terminal, ` +
+                'keep using that session or stop it with Ctrl+C before restarting.'
+            : `Cannot start ${service} on port ${port}: ${error.message}`,
+          { cause: error },
+        ),
+      );
+    });
+    server.listen(port, '127.0.0.1', () => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  });
+}
+
+await assertPortAvailable('PostgreSQL', pgPort);
+await assertPortAvailable('Redis', redisPort);
+await assertPortAvailable('Integration mocks', mocksPort);
 
 mkdirSync(dataDir, { recursive: true });
 
