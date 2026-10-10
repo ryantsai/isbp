@@ -204,7 +204,7 @@
       "since": "自 {date} 起",
       "due": "到期 {date}",
       "next": "下一步：{step}",
-      "fulfilling": "已核准，處理中：{status}",
+      "fulfilling": "已核准，履行進度：{status}",
       "approved": "已核准，不需要其他動作。",
       "done": "已完成",
       "rejected": "已駁回",

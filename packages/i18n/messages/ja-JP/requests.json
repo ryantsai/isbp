@@ -204,7 +204,7 @@
       "since": "{date} から",
       "due": "期限 {date}",
       "next": "次: {step}",
-      "fulfilling": "承認済み。対応中: {status}",
+      "fulfilling": "承認済み。対応状況: {status}",
       "approved": "承認済みです。ほかに必要な操作はありません。",
       "done": "完了",
       "rejected": "却下されました",
