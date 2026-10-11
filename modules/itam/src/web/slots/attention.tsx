@@ -1,7 +1,6 @@
 'use client';
 
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -18,6 +17,8 @@ import {
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { Attention } from '../../contracts';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
 
 const ITEMS: { key: keyof Attention; icon: LucideIcon; href: string }[] = [
   { key: 'nonCompliantLicenses', icon: ShieldAlertIcon, href: '/itam/software?view=attention' },
@@ -41,12 +42,13 @@ export default function AssetAttentionCard() {
         </CardTitle>
         <CardDescription>{t('description')}</CardDescription>
         <CardAction>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/itam">
-              {t('open')}
-              <ArrowRightIcon />
-            </Link>
-          </Button>
+          <Button
+            label={t('open')}
+            variant="ghost"
+            size="sm"
+            endContent={<AstryxIcon icon={ArrowRightIcon} />}
+            href="/itam"
+          />
         </CardAction>
       </CardHeader>
       <CardContent>

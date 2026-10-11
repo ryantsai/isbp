@@ -1,8 +1,8 @@
 'use client';
 
+import { Table } from '@astryxdesign/core/Table';
 import type { AiUsageReport } from '@isbp/contracts';
 import { cn } from '@isbp/ui';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
 import { motion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type KeyboardEvent, useRef, useState } from 'react';
@@ -73,24 +73,17 @@ export function DailyChart({
         tabIndex={0}
         className="max-h-80 overflow-y-auto rounded-lg border outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
-        <Table>
-          <TableHeader className="sticky top-0 bg-card">
-            <TableRow>
-              <TableHead>{t('date')}</TableHead>
-              <TableHead className="text-right">{t('cost')}</TableHead>
-              <TableHead className="text-right">{t('calls')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {[...data].reverse().map((d) => (
-              <TableRow key={d.date}>
-                <TableCell>{dayLabel(d.date, true)}</TableCell>
-                <TableCell className="text-right tabular-nums">{usd(d.costUsd)}</TableCell>
-                <TableCell className="text-right tabular-nums">{format.number(d.calls)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <Table
+          aria-label={t('tableLabel')}
+          density="compact"
+          idKey="date"
+          data={[...data].reverse()}
+          columns={[
+            { key: 'date', header: t('date'), renderCell: (d) => dayLabel(d.date, true) },
+            { key: 'cost', header: t('cost'), align: 'end', renderCell: (d) => usd(d.costUsd) },
+            { key: 'calls', header: t('calls'), align: 'end', renderCell: (d) => format.number(d.calls) },
+          ]}
+        />
       </div>
     );
 

@@ -3,21 +3,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createUserSchema, type UserDetail, updateUserSchema } from '@isbp/contracts';
 import { localeLabels, locales } from '@isbp/i18n';
-import { Button } from '@isbp/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { duration, useReducedMotion } from '@isbp/ui/motion';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
@@ -30,7 +18,7 @@ import {
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useId, useState } from 'react';
 import { type FieldValues, type Resolver, type UseFormReturn, useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 import {
@@ -46,6 +34,16 @@ import { GroupMultiSelect } from '@/components/pickers/group-multi-select';
 import { useDepartments } from '@/components/pickers/use-departments';
 import { type PickedUser, UserPicker } from '@/components/pickers/user-picker';
 import { useApiMutation, useErrorText } from '@/lib/api';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { VStack } from '@astryxdesign/core/Layout';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 
 type CreateValues = z.input<typeof createUserSchema>;
 
@@ -71,21 +69,16 @@ export function deriveDisplayName(given: string | null | undefined, family: stri
   return CJK.test(g + f) ? `${f}${g}` : `${g} ${f}`;
 }
 
+/** A named group of fields: a caption over a stack of fields. */
 function Section({ title, children }: { title: string; children: ReactNode }) {
+  const id = useId();
   return (
-    <fieldset className="min-w-0 space-y-4">
-      <legend className="mb-3 text-xs font-semibold text-muted-foreground">{title}</legend>
+    <VStack gap={4} role="group" aria-labelledby={id}>
+      <Text type="label" id={id}>
+        {title}
+      </Text>
       {children}
-    </fieldset>
-  );
-}
-
-/** The visual "required" mark; the control itself carries `aria-required`. */
-function Required() {
-  return (
-    <span aria-hidden className="text-destructive">
-      *
-    </span>
+    </VStack>
   );
 }
 
@@ -108,6 +101,7 @@ export function UserFormSheet({
   const router = useRouter();
   const errorText = useErrorText();
   const reduce = useReducedMotion();
+  const ids = useId();
   const editing = Boolean(user);
   const [manager, setManager] = useState<PickedUser | null>(null);
   /** Where the manager came from: picked by hand, or suggested by a department (its name). */
@@ -271,302 +265,302 @@ export function UserFormSheet({
         </SheetHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
-            <SheetBody className="space-y-7 py-2">
-              <p className="text-xs text-muted-foreground">{t('requiredNote')}</p>
-              <Section title={t('sections.identity')}>
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t('email')} <Required />
-                      </FormLabel>
-                      <FormControl>
-                        <Input type="email" autoComplete="off" aria-required {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+            <SheetBody className="py-2">
+              <FormLayout defaultOptionality="optional">
+                <Section title={t('sections.identity')}>
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('email')}
+                        type="email"
+                        autoComplete="off"
+                        isRequired
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  {!editing && (
+                    <FormField
+                      control={form.control}
+                      name="username"
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label={t('username')}
+                          autoComplete="off"
+                          isRequired
+                          description={t('usernameHint')}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
+                        />
+                      )}
+                    />
                   )}
-                />
-                {!editing && (
+                  <Grid columns={{ minWidth: 200 }} gap={3}>
+                    <FormField
+                      control={form.control}
+                      name="givenName"
+                      render={({ field }) => (
+                        <TextInput
+                          label={t('givenName')}
+                          autoComplete="off"
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="familyName"
+                      render={({ field }) => (
+                        <TextInput
+                          label={t('familyName')}
+                          autoComplete="off"
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      )}
+                    />
+                  </Grid>
                   <FormField
                     control={form.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {t('username')} <Required />
-                        </FormLabel>
-                        <FormControl>
-                          <Input autoComplete="off" aria-required {...field} />
-                        </FormControl>
-                        <FormDescription>{t('usernameHint')}</FormDescription>
-                        <FormMessage />
-                      </FormItem>
+                    name="displayName"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('displayName')}
+                        autoComplete="off"
+                        isRequired
+                        description={!editing ? t('displayNameHint') : undefined}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
                     )}
                   />
-                )}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="givenName"
-                    render={({ field }) => (
-                      <FormItem className="min-w-0">
-                        <FormLabel>{t('givenName')}</FormLabel>
-                        <FormControl>
-                          <Input autoComplete="off" {...field} value={field.value ?? ''} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="familyName"
-                    render={({ field }) => (
-                      <FormItem className="min-w-0">
-                        <FormLabel>{t('familyName')}</FormLabel>
-                        <FormControl>
-                          <Input autoComplete="off" {...field} value={field.value ?? ''} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="displayName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t('displayName')} <Required />
-                      </FormLabel>
-                      <FormControl>
-                        <Input autoComplete="off" aria-required {...field} />
-                      </FormControl>
-                      {!editing && <FormDescription>{t('displayNameHint')}</FormDescription>}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </Section>
+                </Section>
 
-              <Section title={t('sections.organisation')}>
-                <FormField
-                  control={form.control}
-                  name="jobTitle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('jobTitle')}</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value ?? ''} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="departmentId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('department')}</FormLabel>
-                      <FormControl>
+                <Section title={t('sections.organisation')}>
+                  <FormField
+                    control={form.control}
+                    name="jobTitle"
+                    render={({ field }) => (
+                      <TextInput
+                        label={t('jobTitle')}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                      />
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="departmentId"
+                    render={({ field, fieldState }) => (
+                      <Field
+                        label={t('department')}
+                        inputID={`${ids}-department`}
+                        status={fieldStatus(fieldState)}
+                      >
                         <DepartmentSelect
+                          id={`${ids}-department`}
                           value={field.value}
                           onChange={(id) => onDepartmentChange(id, field.value)}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid gap-2">
-                  <Label htmlFor="person-manager">{t('manager')}</Label>
-                  <motion.div
-                    key={managerFlash}
-                    initial={managerFlash && !reduce ? { opacity: 0.35 } : false}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: duration.fast }}
+                      </Field>
+                    )}
+                  />
+                  <Field
+                    label={t('manager')}
+                    inputID={`${ids}-manager`}
+                    description={
+                      managerFrom.department
+                        ? t('managerFromDepartment', { department: managerFrom.department })
+                        : undefined
+                    }
                   >
-                    <UserPicker
-                      id="person-manager"
-                      value={manager}
-                      excludeIds={user ? [user.id] : []}
-                      placeholder={t('noManager')}
-                      aria-describedby={managerFrom.department ? 'person-manager-hint' : undefined}
-                      onChange={(m) => {
-                        setManager(m);
-                        setManagerFrom({ picked: true, department: null });
-                        form.setValue('managerId', m?.id ?? null, { shouldDirty: true });
-                      }}
-                    />
-                  </motion.div>
-                  {managerFrom.department && (
-                    <p id="person-manager-hint" className="text-xs text-muted-foreground" aria-live="polite">
-                      {t('managerFromDepartment', { department: managerFrom.department })}
-                    </p>
+                    <motion.div
+                      key={managerFlash}
+                      initial={managerFlash && !reduce ? { opacity: 0.35 } : false}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: duration.fast }}
+                    >
+                      <UserPicker
+                        id={`${ids}-manager`}
+                        value={manager}
+                        excludeIds={user ? [user.id] : []}
+                        placeholder={t('noManager')}
+                        onChange={(m) => {
+                          setManager(m);
+                          setManagerFrom({ picked: true, department: null });
+                          form.setValue('managerId', m?.id ?? null, { shouldDirty: true });
+                        }}
+                      />
+                    </motion.div>
+                  </Field>
+                  {!editing && (
+                    <Field
+                      label={t('groups')}
+                      isGroupLabel
+                      labelID={`${ids}-groups-label`}
+                      inputID={`${ids}-groups`}
+                      description={t('groupsHint')}
+                    >
+                      <GroupMultiSelect
+                        labelledBy={`${ids}-groups-label`}
+                        value={groupIds}
+                        onChange={(next) => form.setValue('groupIds', next, { shouldDirty: true })}
+                      />
+                    </Field>
                   )}
-                </div>
-                {!editing && (
-                  <div className="grid gap-2">
-                    <Label id="person-groups-label">{t('groups')}</Label>
-                    <p className="text-xs text-muted-foreground">{t('groupsHint')}</p>
-                    <GroupMultiSelect
-                      labelledBy="person-groups-label"
-                      value={groupIds}
-                      onChange={(ids) => form.setValue('groupIds', ids, { shouldDirty: true })}
-                    />
-                  </div>
-                )}
-              </Section>
-
-              {!editing && (
-                <Section title={t('sections.account')}>
-                  <div role="radiogroup" aria-label={t('status')} className="grid grid-cols-2 gap-2">
-                    {(['active', 'pending'] as const).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        role="radio"
-                        aria-checked={status === s}
-                        onClick={() => form.setValue('status', s)}
-                        className="relative min-w-0 rounded-lg border p-3 text-left transition-colors hover:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none aria-checked:border-primary aria-checked:bg-primary/5 motion-reduce:transition-none"
-                      >
-                        <div className="text-sm font-medium">
-                          {s === 'active' ? t('statusActive') : t('statusPending')}
-                        </div>
-                        <div className="mt-0.5 text-xs text-muted-foreground">
-                          {s === 'active' ? t('statusActiveHint') : t('statusPendingHint')}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
                 </Section>
-              )}
 
-              <OptionalFields
-                hint={list([t('employeeId'), t('phone')])}
-                filled={countFilled(employeeId, phone)}
-              >
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="employeeId"
-                    render={({ field }) => (
-                      <FormItem className="min-w-0">
-                        <FormLabel>{t('employeeId')}</FormLabel>
-                        <FormControl>
-                          <Input {...field} value={field.value ?? ''} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem className="min-w-0">
-                        <FormLabel>{t('phone')}</FormLabel>
-                        <FormControl>
-                          <Input type="tel" {...field} value={field.value ?? ''} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </OptionalFields>
-
-              <OptionalFields label={editing ? t('moreEditing') : t('more')} filled={countFilled(password)}>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="locale"
-                    render={({ field }) => (
-                      <FormItem className="min-w-0">
-                        <FormLabel>{t('locale')}</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {locales.map((l) => (
-                              <SelectItem key={l} value={l}>
-                                {localeLabels[l]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="timezone"
-                    render={({ field }) => (
-                      <FormItem className="min-w-0">
-                        <FormLabel>{t('timezone')}</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {[...new Set([field.value ?? 'UTC', ...TIMEZONES])].map((tz) => (
-                              <SelectItem key={tz} value={tz}>
-                                {tz}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                </div>
                 {!editing && (
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('password')}</FormLabel>
-                        <FormControl>
-                          <Input
+                  <Section title={t('sections.account')}>
+                    <RadioList
+                      label={t('status')}
+                      value={status ?? 'active'}
+                      onChange={(v) => form.setValue('status', v === 'pending' ? 'pending' : 'active')}
+                    >
+                      <RadioListItem
+                        value="active"
+                        label={t('statusActive')}
+                        description={t('statusActiveHint')}
+                      />
+                      <RadioListItem
+                        value="pending"
+                        label={t('statusPending')}
+                        description={t('statusPendingHint')}
+                      />
+                    </RadioList>
+                  </Section>
+                )}
+
+                <OptionalFields
+                  hint={list([t('employeeId'), t('phone')])}
+                  filled={countFilled(employeeId, phone)}
+                >
+                  <Grid columns={{ minWidth: 200 }} gap={3}>
+                    <FormField
+                      control={form.control}
+                      name="employeeId"
+                      render={({ field }) => (
+                        <TextInput
+                          label={t('employeeId')}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <TextInput
+                          label={t('phone')}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      )}
+                    />
+                  </Grid>
+                </OptionalFields>
+
+                <OptionalFields label={editing ? t('moreEditing') : t('more')} filled={countFilled(password)}>
+                  <VStack gap={4}>
+                    <Grid columns={{ minWidth: 200 }} gap={3}>
+                      <FormField
+                        control={form.control}
+                        name="locale"
+                        render={({ field }) => (
+                          <Selector
+                            label={t('locale')}
+                            value={field.value}
+                            onChange={field.onChange}
+                            options={locales.map((l) => ({ value: l, label: localeLabels[l] }))}
+                          />
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="timezone"
+                        render={({ field }) => (
+                          <Selector
+                            label={t('timezone')}
+                            value={field.value}
+                            onChange={field.onChange}
+                            options={[...new Set([field.value ?? 'UTC', ...TIMEZONES])]}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    {!editing && (
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('password')}
                             type="password"
                             autoComplete="new-password"
-                            {...field}
+                            description={t('passwordHint')}
                             value={field.value ?? ''}
-                            onChange={(e) => field.onChange(e.target.value || undefined)}
+                            onChange={(v) => field.onChange(v || undefined)}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            status={fieldStatus(fieldState)}
                           />
-                        </FormControl>
-                        <FormDescription>{t('passwordHint')}</FormDescription>
-                        <FormMessage />
-                      </FormItem>
+                        )}
+                      />
                     )}
+                  </VStack>
+                </OptionalFields>
+
+                <CustomFieldsSection
+                  elements={custom.elements}
+                  form={form as unknown as UseFormReturn<FieldValues>}
+                />
+
+                {form.formState.errors.root && (
+                  <Banner
+                    status="error"
+                    title={form.formState.errors.root.message ?? ''}
+                    collapsible={false}
                   />
                 )}
-              </OptionalFields>
-
-              <CustomFieldsSection
-                elements={custom.elements}
-                form={form as unknown as UseFormReturn<FieldValues>}
-              />
-
-              {form.formState.errors.root && (
-                <p role="alert" className="text-sm text-destructive">
-                  {form.formState.errors.root.message}
-                </p>
-              )}
+              </FormLayout>
             </SheetBody>
             <SheetFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={mutation.isPending}>
-                {editing ? tc('saveChanges') : tc('create')}
-              </Button>
+              <Button
+                label={tc('cancel')}
+                variant="secondary"
+                type="button"
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={editing ? tc('saveChanges') : tc('create')}
+                variant="primary"
+                isLoading={mutation.isPending}
+                type="submit"
+              />
             </SheetFooter>
           </form>
         </Form>

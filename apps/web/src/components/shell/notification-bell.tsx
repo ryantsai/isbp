@@ -1,15 +1,19 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Popover } from '@astryxdesign/core/Popover';
+import { Spinner } from '@astryxdesign/core/Spinner';
 import type { NotificationPage } from '@isbp/contracts';
-import { Button } from '@isbp/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@isbp/ui/popover';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
-import { Spinner } from '@isbp/ui/spinner';
-import { cn } from '@isbp/ui';
 import { BellIcon, CheckCheckIcon } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -31,104 +35,99 @@ export function NotificationBell() {
     },
   );
 
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+  const panel = (
+    <VStack gap={0} width="min(24rem, calc(100vw - 2rem))">
+      <HStack gap={2} vAlign="center" hAlign="between" padding={3}>
+        <Heading level={4}>{t('title')}</Heading>
         <Button
+          label={t('markAllRead')}
           variant="ghost"
-          size="icon"
-          className="relative"
-          aria-label={unread ? t('labelUnread', { count: unread }) : t('label')}
-        >
-          <motion.span
-            key={unread}
-            initial={unread ? { rotate: -12 } : false}
-            animate={{ rotate: [-12, 10, -6, 0] }}
-            transition={{ duration: 0.5 }}
-            className="grid place-items-center"
-          >
-            <BellIcon />
-          </motion.span>
-          <AnimatePresence>
-            {unread > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0 }}
-                aria-hidden
-                className="absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white tabular-nums dark:text-background"
-              >
-                {unread > 99 ? '99+' : unread}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-[min(24rem,calc(100vw-2rem))] p-0">
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-sm font-semibold">{t('title')}</h2>
+          size="sm"
+          icon={<Icon icon={CheckCheckIcon} />}
+          isDisabled={!unread || markRead.isPending}
+          onClick={() => markRead.mutate({ all: true })}
+        />
+      </HStack>
+      <div className="max-h-[min(28rem,60vh)] overflow-y-auto border-y">
+        {isLoading ? (
+          <VStack hAlign="center" padding={8}>
+            <Spinner />
+          </VStack>
+        ) : !data?.items.length ? (
+          <EmptyState isCompact title={t('empty')} />
+        ) : (
+          <List>
+            {data.items.map((n) => (
+              <ListItem
+                key={n.id}
+                label={n.title}
+                startContent={
+                  <span
+                    aria-hidden
+                    className={`mt-1.5 size-2 shrink-0 rounded-full ${n.readAt ? 'bg-transparent' : 'bg-primary'}`}
+                  />
+                }
+                description={
+                  <>
+                    {!n.readAt && <span className="sr-only">{t('unread')} </span>}
+                    {n.body && (
+                      <Text as="div" type="supporting" color="secondary" maxLines={2}>
+                        {n.body}
+                      </Text>
+                    )}
+                    <RelativeTime date={n.createdAt} />
+                  </>
+                }
+                onClick={() => {
+                  if (!n.readAt) markRead.mutate({ ids: [n.id] });
+                  setOpen(false);
+                  if (n.href) router.push(n.href);
+                }}
+              />
+            ))}
+          </List>
+        )}
+      </div>
+      <HStack padding={2}>
+        <StackItem size="fill">
           <Button
+            label={t('viewAll')}
             variant="ghost"
             size="sm"
-            disabled={!unread || markRead.isPending}
-            onClick={() => markRead.mutate({ all: true })}
-          >
-            <CheckCheckIcon />
-            {t('markAllRead')}
-          </Button>
-        </div>
-        <div className="max-h-[min(28rem,60vh)] overflow-y-auto">
-          {isLoading ? (
-            <div className="grid place-items-center py-10">
-              <Spinner />
-            </div>
-          ) : !data?.items.length ? (
-            <p className="px-4 py-10 text-center text-sm text-muted-foreground">{t('empty')}</p>
-          ) : (
-            <ul className="divide-y">
-              {data.items.map((n) => (
-                <li key={n.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!n.readAt) markRead.mutate({ ids: [n.id] });
-                      setOpen(false);
-                      if (n.href) router.push(n.href);
-                    }}
-                    className="flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none"
-                  >
-                    <span
-                      aria-hidden
-                      className={cn(
-                        'mt-1.5 size-2 shrink-0 rounded-full',
-                        n.readAt ? 'bg-transparent' : 'bg-primary',
-                      )}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className={cn('line-clamp-2 text-sm', !n.readAt && 'font-medium')}>
-                        {!n.readAt && <span className="sr-only">{t('unread')} </span>}
-                        {n.title}
-                      </span>
-                      {n.body && (
-                        <span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.body}</span>
-                      )}
-                      <RelativeTime
-                        date={n.createdAt}
-                        className="mt-1 block text-[11px] text-muted-foreground"
-                      />
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="border-t p-2">
-          <Button asChild variant="ghost" size="sm" className="w-full" onClick={() => setOpen(false)}>
-            <Link href="/notifications">{t('viewAll')}</Link>
-          </Button>
-        </div>
-      </PopoverContent>
+            href="/notifications"
+            width="100%"
+            onClick={() => setOpen(false)}
+          />
+        </StackItem>
+      </HStack>
+    </VStack>
+  );
+
+  return (
+    <Popover
+      isOpen={open}
+      onOpenChange={setOpen}
+      content={open ? panel : null}
+      label={t('title')}
+      placement="below"
+      alignment="end"
+      padding={0}
+    >
+      <span className="relative inline-flex">
+        <IconButton
+          label={unread ? t('labelUnread', { count: unread }) : t('label')}
+          variant="ghost"
+          icon={<Icon icon={BellIcon} />}
+        />
+        {unread > 0 && (
+          <Badge
+            variant="error"
+            label={unread > 99 ? '99+' : String(unread)}
+            aria-hidden
+            className="pointer-events-none absolute -top-1 -right-1"
+          />
+        )}
+      </span>
     </Popover>
   );
 }

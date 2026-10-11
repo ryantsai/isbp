@@ -1,23 +1,19 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { FormDialog } from '@isbp/ui/form-dialog';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Textarea } from '@isbp/ui/textarea';
-import { ArchiveIcon, CircleAlertIcon, InfoIcon, Trash2Icon, Undo2Icon } from 'lucide-react';
+import { ArchiveIcon, Trash2Icon, Undo2Icon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { type ChangeSetItem, DESTRUCTIVE_OPS } from '../../contracts';
 import { dependentsOf } from '../../lib/processes';
 import { ConfirmDialog } from '../confirm-dialog';
@@ -75,7 +71,6 @@ export function ApplyDialog({
 }) {
   const t = useTranslations('assistant.apply');
   const errorOf = useActionErrorText();
-  const id = useId();
   const [confirmed, setConfirmed] = useState(false);
   const destructive = detail.items.filter((i) => DESTRUCTIVE_OPS.includes(i.op));
   const ready = detail.ready;
@@ -102,38 +97,23 @@ export function ApplyDialog({
       error={apply.error ? errorOf(apply.error) : null}
       onConfirm={() => apply.mutate({ confirm: destructive.length > 0 && confirmed }, { onError: onFailed })}
     >
-      {detail.status === 'in_review' && (
-        <p className="flex items-start gap-2 rounded-lg bg-info/10 px-3 py-2 text-sm text-info">
-          <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t('inReview')}
-        </p>
-      )}
-      {!ready && (
-        <p className="flex items-start gap-2 rounded-lg bg-warning/15 px-3 py-2 text-sm text-warning-foreground">
-          <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t('notReady')}
-        </p>
-      )}
+      {detail.status === 'in_review' && <Banner status="info" title={t('inReview')} collapsible={false} />}
+      {!ready && <Banner status="warning" title={t('notReady')} collapsible={false} />}
       {destructive.length > 0 && (
-        <fieldset className="grid gap-3 rounded-lg border border-destructive/40 p-3">
-          <legend className="px-1 text-sm font-medium text-destructive">{t('destructiveTitle')}</legend>
-          <ul className="grid gap-1.5 text-sm">
-            {destructive.map((i) => (
-              <DestructiveItem key={i.id} item={i} />
-            ))}
-          </ul>
-          <div className="flex items-start gap-2">
-            <Checkbox
-              id={`${id}-confirm`}
-              checked={confirmed}
-              onCheckedChange={(c) => setConfirmed(c === true)}
-              className="mt-0.5"
+        <Banner status="error" title={t('destructiveTitle')} collapsible={false}>
+          <VStack gap={3}>
+            <List density="compact">
+              {destructive.map((i) => (
+                <DestructiveItem key={i.id} item={i} />
+              ))}
+            </List>
+            <CheckboxInput
+              label={t('destructiveConfirm', { count: destructive.length })}
+              value={confirmed}
+              onChange={setConfirmed}
             />
-            <Label htmlFor={`${id}-confirm`} className="text-sm leading-snug font-normal">
-              {t('destructiveConfirm', { count: destructive.length })}
-            </Label>
-          </div>
-        </fieldset>
+          </VStack>
+        </Banner>
       )}
     </ConfirmDialog>
   );
@@ -141,14 +121,16 @@ export function ApplyDialog({
 
 function DestructiveItem({ item }: { item: ChangeSetItem }) {
   const t = useTranslations('assistant.ops');
-  const Icon = item.op === 'delete' ? Trash2Icon : ArchiveIcon;
+  const ItemIcon = item.op === 'delete' ? Trash2Icon : ArchiveIcon;
   return (
-    <li className="flex min-w-0 items-start gap-2">
-      <Icon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
-      <span className="min-w-0 break-words">
-        <span className="font-medium">{t(item.op)}:</span> {item.label}
-      </span>
-    </li>
+    <ListItem
+      startContent={<Icon icon={ItemIcon} color="error" />}
+      label={
+        <>
+          <Text weight="medium">{t(item.op)}:</Text> {item.label}
+        </>
+      }
+    />
   );
 }
 
@@ -165,7 +147,6 @@ export function SubmitDialog({
   const t = useTranslations('assistant.submit');
   const tc = useTranslations('common');
   const errorOf = useActionErrorText();
-  const id = useId();
   const [note, setNote] = useState('');
   const submit = useChangeSetAction<{ note?: string }>(detail.id, 'submit', {
     success: t('done'),
@@ -177,56 +158,30 @@ export function SubmitDialog({
     setNote('');
     reset();
   }, [open, reset]);
-
   return (
-    <Dialog open={open} onOpenChange={(o) => !submit.isPending && onOpenChange(o)}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('title', { reference: detail.reference })}</DialogTitle>
-          <DialogDescription>{t('body')}</DialogDescription>
-        </DialogHeader>
-        <form
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit.mutate(note.trim() ? { note: note.trim() } : {});
-          }}
-        >
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-note`}>{t('note')}</Label>
-            <Textarea
-              id={`${id}-note`}
-              value={note}
-              maxLength={2000}
-              rows={4}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </div>
-          {submit.error && (
-            <p
-              role="alert"
-              className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            >
-              <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-              {errorOf(submit.error)}
-            </p>
-          )}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={submit.isPending}
-            >
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={submit.isPending}>
-              {t('confirm')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      isOpen={open}
+      onOpenChange={(o) => !submit.isPending && onOpenChange(o)}
+      title={t('title', { reference: detail.reference })}
+      subtitle={t('body')}
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit.mutate(note.trim() ? { note: note.trim() } : {});
+      }}
+      submitLabel={t('confirm')}
+      cancelLabel={tc('cancel')}
+      isSubmitting={submit.isPending}
+      defaultOptionality="optional"
+    >
+      <TextArea
+        label={t('note')}
+        rows={4}
+        maxLength={2000}
+        value={note}
+        onChange={(v) => setNote(v.slice(0, 2000))}
+      />
+      {submit.error && <Banner status="error" title={errorOf(submit.error)} collapsible={false} />}
+    </FormDialog>
   );
 }
 
@@ -252,7 +207,6 @@ export function RollbackDialog({
   // Undone in reverse order: the last change first.
   const undone = [...detail.items].sort((a, b) => b.position - a.position);
   const errorOf = useActionErrorText();
-  const id = useId();
   const [reason, setReason] = useState('');
   const rollback = useChangeSetAction<{ confirm: true; reason?: string }>(detail.id, 'rollback', {
     success: t('done', { reference: detail.reference }),
@@ -282,34 +236,28 @@ export function RollbackDialog({
         )
       }
     >
-      <div className="grid gap-1.5">
-        <p className="text-sm font-medium">{t('what')}</p>
-        <ul className="grid gap-1 text-sm">
+      <VStack gap={1}>
+        <Text type="label">{t('what')}</Text>
+        <List density="compact">
           {undone.slice(0, ROLLBACK_SHOWN).map((i) => (
-            <li key={i.id} className="flex min-w-0 items-start gap-2">
-              <Undo2Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="min-w-0 break-words">
-                {t(`undo.${i.op}`, { kind: kindInSentence(kindLabel(i.kind), locale), label: i.label })}
-              </span>
-            </li>
+            <ListItem
+              key={i.id}
+              startContent={<Icon icon={Undo2Icon} color="secondary" />}
+              label={t(`undo.${i.op}`, { kind: kindInSentence(kindLabel(i.kind), locale), label: i.label })}
+            />
           ))}
-        </ul>
+        </List>
         {undone.length > ROLLBACK_SHOWN && (
-          <p className="text-xs text-muted-foreground">
-            {t('more', { count: undone.length - ROLLBACK_SHOWN })}
-          </p>
+          <Text type="supporting">{t('more', { count: undone.length - ROLLBACK_SHOWN })}</Text>
         )}
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-reason`}>{t('reason')}</Label>
-        <Textarea
-          id={`${id}-reason`}
-          value={reason}
-          maxLength={1000}
-          rows={3}
-          onChange={(e) => setReason(e.target.value)}
-        />
-      </div>
+      </VStack>
+      <TextArea
+        label={t('reason')}
+        rows={3}
+        maxLength={1000}
+        value={reason}
+        onChange={(v) => setReason(v.slice(0, 1000))}
+      />
     </ConfirmDialog>
   );
 }
@@ -404,14 +352,11 @@ export function RemoveItemDialog({
       onConfirm={() => item && remove.mutate({ itemId: item.id, withDependents: dependents.length > 0 })}
     >
       {dependents.length > 0 && (
-        <ul className="grid gap-1 text-sm">
+        <List density="compact">
           {dependents.map((d) => (
-            <li key={d.id} className="flex min-w-0 items-start gap-2">
-              <Trash2Icon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
-              <span className="min-w-0 break-words">{d.label}</span>
-            </li>
+            <ListItem key={d.id} startContent={<Icon icon={Trash2Icon} color="error" />} label={d.label} />
           ))}
-        </ul>
+        </List>
       )}
     </ConfirmDialog>
   );
@@ -430,7 +375,6 @@ export function EditDialog({
   const t = useTranslations('assistant.detail');
   const tc = useTranslations('common');
   const errorOf = useActionErrorText();
-  const id = useId();
   const [title, setTitle] = useState(detail.title);
   const [summary, setSummary] = useState(detail.summary);
   const save = useApiMutation(
@@ -448,75 +392,36 @@ export function EditDialog({
   const invalid = !title.trim();
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !save.isPending && onOpenChange(o)}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('editTitle')}</DialogTitle>
-          <DialogDescription>{t('editDescription', { reference: detail.reference })}</DialogDescription>
-        </DialogHeader>
-        <form
-          className="grid gap-4"
-          noValidate
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!invalid) save.mutate({ title: title.trim(), summary: summary.trim() });
-          }}
-        >
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-title`}>{t('titleLabel')}</Label>
-            <Input
-              id={`${id}-title`}
-              value={title}
-              maxLength={200}
-              required
-              aria-invalid={invalid || undefined}
-              aria-describedby={invalid ? `${id}-title-error` : undefined}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            {invalid && (
-              <p id={`${id}-title-error`} className="text-xs text-destructive">
-                {t('titleRequired')}
-              </p>
-            )}
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-summary`}>{t('summaryLabel')}</Label>
-            <Textarea
-              id={`${id}-summary`}
-              value={summary}
-              maxLength={4000}
-              rows={5}
-              aria-describedby={`${id}-summary-hint`}
-              onChange={(e) => setSummary(e.target.value)}
-            />
-            <p id={`${id}-summary-hint`} className="text-xs text-muted-foreground">
-              {t('summaryHint')}
-            </p>
-          </div>
-          {save.error && (
-            <p
-              role="alert"
-              className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            >
-              <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-              {errorOf(save.error)}
-            </p>
-          )}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={save.isPending}
-            >
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={save.isPending}>
-              {tc('save')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      isOpen={open}
+      onOpenChange={(o) => !save.isPending && onOpenChange(o)}
+      title={t('editTitle')}
+      subtitle={t('editDescription', { reference: detail.reference })}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!invalid) save.mutate({ title: title.trim(), summary: summary.trim() });
+      }}
+      submitLabel={tc('save')}
+      cancelLabel={tc('cancel')}
+      isSubmitting={save.isPending}
+      defaultOptionality="optional"
+    >
+      <TextInput
+        label={t('titleLabel')}
+        isRequired
+        value={title}
+        onChange={(v) => setTitle(v.slice(0, 200))}
+        status={invalid ? { type: 'error', message: t('titleRequired') } : undefined}
+      />
+      <TextArea
+        label={t('summaryLabel')}
+        description={t('summaryHint')}
+        rows={5}
+        maxLength={4000}
+        value={summary}
+        onChange={(v) => setSummary(v.slice(0, 4000))}
+      />
+      {save.error && <Banner status="error" title={errorOf(save.error)} collapsible={false} />}
+    </FormDialog>
   );
 }

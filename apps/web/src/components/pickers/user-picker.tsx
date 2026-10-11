@@ -1,23 +1,15 @@
 'use client';
 
-import type { Page } from '@isbp/sdk';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
+import { Typeahead } from '@astryxdesign/core/Typeahead';
 import type { UserSummary } from '@isbp/contracts';
-import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@isbp/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@isbp/ui/popover';
-import { CheckIcon, ChevronsUpDownIcon, XIcon } from 'lucide-react';
+import { useInputAttrs } from '@isbp/ui/lib/input-attrs';
+import { type SearchableItem, useApiSearchSource } from '@isbp/ui/search-source';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
-import { useApiQuery } from '@/lib/api';
+import { useMemo, useRef } from 'react';
+import { useLabelledBy } from './use-labelled-by';
 
 export interface PickedUser {
   id: string;
@@ -25,9 +17,16 @@ export interface PickedUser {
   email?: string;
 }
 
+type UserOption = PickedUser & { avatarUrl?: string | null };
+type UserItem = SearchableItem<UserOption>;
+
+const toItem = (u: UserOption): UserItem => ({ id: u.id, label: u.displayName, auxiliaryData: u });
+
 /**
- * Async person picker (server-side search). Single selection; `value` carries the display name. Name it with `id`
- * plus a `<Label htmlFor>`, or with `aria-label` / `aria-labelledby`.
+ * Async person picker (server-side search). Single selection; `value` carries the display name. Give it a visible
+ * `label` (with `description` / `error` / `isRequired`: it draws its own field frame, so no wrapping `Field`), or name it
+ * with `id` plus an external `<label htmlFor>`, or with `aria-label` / `aria-labelledby`. Unnamed, its accessible name
+ * is "Search people".
  */
 export function UserPicker({
   value,
@@ -35,6 +34,10 @@ export function UserPicker({
   placeholder,
   excludeIds = [],
   status = 'active',
+  label,
+  description,
+  error,
+  isRequired,
   id,
   className,
   'aria-label': ariaLabel,
@@ -45,7 +48,14 @@ export function UserPicker({
   onChange: (user: PickedUser | null) => void;
   placeholder?: string;
   excludeIds?: string[];
+  /** Which users to offer (`active`, `pending`…): the user status filter of the list, not a validation status. */
   status?: string;
+  /** A visible label (the picker draws the field frame itself). */
+  label?: string;
+  description?: string;
+  /** Validation message (red border + text under the field). */
+  error?: string | null;
+  isRequired?: boolean;
   id?: string;
   className?: string;
   'aria-label'?: string;
@@ -54,89 +64,59 @@ export function UserPicker({
 }) {
   const t = useTranslations('common');
   const tu = useTranslations('users.picker');
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState('');
-  const [debounced, setDebounced] = useState('');
-  useEffect(() => {
-    const h = setTimeout(() => setDebounced(q), 200);
-    return () => clearTimeout(h);
-  }, [q]);
-  const { data, isFetching } = useApiQuery<Page<UserSummary>>(open ? '/users' : null, {
-    q: debounced || undefined,
-    pageSize: 8,
-    status,
+  const root = useRef<HTMLDivElement>(null);
+  useInputAttrs(root, { id, describedBy, label: label ? undefined : ariaLabel });
+  useLabelledBy(root, label ? undefined : labelledBy);
+  const source = useApiSearchSource<UserSummary, UserOption>({
+    path: '/users',
+    query: (q) => ({ q: q || undefined, pageSize: 8, status }),
+    toItem: (u) => toItem({ id: u.id, displayName: u.displayName, email: u.email, avatarUrl: u.avatarUrl }),
+    exclude: (item) => excludeIds.includes(item.id),
   });
-  const results = (data?.items ?? []).filter((u) => !excludeIds.includes(u.id));
+  const item = useMemo(() => (value ? toItem(value) : null), [value]);
+  const shown = placeholder ?? t('searchPlaceholder');
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <div className={cn('relative', className)}>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            type="button"
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            aria-label={ariaLabel}
-            aria-labelledby={labelledBy}
-            aria-describedby={describedBy}
-            className="w-full justify-between font-normal"
-          >
-            {value ? (
-              <span className="flex min-w-0 items-center gap-2">
-                <UserAvatar name={value.displayName} className="size-5 text-[9px]" />
-                <span className="truncate">{value.displayName}</span>
-              </span>
-            ) : (
-              <span className="text-muted-foreground">{placeholder ?? t('searchPlaceholder')}</span>
-            )}
-            <ChevronsUpDownIcon className="opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        {value && (
-          <button
-            type="button"
-            onClick={() => onChange(null)}
-            aria-label={tu('clear', { name: value.displayName })}
-            className="absolute top-1/2 right-8 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
-          >
-            <XIcon className="size-3.5" />
-          </button>
-        )}
-      </div>
-      <PopoverContent className="w-(--radix-popover-trigger-width) min-w-72 p-0" align="start">
-        <Command shouldFilter={false}>
-          <CommandInput
-            value={q}
-            onValueChange={setQ}
-            placeholder={t('searchPlaceholder')}
-            aria-label={tu('search')}
-          />
-          <CommandList>
-            <CommandEmpty>{isFetching ? t('loading') : t('noResults')}</CommandEmpty>
-            <CommandGroup>
-              {results.map((u) => (
-                <CommandItem
-                  key={u.id}
-                  value={u.id}
-                  onSelect={() => {
-                    onChange({ id: u.id, displayName: u.displayName, email: u.email });
-                    setOpen(false);
-                  }}
-                >
-                  <UserAvatar name={u.displayName} src={u.avatarUrl} className="size-6 text-[10px]" />
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate">{u.displayName}</span>
-                    <span className="truncate text-xs text-muted-foreground">{u.email}</span>
-                  </div>
-                  {value?.id === u.id && <CheckIcon className="ml-auto" />}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <Typeahead
+      ref={root}
+      className={className}
+      label={label ?? ariaLabel ?? tu('search')}
+      isLabelHidden={!label}
+      description={description}
+      isRequired={isRequired}
+      status={error ? { type: 'error', message: error } : undefined}
+      placeholder={shown}
+      searchSource={source}
+      value={item}
+      hasEntriesOnFocus
+      onChange={(next) =>
+        onChange(
+          next
+            ? {
+                id: next.id,
+                displayName: next.label,
+                email: next.auxiliaryData?.email,
+              }
+            : null,
+        )
+      }
+      emptySearchText={t('noResults')}
+      renderItem={(u) => <UserRow user={u.auxiliaryData} />}
+    />
+  );
+}
+
+function UserRow({ user }: { user: UserOption | undefined }) {
+  if (!user) return null;
+  return (
+    <HStack gap={2} vAlign="center">
+      <UserAvatar name={user.displayName} src={user.avatarUrl} className="size-6 text-[10px]" />
+      <VStack gap={0}>
+        <Text maxLines={1}>{user.displayName}</Text>
+        <Text type="supporting" color="secondary" maxLines={1}>
+          {user.email}
+        </Text>
+      </VStack>
+    </HStack>
   );
 }

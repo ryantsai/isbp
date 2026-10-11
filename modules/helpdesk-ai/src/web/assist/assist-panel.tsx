@@ -1,5 +1,7 @@
 'use client';
 
+import { Tooltip } from '@astryxdesign/core/Tooltip';
+
 import {
   DONE_STATUSES,
   type ReplyArticle,
@@ -8,8 +10,6 @@ import {
 } from '@isbp/module-itsm/contracts';
 import { localize } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Markdown } from '@isbp/ui/markdown';
 import { Meter } from '@isbp/ui/meter';
 import { AnimatedItem, AnimatedList, duration, ease, useReducedMotion } from '@isbp/ui/motion';
@@ -18,7 +18,6 @@ import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { StatusBadge } from '@isbp/ui/status';
-import { Hint } from '@isbp/ui/tooltip';
 import {
   ArrowRightIcon,
   BookOpenIcon,
@@ -55,6 +54,10 @@ import {
   type TriageInsight,
 } from '../../contracts';
 import { CitationChips, ModeBadge, Section } from '../shared';
+import { Button } from '@astryxdesign/core/Button';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
 
 type Ticket = TicketAsideSlotProps['ticket'];
 type Actions = TicketAsideSlotProps['actions'];
@@ -99,18 +102,17 @@ function Panel({ ticket, actions }: { ticket: Ticket; actions: Actions }) {
         </h2>
         <div className="ml-auto flex min-w-0 items-center gap-1">
           <ModeBadge ai={data?.ai} />
-          <Hint label={t('assist.refresh')}>
-            <Button
+          <Tooltip content={t('assist.refresh')}>
+            <IconButton
+              label={t('assist.refresh')}
               variant="ghost"
-              size="icon-sm"
+              size="sm"
+              icon={<AstryxIcon icon={RefreshCwIcon} />}
+              isDisabled={isFetching}
               className="size-7"
               onClick={() => void refetch()}
-              aria-label={t('assist.refresh')}
-              disabled={isFetching}
-            >
-              <RefreshCwIcon className={isFetching ? 'animate-spin motion-reduce:animate-none' : ''} />
-            </Button>
-          </Hint>
+            />
+          </Tooltip>
         </div>
       </header>
 
@@ -178,11 +180,7 @@ function Panel({ ticket, actions }: { ticket: Ticket; actions: Actions }) {
 }
 
 function CountBadge({ n }: { n: number }) {
-  return (
-    <Badge variant="muted" className="tabular-nums">
-      {n}
-    </Badge>
-  );
+  return <Badge variant="neutral" label={n} className="tabular-nums" />;
 }
 
 const STATUS_TONE = {
@@ -331,13 +329,13 @@ function TriageSection({
         <p className="text-muted-foreground">{enabled ? t('triage.none') : t('triage.disabled')}</p>
         {canEdit && (
           <Button
+            label={t('triage.suggest')}
+            variant="secondary"
             size="sm"
-            variant="outline"
-            loading={rerun.isPending}
+            icon={<AstryxIcon icon={WandSparklesIcon} />}
+            isLoading={rerun.isPending}
             onClick={() => rerun.mutate(undefined)}
-          >
-            <WandSparklesIcon /> {t('triage.suggest')}
-          </Button>
+          />
         )}
       </div>
     );
@@ -381,15 +379,14 @@ function TriageSection({
               </span>
               {r.differs && offer && (
                 <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 shrink-0 px-2"
-                  disabled={busy}
-                  onClick={() => apply.mutate([r])}
+                  label={t('triage.apply')}
                   aria-label={t('triage.applyField', { field: r.label })}
-                >
-                  {t('triage.apply')}
-                </Button>
+                  variant="ghost"
+                  size="sm"
+                  isDisabled={busy}
+                  className="h-7 shrink-0 px-2"
+                  onClick={() => apply.mutate([r])}
+                />
               )}
             </dd>
           </div>
@@ -428,37 +425,36 @@ function TriageSection({
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {pending.length > 0 && !decided && (
             <Button
+              label={t('triage.applyAll')}
               size="sm"
-              variant={low ? 'outline' : 'default'}
-              loading={apply.isPending}
-              disabled={busy}
+              variant={low ? 'secondary' : 'primary'}
+              icon={<AstryxIcon icon={CheckCheckIcon} />}
+              isLoading={apply.isPending}
+              isDisabled={busy}
               onClick={() => apply.mutate(pending)}
-            >
-              <CheckCheckIcon /> {t('triage.applyAll')}
-            </Button>
+            />
           )}
           {insight.status === 'suggested' && (
             <Button
+              label={t('triage.dismiss')}
               size="sm"
-              variant={low ? 'ghost' : 'outline'}
-              disabled={busy}
+              variant={low ? 'ghost' : 'secondary'}
+              icon={<AstryxIcon icon={XIcon} />}
+              isDisabled={busy}
               onClick={() => feedback.mutate({ action: 'dismissed' })}
-            >
-              <XIcon /> {t('triage.dismiss')}
-            </Button>
+            />
           )}
-          <Hint label={t('triage.rerun')}>
-            <Button
-              size="icon-sm"
+          <Tooltip content={t('triage.rerun')}>
+            <IconButton
+              label={t('triage.rerun')}
               variant="ghost"
+              size="sm"
+              icon={<AstryxIcon icon={RefreshCwIcon} />}
+              isDisabled={busy}
               className="ml-auto"
-              disabled={busy}
               onClick={() => rerun.mutate(undefined)}
-              aria-label={t('triage.rerun')}
-            >
-              <RefreshCwIcon className={rerun.isPending ? 'animate-spin motion-reduce:animate-none' : ''} />
-            </Button>
-          </Hint>
+            />
+          </Tooltip>
         </div>
       )}
     </div>
@@ -525,14 +521,13 @@ function ShowMore({ toggle }: { toggle: { all: boolean; flip: () => void } | nul
   if (!toggle) return null;
   return (
     <Button
+      label={toggle.all ? t('similar.showLess') : t('similar.showMore')}
+      variant="ghost"
       size="sm"
-      variant="link"
       className="h-auto px-0 text-xs"
       onClick={toggle.flip}
       aria-expanded={toggle.all}
-    >
-      {toggle.all ? t('similar.showLess') : t('similar.showMore')}
-    </Button>
+    />
   );
 }
 
@@ -604,16 +599,16 @@ function SimilarList({
                   />
                 ) : (
                   <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 px-2 text-xs"
-                    loading={link.isPending && link.variables === s.reference}
-                    disabled={link.isPending}
-                    onClick={() => link.mutate(s.reference)}
+                    label={t('similar.link')}
                     aria-label={t('similar.linkFor', { reference: s.reference })}
-                  >
-                    <Link2Icon /> {t('similar.link')}
-                  </Button>
+                    variant="secondary"
+                    size="sm"
+                    icon={<AstryxIcon icon={Link2Icon} />}
+                    isLoading={link.isPending && link.variables === s.reference}
+                    isDisabled={link.isPending}
+                    className="h-7 px-2 text-xs"
+                    onClick={() => link.mutate(s.reference)}
+                  />
                 ))}
             </div>
             {s.snippet && (
@@ -655,8 +650,11 @@ function ArticleList({
             <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{a.summary || a.snippet}</p>
             {ticket.viewer.canComment && (
               <Button
-                size="sm"
+                label={t('articles.insert')}
+                aria-label={t('articles.insertFor', { title: a.title })}
                 variant="ghost"
+                size="sm"
+                icon={<AstryxIcon icon={LinkIcon} />}
                 className="mt-1 h-7 px-2 text-xs"
                 onClick={() =>
                   actions.insertReply(
@@ -666,10 +664,7 @@ function ArticleList({
                     },
                   )
                 }
-                aria-label={t('articles.insertFor', { title: a.title })}
-              >
-                <LinkIcon /> {t('articles.insert')}
-              </Button>
+              />
             )}
           </AnimatedItem>
         ))}
@@ -760,20 +755,21 @@ function ReplySection({ ticketId, actions }: { ticketId: string; actions: Action
       <div className="flex flex-wrap gap-2">
         {draft && (
           <Button
+            label={t('reply.insert')}
+            variant="primary"
             size="sm"
+            icon={<AstryxIcon icon={PenLineIcon} />}
             onClick={() => actions.insertReply(draft.insertText, used ? { article: used } : undefined)}
-          >
-            <PenLineIcon /> {t('reply.insert')}
-          </Button>
+          />
         )}
         <Button
+          label={draft ? t('reply.regenerate') : t('reply.draft')}
           size="sm"
-          variant={draft ? 'outline' : 'default'}
-          loading={generate.isPending}
+          variant={draft ? 'secondary' : 'primary'}
+          icon={<AstryxIcon icon={draft ? RefreshCwIcon : SparklesIcon} />}
+          isLoading={generate.isPending}
           onClick={() => generate.mutate(undefined)}
-        >
-          {draft ? <RefreshCwIcon /> : <SparklesIcon />} {draft ? t('reply.regenerate') : t('reply.draft')}
-        </Button>
+        />
       </div>
     </div>
   );
@@ -806,13 +802,13 @@ function SummarySection({ ticketId, cached }: { ticketId: string; cached: Ticket
         <p className="text-muted-foreground">{t('summary.hint')}</p>
       )}
       <Button
+        label={summary ? t('summary.refresh') : t('summary.run')}
         size="sm"
-        variant={summary ? 'outline' : 'default'}
-        loading={run.isPending}
+        variant={summary ? 'secondary' : 'primary'}
+        icon={<AstryxIcon icon={FileTextIcon} />}
+        isLoading={run.isPending}
         onClick={() => run.mutate(undefined)}
-      >
-        <FileTextIcon /> {summary ? t('summary.refresh') : t('summary.run')}
-      </Button>
+      />
     </div>
   );
 }
@@ -898,9 +894,14 @@ function KbSection({ ticketId, existing }: { ticketId: string; existing: KbDraft
     <div className="space-y-3 text-sm">
       <p className="text-muted-foreground">{canWrite ? t('kb.hint') : t('kb.noPermission')}</p>
       {canWrite && (
-        <Button size="sm" loading={run.isPending} onClick={() => run.mutate(undefined)}>
-          <NotebookPenIcon /> {t('kb.run')}
-        </Button>
+        <Button
+          label={t('kb.run')}
+          variant="primary"
+          size="sm"
+          icon={<AstryxIcon icon={NotebookPenIcon} />}
+          isLoading={run.isPending}
+          onClick={() => run.mutate(undefined)}
+        />
       )}
     </div>
   );

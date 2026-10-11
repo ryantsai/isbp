@@ -1,22 +1,19 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { Field } from '@astryxdesign/core/Field';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
 import { type ApprovalStep, defaultFieldValues, type LocalizedText, stepDecisionFields } from '@isbp/sdk';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
 import { Form } from '@isbp/ui/form';
 import { FormFields, useFieldErrorText, useFieldsResolver } from '@isbp/ui/form-renderer';
-import { Label } from '@isbp/ui/label';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
-import { Textarea } from '@isbp/ui/textarea';
-import { cn } from '@isbp/ui';
 import { CheckIcon, ClipboardListIcon, ForwardIcon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
@@ -104,84 +101,84 @@ export function DecisionDialog({
     setRootError(errorText(err));
   };
   const missing = decision === 'reject' && !comment.trim();
+  const formId = `${id}-form`;
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn(fields.length > 0 && 'max-h-[90dvh] overflow-y-auto sm:max-w-2xl')}>
-        <DialogHeader>
-          <DialogTitle>{t(decision === 'approve' ? 'approveTitle' : 'rejectTitle')}</DialogTitle>
-          <DialogDescription>{subject}</DialogDescription>
-        </DialogHeader>
-        <form
-          noValidate
-          className="grid gap-2"
-          onSubmit={(e) => {
-            setTouched(true);
-            setRootError(null);
-            void form.handleSubmit((values) => {
-              if (missing) return;
-              mutation.mutate(
-                { comment: comment.trim(), data: fields.length ? values : undefined },
-                { onError },
-              );
-            })(e);
-          }}
-        >
-          {fields.length > 0 && (
-            <section aria-labelledby={`${id}-fields`} className="mb-2 grid gap-3 rounded-lg border p-4">
-              <div className="grid gap-0.5">
-                <h3 id={`${id}-fields`} className="flex items-center gap-2 text-sm font-semibold">
-                  <ClipboardListIcon className="size-4 text-muted-foreground" aria-hidden />
-                  {t('fieldsTitle')}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  {optional ? t('fieldsOptionalHint') : t('fieldsHint')}
-                </p>
-              </div>
-              <Form {...form}>
-                <FormFields elements={elements} form={form} />
-              </Form>
-            </section>
-          )}
-          <Label htmlFor={`${id}-comment`}>
-            {t(decision === 'approve' ? 'commentOptional' : 'commentRequired')}
-          </Label>
-          <Textarea
-            id={`${id}-comment`}
-            autoFocus={!fields.length}
-            rows={4}
-            value={comment}
-            maxLength={2000}
-            aria-invalid={touched && missing}
-            aria-describedby={`${id}-hint`}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder={t(decision === 'approve' ? 'approvePlaceholder' : 'rejectPlaceholder')}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={fields.length > 0 ? 672 : 512} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t(decision === 'approve' ? 'approveTitle' : 'rejectTitle')}
+            subtitle={subject}
+            onOpenChange={onOpenChange}
           />
-          <p
-            id={`${id}-hint`}
-            className={touched && missing ? 'text-sm text-destructive' : 'text-xs text-muted-foreground'}
-          >
-            {touched && missing ? t('reasonNeeded') : t('visibleToRequester')}
-          </p>
-          {rootError && (
-            <p role="alert" className="text-sm text-destructive">
-              {rootError}
-            </p>
-          )}
-          <DialogFooter className="mt-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              {t('cancel')}
-            </Button>
-            <Button
-              type="submit"
-              variant={decision === 'approve' ? 'default' : 'destructive'}
-              disabled={mutation.isPending}
+        }
+        content={
+          <LayoutContent padding={4}>
+            <form
+              id={formId}
+              noValidate
+              onSubmit={(e) => {
+                setTouched(true);
+                setRootError(null);
+                void form.handleSubmit((values) => {
+                  if (missing) return;
+                  mutation.mutate(
+                    { comment: comment.trim(), data: fields.length ? values : undefined },
+                    { onError },
+                  );
+                })(e);
+              }}
             >
-              {decision === 'approve' ? <CheckIcon /> : <XIcon />}
-              {t(decision === 'approve' ? 'approve' : 'reject')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+              <VStack gap={4}>
+                {fields.length > 0 && (
+                  <section aria-labelledby={`${id}-fields`}>
+                    <VStack gap={3}>
+                      <VStack gap={0.5}>
+                        <HStack gap={2} vAlign="center">
+                          <Icon icon={ClipboardListIcon} color="secondary" />
+                          <Text type="label" as="div" role="heading" aria-level={3} id={`${id}-fields`}>
+                            {t('fieldsTitle')}
+                          </Text>
+                        </HStack>
+                        <Text type="supporting">{optional ? t('fieldsOptionalHint') : t('fieldsHint')}</Text>
+                      </VStack>
+                      <Form {...form}>
+                        <FormFields elements={elements} form={form} />
+                      </Form>
+                    </VStack>
+                  </section>
+                )}
+                <TextArea
+                  label={t(decision === 'approve' ? 'commentOptional' : 'commentRequired')}
+                  hasAutoFocus={!fields.length}
+                  rows={4}
+                  value={comment}
+                  onChange={(v) => setComment(v.slice(0, 2000))}
+                  description={t('visibleToRequester')}
+                  status={touched && missing ? { type: 'error', message: t('reasonNeeded') } : undefined}
+                  placeholder={t(decision === 'approve' ? 'approvePlaceholder' : 'rejectPlaceholder')}
+                />
+                {rootError && <Banner status="error" title={rootError} collapsible={false} />}
+              </VStack>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={t('cancel')} variant="ghost" type="button" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t(decision === 'approve' ? 'approve' : 'reject')}
+                variant={decision === 'approve' ? 'primary' : 'destructive'}
+                icon={<Icon icon={decision === 'approve' ? CheckIcon : XIcon} />}
+                isLoading={mutation.isPending}
+                type="submit"
+                form={formId}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -220,46 +217,56 @@ export function DelegateDialog({
       },
     },
   );
+  const formId = `${id}-form`;
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>{subject}</DialogDescription>
-        </DialogHeader>
-        <form
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (person) mutation.mutate({ userId: person.id, comment: comment.trim() });
-          }}
-        >
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-person`}>{t('person')}</Label>
-            <PersonPicker id={`${id}-person`} value={person} onChange={setPerson} excludeIds={excludeIds} />
-            <p className="text-xs text-muted-foreground">{t('hint')}</p>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-comment`}>{t('note')}</Label>
-            <Textarea
-              id={`${id}-comment`}
-              rows={3}
-              value={comment}
-              maxLength={2000}
-              onChange={(e) => setComment(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              {t('cancel')}
-            </Button>
-            <Button type="submit" disabled={!person || mutation.isPending}>
-              <ForwardIcon />
-              {t('submit')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={448} purpose="form">
+      <Layout
+        header={<DialogHeader title={t('title')} subtitle={subject} onOpenChange={onOpenChange} />}
+        content={
+          <LayoutContent padding={4}>
+            <form
+              id={formId}
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (person) mutation.mutate({ userId: person.id, comment: comment.trim() });
+              }}
+            >
+              <FormLayout defaultOptionality="optional">
+                <Field label={t('person')} inputID={`${id}-person`} description={t('hint')} isRequired>
+                  <PersonPicker
+                    id={`${id}-person`}
+                    value={person}
+                    onChange={setPerson}
+                    excludeIds={excludeIds}
+                  />
+                </Field>
+                <TextArea
+                  label={t('note')}
+                  rows={3}
+                  value={comment}
+                  onChange={(v) => setComment(v.slice(0, 2000))}
+                />
+              </FormLayout>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={t('cancel')} variant="ghost" type="button" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t('submit')}
+                variant="primary"
+                icon={<Icon icon={ForwardIcon} />}
+                isDisabled={!person}
+                isLoading={mutation.isPending}
+                type="submit"
+                form={formId}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }

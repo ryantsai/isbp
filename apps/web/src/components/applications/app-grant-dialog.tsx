@@ -1,30 +1,23 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { Card } from '@astryxdesign/core/Card';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Application, CreateRoleAssignmentInput, Role } from '@isbp/contracts';
-import { Button } from '@isbp/ui/button';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Textarea } from '@isbp/ui/textarea';
-import {
-  AlertTriangleIcon,
   GlobeIcon,
   HourglassIcon,
   NetworkIcon,
@@ -34,15 +27,15 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useFormatter, useNow, useTranslations } from 'next-intl';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useId, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { DepartmentSelect } from '@/components/pickers/department-select';
 import { UserPicker } from '@/components/pickers/user-picker';
 import { GroupPicker } from '@/components/roles/group-picker';
+import { Segmented } from '@isbp/ui/segmented';
 import { useDurationText } from '@/components/roles/request-settings';
 import { currentTime, fromDateInput, toDateInput, useAccessErrorText } from '@/components/roles/role-utils';
-import { Segmented } from '@/components/roles/segmented';
 import { applyServerErrors, useApiMutation, useApiQuery } from '@/lib/api';
 import { APP_INVALIDATE } from './app-parts';
 import { PermissionChip } from './app-permission-picker';
@@ -84,6 +77,8 @@ export function AppGrantDialog({
   const now = useNow({ updateInterval: 60_000 });
   const accessError = useAccessErrorText();
   const duration = useDurationText();
+  const formId = useId();
+  const ids = useId();
 
   const schema = useMemo(
     () =>
@@ -179,254 +174,282 @@ export function AppGrantDialog({
   const principalError = form.formState.errors.principal?.message;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')} className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{ta('title', { app: app.name })}</DialogTitle>
-          <DialogDescription>{ta('description')}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={onSubmit} className="space-y-5" noValidate>
-            <FormField
-              control={form.control}
-              name="roleId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('role')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={roles.isLoading ? tc('loading') : t('rolePlaceholder')} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="max-h-72">
-                      {all.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <AnimatePresence initial={false} mode="wait">
-                    {role && (
-                      <motion.div
-                        key={role.id}
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.18 }}
-                        className="space-y-2 rounded-md bg-muted/50 px-3 py-2.5 text-sm"
-                      >
-                        {role.description && <p className="text-muted-foreground">{role.description}</p>}
-                        <div className="flex flex-wrap gap-1">
-                          {role.permissions.slice(0, 8).map((p) => (
-                            <PermissionChip key={p} value={p} className="bg-background" />
-                          ))}
-                        </div>
-                        {role.maxDurationDays !== null && (
-                          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                            <HourglassIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                            {ta('maxDurationNote', { duration: duration(role.maxDurationDays) })}
-                          </p>
-                        )}
-                      </motion.div>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={512} purpose="form">
+      <Form {...form}>
+        <Layout
+          header={
+            <DialogHeader
+              title={ta('title', { app: app.name })}
+              subtitle={ta('description')}
+              onOpenChange={onOpenChange}
+            />
+          }
+          content={
+            <LayoutContent padding={4}>
+              <form id={formId} onSubmit={onSubmit} noValidate>
+                <FormLayout defaultOptionality="required">
+                  <FormField
+                    control={form.control}
+                    name="roleId"
+                    render={({ field, fieldState }) => (
+                      <VStack gap={2}>
+                        <Selector
+                          label={t('role')}
+                          value={field.value || undefined}
+                          onChange={field.onChange}
+                          options={all.map((r) => ({ value: r.id, label: r.name }))}
+                          placeholder={roles.isLoading ? tc('loading') : t('rolePlaceholder')}
+                          isLoading={roles.isLoading}
+                          hasSearch={all.length > 8}
+                          status={fieldStatus(fieldState)}
+                        />
+                        <AnimatePresence initial={false} mode="wait">
+                          {role && (
+                            <motion.div
+                              key={role.id}
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.18 }}
+                            >
+                              <Card variant="muted" padding={3}>
+                                <VStack gap={2}>
+                                  {role.description && <Text color="secondary">{role.description}</Text>}
+                                  <HStack gap={1} wrap="wrap">
+                                    {role.permissions.slice(0, 8).map((p) => (
+                                      <PermissionChip key={p} value={p} />
+                                    ))}
+                                  </HStack>
+                                  {role.maxDurationDays !== null && (
+                                    <HStack gap={1.5} vAlign="start">
+                                      <Icon icon={HourglassIcon} size="xsm" color="secondary" />
+                                      <Text type="supporting">
+                                        {ta('maxDurationNote', { duration: duration(role.maxDurationDays) })}
+                                      </Text>
+                                    </HStack>
+                                  )}
+                                </VStack>
+                              </Card>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </VStack>
                     )}
-                  </AnimatePresence>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  />
 
-            <div className="grid gap-2" role="group" aria-labelledby="app-grant-principal">
-              <span id="app-grant-principal" className="text-sm font-medium">
-                {t('to')}
-              </span>
-              <Segmented
-                label={t('principalType')}
-                value={principalType}
-                onChange={(v) => {
-                  if (v === principalType) return;
-                  form.setValue('principalType', v);
-                  form.setValue('principal', null);
-                  form.clearErrors('principal');
-                }}
-                options={[
-                  { value: 'user', label: t('person'), icon: <UserIcon /> },
-                  { value: 'group', label: t('group'), icon: <UsersRoundIcon /> },
-                ]}
-              />
-              {principalType === 'user' ? (
-                <UserPicker
-                  value={principal ? { id: principal.id, displayName: principal.name } : null}
-                  onChange={(u) =>
-                    form.setValue('principal', u ? { id: u.id, name: u.displayName } : null, {
-                      shouldValidate: form.formState.isSubmitted,
-                    })
-                  }
-                  placeholder={t('userPlaceholder')}
-                  aria-label={t('person')}
-                  aria-describedby={principalError ? 'app-grant-principal-error' : undefined}
-                />
-              ) : (
-                <GroupPicker
-                  value={principal}
-                  onChange={(g) =>
-                    form.setValue('principal', g ? { id: g.id, name: g.name } : null, {
-                      shouldValidate: form.formState.isSubmitted,
-                    })
-                  }
-                  placeholder={t('groupPlaceholder')}
-                  aria-label={t('group')}
-                  invalid={Boolean(principalError)}
-                  describedBy={principalError ? 'app-grant-principal-error' : undefined}
-                />
-              )}
-              <p className="text-xs text-muted-foreground">
-                {principalType === 'group' ? t('groupHint') : t('userHint')}
-              </p>
-              {principalError && (
-                <p id="app-grant-principal-error" className="text-xs text-destructive">
-                  {principalError}
-                </p>
-              )}
-            </div>
-
-            <div className="grid gap-2" role="group" aria-labelledby="app-grant-scope">
-              <span id="app-grant-scope" className="text-sm font-medium">
-                {t('scope')}
-              </span>
-              <Segmented
-                label={t('scope')}
-                value={scopeType}
-                onChange={(v) => {
-                  form.setValue('scopeType', v);
-                  form.clearErrors('departmentId');
-                }}
-                options={[
-                  { value: 'global', label: tc('scope_values.global'), icon: <GlobeIcon /> },
-                  { value: 'department', label: tc('scope_values.department'), icon: <NetworkIcon /> },
-                ]}
-              />
-              <AnimatePresence initial={false}>
-                {scopeType === 'department' && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
+                  <Field
+                    label={t('to')}
+                    isGroupLabel
+                    labelID={`${ids}-to`}
+                    inputID={`${ids}-principal`}
+                    description={principalType === 'group' ? t('groupHint') : t('userHint')}
+                    status={principalError ? { type: 'error', message: principalError } : undefined}
                   >
-                    <FormField
-                      control={form.control}
-                      name="departmentId"
-                      render={({ field }) => (
-                        <FormItem className="px-0.5 pt-1 pb-0.5">
-                          <FormLabel className="sr-only">{tc('department')}</FormLabel>
-                          <FormControl>
-                            <DepartmentSelect
-                              value={field.value}
-                              onChange={field.onChange}
-                              noneLabel={t('chooseDepartment')}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    <VStack gap={2}>
+                      <SegmentedControl
+                        label={t('principalType')}
+                        value={principalType}
+                        onChange={(v) => {
+                          if (v === principalType) return;
+                          form.setValue('principalType', v as Values['principalType']);
+                          form.setValue('principal', null);
+                          form.clearErrors('principal');
+                        }}
+                      >
+                        <SegmentedControlItem
+                          value="user"
+                          label={t('person')}
+                          icon={<Icon icon={UserIcon} />}
+                        />
+                        <SegmentedControlItem
+                          value="group"
+                          label={t('group')}
+                          icon={<Icon icon={UsersRoundIcon} />}
+                        />
+                      </SegmentedControl>
+                      {principalType === 'user' ? (
+                        <UserPicker
+                          id={`${ids}-principal`}
+                          value={principal ? { id: principal.id, displayName: principal.name } : null}
+                          onChange={(u) =>
+                            form.setValue('principal', u ? { id: u.id, name: u.displayName } : null, {
+                              shouldValidate: form.formState.isSubmitted,
+                            })
+                          }
+                          placeholder={t('userPlaceholder')}
+                          aria-label={t('person')}
+                        />
+                      ) : (
+                        <GroupPicker
+                          id={`${ids}-principal`}
+                          value={principal}
+                          onChange={(g) =>
+                            form.setValue('principal', g ? { id: g.id, name: g.name } : null, {
+                              shouldValidate: form.formState.isSubmitted,
+                            })
+                          }
+                          placeholder={t('groupPlaceholder')}
+                          aria-label={t('group')}
+                        />
                       )}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <p className="text-xs text-muted-foreground">
-                {scopeType === 'department' ? ta('scopeDepartment') : ta('scopeGlobal')}
-              </p>
-            </div>
+                    </VStack>
+                  </Field>
 
-            <div className="grid gap-2" role="group" aria-labelledby="app-grant-duration">
-              <span id="app-grant-duration" className="text-sm font-medium">
-                {t('duration')}
-              </span>
-              <Segmented
-                label={t('duration')}
-                value={expiry}
-                onChange={(v) => form.setValue('expiry', v, { shouldValidate: form.formState.isSubmitted })}
-                options={EXPIRY.map((e) => ({ value: e, label: t(`expiry.${e}`) }))}
-                className="[&>button]:px-2"
-              />
-              <AnimatePresence initial={false}>
-                {expiry === 'custom' && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
+                  <Field
+                    label={t('scope')}
+                    isGroupLabel
+                    labelID={`${ids}-scope`}
+                    inputID={`${ids}-scope-input`}
+                    description={scopeType === 'department' ? ta('scopeDepartment') : ta('scopeGlobal')}
                   >
-                    <FormField
-                      control={form.control}
-                      name="customDate"
-                      render={({ field }) => (
-                        <FormItem className="px-0.5 pt-1 pb-0.5">
-                          <FormLabel className="sr-only">{t('customDate')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="date"
-                              min={toDateInput(new Date(now.getTime() + DAY))}
-                              {...field}
-                              className="w-full sm:w-52"
+                    <VStack gap={2}>
+                      <SegmentedControl
+                        label={t('scope')}
+                        value={scopeType}
+                        onChange={(v) => {
+                          form.setValue('scopeType', v as Values['scopeType']);
+                          form.clearErrors('departmentId');
+                        }}
+                      >
+                        <SegmentedControlItem
+                          value="global"
+                          label={tc('scope_values.global')}
+                          icon={<Icon icon={GlobeIcon} />}
+                        />
+                        <SegmentedControlItem
+                          value="department"
+                          label={tc('scope_values.department')}
+                          icon={<Icon icon={NetworkIcon} />}
+                        />
+                      </SegmentedControl>
+                      <AnimatePresence initial={false}>
+                        {scopeType === 'department' && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden px-0.5 pt-1 pb-0.5"
+                          >
+                            <FormField
+                              control={form.control}
+                              name="departmentId"
+                              render={({ field, fieldState }) => (
+                                <Field
+                                  label={tc('department')}
+                                  isLabelHidden
+                                  inputID={`${ids}-department`}
+                                  status={fieldStatus(fieldState)}
+                                >
+                                  <DepartmentSelect
+                                    id={`${ids}-department`}
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    noneLabel={t('chooseDepartment')}
+                                  />
+                                </Field>
+                              )}
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <p className="text-xs text-muted-foreground" aria-live="polite">
-                {expiresAt
-                  ? t('endsAt', {
-                      date: format.dateTime(expiresAt, { dateStyle: 'medium', timeStyle: 'short' }),
-                    })
-                  : t('permanentHint')}
-              </p>
-            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </VStack>
+                  </Field>
 
-            <FormField
-              control={form.control}
-              name="reason"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {t('reason')}{' '}
-                    <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea rows={2} maxLength={500} placeholder={ta('reasonPlaceholder')} {...field} />
-                  </FormControl>
-                  <FormDescription>{t('reasonHint')}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  <Field
+                    label={t('duration')}
+                    isGroupLabel
+                    labelID={`${ids}-duration`}
+                    inputID={`${ids}-duration-input`}
+                  >
+                    <VStack gap={2}>
+                      <Segmented
+                        label={t('duration')}
+                        value={expiry}
+                        onChange={(v) =>
+                          form.setValue('expiry', v, { shouldValidate: form.formState.isSubmitted })
+                        }
+                        options={EXPIRY.map((e) => ({ value: e, label: t(`expiry.${e}`) }))}
+                      />
+                      <AnimatePresence initial={false}>
+                        {expiry === 'custom' && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden px-0.5 pt-1 pb-0.5"
+                          >
+                            <FormField
+                              control={form.control}
+                              name="customDate"
+                              render={({ field, fieldState }) => (
+                                <DateInput
+                                  label={t('customDate')}
+                                  isLabelHidden
+                                  value={(field.value || undefined) as ISODateString | undefined}
+                                  onChange={(v) => field.onChange(v ?? '')}
+                                  min={toDateInput(new Date(now.getTime() + DAY)) as ISODateString}
+                                  status={fieldStatus(fieldState)}
+                                  width={208}
+                                />
+                              )}
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      <div aria-live="polite">
+                        <Text type="supporting">
+                          {expiresAt
+                            ? t('endsAt', {
+                                date: format.dateTime(expiresAt, { dateStyle: 'medium', timeStyle: 'short' }),
+                              })
+                            : t('permanentHint')}
+                        </Text>
+                      </div>
+                    </VStack>
+                  </Field>
 
-            {rootError && (
-              <p
-                role="alert"
-                className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-              >
-                <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {rootError}
-              </p>
-            )}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={mutation.isPending}>
-                <ShieldCheckIcon /> {t('submit')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
+                  <FormField
+                    control={form.control}
+                    name="reason"
+                    render={({ field, fieldState }) => (
+                      <TextArea
+                        label={t('reason')}
+                        isOptional
+                        rows={2}
+                        maxLength={500}
+                        placeholder={ta('reasonPlaceholder')}
+                        description={t('reasonHint')}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+
+                  {rootError && <Banner status="error" title={rootError} collapsible={false} />}
+                </FormLayout>
+              </form>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider padding={3}>
+              <HStack gap={2} hAlign="end">
+                <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+                <Button
+                  label={t('submit')}
+                  variant="primary"
+                  icon={<Icon icon={ShieldCheckIcon} />}
+                  isLoading={mutation.isPending}
+                  type="submit"
+                  form={formId}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Form>
     </Dialog>
   );
 }

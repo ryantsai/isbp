@@ -1,12 +1,14 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { proportional, Table } from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
 import type { AiIndexInfo } from '@isbp/contracts';
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
 import {
   CircleCheckIcon,
   DatabaseIcon,
@@ -54,10 +56,11 @@ export function IndexPanel() {
         <CardHeader>
           <CardTitle>{t('store.title')}</CardTitle>
           <CardAction>
-            <Badge variant={pg ? 'success' : 'info'}>
-              {pg ? <DatabaseZapIcon aria-hidden /> : <DatabaseIcon aria-hidden />}{' '}
-              {pg ? t('store.pgvector') : t('store.portable')}
-            </Badge>
+            <Badge
+              variant={pg ? 'success' : 'info'}
+              label={pg ? t('store.pgvector') : t('store.portable')}
+              icon={<Icon icon={pg ? DatabaseZapIcon : DatabaseIcon} size="xsm" />}
+            />
           </CardAction>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
@@ -78,74 +81,85 @@ export function IndexPanel() {
         </CardHeader>
         <CardContent className="space-y-4 px-0">
           {data.types.length ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-5">{t('content.type')}</TableHead>
-                  <TableHead className="text-right">{t('content.documents')}</TableHead>
-                  <TableHead className="text-right">{t('content.chunks')}</TableHead>
-                  <TableHead className="pr-5">{t('content.model')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.types.map((r) => {
-                  const current = r.model === data.embeddingModel;
-                  return (
-                    <TableRow key={`${r.type}/${r.model}`}>
-                      <TableCell className="pl-5">
-                        <span className="block font-medium">{typeLabel(r.type)}</span>
-                        <code className="font-mono text-xs text-muted-foreground">{r.type}</code>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{format.number(r.documents)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{format.number(r.chunks)}</TableCell>
-                      <TableCell className="pr-5">
-                        <span className="flex flex-wrap items-center gap-2">
-                          <code className="font-mono text-xs">{r.model}</code>
-                          {current ? (
-                            <Badge variant="success">
-                              <CircleCheckIcon aria-hidden /> {t('content.current')}
-                            </Badge>
-                          ) : (
-                            <Badge variant="warning">
-                              <HistoryIcon aria-hidden /> {t('content.older')}
-                            </Badge>
-                          )}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <Table
+              aria-label={t('content.title')}
+              idKey={(r) => `${r.type}/${r.model}`}
+              data={data.types}
+              columns={[
+                {
+                  key: 'type',
+                  header: t('content.type'),
+                  width: proportional(2, { minWidth: 140 }),
+                  renderCell: (r) => (
+                    <>
+                      <Text as="div" display="block" weight="medium">
+                        {typeLabel(r.type)}
+                      </Text>
+                      <Text as="div" display="block" type="code" color="secondary">
+                        {r.type}
+                      </Text>
+                    </>
+                  ),
+                },
+                {
+                  key: 'documents',
+                  header: t('content.documents'),
+                  align: 'end',
+                  renderCell: (r) => format.number(r.documents),
+                },
+                {
+                  key: 'chunks',
+                  header: t('content.chunks'),
+                  align: 'end',
+                  renderCell: (r) => format.number(r.chunks),
+                },
+                {
+                  key: 'model',
+                  header: t('content.model'),
+                  width: proportional(2, { minWidth: 160 }),
+                  renderCell: (r) => (
+                    <HStack gap={2} wrap="wrap" vAlign="center">
+                      <Text type="code">{r.model}</Text>
+                      {r.model === data.embeddingModel ? (
+                        <Badge
+                          variant="success"
+                          label={t('content.current')}
+                          icon={<Icon icon={CircleCheckIcon} size="xsm" />}
+                        />
+                      ) : (
+                        <Badge
+                          variant="warning"
+                          label={t('content.older')}
+                          icon={<Icon icon={HistoryIcon} size="xsm" />}
+                        />
+                      )}
+                    </HStack>
+                  ),
+                },
+              ]}
+            />
           ) : (
             <p className="px-5 py-6 text-center text-sm text-muted-foreground">{t('content.empty')}</p>
           )}
           <div className="flex flex-col gap-3 border-t px-5 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p
-              id={staleId}
-              className={cn(
-                'flex items-center gap-1.5 text-sm',
-                stale > 0 ? 'text-warning-foreground' : 'text-muted-foreground',
-              )}
-            >
-              {stale > 0 ? (
-                <HistoryIcon className="size-4 shrink-0" aria-hidden />
-              ) : (
-                <CircleCheckIcon className="size-4 shrink-0 text-success" aria-hidden />
-              )}
-              {t('content.stale', { count: stale })}
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={stale === 0}
-              loading={reindex.isPending}
-              aria-describedby={staleId}
-              onClick={() => reindex.mutate(undefined)}
-              className="self-start sm:self-auto"
-            >
-              {!reindex.isPending && <RefreshCwIcon />} {t('content.reembed')}
-            </Button>
+            <HStack id={staleId} gap={1.5} vAlign="center">
+              <Icon
+                icon={stale > 0 ? HistoryIcon : CircleCheckIcon}
+                color={stale > 0 ? 'warning' : 'success'}
+              />
+              <Text color={stale > 0 ? 'primary' : 'secondary'}>{t('content.stale', { count: stale })}</Text>
+            </HStack>
+            <div>
+              <Button
+                label={t('content.reembed')}
+                variant="secondary"
+                icon={<Icon icon={RefreshCwIcon} />}
+                isDisabled={stale === 0}
+                isLoading={reindex.isPending}
+                aria-describedby={staleId}
+                onClick={() => reindex.mutate(undefined)}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

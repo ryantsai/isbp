@@ -1,24 +1,14 @@
 'use client';
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
-import { Button } from '@isbp/ui/button';
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
 
-/** Confirmation for deletes; stays open while the action runs. */
+/** Confirmation for deletes; stays open while the action runs (the caller closes it once the call succeeds). */
 export function ConfirmDialog({
   open,
   onOpenChange,
   title,
-  description,
+  description = '',
   confirmLabel,
   destructive,
   loading,
@@ -26,8 +16,8 @@ export function ConfirmDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: ReactNode;
-  description?: ReactNode;
+  title: string;
+  description?: string;
   confirmLabel: string;
   destructive?: boolean;
   loading?: boolean;
@@ -35,19 +25,16 @@ export function ConfirmDialog({
 }) {
   const tc = useTranslations('common');
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>{tc('cancel')}</AlertDialogCancel>
-          <Button variant={destructive ? 'destructive' : 'default'} loading={loading} onClick={onConfirm}>
-            {confirmLabel}
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <AlertDialog
+      isOpen={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      description={description}
+      actionLabel={confirmLabel}
+      cancelLabel={tc('cancel')}
+      actionVariant={destructive ? 'destructive' : 'primary'}
+      isActionLoading={loading}
+      onAction={onConfirm}
+    />
   );
 }

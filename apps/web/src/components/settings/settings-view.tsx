@@ -3,7 +3,6 @@
 import type { Me } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import {
@@ -13,7 +12,6 @@ import {
   PlaneTakeoffIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
-  TriangleAlertIcon,
   UserRoundIcon,
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -27,6 +25,8 @@ import { PasswordCard } from './password-card';
 import { PreferencesCard } from './preferences-card';
 import { ProfileCard } from './profile-card';
 import { SessionsCard } from './sessions-card';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
 
 const SECTIONS = [
   { id: 'profile', nav: 'profile', icon: UserRoundIcon },
@@ -76,18 +76,16 @@ export function SettingsView() {
     <>
       <PageHeader title={t('title')} description={t('description')} />
       {mustChange && (
-        <div
-          role="alert"
-          className="mb-4 flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning-foreground sm:flex-row sm:items-center"
-        >
-          <TriangleAlertIcon className="size-5 shrink-0" aria-hidden />
-          <div className="min-w-0 flex-1 space-y-0.5">
-            <p className="font-medium">{t('password.requiredTitle')}</p>
-            <p>{t('password.requiredBody')}</p>
-          </div>
-          <Button asChild size="sm" variant="outline" className="shrink-0">
-            <a href="#security">{t('password.requiredAction')}</a>
-          </Button>
+        <div className="mb-4">
+          <Banner
+            status="warning"
+            title={t('password.requiredTitle')}
+            description={t('password.requiredBody')}
+            endContent={
+              <Button label={t('password.requiredAction')} variant="secondary" size="sm" href="#security" />
+            }
+            collapsible={false}
+          />
         </div>
       )}
       <div className="grid gap-5 lg:grid-cols-[11rem_minmax(0,1fr)]">

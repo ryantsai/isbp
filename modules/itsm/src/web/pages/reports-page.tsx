@@ -1,8 +1,9 @@
 'use client';
 
+import { ToggleButton, ToggleButtonGroup } from '@astryxdesign/core/ToggleButton';
 import { usePlatform } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { ErrorState } from '@isbp/ui/empty-state';
+import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { SectionTabs } from '@isbp/ui/section-tabs';
 import { StatTile } from '@isbp/ui/stat-tile';
 import { PageHeader } from '@isbp/ui/page-header';
@@ -97,24 +98,18 @@ export default function ReportsPage() {
           ]}
         />
       )}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div
-          className="flex items-center gap-0.5 rounded-lg border bg-card p-0.5"
-          role="group"
-          aria-label={t('range')}
+      <div className="mb-4">
+        <ToggleButtonGroup
+          label={t('range')}
+          value={String(days)}
+          onChange={(v) => {
+            if (typeof v === 'string') set({ days: Number(v) === 30 ? undefined : Number(v) });
+          }}
         >
           {RANGES.map((r) => (
-            <button
-              key={r}
-              type="button"
-              aria-pressed={days === r}
-              onClick={() => set({ days: r === 30 ? undefined : r })}
-              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-pressed:bg-secondary aria-pressed:font-medium aria-pressed:text-secondary-foreground"
-            >
-              {t('lastDays', { days: r })}
-            </button>
+            <ToggleButton key={r} value={String(r)} label={t('lastDays', { days: r })} />
           ))}
-        </div>
+        </ToggleButtonGroup>
       </div>
 
       {isLoading ? (
@@ -202,7 +197,7 @@ export default function ReportsPage() {
                   ariaLabel={t('volume.aria', { days })}
                 />
               ) : (
-                <p className="py-10 text-center text-sm text-muted-foreground">{t('noData')}</p>
+                <EmptyState variant="compact" title={t('noData')} />
               )
             }
             table={
@@ -284,7 +279,7 @@ export default function ReportsPage() {
                     }))}
                   />
                 ) : (
-                  <p className="py-6 text-center text-sm text-muted-foreground">{t('noData')}</p>
+                  <EmptyState variant="compact" title={t('noData')} />
                 )
               }
               table={

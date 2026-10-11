@@ -1,9 +1,15 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Heading } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { useCan, usePlatform } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
@@ -17,8 +23,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { toast } from '@isbp/ui/sonner';
-import { Textarea } from '@isbp/ui/textarea';
+import { toast } from '@isbp/ui/toast';
 import { GavelIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -167,102 +172,87 @@ export function NewChangeDialog({
         >
           <SheetBody className="grid content-start gap-5 pb-6">
             {link && <LinkedRecordChip record={link} onRemove={() => setLink(null)} />}
-            <section className="grid gap-4" aria-labelledby={`${id}-what`}>
-              <h3 id={`${id}-what`} className="text-sm font-semibold">
-                {t('whatAndWhen')}
-              </h3>
-              <div className="grid gap-2">
-                <Label htmlFor={`${id}-title`}>{t('titleLabel')}</Label>
-                <Input
-                  id={`${id}-title`}
-                  value={title}
-                  maxLength={200}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={t('titlePlaceholder')}
-                  aria-invalid={touched && titleInvalid ? true : undefined}
-                  aria-describedby={touched && titleInvalid ? `${id}-title-error` : undefined}
-                />
-                {touched && titleInvalid && (
-                  <p id={`${id}-title-error`} className="text-sm text-destructive">
-                    {t('titleTooShort')}
-                  </p>
-                )}
-              </div>
-              {canPickCis && (
-                <div className="grid gap-2">
-                  <Label htmlFor={`${id}-cis`}>{t('cis')}</Label>
-                  <CiPicker
-                    id={`${id}-cis`}
-                    value={cis}
-                    onChange={setCis}
-                    aria-describedby={`${id}-cis-hint`}
+            <section aria-labelledby={`${id}-what`}>
+              <VStack gap={4}>
+                <Heading level={4} accessibilityLevel={3} id={`${id}-what`}>
+                  {t('whatAndWhen')}
+                </Heading>
+                <FormLayout defaultOptionality="optional">
+                  <TextInput
+                    label={t('titleLabel')}
+                    isRequired
+                    value={title}
+                    onChange={(v) => setTitle(v.slice(0, 200))}
+                    placeholder={t('titlePlaceholder')}
+                    status={
+                      touched && titleInvalid ? { type: 'error', message: t('titleTooShort') } : undefined
+                    }
                   />
-                  <p id={`${id}-cis-hint`} className="text-xs text-muted-foreground">
-                    {t('cisHint')}
-                  </p>
-                </div>
-              )}
-              <ChangePlanFields
-                value={plan}
-                onChange={setPlan}
-                showErrors={Boolean(touched)}
-                windowRequired={touched === 'submit'}
-                parts={['window', 'classification']}
-              />
-              {touched === 'submit' && submitBlocked === 'past' && (
-                <p role="alert" className="text-sm text-destructive">
-                  {t('windowPast')}
-                </p>
-              )}
-              <ConflictCheck
-                plannedStart={plan.plannedStart}
-                plannedEnd={plan.plannedEnd}
-                ciIds={cis.map((c) => c.id)}
-              />
-              <div className="grid gap-2">
-                <Label htmlFor={`${id}-requester`}>{t('requester')}</Label>
-                <PersonPicker
-                  id={`${id}-requester`}
-                  value={requester}
-                  clearable={false}
-                  onChange={(p) => p && setRequester(p)}
-                  aria-describedby={`${id}-requester-hint`}
+                  {canPickCis && (
+                    <CiPicker label={t('cis')} description={t('cisHint')} value={cis} onChange={setCis} />
+                  )}
+                  <ChangePlanFields
+                    value={plan}
+                    onChange={setPlan}
+                    showErrors={Boolean(touched)}
+                    windowRequired={touched === 'submit'}
+                    parts={['window', 'classification']}
+                  />
+                </FormLayout>
+                {touched === 'submit' && submitBlocked === 'past' && (
+                  <Banner status="error" title={t('windowPast')} collapsible={false} />
+                )}
+                <ConflictCheck
+                  plannedStart={plan.plannedStart}
+                  plannedEnd={plan.plannedEnd}
+                  ciIds={cis.map((c) => c.id)}
                 />
-                <p id={`${id}-requester-hint`} className="text-xs text-muted-foreground">
-                  {t('requesterHint')}
-                </p>
-              </div>
+                <Field label={t('requester')} inputID={`${id}-requester`} description={t('requesterHint')}>
+                  <PersonPicker
+                    id={`${id}-requester`}
+                    value={requester}
+                    clearable={false}
+                    onChange={(p) => p && setRequester(p)}
+                  />
+                </Field>
+              </VStack>
             </section>
             <OptionalFields label={t('plans')} hint={t('plansHint')} filled={plansFilled}>
-              <div className="grid gap-2">
-                <Label htmlFor={`${id}-description`}>{t('descriptionLabel')}</Label>
-                <Textarea
-                  id={`${id}-description`}
+              <VStack gap={4}>
+                <TextArea
+                  label={t('descriptionLabel')}
+                  isOptional
                   rows={3}
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={setDescription}
                 />
-              </div>
-              <ChangePlanFields value={plan} onChange={setPlan} parts={['reason', 'plans']} />
+                <ChangePlanFields value={plan} onChange={setPlan} parts={['reason', 'plans']} />
+              </VStack>
             </OptionalFields>
           </SheetBody>
           <SheetFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
             <Button
+              label={tc('cancel')}
+              variant="secondary"
               type="button"
-              variant="outline"
-              loading={pending === 'draft'}
-              disabled={create.isPending}
+              onClick={() => onOpenChange(false)}
+            />
+            <Button
+              label={t('saveDraft')}
+              variant="secondary"
+              isLoading={pending === 'draft'}
+              isDisabled={create.isPending}
+              type="button"
               onClick={() => save('draft')}
-            >
-              {t('saveDraft')}
-            </Button>
-            <Button type="submit" loading={pending === 'submit'} disabled={create.isPending}>
-              <GavelIcon aria-hidden />
-              {t('createAndSubmit')}
-            </Button>
+            />
+            <Button
+              label={t('createAndSubmit')}
+              variant="primary"
+              icon={<Icon icon={GavelIcon} />}
+              isLoading={pending === 'submit'}
+              isDisabled={create.isPending}
+              type="submit"
+            />
           </SheetFooter>
         </SheetForm>
       </SheetContent>

@@ -1,65 +1,54 @@
 'use client';
 
-import { Avatar as AvatarPrimitive } from 'radix-ui';
-import type * as React from 'react';
-import { cn, hueOf, initials } from '../lib/utils';
+import { Avatar } from '@astryxdesign/core/Avatar';
+import type { ComponentProps } from 'react';
+import { cn, hueOf } from '../lib/utils';
 
-export function Avatar({ className, ...props }: React.ComponentProps<typeof AvatarPrimitive.Root>) {
-  return (
-    <AvatarPrimitive.Root
-      data-slot="avatar"
-      className={cn('relative flex size-8 shrink-0 overflow-hidden rounded-full', className)}
-      {...props}
-    />
-  );
+const SIZES = [16, 20, 24, 32, 36, 40, 48, 60, 64, 72, 96, 128, 144, 180] as const;
+
+/**
+ * Tailwind `size-N` (N × 4 px) in `className` → the diameter in px (32 when there is none).
+ */
+function diameterOf(className?: string): number {
+  const step = className?.match(/(?:^|\s)size-(\d+)(?=\s|$)/)?.[1];
+  return step ? Number(step) * 4 : 32;
 }
 
-export function AvatarImage({ className, ...props }: React.ComponentProps<typeof AvatarPrimitive.Image>) {
-  return (
-    <AvatarPrimitive.Image
-      data-slot="avatar-image"
-      className={cn('aspect-square size-full object-cover', className)}
-      {...props}
-    />
-  );
+/** The nearest size Astryx's avatar supports (its type scale follows it). */
+function sizeFrom(px: number): (typeof SIZES)[number] {
+  return SIZES.reduce((best, s) => (Math.abs(s - px) < Math.abs(best - px) ? s : best));
 }
 
-export function AvatarFallback({
-  className,
-  ...props
-}: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
-  return (
-    <AvatarPrimitive.Fallback
-      data-slot="avatar-fallback"
-      className={cn(
-        'flex size-full items-center justify-center rounded-full bg-muted text-xs leading-none font-medium whitespace-nowrap',
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-/** Avatar with a deterministic, theme-aware colour derived from the person's name. */
+/**
+ * A person's avatar: their photo, or initials on a soft colour that is the same for the same name everywhere (and
+ * adapts to dark mode). Size it with `className="size-7 text-[10px]"` (the `size-N` step sets the diameter). Built on
+ * Astryx `Avatar`; it has no tooltip because the name is always shown next to it.
+ */
 export function UserAvatar({
   name,
   src,
   className,
-}: {
+  ...rest
+}: Omit<ComponentProps<typeof Avatar>, 'name' | 'src' | 'size' | 'tooltip' | 'style'> & {
   name: string;
   src?: string | null;
-  className?: string;
 }) {
-  const hue = hueOf(name);
+  const px = diameterOf(className);
   return (
-    <Avatar className={className}>
-      {src ? <AvatarImage src={src} alt="" /> : null}
-      <AvatarFallback
-        style={{ ['--h' as string]: hue }}
-        className="bg-[oklch(0.93_0.04_var(--h))] text-[oklch(0.38_0.09_var(--h))] dark:bg-[oklch(0.32_0.06_var(--h))] dark:text-[oklch(0.9_0.05_var(--h))]"
-      >
-        {initials(name)}
-      </AvatarFallback>
-    </Avatar>
+    <Avatar
+      name={name}
+      src={src ?? undefined}
+      size={sizeFrom(px)}
+      tooltip={false}
+      {...rest}
+      // Astryx adds a bare `size-<px>` class that Tailwind's `size-16`/`size-40` utilities would override: set the exact diameter.
+      style={{ ['--h' as string]: hueOf(name), width: px, height: px }}
+      className={cn(
+        // The initials sit in Astryx's own fallback element, which paints its own tint: colour that one (AA on both).
+        '[&_.astryx-avatar-fallback]:bg-[oklch(0.93_0.04_var(--h))] [&_.astryx-avatar-fallback]:text-[oklch(0.36_0.09_var(--h))]',
+        'dark:[&_.astryx-avatar-fallback]:bg-[oklch(0.32_0.06_var(--h))] dark:[&_.astryx-avatar-fallback]:text-[oklch(0.92_0.05_var(--h))]',
+        className,
+      )}
+    />
   );
 }

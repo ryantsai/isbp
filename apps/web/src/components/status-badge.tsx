@@ -1,6 +1,6 @@
 'use client';
 
-import { Badge } from '@isbp/ui/badge';
+import { Badge } from '@astryxdesign/core/Badge';
 import { defineStatusMap, MappedStatus } from '@isbp/ui/status';
 import { BanIcon, CircleCheckIcon, ClockIcon, UserXIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -28,9 +28,5 @@ export function UserStatusBadge({ status, quiet = false }: { status: string; qui
 
 export function SourceBadge({ source }: { source: string }) {
   const t = useTranslations('common.source_values');
-  return (
-    <Badge variant="outline" className="font-normal text-muted-foreground">
-      {t.has(source) ? t(source) : source}
-    </Badge>
-  );
+  return <Badge variant="neutral" label={t.has(source) ? t(source) : source} />;
 }

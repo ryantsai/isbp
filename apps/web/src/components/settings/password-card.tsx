@@ -2,12 +2,10 @@
 
 import { changePasswordSchema, type Me } from '@isbp/contracts';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { CheckIcon, CircleIcon, KeyRoundIcon, ShieldCheckIcon, TriangleAlertIcon } from 'lucide-react';
+import { CheckIcon, CircleIcon, KeyRoundIcon, ShieldCheckIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -21,6 +19,11 @@ import {
 } from '@/components/idp/contract-resolver';
 import { SourceBadge } from '@/components/status-badge';
 import { applyServerErrors, useApiMutation, useErrorText } from '@/lib/api';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { PASSWORD_REQUIRED_PARAM, safeNextPath } from '@/lib/password-change';
 
 interface Values {
@@ -157,52 +160,58 @@ export function PasswordCard({ me, loading }: { me: Me | undefined; loading: boo
         ) : (
           <Form {...form}>
             <form onSubmit={onSubmit} noValidate className="space-y-4">
-              {me.mustChangePassword && (
-                <p className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
-                  <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
-                  {t('mustChange')}
-                </p>
-              )}
+              {me.mustChangePassword && <Banner status="info" title={t('mustChange')} collapsible={false} />}
               <div className="grid gap-4 sm:max-w-sm">
-                <FormField
-                  control={form.control}
-                  name="currentPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('current')}</FormLabel>
-                      <FormControl>
-                        <Input type="password" autoComplete="current-password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="newPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('new')}</FormLabel>
-                      <FormControl>
-                        <Input type="password" autoComplete="new-password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('confirm')}</FormLabel>
-                      <FormControl>
-                        <Input type="password" autoComplete="new-password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormLayout defaultOptionality="required">
+                  <FormField
+                    control={form.control}
+                    name="currentPassword"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('current')}
+                        type="password"
+                        autoComplete="current-password"
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="newPassword"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('new')}
+                        type="password"
+                        autoComplete="new-password"
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('confirm')}
+                        type="password"
+                        autoComplete="new-password"
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                </FormLayout>
               </div>
               <ul aria-label={t('rules.label')} className="space-y-1 text-xs">
                 {rules.map((r) => (
@@ -212,14 +221,20 @@ export function PasswordCard({ me, loading }: { me: Me | undefined; loading: boo
                 ))}
               </ul>
               {form.formState.errors.root && (
-                <p role="alert" className="text-sm text-destructive">
-                  {form.formState.errors.root.message}
-                </p>
+                <Banner
+                  status="error"
+                  title={String(form.formState.errors.root.message ?? '')}
+                  collapsible={false}
+                />
               )}
               <div className="flex flex-wrap items-center gap-3">
-                <Button type="submit" loading={change.isPending}>
-                  {!change.isPending && <KeyRoundIcon />} {t('submit')}
-                </Button>
+                <Button
+                  label={t('submit')}
+                  type="submit"
+                  variant="primary"
+                  icon={<Icon icon={KeyRoundIcon} />}
+                  isLoading={change.isPending}
+                />
                 <p className="text-xs text-muted-foreground">{t('signOutNote')}</p>
               </div>
             </form>

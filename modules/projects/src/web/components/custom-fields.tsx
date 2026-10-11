@@ -1,23 +1,18 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { defaultFieldValues, type FieldDef, type FormElement } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
 import { Form } from '@isbp/ui/form';
 import { FormAnswers, FormFields, useFieldsResolver } from '@isbp/ui/form-renderer';
 import { usePeople } from '@isbp/ui/person-picker';
 import { useApiMutation } from '@isbp/ui/query';
 import { PencilIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { type FieldValues, useForm } from 'react-hook-form';
 import { INVALIDATE, useCustomFields } from '../lib';
 
@@ -40,6 +35,7 @@ function EditDialog({
 }) {
   const t = useTranslations('projects.customFields');
   const tc = useTranslations('common');
+  const formId = useId();
   const resolver = useFieldsResolver(fields);
   const form = useForm<FieldValues>({ resolver, defaultValues: defaultFieldValues(fields, attributes) });
   useEffect(() => {
@@ -51,32 +47,39 @@ function EditDialog({
     onSuccess: () => onOpenChange(false),
   });
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('editTitle')}</DialogTitle>
-          <DialogDescription>{subtitle}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form
-            noValidate
-            className="grid gap-2"
-            onSubmit={form.handleSubmit((values) =>
-              save.mutate({ attributes: { ...attributes, ...values } }),
-            )}
-          >
-            <FormFields elements={elements} form={form} />
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={save.isPending}>
-                {tc('saveChanges')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={576} purpose="form">
+      <Layout
+        header={<DialogHeader title={t('editTitle')} subtitle={subtitle} onOpenChange={onOpenChange} />}
+        content={
+          <LayoutContent padding={4}>
+            <Form {...form}>
+              <form
+                id={formId}
+                noValidate
+                onSubmit={form.handleSubmit((values) =>
+                  save.mutate({ attributes: { ...attributes, ...values } }),
+                )}
+              >
+                <FormFields elements={elements} form={form} />
+              </form>
+            </Form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={tc('saveChanges')}
+                variant="primary"
+                isLoading={save.isPending}
+                type="submit"
+                form={formId}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -117,10 +120,13 @@ export function CustomFieldsCard({
         <CardDescription>{t('cardDescription')}</CardDescription>
         {canEdit && (
           <CardAction>
-            <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-              <PencilIcon />
-              {tc('edit')}
-            </Button>
+            <Button
+              label={tc('edit')}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={PencilIcon} />}
+              onClick={() => setEditing(true)}
+            />
           </CardAction>
         )}
       </CardHeader>

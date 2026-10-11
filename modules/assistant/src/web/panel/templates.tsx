@@ -1,23 +1,20 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import { defaultFieldValues, type FieldDef, type FormElement } from '@isbp/sdk';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Form } from '@isbp/ui/form';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { Disclosure } from '@isbp/ui/motion';
 import { FormFields, useFieldsResolver } from '@isbp/ui/form-renderer';
 import { applyServerErrors, useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
-import {
-  ArrowLeftIcon,
-  BoxIcon,
-  ChevronRightIcon,
-  CircleAlertIcon,
-  CircleCheckIcon,
-  FilePlus2Icon,
-  WandSparklesIcon,
-} from 'lucide-react';
+import { ArrowLeftIcon, BoxIcon, FilePlus2Icon, WandSparklesIcon } from 'lucide-react';
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
 import { motion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
@@ -97,20 +94,16 @@ function TemplateQuestions({
     <Form {...form}>
       <form onSubmit={submit} noValidate className="grid gap-2">
         <FormFields elements={elements} form={form} className="sm:grid-cols-1" />
-        {formError && (
-          <p
-            role="alert"
-            className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
-          >
-            <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            {formError}
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground">{t('nothingLive')}</p>
-        <Button type="submit" loading={build.isPending} className="justify-self-start">
-          {!build.isPending && <WandSparklesIcon />}
-          {t('build')}
-        </Button>
+        {formError && <Banner status="error" title={formError} collapsible={false} />}
+        <Text type="supporting">{t('nothingLive')}</Text>
+        <Button
+          type="submit"
+          label={t('build')}
+          variant="primary"
+          icon={<Icon icon={WandSparklesIcon} />}
+          isLoading={build.isPending}
+          className="justify-self-start"
+        />
       </form>
     </Form>
   );
@@ -137,23 +130,23 @@ function TemplateForm({
   return (
     <section aria-labelledby={headingId} className="grid gap-4">
       <Button
+        label={t('back')}
         variant="ghost"
         size="sm"
+        icon={<Icon icon={ArrowLeftIcon} />}
         onClick={onBack}
         className="-ml-2 justify-self-start text-muted-foreground"
-      >
-        <ArrowLeftIcon /> {t('back')}
-      </Button>
-      <div className="space-y-1">
-        <h3 id={headingId} className="flex items-center gap-2 text-base font-semibold">
-          <span className="text-primary">
+      />
+      <VStack gap={1}>
+        <Heading id={headingId} level={3}>
+          <span className="inline-flex items-center gap-2">
             <KindIcon kind={picked.kind} />
+            {text(picked.template.label)}
           </span>
-          {text(picked.template.label)}
-        </h3>
-        <p className="text-sm text-muted-foreground">{text(picked.template.description)}</p>
-        {!picked.kind.canApply && <p className="text-xs text-muted-foreground">{t('needsReviewer')}</p>}
-      </div>
+        </Heading>
+        <Text color="secondary">{text(picked.template.description)}</Text>
+        {!picked.kind.canApply && <Text type="supporting">{t('needsReviewer')}</Text>}
+      </VStack>
       {isLoading ? (
         <div className="grid gap-3" aria-busy="true">
           <Skeleton className="h-9 w-full" />
@@ -161,10 +154,7 @@ function TemplateForm({
           <Skeleton className="h-9 w-2/3" />
         </div>
       ) : error || !fields ? (
-        <p role="alert" className="flex items-start gap-2 text-sm text-destructive">
-          <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t('loadError')}
-        </p>
+        <Banner status="error" title={t('loadError')} collapsible={false} />
       ) : (
         <TemplateQuestions
           key={path}
@@ -225,36 +215,29 @@ export function TemplatesView({
     );
 
   return (
-    <div className="grid gap-5">
+    <div className="grid grid-cols-1 gap-5">
       <div aria-live="polite">
         {built && (
-          <motion.p
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-sm text-success"
-          >
-            <CircleCheckIcon className="size-4 shrink-0" aria-hidden />
-            {t('built', { reference: built })}
-          </motion.p>
+          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
+            <Banner status="success" title={t('built', { reference: built })} collapsible={false} />
+          </motion.div>
         )}
       </div>
       {changeSetId && (
         <div className="grid gap-2">
           <ChangeSetCard id={changeSetId} onNavigate={onNavigate} />
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span>{t('addingTo')}</span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Text type="supporting">{t('addingTo')}</Text>
             <Button
-              variant="link"
+              label={t('startNew')}
+              variant="ghost"
               size="sm"
-              className="h-auto p-0 text-xs"
+              icon={<Icon icon={FilePlus2Icon} />}
               onClick={() => {
                 onChangeSet(null);
                 setBuilt(null);
               }}
-            >
-              <FilePlus2Icon className="size-3.5" />
-              {t('startNew')}
-            </Button>
+            />
           </div>
         </div>
       )}
@@ -268,38 +251,31 @@ export function TemplatesView({
         />
       ) : (
         <section aria-labelledby={listId} className="grid gap-3">
-          <h3 id={listId} className="text-sm font-semibold">
+          <Heading id={listId} level={3}>
             {t('title')}
-          </h3>
-          <ul className="grid gap-2">
+          </Heading>
+          <List hasDividers>
             {templates.map(({ kind: k, template: tpl }) => (
-              <li key={`${k.kind}/${tpl.id}`} className="min-w-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBuilt(null);
-                    setPicked({ kind: k, template: tpl });
-                  }}
-                  className={cn(
-                    'group flex w-full min-w-0 items-center gap-3 rounded-xl border bg-card px-3.5 py-3 text-left outline-none transition-all',
-                    'hover:border-ring/40 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
-                  )}
-                >
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+              <ListItem
+                key={`${k.kind}/${tpl.id}`}
+                label={text(tpl.label)}
+                description={
+                  <Text type="supporting" maxLines={2}>
+                    {text(tpl.description)}
+                  </Text>
+                }
+                startContent={
+                  <IconTile size="sm" aria-hidden>
                     <KindIcon kind={k} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium">{text(tpl.label)}</span>
-                    <span className="block text-xs text-muted-foreground">{text(tpl.description)}</span>
-                  </span>
-                  <ChevronRightIcon
-                    className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
-                    aria-hidden
-                  />
-                </button>
-              </li>
+                  </IconTile>
+                }
+                onClick={() => {
+                  setBuilt(null);
+                  setPicked({ kind: k, template: tpl });
+                }}
+              />
             ))}
-          </ul>
+          </List>
         </section>
       )}
       {without.length > 0 && (
@@ -308,9 +284,9 @@ export function TemplatesView({
           triggerClassName="text-xs text-muted-foreground"
           contentClassName="text-xs text-muted-foreground"
         >
-          <p className="pb-1">
+          <Text type="supporting">
             {t('withoutTemplates', { kinds: list(without.map((k) => kindLabel(k.kind))) })}
-          </p>
+          </Text>
         </Disclosure>
       )}
     </div>

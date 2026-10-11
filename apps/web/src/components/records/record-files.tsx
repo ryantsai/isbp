@@ -1,25 +1,25 @@
 'use client';
 
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Badge } from '@astryxdesign/core/Badge';
+import { FileInput } from '@astryxdesign/core/FileInput';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Lightbox } from '@astryxdesign/core/Lightbox';
+import { Link } from '@astryxdesign/core/Link';
+import { ProgressBar } from '@astryxdesign/core/ProgressBar';
+import { Text } from '@astryxdesign/core/Text';
+import { Thumbnail } from '@astryxdesign/core/Thumbnail';
 import type { FileInfoDto, RecordPanelSlotProps, ResolvedRecordInfo } from '@isbp/contracts';
 import { ApiError, useApi } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
-import { Button } from '@isbp/ui/button';
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@isbp/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
+import { DownloadButton } from '@isbp/ui/download-button';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { invalidatePaths, useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
+import { toast } from '@isbp/ui/toast';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DownloadIcon,
@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { type DragEvent, useId, useRef, useState } from 'react';
+import { useId, useState } from 'react';
 
 interface FilesResponse {
   record: ResolvedRecordInfo;
@@ -81,14 +81,11 @@ function useFileSize() {
 export default function RecordFiles({ record: ref, bare }: RecordPanelSlotProps) {
   const t = useTranslations('records.files');
   const headingId = useId();
-  const inputId = useId();
   const api = useApi();
   const client = useQueryClient();
   const errorText = useErrorText();
   const size = useFileSize();
-  const input = useRef<HTMLInputElement>(null);
   const [uploads, setUploads] = useState<Upload[]>([]);
-  const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState<FileInfoDto | null>(null);
   const [confirm, setConfirm] = useState<FileInfoDto | null>(null);
   const [announce, setAnnounce] = useState('');
@@ -138,73 +135,28 @@ export default function RecordFiles({ record: ref, bare }: RecordPanelSlotProps)
     await invalidatePaths(client, [filesPath(ref)]);
   }
 
-  const onDrop = (e: DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    if (editable && e.dataTransfer.files.length) void uploadAll(e.dataTransfer.files);
-  };
-  const dragProps = editable
-    ? {
-        onDragOver: (e: DragEvent) => {
-          e.preventDefault();
-          setDragging(true);
-        },
-        onDragLeave: () => setDragging(false),
-        onDrop,
-      }
-    : {};
-
-  const uploadButton = editable && (
-    <>
-      <input
-        ref={input}
-        id={inputId}
-        type="file"
-        multiple
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden
-        onChange={(e) => {
-          if (e.target.files?.length) void uploadAll(e.target.files);
-          e.target.value = '';
-        }}
-      />
-      <Button size="sm" variant="outline" onClick={() => input.current?.click()}>
-        <UploadIcon />
-        {t('upload')}
-      </Button>
-    </>
+  const upload = editable && (
+    <FileInput
+      mode="dropzone"
+      isMultiple
+      label={t('upload')}
+      description={t('limits', { size: size(maxBytes) })}
+      placeholder={t('dropHint')}
+      value={null}
+      onChange={(files) => {
+        const list = files === null ? [] : Array.isArray(files) ? files : [files];
+        if (list.length) void uploadAll(list);
+      }}
+    />
   );
 
   const body = (
-    <div
-      {...dragProps}
-      className={cn(
-        'grid gap-2 rounded-lg transition-colors',
-        dragging && 'bg-primary/5 ring-2 ring-primary/40 ring-dashed',
-      )}
-    >
-      {data.files.length === 0 && uploads.length === 0 ? (
-        <div
-          className={cn(
-            'rounded-lg px-4 py-5 text-center text-sm text-muted-foreground',
-            editable && 'border border-dashed',
-          )}
-        >
-          {editable ? (
-            <>
-              <p>{t('dropHint')}</p>
-              <p className="mt-1 text-xs">{t('limits', { size: size(maxBytes) })}</p>
-            </>
-          ) : (
-            t('empty')
-          )}
-        </div>
-      ) : (
+    <VStack gap={3}>
+      {(data.files.length > 0 || uploads.length > 0) && (
         <ul className="divide-y">
           <AnimatePresence initial={false}>
             {data.files.map((f) => {
-              const Icon = iconFor(f.contentType);
+              const FileTypeIcon = iconFor(f.contentType);
               return (
                 <motion.li
                   key={f.id}
@@ -213,52 +165,50 @@ export default function RecordFiles({ record: ref, bare }: RecordPanelSlotProps)
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="flex min-w-0 items-center gap-3 py-2"
+                  className="py-2"
                 >
-                  {f.previewable ? (
-                    <button
-                      type="button"
-                      onClick={() => setPreview(f)}
-                      className="size-10 shrink-0 overflow-hidden rounded-md border bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-                      aria-label={t('preview', { name: f.name })}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element -- same-origin API image, sized thumbnail */}
-                      <img src={`${f.href}?inline=1`} alt="" className="size-full object-cover" />
-                    </button>
-                  ) : (
-                    <span className="grid size-10 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
-                      <Icon className="size-5" aria-hidden />
-                    </span>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <a
+                  <HStack gap={3} vAlign="center">
+                    {f.previewable ? (
+                      <Thumbnail
+                        src={`${f.href}?inline=1`}
+                        label={t('preview', { name: f.name })}
+                        onClick={() => setPreview(f)}
+                      />
+                    ) : (
+                      <IconTile variant="outline" aria-hidden>
+                        <FileTypeIcon />
+                      </IconTile>
+                    )}
+                    <StackItem size="fill">
+                      <VStack gap={0.5}>
+                        <Link href={f.href} download={f.name} maxLines={1} weight="medium" color="primary">
+                          {f.name}
+                        </Link>
+                        <Text type="supporting" maxLines={1}>
+                          {size(f.size)}
+                          {f.uploadedBy && <> · {f.uploadedBy.name}</>} · <RelativeTime date={f.createdAt} />
+                        </Text>
+                      </VStack>
+                    </StackItem>
+                    <DownloadButton
                       href={f.href}
                       download={f.name}
-                      className="block truncate text-sm font-medium hover:underline focus-visible:underline focus-visible:outline-none"
-                    >
-                      {f.name}
-                    </a>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {size(f.size)}
-                      {f.uploadedBy && <> · {f.uploadedBy.name}</>} · <RelativeTime date={f.createdAt} />
-                    </p>
-                  </div>
-                  <Button asChild size="icon-sm" variant="ghost" className="text-muted-foreground">
-                    <a href={f.href} download={f.name} aria-label={t('download', { name: f.name })}>
-                      <DownloadIcon />
-                    </a>
-                  </Button>
-                  {editable && (
-                    <Button
-                      size="icon-sm"
+                      label={t('download', { name: f.name })}
+                      isIconOnly
                       variant="ghost"
-                      className="text-muted-foreground hover:text-destructive"
-                      onClick={() => setConfirm(f)}
-                      aria-label={t('delete', { name: f.name })}
-                    >
-                      <Trash2Icon />
-                    </Button>
-                  )}
+                      size="sm"
+                      icon={<Icon icon={DownloadIcon} />}
+                    />
+                    {editable && (
+                      <IconButton
+                        label={t('delete', { name: f.name })}
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon={Trash2Icon} />}
+                        onClick={() => setConfirm(f)}
+                      />
+                    )}
+                  </HStack>
                 </motion.li>
               );
             })}
@@ -269,95 +219,69 @@ export default function RecordFiles({ record: ref, bare }: RecordPanelSlotProps)
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex min-w-0 items-center gap-3 py-2"
+                className="py-2"
               >
-                <span className="grid size-10 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground">
-                  <UploadIcon className="size-5" aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm">{u.name}</p>
-                  <div
-                    role="progressbar"
-                    aria-label={t('uploading', { name: u.name })}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={Math.round(u.progress * 100)}
-                    className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"
-                  >
-                    <div
-                      className="h-full rounded-full bg-primary transition-[width] duration-200"
-                      style={{ width: `${Math.round(u.progress * 100)}%` }}
-                    />
-                  </div>
-                </div>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {Math.round(u.progress * 100)}%
-                </span>
+                <HStack gap={3} vAlign="center">
+                  <IconTile variant="outline" aria-hidden>
+                    <UploadIcon />
+                  </IconTile>
+                  <StackItem size="fill">
+                    <VStack gap={1}>
+                      <Text maxLines={1}>{u.name}</Text>
+                      <ProgressBar
+                        label={t('uploading', { name: u.name })}
+                        isLabelHidden
+                        value={Math.round(u.progress * 100)}
+                        hasValueLabel
+                      />
+                    </VStack>
+                  </StackItem>
+                </HStack>
               </motion.li>
             ))}
           </AnimatePresence>
         </ul>
       )}
+      {data.files.length === 0 && uploads.length === 0 && !editable && (
+        <Text color="secondary">{t('empty')}</Text>
+      )}
+      {upload}
       <p className="sr-only" aria-live="polite">
         {announce}
       </p>
-      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="truncate">{preview?.name}</DialogTitle>
-          </DialogHeader>
-          {preview && (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element -- same-origin API image at natural size */}
-              <img
-                src={`${preview.href}?inline=1`}
-                alt={preview.name}
-                className="max-h-[70vh] w-full rounded-md object-contain"
-              />
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-      <AlertDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('deleteBody', { name: confirm?.name ?? '' })}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (confirm) remove.mutate(confirm);
-                setConfirm(null);
-              }}
-            >
-              {t('deleteConfirm')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+      {preview && (
+        <Lightbox
+          isOpen
+          onOpenChange={(open) => !open && setPreview(null)}
+          media={{ src: `${preview.href}?inline=1`, alt: preview.name }}
+        />
+      )}
+      <AlertDialog
+        isOpen={!!confirm}
+        onOpenChange={(open) => !open && setConfirm(null)}
+        title={t('deleteTitle')}
+        description={t('deleteBody', { name: confirm?.name ?? '' })}
+        actionLabel={t('deleteConfirm')}
+        cancelLabel={t('cancel')}
+        onAction={() => {
+          if (confirm) remove.mutate(confirm);
+          setConfirm(null);
+        }}
+      />
+    </VStack>
   );
 
-  if (bare)
-    return (
-      <div className="grid gap-2">
-        {uploadButton && <div className="flex justify-end">{uploadButton}</div>}
-        {body}
-      </div>
-    );
+  if (bare) return body;
   return (
     <Card role="region" aria-labelledby={headingId} className="min-w-0">
       <CardHeader>
-        <CardTitle id={headingId} className="flex items-center gap-2">
-          <PaperclipIcon className="size-4 text-muted-foreground" aria-hidden />
-          {t('title')}
-          {data.files.length > 0 && (
-            <span className="text-sm font-normal text-muted-foreground">({data.files.length})</span>
-          )}
+        <CardTitle id={headingId}>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={PaperclipIcon} color="secondary" />
+            {t('title')}
+            {data.files.length > 0 && <Badge variant="neutral" label={data.files.length} />}
+          </HStack>
         </CardTitle>
-        {uploadButton && <CardAction>{uploadButton}</CardAction>}
       </CardHeader>
       <CardContent className="min-w-0">{body}</CardContent>
     </Card>

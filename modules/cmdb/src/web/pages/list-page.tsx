@@ -1,18 +1,20 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, DataTableSummary, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
+import { Segmented } from '@isbp/ui/segmented';
 import { type FilterDef, FilterBar } from '@isbp/ui/filter-bar';
 import { PageHeader } from '@isbp/ui/page-header';
 import { PersonPicker, usePeople } from '@isbp/ui/person-picker';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { NetworkIcon, PlusIcon, ShapesIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -39,37 +41,37 @@ const VIEWS = ['all', ...(Object.keys(CI_VIEWS) as CiView[])] as const;
 type Tab = (typeof VIEWS)[number];
 const FILTER_KEYS = ['q', 'class', 'status', 'environment', 'criticality', 'owner', 'supportGroup'] as const;
 
-/** A URL-backed filter select with an "all" option. */
+/** A URL-backed filter select: "all" first (the cleared state), then the choices. */
 function FilterSelect({
   value,
   onChange,
   allLabel,
   label,
-  className,
-  children,
+  width = 176,
+  options,
 }: {
   value: string | undefined;
   onChange: (v: string | undefined) => void;
   allLabel: string;
   label: string;
-  className?: string;
-  children: ReactNode;
+  width?: number;
+  options: readonly { value: string; label: string; icon?: ReactNode }[];
 }) {
   return (
-    <Select value={value ?? ALL} onValueChange={(v) => onChange(v === ALL ? undefined : v)}>
-      <SelectTrigger className={className ?? 'w-full sm:w-44'} aria-label={label}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL}>{allLabel}</SelectItem>
-        {children}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={label}
+      isLabelHidden
+      width={width}
+      value={value ?? ALL}
+      onChange={(v) => onChange(v === ALL ? undefined : v)}
+      options={[{ value: ALL, label: allLabel }, ...options]}
+    />
   );
 }
 
 export default function CiListPage() {
   const t = useTranslations('cmdb');
+  const tc = useTranslations('common');
   const router = useRouter();
   const canManage = useCan('cmdb.cis.manage');
   const canClasses = useCan('cmdb.classes.manage');
@@ -202,13 +204,8 @@ export default function CiListPage() {
           onChange={(v) => set({ status: v })}
           label={t('fields.status')}
           allLabel={t('list.filters.allStatuses')}
-        >
-          {CI_STATUSES.map((s) => (
-            <SelectItem key={s} value={s}>
-              {t(`status.${s}`)}
-            </SelectItem>
-          ))}
-        </FilterSelect>
+          options={CI_STATUSES.map((s) => ({ value: s, label: t(`status.${s}`) }))}
+        />
       ),
     },
     {
@@ -222,14 +219,12 @@ export default function CiListPage() {
           onChange={(v) => set({ class: v })}
           label={t('fields.class')}
           allLabel={t('list.filters.allClasses')}
-        >
-          {classes.map((c) => (
-            <SelectItem key={c.value} value={c.value}>
-              <ClassIcon name={c.icon} className="size-4 text-muted-foreground" />
-              {c.label}
-            </SelectItem>
-          ))}
-        </FilterSelect>
+          options={classes.map((c) => ({
+            value: c.value,
+            label: c.label,
+            icon: <ClassIcon name={c.icon} className="size-4 text-muted-foreground" />,
+          }))}
+        />
       ),
     },
     {
@@ -243,13 +238,8 @@ export default function CiListPage() {
           onChange={(v) => set({ criticality: v })}
           label={t('fields.criticality')}
           allLabel={t('list.filters.allCriticalities')}
-        >
-          {CI_CRITICALITIES.map((c) => (
-            <SelectItem key={c} value={c}>
-              {t(`criticality.${c}`)}
-            </SelectItem>
-          ))}
-        </FilterSelect>
+          options={CI_CRITICALITIES.map((c) => ({ value: c, label: t(`criticality.${c}`) }))}
+        />
       ),
     },
     {
@@ -263,13 +253,8 @@ export default function CiListPage() {
           onChange={(v) => set({ environment: v })}
           label={t('fields.environment')}
           allLabel={t('list.filters.allEnvironments')}
-        >
-          {CI_ENVIRONMENTS.map((e) => (
-            <SelectItem key={e} value={e}>
-              {t(`environment.${e}`)}
-            </SelectItem>
-          ))}
-        </FilterSelect>
+          options={CI_ENVIRONMENTS.map((e) => ({ value: e, label: t(`environment.${e}`) }))}
+        />
       ),
     },
     {
@@ -283,13 +268,8 @@ export default function CiListPage() {
           onChange={(v) => set({ supportGroup: v })}
           label={t('fields.supportGroup')}
           allLabel={t('list.filters.allGroups')}
-        >
-          {groups.items.map((g) => (
-            <SelectItem key={g.id} value={g.id}>
-              {g.name}
-            </SelectItem>
-          ))}
-        </FilterSelect>
+          options={groups.items.map((g) => ({ value: g.id, label: g.name }))}
+        />
       ),
     },
     {
@@ -350,9 +330,12 @@ export default function CiListPage() {
             description={canManage ? t('list.empty.none') : t('list.empty.noneReader')}
             action={
               canManage && (
-                <Button onClick={() => setCreating(true)}>
-                  <PlusIcon /> {t('list.new')}
-                </Button>
+                <Button
+                  label={t('list.new')}
+                  variant="primary"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={() => setCreating(true)}
+                />
               )
             }
           />
@@ -369,37 +352,34 @@ export default function CiListPage() {
         actions={
           <>
             {canClasses && (
-              <Button variant="outline" asChild>
-                <Link href="/cmdb/classes">
-                  <ShapesIcon /> {t('list.classes')}
-                </Link>
-              </Button>
+              <Button
+                label={t('list.classes')}
+                variant="secondary"
+                icon={<Icon icon={ShapesIcon} />}
+                href="/cmdb/classes"
+              />
             )}
             {canManage && (
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon /> {t('list.new')}
-              </Button>
+              <Button
+                label={t('list.new')}
+                variant="primary"
+                icon={<Icon icon={PlusIcon} />}
+                onClick={() => setCreating(true)}
+              />
             )}
           </>
         }
       />
-      <Tabs value={tab} onValueChange={(v) => set({ view: v === 'all' ? undefined : v })} className="gap-4">
-        <div className="-mx-1 overflow-x-auto px-1 pb-1">
-          <TabsList>
-            {VIEWS.map((v) => (
-              <TabsTrigger key={v} value={v}>
-                {t(`list.views.${v}`)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-        {/* Each tab only filters the same list; Radix renders the active panel's content. */}
-        {VIEWS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {table}
-          </TabsContent>
-        ))}
-      </Tabs>
+      <VStack gap={4}>
+        {/* The views only filter the same list, so they are a segmented control, not tabs. */}
+        <Segmented
+          label={tc('filters')}
+          value={tab}
+          onChange={(v) => set({ view: v === 'all' ? undefined : v })}
+          options={VIEWS.map((v) => ({ value: v, label: t(`list.views.${v}`) }))}
+        />
+        {table}
+      </VStack>
       <p className="sr-only" aria-live="polite">
         {data ? t('list.liveCount', { count: data.total }) : ''}
       </p>

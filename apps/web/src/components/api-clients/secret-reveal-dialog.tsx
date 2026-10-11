@@ -1,19 +1,14 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import type { CreatedSecret } from '@isbp/contracts';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Label } from '@isbp/ui/label';
-import { CircleCheckIcon, TriangleAlertIcon } from 'lucide-react';
-import { motion } from 'motion/react';
+import { CircleCheckIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import { CopyButton } from '@/components/applications/app-parts';
@@ -46,88 +41,74 @@ export function SecretRevealDialog({
   const { client, secret } = shown;
 
   return (
-    <Dialog open={created !== null}>
-      <DialogContent
-        showClose={false}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
-        className="sm:max-w-2xl"
-      >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <motion.span
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              className="text-success"
-            >
-              <CircleCheckIcon className="size-5" aria-hidden />
-            </motion.span>
-            {rotated ? t('rotatedTitle') : t('title', { name: client.name })}
-          </DialogTitle>
-          <DialogDescription>{rotated ? t('rotatedDescription') : t('description')}</DialogDescription>
-        </DialogHeader>
+    <Dialog isOpen={created !== null} onOpenChange={() => {}} width={672} purpose="required">
+      <Layout
+        header={
+          <DialogHeader
+            title={rotated ? t('rotatedTitle') : t('title', { name: client.name })}
+            subtitle={rotated ? t('rotatedDescription') : t('description')}
+            startContent={<Icon icon={CircleCheckIcon} color="success" size="lg" />}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={4}>
+              <Banner
+                status="warning"
+                title={t('warningTitle')}
+                description={t('warning')}
+                collapsible={false}
+              />
 
-        <div
-          role="alert"
-          className="flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm text-warning-foreground"
-        >
-          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <p>
-            <span className="font-medium">{t('warningTitle')}</span> {t('warning')}
-          </p>
-        </div>
+              <VStack gap={3}>
+                <div className="grid min-w-0 gap-1.5">
+                  <Text type="label" id={`${id}-secret`}>
+                    {t('secret')}
+                  </Text>
+                  <div className="flex min-w-0 items-center gap-2 rounded-lg border bg-muted/40 py-1 pr-1 pl-3">
+                    <code
+                      aria-labelledby={`${id}-secret`}
+                      className="min-w-0 flex-1 font-mono text-sm break-all select-all"
+                      data-testid="client-secret"
+                    >
+                      {secret}
+                    </code>
+                    <CopyButton value={secret} label={t('copySecret')} variant="outline" />
+                  </div>
+                </div>
+                <div className="grid min-w-0 gap-1.5">
+                  <Text type="label" id={`${id}-client`}>
+                    {t('clientId')}
+                  </Text>
+                  <div className="flex min-w-0 items-center gap-2 rounded-lg border bg-muted/40 py-1 pr-1 pl-3">
+                    <code
+                      aria-labelledby={`${id}-client`}
+                      className="min-w-0 flex-1 truncate font-mono text-sm"
+                      data-testid="client-id"
+                    >
+                      {client.clientId}
+                    </code>
+                    <CopyButton value={client.clientId} label={t('copyClientId')} />
+                  </div>
+                </div>
+              </VStack>
 
-        <div className="grid min-w-0 gap-3">
-          <div className="grid min-w-0 gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground" id={`${id}-secret`}>
-              {t('secret')}
-            </span>
-            <div className="flex min-w-0 items-center gap-2 rounded-lg border bg-muted/40 py-1 pr-1 pl-3">
-              <code
-                aria-labelledby={`${id}-secret`}
-                className="min-w-0 flex-1 font-mono text-sm break-all select-all"
-                data-testid="client-secret"
-              >
-                {secret}
-              </code>
-              <CopyButton value={secret} label={t('copySecret')} variant="outline" />
-            </div>
-          </div>
-          <div className="grid min-w-0 gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground" id={`${id}-client`}>
-              {t('clientId')}
-            </span>
-            <div className="flex min-w-0 items-center gap-2 rounded-lg border bg-muted/40 py-1 pr-1 pl-3">
-              <code
-                aria-labelledby={`${id}-client`}
-                className="min-w-0 flex-1 truncate font-mono text-sm"
-                data-testid="client-id"
-              >
-                {client.clientId}
-              </code>
-              <CopyButton value={client.clientId} label={t('copyClientId')} />
-            </div>
-          </div>
-        </div>
-
-        <div className="min-w-0 space-y-2">
-          <p className="text-sm font-medium">{t('tryIt')}</p>
-          <ClientExamples client={client} secret={secret} />
-        </div>
-
-        <DialogFooter className="items-center gap-3 sm:justify-between">
-          <div className="flex items-center gap-2 self-start sm:self-center">
-            <Checkbox id={`${id}-stored`} checked={stored} onCheckedChange={(v) => setStored(v === true)} />
-            <Label htmlFor={`${id}-stored`} className="font-normal">
-              {t('stored')}
-            </Label>
-          </div>
-          <Button onClick={onDone} disabled={!stored}>
-            {t('done')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+              <VStack gap={2}>
+                <Text type="label">{t('tryIt')}</Text>
+                <ClientExamples client={client} secret={secret} />
+              </VStack>
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={3} hAlign="between" vAlign="center" wrap="wrap">
+              <CheckboxInput label={t('stored')} value={stored} onChange={setStored} />
+              <Button label={t('done')} variant="primary" isDisabled={!stored} onClick={onDone} />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }

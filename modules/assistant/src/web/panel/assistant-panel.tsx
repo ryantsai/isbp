@@ -1,38 +1,38 @@
 'use client';
 
-import { ApiError, usePageContext } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
+  ChatComposer,
+  ChatComposerInput,
+  type ChatComposerInputHandle,
+  ChatSendButton,
+} from '@astryxdesign/core/Chat';
+import { DropdownMenu, type DropdownMenuItemData } from '@astryxdesign/core/DropdownMenu';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { ApiError, usePageContext } from '@isbp/sdk/web';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery, useErrorText } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Textarea } from '@isbp/ui/textarea';
 import {
-  ArrowUpIcon,
-  CircleAlertIcon,
+  CheckIcon,
   FileTextIcon,
   FormInputIcon,
   GitPullRequestArrowIcon,
   HistoryIcon,
   LockIcon,
-  MapPinIcon,
   SparklesIcon,
   SquarePenIcon,
   WorkflowIcon,
-  XIcon,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ModeBadge } from '../badges';
 import { type AssistantStatusDto, CONVERSATIONS_PATH, type ConversationDto, STATUS_PATH } from '../lib';
 import { ChangeSetCard } from './change-set-card';
@@ -59,40 +59,41 @@ function ConversationMenu({
   const [open, setOpen] = useState(false);
   const { data, isLoading } = useApiQuery<{ items: ConversationDto[] }>(open ? CONVERSATIONS_PATH : null);
   const items = data?.items ?? [];
+  const entries: DropdownMenuItemData[] = isLoading
+    ? [
+        { id: 'loading-1', label: <Skeleton className="h-8 w-full" />, isDisabled: true },
+        { id: 'loading-2', label: <Skeleton className="h-8 w-full" />, isDisabled: true },
+      ]
+    : items.length === 0
+      ? [{ id: 'empty', label: t('historyEmpty'), isDisabled: true }]
+      : items.map((c) => ({
+          id: c.id,
+          label: c.title || t('untitled'),
+          description: (
+            <>
+              {t('messages', { count: c.messageCount })} · <RelativeTime date={c.updatedAt} />
+            </>
+          ),
+          // The conversation in view is marked (the mark is decorative: the list is a plain pick-one menu).
+          endContent: c.id === current ? <AstryxIcon icon={CheckIcon} /> : undefined,
+          onClick: () => onPick(c.id),
+        }));
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label={t('history')}>
-          <HistoryIcon />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[min(20rem,calc(100vw-2rem))]">
-        <DropdownMenuLabel>{t('history')}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {isLoading ? (
-          <div className="grid gap-1.5 p-2">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-          </div>
-        ) : items.length === 0 ? (
-          <p className="px-2 py-3 text-sm text-muted-foreground">{t('historyEmpty')}</p>
-        ) : (
-          items.map((c) => (
-            <DropdownMenuItem
-              key={c.id}
-              onSelect={() => onPick(c.id)}
-              aria-current={c.id === current ? 'true' : undefined}
-              className="flex flex-col items-start gap-0.5"
-            >
-              <span className="w-full truncate font-medium">{c.title || t('untitled')}</span>
-              <span className="text-xs text-muted-foreground">
-                {t('messages', { count: c.messageCount })} · <RelativeTime date={c.updatedAt} />
-              </span>
-            </DropdownMenuItem>
-          ))
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <DropdownMenu
+      renderTrigger={(props) => (
+        <IconButton
+          {...props}
+          label={t('history')}
+          variant="ghost"
+          size="sm"
+          icon={<AstryxIcon icon={HistoryIcon} />}
+        />
+      )}
+      onOpenChange={setOpen}
+      alignment="end"
+      menuWidth="min(20rem, calc(100vw - 2rem))"
+      items={[{ type: 'section', title: t('history'), items: entries }]}
+    />
   );
 }
 
@@ -108,10 +109,10 @@ function Welcome({ onPick, customise }: { onPick: (text: string) => void; custom
         >
           <SparklesIcon className="size-5" />
         </span>
-        <div className="space-y-1.5">
-          <h3 className="text-base font-semibold tracking-tight">{t('workTitle')}</h3>
-          <p className="text-sm text-muted-foreground">{t('workBody')}</p>
-        </div>
+        <VStack gap={1.5}>
+          <Heading level={3}>{t('workTitle')}</Heading>
+          <Text color="secondary">{t('workBody')}</Text>
+        </VStack>
       </div>
     );
   return (
@@ -125,24 +126,22 @@ function Welcome({ onPick, customise }: { onPick: (text: string) => void; custom
       >
         <GitPullRequestArrowIcon className="size-5" />
       </motion.span>
-      <div className="space-y-1.5">
-        <h3 className="text-base font-semibold tracking-tight">{t('welcomeTitle')}</h3>
-        <p className="text-sm text-muted-foreground">{t('welcomeBody')}</p>
-      </div>
-      <ul className="grid w-full grid-cols-1 gap-2" aria-label={t('starters')}>
-        {STARTERS.map(({ key, icon: Icon }) => (
-          <li key={key} className="min-w-0">
-            <button
-              type="button"
+      <VStack gap={1.5}>
+        <Heading level={3}>{t('welcomeTitle')}</Heading>
+        <Text color="secondary">{t('welcomeBody')}</Text>
+      </VStack>
+      <div className="w-full text-start">
+        <List aria-label={t('starters')} hasDividers>
+          {STARTERS.map(({ key, icon }) => (
+            <ListItem
+              key={key}
+              label={t(`starter.${key}`)}
+              startContent={<AstryxIcon icon={icon} color="accent" />}
               onClick={() => onPick(t(`starter.${key}`))}
-              className="flex w-full min-w-0 items-center gap-2.5 rounded-xl border bg-card px-3 py-2.5 text-left text-sm outline-none transition-colors hover:border-ring/40 hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
-            >
-              <Icon className="size-4 shrink-0 text-primary" aria-hidden />
-              <span className="min-w-0">{t(`starter.${key}`)}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+            />
+          ))}
+        </List>
+      </div>
     </div>
   );
 }
@@ -165,8 +164,7 @@ function ChatView({
   const page = usePageContext();
   const [draft, setDraft] = useState('');
   const scroller = useRef<HTMLDivElement>(null);
-  const input = useRef<HTMLTextAreaElement>(null);
-  const inputId = useId();
+  const input = useRef<ChatComposerInputHandle>(null);
   const messages = chat.messages;
   const streamed = chat.pendingAnswer?.text.length ?? 0;
   const toolCount = chat.pendingAnswer?.tools.length ?? 0;
@@ -202,9 +200,7 @@ function ChatView({
             <Skeleton className="h-24 w-3/4 rounded-2xl" />
           </div>
         ) : chat.loadError ? (
-          <p role="alert" className="text-sm text-destructive">
-            {t('loadError')}
-          </p>
+          <Banner status="error" title={t('loadError')} collapsible={false} />
         ) : !messages.length && !chat.pendingQuestion ? (
           <Welcome
             customise={customise}
@@ -285,76 +281,45 @@ function ChatView({
       )}
 
       {chat.error && (
-        <div
-          role="alert"
-          className="mx-4 mb-2 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-2 text-sm text-destructive"
-        >
-          <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <span className="min-w-0 flex-1">
-            {chat.error === 'NETWORK'
-              ? t('networkError')
-              : errorText(new ApiError(0, chat.error, t('genericError')))}
-          </span>
-          <button
-            type="button"
-            onClick={chat.clearError}
-            className="rounded-sm opacity-70 outline-none hover:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            aria-label={t('dismissError')}
-          >
-            <XIcon className="size-4" />
-          </button>
+        <div className="px-4 pb-2">
+          <Banner
+            status="error"
+            title={
+              chat.error === 'NETWORK'
+                ? t('networkError')
+                : errorText(new ApiError(0, chat.error, t('genericError')))
+            }
+            isDismissable
+            onDismiss={chat.clearError}
+            dismissLabel={t('dismissError')}
+            collapsible={false}
+          />
         </div>
       )}
 
-      <form
-        className="border-t bg-card/60 p-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void submit(draft);
-        }}
-      >
-        <p className="mb-2 flex min-w-0 items-center gap-1.5 px-1 text-xs text-muted-foreground">
-          <MapPinIcon className="size-3.5 shrink-0" aria-hidden />
-          <span className="truncate" title={where}>
-            {t('context', { page: where })}
-          </span>
-        </p>
-        <label htmlFor={inputId} className="sr-only">
-          {t('inputLabel')}
-        </label>
-        <div className="flex items-end gap-2 rounded-xl border bg-background px-2 py-1.5 transition-shadow focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 motion-reduce:transition-none">
-          <Textarea
-            id={inputId}
-            ref={input}
-            value={draft}
-            rows={1}
-            maxLength={8_000}
-            placeholder={customise ? t('placeholder') : t('placeholderWork')}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              // Enter sends; Shift+Enter adds a line; never while an IME is composing (zh / ja input).
-              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                void submit(draft);
-              }
-            }}
-            aria-describedby={`${inputId}-hint`}
-            className="max-h-40 min-h-9 resize-none border-0 bg-transparent px-1.5 py-1.5 shadow-none focus-visible:ring-0 dark:bg-transparent"
-          />
-          <Button
-            type="submit"
-            size="icon-sm"
-            className="mb-0.5 rounded-lg"
-            disabled={!draft.trim() || chat.busy}
-            aria-label={t('send')}
-          >
-            <ArrowUpIcon />
-          </Button>
-        </div>
-        <p id={`${inputId}-hint`} className="mt-1.5 px-1 text-[11px] text-muted-foreground">
-          {t('hint')}
-        </p>
-      </form>
+      <div className="border-t p-3">
+        <ChatComposer
+          value={draft}
+          onChange={(v) => setDraft(v.slice(0, 8_000))}
+          onSubmit={(text) => void submit(text)}
+          elevation="none"
+          headerContext={
+            <Text type="supporting" maxLines={1} hasTruncateTooltip>
+              {t('context', { page: where })}
+            </Text>
+          }
+          input={
+            <ChatComposerInput
+              handleRef={input}
+              label={t('inputLabel')}
+              placeholder={customise ? t('placeholder') : t('placeholderWork')}
+              hasHistory={false}
+            />
+          }
+          sendButton={<ChatSendButton isDisabled={!draft.trim() || chat.busy} />}
+        />
+        <Text type="supporting">{t('hint')}</Text>
+      </div>
     </div>
   );
 }
@@ -393,22 +358,25 @@ export function AssistantPanel({
           {canChat && (
             <>
               <ConversationMenu current={conversationId} onPick={onConversation} />
-              <Button
+              <IconButton
+                label={t('newConversation')}
                 variant="ghost"
-                size="icon-sm"
-                aria-label={t('newConversation')}
-                disabled={!conversationId || chat.busy}
+                size="sm"
+                icon={<AstryxIcon icon={SquarePenIcon} />}
+                isDisabled={!conversationId || chat.busy}
                 onClick={() => onConversation(null)}
-              >
-                <SquarePenIcon />
-              </Button>
+              />
             </>
           )}
-          <Button variant="ghost" size="sm" asChild className="text-xs">
-            <Link href="/assistant/change-sets" onClick={onNavigate}>
-              <GitPullRequestArrowIcon /> {t('changeSets')}
-            </Link>
-          </Button>
+          <Button
+            label={t('changeSets')}
+            variant="ghost"
+            size="sm"
+            icon={<AstryxIcon icon={GitPullRequestArrowIcon} />}
+            href="/assistant/change-sets"
+            onClick={onNavigate}
+            className="text-xs"
+          />
         </div>
       </div>
 
@@ -418,9 +386,9 @@ export function AssistantPanel({
           <Skeleton className="h-16 w-full rounded-xl" />
         </div>
       ) : !s ? (
-        <p role="alert" className="p-4 text-sm text-destructive">
-          {t('loadError')}
-        </p>
+        <div className="p-4">
+          <Banner status="error" title={t('loadError')} collapsible={false} />
+        </div>
       ) : canChat ? (
         <ChatView chat={chat} onNavigate={onNavigate} customise={customise} />
       ) : s.mode === 'llm' ? (

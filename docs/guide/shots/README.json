@@ -11,8 +11,16 @@
     "as": "admin",
     "path": "/",
     "waitFor": "main h1",
-    "steps": [{ "click": { "css": "header button:has(kbd)" } }, { "wait": 500 }],
-    "clip": "[role=\"dialog\"]"
+    "steps": [
+      {
+        "click": {
+          "role": "button",
+          "name": { "en": "Search or jump to…", "zh-TW": "搜尋或跳至…", "ja-JP": "検索またはジャンプ…" }
+        }
+      },
+      { "wait": 500 }
+    ],
+    "clip": "dialog[open]"
   },
   {
     "name": "readme-assistant",
@@ -25,6 +33,6 @@
       },
       { "wait": 1000 }
     ],
-    "clip": "[role=\"dialog\"]"
+    "clip": "dialog[open]"
   }
 ]

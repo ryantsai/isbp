@@ -4,15 +4,14 @@ import type { CatalogItem, FormAssignment, MyRequest, PortalEntry } from '@isbp/
 import { localize, type Page } from '@isbp/sdk';
 import { Slot } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
   ArrowRightIcon,
   BriefcaseBusinessIcon,
@@ -26,6 +25,12 @@ import { useMemo } from 'react';
 import { useApiQuery } from '@/lib/api';
 import { NavIcon } from '../nav-icon';
 import { fulfilmentOf, RequestStatus, requestHref } from './request-status';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Text } from '@astryxdesign/core/Text';
 
 /** The groups of "What do you need?", in the order they appear. */
 const GROUPS = ['help', 'equipment', 'access', 'other'] as const;
@@ -68,6 +73,7 @@ function CatalogCard({
   description?: string | null;
   featured?: boolean;
 }) {
+  // A real link (not `ClickableCard`, whose link is visually hidden): people, tests and assistive technology all reach it.
   return (
     <Link
       href={href}
@@ -76,18 +82,17 @@ function CatalogCard({
         (featured ? ' bg-gradient-to-br from-primary/10 via-card to-card' : '')
       }
     >
-      <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-105 [&_svg]:size-5">
-        {icon}
-      </span>
-      <span className="grid min-w-0 gap-1">
-        <span className="font-medium [overflow-wrap:anywhere]">{title}</span>
-        {description && <span className="line-clamp-2 text-sm text-muted-foreground">{description}</span>}
-      </span>
+      <IconTile aria-hidden>{icon}</IconTile>
+      <VStack gap={1}>
+        <Text weight="medium">{title}</Text>
+        {description && (
+          <Text color="secondary" maxLines={2}>
+            {description}
+          </Text>
+        )}
+      </VStack>
       <span className="mt-auto flex items-center justify-end">
-        <ArrowRightIcon
-          className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-          aria-hidden
-        />
+        <Icon icon={ArrowRightIcon} color="secondary" />
       </span>
     </Link>
   );
@@ -165,18 +170,21 @@ function TodoLink() {
   const count = open.data?.total ?? 0;
   if (!count) return null;
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="flex items-center gap-2 text-sm font-medium">
-        <BriefcaseBusinessIcon className="size-4 shrink-0 text-primary" aria-hidden />
-        {t('todoLink', { count })}
-      </p>
-      <Button asChild variant="outline" size="sm" className="self-start sm:self-auto">
-        <Link href="/my-work">
-          {t('todoOpen')}
-          <ArrowRightIcon aria-hidden />
-        </Link>
-      </Button>
-    </div>
+    <Banner
+      status="info"
+      icon={<Icon icon={BriefcaseBusinessIcon} />}
+      title={t('todoLink', { count })}
+      endContent={
+        <Button
+          label={t('todoOpen')}
+          variant="secondary"
+          size="sm"
+          endContent={<Icon icon={ArrowRightIcon} />}
+          href="/my-work"
+        />
+      }
+      collapsible={false}
+    />
   );
 }
 
@@ -248,80 +256,77 @@ export function RequestsHome() {
       <PageHeader title={t('home.title')} description={t('home.description')} />
 
       <section aria-labelledby="my-requests" className="grid gap-4">
-        <Tabs
-          value={scope}
-          onValueChange={(v) => set({ show: v === 'open' ? undefined : v, page: undefined })}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 id="my-requests" className="text-lg font-semibold">
-              {t('home.mine')}
-            </h2>
-            <TabsList>
-              <TabsTrigger value="open">{t('home.open')}</TabsTrigger>
-              <TabsTrigger value="closed">{t('home.closed')}</TabsTrigger>
-              <TabsTrigger value="all">{t('home.all')}</TabsTrigger>
-            </TabsList>
-          </div>
-          {/* Radix renders the panel's children only for the active tab. */}
-          {(['open', 'closed', 'all'] as const).map((v) => (
-            <TabsContent key={v} value={v} className="mt-4 grid gap-4">
-              <div className="overflow-hidden rounded-xl border bg-card">
-                {mine.isLoading ? (
-                  <div className="grid gap-px">
-                    {[0, 1, 2].map((i) => (
-                      <Skeleton key={i} className="h-16 rounded-none" />
-                    ))}
-                  </div>
-                ) : mine.error ? (
-                  <EmptyState
-                    icon={<InboxIcon />}
-                    title={t('home.loadFailed')}
-                    action={
-                      <Button variant="outline" size="sm" onClick={() => mine.refetch()}>
-                        {t('home.retry')}
-                      </Button>
-                    }
-                  />
-                ) : !mine.data?.items.length ? (
-                  <EmptyState
-                    icon={<InboxIcon />}
-                    title={t(scope === 'open' ? 'home.emptyOpen' : 'home.empty')}
-                    description={scope === 'open' ? t('home.emptyOpenHint') : undefined}
-                  />
-                ) : (
-                  <ul className="divide-y">
-                    {mine.data.items.map((r) => (
-                      <RequestRow key={`${r.kind}-${r.id}`} r={r} />
-                    ))}
-                  </ul>
-                )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="my-requests" className="text-lg font-semibold">
+            {t('home.mine')}
+          </h2>
+          <SegmentedControl
+            label={t('home.mine')}
+            value={scope}
+            onChange={(v) => set({ show: v === 'open' ? undefined : v, page: undefined })}
+          >
+            <SegmentedControlItem value="open" label={t('home.open')} />
+            <SegmentedControlItem value="closed" label={t('home.closed')} />
+            <SegmentedControlItem value="all" label={t('home.all')} />
+          </SegmentedControl>
+        </div>
+        <div className="grid gap-4">
+          <div className="overflow-hidden rounded-xl border bg-card">
+            {mine.isLoading ? (
+              <div className="grid gap-px">
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} className="h-16 rounded-none" />
+                ))}
               </div>
-              {pages > 1 && (
-                <div className="flex items-center justify-center gap-2">
+            ) : mine.error ? (
+              <EmptyState
+                icon={<InboxIcon />}
+                title={t('home.loadFailed')}
+                action={
                   <Button
-                    variant="outline"
+                    label={t('home.retry')}
+                    variant="secondary"
                     size="sm"
-                    disabled={state.page <= 1}
-                    onClick={() => set({ page: state.page - 1 })}
-                  >
-                    {t('previous')}
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    {t('pageOf', { page: state.page, pages })}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={state.page >= pages}
-                    onClick={() => set({ page: state.page + 1 })}
-                  >
-                    {t('next')}
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-          ))}
-        </Tabs>
+                    onClick={() => mine.refetch()}
+                  />
+                }
+              />
+            ) : !mine.data?.items.length ? (
+              <EmptyState
+                icon={<InboxIcon />}
+                title={t(scope === 'open' ? 'home.emptyOpen' : 'home.empty')}
+                description={scope === 'open' ? t('home.emptyOpenHint') : undefined}
+              />
+            ) : (
+              <ul className="divide-y">
+                {mine.data.items.map((r) => (
+                  <RequestRow key={`${r.kind}-${r.id}`} r={r} />
+                ))}
+              </ul>
+            )}
+          </div>
+          {pages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                label={t('previous')}
+                variant="secondary"
+                size="sm"
+                isDisabled={state.page <= 1}
+                onClick={() => set({ page: state.page - 1 })}
+              />
+              <span className="text-sm text-muted-foreground">
+                {t('pageOf', { page: state.page, pages })}
+              </span>
+              <Button
+                label={t('next')}
+                variant="secondary"
+                size="sm"
+                isDisabled={state.page >= pages}
+                onClick={() => set({ page: state.page + 1 })}
+              />
+            </div>
+          )}
+        </div>
       </section>
 
       <TodoLink />

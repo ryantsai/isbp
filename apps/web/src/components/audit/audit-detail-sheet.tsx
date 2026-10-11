@@ -1,11 +1,16 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CodeBlock } from '@astryxdesign/core/CodeBlock';
+import { Icon } from '@astryxdesign/core/Icon';
+import { proportional, Table } from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
 import type { AuditLog } from '@isbp/contracts';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
-import { FingerprintIcon, ShieldAlertIcon, ShieldCheckIcon } from 'lucide-react';
+import { FingerprintIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useState } from 'react';
@@ -19,7 +24,11 @@ function Section({ title, children, aside }: { title: string; children: ReactNod
   return (
     <section className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-semibold text-muted-foreground">{title}</h3>
+        <h3 className="m-0">
+          <Text type="label" color="secondary">
+            {title}
+          </Text>
+        </h3>
         {aside}
       </div>
       {children}
@@ -105,51 +114,57 @@ function ValueCell({
 function ChangesTable({ log }: { log: AuditLog }) {
   const t = useTranslations('audit.detail');
   const text = useAuditText();
-  const rows = Object.entries(log.changes ?? {});
-  if (!rows.length) return <p className="text-sm text-muted-foreground">{t('empty')}</p>;
+  const rows = Object.entries(log.changes ?? {}).map(([field, [before, after]]) => ({
+    field,
+    before,
+    after,
+  }));
+  if (!rows.length)
+    return (
+      <Text as="p" display="block" color="secondary">
+        {t('empty')}
+      </Text>
+    );
   return (
-    <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full table-fixed text-sm">
-        <caption className="sr-only">{t('changes')}</caption>
-        <thead className="bg-muted/40 text-left text-xs text-muted-foreground">
-          <tr>
-            <th scope="col" className="w-[30%] px-3 py-2 font-medium">
-              {t('field')}
-            </th>
-            <th scope="col" className="px-3 py-2 font-medium">
-              {t('before')}
-            </th>
-            <th scope="col" className="px-3 py-2 font-medium">
-              {t('after')}
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {rows.map(([field, [before, after]]) => {
-            const label = text.fieldLabel(field);
-            return (
-              <tr key={field} className="align-top">
-                <th
-                  scope="row"
-                  className={cn(
-                    'px-3 py-2 text-left font-medium break-words',
-                    !label && 'font-mono text-xs break-all',
-                  )}
-                >
-                  {label ?? field}
-                </th>
-                <td className="px-3 py-2">
-                  <ValueCell log={log} field={field} value={before} other={after} side="before" />
-                </td>
-                <td className="px-3 py-2">
-                  <ValueCell log={log} field={field} value={after} other={before} side="after" />
-                </td>
-              </tr>
+    <Table
+      aria-label={t('changes')}
+      density="compact"
+      idKey="field"
+      data={rows}
+      columns={[
+        {
+          key: 'field',
+          header: t('field'),
+          width: proportional(3, { minWidth: 100 }),
+          renderCell: (r) => {
+            const label = text.fieldLabel(r.field);
+            return label ? (
+              <Text weight="medium">{label}</Text>
+            ) : (
+              <Text type="code" wordBreak="break-all">
+                {r.field}
+              </Text>
             );
-          })}
-        </tbody>
-      </table>
-    </div>
+          },
+        },
+        {
+          key: 'before',
+          header: t('before'),
+          width: proportional(5, { minWidth: 120 }),
+          renderCell: (r) => (
+            <ValueCell log={log} field={r.field} value={r.before} other={r.after} side="before" />
+          ),
+        },
+        {
+          key: 'after',
+          header: t('after'),
+          width: proportional(5, { minWidth: 120 }),
+          renderCell: (r) => (
+            <ValueCell log={log} field={r.field} value={r.after} other={r.before} side="after" />
+          ),
+        },
+      ]}
+    />
   );
 }
 
@@ -196,45 +211,42 @@ function Integrity({ seq }: { seq: number }) {
   const result = verify.data;
   return (
     <Section title={t('integrity')}>
-      <p className="text-sm text-muted-foreground">{t('integrityHint')}</p>
-      <Button variant="outline" size="sm" onClick={() => verify.mutate(undefined)} loading={verify.isPending}>
-        {!verify.isPending && <FingerprintIcon />} {t('verify')}
-      </Button>
+      <Text as="p" display="block" color="secondary">
+        {t('integrityHint')}
+      </Text>
+      <div>
+        <Button
+          label={t('verify')}
+          variant="secondary"
+          size="sm"
+          icon={<Icon icon={FingerprintIcon} />}
+          onClick={() => verify.mutate(undefined)}
+          isLoading={verify.isPending}
+        />
+      </div>
       <div aria-live="polite">
         <AnimatePresence mode="wait">
           {result && (
             <motion.div
               key={`${result.valid}-${verify.submittedAt}`}
-              role="status"
               initial={{ opacity: 0, y: 6, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className={cn(
-                'mt-1 flex items-start gap-3 rounded-lg border px-3 py-2.5',
-                result.valid ? 'border-success/30 bg-success/10' : 'border-destructive/40 bg-destructive/10',
-              )}
             >
-              <motion.span
-                initial={{ scale: 0.4, rotate: -20, opacity: 0 }}
-                animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 520, damping: 18, delay: 0.08 }}
-                className={cn('mt-0.5 shrink-0', result.valid ? 'text-success' : 'text-destructive')}
-              >
-                {result.valid ? (
-                  <ShieldCheckIcon className="size-5" />
-                ) : (
-                  <ShieldAlertIcon className="size-5" />
-                )}
-              </motion.span>
-              <div className="min-w-0 space-y-1">
-                <p className={cn('text-sm font-medium', result.valid ? 'text-success' : 'text-destructive')}>
-                  {result.valid ? t('verified') : t('tampered')}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t('hash')} <code className="font-mono break-all">{result.hash}</code>
-                </p>
-              </div>
+              <Banner
+                status={result.valid ? 'success' : 'error'}
+                title={result.valid ? t('verified') : t('tampered')}
+                description={
+                  <>
+                    {t('hash')}{' '}
+                    <Text type="code" wordBreak="break-all">
+                      {result.hash}
+                    </Text>
+                  </>
+                }
+                collapsible={false}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -275,22 +287,21 @@ export function AuditDetailSheet({
                   </code>
                 </div>
               </div>
-              <SheetDescription asChild>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <ActorCell log={shown} className="text-foreground" />
-                  <span aria-hidden>·</span>
-                  <DateTime date={shown.occurredAt} />
+              {/* The actor holds an avatar (a block), which can't sit inside the description's paragraph. */}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <ActorCell log={shown} className="text-foreground" />
+                <span aria-hidden>·</span>
+                <SheetDescription>
+                  <DateTime date={shown.occurredAt} />{' '}
                   <span className="text-xs">
                     (<RelativeTime date={shown.occurredAt} />)
                   </span>
-                </div>
-              </SheetDescription>
+                </SheetDescription>
+              </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 <OutcomeBadge outcome={shown.outcome} />
                 <CategoryBadge category={shown.category} />
-                <Badge variant="outline" className="font-mono font-normal text-muted-foreground">
-                  {t('detail.seq', { seq: shown.seq })}
-                </Badge>
+                <Badge variant="neutral" label={t('detail.seq', { seq: shown.seq })} />
               </div>
             </SheetHeader>
             <SheetBody className="space-y-5 pb-6">
@@ -312,23 +323,16 @@ export function AuditDetailSheet({
               </Section>
 
               {shown.metadata && Object.keys(shown.metadata).length > 0 && (
-                <Section
-                  title={t('detail.metadata')}
-                  aside={
-                    <CopyButton
-                      value={JSON.stringify(shown.metadata, null, 2)}
-                      label={t('detail.metadata')}
-                    />
-                  }
-                >
+                <Section title={t('detail.metadata')}>
                   <NamedDetails log={shown} />
-                  <pre
-                    tabIndex={0}
-                    aria-label={t('detail.metadata')}
-                    className="max-h-64 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs leading-relaxed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  >
-                    {JSON.stringify(shown.metadata, null, 2)}
-                  </pre>
+                  <CodeBlock
+                    code={JSON.stringify(shown.metadata, null, 2)}
+                    language="json"
+                    size="sm"
+                    width="100%"
+                    maxHeight={256}
+                    isWrapped
+                  />
                 </Section>
               )}
 

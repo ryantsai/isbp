@@ -1,10 +1,15 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { FilterBar } from '@isbp/ui/filter-bar';
@@ -12,15 +17,12 @@ import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { StatTile } from '@isbp/ui/stat-tile';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { AppWindowIcon, CircleCheckIcon, CircleXIcon, PlusIcon, RocketIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { type AppStage, type AppSummary, CRITICALITIES, type Dashboard, HOSTINGS } from '../../contracts';
 import { AppFormDialog } from '../app-form-dialog';
 import { CriticalityBadge, DeploymentStatusText, HostingLabel, StageBadge } from '../badges';
@@ -42,24 +44,25 @@ function FilterSelect({
   onChange,
   allLabel,
   label,
-  children,
+  width,
+  options,
 }: {
   value: string | undefined;
   onChange: (v: string | undefined) => void;
   allLabel: string;
   label: string;
-  children: ReactNode;
+  width: number;
+  options: readonly { value: string; label: string }[];
 }) {
   return (
-    <Select value={value ?? ALL} onValueChange={(v) => onChange(v === ALL ? undefined : v)}>
-      <SelectTrigger className="w-full sm:w-40" aria-label={label}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL}>{allLabel}</SelectItem>
-        {children}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={label}
+      isLabelHidden
+      width={width}
+      value={value ?? ALL}
+      onChange={(v) => onChange(v === ALL ? undefined : v)}
+      options={[{ value: ALL, label: allLabel }, ...options]}
+    />
   );
 }
 
@@ -102,6 +105,7 @@ export default function InventoryPage() {
   const canManage = useCan('alm.apps.manage');
   const [state, set] = useListState({ pageSize: 25 });
   const [creating, setCreating] = useState(false);
+  const panelId = useId();
   const view: View = VIEWS.includes(state.view as View) ? (state.view as View) : 'all';
   const str = (k: string) => (state[k] as string | undefined) || undefined;
   const stage = str('stage');
@@ -135,14 +139,12 @@ export default function InventoryPage() {
         meta: { sortKey: 'name', className: 'max-w-72', wrap: true },
         cell: ({ row }) => (
           <div className="flex min-w-0 flex-col">
-            <Link
-              href={appHref(row.original.code)}
-              onClick={(e) => e.stopPropagation()}
-              className="font-medium wrap-anywhere outline-none hover:underline focus-visible:underline"
-            >
+            <Link href={appHref(row.original.code)} onClick={(e) => e.stopPropagation()} weight="medium">
               {row.original.name}
             </Link>
-            <span className="font-mono text-xs text-muted-foreground">{row.original.code}</span>
+            <Text type="code" color="secondary">
+              {row.original.code}
+            </Text>
           </div>
         ),
       },
@@ -259,13 +261,9 @@ export default function InventoryPage() {
                   onChange={(v) => set({ criticality: v })}
                   label={t('fields.criticality')}
                   allLabel={t('inventory.allCriticalities')}
-                >
-                  {CRITICALITIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {t(`criticality.${c}`)}
-                    </SelectItem>
-                  ))}
-                </FilterSelect>
+                  width={176}
+                  options={CRITICALITIES.map((c) => ({ value: c, label: t(`criticality.${c}`) }))}
+                />
               ),
             },
             {
@@ -280,13 +278,9 @@ export default function InventoryPage() {
                   onChange={(v) => set({ hosting: v })}
                   label={t('fields.hosting')}
                   allLabel={t('inventory.allHosting')}
-                >
-                  {HOSTINGS.map((h) => (
-                    <SelectItem key={h} value={h}>
-                      {t(`hosting.${h}`)}
-                    </SelectItem>
-                  ))}
-                </FilterSelect>
+                  width={176}
+                  options={HOSTINGS.map((h) => ({ value: h, label: t(`hosting.${h}`) }))}
+                />
               ),
             },
             ...(stage
@@ -300,12 +294,12 @@ export default function InventoryPage() {
                       .join(', '),
                     onClear: () => set({ stage: undefined }),
                     control: (
-                      <span className="text-sm text-muted-foreground">
+                      <Text color="secondary">
                         {stage
                           .split(',')
                           .map((st) => t(`stage.${st}`))
                           .join(', ')}
-                      </span>
+                      </Text>
                     ),
                   },
                 ]
@@ -331,9 +325,12 @@ export default function InventoryPage() {
             description={t('inventory.emptyHint')}
             action={
               canManage && (
-                <Button onClick={() => setCreating(true)}>
-                  <PlusIcon /> {t('inventory.new')}
-                </Button>
+                <Button
+                  label={t('inventory.new')}
+                  variant="primary"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={() => setCreating(true)}
+                />
               )
             }
           />
@@ -349,38 +346,39 @@ export default function InventoryPage() {
         description={t('inventory.description')}
         actions={
           canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon /> {t('inventory.new')}
-            </Button>
+            <Button
+              label={t('inventory.new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreating(true)}
+            />
           )
         }
       />
       <AlmTabs />
       <div className="grid min-w-0 grid-cols-1 gap-4">
         <SummaryStrip data={dashboard.data} />
-        <Tabs
+        <TabList
+          role="tablist"
           value={view}
-          onValueChange={(v) => set({ view: v === 'all' ? undefined : v, stage: undefined })}
+          onChange={(v) => set({ view: v === 'all' ? undefined : v, stage: undefined })}
         >
-          <TabsList>
-            {VIEWS.map((v) => (
-              <TabsTrigger key={v} value={v}>
-                {t(`inventory.views.${v}`)}
-                {viewCount(v) !== null && (
-                  <Badge variant="muted" className="px-1.5 tabular-nums">
-                    {viewCount(v)}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {/* Each tab only filters the same list; every tab still has its panel. */}
           {VIEWS.map((v) => (
-            <TabsContent key={v} value={v} className="min-w-0">
-              {v === view && table}
-            </TabsContent>
+            <Tab
+              key={v}
+              value={v}
+              label={t(`inventory.views.${v}`)}
+              panelId={panelId}
+              endContent={
+                viewCount(v) !== null ? <Badge variant="neutral" label={String(viewCount(v))} /> : undefined
+              }
+            />
           ))}
-        </Tabs>
+        </TabList>
+        {/* Each tab only filters the same list, so one panel serves them all. */}
+        <div role="tabpanel" id={panelId} aria-label={t(`inventory.views.${view}`)} className="min-w-0">
+          {table}
+        </div>
       </div>
       <p className="sr-only" aria-live="polite">
         {data ? t('inventory.liveCount', { count: data.total }) : ''}

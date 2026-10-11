@@ -2,7 +2,6 @@
 
 import type { FormAssignment, FormAssignmentState } from '@isbp/contracts';
 import { localize } from '@isbp/sdk';
-import { Badge } from '@isbp/ui/badge';
 import {
   BanIcon,
   ChevronRightIcon,
@@ -16,15 +15,13 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { StatusBadge, type StatusTone } from '@isbp/ui/status';
 import { NavIcon } from '../nav-icon';
 
 /** "Due soon" starts this long before the due date (the reminders start then too). */
 export const DUE_SOON_MS = 2 * 24 * 3_600_000;
 
-const STATES: Record<
-  FormAssignmentState,
-  { variant: 'info' | 'destructive' | 'success' | 'warning' | 'muted'; icon: LucideIcon }
-> = {
+const STATES: Record<FormAssignmentState, { variant: StatusTone; icon: LucideIcon }> = {
   open: { variant: 'info', icon: CircleDotIcon },
   overdue: { variant: 'destructive', icon: TriangleAlertIcon },
   done: { variant: 'success', icon: CircleCheckIcon },
@@ -32,16 +29,19 @@ const STATES: Record<
   cancelled: { variant: 'muted', icon: BanIcon },
 };
 
+/** The icon of each state (also used in the state filter). */
+export const ASSIGNMENT_STATE_ICONS: Record<FormAssignmentState, LucideIcon> = {
+  open: STATES.open.icon,
+  overdue: STATES.overdue.icon,
+  done: STATES.done.icon,
+  late: STATES.late.icon,
+  cancelled: STATES.cancelled.icon,
+};
+
 export function AssignmentStateBadge({ state }: { state: FormAssignmentState }) {
   const t = useTranslations('assignments.state');
   const s = STATES[state] ?? STATES.open;
-  const Icon = s.icon;
-  return (
-    <Badge variant={s.variant}>
-      <Icon aria-hidden />
-      {t(state)}
-    </Badge>
-  );
+  return <StatusBadge tone={s.variant} icon={s.icon} label={t(state)} />;
 }
 
 /** A short date ("31 Oct"), with the year when it isn't this year's. */
@@ -67,13 +67,12 @@ export function AssignmentDueBadge({ dueAt, now }: { dueAt: string; now: Date })
   const date = short(due, now);
   const kind = ms < 0 ? 'overdue' : ms < DUE_SOON_MS ? 'soon' : 'due';
   return (
-    <Badge
-      variant={kind === 'overdue' ? 'destructive' : kind === 'soon' ? 'warning' : 'muted'}
+    <StatusBadge
+      tone={kind === 'overdue' ? 'destructive' : kind === 'soon' ? 'warning' : 'muted'}
+      icon={kind === 'overdue' ? TriangleAlertIcon : ClockIcon}
+      label={t(kind, { date })}
       title={format.dateTime(due, { dateStyle: 'medium', timeStyle: 'short' })}
-    >
-      {kind === 'overdue' ? <TriangleAlertIcon aria-hidden /> : <ClockIcon aria-hidden />}
-      {t(kind, { date })}
-    </Badge>
+    />
   );
 }
 

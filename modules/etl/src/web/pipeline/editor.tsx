@@ -1,19 +1,29 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { ScrollableArea } from '@astryxdesign/core/ScrollableArea';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Table } from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { parameterNames } from '@isbp/sql/params';
 import { ApiError } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { Checkbox } from '@isbp/ui/checkbox';
 import { CodeEditor } from '@isbp/ui/code-editor';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { PersonPicker, type PersonOption } from '@isbp/ui/person-picker';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Switch } from '@isbp/ui/switch';
-import { Textarea } from '@isbp/ui/textarea';
 import { CircleAlertIcon, EyeIcon, PlusIcon, SaveIcon, Trash2Icon, WandSparklesIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useId, useMemo, useState } from 'react';
@@ -31,11 +41,9 @@ import {
   WRITE_MODES,
   type WriteModeValue,
 } from '../../contracts';
-import { TONE } from '../badges';
 import { INVALIDATE, sqlSchemaOf, useCatalog, useConnections } from '../lib';
 
 type Errors = Record<string, string>;
-const NONE = '__none__';
 
 function Section({
   title,
@@ -54,31 +62,10 @@ function Section({
         </CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
-      <CardContent className="grid min-w-0 gap-4">{children}</CardContent>
+      <CardContent className="min-w-0">
+        <FormLayout defaultOptionality="optional">{children}</FormLayout>
+      </CardContent>
     </Card>
-  );
-}
-
-function Field({
-  id,
-  label,
-  hint,
-  error,
-  children,
-}: {
-  id: string;
-  label: string;
-  hint?: string;
-  error?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="grid min-w-0 gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
   );
 }
 
@@ -146,126 +133,98 @@ function MappingRow({
   errors: Errors;
 }) {
   const t = useTranslations('etl.mapping');
-  const id = useId();
   const { kind, arg } = parseTransform(mapping.transform ?? 'none');
-  const err = (f: string) => errors[`mappings.${index}.${f}`];
+  const err = (f: string) => {
+    const message = errors[`mappings.${index}.${f}`];
+    return message ? { type: 'error' as const, message } : undefined;
+  };
   return (
-    <li className="grid min-w-0 grid-cols-1 gap-3 rounded-lg border bg-background p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_auto]">
-      <Field id={`${id}-source`} label={t('source')} error={err('source')}>
-        {sourceColumns.length ? (
-          <Select
-            value={mapping.source || NONE}
-            onValueChange={(v) => onChange({ ...mapping, source: v === NONE ? '' : v })}
-          >
-            <SelectTrigger id={`${id}-source`} className="h-8 w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>{t('pick')}</SelectItem>
-              {[...new Set([...sourceColumns, ...(mapping.source ? [mapping.source] : [])])].map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <Input
-            id={`${id}-source`}
-            className="h-8 font-mono"
-            value={mapping.source}
-            onChange={(e) => onChange({ ...mapping, source: e.target.value })}
+    <li>
+      <VStack gap={3} className="min-w-0">
+        {index > 0 && <Divider />}
+        <HStack gap={3} vAlign="end" wrap="wrap">
+          <div className="min-w-0 flex-1 basis-40">
+            {sourceColumns.length ? (
+              <Selector
+                label={t('source')}
+                hasSearch
+                hasClear
+                placeholder={t('pick')}
+                options={[...new Set([...sourceColumns, ...(mapping.source ? [mapping.source] : [])])]}
+                value={mapping.source || null}
+                onChange={(v) => onChange({ ...mapping, source: v ?? '' })}
+                status={err('source')}
+              />
+            ) : (
+              <TextInput
+                label={t('source')}
+                value={mapping.source}
+                onChange={(v) => onChange({ ...mapping, source: v })}
+                status={err('source')}
+              />
+            )}
+          </div>
+          <div className="min-w-0 flex-1 basis-40">
+            <Selector
+              label={t('target')}
+              hasSearch
+              hasClear
+              placeholder={t('pick')}
+              options={[...new Set([...targetColumns, ...(mapping.target ? [mapping.target] : [])])]}
+              value={mapping.target || null}
+              onChange={(v) => onChange({ ...mapping, target: v ?? '' })}
+              status={err('target')}
+            />
+          </div>
+          <div className="min-w-0 flex-1 basis-36">
+            <Selector
+              label={t('transform')}
+              options={TRANSFORM_KINDS.map((k) => ({ value: k, label: t(`transforms.${k}`) }))}
+              value={kind}
+              onChange={(v) =>
+                onChange({
+                  ...mapping,
+                  transform: formatTransform(v as TransformKind, v === 'cast' ? 'string' : ''),
+                })
+              }
+              status={err('transform')}
+            />
+          </div>
+          {kind === 'cast' ? (
+            <div className="min-w-0 flex-1 basis-36">
+              <Selector
+                label={t('castTo')}
+                options={CAST_TYPES.map((c) => ({ value: c, label: t(`castTypes.${c}`) }))}
+                value={arg ?? 'string'}
+                onChange={(v) => onChange({ ...mapping, transform: formatTransform('cast', v) })}
+              />
+            </div>
+          ) : kind === 'default' || kind === 'constant' ? (
+            <div className="min-w-0 flex-1 basis-36">
+              <TextInput
+                label={t('value')}
+                value={arg ?? ''}
+                onChange={(v) => onChange({ ...mapping, transform: formatTransform(kind, v) })}
+              />
+            </div>
+          ) : null}
+          <IconButton
+            label={t('remove', { n: index + 1 })}
+            variant="ghost"
+            size="sm"
+            icon={<Icon icon={Trash2Icon} />}
+            type="button"
+            onClick={onRemove}
           />
-        )}
-      </Field>
-      <Field id={`${id}-target`} label={t('target')} error={err('target')}>
-        <Select
-          value={mapping.target || NONE}
-          onValueChange={(v) => onChange({ ...mapping, target: v === NONE ? '' : v })}
-        >
-          <SelectTrigger
-            id={`${id}-target`}
-            className="h-8 w-full"
-            aria-invalid={Boolean(err('target')) || undefined}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NONE}>{t('pick')}</SelectItem>
-            {[...new Set([...targetColumns, ...(mapping.target ? [mapping.target] : [])])].map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-      <Field id={`${id}-transform`} label={t('transform')} error={err('transform')}>
-        <Select
-          value={kind}
-          onValueChange={(v) =>
-            onChange({
-              ...mapping,
-              transform: formatTransform(v as TransformKind, v === 'cast' ? 'string' : ''),
-            })
-          }
-        >
-          <SelectTrigger id={`${id}-transform`} className="h-8 w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {TRANSFORM_KINDS.map((k) => (
-              <SelectItem key={k} value={k}>
-                {t(`transforms.${k}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-      {kind === 'cast' ? (
-        <Field id={`${id}-arg`} label={t('castTo')}>
-          <Select
-            value={arg ?? 'string'}
-            onValueChange={(v) => onChange({ ...mapping, transform: formatTransform('cast', v) })}
-          >
-            <SelectTrigger id={`${id}-arg`} className="h-8 w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CAST_TYPES.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {t(`castTypes.${c}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-      ) : kind === 'default' || kind === 'constant' ? (
-        <Field id={`${id}-arg`} label={t('value')}>
-          <Input
-            id={`${id}-arg`}
-            className="h-8"
-            value={arg ?? ''}
-            maxLength={500}
-            onChange={(e) => onChange({ ...mapping, transform: formatTransform(kind, e.target.value) })}
-          />
-        </Field>
-      ) : (
-        <span className="hidden lg:block" />
-      )}
-      <div className="flex items-end">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label={t('remove', { n: index + 1 })}
-          onClick={onRemove}
-        >
-          <Trash2Icon />
-        </Button>
-      </div>
+        </HStack>
+      </VStack>
     </li>
   );
+}
+
+interface SampleRow extends Record<string, unknown> {
+  id: number;
+  cells: Record<string, unknown>;
 }
 
 /**
@@ -289,6 +248,8 @@ export function PipelineEditor({
   const [rootError, setRootError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const set = (patch: Partial<State>) => setS((x) => ({ ...x, ...patch }));
+  const statusOf = (key: string) =>
+    errors[key] ? { type: 'error' as const, message: errors[key] } : undefined;
 
   const connections = useConnections('pipelines');
   const source = connections.items.find((c) => c.id === s.sourceConnectionId);
@@ -303,6 +264,9 @@ export function PipelineEditor({
   const used = useMemo(() => parameterNames(s.sql, source?.engine ?? 'postgres'), [s.sql, source?.engine]);
   const staticParams = used.filter((n) => !(s.incremental && n === WATERMARK_PARAM));
   const dirty = JSON.stringify(s) !== JSON.stringify(initial);
+  const keyErrors = Object.entries(errors)
+    .filter(([k]) => k.startsWith('target.keys'))
+    .map(([, m]) => m);
 
   const body = (): PipelineInput => {
     const [schema, ...rest] = s.table.split('.');
@@ -382,27 +346,32 @@ export function PipelineEditor({
     set({ mappings: [...s.mappings, ...added] });
   };
 
+  const sampleRows: SampleRow[] =
+    preview && !preview.error ? preview.rows.map((cells, rowId) => ({ id: rowId, cells })) : [];
+
   return (
-    <div className="grid min-w-0 gap-4">
+    <VStack gap={4} className="min-w-0">
       <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-3">
         <div className="grid min-w-0 gap-4 xl:col-span-2">
           <Section title={t('pipelineEditor.source')} description={t('pipelineEditor.sourceHint')}>
-            <Field id={`${id}-source`} label={t('fields.connection')} error={errors['source.connectionId']}>
-              <Select value={s.sourceConnectionId} onValueChange={(v) => set({ sourceConnectionId: v })}>
-                <SelectTrigger id={`${id}-source`} className="w-full">
-                  <SelectValue placeholder={t('create.pickConnection')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {connections.items.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name} · {t(`engine.${c.engine}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <div className="grid min-w-0 gap-2">
-              <Label id={`${id}-sql-label`}>{t('fields.sql')}</Label>
+            <Selector
+              label={t('fields.connection')}
+              placeholder={t('create.pickConnection')}
+              options={connections.items.map((c) => ({
+                value: c.id,
+                label: `${c.name} · ${t(`engine.${c.engine}`)}`,
+              }))}
+              value={s.sourceConnectionId}
+              onChange={(v) => set({ sourceConnectionId: v })}
+              status={statusOf('source.connectionId')}
+            />
+            <Field
+              label={t('fields.sql')}
+              inputID={`${id}-sql`}
+              labelID={`${id}-sql-label`}
+              status={statusOf('source.sql')}
+              statusVariant="detached"
+            >
               <CodeEditor
                 value={s.sql}
                 onChange={(sql) => set({ sql })}
@@ -414,78 +383,74 @@ export function PipelineEditor({
                 aria-invalid={Boolean(errors['source.sql'])}
                 minHeight="9rem"
               />
-              {errors['source.sql'] && <p className="text-xs text-destructive">{errors['source.sql']}</p>}
-            </div>
+            </Field>
             {staticParams.length > 0 && (
-              <fieldset className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
-                <legend className="mb-2 text-sm font-medium">{t('pipelineEditor.paramValues')}</legend>
-                {staticParams.map((n) => (
-                  <Field key={n} id={`${id}-p-${n}`} label={`:${n}`} error={errors[`source.params.${n}`]}>
-                    <Input
-                      id={`${id}-p-${n}`}
+              <VStack gap={2}>
+                <Text type="label">{t('pipelineEditor.paramValues')}</Text>
+                <Grid columns={{ minWidth: 200 }} gap={3}>
+                  {staticParams.map((n) => (
+                    <TextInput
+                      key={n}
+                      label={`:${n}`}
                       value={s.params[n] ?? ''}
-                      onChange={(e) => set({ params: { ...s.params, [n]: e.target.value } })}
+                      onChange={(v) => set({ params: { ...s.params, [n]: v } })}
+                      status={statusOf(`source.params.${n}`)}
                     />
-                  </Field>
-                ))}
-              </fieldset>
+                  ))}
+                </Grid>
+              </VStack>
             )}
-            <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
-              <div className="grid gap-1">
-                <Label htmlFor={`${id}-incremental`}>{t('pipelineEditor.incremental')}</Label>
-                <p className="text-xs text-muted-foreground">{t('pipelineEditor.incrementalHint')}</p>
-              </div>
-              <Switch
-                id={`${id}-incremental`}
-                checked={s.incremental}
-                onCheckedChange={(v) => set({ incremental: v })}
-              />
-            </div>
+            <Switch
+              label={t('pipelineEditor.incremental')}
+              description={t('pipelineEditor.incrementalHint')}
+              value={s.incremental}
+              onChange={(v) => set({ incremental: v })}
+            />
             {s.incremental && (
-              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field
-                  id={`${id}-wcol`}
-                  label={t('pipelineEditor.watermarkColumn')}
-                  error={errors['incremental.column']}
-                >
-                  <Input
-                    id={`${id}-wcol`}
-                    className="font-mono"
-                    list={`${id}-columns`}
-                    value={s.watermarkColumn}
-                    onChange={(e) => set({ watermarkColumn: e.target.value })}
-                  />
-                  <datalist id={`${id}-columns`}>
-                    {sourceColumns.map((c) => (
-                      <option key={c} value={c} />
-                    ))}
-                  </datalist>
-                </Field>
-                <Field
-                  id={`${id}-winit`}
-                  label={t('pipelineEditor.watermarkInitial')}
-                  error={errors['incremental.initial']}
-                >
-                  <Input
-                    id={`${id}-winit`}
+              <VStack gap={3}>
+                <Grid columns={{ minWidth: 200 }} gap={3}>
+                  {sourceColumns.length ? (
+                    <Selector
+                      label={t('pipelineEditor.watermarkColumn')}
+                      hasSearch
+                      options={[
+                        ...new Set([...sourceColumns, ...(s.watermarkColumn ? [s.watermarkColumn] : [])]),
+                      ]}
+                      value={s.watermarkColumn}
+                      onChange={(v) => set({ watermarkColumn: v })}
+                      status={statusOf('incremental.column')}
+                    />
+                  ) : (
+                    <TextInput
+                      label={t('pipelineEditor.watermarkColumn')}
+                      value={s.watermarkColumn}
+                      onChange={(v) => set({ watermarkColumn: v })}
+                      status={statusOf('incremental.column')}
+                    />
+                  )}
+                  <TextInput
+                    label={t('pipelineEditor.watermarkInitial')}
                     value={s.watermarkInitial}
-                    onChange={(e) => set({ watermarkInitial: e.target.value })}
+                    onChange={(v) => set({ watermarkInitial: v })}
+                    status={statusOf('incremental.initial')}
                   />
-                </Field>
+                </Grid>
                 {pipeline?.watermark && (
-                  <p className="text-xs text-muted-foreground sm:col-span-2">
+                  <Text type="supporting">
                     {t('pipelineEditor.currentWatermark', { value: pipeline.watermark })}
-                  </p>
+                  </Text>
                 )}
-              </div>
+              </VStack>
             )}
-            <div className="flex flex-wrap items-center gap-2">
+            <HStack gap={2} wrap="wrap" vAlign="center">
               <Button
-                type="button"
-                variant="outline"
+                label={t('pipelineEditor.preview')}
+                variant="secondary"
                 size="sm"
-                disabled={!s.sourceConnectionId || !s.sql.trim()}
-                loading={runPreview.isPending}
+                icon={<Icon icon={EyeIcon} />}
+                isLoading={runPreview.isPending}
+                isDisabled={!s.sourceConnectionId || !s.sql.trim()}
+                type="button"
                 onClick={() =>
                   runPreview.mutate({
                     connectionId: s.sourceConnectionId,
@@ -496,67 +461,51 @@ export function PipelineEditor({
                       : null,
                   })
                 }
-              >
-                <EyeIcon /> {t('pipelineEditor.preview')}
-              </Button>
+              />
               {preview && !preview.error && (
-                <span className="text-sm text-muted-foreground" aria-live="polite">
+                <Text color="secondary" aria-live="polite">
                   {t('pipelineEditor.previewColumns', { list: sourceColumns.join(', ') })}
-                </span>
+                </Text>
               )}
-            </div>
+            </HStack>
             {preview?.error && (
-              <p role="alert" className={cn('rounded-lg px-3 py-2 text-sm wrap-anywhere', TONE.destructive)}>
-                {preview.error.dbCode ? `${preview.error.dbCode}: ` : ''}
-                {preview.error.message}
-              </p>
+              <Banner
+                status="error"
+                title={`${preview.error.dbCode ? `${preview.error.dbCode}: ` : ''}${preview.error.message}`}
+                collapsible={false}
+              />
             )}
             {preview && !preview.error && preview.rows.length > 0 && (
-              <div
+              <ScrollableArea
+                label={t('pipelineEditor.sample')}
                 role="region"
-                tabIndex={0}
-                aria-label={t('pipelineEditor.sample')}
-                className="max-h-64 min-w-0 overflow-auto rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+
+                className="max-h-64"
               >
-                <table className="w-full text-xs">
-                  <caption className="sr-only">{t('pipelineEditor.sample')}</caption>
-                  <thead className="sticky top-0 bg-muted/80">
-                    <tr>
-                      {preview.columns.map((c) => (
-                        <th
-                          key={c.name}
-                          scope="col"
-                          className="px-2 py-1.5 text-left font-medium whitespace-nowrap"
-                        >
-                          {c.name}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {preview.rows.map((r, i) => (
-                      <tr key={i} className="border-t">
-                        {preview.columns.map((c) => (
-                          <td key={c.name} className="max-w-48 truncate px-2 py-1 font-mono">
-                            {r[c.name] === null ? '∅' : String(r[c.name])}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                <Table
+                  aria-label={t('pipelineEditor.sample')}
+                  density="compact"
+                  textOverflow="truncate"
+                  data={sampleRows}
+                  idKey="id"
+                  columns={preview.columns.map((c) => ({
+                    key: c.name,
+                    header: c.name,
+                    renderCell: (r: SampleRow) => (
+                      <Text type="code">{r.cells[c.name] === null ? '∅' : String(r.cells[c.name])}</Text>
+                    ),
+                  }))}
+                />
+              </ScrollableArea>
             )}
           </Section>
 
           <Section title={t('pipelineEditor.mapping')} description={t('pipelineEditor.mappingHint')}>
-            {errors.mappings && <p className="text-xs text-destructive">{errors.mappings}</p>}
+            {errors.mappings && <Banner status="error" title={errors.mappings} collapsible={false} />}
             {s.mappings.length === 0 ? (
-              <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                {t('pipelineEditor.noMappings')}
-              </p>
+              <Text color="secondary">{t('pipelineEditor.noMappings')}</Text>
             ) : (
-              <ul className="grid min-w-0 gap-3" aria-label={t('pipelineEditor.mapping')}>
+              <VStack as="ul" gap={3} className="min-w-0" aria-label={t('pipelineEditor.mapping')}>
                 {s.mappings.map((m, i) => (
                   <MappingRow
                     key={i}
@@ -569,191 +518,161 @@ export function PipelineEditor({
                     onRemove={() => set({ mappings: s.mappings.filter((_, j) => j !== i) })}
                   />
                 ))}
-              </ul>
+              </VStack>
             )}
-            <div className="flex flex-wrap gap-2">
+            <HStack gap={2} wrap="wrap">
               <Button
-                type="button"
-                variant="outline"
+                label={t('pipelineEditor.addMapping')}
+                variant="secondary"
                 size="sm"
+                icon={<Icon icon={PlusIcon} />}
+                type="button"
                 onClick={() =>
                   set({ mappings: [...s.mappings, { source: '', target: '', transform: 'none' }] })
                 }
-              >
-                <PlusIcon /> {t('pipelineEditor.addMapping')}
-              </Button>
+              />
               <Button
-                type="button"
+                label={t('pipelineEditor.autoMap')}
                 variant="secondary"
                 size="sm"
-                disabled={!sourceColumns.length || !targetColumns.length}
+                icon={<Icon icon={WandSparklesIcon} />}
+                isDisabled={!sourceColumns.length || !targetColumns.length}
+                type="button"
                 onClick={autoMap}
-              >
-                <WandSparklesIcon /> {t('pipelineEditor.autoMap')}
-              </Button>
-            </div>
+              />
+            </HStack>
           </Section>
         </div>
 
         <div className="grid min-w-0 gap-4">
           <Section title={t('editor.general')}>
-            <Field id={`${id}-name`} label={t('fields.name')} error={errors.name}>
-              <Input
-                id={`${id}-name`}
-                value={s.name}
-                maxLength={120}
-                onChange={(e) => set({ name: e.target.value })}
-              />
-            </Field>
-            <Field id={`${id}-description`} label={t('fields.description')}>
-              <Textarea
-                id={`${id}-description`}
-                rows={3}
-                value={s.description}
-                maxLength={2_000}
-                onChange={(e) => set({ description: e.target.value })}
-              />
-            </Field>
+            <TextInput
+              label={t('fields.name')}
+              isRequired
+              value={s.name}
+              onChange={(name) => set({ name })}
+              status={statusOf('name')}
+            />
+            <TextArea
+              label={t('fields.description')}
+              rows={3}
+              maxLength={2_000}
+              value={s.description}
+              onChange={(description) => set({ description })}
+            />
             <Field
-              id={`${id}-owner`}
               label={t('fields.owner')}
-              hint={t('pipelineEditor.ownerHint')}
-              error={errors.ownerId}
+              inputID={`${id}-owner`}
+              description={t('pipelineEditor.ownerHint')}
+              status={statusOf('ownerId')}
+              statusVariant="detached"
             >
               <PersonPicker id={`${id}-owner`} value={s.owner} onChange={(owner) => set({ owner })} />
             </Field>
-            <div className="flex items-center justify-between gap-4">
-              <Label htmlFor={`${id}-enabled`}>{t('fields.enabled')}</Label>
-              <Switch id={`${id}-enabled`} checked={s.enabled} onCheckedChange={(v) => set({ enabled: v })} />
-            </div>
+            <Switch label={t('fields.enabled')} value={s.enabled} onChange={(enabled) => set({ enabled })} />
           </Section>
 
           <Section title={t('pipelineEditor.target')} description={t('pipelineEditor.targetHint')}>
-            <Field id={`${id}-target`} label={t('fields.connection')} error={errors['target.connectionId']}>
-              <Select
-                value={s.targetConnectionId}
-                onValueChange={(v) => set({ targetConnectionId: v, table: '', keys: [] })}
-              >
-                <SelectTrigger id={`${id}-target`} className="w-full">
-                  <SelectValue placeholder={t('create.pickConnection')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {connections.items.map((c) => (
-                    <SelectItem key={c.id} value={c.id} disabled={c.readOnly}>
-                      {c.name} · {t(`engine.${c.engine}`)}
-                      {c.readOnly ? ` · ${t('connection.readOnly')}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field id={`${id}-table`} label={t('fields.table')} error={errors['target.table']}>
-              <Select
-                value={s.table || NONE}
-                onValueChange={(v) => set({ table: v === NONE ? '' : v, keys: [] })}
-              >
-                <SelectTrigger id={`${id}-table`} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>
-                    {targetCatalog.isLoading ? t('editor.loadingCatalog') : t('pipelineEditor.pickTable')}
-                  </SelectItem>
-                  {tables.map((x) => (
-                    <SelectItem key={`${x.schema}.${x.name}`} value={`${x.schema}.${x.name}`}>
-                      {x.schema}.{x.name}
-                    </SelectItem>
-                  ))}
-                  {s.table && !table && <SelectItem value={s.table}>{s.table}</SelectItem>}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field id={`${id}-mode`} label={t('fields.mode')} hint={t(`pipelineEditor.modeHint.${s.mode}`)}>
-              <Select value={s.mode} onValueChange={(v) => set({ mode: v as WriteModeValue })}>
-                <SelectTrigger id={`${id}-mode`} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {WRITE_MODES.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {t(`writeMode.${m}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+            <Selector
+              label={t('fields.connection')}
+              placeholder={t('create.pickConnection')}
+              options={connections.items.map((c) => ({
+                value: c.id,
+                label: `${c.name} · ${t(`engine.${c.engine}`)}${c.readOnly ? ` · ${t('connection.readOnly')}` : ''}`,
+                disabled: c.readOnly,
+              }))}
+              value={s.targetConnectionId}
+              onChange={(v) => set({ targetConnectionId: v, table: '', keys: [] })}
+              status={statusOf('target.connectionId')}
+            />
+            <Selector
+              label={t('fields.table')}
+              hasSearch
+              hasClear
+              placeholder={
+                targetCatalog.isLoading ? t('editor.loadingCatalog') : t('pipelineEditor.pickTable')
+              }
+              options={[
+                ...tables.map((x) => `${x.schema}.${x.name}`),
+                ...(s.table && !table ? [s.table] : []),
+              ]}
+              value={s.table || null}
+              onChange={(v) => set({ table: v ?? '', keys: [] })}
+              status={statusOf('target.table')}
+            />
+            <Selector
+              label={t('fields.mode')}
+              description={t(`pipelineEditor.modeHint.${s.mode}`)}
+              options={WRITE_MODES.map((m) => ({ value: m, label: t(`writeMode.${m}`) }))}
+              value={s.mode}
+              onChange={(v) => set({ mode: v as WriteModeValue })}
+            />
             {s.mode === 'upsert' && (
-              <fieldset className="grid min-w-0 gap-2">
-                <legend className="mb-1 text-sm font-medium">{t('fields.keys')}</legend>
-                {targetColumns.length === 0 && (
-                  <p className="text-sm text-muted-foreground">{t('pipelineEditor.pickTableFirst')}</p>
-                )}
-                {targetColumns.map((c) => (
-                  <div key={c} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`${id}-key-${c}`}
-                      checked={s.keys.includes(c)}
-                      onCheckedChange={(v) =>
-                        set({ keys: v === true ? [...s.keys, c] : s.keys.filter((k) => k !== c) })
+              <VStack gap={2} role="group" aria-labelledby={`${id}-keys`} className="min-w-0">
+                <Text type="label" id={`${id}-keys`}>
+                  {t('fields.keys')}
+                </Text>
+                {targetColumns.length === 0 ? (
+                  <Text color="secondary">{t('pipelineEditor.pickTableFirst')}</Text>
+                ) : (
+                  targetColumns.map((c) => (
+                    <CheckboxInput
+                      key={c}
+                      label={c}
+                      description={
+                        table?.columns.find((x) => x.name === c)?.key
+                          ? t('pipelineEditor.uniqueKey')
+                          : undefined
                       }
+                      value={s.keys.includes(c)}
+                      onChange={(on) => set({ keys: on ? [...s.keys, c] : s.keys.filter((k) => k !== c) })}
                     />
-                    <Label htmlFor={`${id}-key-${c}`} className="font-mono font-normal">
-                      {c}
-                      {table?.columns.find((x) => x.name === c)?.key && (
-                        <span className="ml-1 font-sans text-xs text-muted-foreground">
-                          {t('pipelineEditor.uniqueKey')}
-                        </span>
-                      )}
-                    </Label>
-                  </div>
-                ))}
-                {Object.entries(errors)
-                  .filter(([k]) => k.startsWith('target.keys'))
-                  .map(([k, m]) => (
-                    <p key={k} className="text-xs text-destructive">
-                      {m}
-                    </p>
-                  ))}
-              </fieldset>
+                  ))
+                )}
+                {keyErrors.length > 0 && (
+                  <HStack gap={1.5} vAlign="start">
+                    <Icon icon={CircleAlertIcon} color="error" />
+                    <Text type="supporting">{keyErrors.join(' · ')}</Text>
+                  </HStack>
+                )}
+              </VStack>
             )}
-            <Field id={`${id}-batch`} label={t('fields.batchSize')}>
-              <Input
-                id={`${id}-batch`}
-                type="number"
-                min={1}
-                max={10_000}
-                value={s.batchSize}
-                onChange={(e) => set({ batchSize: e.target.value })}
-              />
-            </Field>
+            <NumberInput
+              label={t('fields.batchSize')}
+              min={1}
+              max={10_000}
+              isIntegerOnly
+              hasClear
+              value={s.batchSize.trim() ? Number(s.batchSize) : null}
+              onChange={(v) => set({ batchSize: v === null ? '' : String(v) })}
+            />
             {target?.readOnly && (
-              <p className="text-xs text-destructive">{t('pipelineEditor.readOnlyTarget')}</p>
+              <Banner status="error" title={t('pipelineEditor.readOnlyTarget')} collapsible={false} />
             )}
           </Section>
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center justify-end gap-3 border-t bg-background/95 px-1 py-3 backdrop-blur">
-        {rootError && (
-          <p role="alert" className="mr-auto flex min-w-0 items-start gap-2 text-sm text-destructive">
-            <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span className="min-w-0 wrap-anywhere">{rootError}</span>
-          </p>
-        )}
-        {pipeline && (
-          <span className="text-sm text-muted-foreground" aria-live="polite">
-            {dirty ? t('editor.unsaved') : t('editor.allSaved')}
-          </span>
-        )}
-        <Button
-          type="button"
-          onClick={onSave}
-          disabled={Boolean(pipeline) && !dirty}
-          loading={save.isPending}
-        >
-          <SaveIcon /> {pipeline ? t('pipelineEditor.save') : t('pipelineEditor.create')}
-        </Button>
-      </div>
-    </div>
+      <VStack gap={2} className="sticky bottom-0 z-10 -mx-1 bg-background/95 px-1 pb-3 backdrop-blur">
+        <Divider />
+        {rootError && <Banner status="error" title={rootError} collapsible={false} />}
+        <HStack gap={3} wrap="wrap" hAlign="end" vAlign="center">
+          {pipeline && (
+            <Text color="secondary" aria-live="polite">
+              {dirty ? t('editor.unsaved') : t('editor.allSaved')}
+            </Text>
+          )}
+          <Button
+            label={pipeline ? t('pipelineEditor.save') : t('pipelineEditor.create')}
+            variant="primary"
+            icon={<Icon icon={SaveIcon} />}
+            isLoading={save.isPending}
+            isDisabled={Boolean(pipeline) && !dirty}
+            type="button"
+            onClick={onSave}
+          />
+        </HStack>
+      </VStack>
+    </VStack>
   );
 }

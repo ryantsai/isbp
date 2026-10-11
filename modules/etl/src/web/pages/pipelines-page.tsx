@@ -1,21 +1,24 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { ArrowRightIcon, CirclePauseIcon, PlusIcon, SearchXIcon, WorkflowIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import type { PipelineSummary, RunStatus } from '../../contracts';
 import { ConnectionLabel, RunStatusBadge, ToneBadge } from '../badges';
 import { pipelineHref } from '../lib';
@@ -29,6 +32,7 @@ export default function PipelinesPage() {
   const tc = useTranslations('common');
   const format = useFormatter();
   const router = useRouter();
+  const panelId = useId();
   const canManage = useCan('etl.pipelines.manage');
   const [state, set] = useListState({ pageSize: 25 });
   const view: View = VIEWS.includes(state.view as View) ? (state.view as View) : 'all';
@@ -43,6 +47,7 @@ export default function PipelinesPage() {
       enabled: view === 'disabled' ? 'false' : undefined,
     },
   );
+  const viewLabel = (v: View) => (v === 'all' ? tc('all') : t(`pipelines.views.${v}`));
 
   const columns = useMemo<DataTableColumn<PipelineSummary>[]>(
     () => [
@@ -51,20 +56,16 @@ export default function PipelinesPage() {
         header: t('fields.name'),
         meta: { sortKey: 'name', className: 'max-w-72', wrap: true },
         cell: ({ row }) => (
-          <span className="flex min-w-0 flex-col">
-            <Link
-              href={pipelineHref(row.original.id)}
-              onClick={(e) => e.stopPropagation()}
-              className="font-medium wrap-anywhere outline-none hover:underline focus-visible:underline"
-            >
+          <VStack gap={0.5} className="min-w-0">
+            <Link href={pipelineHref(row.original.id)} onClick={(e) => e.stopPropagation()} weight="medium">
               {row.original.name}
             </Link>
             {!row.original.enabled && (
-              <span className="mt-0.5">
+              <div>
                 <ToneBadge tone="muted" icon={CirclePauseIcon} label={t('pipelines.disabled')} />
-              </span>
+              </div>
             )}
-          </span>
+          </VStack>
         ),
       },
       {
@@ -72,12 +73,14 @@ export default function PipelinesPage() {
         header: t('pipelines.flow'),
         meta: { className: 'max-w-96', priority: 2 },
         cell: ({ row }) => (
-          <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm">
+          <HStack gap={1.5} wrap="wrap" vAlign="center" className="min-w-0">
             <ConnectionLabel connection={row.original.source} className="max-w-56" />
-            <ArrowRightIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <Icon icon={ArrowRightIcon} color="secondary" />
             <span className="sr-only">{t('pipelines.into')}</span>
-            <span className="truncate font-mono text-xs">{row.original.targetTable}</span>
-          </span>
+            <Text type="code" maxLines={1}>
+              {row.original.targetTable}
+            </Text>
+          </HStack>
         ),
       },
       {
@@ -93,16 +96,18 @@ export default function PipelinesPage() {
         meta: { className: 'whitespace-normal' },
         cell: ({ row }) => {
           const r = row.original.lastRun;
-          if (!r) return <span className="text-muted-foreground">{t('pipelines.never')}</span>;
+          if (!r) return <Text color="secondary">{t('pipelines.never')}</Text>;
           return (
-            <span className="flex min-w-0 flex-col gap-0.5">
-              <RunStatusBadge status={r.status} />
-              <span className="text-xs text-muted-foreground">
+            <VStack gap={0.5} className="min-w-0">
+              <div>
+                <RunStatusBadge status={r.status} />
+              </div>
+              <Text type="supporting">
                 <RelativeTime date={r.startedAt ?? r.createdAt} />
                 {r.status === 'succeeded' &&
                   ` · ${t('pipelines.written', { n: format.number(r.rowsWritten) })}`}
-              </span>
-            </span>
+              </Text>
+            </VStack>
           );
         },
       },
@@ -112,16 +117,16 @@ export default function PipelinesPage() {
         meta: { className: 'max-w-44', priority: 3 },
         cell: ({ row }) =>
           row.original.owner ? (
-            <span className="flex min-w-0 items-center gap-2">
+            <HStack gap={2} vAlign="center" className="min-w-0">
               <UserAvatar
                 name={row.original.owner.displayName}
                 src={row.original.owner.avatarUrl}
                 className="size-6 text-[10px]"
               />
-              <span className="truncate">{row.original.owner.displayName}</span>
-            </span>
+              <Text maxLines={1}>{row.original.owner.displayName}</Text>
+            </HStack>
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <Text color="secondary">—</Text>
           ),
       },
     ],
@@ -162,11 +167,12 @@ export default function PipelinesPage() {
           action={
             canManage &&
             !state.q && (
-              <Button asChild>
-                <Link href="/etl/pipelines/new">
-                  <PlusIcon /> {t('pipelines.new')}
-                </Link>
-              </Button>
+              <Button
+                label={t('pipelines.new')}
+                variant="primary"
+                icon={<Icon icon={PlusIcon} />}
+                href="/etl/pipelines/new"
+              />
             )
           }
         />
@@ -181,28 +187,31 @@ export default function PipelinesPage() {
         description={t('pipelines.description')}
         actions={
           canManage && (
-            <Button asChild>
-              <Link href="/etl/pipelines/new">
-                <PlusIcon /> {t('pipelines.new')}
-              </Link>
-            </Button>
+            <Button
+              label={t('pipelines.new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              href="/etl/pipelines/new"
+            />
           )
         }
       />
-      <Tabs value={view} onValueChange={(v) => set({ view: v === 'all' ? undefined : v })}>
-        <TabsList className="max-w-full overflow-x-auto">
+      <VStack gap={3}>
+        <TabList
+          role="tablist"
+          value={view}
+          onChange={(v) => set({ view: v === 'all' ? undefined : v })}
+          hasDivider
+        >
           {VIEWS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {v === 'all' ? tc('all') : t(`pipelines.views.${v}`)}
-            </TabsTrigger>
+            <Tab key={v} value={v} label={viewLabel(v)} panelId={panelId} />
           ))}
-        </TabsList>
-        {VIEWS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {v === view && table}
-          </TabsContent>
-        ))}
-      </Tabs>
+        </TabList>
+        {/* The tabs only filter the same list; the one panel holds it. */}
+        <div role="tabpanel" id={panelId} aria-label={viewLabel(view)} className="min-w-0">
+          {table}
+        </div>
+      </VStack>
       <p className="sr-only" aria-live="polite">
         {data ? t('pipelines.liveCount', { count: data.total }) : ''}
       </p>

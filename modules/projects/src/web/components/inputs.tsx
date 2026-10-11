@@ -1,111 +1,69 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { Card } from '@astryxdesign/core/Card';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { Tokenizer } from '@astryxdesign/core/Tokenizer';
+import { createStaticSource, type SearchableItem } from '@astryxdesign/core/Typeahead';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { Markdown } from '@isbp/ui/markdown';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { Textarea } from '@isbp/ui/textarea';
-import { XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import type { Member, Milestone } from '../../contracts';
 
 export const NONE = '__none__';
 
-/** Free-text labels: Enter or comma adds one, Backspace on an empty input removes the last. */
+/** A `YYYY-MM-DD` string (or empty) as the value an Astryx date input takes. */
+export const toIsoDate = (day: string | null | undefined): ISODateString | undefined =>
+  day ? (day as ISODateString) : undefined;
+
+const MAX_LABELS = 20;
+
+/** Free-text labels (Enter adds one, with the project's existing labels as suggestions). */
 export function LabelInput({
   value,
   onChange,
-  id,
+  label,
+  isLabelHidden,
   placeholder,
   suggestions = [],
-  invalid,
-  'aria-describedby': describedBy,
 }: {
   value: string[];
   onChange: (labels: string[]) => void;
-  id?: string;
+  /** Accessible name (and visible label unless `isLabelHidden`). */
+  label: string;
+  isLabelHidden?: boolean;
   placeholder?: string;
   suggestions?: readonly string[];
-  invalid?: boolean;
-  'aria-describedby'?: string;
 }) {
-  const t = useTranslations('projects.fields');
-  const listId = useId();
-  const [draft, setDraft] = useState('');
-  const add = (raw: string) => {
-    const label = raw.trim().replace(/[,<>]/g, '').slice(0, 40);
-    if (label && !value.includes(label) && value.length < 20) onChange([...value, label]);
-    setDraft('');
-  };
+  const items = useMemo<SearchableItem[]>(() => value.map((l) => ({ id: l, label: l })), [value]);
+  const source = useMemo(
+    () => createStaticSource<SearchableItem>(suggestions.map((s) => ({ id: s, label: s }))),
+    [suggestions],
+  );
   return (
-    <div
-      className={cn(
-        'flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-md border border-input bg-transparent px-2 py-1.5 transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 dark:bg-input/30',
-        invalid && 'border-destructive',
-      )}
-    >
-      {value.map((label) => (
-        <span
-          key={label}
-          className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
-        >
-          {label}
-          <button
-            type="button"
-            onClick={() => onChange(value.filter((x) => x !== label))}
-            aria-label={t('removeLabel', { label })}
-            className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-          >
-            <XIcon className="size-3" />
-          </button>
-        </span>
-      ))}
-      <input
-        id={id}
-        value={draft}
-        list={suggestions.length ? listId : undefined}
-        aria-describedby={describedBy}
-        aria-invalid={invalid || undefined}
-        placeholder={value.length ? undefined : placeholder}
-        disabled={value.length >= 20}
-        onChange={(e) => {
-          const next = e.target.value;
-          if (next.endsWith(',')) add(next);
-          else setDraft(next);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            add(draft);
-          } else if (e.key === 'Backspace' && !draft && value.length) {
-            onChange(value.slice(0, -1));
-          }
-        }}
-        onBlur={() => draft && add(draft)}
-        className="min-w-24 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-      />
-      {suggestions.length > 0 && (
-        <datalist id={listId}>
-          {suggestions
-            .filter((s) => !value.includes(s))
-            .map((s) => (
-              <option key={s} value={s} />
-            ))}
-        </datalist>
-      )}
-    </div>
+    <Tokenizer
+      label={label}
+      isLabelHidden={isLabelHidden}
+      placeholder={placeholder}
+      searchSource={source}
+      value={items}
+      hasCreate
+      hasEntriesOnFocus
+      maxEntries={MAX_LABELS}
+      onChange={(next) => {
+        const labels: string[] = [];
+        for (const item of next) {
+          const clean = item.label.trim().replace(/[,<>]/g, '').slice(0, 40);
+          if (clean && !labels.includes(clean)) labels.push(clean);
+        }
+        onChange(labels);
+      }}
+    />
   );
 }
 
@@ -113,50 +71,65 @@ export function LabelInput({
 export function MarkdownEditor({
   value,
   onChange,
-  id,
   label,
+  isLabelHidden = true,
   rows = 6,
   placeholder,
-  autoFocus,
+  hasAutoFocus,
 }: {
   value: string;
   onChange: (value: string) => void;
-  id?: string;
-  /** Accessible name of the text area. */
+  /** Name of the text area; shown above the switch unless `isLabelHidden`. */
   label: string;
+  isLabelHidden?: boolean;
   rows?: number;
   placeholder?: string;
-  autoFocus?: boolean;
+  hasAutoFocus?: boolean;
 }) {
   const t = useTranslations('projects.markdown');
+  const uid = useId();
   const [tab, setTab] = useState<'write' | 'preview'>('write');
   return (
-    <Tabs value={tab} onValueChange={(v) => setTab(v as 'write' | 'preview')} className="gap-2">
-      <TabsList>
-        <TabsTrigger value="write">{t('write')}</TabsTrigger>
-        <TabsTrigger value="preview">{t('preview')}</TabsTrigger>
-      </TabsList>
-      <TabsContent value="write">
-        <Textarea
-          id={id}
-          aria-label={label}
-          rows={rows}
-          value={value}
-          placeholder={placeholder}
-          autoFocus={autoFocus}
-          onChange={(e) => onChange(e.target.value)}
-          className="font-mono text-[13px]"
-        />
-        <p className="mt-1 text-xs text-muted-foreground">{t('hint')}</p>
-      </TabsContent>
-      <TabsContent value="preview" className="min-h-24 rounded-md border px-3 py-2">
-        {value.trim() ? (
-          <Markdown>{value}</Markdown>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t('nothing')}</p>
+    <VStack gap={2}>
+      {!isLabelHidden && (
+        <Text type="label" aria-hidden>
+          {label}
+        </Text>
+      )}
+      <TabList
+        role="tablist"
+        size="sm"
+        aria-label={label}
+        value={tab}
+        onChange={(v) => setTab(v as 'write' | 'preview')}
+      >
+        <Tab value="write" label={t('write')} panelId={`${uid}-write`} />
+        <Tab value="preview" label={t('preview')} panelId={`${uid}-preview`} />
+      </TabList>
+      <div role="tabpanel" id={`${uid}-write`} aria-label={t('write')} hidden={tab !== 'write'}>
+        {tab === 'write' && (
+          <VStack gap={1}>
+            <TextArea
+              label={label}
+              isLabelHidden
+              rows={rows}
+              value={value}
+              placeholder={placeholder}
+              hasAutoFocus={hasAutoFocus}
+              onChange={onChange}
+            />
+            <Text type="supporting">{t('hint')}</Text>
+          </VStack>
         )}
-      </TabsContent>
-    </Tabs>
+      </div>
+      <div role="tabpanel" id={`${uid}-preview`} aria-label={t('preview')} hidden={tab !== 'preview'}>
+        {tab === 'preview' && (
+          <Card padding={3} minHeight={96}>
+            {value.trim() ? <Markdown>{value}</Markdown> : <Text type="supporting">{t('nothing')}</Text>}
+          </Card>
+        )}
+      </div>
+    </VStack>
   );
 }
 
@@ -165,52 +138,44 @@ export function MemberSelect({
   members,
   value,
   onChange,
-  id,
   label,
-  disabled,
+  isLabelHidden,
+  isDisabled,
   allowNone = true,
-  className,
+  width,
 }: {
   members: readonly Member[];
   value: string | null;
   onChange: (userId: string | null) => void;
-  id?: string;
   label?: string;
-  disabled?: boolean;
+  isLabelHidden?: boolean;
+  isDisabled?: boolean;
   allowNone?: boolean;
-  className?: string;
+  width?: number | string;
 }) {
   const t = useTranslations('projects.fields');
   const options = members.filter((m) => m.active && m.role !== 'viewer');
   const current = members.find((m) => m.userId === value);
   return (
-    <Select value={value ?? NONE} onValueChange={(v) => onChange(v === NONE ? null : v)} disabled={disabled}>
-      <SelectTrigger
-        id={id}
-        aria-label={id ? undefined : (label ?? t('assignee'))}
-        className={cn('w-full', className)}
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {allowNone && (
-          <SelectItem value={NONE}>
-            <span className="text-muted-foreground">{t('unassigned')}</span>
-          </SelectItem>
-        )}
-        {current && !options.includes(current) && (
-          <SelectItem value={current.userId} disabled>
-            {current.displayName}
-          </SelectItem>
-        )}
-        {options.map((m) => (
-          <SelectItem key={m.userId} value={m.userId}>
-            <UserAvatar name={m.displayName} src={m.avatarUrl} className="size-5 text-[9px]" />
-            {m.displayName}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={label ?? t('assignee')}
+      isLabelHidden={isLabelHidden}
+      isDisabled={isDisabled}
+      width={width}
+      value={value ?? NONE}
+      onChange={(v) => onChange(v === NONE ? null : v)}
+      options={[
+        ...(allowNone ? [{ value: NONE, label: t('unassigned') }] : []),
+        ...(current && !options.includes(current)
+          ? [{ value: current.userId, label: current.displayName, disabled: true }]
+          : []),
+        ...options.map((m) => ({
+          value: m.userId,
+          label: m.displayName,
+          icon: <UserAvatar name={m.displayName} src={m.avatarUrl} className="size-5 text-[9px]" />,
+        })),
+      ]}
+    />
   );
 }
 
@@ -218,75 +183,32 @@ export function MilestoneSelect({
   milestones,
   value,
   onChange,
-  id,
   label,
-  disabled,
+  isLabelHidden,
+  isDisabled,
+  width,
 }: {
   milestones: readonly Pick<Milestone, 'id' | 'name'>[];
   value: string | null;
   onChange: (id: string | null) => void;
-  id?: string;
   label?: string;
-  disabled?: boolean;
+  isLabelHidden?: boolean;
+  isDisabled?: boolean;
+  width?: number | string;
 }) {
   const t = useTranslations('projects.fields');
   return (
-    <Select value={value ?? NONE} onValueChange={(v) => onChange(v === NONE ? null : v)} disabled={disabled}>
-      <SelectTrigger id={id} aria-label={id ? undefined : (label ?? t('milestone'))} className="w-full">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NONE}>
-          <span className="text-muted-foreground">{t('noMilestone')}</span>
-        </SelectItem>
-        {milestones.map((m) => (
-          <SelectItem key={m.id} value={m.id}>
-            {m.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-/** Confirmation that stays open while the action runs. */
-export function ConfirmDialog({
-  open,
-  onOpenChange,
-  title,
-  description,
-  confirmLabel,
-  destructive,
-  loading,
-  onConfirm,
-  children,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title: ReactNode;
-  description?: ReactNode;
-  confirmLabel: string;
-  destructive?: boolean;
-  loading?: boolean;
-  onConfirm: () => void;
-  children?: ReactNode;
-}) {
-  const tc = useTranslations('common');
-  return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
-        </AlertDialogHeader>
-        {children}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>{tc('cancel')}</AlertDialogCancel>
-          <Button variant={destructive ? 'destructive' : 'default'} loading={loading} onClick={onConfirm}>
-            {confirmLabel}
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Selector
+      label={label ?? t('milestone')}
+      isLabelHidden={isLabelHidden}
+      isDisabled={isDisabled}
+      width={width}
+      value={value ?? NONE}
+      onChange={(v) => onChange(v === NONE ? null : v)}
+      options={[
+        { value: NONE, label: t('noMilestone') },
+        ...milestones.map((m) => ({ value: m.id, label: m.name })),
+      ]}
+    />
   );
 }

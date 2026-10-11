@@ -1,10 +1,10 @@
 'use client';
 
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
 import type { ShellHeaderSlotProps } from '@isbp/contracts';
-import { Button } from '@isbp/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { useApiQuery } from '@isbp/ui/query';
-import { Hint } from '@isbp/ui/tooltip';
 import { SparklesIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -29,25 +29,23 @@ export default function AssistantLauncher(_props: ShellHeaderSlotProps) {
   return (
     <>
       {/* The tooltip says what it's for; the accessible name stays the short "Assistant" the guide uses. */}
-      <Hint label={t('openHint')}>
-        <Button
+      <span className="relative inline-flex">
+        <IconButton
+          label={t('open')}
+          tooltip={t('openHint')}
           variant="ghost"
-          size="icon"
-          className="relative"
-          aria-label={t('open')}
+          icon={<Icon icon={SparklesIcon} />}
           aria-haspopup="dialog"
           aria-expanded={open}
           onClick={() => setOpen(true)}
-        >
-          <SparklesIcon />
-          {chat.busy && !open && (
-            <span
-              aria-hidden
-              className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary motion-safe:animate-pulse"
-            />
-          )}
-        </Button>
-      </Hint>
+        />
+        {chat.busy && !open && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-1.5 right-1.5 size-2 rounded-full bg-primary motion-safe:animate-pulse"
+          />
+        )}
+      </span>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent className="w-full gap-0 p-0 sm:max-w-lg" closeLabel={t('close')}>
           <SheetHeader className="border-b p-4 pr-12">

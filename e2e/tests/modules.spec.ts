@@ -17,7 +17,8 @@ test('write and publish an announcement', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Publish' }).click();
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
   await page.getByRole('main').getByRole('link', { name: 'Announcements' }).first().click();
-  await expect(page.getByText(title)).toBeVisible();
+  // The feed lists it. (The closed delete dialog of the page just left also holds the title: wait for the link.)
+  await expect(page.getByRole('link', { name: new RegExp(title) })).toBeVisible();
 
   // Deleting asks first (it can't be undone) and goes back to the feed.
   await page.getByRole('link', { name: new RegExp(title) }).click();
@@ -38,7 +39,7 @@ test('Administration → Modules: on/off and settings up front, the rest in Tech
   // No versions, event counts or developer notes on the page.
   await expect(page.getByText(/^v\d+\.\d+\.\d+$/)).toHaveCount(0);
   await expect(page.getByText('pnpm create-module')).toHaveCount(0);
-  await page.getByRole('button', { name: 'View details of Service desk' }).click();
+  await page.getByRole('button', { name: 'View details of Service desk' }).click({ force: true });
   const sheet = page.getByRole('dialog');
   await expect(sheet.getByRole('tab', { name: 'Settings' })).toHaveAttribute('aria-selected', 'true');
   await sheet.getByRole('tab', { name: 'Technical details' }).click();

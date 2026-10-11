@@ -1,7 +1,7 @@
 'use client';
 
+import { UiProvider } from '@isbp/ui/provider';
 import { ThemeProvider } from '@isbp/ui/theme';
-import { TooltipProvider } from '@isbp/ui/tooltip';
 import { useZodErrorMap } from '@isbp/ui/validation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MotionConfig, useReducedMotion } from 'motion/react';
@@ -56,7 +56,7 @@ export function RootProviders({ children }: { children: ReactNode }) {
           to its end state (`skipAnimations`). */}
       <MotionConfig reducedMotion="user" skipAnimations={reduceMotion}>
         <QueryClientProvider client={client}>
-          <TooltipProvider>{children}</TooltipProvider>
+          <UiProvider>{children}</UiProvider>
         </QueryClientProvider>
       </MotionConfig>
     </ThemeProvider>

@@ -1,11 +1,12 @@
 'use client';
 
+import { Collapsible } from '@astryxdesign/core/Collapsible';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import type { ConnectorConfigSlotProps } from '@isbp/contracts';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useId } from 'react';
 import { API_VERSIONS, type ApiVersion, collectionUrlIssue, DEFAULT_API_VERSION } from '../../contracts';
 
 /** Header the hub reads the webhook secret from (a technical name, not translated). */
@@ -40,7 +41,6 @@ export default function AzdoServerConfig({
   disabled,
 }: ConnectorConfigSlotProps) {
   const t = useTranslations('azdo.config');
-  const id = useId();
   const url = typeof config.collectionUrl === 'string' ? config.collectionUrl : '';
   const version = API_VERSIONS.includes(config.apiVersion as ApiVersion)
     ? (config.apiVersion as ApiVersion)
@@ -53,109 +53,57 @@ export default function AzdoServerConfig({
   const versionError = errors?.['config.apiVersion'] ? t('errors.version') : null;
   const patError = errors?.['secrets.pat'] ? t('errors.pat') : null;
 
-  const field = (
-    key: string,
-    label: ReactNode,
-    control: (p: { id: string; 'aria-describedby': string; 'aria-invalid'?: true }) => ReactNode,
-    hint: ReactNode,
-    error: string | null,
-  ) => (
-    <div className="grid min-w-0 gap-1.5">
-      <Label htmlFor={`${id}-${key}`}>{label}</Label>
-      {control({
-        id: `${id}-${key}`,
-        'aria-describedby': `${id}-${key}-hint`,
-        ...(error ? { 'aria-invalid': true as const } : {}),
-      })}
-      <p
-        id={`${id}-${key}-hint`}
-        className={error ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}
-      >
-        {error ?? hint}
-      </p>
-    </div>
-  );
+  /** A field's status: the error, if any (it replaces the hint). */
+  const failed = (message: string | null) => (message ? { type: 'error' as const, message } : undefined);
 
   return (
     <div className="grid min-w-0 gap-4">
-      <fieldset className="grid min-w-0 gap-4" disabled={disabled}>
-        <legend className="mb-3 text-sm font-semibold">{t('server')}</legend>
-        {field(
-          'url',
-          t('collectionUrl'),
-          (p) => (
-            <Input
-              {...p}
-              type="url"
-              inputMode="url"
-              autoComplete="off"
-              spellCheck={false}
-              className="font-mono"
-              placeholder={URL_EXAMPLE}
-              value={url}
-              maxLength={500}
-              onChange={(e) => onConfigChange({ ...config, collectionUrl: e.target.value })}
-            />
-          ),
-          t('collectionUrlHint'),
-          urlError,
-        )}
-        {field(
-          'version',
-          t('apiVersion'),
-          (p) => (
-            <Select
-              value={version}
-              onValueChange={(v) => onConfigChange({ ...config, apiVersion: v })}
-              disabled={disabled}
-            >
-              <SelectTrigger {...p} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {API_VERSIONS.map((v) => (
-                  <SelectItem key={v} value={v}>
-                    {t(`versions.${v.replace('.', '_')}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ),
-          t('apiVersionHint'),
-          versionError,
-        )}
-      </fieldset>
+      <VStack gap={4} className="min-w-0">
+        <Text type="label">{t('server')}</Text>
+        <TextInput
+          label={t('collectionUrl')}
+          isRequired
+          autoComplete="off"
+          placeholder={URL_EXAMPLE}
+          value={url}
+          isDisabled={disabled}
+          description={urlError ? undefined : t('collectionUrlHint')}
+          status={failed(urlError)}
+          onChange={(value) => onConfigChange({ ...config, collectionUrl: value.slice(0, 500) })}
+        />
+        <Selector
+          label={t('apiVersion')}
+          value={version}
+          isDisabled={disabled}
+          description={versionError ? undefined : t('apiVersionHint')}
+          status={failed(versionError)}
+          onChange={(v) => onConfigChange({ ...config, apiVersion: v })}
+          options={API_VERSIONS.map((v) => ({ value: v, label: t(`versions.${v.replace('.', '_')}`) }))}
+        />
+      </VStack>
 
-      <fieldset className="grid min-w-0 gap-4" disabled={disabled}>
-        <legend className="mb-3 text-sm font-semibold">{t('signIn')}</legend>
-        {field(
-          'pat',
-          t('pat'),
-          (p) => (
-            <Input
-              {...p}
-              type="password"
-              autoComplete="new-password"
-              spellCheck={false}
-              value={secrets.pat ?? ''}
-              placeholder={patStored ? t('patStoredPlaceholder') : undefined}
-              onChange={(e) => {
-                const next = { ...secrets };
-                if (e.target.value) next.pat = e.target.value;
-                else delete next.pat;
-                onSecretsChange(next);
-              }}
-            />
-          ),
-          patStored ? t('patStored') : t('patHint'),
-          patError,
-        )}
-      </fieldset>
+      <VStack gap={4} className="min-w-0">
+        <Text type="label">{t('signIn')}</Text>
+        <TextInput
+          label={t('pat')}
+          isRequired={!patStored}
+          type="password"
+          autoComplete="new-password"
+          value={secrets.pat ?? ''}
+          isDisabled={disabled}
+          placeholder={patStored ? t('patStoredPlaceholder') : undefined}
+          description={patError ? undefined : patStored ? t('patStored') : t('patHint')}
+          status={failed(patError)}
+          onChange={(value) => {
+            const next = { ...secrets };
+            if (value) next.pat = value;
+            else delete next.pat;
+            onSecretsChange(next);
+          }}
+        />
+      </VStack>
 
-      <details className="group rounded-lg border px-3 py-2 text-sm">
-        <summary className="cursor-pointer font-medium outline-none focus-visible:underline">
-          {t('help.reqTitle')}
-        </summary>
+      <Collapsible trigger={<Text weight="medium">{t('help.reqTitle')}</Text>} defaultIsOpen={false}>
         <ul className="mt-3 list-disc space-y-1.5 ps-5 text-muted-foreground">
           <li>{t('help.reqVersion')}</li>
           <li>{t('help.reqPat')}</li>
@@ -163,12 +111,9 @@ export default function AzdoServerConfig({
           <li>{t('help.reqTls')}</li>
           <li>{t('help.reqNetwork')}</li>
         </ul>
-      </details>
+      </Collapsible>
 
-      <details className="group rounded-lg border px-3 py-2 text-sm">
-        <summary className="cursor-pointer font-medium outline-none focus-visible:underline">
-          {t('help.patTitle')}
-        </summary>
+      <Collapsible trigger={<Text weight="medium">{t('help.patTitle')}</Text>} defaultIsOpen={false}>
         <ol className="mt-3 list-decimal space-y-1.5 ps-5 text-muted-foreground">
           <li>{t('help.patStep1')}</li>
           <li>{t('help.patStep2')}</li>
@@ -182,12 +127,9 @@ export default function AzdoServerConfig({
           </li>
           <li>{t('help.patStep4')}</li>
         </ol>
-      </details>
+      </Collapsible>
 
-      <details className="group rounded-lg border px-3 py-2 text-sm">
-        <summary className="cursor-pointer font-medium outline-none focus-visible:underline">
-          {t('help.hooksTitle')}
-        </summary>
+      <Collapsible trigger={<Text weight="medium">{t('help.hooksTitle')}</Text>} defaultIsOpen={false}>
         <div className="mt-3 space-y-2 text-muted-foreground">
           <p>{t('help.hooksIntro')}</p>
           <ol className="list-decimal space-y-1.5 ps-5">
@@ -214,7 +156,7 @@ export default function AzdoServerConfig({
           <p>{t('help.hooksNote')}</p>
           <p>{t('help.hooksNetwork')}</p>
         </div>
-      </details>
+      </Collapsible>
     </div>
   );
 }

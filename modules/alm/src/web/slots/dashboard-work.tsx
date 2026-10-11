@@ -1,7 +1,7 @@
 'use client';
 
+import { HStack } from '@astryxdesign/core/Layout';
 import type { Page } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -12,6 +12,8 @@ import type { AppSummary, ReleaseSummary } from '../../contracts';
 import { ReleaseStatusBadge } from '../badges';
 import { isoToday, releaseHref } from '../lib';
 import { PlannedDate, ReadinessSummary } from '../release-bits';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /** "Your work" on the home dashboard: the next releases of applications you own or deliver. */
 export default function DashboardReleases() {
@@ -31,18 +33,21 @@ export default function DashboardReleases() {
   return (
     <Card className="min-w-0">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <RocketIcon className="size-4 text-primary" aria-hidden />
-          {t('title')}
+        <CardTitle>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={RocketIcon} color="accent" />
+            {t('title')}
+          </HStack>
         </CardTitle>
         <CardDescription>{t('description', { count: owned.data!.total })}</CardDescription>
         <CardAction>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/alm/releases?mine=true">
-              {t('open')}
-              <ArrowRightIcon />
-            </Link>
-          </Button>
+          <Button
+            label={t('open')}
+            variant="ghost"
+            size="sm"
+            endContent={<Icon icon={ArrowRightIcon} />}
+            href="/alm/releases?mine=true"
+          />
         </CardAction>
       </CardHeader>
       <CardContent>

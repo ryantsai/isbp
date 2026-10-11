@@ -1,23 +1,27 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
+import { DownloadButton } from '@isbp/ui/download-button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
+import { StatusBadge } from '@isbp/ui/status';
 import { DatabaseZapIcon, FileJsonIcon, PlusIcon, SearchXIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { type EndpointStatus, type EndpointSummary, ENDPOINT_STATUSES } from '../../contracts';
-import { ConnectionLabel, DraftBadge, EndpointStatusBadge, MethodBadge, TONE } from '../badges';
+import { ConnectionLabel, DraftBadge, EndpointStatusBadge, MethodBadge } from '../badges';
 import { CreateEndpointDialog } from '../endpoint/create-dialog';
 import { endpointHref } from '../lib';
 import { DataApiTabs } from '../section-tabs';
@@ -31,6 +35,7 @@ export default function EndpointsPage() {
   const tc = useTranslations('common');
   const format = useFormatter();
   const router = useRouter();
+  const panelId = useId();
   const canManage = useCan('etl.endpoints.manage');
   const [state, set] = useListState({ pageSize: 25 });
   const [creating, setCreating] = useState(false);
@@ -45,6 +50,7 @@ export default function EndpointsPage() {
       status: view === 'all' ? undefined : (view as EndpointStatus),
     },
   );
+  const viewLabel = (v: View) => (v === 'all' ? tc('all') : t(`endpointStatus.${v}`));
 
   const columns = useMemo<DataTableColumn<EndpointSummary>[]>(
     () => [
@@ -53,16 +59,19 @@ export default function EndpointsPage() {
         header: t('fields.name'),
         meta: { sortKey: 'name', className: 'max-w-72' },
         cell: ({ row }) => (
-          <span className="flex min-w-0 flex-col">
+          <VStack gap={0} className="min-w-0">
             <Link
               href={endpointHref(row.original.slug)}
               onClick={(e) => e.stopPropagation()}
-              className="truncate font-medium outline-none hover:underline focus-visible:underline"
+              weight="medium"
+              maxLines={1}
             >
               {row.original.name}
             </Link>
-            <span className="truncate font-mono text-xs text-muted-foreground">/{row.original.slug}</span>
-          </span>
+            <Text type="code" color="secondary" maxLines={1}>
+              /{row.original.slug}
+            </Text>
+          </VStack>
         ),
       },
       {
@@ -75,20 +84,22 @@ export default function EndpointsPage() {
         id: 'status',
         header: t('fields.status'),
         cell: ({ row }) => (
-          <span className="flex flex-wrap items-center gap-1">
+          <HStack gap={1} wrap="wrap" vAlign="center">
             <EndpointStatusBadge status={row.original.status} />
             {row.original.latestVersion !== null && row.original.draftChanged && <DraftBadge />}
-          </span>
+          </HStack>
         ),
       },
       {
         id: 'version',
         header: t('fields.version'),
         meta: {
-          className: 'hidden md:table-cell font-mono text-xs',
+          className: 'hidden md:table-cell',
           headerClassName: 'hidden md:table-cell',
         },
-        cell: ({ row }) => (row.original.latestVersion ? `v${row.original.latestVersion}` : '—'),
+        cell: ({ row }) => (
+          <Text type="code">{row.original.latestVersion ? `v${row.original.latestVersion}` : '—'}</Text>
+        ),
       },
       {
         id: 'connection',
@@ -101,14 +112,15 @@ export default function EndpointsPage() {
         header: t('endpoints.calls24h'),
         meta: { className: 'hidden md:table-cell tabular-nums', headerClassName: 'hidden md:table-cell' },
         cell: ({ row }) => (
-          <span className="flex items-baseline gap-2">
+          <HStack gap={2} vAlign="center">
             <span>{format.number(row.original.calls24h)}</span>
             {row.original.errors24h > 0 && (
-              <span className={cn('rounded px-1 text-xs', TONE.destructive)}>
-                {t('endpoints.errors', { count: row.original.errors24h })}
-              </span>
+              <StatusBadge
+                tone="destructive"
+                label={t('endpoints.errors', { count: row.original.errors24h })}
+              />
             )}
-          </span>
+          </HStack>
         ),
       },
       {
@@ -159,9 +171,12 @@ export default function EndpointsPage() {
           action={
             canManage &&
             !state.q && (
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon /> {t('endpoints.new')}
-              </Button>
+              <Button
+                label={t('endpoints.new')}
+                variant="primary"
+                icon={<Icon icon={PlusIcon} />}
+                onClick={() => setCreating(true)}
+              />
             )
           }
         />
@@ -176,35 +191,41 @@ export default function EndpointsPage() {
         description={t('endpoints.description')}
         actions={
           <>
-            <Button variant="outline" asChild>
-              <a href="/api/v1/etl/endpoints/openapi.json" download="data-apis.openapi.json">
-                <FileJsonIcon /> {t('endpoints.openapi')}
-              </a>
-            </Button>
+            <DownloadButton
+              label={t('endpoints.openapi')}
+              variant="secondary"
+              icon={<Icon icon={FileJsonIcon} />}
+              href="/api/v1/etl/endpoints/openapi.json"
+              download="data-apis.openapi.json"
+            />
             {canManage && (
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon /> {t('endpoints.new')}
-              </Button>
+              <Button
+                label={t('endpoints.new')}
+                variant="primary"
+                icon={<Icon icon={PlusIcon} />}
+                onClick={() => setCreating(true)}
+              />
             )}
           </>
         }
       />
       <DataApiTabs />
-      <Tabs value={view} onValueChange={(v) => set({ view: v === 'all' ? undefined : v })}>
-        <TabsList className="max-w-full overflow-x-auto">
+      <VStack gap={3}>
+        <TabList
+          role="tablist"
+          value={view}
+          onChange={(v) => set({ view: v === 'all' ? undefined : v })}
+          hasDivider
+        >
           {VIEWS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {v === 'all' ? tc('all') : t(`endpointStatus.${v}`)}
-            </TabsTrigger>
+            <Tab key={v} value={v} label={viewLabel(v)} panelId={panelId} />
           ))}
-        </TabsList>
-        {/* Each tab only filters the same list; every tab still has its panel. */}
-        {VIEWS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {v === view && table}
-          </TabsContent>
-        ))}
-      </Tabs>
+        </TabList>
+        {/* The tabs only filter the same list; the one panel holds it. */}
+        <div role="tabpanel" id={panelId} aria-label={viewLabel(view)} className="min-w-0">
+          {table}
+        </div>
+      </VStack>
       <p className="sr-only" aria-live="polite">
         {data ? t('endpoints.liveCount', { count: data.total }) : ''}
       </p>

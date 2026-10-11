@@ -1,5 +1,7 @@
 'use client';
 
+import { VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import type { CustomField } from '@isbp/contracts';
 import {
   defaultFieldValues,
@@ -110,10 +112,10 @@ export function CustomFieldsSection({
   const t = useTranslations('fields.entity');
   if (!elements.length) return null;
   return (
-    <fieldset className="space-y-4">
-      <legend className="mb-3 text-xs font-semibold text-muted-foreground">{t('sectionTitle')}</legend>
+    <VStack gap={3}>
+      <Text type="label">{t('sectionTitle')}</Text>
       <FormFields elements={elements} form={form} namePrefix="attributes" className="-mb-4" />
-    </fieldset>
+    </VStack>
   );
 }
 

@@ -1,27 +1,24 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Card as SurfaceCard } from '@astryxdesign/core/Card';
+import { Collapsible } from '@astryxdesign/core/Collapsible';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import type { Role } from '@isbp/contracts';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card } from '@isbp/ui/card';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
-import { type FilterDef, FilterBar } from '@isbp/ui/filter-bar';
-import { Collapse, CollapseChevron } from '@isbp/ui/motion';
+import { FilterBar, type FilterDef } from '@isbp/ui/filter-bar';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { SearchInput } from '@isbp/ui/search-input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { PlusIcon, ShieldCheckIcon, ShieldIcon, UsersIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useApiQuery } from '@/lib/api';
 import { RequestBadges } from './request-settings';
 import { useRoleText } from './role-utils';
@@ -36,77 +33,73 @@ function RoleRow({ role }: { role: Role }) {
   const format = useFormatter();
   const roleText = useRoleText();
   const { name, description } = roleText(role);
+  // Beside the name on wide screens, under the description on a phone (where the name would shrink to nothing).
+  const summary = (
+    <HStack gap={1.5} wrap="wrap" vAlign="center" hAlign="end">
+      <RequestBadges role={role} />
+      <HStack gap={1} vAlign="center">
+        <Icon icon={UsersIcon} size="sm" color="secondary" />
+        <Text type="supporting">
+          {t('list.assigned', { count: role.assignmentCount, n: format.number(role.assignmentCount) })}
+        </Text>
+      </HStack>
+    </HStack>
+  );
   return (
-    <li>
-      <Link
-        href={`/admin/roles/${role.id}`}
-        className="group flex min-w-0 flex-col gap-1.5 px-3 py-2.5 outline-none hover:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset sm:flex-row sm:items-center sm:gap-3"
-      >
-        <span className="flex min-w-0 flex-1 items-start gap-3">
-          <span
-            aria-hidden
-            className={cn(
-              'mt-0.5 grid size-7 shrink-0 place-items-center rounded-md',
-              role.isSystem ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary',
-            )}
-          >
-            {role.isSystem ? <ShieldIcon className="size-3.5" /> : <ShieldCheckIcon className="size-3.5" />}
-          </span>
-          <span className="min-w-0">
-            <span className="block font-medium wrap-break-word group-hover:underline">{name}</span>
-            <span className="line-clamp-2 text-xs text-muted-foreground sm:line-clamp-1">
-              {description || t('card.noDescription')}
-            </span>
-          </span>
-        </span>
-        <span className="flex min-w-0 flex-wrap items-center gap-1.5 pl-10 text-xs text-muted-foreground sm:shrink-0 sm:justify-end sm:pl-0">
-          <RequestBadges role={role} />
-          <span className="inline-flex items-center gap-1 whitespace-nowrap">
-            <UsersIcon className="size-3.5" aria-hidden />
-            {t('list.assigned', { count: role.assignmentCount, n: format.number(role.assignmentCount) })}
-          </span>
-        </span>
-      </Link>
-    </li>
+    <ListItem
+      href={`/admin/roles/${role.id}`}
+      label={name}
+      description={
+        <VStack gap={1}>
+          <span>{description || t('card.noDescription')}</span>
+          <span className="sm:hidden">{summary}</span>
+        </VStack>
+      }
+      startContent={
+        <IconTile size="xs" aria-hidden className={role.isSystem ? 'text-muted-foreground' : undefined}>
+          {role.isSystem ? <ShieldIcon /> : <ShieldCheckIcon />}
+        </IconTile>
+      }
+      endContent={<span className="hidden sm:block">{summary}</span>}
+    />
   );
 }
 
 function Area({
-  id,
   title,
   count,
   open,
   onToggle,
   children,
 }: {
-  id: string;
   title: string;
   count: number;
   open: boolean;
   onToggle: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const t = useTranslations('roles.list');
-  const contentId = `role-area-${id}`;
   return (
-    <section aria-labelledby={`${contentId}-title`} className="overflow-hidden rounded-xl border bg-card">
-      <h2 id={`${contentId}-title`} className="text-sm">
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls={contentId}
-          onClick={onToggle}
-          className="flex w-full items-center gap-2 px-3 py-2.5 text-left outline-none hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset"
-        >
-          <span className="min-w-0 flex-1 truncate font-semibold">{title}</span>
-          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{t('count', { count })}</span>
-          <CollapseChevron open={open} />
-        </button>
-      </h2>
-      <Collapse id={contentId} open={open}>
-        <div className="border-t">{children}</div>
-      </Collapse>
-    </section>
+    <SurfaceCard padding={0}>
+      <Collapsible
+        isOpen={open}
+        onOpenChange={onToggle}
+        trigger={
+          <HStack gap={2} vAlign="center" padding={3}>
+            <StackItem size="fill">
+              <Text weight="semibold" maxLines={1}>
+                {title}
+              </Text>
+            </StackItem>
+            <Text type="supporting" hasTabularNumbers>
+              {t('count', { count })}
+            </Text>
+          </HStack>
+        }
+      >
+        {children}
+      </Collapsible>
+    </SurfaceCard>
   );
 }
 
@@ -138,20 +131,18 @@ export function RoleGrid({ onCreate }: { onCreate?: () => void }) {
       value: type ? t(`list.types.${type}`) : undefined,
       onClear: () => set({ type: undefined }),
       control: (
-        <Select value={type ?? ALL} onValueChange={(v) => set({ type: v === ALL ? undefined : v })}>
-          <SelectTrigger className="w-full sm:w-40" aria-label={t('list.type')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('list.types.all')}</SelectItem>
-            <SelectSeparator />
-            {TYPES.map((v) => (
-              <SelectItem key={v} value={v}>
-                {t(`list.types.${v}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Selector
+          label={t('list.type')}
+          isLabelHidden
+          width={160}
+          value={type ?? ALL}
+          onChange={(v) => set({ type: v === ALL ? undefined : v })}
+          options={[
+            { value: ALL, label: t('list.types.all') },
+            { type: 'divider' },
+            ...TYPES.map((v) => ({ value: v, label: t(`list.types.${v}`) })),
+          ]}
+        />
       ),
     },
     {
@@ -161,23 +152,18 @@ export function RoleGrid({ onCreate }: { onCreate?: () => void }) {
       value: requestable ? t(`list.requestables.${requestable}`) : undefined,
       onClear: () => set({ requestable: undefined }),
       control: (
-        <Select
+        <Selector
+          label={t('list.requestable')}
+          isLabelHidden
+          width={192}
           value={requestable ?? ALL}
-          onValueChange={(v) => set({ requestable: v === ALL ? undefined : v })}
-        >
-          <SelectTrigger className="w-full sm:w-48" aria-label={t('list.requestable')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('list.requestables.all')}</SelectItem>
-            <SelectSeparator />
-            {REQUESTABLE.map((v) => (
-              <SelectItem key={v} value={v}>
-                {t(`list.requestables.${v}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(v) => set({ requestable: v === ALL ? undefined : v })}
+          options={[
+            { value: ALL, label: t('list.requestables.all') },
+            { type: 'divider' },
+            ...REQUESTABLE.map((v) => ({ value: v, label: t(`list.requestables.${v}`) })),
+          ]}
+        />
       ),
     },
   ];
@@ -251,13 +237,11 @@ export function RoleGrid({ onCreate }: { onCreate?: () => void }) {
         <div className="min-w-0 flex-1">{toolbar}</div>
         {!filtering && order.length > 1 && (
           <Button
+            label={allOpen ? t('list.collapseAll') : t('list.expandAll')}
             variant="ghost"
             size="sm"
-            className="self-start"
             onClick={() => setOpened(allOpen ? new Set() : new Set(order))}
-          >
-            {allOpen ? t('list.collapseAll') : t('list.expandAll')}
-          </Button>
+          />
         )}
       </div>
 
@@ -271,9 +255,12 @@ export function RoleGrid({ onCreate }: { onCreate?: () => void }) {
             description={t('noCustomRoles.description')}
             action={
               onCreate && (
-                <Button variant="outline" onClick={onCreate}>
-                  <PlusIcon /> {t('newRole')}
-                </Button>
+                <Button
+                  label={t('newRole')}
+                  variant="secondary"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={onCreate}
+                />
               )
             }
           />
@@ -284,18 +271,17 @@ export function RoleGrid({ onCreate }: { onCreate?: () => void }) {
         {order.map((area) => (
           <Area
             key={area}
-            id={area === CUSTOM ? 'custom' : area}
             title={areaName(area)}
             count={areas.get(area)!.length}
             // While filtering, every area with a match is open.
             open={filtering || opened.has(area)}
             onToggle={() => toggle(area)}
           >
-            <ul className="divide-y">
+            <List hasDividers>
               {areas.get(area)!.map((r) => (
                 <RoleRow key={r.id} role={r} />
               ))}
-            </ul>
+            </List>
           </Area>
         ))}
       </div>

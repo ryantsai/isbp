@@ -6,14 +6,24 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
+    "./theme/tel": {
+      "types": "./src/theme/built/tel.d.ts",
+      "default": "./src/theme/built/tel.js"
+    },
+    "./theme/tel.css": "./src/theme/built/tel.css",
     "./*": "./src/components/*.tsx",
     "./lib/*": "./src/lib/*.ts"
   },
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "theme:build": "astryx theme build src/theme/tel.ts --out src/theme/built/tel.css",
+    "theme:check": "astryx theme build src/theme/tel.ts --out src/theme/built/tel.css --check",
+    "ui:check": "node scripts/ui-check.mjs"
   },
   "dependencies": {
+    "@astryxdesign/core": "catalog:",
+    "@astryxdesign/theme-neutral": "catalog:",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.11.1",
     "@codemirror/lang-javascript": "^6.2.5",
@@ -27,17 +37,14 @@
     "@isbp/i18n": "workspace:*",
     "@isbp/sdk": "workspace:*",
     "@lezer/highlight": "^1.2.5",
+    "@stylexjs/stylex": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-table": "catalog:",
-    "class-variance-authority": "catalog:",
     "clsx": "catalog:",
-    "cmdk": "^1.1.1",
     "lucide-react": "catalog:",
     "motion": "catalog:",
-    "radix-ui": "catalog:",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "sonner": "catalog:",
     "tailwind-merge": "catalog:"
   },
   "peerDependencies": {
@@ -48,6 +55,7 @@
     "react-hook-form": "*"
   },
   "devDependencies": {
+    "@astryxdesign/cli": "catalog:",
     "@isbp/eslint-config": "workspace:*",
     "@isbp/tsconfig": "workspace:*",
     "@types/react": "catalog:",

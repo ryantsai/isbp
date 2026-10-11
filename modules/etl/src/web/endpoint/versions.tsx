@@ -1,12 +1,16 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { DateTime } from '@isbp/ui/relative-time';
-import { Label } from '@isbp/ui/label';
 import { useApiMutation } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
+import { DateTime } from '@isbp/ui/relative-time';
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
@@ -15,7 +19,7 @@ import {
   TriangleAlertIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   type EndpointDefinition,
   type EndpointDetail,
@@ -36,10 +40,12 @@ function Diff({ before, after, label }: { before: string; after: string; label: 
   const lines = useMemo(() => lineDiff(before, after), [before, after]);
   const changed = lines.some((l) => l.kind !== 'same');
   return (
-    <section className="grid min-w-0 gap-1.5" aria-label={label}>
-      <h3 className="text-sm font-medium">{label}</h3>
+    <VStack as="section" gap={1.5} className="min-w-0" aria-label={label}>
+      <Text type="label" as="div" role="heading" aria-level={3}>
+        {label}
+      </Text>
       {!changed ? (
-        <p className="text-sm text-muted-foreground">{t('noChanges')}</p>
+        <Text color="secondary">{t('noChanges')}</Text>
       ) : (
         <pre
           tabIndex={0}
@@ -65,14 +71,13 @@ function Diff({ before, after, label }: { before: string; after: string; label: 
           ))}
         </pre>
       )}
-    </section>
+    </VStack>
   );
 }
 
 /** Published versions (deprecate, retire, restore, load into the draft) and a diff between any two. */
 export function VersionsTab({ endpoint }: { endpoint: EndpointDetail }) {
   const t = useTranslations('etl.versions');
-  const id = useId();
   const canManage = endpoint.viewer.canManage;
   const latest = endpoint.versions[0]?.version;
   const [from, setFrom] = useState<string>(latest === undefined ? DRAFT : String(latest));
@@ -110,102 +115,91 @@ export function VersionsTab({ endpoint }: { endpoint: EndpointDetail }) {
         </CardHeader>
         <CardContent>
           {endpoint.versions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t('none')}</p>
+            <Text color="secondary">{t('none')}</Text>
           ) : (
-            <ul className="divide-y" aria-label={t('title')}>
+            <List hasDividers aria-label={t('title')}>
               {endpoint.versions.map((v) => (
-                <li key={v.version} className="flex min-w-0 flex-col gap-2 py-3 sm:flex-row sm:items-start">
-                  <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-sm font-semibold">v{v.version}</span>
+                <ListItem
+                  key={v.version}
+                  label={`v${v.version}`}
+                  description={
+                    <VStack gap={1}>
+                      <Text type="supporting">
+                        {t('publishedBy', { name: v.publishedBy?.name ?? '—' })} ·{' '}
+                        <DateTime date={v.publishedAt} />
+                      </Text>
+                      {v.note && (
+                        <Text as="p" display="block" className="wrap-anywhere">
+                          {v.note}
+                        </Text>
+                      )}
+                    </VStack>
+                  }
+                  endContent={
+                    <HStack gap={2} wrap="wrap" vAlign="center" hAlign="end">
                       <VersionStatusBadge status={v.status} />
                       {v.version === endpoint.latestVersion && v.status === 'published' && (
-                        <span className="text-xs text-muted-foreground">{t('latest')}</span>
+                        <Text type="supporting">{t('latest')}</Text>
                       )}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {t('publishedBy', { name: v.publishedBy?.name ?? '—' })} ·{' '}
-                      <DateTime date={v.publishedAt} />
-                    </span>
-                    {v.note && <p className="text-sm wrap-anywhere">{v.note}</p>}
-                  </div>
-                  {canManage && (
-                    <div className="flex shrink-0 flex-wrap gap-1">
-                      {v.status === 'published' && (
+                      {canManage && v.status === 'published' && (
                         <Button
+                          label={t('actions.deprecate')}
+                          variant="secondary"
                           size="sm"
-                          variant="outline"
+                          icon={<Icon icon={TriangleAlertIcon} />}
                           onClick={() => setConfirm({ version: v.version, action: 'deprecate' })}
-                        >
-                          <TriangleAlertIcon /> {t('actions.deprecate')}
-                        </Button>
+                        />
                       )}
-                      {v.status !== 'retired' && (
+                      {canManage && v.status !== 'retired' && (
                         <Button
+                          label={t('actions.retire')}
+                          variant="secondary"
                           size="sm"
-                          variant="outline"
+                          icon={<Icon icon={ArchiveIcon} />}
                           onClick={() => setConfirm({ version: v.version, action: 'retire' })}
-                        >
-                          <ArchiveIcon /> {t('actions.retire')}
-                        </Button>
+                        />
                       )}
-                      {v.status !== 'published' && (
+                      {canManage && v.status !== 'published' && (
                         <Button
+                          label={t('actions.restore')}
+                          variant="secondary"
                           size="sm"
-                          variant="outline"
+                          icon={<Icon icon={ArchiveRestoreIcon} />}
                           onClick={() => setConfirm({ version: v.version, action: 'restore' })}
-                        >
-                          <ArchiveRestoreIcon /> {t('actions.restore')}
-                        </Button>
+                        />
                       )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setConfirm({ version: v.version, action: 'load' })}
-                      >
-                        <PencilLineIcon /> {t('actions.load')}
-                      </Button>
-                    </div>
-                  )}
-                </li>
+                      {canManage && (
+                        <Button
+                          label={t('actions.load')}
+                          variant="ghost"
+                          size="sm"
+                          icon={<Icon icon={PencilLineIcon} />}
+                          onClick={() => setConfirm({ version: v.version, action: 'load' })}
+                        />
+                      )}
+                    </HStack>
+                  }
+                />
               ))}
-            </ul>
+            </List>
           )}
         </CardContent>
       </Card>
 
       <Card className="min-w-0">
         <CardHeader>
-          <CardTitle role="heading" aria-level={2} className="flex items-center gap-2">
-            <GitCompareIcon className="size-4 text-primary" aria-hidden />
-            {t('compare')}
+          <CardTitle role="heading" aria-level={2}>
+            <HStack gap={2} vAlign="center">
+              <Icon icon={GitCompareIcon} color="accent" />
+              {t('compare')}
+            </HStack>
           </CardTitle>
         </CardHeader>
         <CardContent className="grid min-w-0 gap-4">
-          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
-            {(
-              [
-                ['from', from, setFrom],
-                ['to', to, setTo],
-              ] as const
-            ).map(([key, value, setter]) => (
-              <div key={key} className="grid min-w-0 gap-1.5">
-                <Label htmlFor={`${id}-${key}`}>{t(key)}</Label>
-                <Select value={value} onValueChange={setter}>
-                  <SelectTrigger id={`${id}-${key}`} className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {options.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-          </div>
+          <Grid columns={{ minWidth: 200 }} gap={3}>
+            <Selector label={t('from')} options={options} value={from} onChange={setFrom} />
+            <Selector label={t('to')} options={options} value={to} onChange={setTo} />
+          </Grid>
           <Diff label={t('statement')} before={statementText(a)} after={statementText(b)} />
           <Diff label={t('parameters')} before={paramLines(a.params)} after={paramLines(b.params)} />
           <Diff label={t('settings')} before={settingLines(a)} after={settingLines(b)} />

@@ -1,12 +1,15 @@
 'use client';
 
+import { Collapsible } from '@astryxdesign/core/Collapsible';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import type { ConnectorConfigSlotProps } from '@isbp/contracts';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
-import { Textarea } from '@isbp/ui/textarea';
-import { ChevronDownIcon, InfoIcon } from 'lucide-react';
+import { InfoIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import {
   ASSET_API_NAME_RE,
   DEFAULT_ASSET_ENDPOINTS,
@@ -15,41 +18,8 @@ import {
   WEBHOOK_TEMPLATE,
 } from '../../contracts';
 
-/** A labelled control with its hint or error, wired up with `aria-describedby`. */
-function Field({
-  id,
-  label,
-  hint,
-  error,
-  children,
-}: {
-  id: string;
-  label: ReactNode;
-  hint?: ReactNode;
-  error?: string | null;
-  children: (props: { id: string; 'aria-invalid'?: true; 'aria-describedby'?: string }) => ReactNode;
-}) {
-  const note = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
-  return (
-    <div className="grid min-w-0 gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      {children({
-        id,
-        ...(error ? { 'aria-invalid': true as const } : {}),
-        ...(note ? { 'aria-describedby': note } : {}),
-      })}
-      {error ? (
-        <p id={`${id}-error`} className="text-xs text-destructive">
-          {error}
-        </p>
-      ) : hint ? (
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-          {hint}
-        </p>
-      ) : null}
-    </div>
-  );
-}
+/** A field's status: the error, if any (it replaces the hint). */
+const failed = (message: string | null) => (message ? { type: 'error' as const, message } : undefined);
 
 const text = (v: unknown) => (typeof v === 'string' ? v : '');
 
@@ -125,121 +95,82 @@ export default function SdpConnectorConfig({
     const { assetEndpoints: _previous, ...rest } = config;
     onConfigChange(Object.keys(map).length ? { ...rest, assetEndpoints: map } : rest);
   };
-  const optional = <span className="font-normal text-muted-foreground">{t('optional')}</span>;
 
   return (
     <div className="grid min-w-0 gap-4">
-      <fieldset className="grid min-w-0 gap-4">
-        <legend className="mb-2 text-sm font-semibold">{t('server')}</legend>
-        <Field id={`${id}-url`} label={t('baseUrl')} hint={t('baseUrlHint')} error={error('config.baseUrl')}>
-          {(p) => (
-            <Input
-              {...p}
-              type="url"
-              inputMode="url"
-              value={text(config.baseUrl)}
-              disabled={disabled}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="https://sdp.contoso.local:8443"
-              onChange={(e) => setConfig('baseUrl', e.target.value)}
-            />
-          )}
-        </Field>
-        <Field
-          id={`${id}-portal`}
-          label={
-            <>
-              {t('portalId')} {optional}
-            </>
-          }
-          hint={t('portalIdHint')}
-          error={error('config.portalId')}
-        >
-          {(p) => (
-            <Input
-              {...p}
-              inputMode="numeric"
-              value={text(config.portalId)}
-              disabled={disabled}
-              autoComplete="off"
-              spellCheck={false}
-              className="sm:max-w-40"
-              onChange={(e) => setConfig('portalId', e.target.value.replace(/[^0-9]/g, ''))}
-            />
-          )}
-        </Field>
-      </fieldset>
+      <VStack gap={4} className="min-w-0">
+        <Text type="label">{t('server')}</Text>
+        <TextInput
+          label={t('baseUrl')}
+          isRequired
+          value={text(config.baseUrl)}
+          isDisabled={disabled}
+          autoComplete="off"
+          placeholder="https://sdp.contoso.local:8443"
+          description={error('config.baseUrl') ? undefined : t('baseUrlHint')}
+          status={failed(error('config.baseUrl'))}
+          onChange={(value) => setConfig('baseUrl', value)}
+        />
+        <TextInput
+          label={t('portalId')}
+          isOptional
+          value={text(config.portalId)}
+          isDisabled={disabled}
+          autoComplete="off"
+          description={error('config.portalId') ? undefined : t('portalIdHint')}
+          status={failed(error('config.portalId'))}
+          onChange={(value) => setConfig('portalId', value.replace(/[^0-9]/g, ''))}
+        />
+      </VStack>
 
-      <fieldset className="grid min-w-0 gap-4">
-        <legend className="mb-2 text-sm font-semibold">{t('authentication')}</legend>
-        <Field
-          id={`${id}-key`}
+      <VStack gap={4} className="min-w-0">
+        <Text type="label">{t('authentication')}</Text>
+        <TextInput
           label={t('apiKey')}
-          hint={storedSecrets.includes('apiKey') ? t('stored') : t('apiKeyHint')}
-          error={error('secrets.apiKey')}
-        >
-          {(p) => (
-            <Input
-              {...p}
-              type="password"
-              autoComplete="new-password"
-              spellCheck={false}
-              value={secrets.apiKey ?? ''}
-              disabled={disabled}
-              onChange={(e) => setSecret('apiKey', e.target.value)}
-            />
-          )}
-        </Field>
-      </fieldset>
+          isRequired={!storedSecrets.includes('apiKey')}
+          type="password"
+          autoComplete="new-password"
+          value={secrets.apiKey ?? ''}
+          isDisabled={disabled}
+          description={
+            error('secrets.apiKey')
+              ? undefined
+              : storedSecrets.includes('apiKey')
+                ? t('stored')
+                : t('apiKeyHint')
+          }
+          status={failed(error('secrets.apiKey'))}
+          onChange={(value) => setSecret('apiKey', value)}
+        />
+      </VStack>
 
-      <div className="min-w-0">
-        <button
-          type="button"
-          onClick={() => setAdvanced((a) => !a)}
-          aria-expanded={advancedOpen}
-          aria-controls={`${id}-advanced`}
-          className="flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          <ChevronDownIcon
-            className={`size-4 transition-transform duration-200 motion-reduce:transition-none ${advancedOpen ? 'rotate-180' : ''}`}
-            aria-hidden
+      <Collapsible
+        trigger={<Text weight="medium">{t('advanced')}</Text>}
+        isOpen={advancedOpen}
+        onOpenChange={setAdvanced}
+      >
+        <VStack gap={4} className="min-w-0 pt-3">
+          <TextArea
+            label={t('assetEndpoints')}
+            isOptional
+            rows={4}
+            value={endpoints}
+            isDisabled={disabled}
+            hasSpellCheck={false}
+            placeholder="Laptop = custom_asset_laptop"
+            description={endpointsError ? undefined : t('assetEndpointsHint', { defaults: DEFAULTS })}
+            status={failed(endpointsError)}
+            onChange={changeEndpoints}
           />
-          {t('advanced')}
-        </button>
-        <div id={`${id}-advanced`} hidden={!advancedOpen} className="grid min-w-0 grid-cols-1 gap-4 pt-4">
-          <Field
-            id={`${id}-endpoints`}
-            label={
-              <>
-                {t('assetEndpoints')} {optional}
-              </>
-            }
-            hint={t('assetEndpointsHint', { defaults: DEFAULTS })}
-            error={endpointsError}
-          >
-            {(p) => (
-              <Textarea
-                {...p}
-                rows={4}
-                value={endpoints}
-                disabled={disabled}
-                spellCheck={false}
-                className="font-mono text-xs"
-                placeholder="Laptop = custom_asset_laptop"
-                onChange={(e) => changeEndpoints(e.target.value)}
-              />
-            )}
-          </Field>
-        </div>
-      </div>
+        </VStack>
+      </Collapsible>
 
       <section
         aria-labelledby={`${id}-help`}
         className="grid min-w-0 gap-3 rounded-md border bg-muted/40 p-4 text-sm"
       >
         <h3 id={`${id}-help`} className="flex items-center gap-2 font-semibold">
-          <InfoIcon className="size-4 shrink-0 text-info" aria-hidden />
+          <Icon icon={InfoIcon} size="sm" color="accent" />
           {t('help.title')}
         </h3>
         <p className="text-muted-foreground">

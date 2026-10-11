@@ -1,11 +1,17 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Field } from '@astryxdesign/core/Field';
+import { Grid } from '@astryxdesign/core/Grid';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { parameterNames, writeKeywords } from '@isbp/sql/params';
+import { Card, CardContent } from '@isbp/ui/card';
 import { CodeEditor, type SqlSchema } from '@isbp/ui/code-editor';
-import { Input } from '@isbp/ui/input';
 import { useApiQuery, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { DatabaseIcon, InfoIcon, TriangleAlertIcon } from 'lucide-react';
+import { DatabaseIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo } from 'react';
 import {
@@ -16,7 +22,7 @@ import {
   type SqlParamInput,
   syncParams,
 } from '../../contracts';
-import { type EditorProps, FormRow } from './fields';
+import { type EditorProps, errorStatus } from './fields';
 
 export const SQL_DEFAULTS = { connectionId: '', statement: '', mode: 'query', params: [] as SqlParamInput[] };
 
@@ -66,174 +72,148 @@ export function SqlEditor({ value, onChange, errors, disabled }: EditorProps) {
     set({ params: params.map((p, k) => (k === i ? { ...p, ...patch } : p)) });
 
   return (
-    <div className="grid min-w-0 gap-5">
-      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-        <FormRow label={t('connection')} hint={t('connectionHint')} error={errors.connectionId}>
-          {({ id: fid, describedBy, invalid }) => (
-            <Select
-              value={c.connectionId ?? ''}
-              onValueChange={(v) => set({ connectionId: v })}
-              disabled={disabled}
-            >
-              <SelectTrigger
-                id={fid}
-                className="w-full"
-                aria-describedby={describedBy}
-                aria-invalid={invalid || undefined}
-              >
-                <SelectValue placeholder={isLoading ? t('loading') : t('pickConnection')} />
-              </SelectTrigger>
-              <SelectContent>
-                {connections.map((x) => (
-                  <SelectItem key={x.id} value={x.id}>
-                    <DatabaseIcon aria-hidden />
-                    {x.name}
-                    <span className="text-xs text-muted-foreground">
-                      {t(`engines.${x.engine}`)}
-                      {x.readOnly ? ` · ${t('readOnly')}` : ''}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </FormRow>
-        <FormRow label={t('mode')} hint={t(`modeHint.${c.mode}`)} error={errors.mode}>
-          {({ id: fid, describedBy }) => (
-            <Select value={c.mode} onValueChange={(v) => set({ mode: v })} disabled={disabled}>
-              <SelectTrigger id={fid} className="w-full" aria-describedby={describedBy}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="query">{t('modes.query')}</SelectItem>
-                <SelectItem value="execute">{t('modes.execute')}</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        </FormRow>
-      </div>
+    <VStack gap={5}>
+      <Grid columns={{ minWidth: 240, repeat: 'fit' }} gap={4} align="end">
+        <Selector
+          label={t('connection')}
+          description={t('connectionHint')}
+          width="100%"
+          placeholder={isLoading ? t('loading') : t('pickConnection')}
+          value={c.connectionId || undefined}
+          onChange={(v) => set({ connectionId: v })}
+          options={connections.map((x) => ({
+            value: x.id,
+            label: x.name,
+            description: `${t(`engines.${x.engine}`)}${x.readOnly ? ` · ${t('readOnly')}` : ''}`,
+            icon: DatabaseIcon,
+          }))}
+          status={errorStatus(errors.connectionId)}
+          isDisabled={disabled}
+        />
+        <Selector
+          label={t('mode')}
+          description={t(`modeHint.${c.mode}`)}
+          width="100%"
+          value={c.mode}
+          onChange={(v) => set({ mode: v })}
+          options={[
+            { value: 'query', label: t('modes.query') },
+            { value: 'execute', label: t('modes.execute') },
+          ]}
+          status={errorStatus(errors.mode)}
+          isDisabled={disabled}
+        />
+      </Grid>
       {!isLoading && connections.length === 0 && (
-        <p role="status" className="flex items-start gap-2 text-sm text-muted-foreground">
-          <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t('noConnections')}
-        </p>
+        <Banner role="status" status="info" collapsible={false} title={t('noConnections')} />
       )}
       {conn?.readOnly && c.mode === 'execute' && (
-        <p role="status" className="flex items-start gap-2 text-sm text-warning-foreground">
-          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t('readOnlyExecute')}
-        </p>
+        <Banner role="status" status="warning" collapsible={false} title={t('readOnlyExecute')} />
       )}
 
-      <div className="grid min-w-0 gap-2">
-        <p
-          id={`${id}-stmt`}
-          className={errors.statement ? 'text-sm font-medium text-destructive' : 'text-sm font-medium'}
-        >
-          {t('statement')}
-        </p>
-        <CodeEditor
-          aria-labelledby={`${id}-stmt`}
-          aria-describedby={`${id}-stmt-hint`}
-          aria-invalid={Boolean(errors.statement)}
-          value={c.statement}
-          onChange={(statement) => set({ statement })}
-          language="sql"
-          dialect={engine}
-          schema={schema}
-          readOnly={disabled}
-          placeholder="SELECT …"
-          minHeight="8rem"
-        />
-        <p id={`${id}-stmt-hint`} className="text-xs text-muted-foreground">
-          {t('statementHint')}
-        </p>
-        {catalog.error && (
-          <p className="text-xs text-muted-foreground">
-            {t('catalogUnavailable', { error: errorText(catalog.error) })}
-          </p>
-        )}
-        {c.mode === 'query' && writes.length > 0 && (
-          <p role="status" className="flex items-start gap-2 text-xs text-warning-foreground">
-            <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-            {t('writesInQuery', { keywords: writes.join(', ') })}
-          </p>
-        )}
-        {errors.statement && <p className="text-xs font-medium text-destructive">{errors.statement}</p>}
-      </div>
+      <Field
+        label={t('statement')}
+        isGroupLabel
+        labelID={`${id}-stmt`}
+        inputID={`${id}-stmt-editor`}
+        description={t('statementHint')}
+        descriptionID={`${id}-stmt-hint`}
+        status={errorStatus(errors.statement)}
+        statusVariant="detached"
+      >
+        <VStack gap={2}>
+          <CodeEditor
+            aria-labelledby={`${id}-stmt`}
+            aria-describedby={`${id}-stmt-hint`}
+            aria-invalid={Boolean(errors.statement)}
+            value={c.statement}
+            onChange={(statement) => set({ statement })}
+            language="sql"
+            dialect={engine}
+            schema={schema}
+            readOnly={disabled}
+            placeholder="SELECT …"
+            minHeight="8rem"
+          />
+          {catalog.error && (
+            <Text size="xsm" color="secondary">
+              {t('catalogUnavailable', { error: errorText(catalog.error) })}
+            </Text>
+          )}
+          {c.mode === 'query' && writes.length > 0 && (
+            <Banner
+              role="status"
+              status="warning"
+              collapsible={false}
+              title={t('writesInQuery', { keywords: writes.join(', ') })}
+            />
+          )}
+        </VStack>
+      </Field>
 
-      <div className="grid min-w-0 gap-2">
-        <p className="text-sm font-medium">{t('parameters')}</p>
-        {errors.params && <p className="text-xs font-medium text-destructive">{errors.params}</p>}
+      <VStack gap={2}>
+        <Text weight="medium">{t('parameters')}</Text>
+        {errors.params && <Banner status="error" collapsible={false} title={errors.params} />}
         {params.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('noParameters')}</p>
+          <Text color="secondary">{t('noParameters')}</Text>
         ) : (
           <ul className="grid min-w-0 gap-3" aria-label={t('parameters')}>
             {params.map((p, i) => (
-              <li
-                key={p.name}
-                className="grid min-w-0 gap-2 rounded-lg border p-3 sm:grid-cols-[minmax(0,8rem)_minmax(0,12rem)_minmax(0,9rem)_minmax(0,1fr)] sm:items-center"
-              >
-                <code className="truncate text-sm font-medium">:{p.name}</code>
-                <Select
-                  value={p.source}
-                  onValueChange={(v) => setParam(i, { source: v as SqlParamInput['source'] })}
-                  disabled={disabled}
-                >
-                  <SelectTrigger className="w-full" aria-label={t('paramSource', { name: p.name })}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="static">{t('sources.static')}</SelectItem>
-                    {SQL_BUILTINS.map((b) => (
-                      <SelectItem key={b} value={b}>
-                        {t(`sources.${b}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {p.source === 'static' ? (
-                  <>
-                    <Select
-                      value={p.type}
-                      onValueChange={(v) => setParam(i, { type: v as SqlParamInput['type'] })}
-                      disabled={disabled}
-                    >
-                      <SelectTrigger className="w-full" aria-label={t('paramType', { name: p.name })}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SQL_PARAM_TYPES.map((ty) => (
-                          <SelectItem key={ty} value={ty}>
-                            {t(`types.${ty}`)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      value={p.value ?? ''}
-                      onChange={(e) => setParam(i, { value: e.target.value })}
-                      aria-label={t('paramValue', { name: p.name })}
-                      aria-invalid={Boolean(errors[`params.${i}.value`]) || undefined}
-                      placeholder={t(`placeholders.${p.type}`)}
-                      className="min-w-0"
-                      disabled={disabled}
-                    />
-                  </>
-                ) : (
-                  <p className="text-xs text-muted-foreground sm:col-span-2">{t(`sourceHint.${p.source}`)}</p>
-                )}
-                {errors[`params.${i}.value`] && (
-                  <p className="text-xs font-medium text-destructive sm:col-span-4">
-                    {errors[`params.${i}.value`]}
-                  </p>
-                )}
+              <li key={p.name} className="min-w-0">
+                <Card>
+                  <CardContent>
+                    <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,8rem)_minmax(0,12rem)_minmax(0,9rem)_minmax(0,1fr)] sm:items-center">
+                      <Text type="code" weight="medium" maxLines={1}>
+                        :{p.name}
+                      </Text>
+                      <Selector
+                        label={t('paramSource', { name: p.name })}
+                        isLabelHidden
+                        width="100%"
+                        value={p.source}
+                        onChange={(v) => setParam(i, { source: v as SqlParamInput['source'] })}
+                        options={[
+                          { value: 'static', label: t('sources.static') },
+                          ...SQL_BUILTINS.map((b) => ({ value: b, label: t(`sources.${b}`) })),
+                        ]}
+                        isDisabled={disabled}
+                      />
+                      {p.source === 'static' ? (
+                        <>
+                          <Selector
+                            label={t('paramType', { name: p.name })}
+                            isLabelHidden
+                            width="100%"
+                            value={p.type}
+                            onChange={(v) => setParam(i, { type: v as SqlParamInput['type'] })}
+                            options={SQL_PARAM_TYPES.map((ty) => ({ value: ty, label: t(`types.${ty}`) }))}
+                            isDisabled={disabled}
+                          />
+                          <TextInput
+                            label={t('paramValue', { name: p.name })}
+                            isLabelHidden
+                            value={p.value ?? ''}
+                            onChange={(v) => setParam(i, { value: v })}
+                            placeholder={t(`placeholders.${p.type}`)}
+                            status={errorStatus(errors[`params.${i}.value`])}
+                            statusVariant="detached"
+                            isDisabled={disabled}
+                          />
+                        </>
+                      ) : (
+                        <div className="sm:col-span-2">
+                          <Text type="supporting">{t(`sourceHint.${p.source}`)}</Text>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </li>
             ))}
           </ul>
         )}
-      </div>
-    </div>
+      </VStack>
+    </VStack>
   );
 }
 

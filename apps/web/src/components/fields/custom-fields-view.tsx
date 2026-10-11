@@ -21,24 +21,13 @@ import type { CustomField, CustomFieldEntity } from '@isbp/contracts';
 import { type FieldDef, type FormElement, defaultFieldValues, localize } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useConditionText } from '@isbp/ui/condition-builder';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Form } from '@isbp/ui/form';
 import { FormFields } from '@isbp/ui/form-renderer';
 import { PageHeader } from '@isbp/ui/page-header';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Switch } from '@isbp/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { Hint } from '@isbp/ui/tooltip';
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
@@ -49,7 +38,6 @@ import {
   GitBranchIcon,
   GripVerticalIcon,
   LockIcon,
-  MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
   TextCursorInputIcon,
@@ -57,7 +45,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { useApiMutation, useApiQuery } from '@/lib/api';
@@ -66,12 +54,22 @@ import { useDndAccessibility, verticalOnly } from './dnd';
 import { useShowFieldKeys } from './field-keys';
 import { ElementTypeIcon } from './field-types';
 import { fieldFacts } from './field-utils';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
 
 const def = (f: CustomField) => f.field as FieldDef;
 
 export function CustomFieldsView() {
   const t = useTranslations('fields.custom');
   const tr = useTranslations();
+  const panelId = useId();
   const router = useRouter();
   const sp = useSearchParams();
   const canManage = useCan('core.custom-fields.manage');
@@ -107,23 +105,28 @@ export function CustomFieldsView() {
           <Skeleton className="h-72 w-full rounded-xl" />
         </div>
       ) : (
-        <Tabs value={current.type} onValueChange={setEntity}>
-          <TabsList aria-label={t('entities')}>
+        <VStack gap={4}>
+          <TabList
+            role="tablist"
+            aria-label={t('entities')}
+            value={current.type}
+            onChange={setEntity}
+            hasDivider
+          >
             {items.map((e) => (
-              <TabsTrigger key={e.type} value={e.type}>
-                {pluralName(e)}
-                <Badge variant="muted" className="px-1.5 tabular-nums">
-                  {e.fieldCount}
-                </Badge>
-              </TabsTrigger>
+              <Tab
+                key={e.type}
+                value={e.type}
+                label={pluralName(e)}
+                panelId={panelId}
+                endContent={<Badge variant="neutral" label={String(e.fieldCount)} />}
+              />
             ))}
-          </TabsList>
-          {items.map((e) => (
-            <TabsContent key={e.type} value={e.type}>
-              <EntityFields entityType={e.type} entityName={pluralName(e)} />
-            </TabsContent>
-          ))}
-        </Tabs>
+          </TabList>
+          <div role="tabpanel" id={panelId} aria-label={pluralName(current)}>
+            <EntityFields key={current.type} entityType={current.type} entityName={pluralName(current)} />
+          </div>
+        </VStack>
       )}
     </>
   );
@@ -184,19 +187,17 @@ function EntityFields({ entityType, entityName }: { entityType: string; entityNa
             <CardTitle>{t('listTitle', { entity: entityName })}</CardTitle>
             <CardDescription>{t('listDescription')}</CardDescription>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Switch checked={showKeys} onCheckedChange={setShowKeys} />
-              {tf('showKeys')}
-            </label>
-            <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Switch checked={showArchived} onCheckedChange={setShowArchived} />
-              {t('showArchived')}
-            </label>
-            <Button size="sm" onClick={() => setSheet({ open: true })}>
-              <PlusIcon /> {t('add')}
-            </Button>
-          </div>
+          <HStack gap={3} wrap="wrap" vAlign="center">
+            <Switch label={tf('showKeys')} size="sm" value={showKeys} onChange={setShowKeys} />
+            <Switch label={t('showArchived')} size="sm" value={showArchived} onChange={setShowArchived} />
+            <Button
+              label={t('add')}
+              variant="primary"
+              size="sm"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setSheet({ open: true })}
+            />
+          </HStack>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
@@ -211,9 +212,13 @@ function EntityFields({ entityType, entityName }: { entityType: string; entityNa
               title={t('emptyTitle', { entity: entityName })}
               description={t('emptyDescription')}
               action={
-                <Button size="sm" onClick={() => setSheet({ open: true })}>
-                  <PlusIcon /> {t('add')}
-                </Button>
+                <Button
+                  label={t('add')}
+                  variant="primary"
+                  size="sm"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={() => setSheet({ open: true })}
+                />
               }
             />
           ) : (
@@ -247,13 +252,13 @@ function EntityFields({ entityType, entityName }: { entityType: string; entityNa
                           <ElementTypeIcon type={def(f).type} className="grayscale" />
                           <FieldSummary field={f} facts={facts} />
                           <Button
-                            variant="outline"
+                            label={t('restore')}
+                            variant="secondary"
                             size="sm"
-                            loading={restore.isPending && restore.variables?.id === f.id}
+                            icon={<Icon icon={ArchiveRestoreIcon} />}
+                            isLoading={restore.isPending && restore.variables?.id === f.id}
                             onClick={() => restore.mutate(f)}
-                          >
-                            <ArchiveRestoreIcon /> {t('restore')}
-                          </Button>
+                          />
                         </li>
                       ))}
                     </ul>
@@ -297,24 +302,29 @@ function FieldSummary({ field, facts }: { field: CustomField; facts: ReturnType<
         <span aria-hidden>·</span>
         <span>{t('custom.usage', { count: field.usage })}</span>
         {d.required && (
-          <Badge variant="secondary">
-            <AsteriskIcon aria-hidden /> {t('badges.required')}
-          </Badge>
+          <Badge
+            variant="neutral"
+            label={t('badges.required')}
+            icon={<Icon icon={AsteriskIcon} size="xsm" />}
+          />
         )}
         {d.visibleWhen && (
-          <Hint label={t('badges.conditionalWhen', { condition: conditionText(d.visibleWhen) })}>
-            <Badge variant="info" tabIndex={0} className="max-w-full cursor-help">
-              <GitBranchIcon aria-hidden />
-              <span className="truncate">
-                {t('badges.conditionalWhen', { condition: conditionText(d.visibleWhen) })}
-              </span>
-            </Badge>
-          </Hint>
+          <Tooltip content={t('badges.conditionalWhen', { condition: conditionText(d.visibleWhen) })}>
+            <Badge
+              variant="info"
+              tabIndex={0}
+              className="max-w-full cursor-help"
+              label={t('badges.conditionalWhen', { condition: conditionText(d.visibleWhen) })}
+              icon={<Icon icon={GitBranchIcon} size="xsm" />}
+            />
+          </Tooltip>
         )}
         {field.archived && (
-          <Badge variant="muted">
-            <ArchiveIcon aria-hidden /> {t('badges.archived')}
-          </Badge>
+          <Badge
+            variant="neutral"
+            label={t('badges.archived')}
+            icon={<Icon icon={ArchiveIcon} size="xsm" />}
+          />
         )}
       </div>
     </div>
@@ -435,49 +445,46 @@ function SortableRow({
       <FieldSummary field={field} facts={facts} />
       <div className="flex shrink-0 items-center gap-0.5">
         <div className="hidden items-center gap-0.5 sm:flex">
-          <Button
+          <IconButton
+            label={t('custom.moveUp', { label })}
             variant="ghost"
-            size="icon-sm"
-            aria-label={t('custom.moveUp', { label })}
-            disabled={first}
+            size="sm"
+            icon={<Icon icon={ArrowUpIcon} />}
+            isDisabled={first}
             onClick={onUp}
-          >
-            <ArrowUpIcon />
-          </Button>
-          <Button
+          />
+          <IconButton
+            label={t('custom.moveDown', { label })}
             variant="ghost"
-            size="icon-sm"
-            aria-label={t('custom.moveDown', { label })}
-            disabled={last}
+            size="sm"
+            icon={<Icon icon={ArrowDownIcon} />}
+            isDisabled={last}
             onClick={onDown}
-          >
-            <ArrowDownIcon />
-          </Button>
+          />
         </div>
-        <Button variant="ghost" size="icon-sm" aria-label={t('custom.edit', { label })} onClick={onEdit}>
-          <PencilIcon />
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label={t('custom.more', { label })}>
-              <MoreHorizontalIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onSelect={onEdit}>
-              <PencilIcon /> {t('custom.editAction')}
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={first} onSelect={onUp} className="sm:hidden">
-              <ArrowUpIcon /> {t('custom.moveUpAction')}
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={last} onSelect={onDown} className="sm:hidden">
-              <ArrowDownIcon /> {t('custom.moveDownAction')}
-            </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onSelect={onArchive}>
-              <ArchiveIcon /> {t('custom.archive')}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <IconButton
+          label={t('custom.edit', { label })}
+          variant="ghost"
+          size="sm"
+          icon={<Icon icon={PencilIcon} />}
+          onClick={onEdit}
+        />
+        <MoreMenu
+          label={t('custom.more', { label })}
+          size="sm"
+          items={[
+            { label: t('custom.editAction'), icon: PencilIcon, onClick: onEdit },
+            { label: t('custom.moveUpAction'), icon: ArrowUpIcon, isDisabled: first, onClick: onUp },
+            { label: t('custom.moveDownAction'), icon: ArrowDownIcon, isDisabled: last, onClick: onDown },
+            { type: 'divider' as const },
+            {
+              label: t('custom.archive'),
+              icon: ArchiveIcon,
+              variant: 'destructive' as const,
+              onClick: onArchive,
+            },
+          ]}
+        />
       </div>
     </li>
   );

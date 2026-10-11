@@ -1,37 +1,27 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { applyServerErrors, useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { type CreateReleaseInput, type ReleaseDetail, VERSION_RE } from '../contracts';
-import { ReleaseStatusBadge } from './badges';
-import { INVALIDATE } from './lib';
+import { RELEASE_META } from './badges';
+import { asDay, INVALIDATE } from './lib';
 
 const CREATE_STATUSES = ['planned', 'in_progress', 'ready'] as const;
 
@@ -50,39 +40,36 @@ export function ReleaseFormDialog({
   onSaved?: (r: ReleaseDetail) => void;
 }) {
   const t = useTranslations('alm.releaseForm');
-  const tc = useTranslations('common');
+  // The dialog's name is set here, not left to the header: the form inside is mounted per opening, after the dialog.
+  const title = release ? t('editTitle', { version: release.version }) : t('createTitle', { name: app.name });
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>
-            {release ? t('editTitle', { version: release.version }) : t('createTitle', { name: app.name })}
-          </DialogTitle>
-          <DialogDescription>{t('hint')}</DialogDescription>
-        </DialogHeader>
-        {open && (
-          <ReleaseForm
-            app={app}
-            release={release}
-            onCancel={() => onOpenChange(false)}
-            onSaved={(r) => {
-              onOpenChange(false);
-              onSaved?.(r);
-            }}
-          />
-        )}
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={576} purpose="form" aria-label={title}>
+      {/* Mounted per opening: the form starts from the release as it is now. */}
+      {open && (
+        <ReleaseForm
+          title={title}
+          app={app}
+          release={release}
+          onCancel={() => onOpenChange(false)}
+          onSaved={(r) => {
+            onOpenChange(false);
+            onSaved?.(r);
+          }}
+        />
+      )}
     </Dialog>
   );
 }
 
 function ReleaseForm({
+  title,
   app,
   release,
   onCancel,
   onSaved,
 }: {
-  app: { code: string };
+  title: string;
+  app: { code: string; name: string };
   release?: ReleaseDetail;
   onCancel: () => void;
   onSaved: (r: ReleaseDetail) => void;
@@ -90,6 +77,7 @@ function ReleaseForm({
   const t = useTranslations('alm');
   const tc = useTranslations('common');
   const errorText = useErrorText();
+  const formId = useId();
   const schema = useMemo(
     () =>
       z.object({
@@ -153,118 +141,140 @@ function ReleaseForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="grid gap-4" noValidate>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="version"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.version')}</FormLabel>
-                <FormControl>
-                  <Input
-                    autoFocus={!release}
-                    className="font-mono"
-                    placeholder="12.1.0"
-                    maxLength={40}
-                    readOnly={deployed}
-                    {...field}
+      <Layout
+        header={
+          <DialogHeader
+            title={title}
+            subtitle={t('releaseForm.hint')}
+            onOpenChange={(next) => !next && onCancel()}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <form id={formId} onSubmit={onSubmit} noValidate>
+              <FormLayout defaultOptionality="optional">
+                <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4} align="end">
+                  <FormField
+                    control={form.control}
+                    name="version"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('fields.version')}
+                        isRequired
+                        hasAutoFocus={!release}
+                        placeholder="12.1.0"
+                        isReadOnly={deployed}
+                        description={deployed ? t('releaseForm.versionLocked') : t('releaseForm.versionHint')}
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
                   />
-                </FormControl>
-                <FormDescription>
-                  {deployed ? t('releaseForm.versionLocked') : t('releaseForm.versionHint')}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="plannedDate"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.plannedDate')}</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <OptionalFields
-          hint={list([t('fields.releaseName'), t('fields.status'), t('fields.notes')])}
-          filled={detailsFilled}
-          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
-        >
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.releaseName')}</FormLabel>
-                <FormControl>
-                  <Input maxLength={200} placeholder={t('releaseForm.namePlaceholder')} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {!release && (
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.status')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {CREATE_STATUSES.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          <ReleaseStatusBadge status={s} />
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>{t('fields.notes')}</FormLabel>
-                <FormControl>
-                  <Textarea rows={6} placeholder={t('releaseForm.notesPlaceholder')} {...field} />
-                </FormControl>
-                <FormDescription>{t('form.markdownHint')}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </OptionalFields>
-        {form.formState.errors.root && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
-        )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {release ? tc('saveChanges') : tc('create')}
-          </Button>
-        </DialogFooter>
-      </form>
+                  <FormField
+                    control={form.control}
+                    name="plannedDate"
+                    render={({ field, fieldState }) => (
+                      <DateInput
+                        label={t('fields.plannedDate')}
+                        hasClear
+                        value={asDay(field.value)}
+                        onChange={(d) => field.onChange(d ?? '')}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                </Grid>
+                <OptionalFields
+                  hint={list([t('fields.releaseName'), t('fields.status'), t('fields.notes')])}
+                  filled={detailsFilled}
+                >
+                  <FormLayout defaultOptionality="optional">
+                    <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4} align="end">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('fields.releaseName')}
+                            placeholder={t('releaseForm.namePlaceholder')}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                      {!release && (
+                        <FormField
+                          control={form.control}
+                          name="status"
+                          render={({ field, fieldState }) => (
+                            <Selector
+                              label={t('fields.status')}
+                              value={field.value}
+                              onChange={(v) => field.onChange(v)}
+                              options={CREATE_STATUSES.map((s) => ({
+                                value: s,
+                                label: t(`releaseStatus.${s}`),
+                                icon: RELEASE_META[s].icon,
+                              }))}
+                              status={fieldStatus(fieldState)}
+                            />
+                          )}
+                        />
+                      )}
+                      <GridSpan columns="full">
+                        <FormField
+                          control={form.control}
+                          name="notes"
+                          render={({ field, fieldState }) => (
+                            <TextArea
+                              label={t('fields.notes')}
+                              rows={6}
+                              placeholder={t('releaseForm.notesPlaceholder')}
+                              description={t('form.markdownHint')}
+                              value={field.value}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              status={fieldStatus(fieldState)}
+                            />
+                          )}
+                        />
+                      </GridSpan>
+                    </Grid>
+                  </FormLayout>
+                </OptionalFields>
+                {form.formState.errors.root && (
+                  <Banner
+                    status="error"
+                    title={form.formState.errors.root.message ?? ''}
+                    collapsible={false}
+                  />
+                )}
+              </FormLayout>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={onCancel} />
+              <Button
+                label={release ? tc('saveChanges') : tc('create')}
+                variant="primary"
+                type="submit"
+                form={formId}
+                isLoading={save.isPending}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Form>
   );
 }

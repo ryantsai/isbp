@@ -1,19 +1,21 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { PersonPicker, usePeople } from '@isbp/ui/person-picker';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { LaptopIcon, PlusIcon, SearchXIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useMemo, useState } from 'react';
@@ -21,37 +23,38 @@ import { ASSET_CATEGORIES, type AssetListItem, HARDWARE_VIEWS, type HardwareView
 import { AssetFormDialog } from '../asset-form-dialog';
 import { AssetStatusBadge, CategoryIcon, CategoryLabel, WarrantyEnd, WipeBadge } from '../badges';
 import { assetHref, modelLabel, useModels, useVendors } from '../lib';
+import { QuickViews } from './quick-views';
 
 const ALL = '__all__';
 const VIEWS = ['all', ...(Object.keys(HARDWARE_VIEWS) as HardwareView[])] as const;
 type Tab = (typeof VIEWS)[number];
 const FILTER_KEYS = ['q', 'category', 'warranty', 'wipe', 'location', 'assignee', 'model', 'vendor'] as const;
 
+/** One toolbar filter: "all" first (the cleared state), then the choices. */
 function FilterSelect({
   value,
   onChange,
   allLabel,
   label,
-  className,
-  children,
+  width = 160,
+  options,
 }: {
   value: string | undefined;
   onChange: (v: string | undefined) => void;
   allLabel: string;
   label: string;
-  className?: string;
-  children: ReactNode;
+  width?: number;
+  options: readonly { value: string; label: string; icon?: ReactNode }[];
 }) {
   return (
-    <Select value={value ?? ALL} onValueChange={(v) => onChange(v === ALL ? undefined : v)}>
-      <SelectTrigger className={className ?? 'w-full sm:w-40'} aria-label={label}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL}>{allLabel}</SelectItem>
-        {children}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={label}
+      isLabelHidden
+      width={width}
+      value={value ?? ALL}
+      onChange={(v) => onChange(v === ALL ? undefined : v)}
+      options={[{ value: ALL, label: allLabel }, ...options]}
+    />
   );
 }
 
@@ -98,26 +101,32 @@ export default function HardwarePage() {
         id: 'number',
         header: t('fields.tag'),
         size: 104,
-        meta: { sortKey: 'number', className: 'font-mono text-xs text-muted-foreground' },
-        cell: ({ row }) => row.original.tag,
+        meta: { sortKey: 'number' },
+        cell: ({ row }) => (
+          <Text type="code" size="xsm" color="secondary">
+            {row.original.tag}
+          </Text>
+        ),
       },
       {
         id: 'name',
         header: t('fields.name'),
         meta: { sortKey: 'name', className: 'max-w-56' },
         cell: ({ row }) => (
-          <Link
-            href={assetHref(row.original)}
-            onClick={(e) => e.stopPropagation()}
-            className="flex min-w-0 items-center gap-2 font-medium outline-none hover:underline focus-visible:underline"
-          >
-            <CategoryIcon
-              category={row.original.category}
-              className="text-muted-foreground sm:hidden"
-              label
-            />
-            <span className="truncate">{row.original.name}</span>
-          </Link>
+          <HStack gap={2} vAlign="center">
+            <CategoryIcon category={row.original.category} color="secondary" className="sm:hidden" label />
+            <StackItem size="fill">
+              <Link
+                href={assetHref(row.original)}
+                color="primary"
+                weight="medium"
+                maxLines={1}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {row.original.name}
+              </Link>
+            </StackItem>
+          </HStack>
         ),
       },
       {
@@ -136,9 +145,9 @@ export default function HardwarePage() {
         meta: { className: 'hidden max-w-52 lg:table-cell', headerClassName: 'hidden lg:table-cell' },
         cell: ({ row }) =>
           row.original.model ? (
-            <span className="block truncate">{modelLabel(row.original.model)}</span>
+            <Text maxLines={1}>{modelLabel(row.original.model)}</Text>
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <Text color="secondary">—</Text>
           ),
       },
       {
@@ -157,16 +166,18 @@ export default function HardwarePage() {
         },
         cell: ({ row }) =>
           row.original.assignee ? (
-            <span className="flex min-w-0 items-center gap-2">
+            <HStack gap={2} vAlign="center">
               <UserAvatar
                 name={row.original.assignee.displayName}
                 src={row.original.assignee.avatarUrl}
                 className="size-6 text-[10px]"
               />
-              <span className="truncate">{row.original.assignee.displayName}</span>
-            </span>
+              <StackItem size="fill">
+                <Text maxLines={1}>{row.original.assignee.displayName}</Text>
+              </StackItem>
+            </HStack>
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <Text color="secondary">—</Text>
           ),
       },
       {
@@ -189,10 +200,10 @@ export default function HardwarePage() {
         },
         cell: ({ row }) =>
           row.original.wipeState === 'due' || row.original.wipeState === 'overdue' ? (
-            <div className="grid min-w-0 justify-items-start gap-1">
+            <VStack gap={1} hAlign="start">
               <WarrantyEnd date={row.original.warrantyEnd} state={row.original.warrantyState} />
               <WipeBadge state={row.original.wipeState} date={row.original.wipeDue} />
-            </div>
+            </VStack>
           ) : (
             <WarrantyEnd date={row.original.warrantyEnd} state={row.original.warrantyState} />
           ),
@@ -203,6 +214,7 @@ export default function HardwarePage() {
 
   const table = (
     <DataTable
+      key={tab}
       label={t('hardware.title')}
       columns={columns}
       data={data?.items ?? []}
@@ -232,73 +244,58 @@ export default function HardwarePage() {
             onChange={(v) => set({ category: v })}
             label={t('fields.category')}
             allLabel={t('hardware.filters.allCategories')}
-          >
-            {ASSET_CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c}>
-                <CategoryIcon category={c} className="text-muted-foreground" />
-                {t(`category.${c}`)}
-              </SelectItem>
-            ))}
-          </FilterSelect>
+            options={ASSET_CATEGORIES.map((c) => ({
+              value: c,
+              label: t(`category.${c}`),
+              icon: <CategoryIcon category={c} />,
+            }))}
+          />
           <FilterSelect
             value={str('warranty')}
             onChange={(v) => set({ warranty: v })}
             label={t('fields.warrantyEnd')}
             allLabel={t('hardware.filters.anyWarranty')}
-          >
-            <SelectItem value="expiring">{t('hardware.filters.warrantyExpiring')}</SelectItem>
-            <SelectItem value="expired">{t('hardware.filters.warrantyExpired')}</SelectItem>
-          </FilterSelect>
+            options={[
+              { value: 'expiring', label: t('hardware.filters.warrantyExpiring') },
+              { value: 'expired', label: t('hardware.filters.warrantyExpired') },
+            ]}
+          />
           <FilterSelect
             value={str('wipe')}
             onChange={(v) => set({ wipe: v })}
             label={t('hardware.filters.wipe')}
             allLabel={t('hardware.filters.anyWipe')}
-          >
-            <SelectItem value="pending">{t('hardware.filters.wipePending')}</SelectItem>
-            <SelectItem value="due">{t('hardware.filters.wipeDue')}</SelectItem>
-            <SelectItem value="overdue">{t('hardware.filters.wipeOverdue')}</SelectItem>
-          </FilterSelect>
+            options={[
+              { value: 'pending', label: t('hardware.filters.wipePending') },
+              { value: 'due', label: t('hardware.filters.wipeDue') },
+              { value: 'overdue', label: t('hardware.filters.wipeOverdue') },
+            ]}
+          />
           <FilterSelect
             value={str('location')}
             onChange={(v) => set({ location: v })}
             label={t('fields.location')}
             allLabel={t('hardware.filters.allLocations')}
-            className="w-full sm:w-48"
-          >
-            {(locations?.items ?? []).map((l) => (
-              <SelectItem key={l} value={l}>
-                {l}
-              </SelectItem>
-            ))}
-          </FilterSelect>
+            width={192}
+            options={(locations?.items ?? []).map((l) => ({ value: l, label: l }))}
+          />
           <FilterSelect
             value={str('model')}
             onChange={(v) => set({ model: v })}
             label={t('fields.model')}
             allLabel={t('hardware.filters.allModels')}
-            className="w-full sm:w-52"
-          >
-            {models.map((m) => (
-              <SelectItem key={m.id} value={m.id}>
-                {modelLabel(m)}
-              </SelectItem>
-            ))}
-          </FilterSelect>
+            width={208}
+            options={models.map((m) => ({ value: m.id, label: modelLabel(m) }))}
+          />
           {canVendors && (
             <FilterSelect
               value={str('vendor')}
               onChange={(v) => set({ vendor: v })}
               label={t('fields.vendor')}
               allLabel={t('hardware.filters.allVendors')}
-              className="w-full sm:w-48"
-            >
-              {vendors.map((v) => (
-                <SelectItem key={v.id} value={v.id}>
-                  {v.name}
-                </SelectItem>
-              ))}
-            </FilterSelect>
+              width={192}
+              options={vendors.map((v) => ({ value: v.id, label: v.name }))}
+            />
           )}
           <div className="w-full sm:w-52">
             <PersonPicker
@@ -310,12 +307,11 @@ export default function HardwarePage() {
           </div>
           {filtered && (
             <Button
+              label={tc('clearFilters')}
               variant="ghost"
               size="sm"
               onClick={() => set(Object.fromEntries(FILTER_KEYS.map((k) => [k, undefined])))}
-            >
-              {tc('clearFilters')}
-            </Button>
+            />
           )}
         </>
       }
@@ -327,9 +323,12 @@ export default function HardwarePage() {
           action={
             !filtered &&
             canManage && (
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon /> {t('hardware.new')}
-              </Button>
+              <Button
+                label={t('hardware.new')}
+                variant="primary"
+                icon={<Icon icon={PlusIcon} />}
+                onClick={() => setCreating(true)}
+              />
             )
           }
         />
@@ -344,27 +343,24 @@ export default function HardwarePage() {
         description={t('hardware.description')}
         actions={
           canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon /> {t('hardware.new')}
-            </Button>
+            <Button
+              label={t('hardware.new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreating(true)}
+            />
           )
         }
       />
-      <Tabs value={tab} onValueChange={(v) => set({ view: v === 'all' ? undefined : v })} className="gap-4">
-        <TabsList className="max-w-full justify-start overflow-x-auto">
-          {VIEWS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {t(`hardware.views.${v}`)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {/* Each tab only filters the same list; every tab still owns a panel (aria-controls). */}
-        {VIEWS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {tab === v && table}
-          </TabsContent>
-        ))}
-      </Tabs>
+      <VStack gap={4}>
+        <QuickViews
+          label={tc('filters')}
+          value={tab}
+          onChange={(v) => set({ view: v === 'all' ? undefined : v })}
+          options={VIEWS.map((v) => ({ value: v, label: t(`hardware.views.${v}`) }))}
+        />
+        {table}
+      </VStack>
       <p className="sr-only" aria-live="polite">
         {data ? t('hardware.liveCount', { count: data.total }) : ''}
       </p>

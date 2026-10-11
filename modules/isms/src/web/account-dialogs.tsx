@@ -1,35 +1,34 @@
 'use client';
-
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { RecordPicker } from '@isbp/ui/record-picker';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
   SheetContent,
   SheetDescription,
   SheetFooter,
+  SheetForm,
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { Textarea } from '@isbp/ui/textarea';
 import { useTimeZone, useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import type { CreateSharedAccountInput, LookupItem, SharedAccount } from '../contracts';
-import { INVALIDATE, todayLocal } from './lib';
+import { asDay, INVALIDATE, todayLocal } from './lib';
 import { PeoplePicker, PersonField } from './people';
 
 const NONE = '__none__';
@@ -87,20 +86,7 @@ function AccountForm({
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const { data: depts } = useApiQuery<{ items: LookupItem[] }>('/isms/lookups/departments');
-  const ids = {
-    name: useId(),
-    system: useId(),
-    target: useId(),
-    custodian: useId(),
-    members: useId(),
-    dept: useId(),
-    purpose: useId(),
-    project: useId(),
-    request: useId(),
-    changed: useId(),
-    review: useId(),
-    notes: useId(),
-  };
+  const ids = { target: useId(), custodian: useId(), members: useId() };
   const list = useFieldList();
   const [v, setV] = useState({
     accountName: account?.accountName ?? '',
@@ -156,13 +142,15 @@ function AccountForm({
   };
   const input = (
     key: 'accountName' | 'targetSystem' | 'project' | 'requestReference',
-    id: string,
     label: string,
+    isRequired?: boolean,
   ) => (
-    <div className="grid min-w-0 gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <Input id={id} value={v[key]} onChange={(e) => setV({ ...v, [key]: e.target.value })} />
-    </div>
+    <TextInput
+      label={label}
+      isRequired={isRequired}
+      value={v[key]}
+      onChange={(value) => setV({ ...v, [key]: value })}
+    />
   );
   const detailsFilled = countFilled(
     v.targetRef,
@@ -175,127 +163,117 @@ function AccountForm({
     v.notes,
   );
   return (
-    <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col" noValidate>
-      <SheetBody className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {input('accountName', ids.name, t('fields.accountName'))}
-          {input('targetSystem', ids.system, t('fields.targetSystem'))}
-        </div>
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={ids.custodian}>{t('fields.custodian')}</Label>
-          <PersonField
-            id={ids.custodian}
-            value={v.custodianId}
-            onChange={(id) => setV({ ...v, custodianId: id })}
-            clearable={false}
-          />
-        </div>
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={ids.members}>{t('fields.members')}</Label>
-          <PeoplePicker
-            id={ids.members}
-            value={v.memberIds}
-            onChange={(m) => setV({ ...v, memberIds: m })}
-            addLabel={t('accountForm.addMember')}
-          />
-          {account && <p className="text-xs text-muted-foreground">{t('accountForm.removeHint')}</p>}
-        </div>
-        <OptionalFields
-          hint={list([
-            t('fields.targetRecord'),
-            t('fields.department'),
-            t('fields.project'),
-            t('fields.requestReference'),
-            ...(account ? [] : [t('fields.lastPasswordChangeOn')]),
-            t('fields.nextReviewOn'),
-            t('fields.purpose'),
-            t('fields.notes'),
-          ])}
-          filled={detailsFilled}
-          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
-        >
-          <div className="grid min-w-0 gap-1.5 sm:col-span-2">
-            <Label htmlFor={ids.target}>{t('fields.targetRecord')}</Label>
-            <RecordPicker
-              id={ids.target}
-              types={TARGET_TYPES}
-              value={v.targetRef ? [v.targetRef] : []}
-              onChange={(refs: string[]) => setV({ ...v, targetRef: refs[0] ?? null })}
+    <SheetForm onSubmit={submit} noValidate>
+      <SheetBody className="py-2">
+        <FormLayout defaultOptionality="optional">
+          <Grid columns={{ minWidth: 240 }} gap={4}>
+            {input('accountName', t('fields.accountName'), true)}
+            {input('targetSystem', t('fields.targetSystem'))}
+          </Grid>
+          <Field label={t('fields.custodian')} inputID={ids.custodian} isRequired>
+            <PersonField
+              id={ids.custodian}
+              value={v.custodianId}
+              onChange={(id) => setV({ ...v, custodianId: id })}
+              clearable={false}
             />
-            <p className="text-xs text-muted-foreground">{t('accountForm.targetHint')}</p>
-          </div>
-          <div className="grid min-w-0 gap-1.5">
-            <Label htmlFor={ids.dept}>{t('fields.department')}</Label>
-            <Select value={v.departmentId} onValueChange={(d) => setV({ ...v, departmentId: d })}>
-              <SelectTrigger id={ids.dept} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>{t('accountForm.noDepartment')}</SelectItem>
-                {(depts?.items ?? []).map((d) => (
-                  <SelectItem key={d.id} value={d.id}>
-                    {d.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {input('project', ids.project, t('fields.project'))}
-          {input('requestReference', ids.request, t('fields.requestReference'))}
-          {!account && (
-            <div className="grid min-w-0 gap-1.5">
-              <Label htmlFor={ids.changed}>{t('fields.lastPasswordChangeOn')}</Label>
-              <Input
-                id={ids.changed}
-                type="date"
-                value={v.lastPasswordChangeOn}
-                onChange={(e) => setV({ ...v, lastPasswordChangeOn: e.target.value })}
-              />
-            </div>
-          )}
-          <div className="grid min-w-0 gap-1.5">
-            <Label htmlFor={ids.review}>{t('fields.nextReviewOn')}</Label>
-            <Input
-              id={ids.review}
-              type="date"
-              value={v.nextReviewOn}
-              onChange={(e) => setV({ ...v, nextReviewOn: e.target.value })}
+          </Field>
+          <Field
+            label={t('fields.members')}
+            inputID={ids.members}
+            description={account ? t('accountForm.removeHint') : undefined}
+          >
+            <PeoplePicker
+              id={ids.members}
+              value={v.memberIds}
+              onChange={(m) => setV({ ...v, memberIds: m })}
+              addLabel={t('accountForm.addMember')}
             />
-          </div>
-          <div className="grid gap-1.5 sm:col-span-2">
-            <Label htmlFor={ids.purpose}>{t('fields.purpose')}</Label>
-            <Textarea
-              id={ids.purpose}
-              rows={2}
-              value={v.purpose}
-              onChange={(e) => setV({ ...v, purpose: e.target.value })}
-            />
-          </div>
-          <div className="grid gap-1.5 sm:col-span-2">
-            <Label htmlFor={ids.notes}>{t('fields.notes')}</Label>
-            <Textarea
-              id={ids.notes}
-              rows={2}
-              value={v.notes}
-              onChange={(e) => setV({ ...v, notes: e.target.value })}
-            />
-          </div>
-        </OptionalFields>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
+          </Field>
+          <OptionalFields
+            hint={list([
+              t('fields.targetRecord'),
+              t('fields.department'),
+              t('fields.project'),
+              t('fields.requestReference'),
+              ...(account ? [] : [t('fields.lastPasswordChangeOn')]),
+              t('fields.nextReviewOn'),
+              t('fields.purpose'),
+              t('fields.notes'),
+            ])}
+            filled={detailsFilled}
+          >
+            <FormLayout defaultOptionality="optional">
+              <Field
+                label={t('fields.targetRecord')}
+                inputID={ids.target}
+                description={t('accountForm.targetHint')}
+              >
+                <RecordPicker
+                  id={ids.target}
+                  types={TARGET_TYPES}
+                  value={v.targetRef ? [v.targetRef] : []}
+                  onChange={(refs: string[]) => setV({ ...v, targetRef: refs[0] ?? null })}
+                />
+              </Field>
+              <Grid columns={{ minWidth: 240 }} gap={4}>
+                <Selector
+                  label={t('fields.department')}
+                  value={v.departmentId}
+                  onChange={(d) => setV({ ...v, departmentId: d })}
+                  options={[
+                    { value: NONE, label: t('accountForm.noDepartment') },
+                    ...(depts?.items ?? []).map((d) => ({ value: d.id, label: d.name })),
+                  ]}
+                />
+                {input('project', t('fields.project'))}
+                {input('requestReference', t('fields.requestReference'))}
+                {!account && (
+                  <DateInput
+                    label={t('fields.lastPasswordChangeOn')}
+                    hasClear
+                    value={asDay(v.lastPasswordChangeOn)}
+                    onChange={(d) => setV({ ...v, lastPasswordChangeOn: d ?? '' })}
+                  />
+                )}
+                <DateInput
+                  label={t('fields.nextReviewOn')}
+                  hasClear
+                  value={asDay(v.nextReviewOn)}
+                  onChange={(d) => setV({ ...v, nextReviewOn: d ?? '' })}
+                />
+                <GridSpan columns="full">
+                  <TextArea
+                    label={t('fields.purpose')}
+                    rows={2}
+                    value={v.purpose}
+                    onChange={(value) => setV({ ...v, purpose: value })}
+                  />
+                </GridSpan>
+                <GridSpan columns="full">
+                  <TextArea
+                    label={t('fields.notes')}
+                    rows={2}
+                    value={v.notes}
+                    onChange={(value) => setV({ ...v, notes: value })}
+                  />
+                </GridSpan>
+              </Grid>
+            </FormLayout>
+          </OptionalFields>
+          {error && <Banner status="error" title={error} collapsible={false} />}
+        </FormLayout>
       </SheetBody>
       <SheetFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
-          {tc('cancel')}
-        </Button>
-        <Button type="submit" loading={save.isPending}>
-          {account ? tc('saveChanges') : t('accountForm.register')}
-        </Button>
+        <Button label={tc('cancel')} variant="secondary" type="button" onClick={onCancel} />
+        <Button
+          label={account ? tc('saveChanges') : t('accountForm.register')}
+          variant="primary"
+          isLoading={save.isPending}
+          type="submit"
+        />
       </SheetFooter>
-    </form>
+    </SheetForm>
   );
 }
 
@@ -314,7 +292,6 @@ export function PasswordChangedDialog({
   const errorText = useErrorText();
   const timeZone = useTimeZone();
   const today = todayLocal(timeZone);
-  const ids = { date: useId(), note: useId() };
   const [changedOn, setChangedOn] = useState(today);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -327,55 +304,53 @@ export function PasswordChangedDialog({
     { invalidate: INVALIDATE, success: t('saved'), silent: true },
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('title', { account: account.accountName })}</DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.date}>{t('changedOn')}</Label>
-            <Input
-              id={ids.date}
-              type="date"
-              max={today}
-              value={changedOn}
-              onChange={(e) => setChangedOn(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.note}>{t('note')}</Label>
-            <Textarea id={ids.note} rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-          </div>
-          {error && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
-          )}
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button
-            type="button"
-            loading={save.isPending}
-            disabled={!changedOn}
-            onClick={async () => {
-              setError(null);
-              try {
-                await save.mutateAsync(undefined);
-                onOpenChange(false);
-              } catch (err) {
-                setError(errorText(err));
-              }
-            }}
-          >
-            {t('submit')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={448} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('title', { account: account.accountName })}
+            subtitle={t('description')}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <FormLayout defaultOptionality="optional">
+              <DateInput
+                label={t('changedOn')}
+                isRequired
+                max={asDay(today)}
+                value={asDay(changedOn)}
+                onChange={(d) => setChangedOn(d ?? '')}
+              />
+              <TextArea label={t('note')} rows={2} value={note} onChange={setNote} />
+              {error && <Banner status="error" title={error} collapsible={false} />}
+            </FormLayout>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t('submit')}
+                variant="primary"
+                isLoading={save.isPending}
+                isDisabled={!changedOn}
+                onClick={async () => {
+                  setError(null);
+                  try {
+                    await save.mutateAsync(undefined);
+                    onOpenChange(false);
+                  } catch (err) {
+                    setError(errorText(err));
+                  }
+                }}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -393,7 +368,6 @@ export function ReviewAccountDialog({
   const t = useTranslations('isms.accountReview');
   const tc = useTranslations('common');
   const errorText = useErrorText();
-  const base = useId();
   const [keep, setKeep] = useState<string[]>(account.members.filter((m) => m.active).map((m) => m.user.id));
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -407,63 +381,58 @@ export function ReviewAccountDialog({
   );
   const removed = account.members.length - keep.length;
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('title', { account: account.accountName })}</DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
-        </DialogHeader>
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">{t('members')}</legend>
-          {account.members.map((m) => (
-            <div key={m.user.id} className="flex items-center gap-2 text-sm">
-              <Checkbox
-                id={`${base}-${m.user.id}`}
-                checked={keep.includes(m.user.id)}
-                onCheckedChange={(v) =>
-                  setKeep((k) => (v ? [...k, m.user.id] : k.filter((x) => x !== m.user.id)))
-                }
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={448} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('title', { account: account.accountName })}
+            subtitle={t('description')}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={4}>
+              <CheckboxList label={t('members')} value={keep} onChange={setKeep}>
+                {account.members.map((m) => (
+                  <CheckboxListItem
+                    key={m.user.id}
+                    value={m.user.id}
+                    label={m.user.displayName}
+                    description={m.active ? undefined : t('inactive')}
+                  />
+                ))}
+              </CheckboxList>
+              <TextArea label={t('note')} rows={2} value={note} onChange={setNote} />
+              <Text as="p" color="secondary" aria-live="polite">
+                {removed > 0 ? t('removing', { count: removed }) : t('keepingAll')}
+              </Text>
+              {error && <Banner status="error" title={error} collapsible={false} />}
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t('submit')}
+                variant="primary"
+                isLoading={save.isPending}
+                onClick={async () => {
+                  setError(null);
+                  try {
+                    await save.mutateAsync(undefined);
+                    onOpenChange(false);
+                  } catch (err) {
+                    setError(errorText(err));
+                  }
+                }}
               />
-              <Label htmlFor={`${base}-${m.user.id}`} className="font-normal">
-                {m.user.displayName}
-                {!m.active && <span className="text-muted-foreground"> · {t('inactive')}</span>}
-              </Label>
-            </div>
-          ))}
-        </fieldset>
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${base}-note`}>{t('note')}</Label>
-          <Textarea id={`${base}-note`} rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-        </div>
-        <p className="text-sm text-muted-foreground" aria-live="polite">
-          {removed > 0 ? t('removing', { count: removed }) : t('keepingAll')}
-        </p>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button
-            type="button"
-            loading={save.isPending}
-            onClick={async () => {
-              setError(null);
-              try {
-                await save.mutateAsync(undefined);
-                onOpenChange(false);
-              } catch (err) {
-                setError(errorText(err));
-              }
-            }}
-          >
-            {t('submit')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -490,44 +459,49 @@ export function AddPersonDialog({
     { invalidate: INVALIDATE, success: t('personAdded'), silent: true },
   );
   return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('addPersonTitle', { account: account.accountName })}</DialogTitle>
-          <DialogDescription>{t('addPersonDescription')}</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-1.5">
-          <Label htmlFor={id}>{t('person')}</Label>
-          <PersonField id={id} value={person} onChange={setPerson} invalid={Boolean(error)} />
-        </div>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button
-            type="button"
-            disabled={!person}
-            loading={save.isPending}
-            onClick={async () => {
-              if (!person) return;
-              setError(null);
-              try {
-                await save.mutateAsync(person);
-                onOpenChange(false);
-              } catch (err) {
-                setError(errorText(err));
-              }
-            }}
-          >
-            {t('addPerson')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+    <Dialog isOpen onOpenChange={onOpenChange} width={448} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('addPersonTitle', { account: account.accountName })}
+            subtitle={t('addPersonDescription')}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={4}>
+              <Field label={t('person')} inputID={id} isRequired>
+                <PersonField id={id} value={person} onChange={setPerson} invalid={Boolean(error)} />
+              </Field>
+              {error && <Banner status="error" title={error} collapsible={false} />}
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t('addPerson')}
+                variant="primary"
+                isLoading={save.isPending}
+                isDisabled={!person}
+                onClick={async () => {
+                  if (!person) return;
+                  setError(null);
+                  try {
+                    await save.mutateAsync(person);
+                    onOpenChange(false);
+                  } catch (err) {
+                    setError(errorText(err));
+                  }
+                }}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }

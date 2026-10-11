@@ -1,24 +1,17 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Selector, type SelectorOptionType } from '@astryxdesign/core/Selector';
+import { ToggleButton, ToggleButtonGroup } from '@astryxdesign/core/ToggleButton';
 import { parseRecordRef } from '@isbp/sdk';
-
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { DataTable, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
 import {
   CalendarDaysIcon,
   CalendarRangeIcon,
@@ -55,6 +48,13 @@ function ChangeList() {
     pageSize: state.pageSize,
   });
   const columns = useTicketColumns(COLUMNS);
+  const statusOptions: SelectorOptionType[] = [
+    { value: 'open', label: t('filters.open') },
+    { value: 'done', label: t('filters.done') },
+    { value: 'any', label: t('filters.anyStatus') },
+    { type: 'divider' },
+    ...statusesOf('change').map((st) => ({ value: st, label: t(`status.${st}`) })),
+  ];
   return (
     <DataTable
       label={t('changes.listLabel')}
@@ -76,22 +76,14 @@ function ChangeList() {
       toolbar={
         <>
           <SearchInput value={state.q ?? ''} onChange={(q) => set({ q })} placeholder={t('changes.search')} />
-          <Select value={status} onValueChange={(v) => set({ status: v === 'open' ? undefined : v })}>
-            <SelectTrigger className="w-full sm:w-52" aria-label={t('filters.status')}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="open">{t('filters.open')}</SelectItem>
-              <SelectItem value="done">{t('filters.done')}</SelectItem>
-              <SelectItem value="any">{t('filters.anyStatus')}</SelectItem>
-              <SelectSeparator />
-              {statusesOf('change').map((s) => (
-                <SelectItem key={s} value={s}>
-                  {t(`status.${s}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Selector
+            label={t('filters.status')}
+            isLabelHidden
+            width={208}
+            value={status}
+            onChange={(v) => set({ status: v === 'open' ? undefined : v })}
+            options={statusOptions}
+          />
         </>
       }
       empty={<EmptyState icon={<GitCompareArrowsIcon />} title={t('changes.empty')} />}
@@ -141,40 +133,39 @@ export default function ChangesPage() {
         description={t('description')}
         actions={
           canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon /> {t('new')}
-            </Button>
+            <Button
+              label={t('new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreating(true)}
+            />
           )
         }
       />
-      <div
-        className="mb-4 inline-flex items-center gap-1 rounded-lg border p-0.5"
-        role="group"
-        aria-label={t('views.label')}
-      >
-        {views.map((v) => {
-          const Icon = v.icon;
-          return (
-            <Button
+      <div className="mb-4">
+        <ToggleButtonGroup
+          label={t('views.label')}
+          value={view}
+          onChange={(v) => {
+            if (typeof v !== 'string') return;
+            set({
+              view: v === 'month' ? undefined : v,
+              tab: undefined,
+              display: undefined,
+              page: undefined,
+            });
+          }}
+        >
+          {views.map((v) => (
+            <ToggleButton
               key={v.id}
-              variant={view === v.id ? 'secondary' : 'ghost'}
-              size="sm"
-              aria-pressed={view === v.id}
-              className={cn(v.wide && 'hidden md:inline-flex')}
-              onClick={() =>
-                set({
-                  view: v.id === 'month' ? undefined : v.id,
-                  tab: undefined,
-                  display: undefined,
-                  page: undefined,
-                })
-              }
-            >
-              <Icon aria-hidden />
-              {t(`views.${v.id}`)}
-            </Button>
-          );
-        })}
+              value={v.id}
+              label={t(`views.${v.id}`)}
+              icon={<Icon icon={v.icon} />}
+              className={v.wide ? 'hidden md:inline-flex' : undefined}
+            />
+          ))}
+        </ToggleButtonGroup>
       </div>
       {view === 'list' ? (
         <ChangeList />

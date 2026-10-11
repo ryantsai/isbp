@@ -1,8 +1,10 @@
 'use client';
 
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
 import type { SubmissionStatus } from '@isbp/contracts';
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
+import { IconTile } from '@isbp/ui/icon-tile';
+import { defineStatusMap, MappedStatus, StatusBadge } from '@isbp/ui/status';
 import {
   AppWindowIcon,
   ArchiveIcon,
@@ -37,7 +39,7 @@ import {
   WrenchIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { NavIcon } from '@/components/nav-icon';
+import { navIcon } from '@/components/nav-icon';
 
 /** Curated icons admins can pick for a form (lucide names, as stored on the form). */
 export const FORM_ICONS: Record<string, LucideIcon> = {
@@ -63,24 +65,28 @@ export const FORM_ICONS: Record<string, LucideIcon> = {
   inbox: InboxIcon,
 };
 
-export function FormIcon({ name, className }: { name: string; className?: string }) {
-  const Icon = FORM_ICONS[name];
-  if (Icon) return <Icon className={className} aria-hidden />;
-  return <NavIcon name={name} className={className} />;
+/** The icon component of a stored form icon: the curated set first, then any lucide name (process packs). */
+export const formIconOf = (name: string) => FORM_ICONS[name] ?? navIcon(name);
+
+export function FormIcon({ name }: { name: string }) {
+  return <Icon icon={formIconOf(name)} />;
 }
 
 /** The form's icon on a tinted tile. */
-export function FormIconTile({ name, className }: { name: string; className?: string }) {
+export function FormIconTile({
+  name,
+  size = 'sm',
+  muted,
+}: {
+  name: string;
+  size?: 'xs' | 'sm' | 'default' | 'lg';
+  /** A quiet tile for forms that are out of use (archived). */
+  muted?: boolean;
+}) {
   return (
-    <span
-      aria-hidden
-      className={cn(
-        'grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary',
-        className,
-      )}
-    >
-      <FormIcon name={name} className="size-[45%] min-h-4 min-w-4" />
-    </span>
+    <IconTile aria-hidden size={size} variant={muted ? 'outline' : 'soft'}>
+      <FormIcon name={name} />
+    </IconTile>
   );
 }
 
@@ -92,57 +98,42 @@ interface StatusInput {
 }
 
 /** Lifecycle badges of a form: icon + text, never colour alone. */
-export function FormStatusBadges({ form, className }: { form: StatusInput; className?: string }) {
+export function FormStatusBadges({ form }: { form: StatusInput }) {
   const t = useTranslations('forms.status');
   return (
-    <span className={cn('inline-flex flex-wrap items-center gap-1.5', className)}>
+    <HStack gap={1.5} wrap="wrap" vAlign="center">
       {form.archived ? (
-        <Badge variant="muted">
-          <ArchiveIcon aria-hidden /> {t('archived')}
-        </Badge>
+        <StatusBadge tone="muted" icon={ArchiveIcon} label={t('archived')} />
       ) : form.publishedVersion === null ? (
-        <Badge variant="secondary">
-          <PencilLineIcon aria-hidden /> {t('draft')}
-        </Badge>
+        <StatusBadge tone="muted" icon={PencilLineIcon} label={t('draft')} />
       ) : (
-        <Badge variant="success">
-          <CircleCheckIcon aria-hidden /> {t('published', { version: form.publishedVersion })}
-        </Badge>
+        <StatusBadge
+          tone="success"
+          icon={CircleCheckIcon}
+          label={t('published', { version: form.publishedVersion })}
+        />
       )}
       {!form.archived && form.publishedVersion !== null && form.hasUnpublishedChanges && (
-        <Badge variant="warning">
-          <CircleDotIcon aria-hidden /> {t('unpublishedChanges')}
-        </Badge>
+        <StatusBadge tone="warning" icon={CircleDotIcon} label={t('unpublishedChanges')} />
       )}
       {!form.archived && !form.active && (
-        <Badge variant="outline" className="text-muted-foreground">
-          <CirclePauseIcon aria-hidden /> {t('paused')}
-        </Badge>
+        <StatusBadge tone="muted" icon={CirclePauseIcon} label={t('paused')} />
       )}
-    </span>
+    </HStack>
   );
 }
 
-const SUBMISSION: Record<
-  SubmissionStatus,
-  { variant: 'info' | 'warning' | 'success' | 'destructive' | 'muted'; icon: LucideIcon }
-> = {
-  submitted: { variant: 'info', icon: SendIcon },
-  pending: { variant: 'warning', icon: ClockIcon },
-  approved: { variant: 'success', icon: CheckIcon },
-  rejected: { variant: 'destructive', icon: CircleXIcon },
-  cancelled: { variant: 'muted', icon: CircleDashedIcon },
-};
+const SUBMISSION = defineStatusMap<SubmissionStatus>({
+  submitted: { tone: 'info', icon: SendIcon, labelKey: 'submitted' },
+  pending: { tone: 'warning', icon: ClockIcon, labelKey: 'pending' },
+  approved: { tone: 'success', icon: CheckIcon, labelKey: 'approved' },
+  rejected: { tone: 'destructive', icon: CircleXIcon, labelKey: 'rejected' },
+  cancelled: { tone: 'muted', icon: CircleDashedIcon, labelKey: 'cancelled' },
+});
 
 export const SUBMISSION_STATUSES = Object.keys(SUBMISSION) as SubmissionStatus[];
 
 export function SubmissionStatusBadge({ status }: { status: SubmissionStatus }) {
   const t = useTranslations('forms.submissionStatus');
-  const s = SUBMISSION[status] ?? SUBMISSION.submitted;
-  const Icon = s.icon;
-  return (
-    <Badge variant={s.variant}>
-      <Icon aria-hidden /> {t(status)}
-    </Badge>
-  );
+  return <MappedStatus map={SUBMISSION} value={status} t={(key) => t(key as SubmissionStatus)} />;
 }

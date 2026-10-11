@@ -26,7 +26,8 @@ test('API client: create, store the secret once, revoke', async ({ page }) => {
   await form.getByRole('button', { name: 'Create client' }).click();
 
   // The secret is shown exactly once; the dialog stays until it has been stored.
-  const reveal = page.getByRole('dialog', { name: `“${name}” is ready` });
+  // A dialog that must be answered (Astryx `purpose="required"`) is an alertdialog.
+  const reveal = page.getByRole('alertdialog', { name: `“${name}” is ready` });
   await expect(reveal.getByText(/isbp_sk_/).first()).toBeVisible();
   await expect(reveal.getByRole('button', { name: 'Done' })).toBeDisabled();
   await reveal.getByLabel('I’ve stored the secret somewhere safe').check();

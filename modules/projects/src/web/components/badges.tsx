@@ -1,7 +1,10 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
+import { defineStatusMap, MappedStatus, StatusBadge } from '@isbp/ui/status';
 import {
   BookmarkIcon,
   BugIcon,
@@ -36,32 +39,33 @@ import type {
 } from '../../contracts';
 import { dateValue, isClosed } from '../lib';
 
-type Variant = 'info' | 'success' | 'warning' | 'destructive' | 'muted' | 'secondary' | 'outline';
-
-const PROJECT_STATUS: Record<ProjectStatus, { variant: Variant; icon: LucideIcon }> = {
-  proposed: { variant: 'muted', icon: CircleDashedIcon },
-  active: { variant: 'info', icon: CircleDotIcon },
-  on_hold: { variant: 'warning', icon: CirclePauseIcon },
-  completed: { variant: 'success', icon: CircleCheckIcon },
-  cancelled: { variant: 'muted', icon: CircleSlashIcon },
-};
+const PROJECT_STATUS = defineStatusMap<ProjectStatus>({
+  proposed: { tone: 'muted', icon: CircleDashedIcon, labelKey: 'proposed' },
+  active: { tone: 'info', icon: CircleDotIcon, labelKey: 'active' },
+  on_hold: { tone: 'warning', icon: CirclePauseIcon, labelKey: 'on_hold' },
+  completed: { tone: 'success', icon: CircleCheckIcon, labelKey: 'completed' },
+  cancelled: { tone: 'muted', icon: CircleSlashIcon, labelKey: 'cancelled' },
+});
 
 export function ProjectStatusBadge({ status, className }: { status: ProjectStatus; className?: string }) {
   const t = useTranslations('projects.projectStatus');
-  const s = PROJECT_STATUS[status];
-  const Icon = s.icon;
   return (
-    <Badge variant={s.variant} className={className}>
-      <Icon aria-hidden />
-      {t(status)}
-    </Badge>
+    <MappedStatus
+      map={PROJECT_STATUS}
+      value={status}
+      t={(key) => t(key as ProjectStatus)}
+      className={className}
+    />
   );
 }
 
-const HEALTH: Record<ProjectHealth, { icon: LucideIcon; text: string; bg: string }> = {
-  on_track: { icon: CircleCheckIcon, text: 'text-success', bg: 'bg-success/12' },
-  at_risk: { icon: TriangleAlertIcon, text: 'text-warning-foreground', bg: 'bg-warning/15' },
-  off_track: { icon: CircleXIcon, text: 'text-destructive', bg: 'bg-destructive/10 dark:bg-destructive/20' },
+const HEALTH: Record<
+  ProjectHealth,
+  { icon: LucideIcon; tone: 'success' | 'warning' | 'destructive'; color: 'success' | 'warning' | 'error' }
+> = {
+  on_track: { icon: CircleCheckIcon, tone: 'success', color: 'success' },
+  at_risk: { icon: TriangleAlertIcon, tone: 'warning', color: 'warning' },
+  off_track: { icon: CircleXIcon, tone: 'destructive', color: 'error' },
 };
 
 /** Health is always icon + text (never colour alone). */
@@ -77,19 +81,16 @@ export function HealthBadge({
 }) {
   const t = useTranslations('projects.health');
   const h = HEALTH[health];
-  const Icon = h.icon;
-  return (
-    <span
-      className={cn(
-        'inline-flex w-fit shrink-0 items-center gap-1 text-xs font-medium whitespace-nowrap',
-        plain ? h.text : cn('rounded-md px-2 py-0.5', h.bg, h.text),
-        className,
-      )}
-    >
-      <Icon className="size-3.5" aria-hidden />
-      {t(health)}
-    </span>
-  );
+  if (plain)
+    return (
+      <HStack gap={1} vAlign="center" className={className}>
+        <Icon icon={h.icon} size="xsm" color={h.color} />
+        <Text type="supporting" weight="medium">
+          {t(health)}
+        </Text>
+      </HStack>
+    );
+  return <StatusBadge tone={h.tone} icon={h.icon} label={t(health)} className={className} />;
 }
 
 /**
@@ -107,53 +108,60 @@ export function ProjectHealthBadge({
 }) {
   const t = useTranslations('projects.health');
   if (project.status === 'proposed' && !project.healthNote)
-    return (
-      <span
-        className={cn(
-          'inline-flex w-fit shrink-0 items-center gap-1 text-xs font-medium whitespace-nowrap text-muted-foreground',
-          !plain && 'rounded-md bg-muted px-2 py-0.5',
-          className,
-        )}
-      >
-        <CircleDashedIcon className="size-3.5" aria-hidden />
-        {t('notAssessed')}
-      </span>
+    return plain ? (
+      <HStack gap={1} vAlign="center" className={className}>
+        <Icon icon={CircleDashedIcon} size="xsm" color="secondary" />
+        <Text type="supporting" weight="medium">
+          {t('notAssessed')}
+        </Text>
+      </HStack>
+    ) : (
+      <StatusBadge tone="muted" icon={CircleDashedIcon} label={t('notAssessed')} className={className} />
     );
   return <HealthBadge health={project.health} className={className} plain={plain} />;
 }
 
-const TASK_STATUS: Record<TaskStatus, { variant: Variant; icon: LucideIcon }> = {
-  backlog: { variant: 'muted', icon: CircleDashedIcon },
-  todo: { variant: 'secondary', icon: CircleIcon },
-  in_progress: { variant: 'info', icon: CircleDotIcon },
-  in_review: { variant: 'warning', icon: EyeIcon },
-  done: { variant: 'success', icon: CircleCheckIcon },
-  cancelled: { variant: 'muted', icon: CircleSlashIcon },
+const TASK_STATUS_ICON: Record<TaskStatus, LucideIcon> = {
+  backlog: CircleDashedIcon,
+  todo: CircleIcon,
+  in_progress: CircleDotIcon,
+  in_review: EyeIcon,
+  done: CircleCheckIcon,
+  cancelled: CircleSlashIcon,
 };
 
-export function TaskStatusIcon({ status, className }: { status: TaskStatus; className?: string }) {
-  const Icon = TASK_STATUS[status].icon;
-  return <Icon className={cn('size-4 shrink-0', className)} aria-hidden />;
+const TASK_STATUS = defineStatusMap<TaskStatus>({
+  backlog: { tone: 'muted', icon: TASK_STATUS_ICON.backlog, labelKey: 'backlog' },
+  todo: { tone: 'muted', icon: TASK_STATUS_ICON.todo, labelKey: 'todo' },
+  in_progress: { tone: 'info', icon: TASK_STATUS_ICON.in_progress, labelKey: 'in_progress' },
+  in_review: { tone: 'warning', icon: TASK_STATUS_ICON.in_review, labelKey: 'in_review' },
+  done: { tone: 'success', icon: TASK_STATUS_ICON.done, labelKey: 'done' },
+  cancelled: { tone: 'muted', icon: TASK_STATUS_ICON.cancelled, labelKey: 'cancelled' },
+});
+
+export function TaskStatusIcon({ status }: { status: TaskStatus }) {
+  return <Icon icon={TASK_STATUS_ICON[status]} size="sm" color="secondary" />;
 }
 
 export function TaskStatusBadge({ status, className }: { status: TaskStatus; className?: string }) {
   const t = useTranslations('projects.taskStatus');
-  const s = TASK_STATUS[status];
-  const Icon = s.icon;
   return (
-    <Badge variant={s.variant} className={className}>
-      <Icon aria-hidden />
-      {t(status)}
-    </Badge>
+    <MappedStatus map={TASK_STATUS} value={status} t={(key) => t(key as TaskStatus)} className={className} />
   );
 }
 
-const PRIORITY: Record<TaskPriority, { icon: LucideIcon; className: string }> = {
-  urgent: { icon: ChevronsUpIcon, className: 'text-destructive' },
-  high: { icon: ChevronUpIcon, className: 'text-warning-foreground' },
-  medium: { icon: EqualIcon, className: 'text-muted-foreground' },
-  low: { icon: ChevronDownIcon, className: 'text-muted-foreground' },
+const PRIORITY: Record<TaskPriority, { icon: LucideIcon; color: 'error' | 'warning' | 'secondary' }> = {
+  urgent: { icon: ChevronsUpIcon, color: 'error' },
+  high: { icon: ChevronUpIcon, color: 'warning' },
+  medium: { icon: EqualIcon, color: 'secondary' },
+  low: { icon: ChevronDownIcon, color: 'secondary' },
 };
+
+/** The priority's icon alone (for option lists that print the name next to it). */
+export function PriorityIcon({ priority }: { priority: TaskPriority }) {
+  const p = PRIORITY[priority];
+  return <Icon icon={p.icon} size="sm" color={p.color} />;
+}
 
 /** Priority as icon + text. `compact` hides the text of medium and low (cards show urgent/high only). */
 export function PriorityLabel({
@@ -167,75 +175,52 @@ export function PriorityLabel({
 }) {
   const t = useTranslations('projects.priority');
   const p = PRIORITY[priority];
-  const Icon = p.icon;
   if (compact && (priority === 'medium' || priority === 'low')) return null;
   return (
-    <span className={cn('inline-flex items-center gap-1 text-xs font-medium', p.className, className)}>
-      <Icon className="size-3.5 shrink-0" aria-hidden />
-      {t(priority)}
-    </span>
+    <HStack gap={1} vAlign="center" className={className}>
+      <Icon icon={p.icon} size="xsm" color={p.color} />
+      <Text type="supporting" weight="medium">
+        {t(priority)}
+      </Text>
+    </HStack>
   );
 }
 
-const TYPE: Record<TaskType, { icon: LucideIcon; className: string }> = {
-  epic: { icon: MountainIcon, className: 'text-[oklch(0.5_0.16_300)] dark:text-[oklch(0.78_0.12_300)]' },
-  feature: { icon: PuzzleIcon, className: 'text-[oklch(0.5_0.13_250)] dark:text-[oklch(0.78_0.1_250)]' },
-  story: { icon: BookmarkIcon, className: 'text-success' },
-  task: { icon: SquareCheckIcon, className: 'text-info' },
-  bug: { icon: BugIcon, className: 'text-destructive' },
+const TYPE: Record<TaskType, { icon: LucideIcon; color: 'accent' | 'success' | 'error' | 'secondary' }> = {
+  epic: { icon: MountainIcon, color: 'accent' },
+  feature: { icon: PuzzleIcon, color: 'accent' },
+  story: { icon: BookmarkIcon, color: 'success' },
+  task: { icon: SquareCheckIcon, color: 'secondary' },
+  bug: { icon: BugIcon, color: 'error' },
 };
 
 /** Work item type icon with an accessible name (the visible label sits next to it elsewhere). */
-export function TaskTypeIcon({
-  type,
-  className,
-  label = true,
-}: {
-  type: TaskType;
-  className?: string;
-  label?: boolean;
-}) {
+export function TaskTypeIcon({ type, label = true }: { type: TaskType; label?: boolean }) {
   const t = useTranslations('projects.taskType');
   const ty = TYPE[type];
-  const Icon = ty.icon;
-  return label ? (
-    <Icon className={cn('size-4 shrink-0', ty.className, className)} role="img" aria-label={t(type)} />
-  ) : (
-    <Icon className={cn('size-4 shrink-0', ty.className, className)} aria-hidden />
-  );
+  return <Icon icon={ty.icon} size="sm" color={ty.color} label={label ? t(type) : undefined} />;
 }
 
-export function KeyBadge({ projectKey, className }: { projectKey: string; className?: string }) {
-  return (
-    <Badge variant="outline" className={cn('font-mono tracking-wide', className)}>
-      {projectKey}
-    </Badge>
-  );
+export function KeyBadge({ projectKey }: { projectKey: string }) {
+  return <Badge variant="neutral" label={projectKey} />;
 }
 
 export function VisibilityBadge({ visibility }: { visibility: Visibility }) {
   const t = useTranslations('projects.visibility');
   if (visibility === 'internal') return null;
-  return (
-    <Badge variant="muted">
-      <LockIcon aria-hidden />
-      {t(visibility)}
-    </Badge>
-  );
+  return <Badge variant="neutral" label={t(visibility)} icon={<Icon icon={LockIcon} size="xsm" />} />;
 }
 
-/** A due date; overdue open work shows in destructive text with an icon and an "Overdue" label. */
+/** A due date; overdue open work shows as an error chip with an icon and an "Overdue" label. */
 export function DueDate({
   date,
   status,
   today,
-  className,
   long,
 }: {
   date: string | null;
   status?: TaskStatus;
   today: string;
-  className?: string;
   long?: boolean;
 }) {
   const t = useTranslations('projects.due');
@@ -248,50 +233,17 @@ export function DueDate({
     dateValue(date),
     long || otherYear ? { dateStyle: 'medium' } : { month: 'short', day: 'numeric' },
   );
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 text-xs whitespace-nowrap',
-        overdue ? 'font-medium text-destructive' : 'text-muted-foreground',
-        className,
-      )}
-    >
-      {overdue && <CircleAlertIcon className="size-3.5 shrink-0" aria-hidden />}
+  const body = (
+    <>
       <time dateTime={date}>{text}</time>
       {overdue && <span className="sr-only">{t('overdue')}</span>}
-    </span>
+    </>
   );
-}
-
-/** Accessible progress bar ("18 of 42 tasks done"). */
-export function ProgressBar({
-  value,
-  label,
-  className,
-  tone = 'primary',
-}: {
-  value: number;
-  label: string;
-  className?: string;
-  tone?: 'primary' | 'success';
-}) {
-  const v = Math.max(0, Math.min(100, Math.round(value)));
+  if (overdue)
+    return <Badge variant="error" label={body} icon={<Icon icon={CircleAlertIcon} size="xsm" />} />;
   return (
-    <div
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={v}
-      aria-label={label}
-      className={cn('h-1.5 w-full overflow-hidden rounded-full bg-muted', className)}
-    >
-      <div
-        className={cn(
-          'h-full rounded-full transition-[width] duration-500 ease-out',
-          tone === 'success' ? 'bg-success' : 'bg-primary',
-        )}
-        style={{ width: `${v}%` }}
-      />
-    </div>
+    <Text type="supporting" className="whitespace-nowrap">
+      {body}
+    </Text>
   );
 }

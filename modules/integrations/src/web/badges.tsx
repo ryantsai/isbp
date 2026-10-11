@@ -1,7 +1,11 @@
 'use client';
 
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import { Text } from '@astryxdesign/core/Text';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
+import { StatusBadge, type StatusTone } from '@isbp/ui/status';
 import {
   ArrowDownToLineIcon,
   ArrowLeftRightIcon,
@@ -42,26 +46,7 @@ import type {
   RunTrigger,
 } from '../contracts';
 
-export type Tone = 'info' | 'primary' | 'warning' | 'success' | 'muted' | 'destructive';
-
-/** Tone classes tuned for AA on their own tints (the platform's status tokens). */
-export const TONE: Record<Tone, string> = {
-  info: 'border-transparent bg-info/12 text-info',
-  primary: 'border-transparent bg-primary/10 text-primary',
-  warning: 'border-transparent bg-warning/15 text-warning-foreground',
-  success: 'border-transparent bg-success/12 text-success',
-  muted: 'border-transparent bg-muted text-muted-foreground',
-  destructive: 'border-transparent bg-destructive/10 text-destructive dark:bg-destructive/20',
-};
-
-export const TEXT_TONE: Record<Tone, string> = {
-  info: 'text-info',
-  primary: 'text-primary',
-  warning: 'text-warning-foreground',
-  success: 'text-success',
-  muted: 'text-muted-foreground',
-  destructive: 'text-destructive',
-};
+export type Tone = Exclude<StatusTone, 'neutral'>;
 
 interface Meta {
   icon: LucideIcon;
@@ -69,31 +54,41 @@ interface Meta {
   spin?: boolean;
 }
 
+/** A spinning loader for work in flight (honours reduced motion). */
+function SpinnerIcon({ className }: { className?: string }) {
+  return <LoaderCircleIcon aria-hidden className={cn(className, 'motion-safe:animate-spin')} />;
+}
+
 /** Icon + text + tone, never colour alone. */
 export function ToneBadge({ meta, label, className }: { meta: Meta; label: string; className?: string }) {
-  const Icon = meta.icon;
   return (
-    <Badge variant="outline" className={cn(TONE[meta.tone], className)}>
-      <Icon aria-hidden className={cn(meta.spin && 'motion-safe:animate-spin')} />
-      {label}
-    </Badge>
+    <StatusBadge
+      tone={meta.tone}
+      icon={meta.spin ? SpinnerIcon : meta.icon}
+      label={label}
+      className={className}
+    />
   );
 }
 
-/** Compact status for dense rows: icon and text in the status colour. */
+const ICON_COLOR = {
+  info: 'accent',
+  primary: 'accent',
+  warning: 'warning',
+  success: 'success',
+  muted: 'secondary',
+  destructive: 'error',
+} as const;
+
+/** Compact status for dense rows: a coloured icon and the label as plain text. */
 export function ToneText({ meta, label, className }: { meta: Meta; label: string; className?: string }) {
-  const Icon = meta.icon;
   return (
-    <span
-      className={cn(
-        'inline-flex min-w-0 items-center gap-1 text-xs font-medium',
-        TEXT_TONE[meta.tone],
-        className,
-      )}
-    >
-      <Icon aria-hidden className={cn('size-3.5 shrink-0', meta.spin && 'motion-safe:animate-spin')} />
-      <span className="truncate">{label}</span>
-    </span>
+    <HStack gap={1} vAlign="center" className={cn('min-w-0', className)}>
+      {meta.spin ? <Spinner size="sm" /> : <Icon icon={meta.icon} color={ICON_COLOR[meta.tone]} />}
+      <Text type="supporting" weight="medium" color="primary" maxLines={1}>
+        {label}
+      </Text>
+    </HStack>
   );
 }
 
@@ -168,23 +163,23 @@ const KIND_ICON: Record<RunKind, LucideIcon> = {
 
 export function TriggerLabel({ trigger, className }: { trigger: RunTrigger; className?: string }) {
   const t = useTranslations('integrations.runTrigger');
-  const Icon = TRIGGER_ICON[trigger];
+  const TriggerIcon = TRIGGER_ICON[trigger];
   return (
-    <span className={cn('inline-flex items-center gap-1.5', className)}>
-      <Icon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+    <HStack gap={1.5} vAlign="center" className={className}>
+      <Icon icon={TriggerIcon} color="secondary" />
       {t(trigger)}
-    </span>
+    </HStack>
   );
 }
 
 export function KindLabel({ kind, className }: { kind: RunKind; className?: string }) {
   const t = useTranslations('integrations.runKind');
-  const Icon = KIND_ICON[kind];
+  const KindIcon = KIND_ICON[kind];
   return (
-    <span className={cn('inline-flex items-center gap-1.5', className)}>
-      <Icon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+    <HStack gap={1.5} vAlign="center" className={className}>
+      <Icon icon={KindIcon} color="secondary" />
       {t(kind)}
-    </span>
+    </HStack>
   );
 }
 

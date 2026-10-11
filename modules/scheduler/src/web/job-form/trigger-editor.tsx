@@ -1,23 +1,23 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@isbp/ui/command';
-import { Input } from '@isbp/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@isbp/ui/popover';
+import { Button } from '@astryxdesign/core/Button';
+import { FieldStatus } from '@astryxdesign/core/FieldStatus';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { type ISOTimeString, TimeInput } from '@astryxdesign/core/TimeInput';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { Tokenizer } from '@astryxdesign/core/Tokenizer';
+import { Card, CardContent } from '@isbp/ui/card';
 import { useApiQuery } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { CheckIcon, ChevronsUpDownIcon, GlobeIcon, XIcon } from 'lucide-react';
+import { type SearchableItem, useApiSearchSource } from '@isbp/ui/search-source';
+import { GlobeIcon } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   cronOf,
   type JobRef,
@@ -29,10 +29,9 @@ import {
   TRIGGER_KINDS,
   type TriggerKind,
 } from '../../contracts';
-import { TRIGGER_ICON } from '../badges';
-import { localTimeZone, timeZones, useDebounced, useJobOptions } from '../lib';
+import { localTimeZone, timeZones, useDebounced } from '../lib';
 import { useCronText } from '../trigger-text';
-import { type Errors, FormRow, NumberInput } from './fields';
+import { type Errors, errorStatus } from './fields';
 
 export interface TriggerState {
   kind: TriggerKind;
@@ -45,159 +44,43 @@ export interface TriggerState {
 
 const PRESETS = ['*/15 * * * *', '0 * * * *', '0 7 * * *', '30 8 * * 1-5', '0 3 * * 0', '0 2 1 * *'];
 
-/** Searchable IANA time zone picker. */
-function TimezonePicker({
-  id,
-  value,
-  onChange,
-  disabled,
-}: {
-  id: string;
-  value: string;
-  onChange: (tz: string) => void;
-  disabled?: boolean;
-}) {
-  const t = useTranslations('scheduler.form');
-  const [open, setOpen] = useState(false);
-  const zones = useMemo(() => timeZones(), []);
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          type="button"
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          disabled={disabled}
-          className="w-full justify-between font-normal"
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            <GlobeIcon className="text-muted-foreground" aria-hidden />
-            <span className="truncate">{value}</span>
-          </span>
-          <ChevronsUpDownIcon className="opacity-50" aria-hidden />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) min-w-64 p-0" align="start">
-        <Command>
-          <CommandInput placeholder={t('searchZone')} />
-          <CommandList>
-            <CommandEmpty>{t('noZone')}</CommandEmpty>
-            <CommandGroup>
-              {zones.map((z) => (
-                <CommandItem
-                  key={z}
-                  value={z}
-                  onSelect={() => {
-                    onChange(z);
-                    setOpen(false);
-                  }}
-                >
-                  {z}
-                  {z === value && <CheckIcon className="ml-auto" aria-hidden />}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
-}
+const jobItem = (j: JobRef): SearchableItem<JobRef> => ({ id: j.id, label: j.name, auxiliaryData: j });
 
 /** Jobs this one runs after (searchable, multiple). */
 function UpstreamPicker({
-  id,
   value,
   onChange,
   excludeId,
-  invalid,
-  describedBy,
+  error,
   disabled,
 }: {
-  id: string;
   value: JobRef[];
   onChange: (jobs: JobRef[]) => void;
   excludeId?: string;
-  invalid?: boolean;
-  describedBy?: string;
+  error?: string;
   disabled?: boolean;
 }) {
   const t = useTranslations('scheduler.form');
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState('');
-  const debounced = useDebounced(q);
-  const { items, isFetching } = useJobOptions(debounced, open);
-  const chosen = new Set(value.map((j) => j.id));
-  const options = items.filter((j) => j.id !== excludeId);
+  const source = useApiSearchSource<JobRef>({
+    path: '/scheduler/lookups/jobs',
+    query: (q) => ({ q: q.trim() || undefined }),
+    toItem: jobItem,
+    exclude: (item) => item.id === excludeId,
+  });
+  const items = useMemo(() => value.map(jobItem), [value]);
   return (
-    <div className="grid min-w-0 gap-2">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            type="button"
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            aria-invalid={invalid || undefined}
-            aria-describedby={describedBy}
-            disabled={disabled}
-            className="w-full justify-between font-normal"
-          >
-            <span className="truncate text-muted-foreground">
-              {value.length ? t('upstreamCount', { count: value.length }) : t('pickUpstream')}
-            </span>
-            <ChevronsUpDownIcon className="opacity-50" aria-hidden />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-(--radix-popover-trigger-width) min-w-64 p-0" align="start">
-          <Command shouldFilter={false}>
-            <CommandInput value={q} onValueChange={setQ} placeholder={t('searchJobs')} />
-            <CommandList>
-              <CommandEmpty>{isFetching ? t('loading') : t('noJobs')}</CommandEmpty>
-              {options.length > 0 && (
-                <CommandGroup>
-                  {options.map((j) => (
-                    <CommandItem
-                      key={j.id}
-                      value={j.id}
-                      onSelect={() =>
-                        onChange(chosen.has(j.id) ? value.filter((v) => v.id !== j.id) : [...value, j])
-                      }
-                    >
-                      <span className="truncate">{j.name}</span>
-                      {chosen.has(j.id) && <CheckIcon className="ml-auto" aria-hidden />}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-      {value.length > 0 && (
-        <ul className="flex flex-wrap gap-1.5" aria-label={t('upstreamChosen')}>
-          {value.map((j) => (
-            <li key={j.id}>
-              <Badge variant="secondary" className="max-w-full gap-1 pr-1 font-normal">
-                <span className="truncate">{j.name}</span>
-                <button
-                  type="button"
-                  onClick={() => onChange(value.filter((v) => v.id !== j.id))}
-                  aria-label={t('removeUpstream', { name: j.name })}
-                  disabled={disabled}
-                  className="rounded-sm p-0.5 hover:bg-background focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-                >
-                  <XIcon className="size-3" />
-                </button>
-              </Badge>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <Tokenizer<SearchableItem<JobRef>>
+      label={t('upstream')}
+      description={t('upstreamHint')}
+      placeholder={t('pickUpstream')}
+      emptySearchText={t('noJobs')}
+      searchSource={source}
+      value={items}
+      onChange={(next) => onChange(next.flatMap((item) => (item.auxiliaryData ? [item.auxiliaryData] : [])))}
+      hasEntriesOnFocus
+      status={errorStatus(error)}
+      isDisabled={disabled}
+    />
   );
 }
 
@@ -214,26 +97,31 @@ function NextRuns({
   const t = useTranslations('scheduler.form');
   const format = useFormatter();
   const { data, isFetching } = useApiQuery<Preview>('/scheduler/schedule/preview', query);
-  if (!data) return isFetching ? <p className="text-xs text-muted-foreground">{t('loading')}</p> : null;
+  if (!data)
+    return isFetching ? (
+      <Text size="xsm" color="secondary">
+        {t('loading')}
+      </Text>
+    ) : null;
   if (!data.valid)
-    return (
-      <p className="text-xs font-medium text-destructive" role="alert">
-        {onError ?? data.error}
-      </p>
-    );
+    return <FieldStatus type="error" message={onError ?? data.error ?? ''} variant="detached" />;
   return (
-    <div className="min-w-0">
-      <p className="mb-1 text-xs font-medium text-muted-foreground">{t('nextRuns')}</p>
-      <ol className="grid gap-0.5 text-xs tabular-nums" aria-label={t('nextRuns')}>
+    <VStack gap={1}>
+      <Text size="xsm" weight="medium" color="secondary">
+        {t('nextRuns')}
+      </Text>
+      <ol className="grid gap-0.5" aria-label={t('nextRuns')}>
         {data.next.map((at) => (
           <li key={at}>
-            <time dateTime={at}>
-              {format.dateTime(new Date(at), { dateStyle: 'full', timeStyle: 'short', timeZone: timezone })}
-            </time>
+            <Text size="xsm" hasTabularNumbers>
+              <time dateTime={at}>
+                {format.dateTime(new Date(at), { dateStyle: 'full', timeStyle: 'short', timeZone: timezone })}
+              </time>
+            </Text>
           </li>
         ))}
       </ol>
-    </div>
+    </VStack>
   );
 }
 
@@ -276,6 +164,10 @@ function RepeatEditor({
   const parsed = repeatOf(value.cron);
   const [custom, setCustom] = useState(parsed.repeat === 'custom');
   const spec: RepeatSpec = custom ? { ...parsed, repeat: 'custom' } : parsed;
+  const zones = useMemo(() => {
+    const all = timeZones();
+    return all.includes(value.timezone) ? all : [value.timezone, ...all];
+  }, [value.timezone]);
   const update = (patch: Partial<RepeatSpec>) => {
     const next = { ...spec, ...patch };
     if (next.repeat === 'custom') {
@@ -289,176 +181,130 @@ function RepeatEditor({
   const minute = spec.time.split(':')[1] ?? '00';
 
   return (
-    <div className="grid min-w-0 gap-4">
-      <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <FormRow label={t('form.repeats')}>
-          {({ id: fid }) => (
-            <Select
-              value={spec.repeat}
-              onValueChange={(v) => update({ repeat: v as Repeat })}
-              disabled={disabled}
-            >
-              <SelectTrigger id={fid} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {REPEATS.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {t(`form.repeat.${r}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </FormRow>
+    <VStack gap={4}>
+      <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={4} align="end">
+        <Selector
+          label={t('form.repeats')}
+          width="100%"
+          value={spec.repeat}
+          onChange={(v) => update({ repeat: v as Repeat })}
+          options={REPEATS.map((r) => ({ value: r, label: t(`form.repeat.${r}`) }))}
+          isDisabled={disabled}
+        />
         {spec.repeat === 'weekly' && (
-          <FormRow label={t('form.onWeekday')}>
-            {({ id: fid }) => (
-              <Select
-                value={String(spec.weekday)}
-                onValueChange={(v) => update({ weekday: Number(v) })}
-                disabled={disabled}
-              >
-                <SelectTrigger id={fid} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5, 6, 0].map((d) => (
-                    <SelectItem key={d} value={String(d)}>
-                      {names.weekdays[d]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </FormRow>
+          <Selector
+            label={t('form.onWeekday')}
+            width="100%"
+            value={String(spec.weekday)}
+            onChange={(v) => update({ weekday: Number(v) })}
+            options={[1, 2, 3, 4, 5, 6, 0].map((d) => ({ value: String(d), label: names.weekdays[d]! }))}
+            isDisabled={disabled}
+          />
         )}
         {spec.repeat === 'yearly' && (
-          <FormRow label={t('form.inMonth')}>
-            {({ id: fid }) => (
-              <Select
-                value={String(spec.month)}
-                onValueChange={(v) => update({ month: Number(v) })}
-                disabled={disabled}
-              >
-                <SelectTrigger id={fid} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {names.months.map((m, i) => (
-                    <SelectItem key={m} value={String(i + 1)}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </FormRow>
+          <Selector
+            label={t('form.inMonth')}
+            width="100%"
+            value={String(spec.month)}
+            onChange={(v) => update({ month: Number(v) })}
+            options={names.months.map((m, i) => ({ value: String(i + 1), label: m }))}
+            isDisabled={disabled}
+          />
         )}
         {(spec.repeat === 'monthly' || spec.repeat === 'quarterly' || spec.repeat === 'yearly') && (
-          <FormRow
+          <NumberInput
             label={t('form.onDay')}
-            hint={spec.repeat === 'quarterly' ? t('form.onDayQuarterHint') : undefined}
-          >
-            {({ id: fid, describedBy }) => (
-              <NumberInput
-                id={fid}
-                value={String(spec.monthDay)}
-                onChange={(v) => update({ monthDay: Number(v) || 1 })}
-                min={1}
-                max={31}
-                describedBy={describedBy}
-                disabled={disabled}
-              />
-            )}
-          </FormRow>
+            description={spec.repeat === 'quarterly' ? t('form.onDayQuarterHint') : undefined}
+            width="100%"
+            min={1}
+            max={31}
+            value={spec.monthDay}
+            onChange={(v) => update({ monthDay: v || 1 })}
+            isDisabled={disabled}
+          />
         )}
         {spec.repeat === 'hourly' && (
-          <FormRow label={t('form.atMinute')}>
-            {({ id: fid }) => (
-              <NumberInput
-                id={fid}
-                value={String(Number(minute))}
-                onChange={(v) => update({ time: `00:${String(Number(v) || 0).padStart(2, '0')}` })}
-                min={0}
-                max={59}
-                disabled={disabled}
-              />
-            )}
-          </FormRow>
+          <NumberInput
+            label={t('form.atMinute')}
+            width="100%"
+            min={0}
+            max={59}
+            value={Number(minute)}
+            onChange={(v) => update({ time: `00:${String(v || 0).padStart(2, '0')}` })}
+            isDisabled={disabled}
+          />
         )}
         {spec.repeat !== 'hourly' && spec.repeat !== 'custom' && (
-          <FormRow label={t('form.atTime')}>
-            {({ id: fid }) => (
-              <Input
-                id={fid}
-                type="time"
-                value={spec.time}
-                onChange={(e) => e.target.value && update({ time: e.target.value })}
-                disabled={disabled}
-                className="w-full"
-              />
-            )}
-          </FormRow>
+          <TimeInput
+            label={t('form.atTime')}
+            width="100%"
+            hourFormat="24h"
+            value={spec.time as ISOTimeString}
+            onChange={(v) => v && update({ time: v })}
+            isDisabled={disabled}
+          />
         )}
-        <FormRow label={t('form.timezone')} error={errors['trigger.timezone']}>
-          {({ id: fid }) => (
-            <TimezonePicker
-              id={fid}
-              value={value.timezone}
-              onChange={(timezone) => onChange({ timezone })}
-              disabled={disabled}
-            />
-          )}
-        </FormRow>
-      </div>
+        {/* A searchable Selector's trigger is a plain button: aria-required (the job form's default) is not allowed on it. */}
+        <FormLayout defaultOptionality="optional">
+          <Selector
+            label={t('form.timezone')}
+            width="100%"
+            hasSearch
+            startIcon={GlobeIcon}
+            searchPlaceholder={t('form.searchZone')}
+            emptySearchText={t('form.noZone')}
+            value={value.timezone}
+            onChange={(timezone) => onChange({ timezone })}
+            options={zones}
+            status={errorStatus(errors['trigger.timezone'])}
+            isDisabled={disabled}
+          />
+        </FormLayout>
+      </Grid>
       {spec.repeat === 'custom' && (
-        <div className="grid min-w-0 gap-3">
-          <FormRow label={t('form.cron')} hint={t('form.cronHint')} error={errors['trigger.cron']}>
-            {({ id: fid, describedBy, invalid }) => (
-              <Input
-                id={fid}
-                value={value.cron}
-                onChange={(e) => onChange({ cron: e.target.value })}
-                aria-describedby={describedBy}
-                aria-invalid={invalid || undefined}
-                className="font-mono sm:w-80"
-                placeholder="0 7 * * *"
-                spellCheck={false}
-                disabled={disabled}
-              />
-            )}
-          </FormRow>
-          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('form.presets')}>
-            <span className="text-xs text-muted-foreground">{t('form.presets')}:</span>
+        <VStack gap={3}>
+          <TextInput
+            label={t('form.cron')}
+            description={t('form.cronHint')}
+            width="100%"
+            placeholder="0 7 * * *"
+            autoComplete="off"
+            value={value.cron}
+            onChange={(v) => onChange({ cron: v })}
+            status={errorStatus(errors['trigger.cron'])}
+            isDisabled={disabled}
+          />
+          <HStack gap={1.5} wrap="wrap" vAlign="center" role="group" aria-label={t('form.presets')}>
+            <Text size="xsm" color="secondary">
+              {t('form.presets')}:
+            </Text>
             {PRESETS.map((p) => (
               <Button
                 key={p}
-                type="button"
-                variant="outline"
+                label={cronText(p)}
+                variant="secondary"
                 size="sm"
-                className="h-7 px-2 text-xs"
+                isDisabled={disabled}
                 onClick={() => onChange({ cron: p })}
-                disabled={disabled}
-              >
-                {cronText(p)}
-              </Button>
+              />
             ))}
-          </div>
-        </div>
+          </HStack>
+        </VStack>
       )}
       {spec.repeat !== 'custom' && errors['trigger.cron'] && (
-        <p className="text-xs font-medium text-destructive" role="alert">
-          {errors['trigger.cron']}
-        </p>
+        <FieldStatus type="error" message={errors['trigger.cron']} variant="detached" />
       )}
       {cron && (
-        <div className="grid min-w-0 gap-2 rounded-lg border bg-muted/30 p-3">
-          <p className="text-sm font-medium">{cronText(cron)}</p>
-          <NextRuns query={{ kind: 'cron', cron, timezone: value.timezone }} timezone={value.timezone} />
-        </div>
+        <Card>
+          <CardContent>
+            <VStack gap={2}>
+              <Text weight="medium">{cronText(cron)}</Text>
+              <NextRuns query={{ kind: 'cron', cron, timezone: value.timezone }} timezone={value.timezone} />
+            </VStack>
+          </CardContent>
+        </Card>
       )}
-    </div>
+    </VStack>
   );
 }
 
@@ -476,122 +322,83 @@ export function TriggerEditor({
   disabled?: boolean;
 }) {
   const t = useTranslations('scheduler');
-  const id = useId();
   const set = (patch: Partial<TriggerState>) => onChange({ ...value, ...patch });
   const cron = useDebounced(value.cron, 350);
   const minutes = useDebounced(value.intervalMinutes, 350);
 
   return (
-    <div className="grid min-w-0 gap-5">
-      <div
-        role="radiogroup"
-        aria-label={t('fields.trigger')}
-        className="grid min-w-0 grid-cols-2 gap-2 lg:grid-cols-4"
+    <VStack gap={5}>
+      <RadioList
+        label={t('fields.trigger')}
+        isLabelHidden
+        value={value.kind}
+        onChange={(k) => set({ kind: k as TriggerKind })}
+        isDisabled={disabled}
       >
-        {TRIGGER_KINDS.map((k) => {
-          const Icon = TRIGGER_ICON[k];
-          return (
-            <label
-              key={k}
-              className={cn(
-                'flex min-w-0 cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm transition-colors hover:bg-accent/50',
-                'has-checked:border-primary has-checked:bg-primary/5 has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50',
-                disabled && 'cursor-not-allowed opacity-60',
-              )}
-            >
-              <input
-                type="radio"
-                name={`${id}-kind`}
-                value={k}
-                checked={value.kind === k}
-                onChange={() => set({ kind: k })}
-                disabled={disabled}
-                className="sr-only"
-              />
-              <Icon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-              <span className="min-w-0">
-                <span className="block font-medium">{t(`triggerKind.${k}`)}</span>
-                <span className="block text-xs text-muted-foreground">{t(`triggerKindHint.${k}`)}</span>
-              </span>
-            </label>
-          );
-        })}
-      </div>
+        {TRIGGER_KINDS.map((k) => (
+          <RadioListItem
+            key={k}
+            value={k}
+            label={t(`triggerKind.${k}`)}
+            description={t(`triggerKindHint.${k}`)}
+          />
+        ))}
+      </RadioList>
 
       {value.kind === 'cron' && (
         <RepeatEditor value={value} onChange={set} errors={errors} disabled={disabled} cron={cron} />
       )}
 
       {value.kind === 'interval' && (
-        <div className="grid min-w-0 gap-4">
-          <FormRow
+        <VStack gap={4}>
+          <NumberInput
             label={t('form.intervalMinutes')}
-            hint={t('form.intervalHint')}
-            error={errors['trigger.intervalMinutes']}
-          >
-            {({ id: fid, describedBy, invalid }) => (
-              <NumberInput
-                id={fid}
-                value={value.intervalMinutes}
-                onChange={(intervalMinutes) => set({ intervalMinutes })}
-                min={1}
-                describedBy={describedBy}
-                invalid={invalid}
-                disabled={disabled}
-              />
-            )}
-          </FormRow>
+            description={t('form.intervalHint')}
+            width={240}
+            min={1}
+            value={Number(value.intervalMinutes) || null}
+            onChange={(n) => set({ intervalMinutes: String(n) })}
+            status={errorStatus(errors['trigger.intervalMinutes'])}
+            isDisabled={disabled}
+          />
           {Number(minutes) >= 1 && (
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <NextRuns
-                query={{ kind: 'interval', intervalMinutes: Math.floor(Number(minutes)) }}
-                timezone={localTimeZone()}
-              />
-            </div>
+            <Card>
+              <CardContent>
+                <NextRuns
+                  query={{ kind: 'interval', intervalMinutes: Math.floor(Number(minutes)) }}
+                  timezone={localTimeZone()}
+                />
+              </CardContent>
+            </Card>
           )}
-        </div>
+        </VStack>
       )}
 
       {value.kind === 'after' && (
-        <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,14rem)]">
-          <FormRow
-            label={t('form.upstream')}
-            hint={t('form.upstreamHint')}
+        <Grid columns={{ minWidth: 260, repeat: 'fit' }} gap={4} align="end">
+          <UpstreamPicker
+            value={value.upstream}
+            onChange={(upstream) => set({ upstream })}
+            excludeId={jobId}
             error={errors['trigger.upstreamIds'] ?? errors.trigger}
-          >
-            {({ id: fid, describedBy, invalid }) => (
-              <UpstreamPicker
-                id={fid}
-                value={value.upstream}
-                onChange={(upstream) => set({ upstream })}
-                excludeId={jobId}
-                invalid={invalid}
-                describedBy={describedBy}
-                disabled={disabled}
-              />
-            )}
-          </FormRow>
-          <FormRow label={t('form.mode')} hint={t(`form.modeHint.${value.mode}`)}>
-            {({ id: fid, describedBy }) => (
-              <Select
-                value={value.mode}
-                onValueChange={(v) => set({ mode: v as 'all' | 'any' })}
-                disabled={disabled}
-              >
-                <SelectTrigger id={fid} className="w-full" aria-describedby={describedBy}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('form.modes.all')}</SelectItem>
-                  <SelectItem value="any">{t('form.modes.any')}</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          </FormRow>
-        </div>
+            disabled={disabled}
+          />
+          <Selector
+            label={t('form.mode')}
+            description={t(`form.modeHint.${value.mode}`)}
+            width="100%"
+            value={value.mode}
+            onChange={(v) => set({ mode: v as 'all' | 'any' })}
+            options={[
+              { value: 'all', label: t('form.modes.all') },
+              { value: 'any', label: t('form.modes.any') },
+            ]}
+            isDisabled={disabled}
+          />
+        </Grid>
       )}
 
-      {value.kind === 'manual' && <p className="text-sm text-muted-foreground">{t('form.manualHint')}</p>}
-    </div>
+      {value.kind === 'manual' && <Text color="secondary">{t('form.manualHint')}</Text>}
+    </VStack>
   );
 }

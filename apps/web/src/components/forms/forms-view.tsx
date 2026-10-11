@@ -3,13 +3,10 @@
 import type { FormsHeaderSlotProps, FormSummary } from '@isbp/contracts';
 import { localize } from '@isbp/sdk';
 import { Slot, useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Switch } from '@isbp/ui/switch';
 import {
   ClipboardListIcon,
   LockIcon,
@@ -18,7 +15,6 @@ import {
   UsersRoundIcon,
   WorkflowIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
@@ -27,6 +23,14 @@ import { useApiQuery } from '@/lib/api';
 import { CreateFormDialog } from './create-form-dialog';
 import { useCategoryLabel } from './form-inputs';
 import { FormIconTile, FormStatusBadges } from './form-meta';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Code } from '@astryxdesign/core/Code';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
 
 const PAGE_SIZE = 25;
 
@@ -69,19 +73,23 @@ export function FormsView() {
         cell: ({ row }) => {
           const f = row.original;
           return (
-            <Link
-              href={`/admin/forms/${f.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-3 rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              <FormIconTile name={f.icon} className={f.archived ? 'opacity-60 grayscale' : undefined} />
-              <span className="min-w-0">
-                <span className="block truncate font-medium hover:underline">
-                  {localize(f.name, locale) || f.key}
-                </span>
-                <code className="block truncate font-mono text-xs text-muted-foreground">{f.key}</code>
-              </span>
-            </Link>
+            <HStack gap={3} vAlign="center">
+              <FormIconTile name={f.icon} muted={f.archived} />
+              <StackItem size="fill">
+                <VStack hAlign="start">
+                  <Link
+                    href={`/admin/forms/${f.id}`}
+                    color="primary"
+                    weight="medium"
+                    maxLines={1}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {localize(f.name, locale) || f.key}
+                  </Link>
+                  <Code color="secondary">{f.key}</Code>
+                </VStack>
+              </StackItem>
+            </HStack>
           );
         },
       },
@@ -94,9 +102,7 @@ export function FormsView() {
         },
         cell: ({ row }) =>
           row.original.category ? (
-            <Badge variant="outline" className="font-normal">
-              {categoryLabel(row.original.category)}
-            </Badge>
+            <Badge variant="neutral" label={categoryLabel(row.original.category)} />
           ) : (
             '—'
           ),
@@ -113,22 +119,22 @@ export function FormsView() {
         cell: ({ row }) => {
           const f = row.original;
           return (
-            <div className="space-y-1 text-sm">
+            <VStack gap={1} hAlign="start">
               {f.workflow ? (
-                <span className="flex items-center gap-1.5">
-                  <WorkflowIcon className="size-3.5 text-muted-foreground" aria-hidden />
-                  <span className="truncate">{workflowName(f.workflow.name)}</span>
-                </span>
+                <HStack gap={1.5} vAlign="center">
+                  <Icon icon={WorkflowIcon} size="sm" color="secondary" />
+                  <Text maxLines={1}>{workflowName(f.workflow.name)}</Text>
+                </HStack>
               ) : (
-                <span className="text-muted-foreground">{t('noApproval')}</span>
+                <Text color="secondary">{t('noApproval')}</Text>
               )}
               {f.audience.type === 'groups' && (
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <UsersRoundIcon className="size-3" aria-hidden />
-                  {t('audienceGroups', { count: f.audience.groupKeys.length })}
-                </span>
+                <HStack gap={1.5} vAlign="center">
+                  <Icon icon={UsersRoundIcon} size="xsm" color="secondary" />
+                  <Text type="supporting">{t('audienceGroups', { count: f.audience.groupKeys.length })}</Text>
+                </HStack>
               )}
-            </div>
+            </VStack>
           );
         },
       },
@@ -140,14 +146,14 @@ export function FormsView() {
           headerClassName: 'hidden text-right sm:table-cell',
         },
         cell: ({ row }) => (
-          <div className="text-right tabular-nums">
-            <div>{row.original.submissionCount.toLocaleString(locale)}</div>
+          <VStack hAlign="end">
+            <Text hasTabularNumbers>{row.original.submissionCount.toLocaleString(locale)}</Text>
             {row.original.pendingCount > 0 && (
-              <div className="text-xs text-muted-foreground">
+              <Text type="supporting" hasTabularNumbers>
                 {t('pendingCount', { count: row.original.pendingCount })}
-              </div>
+              </Text>
             )}
-          </div>
+          </VStack>
         ),
       },
       {
@@ -193,9 +199,12 @@ export function FormsView() {
               name="core.forms.header"
               props={{ empty: !isLoading && !all.length }}
             />
-            <Button onClick={() => setCreateOpen(true)}>
-              <PlusIcon /> {t('add')}
-            </Button>
+            <Button
+              label={t('add')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreateOpen(true)}
+            />
           </>
         }
       />
@@ -221,13 +230,13 @@ export function FormsView() {
               placeholder={t('searchPlaceholder')}
               className="sm:w-80"
             />
-            <label className="flex items-center gap-2 text-sm text-muted-foreground sm:ml-auto">
+            <div className="sm:ml-auto">
               <Switch
-                checked={includeArchived}
-                onCheckedChange={(v) => set({ archived: v ? 'true' : undefined })}
+                label={t('showArchived')}
+                value={includeArchived}
+                onChange={(v) => set({ archived: v ? 'true' : undefined })}
               />
-              {t('showArchived')}
-            </label>
+            </div>
           </>
         }
         empty={
@@ -243,15 +252,19 @@ export function FormsView() {
               title={t('empty.firstTitle')}
               description={t('empty.firstDescription')}
               action={
-                <Button size="sm" onClick={() => setCreateOpen(true)}>
-                  <PlusIcon /> {t('add')}
-                </Button>
+                <Button
+                  label={t('add')}
+                  variant="primary"
+                  size="sm"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={() => setCreateOpen(true)}
+                />
               }
             />
           )
         }
       />
-      <CreateFormDialog open={createOpen} onOpenChange={setCreateOpen} categories={categories} />
+      {createOpen && <CreateFormDialog open onOpenChange={setCreateOpen} categories={categories} />}
     </>
   );
 }

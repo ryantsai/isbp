@@ -1,14 +1,21 @@
 'use client';
 
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { VisuallyHidden } from '@astryxdesign/core/VisuallyHidden';
 import { type Locale, localeLabels, locales } from '@isbp/i18n';
 import type { LocalizedText } from '@isbp/sdk';
+import { CheckIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useId, useState } from 'react';
-import { cn } from '../lib/utils';
-import { Input } from './input';
-import { Textarea } from './textarea';
+import { useId, useRef, useState } from 'react';
+import { useInputAttrs } from '../lib/input-attrs';
 
 const SHORT: Record<Locale, string> = { en: 'EN', 'zh-TW': '繁中', 'ja-JP': '日本語' };
+const LANG: Record<Locale, string> = { en: 'en', 'zh-TW': 'zh-Hant-TW', 'ja-JP': 'ja' };
 
 function clean(v: LocalizedText): LocalizedText {
   const out: LocalizedText = {};
@@ -19,6 +26,7 @@ function clean(v: LocalizedText): LocalizedText {
 /**
  * Text that admins write once per language (labels, names, help texts). Starts on the viewer's
  * language; a dot marks the languages that are filled in. Missing languages fall back to English.
+ * The input's accessible name is `aria-label` (a visible label next to it ties in through `id`).
  */
 export function LocalizedInput({
   value,
@@ -47,70 +55,71 @@ export function LocalizedInput({
   const current = useLocale() as Locale;
   const [active, setActive] = useState<Locale>(locales.includes(current) ? current : 'en');
   const groupId = useId();
+  const root = useRef<HTMLDivElement>(null);
+  useInputAttrs(root, { id, describedBy, label: ariaLabel }, [multiline]);
   const text = value?.[active] ?? '';
   const set = (v: string) => onChange(clean({ ...(value ?? {}), [active]: v }));
   const fallback = value ? (value.en ?? locales.map((l) => value[l]).find(Boolean)) : undefined;
-  const common = {
-    id,
-    value: text,
-    disabled,
-    'aria-invalid': invalid || undefined,
-    'aria-describedby': describedBy,
-    'aria-label': ariaLabel,
-    lang: active === 'en' ? 'en' : active === 'zh-TW' ? 'zh-Hant-TW' : 'ja',
-    placeholder: text ? placeholder : (fallback ?? placeholder),
-  };
+  const shownPlaceholder = text ? placeholder : (fallback ?? placeholder);
+  const status = invalid ? { type: 'error' as const } : undefined;
+  const label = ariaLabel ?? placeholder ?? '';
 
   return (
-    <div className={cn('grid gap-1.5', className)}>
-      {multiline ? (
-        <Textarea {...common} rows={3} onChange={(e) => set(e.target.value)} />
-      ) : (
-        <Input {...common} onChange={(e) => set(e.target.value)} />
-      )}
-      <div
-        role="group"
-        aria-labelledby={`${groupId}-label`}
+    <VStack gap={1.5} className={className}>
+      {/* The language the text is written in, for screen readers and for the right CJK glyph shapes. */}
+      <div ref={root} lang={LANG[active]}>
+        {multiline ? (
+          <TextArea
+            label={label}
+            isLabelHidden
+            rows={3}
+            value={text}
+            onChange={set}
+            placeholder={shownPlaceholder}
+            isDisabled={disabled}
+            status={status}
+          />
+        ) : (
+          <TextInput
+            label={label}
+            isLabelHidden
+            value={text}
+            onChange={set}
+            placeholder={shownPlaceholder}
+            isDisabled={disabled}
+            status={status}
+          />
+        )}
+      </div>
+      {/* Said once for the group, not on every language that is still empty. */}
+      <VisuallyHidden id={`${groupId}-fallback`}>{t('fallback')}</VisuallyHidden>
+      <SegmentedControl
+        label={t('languages')}
         aria-describedby={`${groupId}-fallback`}
-        className="flex items-center gap-1"
+        size="sm"
+        value={active}
+        onChange={(l) => setActive(l as Locale)}
+        isDisabled={disabled}
       >
-        <span id={`${groupId}-label`} className="sr-only">
-          {t('languages')}
-        </span>
-        {/* Said once for the group, not on every language that is still empty. */}
-        <span id={`${groupId}-fallback`} className="sr-only">
-          {t('fallback')}
-        </span>
         {locales.map((l) => {
           const filled = Boolean(value?.[l]?.trim());
+          const state = t(filled ? 'filled' : 'missing', { language: localeLabels[l] });
           return (
-            <button
+            <SegmentedControlItem
               key={l}
-              type="button"
-              disabled={disabled}
-              aria-pressed={active === l}
-              title={t(filled ? 'filled' : 'missing', { language: localeLabels[l] })}
-              onClick={() => setActive(l)}
-              className={cn(
-                'inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none',
-                active === l && 'bg-secondary text-secondary-foreground',
-              )}
-            >
-              <span
-                aria-hidden
-                className={cn(
-                  'size-1.5 rounded-full',
-                  filled ? 'bg-success' : 'border border-muted-foreground/50',
-                )}
-              />
-              {SHORT[l]}
-              <span className="sr-only">
-                {t(filled ? 'filled' : 'missing', { language: localeLabels[l] })}
-              </span>
-            </button>
+              value={l}
+              label={SHORT[l]}
+              icon={
+                <StatusDot
+                  variant={filled ? 'success' : 'neutral'}
+                  label={state}
+                  icon={filled ? <Icon icon={CheckIcon} /> : undefined}
+                />
+              }
+            />
           );
         })}
-      </div>
-    </div>
+      </SegmentedControl>
+    </VStack>
   );
 }

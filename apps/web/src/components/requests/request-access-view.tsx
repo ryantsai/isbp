@@ -4,19 +4,14 @@ import type { AccessRequest, ApprovalPreview, RequestableRole } from '@isbp/cont
 import { ApiError, usePlatform } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Disclosure, StepTransition } from '@isbp/ui/motion';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { PageHeader } from '@isbp/ui/page-header';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { SearchInput } from '@isbp/ui/search-input';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { Stepper } from '@isbp/ui/stepper';
-import { toast } from '@isbp/ui/sonner';
-import { Textarea } from '@isbp/ui/textarea';
+import { toast } from '@isbp/ui/toast';
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -34,6 +29,15 @@ import { useApiMutation, useApiQuery, useErrorText } from '@/lib/api';
 import { useRoleText } from '../roles/role-utils';
 import { RiskBadge } from '../workflows/subject-details';
 import { ApprovalPathList, ApprovalPathSkeleton, previewSteps } from './approval-path';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { ToggleButton } from '@astryxdesign/core/ToggleButton';
 
 type Step = 0 | 1 | 2;
 const PRESETS = [7, 30, 90] as const;
@@ -84,10 +88,12 @@ function RoleCard({ role, selected, onSelect }: { role: RoleItem; selected: bool
         ) : null}
         {role.owner && role.description && <span>{t('owner', { name: role.owner.displayName })}</span>}
         {role.held && (
-          <Badge variant="success" className="relative z-10">
-            <CheckCircle2Icon aria-hidden />
-            {t('held')}
-          </Badge>
+          <Badge
+            variant="success"
+            label={t('held')}
+            icon={<Icon icon={CheckCircle2Icon} size="xsm" />}
+            className="relative z-10"
+          />
         )}
         {role.pendingRequest && (
           <Link
@@ -247,19 +253,17 @@ export function RequestAccessView() {
           <div className="grid gap-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <SearchInput value={q} onChange={setQ} placeholder={t('search')} className="sm:w-80" />
-              <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('applications')}>
+              <HStack gap={1.5} wrap="wrap" role="group" aria-label={t('applications')}>
                 {[{ id: 'all', name: t('allApplications'), isPlatform: false }, ...apps].map((a) => (
-                  <Button
+                  <ToggleButton
                     key={a.id}
                     size="sm"
-                    variant={app === a.id ? 'secondary' : 'ghost'}
-                    aria-pressed={app === a.id}
-                    onClick={() => setApp(a.id)}
-                  >
-                    {a.isPlatform ? t('platform') : a.name}
-                  </Button>
+                    label={a.isPlatform ? t('platform') : a.name}
+                    isPressed={app === a.id}
+                    onPressedChange={() => setApp(a.id)}
+                  />
                 ))}
-              </div>
+              </HStack>
             </div>
             {roles.isLoading ? (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -334,16 +338,16 @@ export function RequestAccessView() {
                 {role ? t('selected', { name: role.name }) : t('selectHint')}
               </span>
               <Button
-                disabled={!role || role.held || Boolean(role.pendingRequest)}
+                label={t('continue')}
+                variant="primary"
+                endContent={<Icon icon={ArrowRightIcon} />}
+                isDisabled={!role || role.held || Boolean(role.pendingRequest)}
                 onClick={() => {
                   if (max && (duration === null || (duration !== -1 && duration > max)))
                     setDuration(PRESETS.find((p) => p <= max) ?? max);
                   setStep(1);
                 }}
-              >
-                {t('continue')}
-                <ArrowRightIcon />
-              </Button>
+              />
             </div>
           </div>
         )}
@@ -365,25 +369,21 @@ export function RequestAccessView() {
 
             <fieldset className="grid gap-2">
               <legend className="mb-2 text-sm font-medium">{t('who')}</legend>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant={!forOther ? 'secondary' : 'outline'}
-                  aria-pressed={!forOther}
-                  onClick={() => setForOther(false)}
-                >
-                  <UserAvatar name={user.displayName} src={user.avatarUrl} className="size-5 text-[9px]" />
-                  {t('forMe')}
-                </Button>
-                <Button
-                  type="button"
-                  variant={forOther ? 'secondary' : 'outline'}
-                  aria-pressed={forOther}
-                  onClick={() => setForOther(true)}
-                >
-                  {t('forSomeoneElse')}
-                </Button>
-              </div>
+              <HStack gap={2} wrap="wrap">
+                <ToggleButton
+                  label={t('forMe')}
+                  icon={
+                    <UserAvatar name={user.displayName} src={user.avatarUrl} className="size-5 text-[9px]" />
+                  }
+                  isPressed={!forOther}
+                  onPressedChange={() => setForOther(false)}
+                />
+                <ToggleButton
+                  label={t('forSomeoneElse')}
+                  isPressed={forOther}
+                  onPressedChange={() => setForOther(true)}
+                />
+              </HStack>
               {forOther && (
                 <div className="grid max-w-md gap-1.5">
                   <PersonPicker
@@ -405,52 +405,42 @@ export function RequestAccessView() {
 
             <fieldset className="grid gap-2">
               <legend className="mb-2 text-sm font-medium">{t('howLong')}</legend>
-              <div className="flex flex-wrap items-center gap-2">
+              <HStack gap={2} wrap="wrap" vAlign="center">
                 {PRESETS.filter((p) => !max || p <= max).map((p) => (
-                  <Button
+                  <ToggleButton
                     key={p}
-                    type="button"
-                    variant={duration === p ? 'secondary' : 'outline'}
-                    aria-pressed={duration === p}
-                    onClick={() => setDuration(p)}
-                  >
-                    {t('days', { count: p })}
-                  </Button>
+                    label={t('days', { count: p })}
+                    isPressed={duration === p}
+                    onPressedChange={() => setDuration(p)}
+                  />
                 ))}
-                <Button
-                  type="button"
-                  variant={duration === -1 ? 'secondary' : 'outline'}
-                  aria-pressed={duration === -1}
-                  onClick={() => setDuration(-1)}
-                >
-                  {t('custom')}
-                </Button>
+                <ToggleButton
+                  label={t('custom')}
+                  isPressed={duration === -1}
+                  onPressedChange={() => setDuration(-1)}
+                />
                 {!max && (
-                  <Button
-                    type="button"
-                    variant={duration === null ? 'secondary' : 'outline'}
-                    aria-pressed={duration === null}
-                    onClick={() => setDuration(null)}
-                  >
-                    {t('permanent')}
-                  </Button>
+                  <ToggleButton
+                    label={t('permanent')}
+                    isPressed={duration === null}
+                    onPressedChange={() => setDuration(null)}
+                  />
                 )}
                 {duration === -1 && (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={max ?? 3650}
-                      className="w-24"
-                      aria-label={t('customDays')}
-                      value={custom}
-                      aria-invalid={touched && !durationValid}
-                      onChange={(e) => setCustom(e.target.value)}
-                    />
-                    <span className="text-sm text-muted-foreground">{t('daysUnit')}</span>
-                  </div>
+                  <NumberInput
+                    label={t('customDays')}
+                    isLabelHidden
+                    min={1}
+                    max={max ?? 3650}
+                    isIntegerOnly
+                    units={t('daysUnit')}
+                    width={160}
+                    value={custom === '' ? null : Number(custom)}
+                    status={touched && !durationValid ? { type: 'error' } : undefined}
+                    onChange={(v) => setCustom(v == null ? '' : String(v))}
+                  />
                 )}
-              </div>
+              </HStack>
               <p
                 className={cn(
                   'text-xs',
@@ -461,39 +451,32 @@ export function RequestAccessView() {
               </p>
             </fieldset>
 
-            <div className="grid gap-2">
-              <Label htmlFor={`${id}-why`}>{t('why')}</Label>
-              <Textarea
-                id={`${id}-why`}
+            <FormLayout defaultOptionality="required">
+              <TextArea
+                label={t('why')}
+                description={t('whyHint')}
                 rows={4}
                 maxLength={2000}
                 value={justification}
-                aria-invalid={touched && !justificationValid}
-                aria-describedby={`${id}-why-hint`}
                 placeholder={t('whyPlaceholder')}
-                onChange={(e) => setJustification(e.target.value)}
+                status={touched && !justificationValid ? { type: 'error' } : undefined}
+                onChange={setJustification}
               />
-              <p
-                id={`${id}-why-hint`}
-                className={cn(
-                  'flex justify-between text-xs',
-                  touched && !justificationValid ? 'text-destructive' : 'text-muted-foreground',
-                )}
-              >
-                <span>{t('whyHint')}</span>
-                <span className="tabular-nums">{justification.trim().length}/2000</span>
-              </p>
-            </div>
+            </FormLayout>
 
             <div className="flex justify-between gap-2">
-              <Button variant="ghost" onClick={() => setStep(0)}>
-                <ArrowLeftIcon />
-                {t('back')}
-              </Button>
-              <Button onClick={goReview}>
-                {t('review')}
-                <ArrowRightIcon />
-              </Button>
+              <Button
+                label={t('back')}
+                variant="ghost"
+                icon={<Icon icon={ArrowLeftIcon} />}
+                onClick={() => setStep(0)}
+              />
+              <Button
+                label={t('review')}
+                variant="primary"
+                endContent={<Icon icon={ArrowRightIcon} />}
+                onClick={goReview}
+              />
             </div>
           </div>
         )}
@@ -521,27 +504,35 @@ export function RequestAccessView() {
                 </div>
               </dl>
               {submitError && (
-                <p
-                  role="alert"
-                  className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-                >
-                  {errorText(submitError)}{' '}
-                  {existing && (
-                    <Link className="font-medium underline" href={`/requests/${existing}`}>
-                      {existing}
-                    </Link>
-                  )}
-                </p>
+                <Banner
+                  status="error"
+                  collapsible={false}
+                  title={
+                    <>
+                      {errorText(submitError)}{' '}
+                      {existing && (
+                        <Link className="font-medium underline" href={`/requests/${existing}`}>
+                          {existing}
+                        </Link>
+                      )}
+                    </>
+                  }
+                />
               )}
               <div className="flex justify-between gap-2">
-                <Button variant="ghost" onClick={() => setStep(1)}>
-                  <ArrowLeftIcon />
-                  {t('back')}
-                </Button>
-                <Button onClick={() => submit.mutate(body())} disabled={submit.isPending}>
-                  <SendIcon />
-                  {t('submit')}
-                </Button>
+                <Button
+                  label={t('back')}
+                  variant="ghost"
+                  icon={<Icon icon={ArrowLeftIcon} />}
+                  onClick={() => setStep(1)}
+                />
+                <Button
+                  label={t('submit')}
+                  variant="primary"
+                  icon={<Icon icon={SendIcon} />}
+                  isDisabled={submit.isPending}
+                  onClick={() => submit.mutate(body())}
+                />
               </div>
             </div>
             <aside className="grid content-start gap-3 rounded-xl border bg-muted/30 p-4" aria-live="polite">

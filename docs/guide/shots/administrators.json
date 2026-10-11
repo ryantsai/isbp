@@ -12,7 +12,7 @@
     "path": "/admin/users?create=1",
     "waitFor": "main h1",
     "steps": [{ "wait": 1000 }],
-    "clip": "[role=\"dialog\"]"
+    "clip": "dialog[open]"
   },
   {
     "name": "administrators-roles",
@@ -27,7 +27,7 @@
     "path": "/admin/roles?assign=1",
     "waitFor": "main h1",
     "steps": [{ "wait": 1000 }],
-    "clip": "[role=\"dialog\"]"
+    "clip": "dialog[open]"
   },
   {
     "name": "administrators-workflow-builder",

@@ -20,7 +20,9 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3000',
     storageState: '.auth/admin.json',
-    trace: 'retain-on-failure',
+    // Off on purpose: Playwright's trace DOM snapshots close Astryx popups (Selector, menus) mid-action, which makes
+    // option clicks flaky. Failures keep a screenshot; use `--trace on` when debugging a single spec.
+    trace: 'off',
     screenshot: 'only-on-failure',
     locale: 'en-US',
   },

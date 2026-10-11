@@ -1,7 +1,9 @@
 'use client';
 
+import { Icon } from '@astryxdesign/core/Icon';
+import { Text } from '@astryxdesign/core/Text';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
+import { StatusBadge, type StatusIcon, type StatusTone } from '@isbp/ui/status';
 import {
   BanIcon,
   BlocksIcon,
@@ -33,18 +35,9 @@ import {
 import { useTranslations } from 'next-intl';
 import type { LogLevel, RunStatus, RunTrigger, SkipReason, TriggerKind } from '../contracts';
 
-export type Tone = 'info' | 'primary' | 'warning' | 'success' | 'muted' | 'destructive';
+export type Tone = Exclude<StatusTone, 'neutral'>;
 
-/** Tone classes tuned for AA on their own tints (the platform's status tokens). */
-export const TONE: Record<Tone, string> = {
-  info: 'border-transparent bg-info/12 text-info',
-  primary: 'border-transparent bg-primary/10 text-primary',
-  warning: 'border-transparent bg-warning/15 text-warning-foreground',
-  success: 'border-transparent bg-success/12 text-success',
-  muted: 'border-transparent bg-muted text-muted-foreground',
-  destructive: 'border-transparent bg-destructive/10 text-destructive dark:bg-destructive/20',
-};
-
+/** Tailwind text classes for a tone: the `tone` of a `RunTimeline` step (`@isbp/ui/run-detail`) takes a class. */
 export const TEXT_TONE: Record<Tone, string> = {
   info: 'text-info',
   primary: 'text-primary',
@@ -73,28 +66,40 @@ function useStatusLabel() {
       : t(`runStatus.${status}`);
 }
 
+/** The spinner of a running run as a badge icon (a module-level component, so it keeps its identity). */
+const SpinningLoader: StatusIcon = ({ className, ...props }) => (
+  <LoaderCircleIcon {...props} className={cn(className, 'motion-safe:animate-spin')} />
+);
+
 /** Icon + text + tone: a run's status is never shown by colour alone. */
 export function RunStatusBadge({
   status,
   skipReason,
-  className,
 }: {
   status: RunStatus;
   skipReason?: SkipReason | null;
-  className?: string;
 }) {
   const label = useStatusLabel();
   const meta = RUN_STATUS[status];
-  const Icon = meta.icon;
   return (
-    <Badge variant="outline" className={cn(TONE[meta.tone], className)}>
-      <Icon aria-hidden className={cn(meta.spin && 'motion-safe:animate-spin')} />
-      {label(status, skipReason)}
-    </Badge>
+    <StatusBadge
+      tone={meta.tone}
+      icon={meta.spin ? SpinningLoader : meta.icon}
+      label={label(status, skipReason)}
+    />
   );
 }
 
-/** Compact status for dense lists: icon and text in the status colour. */
+const ICON_COLOR = {
+  info: 'accent',
+  primary: 'accent',
+  warning: 'warning',
+  success: 'success',
+  muted: 'secondary',
+  destructive: 'error',
+} as const;
+
+/** Compact status for dense lists: the icon carries the status colour, the text follows its surroundings. */
 export function RunStatusText({
   status,
   skipReason,
@@ -106,17 +111,17 @@ export function RunStatusText({
 }) {
   const label = useStatusLabel();
   const meta = RUN_STATUS[status];
-  const Icon = meta.icon;
   return (
-    <span
-      className={cn(
-        'inline-flex min-w-0 items-center gap-1 text-xs font-medium',
-        TEXT_TONE[meta.tone],
-        className,
-      )}
-    >
-      <Icon aria-hidden className={cn('size-3.5 shrink-0', meta.spin && 'motion-safe:animate-spin')} />
-      <span className="truncate">{label(status, skipReason)}</span>
+    <span className={cn('inline-flex min-w-0 items-center gap-1', className)}>
+      <Icon
+        icon={meta.icon}
+        size="xsm"
+        color={ICON_COLOR[meta.tone]}
+        className={cn(meta.spin && 'motion-safe:animate-spin')}
+      />
+      <Text type="inherit" weight="medium" maxLines={1}>
+        {label(status, skipReason)}
+      </Text>
     </span>
   );
 }
@@ -130,26 +135,10 @@ export function JobStateBadge({
   disabledReason: string | null;
 }) {
   const t = useTranslations('scheduler.jobs');
-  if (enabled)
-    return (
-      <Badge variant="outline" className={TONE.success}>
-        <CirclePlayIcon aria-hidden />
-        {t('enabled')}
-      </Badge>
-    );
+  if (enabled) return <StatusBadge tone="success" icon={CirclePlayIcon} label={t('enabled')} />;
   if (disabledReason === 'auto')
-    return (
-      <Badge variant="outline" className={TONE.warning}>
-        <CircleAlertIcon aria-hidden />
-        {t('autoDisabled')}
-      </Badge>
-    );
-  return (
-    <Badge variant="outline" className={TONE.muted}>
-      <CirclePauseIcon aria-hidden />
-      {t('disabled')}
-    </Badge>
-  );
+    return <StatusBadge tone="warning" icon={CircleAlertIcon} label={t('autoDisabled')} />;
+  return <StatusBadge tone="muted" icon={CirclePauseIcon} label={t('disabled')} />;
 }
 
 export const TRIGGER_ICON: Record<TriggerKind, LucideIcon> = {
@@ -166,12 +155,11 @@ const RUN_TRIGGER_ICON: Record<RunTrigger, LucideIcon> = {
   retry: RotateCwIcon,
 };
 
-export function RunTriggerLabel({ trigger, className }: { trigger: RunTrigger; className?: string }) {
+export function RunTriggerLabel({ trigger }: { trigger: RunTrigger }) {
   const t = useTranslations('scheduler.runTrigger');
-  const Icon = RUN_TRIGGER_ICON[trigger];
   return (
-    <span className={cn('inline-flex items-center gap-1.5', className)}>
-      <Icon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+    <span className="inline-flex items-center gap-1.5">
+      <Icon icon={RUN_TRIGGER_ICON[trigger]} size="xsm" color="secondary" />
       {t(trigger)}
     </span>
   );
@@ -190,9 +178,14 @@ const TASK_ICONS: Record<string, LucideIcon> = {
 };
 
 /** A task type's icon (lucide name from its manifest), with a generic fallback. */
-export function TaskIcon({ icon, className }: { icon: string | null | undefined; className?: string }) {
-  const Icon = (icon && TASK_ICONS[icon]) || BlocksIcon;
-  return <Icon aria-hidden className={cn('size-4 shrink-0', className)} />;
+export function TaskIcon({
+  icon,
+  color,
+}: {
+  icon: string | null | undefined;
+  color?: 'accent' | 'secondary';
+}) {
+  return <Icon icon={(icon && TASK_ICONS[icon]) || BlocksIcon} color={color} />;
 }
 
 export const LOG_LEVEL: Record<LogLevel, { icon: LucideIcon; tone: Tone }> = {

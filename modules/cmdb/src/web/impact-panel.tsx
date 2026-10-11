@@ -1,13 +1,25 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Selector } from '@astryxdesign/core/Selector';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
 import { localize } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
 import {
   ArrowDownToLineIcon,
   ArrowUpFromLineIcon,
@@ -20,7 +32,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { type CiRef, type Impact, type ImpactNode, MAX_IMPACT_DEPTH } from '../contracts';
 import { impactChildDirection, type ImpactDirection } from '../model';
 import { CiStatusBadge } from './badges';
@@ -75,15 +87,22 @@ function NodeTable({
   const t = useTranslations('cmdb');
   const locale = useLocale();
   return (
-    <Table>
-      <caption className="sr-only">{caption}</caption>
+    <Table aria-label={caption}>
       <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead className="w-20">{t('impact.columns.level')}</TableHead>
-          <TableHead>{t('impact.columns.ci')}</TableHead>
-          <TableHead className="hidden md:table-cell">{t('impact.columns.class')}</TableHead>
-          <TableHead>{t('impact.columns.status')}</TableHead>
-          <TableHead>{t('impact.columns.link')}</TableHead>
+        <TableRow isHeaderRow>
+          <TableHeaderCell className="max-w-none whitespace-nowrap">
+            {t('impact.columns.level')}
+          </TableHeaderCell>
+          <TableHeaderCell className="whitespace-nowrap">{t('impact.columns.ci')}</TableHeaderCell>
+          <TableHeaderCell className="hidden md:table-cell max-w-none whitespace-nowrap">
+            {t('impact.columns.class')}
+          </TableHeaderCell>
+          <TableHeaderCell className="max-w-none whitespace-nowrap">
+            {t('impact.columns.status')}
+          </TableHeaderCell>
+          <TableHeaderCell className="max-w-none whitespace-nowrap">
+            {t('impact.columns.link')}
+          </TableHeaderCell>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -97,7 +116,7 @@ function NodeTable({
               key={n.ci.id}
               className={cn(n.isService && direction === 'impacted' && 'bg-destructive/5')}
             >
-              <TableCell className="tabular-nums text-muted-foreground">{n.depth}</TableCell>
+              <TableCell className="max-w-none tabular-nums text-muted-foreground">{n.depth}</TableCell>
               <TableCell className="max-w-72">
                 <Link href={ciHref(n.ci)} className="flex min-w-0 items-center gap-2 hover:underline">
                   <span className="font-mono text-xs text-muted-foreground">{n.ci.reference}</span>
@@ -110,16 +129,16 @@ function NodeTable({
                   </span>
                 )}
               </TableCell>
-              <TableCell className="hidden text-muted-foreground md:table-cell">
+              <TableCell className="hidden max-w-none whitespace-nowrap text-muted-foreground md:table-cell">
                 <span className="inline-flex items-center gap-1.5">
                   <ClassIcon name={n.ci.class.icon} className="size-3.5" />
                   {localize(n.ci.class.name, locale)}
                 </span>
               </TableCell>
-              <TableCell>
+              <TableCell className="max-w-none whitespace-nowrap">
                 <CiStatusBadge status={n.ci.status} />
               </TableCell>
-              <TableCell className="text-muted-foreground">
+              <TableCell className="max-w-none whitespace-nowrap text-muted-foreground">
                 {t('impact.via', { label, name: parent?.name ?? '—' })}
               </TableCell>
             </TableRow>
@@ -135,7 +154,6 @@ export function ImpactPanel({ ci }: { ci: CiRef }) {
   const t = useTranslations('cmdb');
   const [depth, setDepth] = useState(3);
   const [view, setView] = useState<View>('graph');
-  const depthId = useId();
   const { data, isLoading, isFetching, error, refetch } = useImpact(ci.id, depth);
   const byId = useMemo(() => {
     const map = new Map<string, CiRef>();
@@ -154,49 +172,44 @@ export function ImpactPanel({ ci }: { ci: CiRef }) {
           {data && <ImpactSentence impact={data} />}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor={depthId} className="text-sm text-muted-foreground">
-            {t('impact.depth')}
-          </label>
-          <Select value={String(depth)} onValueChange={(v) => setDepth(Number(v))}>
-            <SelectTrigger id={depthId} size="sm" className="w-28">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: MAX_IMPACT_DEPTH }, (_, i) => i + 1).map((d) => (
-                <SelectItem key={d} value={String(d)}>
-                  {t('impact.levels', { count: d })}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div role="group" aria-label={t('impact.view')} className="inline-flex rounded-md border p-0.5">
-            {(
-              [
-                ['graph', WaypointsIcon],
-                ['list', ListIcon],
-              ] as const
-            ).map(([v, Icon]) => (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={view === v}
-                onClick={() => setView(v)}
-                className="inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none aria-pressed:bg-secondary aria-pressed:text-foreground"
-              >
-                <Icon className="size-4" aria-hidden />
-                {t(`impact.${v}`)}
-              </button>
-            ))}
-          </div>
+          <HStack gap={2} vAlign="center">
+            <Text color="secondary" aria-hidden>
+              {t('impact.depth')}
+            </Text>
+            <Selector
+              label={t('impact.depth')}
+              isLabelHidden
+              size="sm"
+              width={120}
+              value={String(depth)}
+              onChange={(v) => setDepth(Number(v))}
+              options={Array.from({ length: MAX_IMPACT_DEPTH }, (_, i) => i + 1).map((d) => ({
+                value: String(d),
+                label: t('impact.levels', { count: d }),
+              }))}
+            />
+          </HStack>
+          <SegmentedControl
+            label={t('impact.view')}
+            size="sm"
+            value={view}
+            onChange={(v) => setView(v as View)}
+          >
+            <SegmentedControlItem
+              value="graph"
+              label={t('impact.graph')}
+              icon={<AstryxIcon icon={WaypointsIcon} />}
+            />
+            <SegmentedControlItem
+              value="list"
+              label={t('impact.list')}
+              icon={<AstryxIcon icon={ListIcon} />}
+            />
+          </SegmentedControl>
         </div>
       </div>
 
-      {data?.truncated && (
-        <p className="flex items-center gap-2 rounded-md bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
-          <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
-          {t('impact.truncated')}
-        </p>
-      )}
+      {data?.truncated && <Banner status="warning" title={t('impact.truncated')} collapsible={false} />}
 
       {error && !data ? (
         <ErrorState error={error} onRetry={() => refetch()} className="rounded-xl border" />

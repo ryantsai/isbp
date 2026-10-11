@@ -3,8 +3,6 @@
 import type { NotificationPreferences } from '@isbp/contracts';
 import { type Locale, localeLabels, locales } from '@isbp/i18n';
 import { matchPermission } from '@isbp/sdk';
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
 import {
   AlarmClockIcon,
   BellIcon,
@@ -33,6 +31,8 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
+import { IconTile } from '@isbp/ui/icon-tile';
+import { StatusBadge, type StatusTone } from '@isbp/ui/status';
 import { useApiQuery } from '@/lib/api';
 
 export const CHANNELS_PATH = '/notification-channels';
@@ -108,13 +108,14 @@ export function usePatternLabel() {
 
 type Tone = 'primary' | 'success' | 'danger' | 'warning' | 'info' | 'muted';
 
+/** `IconTile` tints itself from the text colour, so one class per tone. */
 const TONES: Record<Tone, string> = {
-  primary: 'bg-primary/10 text-primary',
-  success: 'bg-success/12 text-success',
-  danger: 'bg-destructive/10 text-destructive dark:bg-destructive/20',
-  warning: 'bg-warning/15 text-warning-foreground',
-  info: 'bg-info/12 text-info',
-  muted: 'bg-muted text-muted-foreground',
+  primary: 'text-primary',
+  success: 'text-success',
+  danger: 'text-destructive',
+  warning: 'text-warning-foreground',
+  info: 'text-info',
+  muted: 'text-muted-foreground',
 };
 
 /** Icon + tone per notification type (decorative — the title always says what happened). */
@@ -152,19 +153,12 @@ function typeVisual(type: string): { icon: LucideIcon; tone: Tone } {
   }
 }
 
-export function TypeIcon({ type, className }: { type: string; className?: string }) {
+export function TypeIcon({ type }: { type: string }) {
   const { icon: Icon, tone } = typeVisual(type);
   return (
-    <span
-      aria-hidden
-      className={cn(
-        'grid size-9 shrink-0 place-items-center rounded-lg [&_svg]:size-4',
-        TONES[tone],
-        className,
-      )}
-    >
+    <IconTile aria-hidden size="sm" className={TONES[tone]}>
       <Icon />
-    </span>
+    </IconTile>
   );
 }
 
@@ -182,20 +176,13 @@ const CHANNEL: Record<ChannelKind, { icon: LucideIcon; tone: Tone }> = {
 };
 
 /** Coloured icon tile per channel kind (always paired with a text label). */
-export function ChannelTile({ kind, className }: { kind: string; className?: string }) {
+export function ChannelTile({ kind, size }: { kind: string; size?: 'xs' | 'sm' | 'default' | 'lg' }) {
   const c = CHANNEL[kind as ChannelKind] ?? { icon: BellIcon, tone: 'muted' as Tone };
   const Icon = c.icon;
   return (
-    <span
-      aria-hidden
-      className={cn(
-        'grid size-10 shrink-0 place-items-center rounded-lg [&_svg]:size-5',
-        TONES[c.tone],
-        className,
-      )}
-    >
+    <IconTile aria-hidden size={size} className={TONES[c.tone]}>
       <Icon />
-    </span>
+    </IconTile>
   );
 }
 
@@ -209,7 +196,7 @@ export function ChannelLabel({ kind }: { kind: string }) {
   const label = useChannelLabel();
   return (
     <span className="inline-flex min-w-0 items-center gap-2">
-      <ChannelTile kind={kind} className="size-7 rounded-md [&_svg]:size-3.5" />
+      <ChannelTile kind={kind} size="xs" />
       <span className="truncate">{label(kind)}</span>
     </span>
   );
@@ -219,23 +206,19 @@ export function ChannelLabel({ kind }: { kind: string }) {
 
 export const DELIVERY_STATUSES = ['pending', 'sent', 'failed', 'skipped'] as const;
 
-const STATUS = {
-  pending: { variant: 'info', icon: CircleDashedIcon },
-  sent: { variant: 'success', icon: CircleCheckIcon },
-  failed: { variant: 'destructive', icon: CircleXIcon },
-  skipped: { variant: 'muted', icon: CircleMinusIcon },
-} as const;
+const STATUS: Record<string, { tone: StatusTone; icon: LucideIcon }> = {
+  pending: { tone: 'info', icon: CircleDashedIcon },
+  sent: { tone: 'success', icon: CircleCheckIcon },
+  failed: { tone: 'destructive', icon: CircleXIcon },
+  skipped: { tone: 'muted', icon: CircleMinusIcon },
+};
 
 /** Delivery outcome with icon + text (never colour alone). */
 export function DeliveryStatusBadge({ status }: { status: string }) {
   const t = useTranslations('notifications.admin.log.status');
-  const s = STATUS[status as keyof typeof STATUS];
-  const Icon = s?.icon;
+  const s = STATUS[status];
   return (
-    <Badge variant={s?.variant ?? 'outline'}>
-      {Icon && <Icon aria-hidden />}
-      {t.has(status) ? t(status) : status}
-    </Badge>
+    <StatusBadge tone={s?.tone ?? 'neutral'} icon={s?.icon} label={t.has(status) ? t(status) : status} />
   );
 }
 

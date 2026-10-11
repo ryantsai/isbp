@@ -31,7 +31,7 @@ test.describe('sign-in', () => {
         nonce,
       );
 
-      await page.getByRole('button', { name: 'Language', exact: true }).click();
+      await page.getByRole('button', { name: /^Language/ }).click();
       await page.getByRole('menuitemradio', { name: '繁體中文（台灣）', exact: true }).click();
       await expect(page.locator('html')).toHaveAttribute('lang', 'zh-Hant-TW');
       await expect(page.locator('html')).toHaveClass(theme);

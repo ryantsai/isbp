@@ -1,5 +1,13 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import { type ErrorCode, HttpError, type RunProblem, runProblemFromText, runProblemOf } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import {
@@ -10,16 +18,22 @@ import {
   ScrollTextIcon,
   TriangleAlertIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { cn } from '../lib/utils';
-import { Button } from './button';
-import { Label } from './label';
+import { IconTile } from './icon-tile';
 import { ProblemBanner } from './problem-banner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
-import { toast } from './sonner';
-import { Switch } from './switch';
+import {
+  Timeline,
+  TimelineContent,
+  TimelineDate,
+  TimelineHeader,
+  TimelineIndicator,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineTitle,
+} from './timeline';
+import { toast } from './toast';
 
 /*
  * The one run page layout for Scheduled jobs, pipelines and syncs (docs/ai/ui-guidelines.md "States": failed work):
@@ -154,11 +168,7 @@ export function RunProblemBanner({
   const action =
     href || actions ? (
       <>
-        {href && (
-          <Button asChild size="sm" variant="outline">
-            <Link href={href}>{t('openConnection')}</Link>
-          </Button>
-        )}
+        {href && <Button label={t('openConnection')} variant="secondary" size="sm" href={href} />}
         {actions}
       </>
     ) : undefined;
@@ -178,7 +188,7 @@ export function RunProblemBanner({
         }
         description={
           <>
-            <span className="font-medium text-foreground">{title}</span> {hint}
+            <Text weight="medium">{title}</Text> {hint}
           </>
         }
         action={action}
@@ -226,9 +236,9 @@ export interface RunCount {
 
 const COUNT_TONE = {
   default: '',
-  success: 'text-success',
-  warning: 'text-warning-foreground',
-  destructive: 'text-destructive',
+  success: 'text-(--color-text-green)',
+  warning: 'text-(--color-text-yellow)',
+  destructive: 'text-(--color-text-red)',
 } as const;
 
 /** The run's counters (rows read/written, records created/updated, errors) in one row of small tiles. */
@@ -248,17 +258,24 @@ export function RunCounts({
       aria-live="polite"
     >
       {items.map((c) => (
-        <div key={c.key} className="min-w-0 rounded-xl border bg-card px-4 py-3 shadow-xs">
-          <dt className="truncate text-xs text-muted-foreground">{c.label}</dt>
-          <dd
-            className={cn(
-              'mt-1 truncate text-xl font-semibold tracking-tight tabular-nums',
-              COUNT_TONE[c.tone ?? 'default'],
-            )}
-          >
-            {c.value}
+        <Card key={c.key} padding={3} className="min-w-0">
+          <dt>
+            <Text type="supporting" maxLines={1}>
+              {c.label}
+            </Text>
+          </dt>
+          <dd>
+            <Text
+              size="xl"
+              weight="semibold"
+              hasTabularNumbers
+              maxLines={1}
+              className={COUNT_TONE[c.tone ?? 'default']}
+            >
+              {c.value}
+            </Text>
           </dd>
-        </div>
+        </Card>
       ))}
     </dl>
   );
@@ -278,38 +295,34 @@ export interface RunStep {
 export function RunTimeline({ steps, label }: { steps: RunStep[]; label: string }) {
   const format = useFormatter();
   return (
-    <ol className="grid gap-0" aria-label={label}>
-      {steps.map((s, i) => {
-        const Icon = s.icon;
+    <Timeline aria-label={label}>
+      {steps.map((s) => {
+        const StepIcon = s.icon;
         return (
-          <li key={s.key} className="relative grid grid-cols-[1.5rem_minmax(0,1fr)] gap-3 pb-4 last:pb-0">
-            {i < steps.length - 1 && (
-              <span className="absolute top-6 bottom-0 left-3 w-px -translate-x-1/2 bg-border" aria-hidden />
-            )}
-            <span
-              className={cn(
-                'grid size-6 place-items-center rounded-full border bg-card',
-                s.tone ?? 'text-muted-foreground',
-              )}
-              aria-hidden
-            >
-              <Icon className="size-3.5" />
-            </span>
-            <div className="min-w-0 text-sm">
-              <p className="font-medium">{s.title}</p>
+          <TimelineItem key={s.key}>
+            <TimelineHeader>
+              <TimelineSeparator />
+              <TimelineIndicator asChild>
+                <IconTile size="xs" className={s.tone ?? 'text-muted-foreground'}>
+                  <StepIcon />
+                </IconTile>
+              </TimelineIndicator>
+              <TimelineTitle>{s.title}</TimelineTitle>
+            </TimelineHeader>
+            <TimelineContent>
               {s.at && (
-                <p className="text-xs text-muted-foreground">
+                <TimelineDate asChild>
                   <time dateTime={s.at}>
                     {format.dateTime(new Date(s.at), { dateStyle: 'medium', timeStyle: 'medium' })}
                   </time>
-                </p>
+                </TimelineDate>
               )}
-              {s.detail && <p className="text-xs text-muted-foreground">{s.detail}</p>}
-            </div>
-          </li>
+              {s.detail && <div>{s.detail}</div>}
+            </TimelineContent>
+          </TimelineItem>
         );
       })}
-    </ol>
+    </Timeline>
   );
 }
 
@@ -323,9 +336,9 @@ export interface RunLogLine {
 }
 
 const LEVEL = {
-  info: { icon: InfoIcon, className: 'text-info' },
-  warn: { icon: TriangleAlertIcon, className: 'text-warning-foreground' },
-  error: { icon: CircleXIcon, className: 'text-destructive' },
+  info: { icon: InfoIcon, className: 'text-(--color-text-blue)' },
+  warn: { icon: TriangleAlertIcon, className: 'text-(--color-text-yellow)' },
+  error: { icon: CircleXIcon, className: 'text-(--color-text-red)' },
 } as const;
 
 type LevelFilter = 'all' | 'problems' | 'errors';
@@ -391,102 +404,97 @@ export function RunLog({
   };
 
   return (
-    <section
-      aria-labelledby={`${id}-title`}
-      className={cn('min-w-0 rounded-xl border bg-card shadow-xs', className)}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <ScrollTextIcon className="size-4 shrink-0 text-primary" aria-hidden />
-          <h2 id={`${id}-title`} className="font-semibold">
+    <Card padding={0} role="region" aria-labelledby={`${id}-title`} className={cn('min-w-0', className)}>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <HStack gap={2} vAlign="center" className="min-w-0">
+          <Icon icon={ScrollTextIcon} />
+          <Heading level={2} id={`${id}-title`}>
             {title ?? t('title')}
-          </h2>
-          <span className="text-xs text-muted-foreground" aria-live="polite">
+          </Heading>
+          <Text type="supporting" aria-live="polite">
             {live ? t('live', { count: lines.length }) : t('lines', { count: lines.length })}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
+          </Text>
+        </HStack>
+        <HStack gap={3} wrap="wrap" vAlign="center">
           {problems > 0 && (
-            <Select value={filter} onValueChange={(v) => setFilter(v as LevelFilter)}>
-              <SelectTrigger size="sm" className="w-auto" aria-label={t('filter')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FILTERS.map((f) => (
-                  <SelectItem key={f} value={f}>
-                    {t(`filters.${f}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Selector
+              label={t('filter')}
+              isLabelHidden
+              size="sm"
+              options={FILTERS.map((f) => ({ value: f, label: t(`filters.${f}`) }))}
+              value={filter}
+              onChange={(v) => setFilter(v as LevelFilter)}
+            />
           )}
-          {live && (
-            <div className="flex items-center gap-2">
-              <Switch id={`${id}-follow`} checked={follow} onCheckedChange={setFollow} />
-              <Label htmlFor={`${id}-follow`} className="text-sm font-normal">
-                {t('follow')}
-              </Label>
-            </div>
-          )}
-          <Button variant="outline" size="sm" onClick={() => void copy()} disabled={!lines.length}>
-            <CopyIcon /> {t('copy')}
-          </Button>
-          <Button variant="outline" size="sm" onClick={download} disabled={!lines.length}>
-            <DownloadIcon /> {t('download')}
-          </Button>
-        </div>
+          {live && <Switch label={t('follow')} size="sm" value={follow} onChange={setFollow} />}
+          <Button
+            label={t('copy')}
+            variant="secondary"
+            size="sm"
+            icon={<Icon icon={CopyIcon} />}
+            isDisabled={!lines.length}
+            onClick={() => void copy()}
+          />
+          <Button
+            label={t('download')}
+            variant="secondary"
+            size="sm"
+            icon={<Icon icon={DownloadIcon} />}
+            isDisabled={!lines.length}
+            onClick={download}
+          />
+        </HStack>
       </div>
+      <Divider />
       <div
         ref={box}
         role="log"
         aria-live="off"
         aria-labelledby={`${id}-title`}
         tabIndex={0}
-        className="max-h-[32rem] min-h-32 overflow-auto bg-muted/30 py-2 font-mono text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        className="max-h-[32rem] min-h-32 overflow-auto bg-(--color-background-muted) py-2"
       >
         {shown.length === 0 ? (
-          <p className="px-4 py-6 text-center font-sans text-sm text-muted-foreground">
-            {lines.length ? t('noMatch') : live ? t('waiting') : t('empty')}
-          </p>
+          <div className="px-4 py-6 text-center">
+            <Text color="secondary">{lines.length ? t('noMatch') : live ? t('waiting') : t('empty')}</Text>
+          </div>
         ) : (
           <ol className="min-w-0">
             {shown.map((l) => {
               const meta = LEVEL[l.level];
-              const Icon = meta.icon;
               return (
                 <li
                   key={l.key}
                   className={cn(
-                    'grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-2 px-4 py-0.5 hover:bg-accent/40',
-                    l.level === 'error' && 'bg-destructive/5',
+                    'grid grid-cols-[auto_auto_minmax(0,1fr)] items-start gap-x-2 px-4 py-0.5',
+                    l.level === 'error' && 'bg-(--color-background-red)',
                   )}
                 >
-                  <time dateTime={l.at} className="text-muted-foreground tabular-nums select-none">
-                    {format.dateTime(new Date(l.at), {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                    })}
-                  </time>
-                  <span
-                    className={cn(
-                      'inline-flex w-16 items-center gap-1 font-sans font-medium',
-                      meta.className,
-                    )}
-                  >
-                    <Icon className="size-3.5 shrink-0" aria-hidden />
-                    {t(`levels.${l.level}`)}
+                  <Text type="code" size="sm" color="secondary" hasTabularNumbers className="select-none">
+                    <time dateTime={l.at}>
+                      {format.dateTime(new Date(l.at), {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      })}
+                    </time>
+                  </Text>
+                  <span className={cn('inline-flex w-20 items-center gap-1', meta.className)}>
+                    <Icon icon={meta.icon} />
+                    <Text type="supporting" size="sm" weight="medium" color="inherit">
+                      {t(`levels.${l.level}`)}
+                    </Text>
                   </span>
-                  <span className="whitespace-pre-wrap wrap-anywhere">
+                  <Text type="code" size="sm" className="whitespace-pre-wrap wrap-anywhere">
                     {l.message}
                     {l.extra}
-                  </span>
+                  </Text>
                 </li>
               );
             })}
           </ol>
         )}
       </div>
-    </section>
+    </Card>
   );
 }

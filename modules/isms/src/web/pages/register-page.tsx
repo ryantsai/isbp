@@ -1,27 +1,27 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { DropdownMenu } from '@astryxdesign/core/DropdownMenu';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, DataTableSummary, useListState } from '@isbp/ui/data-table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
+import { DownloadButton } from '@isbp/ui/download-button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { FilterBar } from '@isbp/ui/filter-bar';
 import { PageHeader } from '@isbp/ui/page-header';
+import { usePeople } from '@isbp/ui/person-picker';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { ChevronDownIcon, DownloadIcon, FileUpIcon, LinkIcon, PlusIcon, ShieldCheckIcon } from 'lucide-react';
-import Link from 'next/link';
+import { Segmented } from '@isbp/ui/segmented';
+import { DownloadIcon, FileUpIcon, LinkIcon, PlusIcon, ShieldCheckIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ASSET_VIEWS, type AssetListItem } from '../../contracts';
 import { AssetFormSheet } from '../asset-form';
 import { AssetStatusBadge, ValueBadge } from '../badges';
@@ -29,7 +29,6 @@ import { CreateFromSheet } from '../create-from-sheet';
 import { ImportAssetsDialog } from '../import-dialog';
 import { apiUrl, assetHref, useGroups, useLocalized, useTaxonomy } from '../lib';
 import { PersonField } from '../people';
-import { usePeople } from '@isbp/ui/person-picker';
 
 const ALL = '__all__';
 const FILTER_KEYS = ['q', 'class', 'minValue', 'classification', 'site', 'manager', 'managerGroup'] as const;
@@ -40,26 +39,28 @@ function FilterSelect({
   onChange,
   allLabel,
   label,
-  className,
-  children,
+  width = 176,
+  hasSearch,
+  options,
 }: {
   value: string | undefined;
   onChange: (v: string | undefined) => void;
   allLabel: string;
   label: string;
-  className?: string;
-  children: ReactNode;
+  width?: number;
+  hasSearch?: boolean;
+  options: { value: string; label: string }[];
 }) {
   return (
-    <Select value={value ?? ALL} onValueChange={(v) => onChange(v === ALL ? undefined : v)}>
-      <SelectTrigger className={className ?? 'w-full sm:w-44'} aria-label={label}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL}>{allLabel}</SelectItem>
-        {children}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={label}
+      isLabelHidden
+      width={width}
+      hasSearch={hasSearch}
+      value={value ?? ALL}
+      onChange={(v) => onChange(v === ALL ? undefined : v)}
+      options={[{ value: ALL, label: allLabel }, ...options]}
+    />
   );
 }
 
@@ -105,16 +106,15 @@ export default function RegisterPage() {
         header: t('fields.name'),
         meta: { sortKey: 'name', wrap: true },
         cell: ({ row }) => (
-          <div className="min-w-0">
-            <Link
-              href={assetHref(row.original.number)}
-              onClick={(e) => e.stopPropagation()}
-              className="font-medium outline-none hover:underline focus-visible:underline"
-            >
+          <VStack gap={0}>
+            <Link href={assetHref(row.original.number)} onClick={(e) => e.stopPropagation()}>
               {row.original.name}
             </Link>
-            <div className="font-mono text-xs text-muted-foreground">{row.original.number}</div>
+            <Text type="code" color="secondary">
+              {row.original.number}
+            </Text>
             <DataTableSummary>
+              <ValueBadge value={row.original.value} />
               <span>
                 {row.original.subclass
                   ? localized(row.original.subclass.name)
@@ -124,7 +124,7 @@ export default function RegisterPage() {
                 <span>· {row.original.manager?.displayName ?? row.original.managerGroup?.name}</span>
               )}
             </DataTableSummary>
-          </div>
+          </VStack>
         ),
       },
       {
@@ -132,17 +132,17 @@ export default function RegisterPage() {
         header: t('fields.class'),
         meta: { sortKey: 'class', priority: 2, className: 'max-w-48' },
         cell: ({ row }) => (
-          <span className="block truncate">
+          <Text maxLines={1}>
             {row.original.subclass
               ? localized(row.original.subclass.name)
               : localized(row.original.class.name)}
-          </span>
+          </Text>
         ),
       },
       {
         id: 'value',
         header: t('fields.value'),
-        meta: { sortKey: 'value' },
+        meta: { sortKey: 'value', priority: 2 },
         cell: ({ row }) => (
           <span
             title={t('register.ciaLabel', {
@@ -160,11 +160,12 @@ export default function RegisterPage() {
         header: t('fields.manager'),
         meta: { priority: 2, className: 'max-w-44' },
         cell: ({ row }) => (
-          <span className="block truncate">
-            {row.original.manager?.displayName ?? row.original.managerGroup?.name ?? (
-              <span className="text-muted-foreground">—</span>
-            )}
-          </span>
+          <Text
+            maxLines={1}
+            color={row.original.manager || row.original.managerGroup ? 'primary' : 'secondary'}
+          >
+            {row.original.manager?.displayName ?? row.original.managerGroup?.name ?? '—'}
+          </Text>
         ),
       },
       {
@@ -173,9 +174,9 @@ export default function RegisterPage() {
         meta: { priority: 3, className: 'max-w-44' },
         cell: ({ row }) =>
           row.original.classification ? (
-            <span className="block truncate">{localized(row.original.classification.name)}</span>
+            <Text maxLines={1}>{localized(row.original.classification.name)}</Text>
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <Text color="secondary">—</Text>
           ),
       },
       {
@@ -239,13 +240,11 @@ export default function RegisterPage() {
                   onChange={(v) => set({ class: v })}
                   label={t('fields.class')}
                   allLabel={t('register.allClasses')}
-                >
-                  {(taxonomy?.classes ?? []).map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.code} · {localized(c.name)}
-                    </SelectItem>
-                  ))}
-                </FilterSelect>
+                  options={(taxonomy?.classes ?? []).map((c) => ({
+                    value: c.id,
+                    label: `${c.code} · ${localized(c.name)}`,
+                  }))}
+                />
               ),
             },
             {
@@ -260,14 +259,12 @@ export default function RegisterPage() {
                   onChange={(v) => set({ minValue: v })}
                   label={t('register.minValue')}
                   allLabel={t('register.anyValue')}
-                  className="w-full sm:w-36"
-                >
-                  {[2, 3, 4].map((v) => (
-                    <SelectItem key={v} value={String(v)}>
-                      {t('register.valueAtLeast', { value: v })}
-                    </SelectItem>
-                  ))}
-                </FilterSelect>
+                  width={160}
+                  options={[2, 3, 4].map((v) => ({
+                    value: String(v),
+                    label: t('register.valueAtLeast', { value: v }),
+                  }))}
+                />
               ),
             },
             {
@@ -281,13 +278,8 @@ export default function RegisterPage() {
                   onChange={(v) => set({ classification: v })}
                   label={t('fields.classification')}
                   allLabel={t('register.allClassifications')}
-                >
-                  {(taxonomy?.labels ?? []).map((l) => (
-                    <SelectItem key={l.id} value={l.id}>
-                      {localized(l.name)}
-                    </SelectItem>
-                  ))}
-                </FilterSelect>
+                  options={(taxonomy?.labels ?? []).map((l) => ({ value: l.id, label: localized(l.name) }))}
+                />
               ),
             },
             {
@@ -301,13 +293,11 @@ export default function RegisterPage() {
                   onChange={(v) => set({ site: v })}
                   label={t('fields.site')}
                   allLabel={t('register.allSites')}
-                >
-                  {(taxonomy?.sites ?? []).map((x) => (
-                    <SelectItem key={x.id} value={x.id}>
-                      {x.code} · {x.name}
-                    </SelectItem>
-                  ))}
-                </FilterSelect>
+                  options={(taxonomy?.sites ?? []).map((x) => ({
+                    value: x.id,
+                    label: `${x.code} · ${x.name}`,
+                  }))}
+                />
               ),
             },
             {
@@ -321,13 +311,9 @@ export default function RegisterPage() {
                   onChange={(v) => set({ managerGroup: v })}
                   label={t('fields.managerGroup')}
                   allLabel={t('register.anyGroup')}
-                >
-                  {(groups?.items ?? []).map((g) => (
-                    <SelectItem key={g.id} value={g.id}>
-                      {g.name}
-                    </SelectItem>
-                  ))}
-                </FilterSelect>
+                  hasSearch
+                  options={(groups?.items ?? []).map((g) => ({ value: g.id, label: g.name }))}
+                />
               ),
             },
             {
@@ -356,9 +342,12 @@ export default function RegisterPage() {
             description={t('register.empty.none')}
             action={
               canManage && (
-                <Button onClick={() => setDialog('create')}>
-                  <PlusIcon /> {t('register.new')}
-                </Button>
+                <Button
+                  label={t('register.new')}
+                  variant="primary"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={() => setDialog('create')}
+                />
               )
             }
           />
@@ -373,55 +362,44 @@ export default function RegisterPage() {
         title={t('register.title')}
         description={t('register.description')}
         actions={
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" asChild>
-              <a href={apiUrl('/isms/assets/export.csv', { ...query, locale })} download>
-                <DownloadIcon /> {t('register.export')}
-              </a>
-            </Button>
+          <HStack gap={2} wrap="wrap">
+            <DownloadButton
+              label={t('register.export')}
+              variant="secondary"
+              icon={<Icon icon={DownloadIcon} />}
+              href={apiUrl('/isms/assets/export.csv', { ...query, locale })}
+              download
+            />
             {canManage && (
               <>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline">
-                      {t('register.more')} <ChevronDownIcon />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => setDialog('import')}>
-                      <FileUpIcon /> {t('register.import')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setDialog('from')}>
-                      <LinkIcon /> {t('register.createFrom')}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button onClick={() => setDialog('create')}>
-                  <PlusIcon /> {t('register.new')}
-                </Button>
+                <DropdownMenu
+                  button={{ label: t('register.more'), variant: 'secondary' }}
+                  alignment="end"
+                  items={[
+                    { label: t('register.import'), icon: FileUpIcon, onClick: () => setDialog('import') },
+                    { label: t('register.createFrom'), icon: LinkIcon, onClick: () => setDialog('from') },
+                  ]}
+                />
+                <Button
+                  label={t('register.new')}
+                  variant="primary"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={() => setDialog('create')}
+                />
               </>
             )}
-          </div>
+          </HStack>
         }
       />
-      <Tabs
-        value={view}
-        onValueChange={(v) => set({ view: v === 'active' ? undefined : v })}
-        className="gap-4"
-      >
-        <TabsList className="max-w-full justify-start overflow-x-auto">
-          {ASSET_VIEWS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {t(`register.views.${v}`)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {ASSET_VIEWS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {view === v && table}
-          </TabsContent>
-        ))}
-      </Tabs>
+      <VStack gap={4}>
+        <Segmented
+          label={t('fields.status')}
+          value={view}
+          onChange={(v) => set({ view: v === 'active' ? undefined : v })}
+          options={ASSET_VIEWS.map((v) => ({ value: v, label: t(`register.views.${v}`) }))}
+        />
+        {table}
+      </VStack>
       <p className="sr-only" aria-live="polite">
         {data ? t('register.liveCount', { count: data.total }) : ''}
       </p>

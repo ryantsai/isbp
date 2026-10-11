@@ -25,7 +25,8 @@ description: Review an IS Big Platform module or a change to one against docs/ai
    - generated migrations;
    - indexed filters;
    - PATCH schemas without defaults.
-5. UX pass (R27–R33):
+5. UX pass (R27–R33, R58–R60):
+   - built from Astryx components and `@isbp/ui` composites (docs/ai/ui-components.md): no shadcn/Radix, no hand-built controls, no colour/type classes, theme tokens only;
    - the three catalogs have the same keys and ICU arguments;
    - no literal strings;
    - status shown as icon + text;

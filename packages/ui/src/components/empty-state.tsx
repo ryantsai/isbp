@@ -1,11 +1,15 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { EmptyState as AstryxEmptyState } from '@astryxdesign/core/EmptyState';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import { ApiError } from '@isbp/sdk/web';
 import { CloudAlertIcon, FilterXIcon, LockIcon, RotateCwIcon, SearchXIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type * as React from 'react';
 import { cn } from '../lib/utils';
-import { Button } from './button';
 import { IconTile } from './icon-tile';
 import { useErrorText } from './query';
 
@@ -25,8 +29,8 @@ export function EmptyState({
   className,
 }: {
   icon?: React.ReactNode;
-  title?: React.ReactNode;
-  description?: React.ReactNode;
+  title?: string;
+  description?: string;
   action?: React.ReactNode;
   variant?: 'default' | 'filtered' | 'compact';
   /** With `variant="filtered"`: shows a Clear filters button. */
@@ -36,44 +40,46 @@ export function EmptyState({
   const t = useTranslations('ui.empty');
   if (variant === 'compact')
     return (
-      <div
-        className={cn(
-          'flex flex-wrap items-center gap-x-3 gap-y-1 py-3 text-sm text-muted-foreground',
-          className,
+      <HStack gap={3} wrap="wrap" vAlign="center" className={className}>
+        {icon && (
+          <Text color="secondary" className="inline-flex shrink-0 [&_svg]:size-4" aria-hidden>
+            {icon}
+          </Text>
         )}
-      >
-        {icon && <span className="[&_svg]:size-4">{icon}</span>}
-        <span>{title}</span>
-        {description && <span>{description}</span>}
+        <Text color="secondary">{title}</Text>
+        {description && <Text color="secondary">{description}</Text>}
         {action}
-      </div>
+      </HStack>
     );
   const filtered = variant === 'filtered';
   const shownIcon = icon ?? (filtered ? <FilterXIcon /> : null);
+  const shownDescription = description ?? (filtered ? t('filteredDescription') : undefined);
+  const clear =
+    filtered && onClearFilters ? (
+      <Button label={t('clearFilters')} variant="secondary" size="sm" onClick={onClearFilters} />
+    ) : null;
   return (
-    <div
-      className={cn('flex flex-col items-center justify-center gap-2.5 px-6 py-10 text-center', className)}
-    >
-      {shownIcon && (
-        <IconTile aria-hidden className="text-muted-foreground">
-          {shownIcon}
-        </IconTile>
-      )}
-      <div className="space-y-1">
-        <p className="font-medium">{title ?? (filtered ? t('filteredTitle') : null)}</p>
-        {(description ?? (filtered ? t('filteredDescription') : null)) && (
-          <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-            {description ?? t('filteredDescription')}
-          </p>
-        )}
-      </div>
-      {action}
-      {filtered && onClearFilters && (
-        <Button variant="outline" size="sm" onClick={onClearFilters}>
-          {t('clearFilters')}
-        </Button>
-      )}
-    </div>
+    <AstryxEmptyState
+      className={className}
+      headingLevel={2}
+      title={title ?? (filtered ? t('filteredTitle') : '')}
+      description={shownDescription}
+      icon={
+        shownIcon ? (
+          <IconTile aria-hidden className="text-muted-foreground">
+            {shownIcon}
+          </IconTile>
+        ) : undefined
+      }
+      actions={
+        action || clear ? (
+          <HStack gap={2} wrap="wrap" hAlign="center" vAlign="center">
+            {action}
+            {clear}
+          </HStack>
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -126,34 +132,38 @@ export function ErrorState({
       : errorText(error);
   const retry =
     onRetry && !forbidden && !notFound ? (
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        <RotateCwIcon />
-        {t('retry')}
-      </Button>
+      <Button
+        label={t('retry')}
+        variant="secondary"
+        size="sm"
+        icon={<AstryxIcon icon={RotateCwIcon} />}
+        onClick={onRetry}
+      />
     ) : null;
-  const Icon = forbidden ? LockIcon : notFound ? SearchXIcon : CloudAlertIcon;
+  const GlyphIcon = forbidden ? LockIcon : notFound ? SearchXIcon : CloudAlertIcon;
   if (compact)
     return (
-      <div role="alert" className={cn('flex flex-wrap items-center gap-x-3 gap-y-2 py-3 text-sm', className)}>
-        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-        <span className="font-medium">{heading}</span>
-        <span className="text-muted-foreground">{detail}</span>
+      <HStack role="alert" gap={3} wrap="wrap" vAlign="center" className={className}>
+        <AstryxIcon icon={GlyphIcon} color="secondary" />
+        <Text weight="medium">{heading}</Text>
+        <Text color="secondary">{detail}</Text>
         {retry}
-      </div>
+      </HStack>
     );
   return (
-    <div
-      role="alert"
-      className={cn('flex flex-col items-center justify-center gap-2.5 px-6 py-10 text-center', className)}
-    >
+    <VStack role="alert" gap={3} hAlign="center" className={cn('px-6 py-10 text-center', className)}>
       <IconTile aria-hidden className={forbidden || notFound ? 'text-muted-foreground' : 'text-destructive'}>
-        <Icon />
+        <GlyphIcon />
       </IconTile>
-      <div className="space-y-1">
-        <p className="font-medium">{heading}</p>
-        <p className="mx-auto max-w-sm text-sm text-muted-foreground">{detail}</p>
-      </div>
+      <VStack gap={1} hAlign="center" className="max-w-sm">
+        <Text as="p" type="large" weight="semibold">
+          {heading}
+        </Text>
+        <Text as="p" color="secondary" justify="center">
+          {detail}
+        </Text>
+      </VStack>
       {retry}
-    </div>
+    </VStack>
   );
 }

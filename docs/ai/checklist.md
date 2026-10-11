@@ -47,6 +47,8 @@ your report. The rule numbers point to [rules.md](rules.md).
       arguments (R27).
 - [ ] Keyboard-only use works. Focus is visible. Dialogs return focus. Charts have a table twin (R29).
 - [ ] 375 px works without horizontal page scroll (R30).
+- [ ] Built from Astryx components and `@isbp/ui` composites; no shadcn/Radix, no hand-built controls, no colour/type classes; `pnpm ui:check` passes (R58, R59).
+- [ ] Every input has a visible translated label, every icon-only button a `label`; checked in light **and** dark (R59, R60).
 - [ ] No components are created during render, and no outer variables are mutated during render (R32).
 
 ## Tests

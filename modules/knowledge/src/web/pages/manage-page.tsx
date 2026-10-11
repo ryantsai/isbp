@@ -1,11 +1,15 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
 import type { Page } from '@isbp/sdk';
 import { localize } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, DataTableSummary, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { type FilterDef, FilterBar } from '@isbp/ui/filter-bar';
@@ -14,14 +18,12 @@ import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { LockIcon, NotebookPenIcon, PlusIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import {
   ARTICLE_LOCALES,
   type ArticleCounts,
@@ -75,6 +77,7 @@ export default function ManagePage() {
   const locale = useLocale();
   const format = useFormatter();
   const router = useRouter();
+  const panelId = useId();
   const categoryName = useCategoryName();
   const classifications = useClassifications();
   const canWrite = useCan('knowledge.articles.write');
@@ -161,7 +164,7 @@ export default function ManagePage() {
         cell: ({ row }) => (
           <span className="flex flex-wrap items-center gap-1.5">
             <StatusBadge status={row.original.status} />
-            {row.original.awaitingApproval && <Badge variant="outline">{t('awaitingApproval')}</Badge>}
+            {row.original.awaitingApproval && <Badge variant="neutral" label={t('awaitingApproval')} />}
           </span>
         ),
       },
@@ -213,7 +216,7 @@ export default function ManagePage() {
                 dateStyle: 'medium',
                 timeZone: 'UTC',
               })}
-              {row.original.reviewDue && <Badge variant="warning">{t('due')}</Badge>}
+              {row.original.reviewDue && <Badge variant="warning" label={t('due')} />}
             </span>
           ) : (
             <span className="text-muted-foreground">—</span>
@@ -262,19 +265,19 @@ export default function ManagePage() {
         : undefined,
       onClear: () => set({ category: undefined }),
       control: (
-        <Select value={(state.category as string) ?? ALL} onValueChange={(v) => filter('category', v)}>
-          <SelectTrigger size="sm" className="w-full sm:w-44" aria-label={t('columns.category')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('allCategories')}</SelectItem>
-            {categoryItems.map((c) => (
-              <SelectItem key={c.id} value={c.key}>
-                {localize(c.name, locale) || c.key}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Selector
+          label={t('columns.category')}
+          isLabelHidden
+          size="sm"
+          width={176}
+          hasSearch={categoryItems.length > 8}
+          value={(state.category as string) ?? ALL}
+          onChange={(v) => filter('category', v)}
+          options={[
+            { value: ALL, label: t('allCategories') },
+            ...categoryItems.map((c) => ({ value: c.key, label: localize(c.name, locale) || c.key })),
+          ]}
+        />
       ),
     },
     {
@@ -287,16 +290,19 @@ export default function ManagePage() {
           : undefined,
       onClear: () => set({ audience: undefined }),
       control: (
-        <Select value={(state.audience as string) ?? ALL} onValueChange={(v) => filter('audience', v)}>
-          <SelectTrigger size="sm" className="w-full sm:w-44" aria-label={t('audienceFilter')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('allAudiences')}</SelectItem>
-            <SelectItem value="everyone">{tk('audience.everyone')}</SelectItem>
-            <SelectItem value="agents">{tk('audience.agents')}</SelectItem>
-          </SelectContent>
-        </Select>
+        <Selector
+          label={t('audienceFilter')}
+          isLabelHidden
+          size="sm"
+          width={176}
+          value={(state.audience as string) ?? ALL}
+          onChange={(v) => filter('audience', v)}
+          options={[
+            { value: ALL, label: t('allAudiences') },
+            { value: 'everyone', label: tk('audience.everyone') },
+            { value: 'agents', label: tk('audience.agents') },
+          ]}
+        />
       ),
     },
     {
@@ -307,19 +313,18 @@ export default function ManagePage() {
         : undefined,
       onClear: () => set({ locale: undefined }),
       control: (
-        <Select value={(state.locale as string) ?? ALL} onValueChange={(v) => filter('locale', v)}>
-          <SelectTrigger size="sm" className="w-full" aria-label={t('columns.language')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('allLanguages')}</SelectItem>
-            {ARTICLE_LOCALES.map((l) => (
-              <SelectItem key={l} value={l}>
-                {LOCALE_LABEL[l]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Selector
+          label={t('columns.language')}
+          isLabelHidden
+          size="sm"
+          width="100%"
+          value={(state.locale as string) ?? ALL}
+          onChange={(v) => filter('locale', v)}
+          options={[
+            { value: ALL, label: t('allLanguages') },
+            ...ARTICLE_LOCALES.map((l) => ({ value: l, label: LOCALE_LABEL[l] })),
+          ]}
+        />
       ),
     },
     {
@@ -332,23 +337,19 @@ export default function ManagePage() {
         : undefined,
       onClear: () => set({ classification: undefined }),
       control: (
-        <Select
+        <Selector
+          label={t('classificationFilter')}
+          isLabelHidden
+          size="sm"
+          width="100%"
           value={(state.classification as string) ?? ALL}
-          onValueChange={(v) => filter('classification', v)}
-        >
-          <SelectTrigger size="sm" className="w-full" aria-label={t('classificationFilter')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('allClassifications')}</SelectItem>
-            <SelectItem value="none">{t('unclassified')}</SelectItem>
-            {classifications.levels.map((l) => (
-              <SelectItem key={l.key} value={l.key}>
-                {classifications.label(l.key)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(v) => filter('classification', v)}
+          options={[
+            { value: ALL, label: t('allClassifications') },
+            { value: 'none', label: t('unclassified') },
+            ...classifications.levels.map((l) => ({ value: l.key, label: classifications.label(l.key) })),
+          ]}
+        />
       ),
     },
   ];
@@ -367,71 +368,82 @@ export default function ManagePage() {
         title={t('title')}
         description={t('description')}
         actions={
-          <Button asChild>
-            <Link href="/knowledge/new">
-              <PlusIcon /> {tk('newArticle')}
-            </Link>
-          </Button>
+          <Button
+            label={tk('newArticle')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            href="/knowledge/new"
+          />
         }
       />
       <KnowledgeSections />
       {tab ? (
-        <Tabs value={tab} onValueChange={(v) => set({ tab: v, sort: undefined })}>
-          <TabsList aria-label={t('tabsLabel')}>
+        <VStack gap={3} className="min-w-0">
+          {/* The views are the same list under different filters: they share one panel. */}
+          <TabList
+            role="tablist"
+            aria-label={t('tabsLabel')}
+            value={tab}
+            onChange={(v) => set({ tab: v, sort: undefined })}
+            hasDivider
+          >
             {TABS.map((k) => (
-              <TabsTrigger key={k} value={k}>
-                {t(`tabs.${k}`)}
-                {counts.data && (
-                  <span className="rounded-full bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">
-                    <AnimatedNumber value={counts.data[k]} />
-                  </span>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {TABS.map((k) => (
-            <TabsContent key={k} value={k}>
-              <DataTable
+              <Tab
+                key={k}
+                value={k}
                 label={t(`tabs.${k}`)}
-                columns={columns}
-                data={data?.items ?? []}
-                total={data?.total ?? 0}
-                page={state.page}
-                pageSize={state.pageSize}
-                sort={state.sort ?? (k === 'due' ? 'reviewAt' : '-updatedAt')}
-                onSortChange={(sort) => set({ sort })}
-                onPageChange={(page) => set({ page })}
-                onPageSizeChange={(pageSize) => set({ pageSize })}
-                loading={isLoading}
-                fetching={isFetching}
-                error={error}
-                onRetry={() => refetch()}
-                getRowId={(a) => a.id}
-                onRowClick={(a) => router.push(a.href)}
-                toolbar={toolbar}
-                empty={
-                  filtered ? (
-                    <EmptyState variant="filtered" onClearFilters={clearAll} />
-                  ) : (
-                    <EmptyState
-                      icon={<NotebookPenIcon />}
-                      title={t(`empty.${k}`)}
-                      action={
-                        k === 'mine' ? (
-                          <Button asChild size="sm">
-                            <Link href="/knowledge/new">
-                              <PlusIcon /> {tk('newArticle')}
-                            </Link>
-                          </Button>
-                        ) : undefined
-                      }
-                    />
-                  )
+                panelId={panelId}
+                endContent={
+                  counts.data ? (
+                    <Badge variant="neutral" label={<AnimatedNumber value={counts.data[k]} />} />
+                  ) : undefined
                 }
               />
-            </TabsContent>
-          ))}
-        </Tabs>
+            ))}
+          </TabList>
+          <div role="tabpanel" id={panelId} aria-label={t(`tabs.${tab}`)} className="min-w-0">
+            <DataTable
+              label={t(`tabs.${tab}`)}
+              columns={columns}
+              data={data?.items ?? []}
+              total={data?.total ?? 0}
+              page={state.page}
+              pageSize={state.pageSize}
+              sort={state.sort ?? (tab === 'due' ? 'reviewAt' : '-updatedAt')}
+              onSortChange={(sort) => set({ sort })}
+              onPageChange={(page) => set({ page })}
+              onPageSizeChange={(pageSize) => set({ pageSize })}
+              loading={isLoading}
+              fetching={isFetching}
+              error={error}
+              onRetry={() => refetch()}
+              getRowId={(a) => a.id}
+              onRowClick={(a) => router.push(a.href)}
+              toolbar={toolbar}
+              empty={
+                filtered ? (
+                  <EmptyState variant="filtered" onClearFilters={clearAll} />
+                ) : (
+                  <EmptyState
+                    icon={<NotebookPenIcon />}
+                    title={t(`empty.${tab}`)}
+                    action={
+                      tab === 'mine' ? (
+                        <Button
+                          label={tk('newArticle')}
+                          variant="primary"
+                          size="sm"
+                          icon={<Icon icon={PlusIcon} />}
+                          href="/knowledge/new"
+                        />
+                      ) : undefined
+                    }
+                  />
+                )
+              }
+            />
+          </div>
+        </VStack>
       ) : (
         <div className="grid gap-4" aria-busy="true">
           <Skeleton className="h-9 w-full max-w-xl" />

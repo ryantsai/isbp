@@ -1,29 +1,15 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Field } from '@astryxdesign/core/Field';
+import { Grid } from '@astryxdesign/core/Grid';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { CreateFormInput, FormDetail } from '@isbp/contracts';
 import { type LocalizedText, localizedTextSchema } from '@isbp/sdk';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
+import { FormDialog } from '@isbp/ui/form-dialog';
 import { LocalizedInput } from '@isbp/ui/localized-input';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useRouter } from 'next/navigation';
@@ -60,8 +46,8 @@ export function CreateFormDialog({
   const locale = useLocale();
   const router = useRouter();
   const errorText = useErrorText();
-  const iconLabel = useId();
   const list = useFieldList();
+  const formId = useId();
 
   const schema = useMemo(
     () =>
@@ -129,122 +115,98 @@ export function CreateFormDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')} className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={onSubmit} noValidate className="space-y-5">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field, fieldState }) => (
-                <FormItem>
-                  <FormLabel>{t('name')}</FormLabel>
-                  <FormControl>
-                    <LocalizedInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      invalid={Boolean(fieldState.error)}
-                      placeholder={t('namePlaceholder')}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="key"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('key')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      autoComplete="off"
-                      spellCheck={false}
-                      className="font-mono text-sm"
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value.toLowerCase())}
-                    />
-                  </FormControl>
-                  <FormDescription>{t('keyHint')}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <OptionalFields
-              hint={list([t('descriptionLabel'), t('icon'), t('category')])}
-              filled={countFilled(
-                Object.values(descriptionValue).some((x) => x?.trim()),
-                categoryValue,
-              )}
-            >
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t('descriptionLabel')}{' '}
-                      <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                    </FormLabel>
-                    <FormControl>
-                      <LocalizedInput multiline value={field.value} onChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
+    <Form {...form}>
+      <FormDialog
+        isOpen={open}
+        onOpenChange={onOpenChange}
+        title={t('title')}
+        subtitle={t('description')}
+        size="lg"
+        onSubmit={onSubmit}
+        submitLabel={t('submit')}
+        cancelLabel={tc('cancel')}
+        isSubmitting={create.isPending}
+        defaultOptionality="optional"
+      >
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field, fieldState }) => (
+            <Field label={t('name')} inputID={`${formId}-name`} isRequired status={fieldStatus(fieldState)}>
+              <LocalizedInput
+                id={`${formId}-name`}
+                value={field.value}
+                onChange={field.onChange}
+                invalid={Boolean(fieldState.error)}
+                placeholder={t('namePlaceholder')}
               />
-              <div className="grid gap-5 sm:grid-cols-[1fr_12rem]">
-                <FormField
-                  control={form.control}
-                  name="icon"
-                  render={({ field }) => (
-                    <div className="grid gap-2">
-                      <Label id={iconLabel}>{t('icon')}</Label>
-                      <IconPicker value={field.value} onChange={field.onChange} labelledBy={iconLabel} />
-                    </div>
-                  )}
+            </Field>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="key"
+          render={({ field, fieldState }) => (
+            <TextInput
+              label={t('key')}
+              isRequired
+              autoComplete="off"
+              description={t('keyHint')}
+              value={field.value}
+              onChange={(v) => field.onChange(v.toLowerCase())}
+              onBlur={field.onBlur}
+              ref={field.ref}
+              status={fieldStatus(fieldState)}
+            />
+          )}
+        />
+        <OptionalFields
+          hint={list([t('descriptionLabel'), t('icon'), t('category')])}
+          filled={countFilled(
+            Object.values(descriptionValue).some((x) => x?.trim()),
+            categoryValue,
+          )}
+        >
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <Field label={t('descriptionLabel')} inputID={`${formId}-description`}>
+                <LocalizedInput
+                  id={`${formId}-description`}
+                  multiline
+                  value={field.value}
+                  onChange={field.onChange}
                 />
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem className="content-start">
-                      <FormLabel>
-                        {t('category')}{' '}
-                        <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                      </FormLabel>
-                      <FormControl>
-                        <CategoryInput
-                          value={field.value}
-                          onChange={field.onChange}
-                          suggestions={categories}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </OptionalFields>
-            {form.formState.errors.root && (
-              <p role="alert" className="text-sm text-destructive">
-                {form.formState.errors.root.message}
-              </p>
+              </Field>
             )}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={create.isPending}>
-                {t('submit')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          />
+          <Grid columns={{ minWidth: 220 }} gap={4}>
+            <FormField
+              control={form.control}
+              name="icon"
+              render={({ field }) => (
+                <IconPicker label={t('icon')} value={field.value} onChange={field.onChange} />
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <CategoryInput
+                  label={t('category')}
+                  value={field.value}
+                  onChange={field.onChange}
+                  suggestions={categories}
+                />
+              )}
+            />
+          </Grid>
+        </OptionalFields>
+        {form.formState.errors.root && (
+          <Banner status="error" title={form.formState.errors.root.message ?? ''} collapsible={false} />
+        )}
+      </FormDialog>
+    </Form>
   );
 }

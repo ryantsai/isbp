@@ -3,8 +3,6 @@
 import type { CustomField } from '@isbp/contracts';
 import { type FieldDef, fieldDefSchema, localize } from '@isbp/sdk';
 import { ApiError } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Form } from '@isbp/ui/form';
 import { FormFields } from '@isbp/ui/form-renderer';
 import {
@@ -16,7 +14,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { EyeIcon, InfoIcon } from 'lucide-react';
+import { EyeIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -30,6 +28,9 @@ import {
   type FieldIssue,
   uniqueName,
 } from './field-utils';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
 
 function blankField(siblings: readonly FieldDef[] = []): FieldDef {
   return { key: uniqueName('text', new Set(siblings.map((f) => f.key))), type: 'text', label: {} };
@@ -160,10 +161,7 @@ export function CustomFieldSheet({
         >
           <SheetBody className="space-y-5 pb-6">
             {editing && field!.usage > 0 && (
-              <p className="flex items-start gap-2 rounded-lg bg-info/10 px-3 py-2 text-sm text-info">
-                <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {t('usageNote', { count: field!.usage })}
-              </p>
+              <Banner status="info" title={t('usageNote', { count: field!.usage })} collapsible={false} />
             )}
             <FieldEditor
               value={draft}
@@ -180,25 +178,26 @@ export function CustomFieldSheet({
             <section aria-labelledby="cf-preview" className="space-y-3 rounded-xl border bg-muted/30 p-4">
               <h3 id="cf-preview" className="flex items-center gap-2 text-sm font-medium">
                 <EyeIcon className="size-4 text-muted-foreground" aria-hidden /> {t('preview')}
-                <Badge variant="muted" className="font-normal">
-                  {t('previewHint')}
-                </Badge>
+                <Badge variant="neutral" label={t('previewHint')} className="font-normal" />
               </h3>
               <SinglePreview key={`${draft.type}-${draft.key}`} field={draft} />
             </section>
-            {rootError && (
-              <p role="alert" className="text-sm text-destructive">
-                {rootError}
-              </p>
-            )}
+            {rootError && <Banner status="error" title={rootError} collapsible={false} />}
           </SheetBody>
           <SheetFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={mutation.isPending} disabled={editing && !dirty}>
-              {editing ? tc('saveChanges') : t('add')}
-            </Button>
+            <Button
+              label={tc('cancel')}
+              variant="secondary"
+              type="button"
+              onClick={() => onOpenChange(false)}
+            />
+            <Button
+              label={editing ? tc('saveChanges') : t('add')}
+              variant="primary"
+              isLoading={mutation.isPending}
+              isDisabled={editing && !dirty}
+              type="submit"
+            />
           </SheetFooter>
         </form>
       </SheetContent>

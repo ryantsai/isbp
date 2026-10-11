@@ -1,5 +1,8 @@
 'use client';
 
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import { type LocalizedText, localize } from '@isbp/sdk';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { FadeIn } from '@isbp/ui/motion';
@@ -102,18 +105,20 @@ export function ResolutionCard({ ticket }: { ticket: TicketDetail }) {
       className={waiting ? 'gap-3 border-warning/40 bg-warning/10' : 'gap-3 border-success/30 bg-success/5'}
     >
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          {waiting ? (
-            <StampIcon className="size-4 text-warning-foreground" aria-hidden />
-          ) : (
-            <CheckCircle2Icon className="size-4 text-success" aria-hidden />
-          )}
-          {waiting ? t('signOff.resolutionTitle') : t('ticket.resolution')}
-          {ticket.resolutionCode && (
-            <span className="text-sm font-normal text-muted-foreground">
-              · {t(`resolution.${ticket.resolutionCode}`)}
-            </span>
-          )}
+        <CardTitle>
+          <HStack gap={2} vAlign="center" wrap="wrap">
+            {waiting ? (
+              <Icon icon={StampIcon} color="warning" />
+            ) : (
+              <Icon icon={CheckCircle2Icon} color="success" />
+            )}
+            {waiting ? t('signOff.resolutionTitle') : t('ticket.resolution')}
+            {ticket.resolutionCode && (
+              <Text color="secondary" weight="normal">
+                · {t(`resolution.${ticket.resolutionCode}`)}
+              </Text>
+            )}
+          </HStack>
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-2 text-sm">

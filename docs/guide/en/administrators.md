@@ -60,7 +60,7 @@ process as a change set.
 People who sign in with SSO are created automatically at their first sign-in (when the provider allows it). Add a
 person by hand for a local account, or to pre-board a new hire before their first day.
 
-1. Go to **Administration → People** and select **Add person**. Fields marked * are required.
+1. Go to **Administration → People** and select **Add person**. Fields marked **Required** must be filled in.
 2. Under **Identity**, enter the **Work email** (the **Username** fills itself in from it), then **Given name** and
    **Family name**. **Display name** fills itself in from the two names; change it if they go by another name.
 3. Under **Organisation**, enter the **Job title** and choose the **Department**. The **Manager** fills itself in with

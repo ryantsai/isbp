@@ -4,13 +4,18 @@ Modular monolith: Fastify API + worker (`apps/api`), Next.js 16 web (`apps/web`)
 (`packages/sdk`), feature modules (`modules/*`). Design: `docs/architecture.md`. Module how-to:
 `docs/module-development.md`. **Building or reviewing a module: follow `docs/ai/` (rules, system map, anatomy,
 API reference, recipes, generated extension-point reference, testing, UI, definition of done); skills
-`/new-module` and `/review-module`.** Delivery is phased; finish a phase, then stop for review.
+`/new-module` and `/review-module`.** **Building any UI: `docs/ai/ui-components.md` (Astryx first: which component for
+what, never invent one) and `docs/ai/ui-guidelines.md`.** Delivery is phased; finish a phase, then stop for review.
+
+@packages/ui/AGENTS.md
 
 ## Commands
 
 - Local infra without Docker: `pnpm dev:services` (embedded Postgres + Redis, data in `.dev-data/`)
 - Run: `pnpm dev` (API + worker on :4000, web on :3000) · seed: `pnpm db:seed` · reset: `pnpm db:reset`
-- Quality gate: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm modules:check && pnpm docs:check && pnpm test`
+- Quality gate: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm modules:check && pnpm docs:check && pnpm ui:check && pnpm test`
+- UI: components come from Astryx — `pnpm astryx component <Name> --dense` (props), `pnpm astryx search "…"`, `pnpm astryx build "<idea>"`
+  (page template). After editing the theme (`packages/ui/src/theme/tel.ts`): `pnpm ui:theme` and commit `src/theme/built`.
 - After changing a manifest, slot or error code: `pnpm docs:reference` (regenerates `docs/ai/reference.md`)
 - After changing the user guide: `pnpm docs:guide`; after changing screens it shows: `pnpm db:reset`, then
   `pnpm docs:screenshots` (stack running)
@@ -36,14 +41,16 @@ API reference, recipes, generated extension-point reference, testing, UI, defini
   `packages/i18n/messages/<locale>/`, module catalogs in `modules/<id>/messages/`. The catalog test
   (`packages/i18n`) fails on missing keys or mismatched ICU placeholders. zh-TW uses Taiwan IT vocabulary
   (人員, 群組, 角色, 權限, 稽核日誌, 工作階段); ja-JP uses Microsoft-style terms (ユーザー, ロール, 監査ログ).
-- Web: data hooks from `@isbp/ui/query` (`useApiQuery`, `useApiMutation`), theme from `@isbp/ui/theme`
-  (not next-themes), lists via `DataTable` + `useListState` (state in the URL). The React Compiler lint
-  rules are on: don't create components or mutate outer variables during render.
+- Web: **UI is Astryx** (`@astryxdesign/core/<Name>`, TEL theme in `packages/ui/src/theme`) plus the composites in
+  `@isbp/ui`; never hand-roll a control or paste a shadcn/Radix snippet (ESLint rejects those imports, `pnpm ui:check`
+  catches leftovers). Tailwind is layout glue only. Data hooks from `@isbp/ui/query` (`useApiQuery`, `useApiMutation`),
+  theme mode from `@isbp/ui/theme` (not next-themes), toasts from `@isbp/ui/toast`, lists via `DataTable` + `useListState`
+  (state in the URL). The React Compiler lint rules are on: don't create components or mutate outer variables during render.
 - Accessibility & motion: WCAG 2.1 AA (axe scans in e2e), `MotionConfig reducedMotion="user"`; status is
-  never colour-only. Status text uses the `--success/--info/--destructive` tokens (tuned for AA on their
-  own 8–15% tints): check contrast before changing them. Tabs that only filter a list still render a
-  `TabsContent` per tab (axe flags `aria-controls` pointing at nothing); grid items holding truncated text
-  need `min-w-0` / `grid-cols-1` or pages overflow at 375px.
+  never colour-only. Status text/tints are theme tokens (`--color-text-red`, `--color-background-red`… in `tel.ts`, tuned for AA
+  on their own 10–15% tints): check contrast before changing them. Tabs that switch panels use `TabList role="tablist"` +
+  `Tab panelId` + a `role="tabpanel"`; tabs that only filter a list are a `SegmentedControl` (axe flags `aria-controls`
+  pointing at nothing); grid items holding truncated text need `min-w-0` / `grid-cols-1` or pages overflow at 375px.
 - Approvals: a module declares triggers in `manifest.workflows` (`required` + `defaultGraph` for ones that
   must always be approved), starts them with `ctx.workflows.start(trigger, input, { tx })` and reacts in
   `defineModule({ workflows: { [trigger]: { onCompleted } } })`. The step
@@ -136,6 +143,10 @@ API reference, recipes, generated extension-point reference, testing, UI, defini
 
 ## Gotchas
 
+- Astryx theme: `typography.*.family` is ONE font name (extra faces go in `fallbacks`); inside the nested dark `Theme` (navy rail,
+  phone drawer) `light-dark()` always resolves dark; the built theme must be rebuilt (`pnpm ui:theme`) after every `tel.ts` edit.
+  Dialogs/Sheets are controlled (no trigger component); `AlertDialog onAction` doesn't close; `Selector` has no empty-string value.
+  Full list: `docs/ai/ui-components.md` → Pitfalls.
 - pnpm 12: install scripts must be listed under `allowBuilds` in `pnpm-workspace.yaml`.
 - Next 16 differs from older versions: read `apps/web/node_modules/next/dist/docs/` before using an API.
   `proxy.ts` (not middleware) forwards `/api/*` to `API_INTERNAL_URL` at runtime and sets the CSP nonce.

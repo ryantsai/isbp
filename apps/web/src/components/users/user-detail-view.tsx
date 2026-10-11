@@ -4,47 +4,21 @@ import type { EffectivePermissions, UserDetail, UserOverviewSlotProps } from '@i
 import { localeLabels, isLocale } from '@isbp/i18n';
 import { Slot, useCan, usePlatform } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Checkbox } from '@isbp/ui/checkbox';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { AnimatedItem, AnimatedList, Collapse, FadeIn } from '@isbp/ui/motion';
 import { BackLink } from '@isbp/ui/page-header';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { Textarea } from '@isbp/ui/textarea';
-import { Hint } from '@isbp/ui/tooltip';
+import { toast } from '@isbp/ui/toast';
 import {
   ArrowRightLeftIcon,
   BanIcon,
   CheckIcon,
   KeyRoundIcon,
   LaptopIcon,
-  LockIcon,
   LogOutIcon,
-  MailIcon,
-  MoreHorizontalIcon,
   PencilIcon,
-  PhoneIcon,
   PlusIcon,
   RefreshCwIcon,
   RotateCcwIcon,
@@ -55,10 +29,9 @@ import {
   UsersRoundIcon,
   XIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { ActivityFeed } from '@/components/audit/activity-feed';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { CustomFieldsCard } from '@/components/fields/entity-fields';
@@ -70,27 +43,42 @@ import { SourceBadge, UserStatusBadge } from '@/components/status-badge';
 import { useApiMutation, useApiQuery, useErrorText } from '@/lib/api';
 import { TransferSheet } from './transfer-sheet';
 import { UserFormSheet } from './user-form';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Code } from '@astryxdesign/core/Code';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import type { DropdownMenuOption } from '@astryxdesign/core/DropdownMenu';
+import { Field } from '@astryxdesign/core/Field';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Item } from '@astryxdesign/core/Item';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { ToggleButton } from '@astryxdesign/core/ToggleButton';
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  const empty = children === null || children === undefined || children === '' || children === false;
-  return (
-    <div className="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)] gap-3 py-2 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 wrap-anywhere">{empty ? '—' : children}</dd>
-    </div>
-  );
-}
-
-type Dialog = 'edit' | 'transfer' | 'suspend' | 'offboard' | 'revoke' | 'password' | null;
+type DialogKind = 'edit' | 'transfer' | 'suspend' | 'offboard' | 'revoke' | 'password' | null;
 const TABS = ['overview', 'access', 'groups', 'activity'] as const;
 type Tab = (typeof TABS)[number];
 const invalidate = ['/users', '/platform/dashboard', '/audit-logs', '/groups'];
+
+/** An empty value reads "—". */
+const orDash = (value: ReactNode) => (value === null || value === undefined || value === '' ? '—' : value);
 
 export function UserDetailView({ id }: { id: string }) {
   const t = useTranslations('users');
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
+  const panelId = useId();
   const { user: me } = usePlatform();
   const { data: user, isLoading, error, refetch } = useApiQuery<UserDetail>(`/users/${id}`);
   const canUpdate = useCan('core.users.update');
@@ -99,7 +87,7 @@ export function UserDetailView({ id }: { id: string }) {
   const canRoles = useCan('core.roles.read');
   const canAudit = useCan('core.audit.read');
   const canGroups = useCan('core.groups.manage');
-  const [dialog, setDialog] = useState<Dialog>(null);
+  const [dialog, setDialog] = useState<DialogKind>(null);
   const [addingGroups, setAddingGroups] = useState(false);
 
   const patchQuery = (changes: Record<string, string | null>) => {
@@ -140,6 +128,7 @@ export function UserDetailView({ id }: { id: string }) {
   const shownTab: Tab =
     (tab === 'access' && !showAccess) || (tab === 'activity' && !canAudit) ? 'overview' : tab;
   const movable = canUpdate && user.status !== 'offboarded';
+  const tabLabel = t(`detail.tabs.${shownTab}`);
 
   return (
     <div className="space-y-5">
@@ -147,68 +136,38 @@ export function UserDetailView({ id }: { id: string }) {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <UserAvatar name={name} src={user.avatarUrl} className="size-16 text-lg" />
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight wrap-break-word">{name}</h1>
-            <UserStatusBadge status={user.status} />
-            <SourceBadge source={user.authSource} />
-          </div>
-          <p className="text-sm text-muted-foreground wrap-break-word">
-            {[user.jobTitle, user.department?.name].filter(Boolean).join(' · ') || user.email}
-          </p>
+        <div className="min-w-0 flex-1">
+          <VStack gap={1}>
+            <HStack gap={2} wrap="wrap" vAlign="center">
+              <Heading level={1}>{name}</Heading>
+              <UserStatusBadge status={user.status} />
+              <SourceBadge source={user.authSource} />
+            </HStack>
+            <Text type="supporting" wordBreak="break-word">
+              {[user.jobTitle, user.department?.name].filter(Boolean).join(' · ') || user.email}
+            </Text>
+          </VStack>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
+        <HStack gap={2} wrap="wrap">
           {lifecycleActions && user.status === 'pending' && <OnboardButton user={user} />}
           {canUpdate && (
-            <Button variant="outline" onClick={() => setDialog('edit')}>
-              <PencilIcon /> {t('actions.edit')}
-            </Button>
+            <Button
+              label={t('actions.edit')}
+              variant="secondary"
+              icon={<Icon icon={PencilIcon} />}
+              onClick={() => setDialog('edit')}
+            />
           )}
           {(lifecycleActions || canCredentials || movable) && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label={t('actions.more')}>
-                  <MoreHorizontalIcon />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60">
-                {movable && (
-                  <DropdownMenuItem onSelect={() => setDialog('transfer')}>
-                    <ArrowRightLeftIcon /> {t('actions.transfer')}
-                  </DropdownMenuItem>
-                )}
-                {canCredentials && user.authSource === 'local' && (
-                  <DropdownMenuItem onSelect={() => setDialog('password')}>
-                    <KeyRoundIcon /> {t('actions.resetPassword')}
-                  </DropdownMenuItem>
-                )}
-                {lifecycleActions && (
-                  <>
-                    <DropdownMenuItem
-                      onSelect={() => setDialog('revoke')}
-                      disabled={user.activeSessions === 0}
-                    >
-                      <LogOutIcon /> {t('actions.revokeSessions')}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {user.status === 'offboarded' && <OnboardMenuItem user={user} />}
-                    {user.status === 'suspended' && <ReactivateMenuItem user={user} />}
-                    {user.status === 'active' && (
-                      <DropdownMenuItem onSelect={() => setDialog('suspend')}>
-                        <BanIcon /> {t('actions.suspend')}
-                      </DropdownMenuItem>
-                    )}
-                    {user.status !== 'offboarded' && (
-                      <DropdownMenuItem variant="destructive" onSelect={() => setDialog('offboard')}>
-                        <UserXIcon /> {t('actions.offboard')}
-                      </DropdownMenuItem>
-                    )}
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <UserMoreMenu
+              user={user}
+              movable={movable}
+              canCredentials={canCredentials}
+              lifecycleActions={lifecycleActions}
+              onDialog={setDialog}
+            />
           )}
-        </div>
+        </HStack>
       </div>
 
       {welcome && (
@@ -222,44 +181,45 @@ export function UserDetailView({ id }: { id: string }) {
         />
       )}
 
-      <Tabs value={shownTab} onValueChange={(v) => patchQuery({ tab: v === 'overview' ? null : v })}>
-        <TabsList>
-          <TabsTrigger value="overview">{t('detail.tabs.overview')}</TabsTrigger>
-          {showAccess && <TabsTrigger value="access">{t('detail.tabs.access')}</TabsTrigger>}
-          <TabsTrigger value="groups">
-            {t('detail.tabs.groups')}
-            <Badge variant="muted" className="px-1.5 tabular-nums">
-              {user.groups.length}
-            </Badge>
-          </TabsTrigger>
-          {canAudit && <TabsTrigger value="activity">{t('detail.tabs.activity')}</TabsTrigger>}
-        </TabsList>
-
-        <TabsContent value="overview" className="grid items-start gap-4 lg:grid-cols-2">
-          <OverviewPanel user={user} />
-        </TabsContent>
-
-        {showAccess && (
-          <TabsContent value="access">
-            <AccessPanel userId={user.id} self={self} />
-          </TabsContent>
-        )}
-
-        <TabsContent value="groups">
-          <GroupsPanel
-            user={user}
-            canManage={canGroups && user.status !== 'offboarded'}
-            adding={addingGroups}
-            onAddingChange={setAddingGroups}
+      <VStack gap={3}>
+        <TabList
+          role="tablist"
+          value={shownTab}
+          onChange={(v) => patchQuery({ tab: v === 'overview' ? null : v })}
+          hasDivider
+        >
+          <Tab value="overview" label={t('detail.tabs.overview')} panelId={panelId} />
+          {showAccess && <Tab value="access" label={t('detail.tabs.access')} panelId={panelId} />}
+          <Tab
+            value="groups"
+            label={t('detail.tabs.groups')}
+            panelId={panelId}
+            endContent={<Badge variant="neutral" label={user.groups.length} />}
           />
-        </TabsContent>
+          {canAudit && <Tab value="activity" label={t('detail.tabs.activity')} panelId={panelId} />}
+        </TabList>
 
-        {canAudit && (
-          <TabsContent value="activity">
+        <div
+          role="tabpanel"
+          id={panelId}
+          aria-label={tabLabel}
+          className={shownTab === 'overview' ? 'grid items-start gap-4 lg:grid-cols-2' : undefined}
+        >
+          {shownTab === 'overview' && <OverviewPanel user={user} />}
+          {shownTab === 'access' && <AccessPanel userId={user.id} self={self} />}
+          {shownTab === 'groups' && (
+            <GroupsPanel
+              user={user}
+              canManage={canGroups && user.status !== 'offboarded'}
+              adding={addingGroups}
+              onAddingChange={setAddingGroups}
+            />
+          )}
+          {shownTab === 'activity' && (
             <ActivityFeed subject={{ type: 'user', id: user.id }} description={t('detail.activityHint')} />
-          </TabsContent>
-        )}
-      </Tabs>
+          )}
+        </div>
+      </VStack>
 
       <UserFormSheet
         open={dialog === 'edit'}
@@ -322,11 +282,7 @@ function NextSteps({
       icon: <UsersRoundIcon />,
       title: t('groups'),
       hint: t('groupsHint'),
-      action: (
-        <Button size="sm" variant="outline" onClick={onAddGroups}>
-          {t('groupsAction')}
-        </Button>
-      ),
+      action: <Button label={t('groupsAction')} variant="secondary" size="sm" onClick={onAddGroups} />,
     });
   if (canAssign)
     steps.push({
@@ -335,9 +291,12 @@ function NextSteps({
       title: t('role'),
       hint: t('roleHint'),
       action: (
-        <Button size="sm" variant="outline" asChild>
-          <Link href={`/admin/roles?assign=1&userId=${user.id}`}>{t('roleAction')}</Link>
-        </Button>
+        <Button
+          label={t('roleAction')}
+          variant="secondary"
+          size="sm"
+          href={`/admin/roles?assign=1&userId=${user.id}`}
+        />
       ),
     });
   if (canDevices)
@@ -347,9 +306,7 @@ function NextSteps({
       title: t('device'),
       hint: t('deviceHint', { name: user.displayName }),
       action: (
-        <Button size="sm" variant="outline" asChild>
-          <Link href="/itam/hardware?view=in_stock">{t('deviceAction')}</Link>
-        </Button>
+        <Button label={t('deviceAction')} variant="secondary" size="sm" href="/itam/hardware?view=in_stock" />
       ),
     });
   if (canLifecycle && user.status === 'pending')
@@ -363,39 +320,41 @@ function NextSteps({
   if (!steps.length) return null;
   return (
     <FadeIn>
-      <Card className="border-primary/25 bg-primary/[0.03]" role="region" aria-labelledby="next-steps-title">
+      <Card role="region" aria-labelledby="next-steps-title">
         <CardHeader>
-          <CardTitle id="next-steps-title" className="flex items-center gap-2">
-            <CheckIcon className="size-4 text-success" aria-hidden />
-            {t('title', { name: user.displayName })}
+          <CardTitle id="next-steps-title">
+            <HStack gap={2} vAlign="center">
+              <Icon icon={CheckIcon} color="success" />
+              {t('title', { name: user.displayName })}
+            </HStack>
           </CardTitle>
           <CardDescription>{t('description')}</CardDescription>
           <CardAction>
-            <Button variant="ghost" size="icon-sm" onClick={onDismiss} aria-label={t('dismiss')}>
-              <XIcon />
-            </Button>
+            <IconButton
+              label={t('dismiss')}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={XIcon} />}
+              onClick={onDismiss}
+            />
           </CardAction>
         </CardHeader>
         <CardContent>
-          <ol className="divide-y">
+          <List hasDividers>
             {steps.map((s) => (
-              <li key={s.id} className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:gap-3">
-                <span className="flex min-w-0 flex-1 items-start gap-3">
-                  <span
-                    aria-hidden
-                    className="grid size-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary [&_svg]:size-4"
-                  >
+              <ListItem
+                key={s.id}
+                label={s.title}
+                description={s.hint}
+                startContent={
+                  <IconTile size="sm" aria-hidden>
                     {s.icon}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium">{s.title}</span>
-                    <span className="block text-xs text-muted-foreground">{s.hint}</span>
-                  </span>
-                </span>
-                {s.action && <span className="shrink-0 pl-11 sm:pl-0">{s.action}</span>}
-              </li>
+                  </IconTile>
+                }
+                endContent={s.action}
+              />
             ))}
-          </ol>
+          </List>
         </CardContent>
       </Card>
     </FadeIn>
@@ -416,31 +375,21 @@ function OverviewPanel({ user }: { user: UserDetail }) {
             <CardTitle>{t('detail.profile')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <dl className="divide-y">
-              <Field label={tc('email')}>
-                <a href={`mailto:${user.email}`} className="inline-flex items-center gap-1.5 hover:underline">
-                  <MailIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                  <span className="min-w-0 wrap-anywhere">{user.email}</span>
-                </a>
-              </Field>
-              <Field label={t('form.username')}>
-                <code className="font-mono text-xs">{user.username}</code>
-              </Field>
-              <Field label={t('form.givenName')}>{user.givenName}</Field>
-              <Field label={t('form.familyName')}>{user.familyName}</Field>
-              <Field label={t('form.phone')}>
-                {user.phone && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <PhoneIcon className="size-3.5 text-muted-foreground" aria-hidden />
-                    {user.phone}
-                  </span>
-                )}
-              </Field>
-              <Field label={t('form.locale')}>
-                {isLocale(user.locale) ? localeLabels[user.locale] : user.locale}
-              </Field>
-              <Field label={t('form.timezone')}>{user.timezone}</Field>
-            </dl>
+            <MetadataList>
+              <MetadataListItem label={tc('email')}>
+                <Link href={`mailto:${user.email}`}>{user.email}</Link>
+              </MetadataListItem>
+              <MetadataListItem label={t('form.username')}>
+                <Code>{user.username}</Code>
+              </MetadataListItem>
+              <MetadataListItem label={t('form.givenName')}>{orDash(user.givenName)}</MetadataListItem>
+              <MetadataListItem label={t('form.familyName')}>{orDash(user.familyName)}</MetadataListItem>
+              <MetadataListItem label={t('form.phone')}>{orDash(user.phone)}</MetadataListItem>
+              <MetadataListItem label={t('form.locale')}>
+                {orDash(isLocale(user.locale) ? localeLabels[user.locale] : user.locale)}
+              </MetadataListItem>
+              <MetadataListItem label={t('form.timezone')}>{orDash(user.timezone)}</MetadataListItem>
+            </MetadataList>
           </CardContent>
         </Card>
         <CustomFieldsCard entityType="core.user" attributes={user.attributes} />
@@ -451,23 +400,24 @@ function OverviewPanel({ user }: { user: UserDetail }) {
             <CardTitle>{t('detail.organisation')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <dl className="divide-y">
-              <Field label={tc('department')}>{user.department?.name}</Field>
-              <Field label={tc('manager')}>
-                {user.manager && (
-                  <Link
-                    href={`/admin/users/${user.manager.id}`}
-                    className="inline-flex items-center gap-2 hover:underline"
-                  >
+            <MetadataList>
+              <MetadataListItem label={tc('department')}>{orDash(user.department?.name)}</MetadataListItem>
+              <MetadataListItem label={tc('manager')}>
+                {user.manager ? (
+                  <HStack gap={2} vAlign="center">
                     <UserAvatar name={user.manager.displayName} className="size-5 text-[9px]" />
-                    {user.manager.displayName}
-                  </Link>
+                    <Link href={`/admin/users/${user.manager.id}`}>{user.manager.displayName}</Link>
+                  </HStack>
+                ) : (
+                  '—'
                 )}
-              </Field>
-              <Field label={t('form.jobTitle')}>{user.jobTitle}</Field>
-              <Field label={t('form.employeeId')}>{user.employeeId}</Field>
-              <Field label={t('detail.directReports')}>{format.number(user.directReports)}</Field>
-            </dl>
+              </MetadataListItem>
+              <MetadataListItem label={t('form.jobTitle')}>{orDash(user.jobTitle)}</MetadataListItem>
+              <MetadataListItem label={t('form.employeeId')}>{orDash(user.employeeId)}</MetadataListItem>
+              <MetadataListItem label={t('detail.directReports')}>
+                {format.number(user.directReports)}
+              </MetadataListItem>
+            </MetadataList>
           </CardContent>
         </Card>
         <Card>
@@ -475,41 +425,39 @@ function OverviewPanel({ user }: { user: UserDetail }) {
             <CardTitle>{t('detail.account')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <dl className="divide-y">
-              <Field label={t('detail.lastLogin')}>
-                {user.lastLoginAt ? <RelativeTime date={user.lastLoginAt} /> : t('detail.never')}
-              </Field>
-              <Field label={t('detail.activeSessions')}>{format.number(user.activeSessions)}</Field>
-              <Field label={t('detail.created')}>
-                <DateTime date={user.createdAt} />
-              </Field>
-              <Field label={t('detail.onboarded')}>
-                {user.onboardedAt ? <DateTime date={user.onboardedAt} /> : null}
-              </Field>
-              {user.offboardedAt && (
-                <Field label={t('detail.offboarded')}>
-                  <DateTime date={user.offboardedAt} />
-                </Field>
+            <VStack gap={3}>
+              <MetadataList>
+                <MetadataListItem label={t('detail.lastLogin')}>
+                  {user.lastLoginAt ? <RelativeTime date={user.lastLoginAt} /> : t('detail.never')}
+                </MetadataListItem>
+                <MetadataListItem label={t('detail.activeSessions')}>
+                  {format.number(user.activeSessions)}
+                </MetadataListItem>
+                <MetadataListItem label={t('detail.created')}>
+                  <DateTime date={user.createdAt} />
+                </MetadataListItem>
+                <MetadataListItem label={t('detail.onboarded')}>
+                  {user.onboardedAt ? <DateTime date={user.onboardedAt} /> : '—'}
+                </MetadataListItem>
+                {user.offboardedAt && (
+                  <MetadataListItem label={t('detail.offboarded')}>
+                    <DateTime date={user.offboardedAt} />
+                  </MetadataListItem>
+                )}
+              </MetadataList>
+              {user.lockedUntil && (
+                <Banner
+                  status="warning"
+                  title={t('detail.locked', {
+                    time: format.dateTime(new Date(user.lockedUntil), { timeStyle: 'short' }),
+                  })}
+                  collapsible={false}
+                />
               )}
-            </dl>
-            {(user.lockedUntil || user.mustChangePassword) && (
-              <div className="mt-3 space-y-2">
-                {user.lockedUntil && (
-                  <p className="flex items-center gap-2 rounded-md bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
-                    <LockIcon className="size-4" aria-hidden />
-                    {t('detail.locked', {
-                      time: format.dateTime(new Date(user.lockedUntil), { timeStyle: 'short' }),
-                    })}
-                  </p>
-                )}
-                {user.mustChangePassword && (
-                  <p className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                    <KeyRoundIcon className="size-4" aria-hidden />
-                    {t('detail.mustChangePassword')}
-                  </p>
-                )}
-              </div>
-            )}
+              {user.mustChangePassword && (
+                <Banner status="info" title={t('detail.mustChangePassword')} collapsible={false} />
+              )}
+            </VStack>
           </CardContent>
         </Card>
       </div>
@@ -579,54 +527,54 @@ function AccessPanel({ userId, self }: { userId: string; self: boolean }) {
         <CardDescription>{t('effectiveHint')}</CardDescription>
         {groups.size > 0 && (
           <CardAction>
-            <Button variant="ghost" size="sm" aria-pressed={codes} onClick={() => setCodes(!codes)}>
-              {codes ? t('hidePermissions') : t('showPermissions')}
-            </Button>
+            <ToggleButton
+              label={codes ? t('hidePermissions') : t('showPermissions')}
+              size="sm"
+              isPressed={codes}
+              onPressedChange={setCodes}
+            />
           </CardAction>
         )}
       </CardHeader>
       <CardContent className="space-y-3">
-        {groups.size === 0 && <p className="text-sm text-muted-foreground">{t('noAccess')}</p>}
+        {groups.size === 0 && <Text color="secondary">{t('noAccess')}</Text>}
         <ul className="divide-y rounded-lg border">
           {[...groups.entries()].map(([key, g]) => (
             <li key={key} className="px-3 py-2.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <ShieldCheckIcon className="size-4 shrink-0 text-primary" aria-hidden />
-                <span className="font-medium">{g.role}</span>
-                <Badge variant="secondary" className="font-normal">
-                  {g.via}
-                </Badge>
-                {g.scope && (
-                  <Badge variant="info" className="font-normal">
-                    {g.scope}
-                  </Badge>
-                )}
-                {g.expiresAt && (
-                  <Badge variant="warning" className="font-normal">
-                    {t('expires', { time: format.dateTime(new Date(g.expiresAt), { dateStyle: 'medium' }) })}
-                  </Badge>
-                )}
-              </div>
-              {g.description && <p className="mt-1 pl-6 text-xs text-muted-foreground">{g.description}</p>}
-              <Collapse open={codes}>
-                <div className="mt-2 flex flex-wrap gap-1.5 pl-6">
-                  {g.permissions.map((p) => (
-                    <code
-                      key={p}
-                      className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] break-all text-muted-foreground"
-                    >
-                      {p}
-                    </code>
-                  ))}
-                </div>
-              </Collapse>
+              <VStack gap={1}>
+                <HStack gap={2} wrap="wrap" vAlign="center">
+                  <Icon icon={ShieldCheckIcon} color="accent" />
+                  <Text weight="medium">{g.role}</Text>
+                  <Badge variant="neutral" label={g.via} />
+                  {g.scope && <Badge variant="info" label={g.scope} />}
+                  {g.expiresAt && (
+                    <Badge
+                      variant="warning"
+                      label={t('expires', {
+                        time: format.dateTime(new Date(g.expiresAt), { dateStyle: 'medium' }),
+                      })}
+                    />
+                  )}
+                </HStack>
+                {g.description && <Text type="supporting">{g.description}</Text>}
+                <Collapse open={codes}>
+                  <HStack gap={1.5} wrap="wrap" paddingBlockStart={1}>
+                    {g.permissions.map((p) => (
+                      <Code key={p}>{p}</Code>
+                    ))}
+                  </HStack>
+                </Collapse>
+              </VStack>
             </li>
           ))}
         </ul>
         {canAssign && (
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/admin/roles?assign=1&userId=${userId}`}>{t('manageAccess')}</Link>
-          </Button>
+          <Button
+            label={t('manageAccess')}
+            variant="secondary"
+            size="sm"
+            href={`/admin/roles?assign=1&userId=${userId}`}
+          />
         )}
       </CardContent>
     </Card>
@@ -681,9 +629,13 @@ function GroupsPanel({
         <CardDescription>{t('description')}</CardDescription>
         {canManage && (
           <CardAction>
-            <Button size="sm" variant="outline" onClick={() => onAddingChange(true)}>
-              <PlusIcon /> {t('add')}
-            </Button>
+            <Button
+              label={t('add')}
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => onAddingChange(true)}
+            />
           </CardAction>
         )}
       </CardHeader>
@@ -696,51 +648,47 @@ function GroupsPanel({
             className="py-6"
           />
         ) : (
-          <AnimatedList className="-mx-1 divide-y">
+          <AnimatedList className="divide-y">
             {user.groups.map((g) => {
               const synced = g.source !== 'manual' || g.groupSource !== 'local';
               return (
                 <AnimatedItem key={g.id}>
-                  <div className="flex items-center gap-3 px-1 py-2.5 text-sm">
-                    <span
-                      aria-hidden
-                      className="grid size-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary"
-                    >
-                      <UsersRoundIcon className="size-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <Link
-                        href={`/admin/groups/${g.id}`}
-                        className="block truncate font-medium hover:underline"
-                      >
+                  <Item
+                    startContent={
+                      <IconTile size="sm" aria-hidden>
+                        <UsersRoundIcon />
+                      </IconTile>
+                    }
+                    label={
+                      <Link href={`/admin/groups/${g.id}`} color="primary" weight="medium" maxLines={1}>
                         {g.name}
                       </Link>
-                      {synced && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <RefreshCwIcon className="size-3" aria-hidden />
+                    }
+                    description={
+                      synced ? (
+                        <HStack gap={1} vAlign="center">
+                          <Icon icon={RefreshCwIcon} size="xsm" />
                           {t('synced', {
                             source: tc(
                               `source_values.${g.groupSource === 'local' ? 'system' : g.groupSource}`,
                             ),
                           })}
-                        </span>
-                      )}
-                    </span>
-                    {canManage && !synced && (
-                      <Hint label={t('remove')}>
-                        <Button
+                        </HStack>
+                      ) : undefined
+                    }
+                    endContent={
+                      canManage && !synced ? (
+                        <IconButton
+                          label={t('removeLabel', { group: g.name })}
                           variant="ghost"
-                          size="icon-sm"
-                          className="shrink-0 text-muted-foreground hover:text-destructive"
-                          aria-label={t('removeLabel', { group: g.name })}
-                          disabled={change.isPending}
+                          size="sm"
+                          icon={<Icon icon={UserMinusIcon} />}
+                          isDisabled={change.isPending}
                           onClick={() => remove(g)}
-                        >
-                          <UserMinusIcon />
-                        </Button>
-                      </Hint>
-                    )}
-                  </div>
+                        />
+                      ) : undefined
+                    }
+                  />
                 </AnimatedItem>
               );
             })}
@@ -786,37 +734,55 @@ function AddToGroupsDialog({
 }) {
   const t = useTranslations('users.groups');
   const tc = useTranslations('common');
+  const fieldId = useId();
   const [ids, setIds] = useState<string[]>([]);
   const close = () => {
     setIds([]);
     onOpenChange(false);
   };
   return (
-    <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('addTitle', { name: user.displayName })}</DialogTitle>
-          <DialogDescription>{t('addDescription')}</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-2">
-          <Label id="add-groups-label">{t('choose')}</Label>
-          <GroupMultiSelect
-            labelledBy="add-groups-label"
-            value={ids}
-            onChange={setIds}
-            exclude={user.groups.map((g) => g.id)}
-            addLabel={t('pick')}
+    <Dialog isOpen={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())} width={480} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('addTitle', { name: user.displayName })}
+            subtitle={t('addDescription')}
+            onOpenChange={(o) => (o ? onOpenChange(true) : close())}
           />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={close}>
-            {tc('cancel')}
-          </Button>
-          <Button disabled={ids.length === 0} loading={pending} onClick={() => onAdd(ids, close)}>
-            {t('addConfirm', { count: ids.length })}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+        }
+        content={
+          <LayoutContent padding={4}>
+            <Field
+              label={t('choose')}
+              isGroupLabel
+              labelID={`${fieldId}-label`}
+              inputID={`${fieldId}-picker`}
+            >
+              <GroupMultiSelect
+                labelledBy={`${fieldId}-label`}
+                value={ids}
+                onChange={setIds}
+                exclude={user.groups.map((g) => g.id)}
+                addLabel={t('pick')}
+              />
+            </Field>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={close} />
+              <Button
+                label={t('addConfirm', { count: ids.length })}
+                variant="primary"
+                isLoading={pending}
+                isDisabled={ids.length === 0}
+                onClick={() => onAdd(ids, close)}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -830,36 +796,85 @@ function OnboardButton({ user }: { user: UserDetail }) {
     success: t('lifecycle.onboarded', { name: user.displayName }),
   });
   return (
-    <Button onClick={() => m.mutate(undefined)} loading={m.isPending}>
-      <UserCheckIcon /> {t('actions.onboard')}
-    </Button>
+    <Button
+      label={t('actions.onboard')}
+      variant="primary"
+      icon={<Icon icon={UserCheckIcon} />}
+      isLoading={m.isPending}
+      onClick={() => m.mutate(undefined)}
+    />
   );
 }
 
-function OnboardMenuItem({ user }: { user: UserDetail }) {
+/** The "More actions" menu: move, reset password, sign out, then the status changes (offboard last). */
+function UserMoreMenu({
+  user,
+  movable,
+  canCredentials,
+  lifecycleActions,
+  onDialog,
+}: {
+  user: UserDetail;
+  movable: boolean;
+  canCredentials: boolean;
+  lifecycleActions: boolean;
+  onDialog: (dialog: DialogKind) => void;
+}) {
   const t = useTranslations('users');
-  const m = useApiMutation((api) => api.post(`/users/${user.id}/onboard`), {
+  const onboard = useApiMutation((api) => api.post(`/users/${user.id}/onboard`), {
     invalidate,
     success: t('lifecycle.onboarded', { name: user.displayName }),
   });
-  return (
-    <DropdownMenuItem onSelect={() => m.mutate(undefined)}>
-      <UserCheckIcon /> {t('actions.onboard')}
-    </DropdownMenuItem>
-  );
-}
-
-function ReactivateMenuItem({ user }: { user: UserDetail }) {
-  const t = useTranslations('users');
-  const m = useApiMutation((api) => api.post(`/users/${user.id}/status`, { status: 'active' }), {
+  const reactivate = useApiMutation((api) => api.post(`/users/${user.id}/status`, { status: 'active' }), {
     invalidate,
     success: t('lifecycle.reactivated', { name: user.displayName }),
   });
-  return (
-    <DropdownMenuItem onSelect={() => m.mutate(undefined)}>
-      <RotateCcwIcon /> {t('actions.reactivate')}
-    </DropdownMenuItem>
-  );
+  const items: DropdownMenuOption[] = [];
+  if (movable)
+    items.push({
+      label: t('actions.transfer'),
+      icon: ArrowRightLeftIcon,
+      onClick: () => onDialog('transfer'),
+    });
+  if (canCredentials && user.authSource === 'local')
+    items.push({
+      label: t('actions.resetPassword'),
+      icon: KeyRoundIcon,
+      onClick: () => onDialog('password'),
+    });
+  if (lifecycleActions) {
+    items.push(
+      {
+        label: t('actions.revokeSessions'),
+        icon: LogOutIcon,
+        isDisabled: user.activeSessions === 0,
+        onClick: () => onDialog('revoke'),
+      },
+      { type: 'divider' },
+    );
+    if (user.status === 'offboarded')
+      items.push({
+        label: t('actions.onboard'),
+        icon: UserCheckIcon,
+        onClick: () => onboard.mutate(undefined),
+      });
+    if (user.status === 'suspended')
+      items.push({
+        label: t('actions.reactivate'),
+        icon: RotateCcwIcon,
+        onClick: () => reactivate.mutate(undefined),
+      });
+    if (user.status === 'active')
+      items.push({ label: t('actions.suspend'), icon: BanIcon, onClick: () => onDialog('suspend') });
+    if (user.status !== 'offboarded')
+      items.push({
+        label: t('actions.offboard'),
+        icon: UserXIcon,
+        variant: 'destructive',
+        onClick: () => onDialog('offboard'),
+      });
+  }
+  return <MoreMenu label={t('actions.more')} variant="secondary" alignment="end" items={items} />;
 }
 
 interface DialogProps {
@@ -871,6 +886,7 @@ interface DialogProps {
 function SuspendDialog({ user, open, onOpenChange }: DialogProps) {
   const t = useTranslations('users.lifecycle');
   const ta = useTranslations('users.actions');
+  const tc = useTranslations('common');
   const [reason, setReason] = useState('');
   const m = useApiMutation(
     (api) => api.post(`/users/${user.id}/status`, { status: 'suspended', reason: reason || undefined }),
@@ -881,31 +897,52 @@ function SuspendDialog({ user, open, onOpenChange }: DialogProps) {
     },
   );
   return (
-    <ConfirmDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t('suspendTitle', { name: user.displayName })}
-      description={t('suspendBody')}
-      confirmLabel={ta('suspend')}
-      destructive
-      loading={m.isPending}
-      onConfirm={() => m.mutate(undefined)}
-    >
-      <div className="grid gap-2">
-        <Label htmlFor="suspend-reason">{t('reason')}</Label>
-        <Textarea
-          id="suspend-reason"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder={t('reasonPlaceholder')}
-        />
-      </div>
-    </ConfirmDialog>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={448} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('suspendTitle', { name: user.displayName })}
+            subtitle={t('suspendBody')}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <TextArea
+              label={t('reason')}
+              placeholder={t('reasonPlaceholder')}
+              value={reason}
+              onChange={setReason}
+            />
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button
+                label={tc('cancel')}
+                variant="ghost"
+                isDisabled={m.isPending}
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={ta('suspend')}
+                variant="destructive"
+                isLoading={m.isPending}
+                onClick={() => m.mutate(undefined)}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
+    </Dialog>
   );
 }
 
 function OffboardDialog({ user, open, onOpenChange }: DialogProps) {
   const t = useTranslations('users.lifecycle');
+  const tc = useTranslations('common');
+  const transferId = useId();
   const [reason, setReason] = useState('');
   const [removeGroups, setRemoveGroups] = useState(true);
   const [removeRoles, setRemoveRoles] = useState(true);
@@ -925,42 +962,59 @@ function OffboardDialog({ user, open, onOpenChange }: DialogProps) {
     },
   );
   return (
-    <ConfirmDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t('offboardTitle', { name: user.displayName })}
-      description={t('offboardBody')}
-      confirmLabel={t('offboardConfirm')}
-      destructive
-      loading={m.isPending}
-      onConfirm={() => m.mutate(undefined)}
-    >
-      <div className="space-y-4">
-        <div className="grid gap-2">
-          <Label htmlFor="offboard-reason">{t('reason')}</Label>
-          <Input
-            id="offboard-reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder={t('reasonPlaceholder')}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={448} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('offboardTitle', { name: user.displayName })}
+            subtitle={t('offboardBody')}
+            onOpenChange={onOpenChange}
           />
-        </div>
-        <label className="flex items-center gap-2 text-sm">
-          <Checkbox checked={removeGroups} onCheckedChange={(v) => setRemoveGroups(v === true)} />{' '}
-          {t('removeGroups')}
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <Checkbox checked={removeRoles} onCheckedChange={(v) => setRemoveRoles(v === true)} />{' '}
-          {t('removeRoles')}
-        </label>
-        {user.directReports > 0 && (
-          <div className="grid gap-2">
-            <Label>{t('transferReports')}</Label>
-            <UserPicker value={transferTo} onChange={setTransferTo} excludeIds={[user.id]} />
-          </div>
-        )}
-      </div>
-    </ConfirmDialog>
+        }
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={4}>
+              <TextInput
+                label={t('reason')}
+                placeholder={t('reasonPlaceholder')}
+                value={reason}
+                onChange={setReason}
+              />
+              <CheckboxInput label={t('removeGroups')} value={removeGroups} onChange={setRemoveGroups} />
+              <CheckboxInput label={t('removeRoles')} value={removeRoles} onChange={setRemoveRoles} />
+              {user.directReports > 0 && (
+                <Field label={t('transferReports')} inputID={transferId}>
+                  <UserPicker
+                    id={transferId}
+                    value={transferTo}
+                    onChange={setTransferTo}
+                    excludeIds={[user.id]}
+                  />
+                </Field>
+              )}
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button
+                label={tc('cancel')}
+                variant="ghost"
+                isDisabled={m.isPending}
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={t('offboardConfirm')}
+                variant="destructive"
+                isLoading={m.isPending}
+                onClick={() => m.mutate(undefined)}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
+    </Dialog>
   );
 }
 
@@ -1001,31 +1055,48 @@ function PasswordDialog({ user, open, onOpenChange }: DialogProps) {
     },
   );
   return (
-    <ConfirmDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t('passwordTitle', { name: user.displayName })}
-      description={t('passwordBody')}
-      confirmLabel={tc('save')}
-      loading={m.isPending}
-      onConfirm={() => m.mutate(undefined)}
-    >
-      <div className="space-y-4">
-        <div className="grid gap-2">
-          <Label htmlFor="new-password">{t('newPassword')}</Label>
-          <Input
-            id="new-password"
-            type="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={448} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('passwordTitle', { name: user.displayName })}
+            subtitle={t('passwordBody')}
+            onOpenChange={onOpenChange}
           />
-        </div>
-        <label className="flex items-center gap-2 text-sm">
-          <Checkbox checked={requireChange} onCheckedChange={(v) => setRequireChange(v === true)} />{' '}
-          {t('requireChange')}
-        </label>
-      </div>
-    </ConfirmDialog>
+        }
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={4}>
+              <TextInput
+                label={t('newPassword')}
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={setPassword}
+              />
+              <CheckboxInput label={t('requireChange')} value={requireChange} onChange={setRequireChange} />
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button
+                label={tc('cancel')}
+                variant="ghost"
+                isDisabled={m.isPending}
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={tc('save')}
+                variant="primary"
+                isLoading={m.isPending}
+                onClick={() => m.mutate(undefined)}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
+    </Dialog>
   );
 }

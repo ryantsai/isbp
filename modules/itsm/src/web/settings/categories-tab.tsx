@@ -1,17 +1,26 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { type Condition, localize, type LocalizedText } from '@isbp/sdk';
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
+import { Card } from '@isbp/ui/card';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
 import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import { OptionalFields } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
@@ -23,9 +32,7 @@ import {
   SheetTitle,
 } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Switch } from '@isbp/ui/switch';
 import { FolderTreeIcon, PencilIcon, PlusIcon, TimerIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useId, useRef, useState } from 'react';
 import type { z } from 'zod';
@@ -55,6 +62,7 @@ import {
   DeleteButton,
   MoveButtons,
   refocus,
+  SettingsSection,
   TypeChecks,
   usePolicies,
   useSheetParam,
@@ -70,6 +78,8 @@ type SlaMode = 'standard' | 'own';
 const KEY_RE = /^[a-z0-9][a-z0-9-]{1,62}$/;
 const ALL_PRIORITIES = [...PRIORITIES];
 const NO_CALENDARS: CalendarDto[] = [];
+/** Indent step (spacing scale) of a category per depth in the tree. */
+const INDENT = [3, 6, 8, 10] as const;
 const slug = (s: string) =>
   s
     .toLowerCase()
@@ -245,88 +255,56 @@ function CategoryForm({
           <SheetTitle>{category ? t('editTitle') : t('createTitle')}</SheetTitle>
           <SheetDescription>{t('sheetHint')}</SheetDescription>
         </SheetHeader>
-        <SheetBody className="grid content-start gap-5 pb-6">
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-name`}>{t('name')}</Label>
-            <LocalizedInput
-              id={`${id}-name`}
-              value={name}
-              onChange={(v) => {
-                setName(v);
-                if (!keyTouched) setKey(slug(v.en ?? ''));
-              }}
-              invalid={touched && errors.name}
-              aria-describedby={`${id}-name-hint`}
-            />
-            <p
-              id={`${id}-name-hint`}
-              className={cn(
-                'text-xs',
-                touched && errors.name ? 'text-sm text-destructive' : 'text-muted-foreground',
-              )}
+        <SheetBody className="pb-6">
+          <FormLayout defaultOptionality="optional">
+            <Field
+              label={t('name')}
+              isRequired
+              inputID={`${id}-name`}
+              description={touched && errors.name ? undefined : t('nameHint')}
+              status={touched && errors.name ? { type: 'error', message: t('nameRequired') } : undefined}
+              statusVariant="detached"
             >
-              {touched && errors.name ? t('nameRequired') : t('nameHint')}
-            </p>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-parent`}>{t('parent')}</Label>
+              <LocalizedInput
+                id={`${id}-name`}
+                value={name}
+                onChange={(v) => {
+                  setName(v);
+                  if (!keyTouched) setKey(slug(v.en ?? ''));
+                }}
+                invalid={touched && errors.name}
+              />
+            </Field>
             <CategorySelect
-              id={`${id}-parent`}
+              label={t('parent')}
               value={parentId}
               onChange={setParentId}
               includeInactive
               excludeId={category?.id}
               noneLabel={t('topLevel')}
             />
-          </div>
-          <TypeChecks
-            label={t('types')}
-            value={types}
-            onChange={setTypes}
-            invalid={touched && errors.types}
-            describedBy={touched && errors.types ? `${id}-types-error` : undefined}
-          />
-          {touched && errors.types && (
-            <p id={`${id}-types-error`} className="-mt-3 text-sm text-destructive">
-              {t('typesRequired')}
-            </p>
-          )}
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-group`}>{t('defaultGroup')}</Label>
+            <TypeChecks
+              label={t('types')}
+              value={types}
+              onChange={setTypes}
+              invalid={touched && errors.types}
+            />
             <DefaultGroupSelect
-              id={`${id}-group`}
+              label={t('defaultGroup')}
+              description={t('defaultGroupHint')}
               value={groupId}
               onChange={setGroupId}
-              aria-describedby={`${id}-group-hint`}
             />
-            <p id={`${id}-group-hint`} className="text-xs text-muted-foreground">
-              {t('defaultGroupHint')}
-            </p>
-          </div>
 
-          <fieldset className="grid gap-3">
-            <legend className="mb-1 text-sm font-medium">{t('sla.title')}</legend>
-            <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={t('sla.title')}>
-              {(['standard', 'own'] as const).map((m) => (
-                <label
-                  key={m}
-                  className={cn(
-                    'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors motion-reduce:transition-none has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50',
-                    mode === m ? 'border-primary bg-primary/5' : 'hover:bg-muted/50',
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name={`${id}-sla`}
+            <VStack gap={3}>
+              <RadioList label={t('sla.title')} value={mode} onChange={(m) => setMode(m as SlaMode)}>
+                {(['standard', 'own'] as const).map((m) => (
+                  <RadioListItem
+                    key={m}
                     value={m}
-                    checked={mode === m}
-                    onChange={() => setMode(m)}
-                    className="mt-0.5 accent-primary"
-                  />
-                  <span className="grid min-w-0 gap-0.5">
-                    <span className="text-sm font-medium">{t(`sla.${m}`)}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {m === 'standard'
+                    label={t(`sla.${m}`)}
+                    description={
+                      m === 'standard'
                         ? standard.length
                           ? t('sla.standardHint', {
                               names: format.list(standard.filter((p) => p !== own?.id).map(nameOf), {
@@ -334,107 +312,90 @@ function CategoryForm({
                               }),
                             })
                           : t('sla.noStandard')
-                        : t('sla.ownHint')}
-                    </span>
-                  </span>
-                </label>
-              ))}
-            </div>
-            {mode === 'own' && (
-              <div className="grid gap-4 rounded-lg border p-3">
-                <CheckGroup
-                  label={t('sla.types')}
-                  options={types}
-                  value={shownSlaTypes}
-                  onChange={setSlaTypes}
-                  invalid={touched && errors.slaTypes}
-                  render={(ty) => tt(`typesPlural.${ty}`)}
-                />
-                <TargetsEditor
-                  value={shownTexts}
-                  onChange={setTexts}
-                  visible={ALL_PRIORITIES}
-                  same={shownSame}
-                  onSameChange={setSame}
-                  showErrors={touched}
-                  copiedFrom={!texts && source ? localize(source.name, locale) : null}
-                />
-                <div className="grid gap-2">
-                  <Label htmlFor={`${id}-calendar`}>{t('sla.calendar')}</Label>
-                  <Select value={shownCalendar || undefined} onValueChange={setCalendarId}>
-                    <SelectTrigger id={`${id}-calendar`} className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {calendars.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.alwaysOpen && !/24\s*[×x]\s*7/i.test(c.name)
-                            ? ts('sla.calendarAlwaysOpen', { name: c.name })
-                            : c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {placement && (!own || moveOwn)
-                    ? t('sla.placed', { name: nameOf(placement) })
-                    : t('sla.subcategories')}
-                </p>
-              </div>
-            )}
-            {(own || related.length > 0) && (
-              <p className="text-xs text-muted-foreground">
-                <Link
-                  href={own ? `/itsm/settings?tab=sla&edit=${own.id}` : '/itsm/settings?tab=sla'}
-                  className="font-medium text-primary underline-offset-4 hover:underline"
-                >
-                  {own ? t('sla.editPolicy') : t('sla.related', { count: related.length })}
-                </Link>
-              </p>
-            )}
-          </fieldset>
+                        : t('sla.ownHint')
+                    }
+                  />
+                ))}
+              </RadioList>
+              {mode === 'own' && (
+                <VStack gap={4}>
+                  <CheckGroup
+                    label={t('sla.types')}
+                    options={types}
+                    value={shownSlaTypes}
+                    onChange={setSlaTypes}
+                    error={touched && errors.slaTypes ? t('typesRequired') : undefined}
+                    render={(ty) => tt(`typesPlural.${ty}`)}
+                  />
+                  <TargetsEditor
+                    value={shownTexts}
+                    onChange={setTexts}
+                    visible={ALL_PRIORITIES}
+                    same={shownSame}
+                    onSameChange={setSame}
+                    showErrors={touched}
+                    copiedFrom={!texts && source ? localize(source.name, locale) : null}
+                  />
+                  <Selector
+                    label={t('sla.calendar')}
+                    value={shownCalendar || undefined}
+                    onChange={setCalendarId}
+                    options={calendars.map((c) => ({
+                      value: c.id,
+                      label:
+                        c.alwaysOpen && !/24\s*[×x]\s*7/i.test(c.name)
+                          ? ts('sla.calendarAlwaysOpen', { name: c.name })
+                          : c.name,
+                    }))}
+                  />
+                  <Text as="p" type="supporting">
+                    {placement && (!own || moveOwn)
+                      ? t('sla.placed', { name: nameOf(placement) })
+                      : t('sla.subcategories')}
+                  </Text>
+                </VStack>
+              )}
+              {(own || related.length > 0) && (
+                <Text as="p" type="supporting">
+                  <Link
+                    href={own ? `/itsm/settings?tab=sla&edit=${own.id}` : '/itsm/settings?tab=sla'}
+                    weight="medium"
+                  >
+                    {own ? t('sla.editPolicy') : t('sla.related', { count: related.length })}
+                  </Link>
+                </Text>
+              )}
+            </VStack>
 
-          {category && (
-            <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
-              <Label htmlFor={`${id}-active`} className="flex-col items-start gap-0.5">
-                <span>{t('active')}</span>
-                <span className="text-xs font-normal text-muted-foreground">{t('activeHint')}</span>
-              </Label>
-              <Switch id={`${id}-active`} checked={active} onCheckedChange={setActive} />
-            </div>
-          )}
+            {category && (
+              <Switch label={t('active')} description={t('activeHint')} value={active} onChange={setActive} />
+            )}
 
-          <OptionalFields label={ts('advanced')} hint={t('key')}>
-            <div className="grid gap-2">
-              <Label htmlFor={`${id}-key`}>{t('key')}</Label>
-              <Input
-                id={`${id}-key`}
+            <OptionalFields label={ts('advanced')} hint={t('key')}>
+              <TextInput
+                label={t('key')}
                 value={key}
-                onChange={(e) => {
-                  setKey(e.target.value.toLowerCase());
+                onChange={(v) => {
+                  setKey(v.toLowerCase());
                   setKeyTouched(true);
                 }}
-                className="font-mono"
-                aria-invalid={touched && errors.key ? true : undefined}
-                aria-describedby={`${id}-key-hint`}
+                description={touched && errors.key ? undefined : category ? t('keyHintEdit') : t('keyHint')}
+                status={
+                  touched && errors.key
+                    ? { type: 'error', message: category ? t('keyHintEdit') : t('keyHint') }
+                    : undefined
+                }
+                statusVariant="detached"
               />
-              <p
-                id={`${id}-key-hint`}
-                className={cn(
-                  'text-xs',
-                  touched && errors.key ? 'text-destructive' : 'text-muted-foreground',
-                )}
-              >
-                {category ? t('keyHintEdit') : t('keyHint')}
-              </p>
-            </div>
-          </OptionalFields>
-          {touched && invalid && (
-            <p role="alert" className="text-sm text-destructive">
-              {errors.key && !errors.name ? t('keyInvalid') : ts('sla.fixErrors')}
-            </p>
-          )}
+            </OptionalFields>
+            {touched && invalid && (
+              <Banner
+                status="error"
+                title={errors.key && !errors.name ? t('keyInvalid') : ts('sla.fixErrors')}
+                collapsible={false}
+              />
+            )}
+          </FormLayout>
         </SheetBody>
         <SheetFooter>
           {category && (
@@ -445,12 +406,8 @@ function CategoryForm({
               pending={remove.isPending}
             />
           )}
-          <Button type="button" variant="outline" onClick={onDone}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {tc('save')}
-          </Button>
+          <Button label={tc('cancel')} variant="secondary" onClick={onDone} />
+          <Button label={tc('save')} variant="primary" isLoading={save.isPending} type="submit" />
         </SheetFooter>
       </SheetForm>
     </SheetContent>
@@ -492,19 +449,19 @@ export function CategoriesTab() {
         );
 
   return (
-    <section className="grid gap-4" aria-labelledby="itsm-categories-title">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="itsm-categories-title" className="text-lg font-semibold">
-            {t('title')}
-          </h2>
-          <p className="text-sm text-muted-foreground">{t('description')}</p>
-        </div>
-        <Button onClick={sheet.openCreate}>
-          <PlusIcon />
-          {t('new')}
-        </Button>
-      </div>
+    <SettingsSection
+      id="itsm-categories-title"
+      title={t('title')}
+      description={t('description')}
+      action={
+        <Button
+          label={t('new')}
+          variant="primary"
+          icon={<Icon icon={PlusIcon} />}
+          onClick={sheet.openCreate}
+        />
+      }
+    >
       {error ? (
         <ErrorState error={error} kind="list" className="rounded-xl border" />
       ) : isLoading ? (
@@ -516,85 +473,85 @@ export function CategoriesTab() {
           className="rounded-xl border border-dashed"
         />
       ) : (
-        <AnimatedList className="divide-y overflow-hidden rounded-xl border bg-card" aria-label={t('title')}>
-          {tree.map((n) => {
-            const c = n.category;
-            const siblings = siblingsOf(c);
-            const index = siblings.findIndex((s) => s.category.id === c.id);
-            const sla = slaOf(c);
-            return (
-              <AnimatedItem
-                key={c.id}
-                className={cn('flex min-w-0 items-center gap-3 px-4 py-2.5', !c.active && 'bg-muted/30')}
-              >
-                <div
-                  className="flex min-w-0 flex-1 items-start gap-2"
-                  style={{ paddingInlineStart: `${n.depth * 1.25}rem` }}
-                >
-                  {n.depth > 0 && (
-                    <span className="text-muted-foreground" aria-hidden>
-                      └
-                    </span>
-                  )}
-                  <div className="grid min-w-0 gap-0.5">
-                    <p className="flex min-w-0 flex-wrap items-center gap-2">
-                      <span className={cn('truncate font-medium', !c.active && 'text-muted-foreground')}>
-                        {n.name}
-                      </span>
-                      {!c.active && <Badge variant="muted">{t('inactive')}</Badge>}
-                    </p>
-                    <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                      <span className="hidden sm:inline">{typesText(c)}</span>
-                      {c.defaultGroup && <span>{c.defaultGroup.name}</span>}
-                      {sla && (
-                        <span
-                          className={cn(
-                            'items-center gap-1',
-                            sla.own ? 'inline-flex text-foreground' : 'hidden sm:inline-flex',
-                          )}
-                        >
-                          <TimerIcon className="size-3" aria-hidden />
-                          {sla.text}
-                        </span>
-                      )}
-                      <span className="tabular-nums">{t('tickets', { count: c.ticketCount })}</span>
-                    </p>
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  {siblings.length > 1 && (
-                    <MoveButtons
-                      name={n.path}
-                      first={index === 0}
-                      last={index === siblings.length - 1}
-                      pending={reorder.isPending}
-                      idPrefix={`cat-${c.id}`}
-                      onMove={(direction) =>
-                        reorder.mutate({
-                          parentId: c.parentId ?? null,
-                          ids: moved(
-                            siblings.map((s) => s.category.id),
-                            index,
-                            direction,
-                          ),
-                          focus: { id: c.id, direction },
-                        })
-                      }
-                    />
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => sheet.openEdit(c.id)}
-                    aria-label={ts('editItem', { name: n.path })}
+        <Card className="gap-0 overflow-hidden py-0">
+          <AnimatedList className="divide-y" aria-label={t('title')}>
+            {tree.map((n) => {
+              const c = n.category;
+              const siblings = siblingsOf(c);
+              const index = siblings.findIndex((s) => s.category.id === c.id);
+              const sla = slaOf(c);
+              return (
+                <AnimatedItem key={c.id}>
+                  <HStack
+                    gap={3}
+                    padding={3}
+                    vAlign="center"
+                    paddingInlineStart={INDENT[Math.min(n.depth, 3)]}
                   >
-                    <PencilIcon />
-                  </Button>
-                </div>
-              </AnimatedItem>
-            );
-          })}
-        </AnimatedList>
+                    <StackItem size="fill">
+                      <VStack gap={0.5}>
+                        <HStack gap={2} wrap="wrap" vAlign="center">
+                          <Text weight="medium" color={c.active ? 'primary' : 'secondary'}>
+                            {n.name}
+                          </Text>
+                          {!c.active && <Badge variant="neutral" label={t('inactive')} />}
+                        </HStack>
+                        <HStack gap={3} wrap="wrap" vAlign="center">
+                          <span className="hidden sm:inline">
+                            <Text type="supporting">{typesText(c)}</Text>
+                          </span>
+                          {c.defaultGroup && <Text type="supporting">{c.defaultGroup.name}</Text>}
+                          {sla && (
+                            <span className={sla.own ? 'inline-flex' : 'hidden sm:inline-flex'}>
+                              <HStack gap={1} vAlign="center">
+                                <Icon icon={TimerIcon} size="xsm" color="secondary" />
+                                <Text type="supporting" color={sla.own ? 'primary' : 'secondary'}>
+                                  {sla.text}
+                                </Text>
+                              </HStack>
+                            </span>
+                          )}
+                          <Text type="supporting" hasTabularNumbers>
+                            {t('tickets', { count: c.ticketCount })}
+                          </Text>
+                        </HStack>
+                      </VStack>
+                    </StackItem>
+                    <HStack gap={1} vAlign="center">
+                      {siblings.length > 1 && (
+                        <MoveButtons
+                          name={n.path}
+                          first={index === 0}
+                          last={index === siblings.length - 1}
+                          pending={reorder.isPending}
+                          idPrefix={`cat-${c.id}`}
+                          onMove={(direction) =>
+                            reorder.mutate({
+                              parentId: c.parentId ?? null,
+                              ids: moved(
+                                siblings.map((s) => s.category.id),
+                                index,
+                                direction,
+                              ),
+                              focus: { id: c.id, direction },
+                            })
+                          }
+                        />
+                      )}
+                      <IconButton
+                        label={ts('editItem', { name: n.path })}
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon={PencilIcon} />}
+                        onClick={() => sheet.openEdit(c.id)}
+                      />
+                    </HStack>
+                  </HStack>
+                </AnimatedItem>
+              );
+            })}
+          </AnimatedList>
+        </Card>
       )}
       <Sheet open={open} onOpenChange={(o) => !o && sheet.close()}>
         {(open || session.n > 0) && (
@@ -607,6 +564,6 @@ export function CategoriesTab() {
           />
         )}
       </Sheet>
-    </section>
+    </SettingsSection>
   );
 }

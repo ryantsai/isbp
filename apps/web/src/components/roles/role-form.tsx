@@ -1,18 +1,15 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createRoleSchema, type PermissionInfo, type Role, updateRoleSchema } from '@isbp/contracts';
-import { Button } from '@isbp/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import {
   Sheet,
   SheetBody,
@@ -22,11 +19,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { Textarea } from '@isbp/ui/textarea';
-import { AlertTriangleIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { type ReactNode, useEffect, useId } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 import { applyServerErrors, useApiMutation, useApiQuery } from '@/lib/api';
@@ -41,23 +36,21 @@ export interface RoleTemplate {
   permissions: string[];
 }
 
-function Section({
-  title,
-  aside,
-  children,
-}: {
-  title: string;
-  aside?: React.ReactNode;
-  children: React.ReactNode;
-}) {
+/** A named group of fields: a caption (with an optional note at the end) over a stack of fields. */
+function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
+  const id = useId();
   return (
-    <fieldset className="space-y-4">
-      <legend className="mb-3 flex w-full items-center justify-between text-xs font-semibold text-muted-foreground">
-        {title}
+    <VStack gap={4} role="group" aria-labelledby={id}>
+      <HStack gap={2} vAlign="center">
+        <StackItem size="fill">
+          <Text type="label" id={id}>
+            {title}
+          </Text>
+        </StackItem>
         {aside}
-      </legend>
+      </HStack>
       {children}
-    </fieldset>
+    </VStack>
   );
 }
 
@@ -171,99 +164,102 @@ export function RoleFormSheet({
         </SheetHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
-            <SheetBody className="space-y-7 py-2">
-              <Section title={t('sections.details')}>
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('name')}</FormLabel>
-                      <FormControl>
-                        <Input autoComplete="off" placeholder={t('namePlaceholder')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {!editing && (
-                  <FormField
-                    control={form.control}
-                    name="key"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('key')}</FormLabel>
-                        <FormControl>
-                          <Input autoComplete="off" spellCheck={false} className="font-mono" {...field} />
-                        </FormControl>
-                        <FormDescription>{t('keyHint')}</FormDescription>
-                        <FormMessage />
-                      </FormItem>
+            <SheetBody>
+              <VStack gap={6}>
+                <Section title={t('sections.details')}>
+                  <FormLayout defaultOptionality="required">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label={t('name')}
+                          autoComplete="off"
+                          placeholder={t('namePlaceholder')}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
+                        />
+                      )}
+                    />
+                    {!editing && (
+                      <FormField
+                        control={form.control}
+                        name="key"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('key')}
+                            autoComplete="off"
+                            description={t('keyHint')}
+                            value={field.value ?? ''}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
                     )}
-                  />
-                )}
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t('description')}{' '}
-                        <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field, fieldState }) => (
+                        <TextArea
+                          label={t('description')}
+                          isOptional
                           rows={2}
                           placeholder={t('descriptionPlaceholder')}
-                          {...field}
                           value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </Section>
-
-              {!editing && (
-                <Section
-                  title={t('sections.permissions')}
-                  aside={
-                    <span className="normal-case tracking-normal tabular-nums">
-                      {t('selected', { count: permissions.length })}
-                    </span>
-                  }
-                >
-                  <p className="-mt-1 text-sm text-muted-foreground">{t('permissionsHint')}</p>
-                  <PermissionEditor
-                    catalog={catalog.data?.items ?? []}
-                    loading={catalog.isLoading}
-                    value={permissions}
-                    onChange={(next) => form.setValue('permissions', next, { shouldDirty: true })}
-                  />
-                  {form.formState.errors.permissions && (
-                    <p className="text-xs text-destructive">{t('permissionsInvalid')}</p>
-                  )}
+                      )}
+                    />
+                  </FormLayout>
                 </Section>
-              )}
 
-              {rootError && (
-                <p
-                  role="alert"
-                  className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-                >
-                  <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
-                  {rootError}
-                </p>
-              )}
+                {!editing && (
+                  <Section
+                    title={t('sections.permissions')}
+                    aside={
+                      <Text type="supporting" hasTabularNumbers>
+                        {t('selected', { count: permissions.length })}
+                      </Text>
+                    }
+                  >
+                    <Text color="secondary">{t('permissionsHint')}</Text>
+                    <PermissionEditor
+                      catalog={catalog.data?.items ?? []}
+                      loading={catalog.isLoading}
+                      value={permissions}
+                      onChange={(next) => form.setValue('permissions', next, { shouldDirty: true })}
+                    />
+                    {form.formState.errors.permissions && (
+                      <Banner status="error" title={t('permissionsInvalid')} collapsible={false} />
+                    )}
+                  </Section>
+                )}
+
+                {rootError && <Banner status="error" title={rootError} collapsible={false} />}
+              </VStack>
             </SheetBody>
             <SheetFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={mutation.isPending}>
-                {editing ? tc('saveChanges') : t('submit')}
-              </Button>
+              <Button
+                label={tc('cancel')}
+                variant="secondary"
+                type="button"
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={editing ? tc('saveChanges') : t('submit')}
+                variant="primary"
+                isLoading={mutation.isPending}
+                type="submit"
+              />
             </SheetFooter>
           </form>
         </Form>

@@ -1,33 +1,24 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Application, CreateApplicationInput } from '@isbp/contracts';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
-import { Textarea } from '@isbp/ui/textarea';
-import { AlertTriangleIcon, LockIcon } from 'lucide-react';
+import { LockIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useId, useMemo, useRef } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { UserPicker } from '@/components/pickers/user-picker';
@@ -53,6 +44,8 @@ export function ApplicationFormDialog({
   const errorText = useErrorText();
   const editing = Boolean(app);
   const list = useFieldList();
+  const formId = useId();
+  const ownerId = useId();
 
   const schema = useMemo(
     () =>
@@ -166,135 +159,131 @@ export function ApplicationFormDialog({
   const rootError = form.formState.errors.root?.message;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')} className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{editing ? t('editTitle', { name: app!.name }) : t('createTitle')}</DialogTitle>
-          <DialogDescription>{editing ? t('editDescription') : t('createDescription')}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={onSubmit} className="space-y-5" noValidate>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('name')}</FormLabel>
-                    <FormControl>
-                      <Input autoComplete="off" placeholder={t('namePlaceholder')} autoFocus {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="key"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('key')}</FormLabel>
-                    <div className="relative">
-                      <FormControl>
-                        <Input
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={576} purpose="form">
+      <Form {...form}>
+        <Layout
+          header={
+            <DialogHeader
+              title={editing ? t('editTitle', { name: app!.name }) : t('createTitle')}
+              subtitle={editing ? t('editDescription') : t('createDescription')}
+              onOpenChange={onOpenChange}
+            />
+          }
+          content={
+            <LayoutContent padding={4}>
+              <form id={formId} onSubmit={onSubmit} noValidate>
+                <FormLayout defaultOptionality="optional">
+                  <Grid columns={{ minWidth: 220 }} gap={4}>
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label={t('name')}
+                          isRequired
                           autoComplete="off"
-                          spellCheck={false}
-                          readOnly={editing}
-                          placeholder="finance-erp"
-                          className="font-mono text-sm read-only:bg-muted/50 read-only:text-muted-foreground"
-                          {...field}
-                          onChange={(e) => field.onChange(e.target.value.toLowerCase())}
-                        />
-                      </FormControl>
-                      {editing && (
-                        <LockIcon
-                          className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 text-muted-foreground"
-                          aria-hidden
+                          placeholder={t('namePlaceholder')}
+                          hasAutoFocus
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
                         />
                       )}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <p className="-mt-3 text-xs text-muted-foreground">{editing ? t('keyLocked') : t('keyHint')}</p>
-            <div className="grid gap-2">
-              <label htmlFor="app-owner" className="text-sm font-medium">
-                {t('owner')} <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-              </label>
-              <UserPicker
-                id="app-owner"
-                value={owner}
-                onChange={(u) => form.setValue('owner', u ? { id: u.id, displayName: u.displayName } : null)}
-                placeholder={t('ownerPlaceholder')}
-              />
-              <p className="text-xs text-muted-foreground">{t('ownerHint')}</p>
-            </div>
-            <OptionalFields
-              hint={list([t('description'), t('homepageUrl')])}
-              filled={countFilled(description, homepageUrl)}
-            >
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t('description')}{' '}
-                      <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea rows={2} placeholder={t('descriptionPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="homepageUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t('homepageUrl')}{' '}
-                      <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="url"
-                        inputMode="url"
-                        autoComplete="url"
-                        placeholder="https://erp.example.com"
-                        {...field}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="key"
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label={t('key')}
+                          isRequired
+                          autoComplete="off"
+                          isReadOnly={editing}
+                          startIcon={editing ? LockIcon : undefined}
+                          placeholder="finance-erp"
+                          value={field.value ?? ''}
+                          onChange={(v) => field.onChange(v.toLowerCase())}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
+                        />
+                      )}
+                    />
+                  </Grid>
+                  <Text type="supporting">{editing ? t('keyLocked') : t('keyHint')}</Text>
+                  <Field label={t('owner')} inputID={ownerId} description={t('ownerHint')}>
+                    <UserPicker
+                      id={ownerId}
+                      value={owner}
+                      onChange={(u) =>
+                        form.setValue('owner', u ? { id: u.id, displayName: u.displayName } : null)
+                      }
+                      placeholder={t('ownerPlaceholder')}
+                    />
+                  </Field>
+                  <OptionalFields
+                    hint={list([t('description'), t('homepageUrl')])}
+                    filled={countFilled(description, homepageUrl)}
+                  >
+                    <FormLayout defaultOptionality="optional">
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field, fieldState }) => (
+                          <TextArea
+                            label={t('description')}
+                            rows={2}
+                            placeholder={t('descriptionPlaceholder')}
+                            value={field.value ?? ''}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
                       />
-                    </FormControl>
-                    <FormDescription>{t('homepageHint')}</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </OptionalFields>
-            {rootError && (
-              <p
-                role="alert"
-                className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-              >
-                <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {rootError}
-              </p>
-            )}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={mutation.isPending}>
-                {editing ? tc('saveChanges') : t('submit')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
+                      <FormField
+                        control={form.control}
+                        name="homepageUrl"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('homepageUrl')}
+                            autoComplete="url"
+                            placeholder="https://erp.example.com"
+                            description={t('homepageHint')}
+                            value={field.value ?? ''}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                    </FormLayout>
+                  </OptionalFields>
+                  {rootError && <Banner status="error" title={rootError} collapsible={false} />}
+                </FormLayout>
+              </form>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider padding={3}>
+              <HStack gap={2} hAlign="end">
+                <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+                <Button
+                  label={editing ? tc('saveChanges') : t('submit')}
+                  variant="primary"
+                  isLoading={mutation.isPending}
+                  type="submit"
+                  form={formId}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Form>
     </Dialog>
   );
 }

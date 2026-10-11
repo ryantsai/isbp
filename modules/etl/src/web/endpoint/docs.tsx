@@ -1,12 +1,16 @@
 'use client';
 
-import { Button } from '@isbp/ui/button';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Table } from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { CodeEditor } from '@isbp/ui/code-editor';
+import { DownloadButton } from '@isbp/ui/download-button';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Label } from '@isbp/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { toast } from '@isbp/ui/sonner';
+import { toast } from '@isbp/ui/toast';
 import { CopyIcon, FileJsonIcon, FileTextIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
@@ -15,6 +19,13 @@ import { MethodBadge, VersionStatusBadge } from '../badges';
 import { copyText, dataUrl, useOrigin } from '../lib';
 
 const LATEST = 'latest';
+
+interface ParamRow extends Record<string, unknown> {
+  name: string;
+  type: string;
+  required: string;
+  details: string;
+}
 
 /** `curl` for a version: query string for GET, a JSON body for POST; the API key is a placeholder. */
 export function curlExample(
@@ -49,22 +60,22 @@ function CopyBlock({ label, value, language }: { label: string; value: string; l
   const t = useTranslations('etl.docs');
   const id = useId();
   return (
-    <div className="grid min-w-0 gap-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <span id={id} className="text-sm font-medium">
+    <VStack gap={1.5} className="min-w-0">
+      <HStack gap={2} hAlign="between" vAlign="center">
+        <Text type="label" id={id}>
           {label}
-        </span>
+        </Text>
         <Button
-          size="sm"
+          label={t('copy')}
           variant="ghost"
+          size="sm"
+          icon={<Icon icon={CopyIcon} />}
           onClick={async () => {
             if (await copyText(value)) toast.success(t('copied'));
             else toast.error(t('copyFailed'));
           }}
-        >
-          <CopyIcon /> {t('copy')}
-        </Button>
-      </div>
+        />
+      </HStack>
       <CodeEditor
         value={value}
         language={language}
@@ -73,7 +84,7 @@ function CopyBlock({ label, value, language }: { label: string; value: string; l
         minHeight="3rem"
         aria-labelledby={id}
       />
-    </div>
+    </VStack>
   );
 }
 
@@ -81,7 +92,6 @@ function CopyBlock({ label, value, language }: { label: string; value: string; l
 export function DocsTab({ endpoint }: { endpoint: EndpointDetail }) {
   const t = useTranslations('etl.docs');
   const tp = useTranslations('etl.params');
-  const id = useId();
   const origin = useOrigin();
   const versions = endpoint.versions.filter((v) => v.status !== 'retired');
   const [choice, setChoice] = useState(LATEST);
@@ -105,6 +115,15 @@ export function DocsTab({ endpoint }: { endpoint: EndpointDetail }) {
     ]
       .filter(Boolean)
       .join(' · ');
+  const rows: ParamRow[] = params.map((p) => ({
+    name: p.name,
+    type: `${tp(`types.${p.type}`)}${p.list ? '[]' : ''}`,
+    required: p.required && p.default === null ? t('yes') : t('defaultValue', { value: p.default ?? '∅' }),
+    details:
+      [p.description, constraints(p), p.example ? t('exampleValue', { value: p.example }) : null]
+        .filter(Boolean)
+        .join(' · ') || '—',
+  }));
 
   return (
     <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-3">
@@ -116,77 +135,42 @@ export function DocsTab({ endpoint }: { endpoint: EndpointDetail }) {
             </CardTitle>
             <CardDescription>{t('requestHint')}</CardDescription>
           </CardHeader>
-          <CardContent className="grid min-w-0 gap-4">
-            <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2">
-              <MethodBadge method={def.method} />
-              <code className="min-w-0 font-mono text-sm wrap-anywhere">
-                {origin}
-                {dataUrl(endpoint.slug, pinned)}
-              </code>
-              <VersionStatusBadge status={v.status} />
-            </div>
-            <div
-              role="region"
-              aria-label={t('parameters')}
-              tabIndex={0}
-              className="min-w-0 overflow-x-auto rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            >
-              <table className="w-full text-sm">
-                <caption className="sr-only">{t('parameters')}</caption>
-                <thead className="bg-muted/60">
-                  <tr>
-                    <th scope="col" className="px-3 py-2 text-left text-xs font-medium">
-                      {tp('name')}
-                    </th>
-                    <th scope="col" className="px-3 py-2 text-left text-xs font-medium">
-                      {tp('type')}
-                    </th>
-                    <th scope="col" className="px-3 py-2 text-left text-xs font-medium">
-                      {t('requiredColumn')}
-                    </th>
-                    <th scope="col" className="px-3 py-2 text-left text-xs font-medium">
-                      {t('details')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {params.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-3 py-3 text-muted-foreground">
-                        {t('noParams')}
-                      </td>
-                    </tr>
-                  )}
-                  {params.map((p) => (
-                    <tr key={p.name} className="border-t align-top">
-                      <th scope="row" className="px-3 py-2 text-left font-mono text-xs font-medium">
-                        {p.name}
-                      </th>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        {tp(`types.${p.type}`)}
-                        {p.list ? '[]' : ''}
-                      </td>
-                      <td className="px-3 py-2">
-                        {p.required && p.default === null
-                          ? t('yes')
-                          : t('defaultValue', { value: p.default ?? '∅' })}
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">
-                        {[
-                          p.description,
-                          constraints(p),
-                          p.example ? t('exampleValue', { value: p.example }) : null,
-                        ]
-                          .filter(Boolean)
-                          .join(' · ') || '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <CopyBlock label={t('curl')} value={curl} language="shell" />
-            <p className="text-xs text-muted-foreground">{t('csvHint')}</p>
+          <CardContent>
+            <VStack gap={4} className="min-w-0">
+              <HStack gap={2} wrap="wrap" vAlign="center">
+                <MethodBadge method={def.method} />
+                <Text type="code" className="min-w-0 wrap-anywhere">
+                  {origin}
+                  {dataUrl(endpoint.slug, pinned)}
+                </Text>
+                <VersionStatusBadge status={v.status} />
+              </HStack>
+              {rows.length === 0 ? (
+                <Text color="secondary">{t('noParams')}</Text>
+              ) : (
+                <Table
+                  aria-label={t('parameters')}
+                  density="compact"
+                  verticalAlign="top"
+                  data={rows}
+                  idKey="name"
+                  columns={[
+                    { key: 'name', header: tp('name'), renderCell: (r) => <Text type="code">{r.name}</Text> },
+                    { key: 'type', header: tp('type') },
+                    { key: 'required', header: t('requiredColumn') },
+                    {
+                      key: 'details',
+                      header: t('details'),
+                      renderCell: (r) => <Text color="secondary">{r.details}</Text>,
+                    },
+                  ]}
+                />
+              )}
+              <CopyBlock label={t('curl')} value={curl} language="shell" />
+              <Text type="supporting" as="p" display="block">
+                {t('csvHint')}
+              </Text>
+            </VStack>
           </CardContent>
         </Card>
         <Card className="min-w-0">
@@ -207,29 +191,31 @@ export function DocsTab({ endpoint }: { endpoint: EndpointDetail }) {
             {t('versionTitle')}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${id}-version`}>{t('version')}</Label>
-            <Select value={choice} onValueChange={setChoice}>
-              <SelectTrigger id={`${id}-version`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={LATEST}>{t('latest', { version: latest.version })}</SelectItem>
-                {versions.map((x) => (
-                  <SelectItem key={x.version} value={String(x.version)}>
-                    {t('pinned', { version: x.version })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <p className="text-sm text-muted-foreground">{t('authHint')}</p>
-          <Button variant="outline" asChild>
-            <a href="/api/v1/etl/endpoints/openapi.json" download="data-apis.openapi.json">
-              <FileJsonIcon /> {t('openapi')}
-            </a>
-          </Button>
+        <CardContent>
+          <VStack gap={4}>
+            <Selector
+              label={t('version')}
+              options={[
+                { value: LATEST, label: t('latest', { version: latest.version }) },
+                ...versions.map((x) => ({
+                  value: String(x.version),
+                  label: t('pinned', { version: x.version }),
+                })),
+              ]}
+              value={choice}
+              onChange={setChoice}
+            />
+            <Text color="secondary" as="p" display="block">
+              {t('authHint')}
+            </Text>
+            <DownloadButton
+              label={t('openapi')}
+              variant="secondary"
+              icon={<Icon icon={FileJsonIcon} />}
+              href="/api/v1/etl/endpoints/openapi.json"
+              download="data-apis.openapi.json"
+            />
+          </VStack>
         </CardContent>
       </Card>
     </div>

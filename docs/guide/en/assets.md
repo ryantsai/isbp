@@ -333,7 +333,7 @@ and keeps the signed document with the contract.
 - After the end date it becomes **Expired**. Contracts that auto-renew roll over to the next term on their own.
 - To renew by hand, select **Renew**, enter **New term starts**, **New term ends** and the cost, and select
   **Renew**. The history keeps the old term.
-- **Cancel contract** stops reminders and automatic renewals; the contract and its history are kept.
+- **Cancel contract** (in the **More actions** menu) stops reminders and automatic renewals; the contract and its history are kept.
 
 The **Contracts** list has the tabs **Active**, **Renewing soon** (ending within 90 days), **Expired** and **All**.
 In the demo, **Dell ProSupport** (`CTR-00001`) covers the PowerEdge servers in the Taipei data center, is in its

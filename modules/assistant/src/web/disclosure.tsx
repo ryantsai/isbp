@@ -1,70 +1,49 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import { ChevronDownIcon } from 'lucide-react';
-import { duration, ease } from '@isbp/ui/motion';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Component, type ReactNode, useId, useState } from 'react';
+import { Collapsible } from '@astryxdesign/core/Collapsible';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
+import type { LucideIcon } from 'lucide-react';
+import { Component, type ReactNode } from 'react';
 
-/** Accessible disclosure: a heading with a button (`aria-expanded`) that controls a labelled region. */
+/**
+ * A titled section that opens and closes: the Astryx `Collapsible` (a button with `aria-expanded` controlling its
+ * content), whose content is a labelled region.
+ */
 export function Disclosure({
   title,
   icon,
   meta,
   defaultOpen = false,
-  level = 4,
   children,
 }: {
-  title: ReactNode;
-  icon?: ReactNode;
+  title: string;
+  icon?: LucideIcon;
   meta?: ReactNode;
   defaultOpen?: boolean;
-  level?: 3 | 4 | 5;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
-  const id = useId();
-  const reduce = useReducedMotion();
-  const Heading = level === 3 ? 'h3' : level === 4 ? 'h4' : 'h5';
   return (
-    <section className="border-t">
-      <Heading className="m-0">
-        <button
-          type="button"
-          id={`${id}-trigger`}
-          aria-expanded={open}
-          aria-controls={`${id}-panel`}
-          onClick={() => setOpen((o) => !o)}
-          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium outline-none transition-colors hover:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset motion-reduce:transition-none"
+    <section>
+      <Divider />
+      <div className="px-4">
+        <Collapsible
+          defaultIsOpen={defaultOpen}
+          trigger={
+            <HStack gap={2} vAlign="center">
+              {icon && <Icon icon={icon} color="secondary" />}
+              <Text weight="medium">{title}</Text>
+              {meta}
+            </HStack>
+          }
         >
-          {icon && <span className="text-muted-foreground [&_svg]:size-4">{icon}</span>}
-          <span className="min-w-0 flex-1 truncate">{title}</span>
-          {meta}
-          <ChevronDownIcon
-            className={cn(
-              'size-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none',
-              open && 'rotate-180',
-            )}
-            aria-hidden
-          />
-        </button>
-      </Heading>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            id={`${id}-panel`}
-            role="region"
-            aria-labelledby={`${id}-trigger`}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={reduce ? { duration: 0 } : { duration: duration.base, ease: ease.move }}
-            className="overflow-hidden"
-          >
-            <div className="min-w-0 px-4 pb-4">{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <div role="region" aria-label={title} className="min-w-0 pb-4">
+            {children}
+          </div>
+        </Collapsible>
+      </div>
     </section>
   );
 }

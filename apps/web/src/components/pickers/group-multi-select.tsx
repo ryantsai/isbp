@@ -1,24 +1,14 @@
 'use client';
 
+import { Icon } from '@astryxdesign/core/Icon';
+import { Token } from '@astryxdesign/core/Token';
+import { Tokenizer } from '@astryxdesign/core/Tokenizer';
+import { createStaticSource, type SearchableItem, TypeaheadItem } from '@astryxdesign/core/Typeahead';
 import type { Group } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@isbp/ui/command';
-import { duration, ease, useReducedMotion } from '@isbp/ui/motion';
-import { Popover, PopoverContent, PopoverTrigger } from '@isbp/ui/popover';
-import { CheckIcon, PlusIcon, UsersRoundIcon, XIcon } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { UsersRoundIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useApiQuery } from '@/lib/api';
 
 /** Groups a person can be put into by hand: not "Everyone" (implicit) and not kept by a directory sync. */
@@ -31,13 +21,20 @@ export function useAssignableGroups(enabled = true) {
   return { ...query, groups: (query.data?.items ?? []).filter(isAssignableGroup) };
 }
 
+type GroupItem = SearchableItem<Group>;
+
 /**
- * Picks several groups by id: the chosen ones as removable chips, and a searchable list behind "Add groups". Name
- * the field with `labelledBy` (the id of its visible label); `exclude` hides groups (e.g. ones the person is in).
+ * Picks several groups by id: the chosen ones as removable chips, and a searchable list to add from. Give it a visible
+ * `label` (with `description` / `error`: it draws its own field frame, so no wrapping `Field`), or keep an external
+ * label and pass its id as `labelledBy` (it then names the group; the input stays named `addLabel`, default "Add
+ * groups"). `exclude` hides groups (e.g. ones the person is in).
  */
 export function GroupMultiSelect({
   value,
   onChange,
+  label,
+  description,
+  error,
   labelledBy,
   exclude = [],
   addLabel,
@@ -45,6 +42,12 @@ export function GroupMultiSelect({
 }: {
   value: readonly string[];
   onChange: (ids: string[]) => void;
+  /** A visible label (the picker draws the field frame itself). */
+  label?: string;
+  description?: string;
+  /** Validation message (red border + text under the field). */
+  error?: string | null;
+  /** The id of an external visible label: names the group of chips and input. */
   labelledBy?: string;
   exclude?: readonly string[];
   addLabel?: string;
@@ -52,102 +55,57 @@ export function GroupMultiSelect({
 }) {
   const t = useTranslations('users.groupPicker');
   const tc = useTranslations('common');
-  const reduce = useReducedMotion();
-  const [open, setOpen] = useState(false);
   const { groups, isLoading } = useAssignableGroups();
-  const byId = new Map(groups.map((g) => [g.id, g]));
-  const options = groups.filter((g) => !exclude.includes(g.id));
-  const toggle = (id: string) =>
-    onChange(value.includes(id) ? value.filter((v) => v !== id) : [...value, id]);
-  const chip = reduce
-    ? { initial: false as const, exit: { opacity: 0, transition: { duration: 0 } } }
-    : {
-        initial: { opacity: 0, scale: 0.92 },
-        exit: { opacity: 0, scale: 0.92, transition: { duration: duration.fast, ease: ease.exit } },
-      };
+  const byId = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
+  const options = useMemo<GroupItem[]>(
+    () =>
+      groups
+        .filter((g) => !exclude.includes(g.id))
+        .map((g) => ({ id: g.id, label: g.name, auxiliaryData: g })),
+    [groups, exclude],
+  );
+  const source = useMemo(
+    () => createStaticSource(options, { keywords: (item) => [item.auxiliaryData?.description ?? ''] }),
+    [options],
+  );
+  const chosen = useMemo<GroupItem[]>(
+    () =>
+      value.map((id) => {
+        const g = byId.get(id);
+        return { id, label: g?.name ?? t('unknown'), auxiliaryData: g };
+      }),
+    [value, byId, t],
+  );
 
   return (
-    <div role="group" aria-labelledby={labelledBy} className={cn('grid gap-2', className)}>
-      {value.length > 0 && (
-        <ul className="flex flex-wrap gap-1.5" aria-label={t('selected')}>
-          <AnimatePresence initial={false}>
-            {value.map((id) => {
-              const name = byId.get(id)?.name ?? t('unknown');
-              return (
-                <motion.li
-                  key={id}
-                  layout={reduce ? false : 'position'}
-                  {...chip}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: duration.fast, ease: ease.enter }}
-                  className="min-w-0"
-                >
-                  <Badge
-                    variant="secondary"
-                    className="max-w-full gap-1.5 py-1 pr-1 pl-2 text-sm font-normal"
-                  >
-                    <UsersRoundIcon aria-hidden className="text-muted-foreground" />
-                    <span className="truncate">{name}</span>
-                    <button
-                      type="button"
-                      onClick={() => toggle(id)}
-                      aria-label={t('remove', { name })}
-                      className="rounded-sm p-0.5 text-muted-foreground outline-none hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
-                    >
-                      <XIcon className="size-3" />
-                    </button>
-                  </Badge>
-                </motion.li>
-              );
-            })}
-          </AnimatePresence>
-        </ul>
+    <Tokenizer
+      className={className}
+      role={labelledBy && !label ? 'group' : undefined}
+      aria-labelledby={label ? undefined : labelledBy}
+      label={label ?? addLabel ?? t('add')}
+      isLabelHidden={!label}
+      description={description}
+      status={error ? { type: 'error', message: error } : undefined}
+      placeholder={t('search')}
+      searchSource={source}
+      value={chosen}
+      hasEntriesOnFocus
+      debounceMs={0}
+      maxMenuItems={50}
+      emptySearchText={isLoading ? tc('loading') : t('none')}
+      onChange={(next) => onChange(next.map((item) => item.id))}
+      renderItem={(item) => (
+        <TypeaheadItem
+          item={item}
+          icon={<Icon icon={UsersRoundIcon} />}
+          description={
+            item.auxiliaryData ? t('members', { count: item.auxiliaryData.memberCount }) : undefined
+          }
+        />
       )}
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button type="button" variant="outline" size="sm" className="w-fit" aria-haspopup="listbox">
-            <PlusIcon /> {addLabel ?? t('add')}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80 max-w-[calc(100vw-2rem)] p-0" align="start">
-          <Command>
-            <CommandInput placeholder={t('search')} aria-label={t('search')} />
-            <CommandList aria-label={t('options')}>
-              <CommandEmpty>{isLoading ? tc('loading') : t('none')}</CommandEmpty>
-              <CommandGroup>
-                {options.map((g) => {
-                  const checked = value.includes(g.id);
-                  return (
-                    <CommandItem
-                      key={g.id}
-                      value={`${g.name} ${g.description ?? ''}`}
-                      onSelect={() => toggle(g.id)}
-                      aria-selected={checked}
-                    >
-                      <span
-                        aria-hidden
-                        className={cn(
-                          'grid size-4 shrink-0 place-items-center rounded-[4px] border',
-                          checked && 'border-primary bg-primary text-primary-foreground',
-                        )}
-                      >
-                        {checked && <CheckIcon className="size-3" />}
-                      </span>
-                      <span className="flex min-w-0 flex-col">
-                        <span className="truncate">{g.name}</span>
-                        <span className="truncate text-xs text-muted-foreground">
-                          {t('members', { count: g.memberCount })}
-                        </span>
-                      </span>
-                      {checked && <span className="sr-only">{t('chosen')}</span>}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-    </div>
+      renderToken={(item, onRemove) => (
+        <Token label={item.label} icon={<Icon icon={UsersRoundIcon} />} onRemove={onRemove} />
+      )}
+    />
   );
 }

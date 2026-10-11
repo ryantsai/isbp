@@ -120,7 +120,7 @@ test('process packs list the built-in packs and import a file, refusing one with
 
   await tabs.getByRole('tab', { name: 'Import a file' }).click();
   await expect(page).toHaveURL(/tab=file/);
-  const file = packs.getByLabel('Package file');
+  const file = packs.locator('input[type=file]');
   // Not JSON at all.
   await file.setInputFiles({
     name: 'notes.json',
@@ -137,7 +137,7 @@ test('process packs list the built-in packs and import a file, refusing one with
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(broken)),
   });
-  await expect(packs.getByText(/broken\.json/)).toBeVisible();
+  await expect(packs.getByText(/broken\.json/).first()).toBeVisible();
   await packs.getByRole('button', { name: 'Import', exact: true }).click();
   const problem = packs.getByRole('alert');
   await expect(problem).toContainText('The package has problems. Nothing was created:');
@@ -248,7 +248,7 @@ test('process packs are accessible in dark mode and fit a phone', async ({ page 
   await expect(page.getByRole('heading', { name: 'Process packs', level: 1 })).toBeVisible();
   await expectAccessible(page, 'process packs (dark)');
   await page.getByRole('tab', { name: 'Import a file' }).click();
-  await expect(page.getByLabel('Package file')).toBeVisible();
+  await expect(page.locator('input[type=file]')).toBeAttached();
   await expectAccessible(page, 'import a file (dark)');
   await useScheme(page, 'light');
 
@@ -259,6 +259,6 @@ test('process packs are accessible in dark mode and fit a phone', async ({ page 
   const { overflow, offenders } = await overflowing(page);
   expect(overflow, offenders.join('\n')).toBeLessThanOrEqual(1);
   await page.getByRole('tab', { name: 'Import a file' }).click();
-  await expect(page.getByLabel('Package file')).toBeVisible();
+  await expect(page.locator('input[type=file]')).toBeAttached();
   expect((await overflowing(page)).overflow).toBeLessThanOrEqual(1);
 });

@@ -1,15 +1,17 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import { APPROVER_TYPES, type ApproverRule, type ApproverType } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import { Label } from '@isbp/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { cn } from '@isbp/ui';
+import { useApproverText } from '@isbp/ui/workflow-diagram';
 import { CornerDownRightIcon, PlusIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useApproverText } from '@isbp/ui/workflow-diagram';
-import { useId } from 'react';
 import { UserPicker } from '../pickers/user-picker';
 import { GroupPicker } from '../roles/group-picker';
 import { useBuilder } from './builder-context';
@@ -58,7 +60,6 @@ export function ApproverRuleEditor({
   const t = useTranslations('workflows.builder.approvers');
   const { facts, names, roles, remember, readOnly } = useBuilder();
   const describe = useApproverText({ ...names, facts });
-  const id = useId();
   const types = APPROVER_TYPES.filter((x) => x !== 'requester' || allowRequester).flatMap((x): Choice[] =>
     x === 'fact' ? ['fact', 'fact-group'] : [x],
   );
@@ -73,43 +74,33 @@ export function ApproverRuleEditor({
     onChange((f ? { ...rest, fallback: f } : rest) as ApproverRule);
   };
 
-  return (
-    <div className={cn('grid gap-2', depth === 0 && 'rounded-lg border bg-card/60 p-3')}>
-      <div className="flex items-start gap-2">
+  const editor = (
+    <VStack gap={2}>
+      <HStack gap={2} vAlign="start">
         {depth > 0 && (
-          <CornerDownRightIcon className="mt-2.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <span className="mt-2.5 shrink-0">
+            <Icon icon={CornerDownRightIcon} color="secondary" />
+          </span>
         )}
-        <div className="grid min-w-0 flex-1 gap-2">
-          <Select
-            value={choiceOf(rule)}
-            disabled={readOnly}
-            onValueChange={(v) =>
-              onChange({
-                ...emptyRule(v as Choice),
-                ...(fallback && v !== 'requester' ? { fallback } : {}),
-              } as ApproverRule)
-            }
-          >
-            <SelectTrigger aria-label={t('type')} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {types.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {t(`types.${type}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="min-w-0">
-            {rule.type === 'user' && (
-              <Label htmlFor={`${id}-user`} className="sr-only">
-                {t('types.user')}
-              </Label>
-            )}
+        <StackItem size="fill" className="min-w-0">
+          <VStack gap={2}>
+            <Selector
+              label={t('type')}
+              isLabelHidden
+              width="100%"
+              value={choiceOf(rule)}
+              isDisabled={readOnly}
+              options={types.map((type) => ({ value: type, label: t(`types.${type}`) }))}
+              onChange={(v) =>
+                onChange({
+                  ...emptyRule(v as Choice),
+                  ...(fallback && v !== 'requester' ? { fallback } : {}),
+                } as ApproverRule)
+              }
+            />
             {rule.type === 'user' && (
               <UserPicker
-                id={`${id}-user`}
+                aria-label={t('types.user')}
                 value={rule.userId ? { id: rule.userId, displayName: names.users[rule.userId] ?? '…' } : null}
                 onChange={(u) => {
                   if (u) remember('users', u.id, u.displayName);
@@ -118,13 +109,8 @@ export function ApproverRuleEditor({
               />
             )}
             {rule.type === 'group' && (
-              <Label htmlFor={`${id}-group`} className="sr-only">
-                {t('types.group')}
-              </Label>
-            )}
-            {rule.type === 'group' && (
               <GroupPicker
-                id={`${id}-group`}
+                aria-label={t('types.group')}
                 value={
                   rule.groupKey
                     ? {
@@ -141,144 +127,118 @@ export function ApproverRuleEditor({
               />
             )}
             {rule.type === 'role' && (
-              <Select
+              <Selector
+                label={t('types.role')}
+                isLabelHidden
+                width="100%"
+                placeholder={t('pickRole')}
                 value={rule.roleKey || undefined}
-                disabled={readOnly}
-                onValueChange={(v) => onChange({ ...rule, roleKey: v })}
-              >
-                <SelectTrigger aria-label={t('types.role')} className="w-full">
-                  <SelectValue placeholder={t('pickRole')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((r) => (
-                    <SelectItem key={r.key} value={r.key}>
-                      {r.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                isDisabled={readOnly}
+                hasSearch={roles.length > 12}
+                options={roles.map((r) => ({ value: r.key, label: r.name }))}
+                onChange={(v) => onChange({ ...rule, roleKey: v })}
+              />
             )}
             {rule.type === 'manager' && (
-              <Select
+              <Selector
+                label={t('level')}
+                isLabelHidden
+                width="100%"
                 value={String(rule.level ?? 1)}
-                disabled={readOnly}
-                onValueChange={(v) => onChange({ ...rule, level: Number(v) })}
-              >
-                <SelectTrigger aria-label={t('level')} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3].map((l) => (
-                    <SelectItem key={l} value={String(l)}>
-                      {t('levels', { level: l })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                isDisabled={readOnly}
+                options={[1, 2, 3].map((l) => ({ value: String(l), label: t('levels', { level: l }) }))}
+                onChange={(v) => onChange({ ...rule, level: Number(v) })}
+              />
             )}
             {rule.type === 'fact' && (
-              <Select
+              <Selector
+                label={groupKind ? t('types.fact-group') : t('types.fact')}
+                isLabelHidden
+                width="100%"
+                placeholder={groupKind ? t('pickGroupFact') : t('pickFact')}
                 value={rule.fact || undefined}
-                disabled={readOnly}
-                onValueChange={(v) => onChange({ ...rule, fact: v })}
-              >
-                <SelectTrigger
-                  aria-label={groupKind ? t('types.fact-group') : t('types.fact')}
-                  className="w-full"
-                >
-                  <SelectValue placeholder={groupKind ? t('pickGroupFact') : t('pickFact')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {idFacts.map((f) => (
-                    <SelectItem key={f.path} value={f.path}>
-                      {f.label}
-                    </SelectItem>
-                  ))}
-                  {rule.fact && !idFacts.some((f) => f.path === rule.fact) && (
-                    <SelectItem value={rule.fact}>{rule.fact}</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+                isDisabled={readOnly}
+                hasSearch={idFacts.length > 12}
+                options={[
+                  ...idFacts.map((f) => ({ value: f.path, label: f.label })),
+                  ...(rule.fact && !idFacts.some((f) => f.path === rule.fact)
+                    ? [{ value: rule.fact, label: rule.fact }]
+                    : []),
+                ]}
+                onChange={(v) => onChange({ ...rule, fact: v })}
+              />
             )}
             {groupKind && (
-              <p className="pt-2 text-xs text-muted-foreground">
+              <Text type="supporting" color="secondary">
                 {idFacts.length ? t('hints.fact-group') : t('noGroupFacts')}
-              </p>
+              </Text>
             )}
             {rule.type === 'fact' && depth === 0 && (
-              <div className="flex items-start gap-2 pt-1">
-                <Checkbox
-                  id={`${id}-each`}
-                  checked={rule.each === true}
-                  disabled={readOnly}
-                  onCheckedChange={(v) => {
-                    const { each: _each, ...rest } = rule;
-                    onChange(v === true ? { ...rest, each: true } : rest);
-                  }}
-                  aria-describedby={`${id}-each-hint`}
-                />
-                <div className="grid gap-0.5">
-                  <Label htmlFor={`${id}-each`} className="text-sm font-normal">
-                    {t('each')}
-                  </Label>
-                  <p id={`${id}-each-hint`} className="text-xs text-muted-foreground">
-                    {t('eachHint')}
-                  </p>
-                </div>
-              </div>
+              <CheckboxInput
+                label={t('each')}
+                description={t('eachHint')}
+                value={rule.each === true}
+                isDisabled={readOnly}
+                onChange={(v) => {
+                  const { each: _each, ...rest } = rule;
+                  onChange(v === true ? { ...rest, each: true } : rest);
+                }}
+              />
             )}
             {(rule.type === 'department-head' || rule.type === 'requester') && (
-              <p className="pt-2 text-xs text-muted-foreground">{t(`hints.${rule.type}`)}</p>
+              <Text type="supporting" color="secondary">
+                {t(`hints.${rule.type}`)}
+              </Text>
             )}
-          </div>
-        </div>
+          </VStack>
+        </StackItem>
         {onRemove && !readOnly && (
-          <Button
-            type="button"
-            size="icon"
+          <IconButton
             variant="ghost"
-            aria-label={
+            label={
               depth > 0
                 ? t('removeFallback', { name: describe({ ...rule, fallback: undefined } as ApproverRule) })
                 : t('removeApprover', { name: describe({ ...rule, fallback: undefined } as ApproverRule) })
             }
+            icon={<Icon icon={depth > 0 ? XIcon : Trash2Icon} />}
             onClick={onRemove}
-          >
-            {depth > 0 ? <XIcon /> : <Trash2Icon />}
-          </Button>
+          />
         )}
-      </div>
+      </HStack>
       {rule.type !== 'requester' && rule.type !== 'user' && (
-        <div className={cn(depth > 0 && 'pl-6')}>
+        <div className={depth > 0 ? 'pl-6' : undefined}>
           {fallback ? (
-            <div className="grid gap-1.5">
-              <Label className="text-xs font-normal text-muted-foreground">{t('fallback')}</Label>
+            <VStack gap={1.5}>
+              <Text type="supporting" color="secondary">
+                {t('fallback')}
+              </Text>
               <ApproverRuleEditor
                 rule={fallback}
                 onChange={setFallback}
                 onRemove={() => setFallback(undefined)}
                 depth={depth + 1}
               />
-            </div>
+            </VStack>
           ) : (
             depth < 3 &&
             !readOnly && (
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-xs"
-                onClick={() => setFallback({ type: 'role', roleKey: 'platform-admin' })}
-              >
-                <PlusIcon className="size-3" />
-                {t('addFallback')}
-              </Button>
+              <HStack>
+                <Button
+                  label={t('addFallback')}
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={() => setFallback({ type: 'role', roleKey: 'platform-admin' })}
+                />
+              </HStack>
             )
           )}
         </div>
       )}
-    </div>
+    </VStack>
   );
+
+  return depth === 0 ? <Card padding={3}>{editor}</Card> : editor;
 }
 
 /** A list of approver slots with "add approver". */
@@ -295,7 +255,7 @@ export function ApproverList({
 }) {
   const { readOnly } = useBuilder();
   return (
-    <div className="grid gap-2">
+    <VStack gap={2}>
       {rules.map((r, i) => (
         <ApproverRuleEditor
           key={i}
@@ -306,17 +266,16 @@ export function ApproverList({
         />
       ))}
       {!readOnly && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="justify-self-start"
-          onClick={() => onChange([...rules, { type: 'group', groupKey: '' }])}
-        >
-          <PlusIcon />
-          {addLabel}
-        </Button>
+        <HStack>
+          <Button
+            label={addLabel}
+            variant="secondary"
+            size="sm"
+            icon={<Icon icon={PlusIcon} />}
+            onClick={() => onChange([...rules, { type: 'group', groupKey: '' }])}
+          />
+        </HStack>
       )}
-    </div>
+    </VStack>
   );
 }

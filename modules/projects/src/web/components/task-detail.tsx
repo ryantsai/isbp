@@ -1,44 +1,34 @@
 'use client';
 
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { DropdownMenu, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@astryxdesign/core/DropdownMenu';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { Token } from '@astryxdesign/core/Token';
 import type { RecordPanelSlotProps } from '@isbp/contracts';
 import { Slot, usePlatform } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
-import { Input } from '@isbp/ui/input';
-import { Disclosure } from '@isbp/ui/motion';
-import { Label } from '@isbp/ui/label';
 import { Markdown } from '@isbp/ui/markdown';
+import { Disclosure } from '@isbp/ui/motion';
 import { useApiMutation } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import {
-  ChevronDownIcon,
-  CircleAlertIcon,
-  CornerLeftUpIcon,
-  ExternalLinkIcon,
-  LinkIcon,
-  MoreHorizontalIcon,
-  PencilIcon,
-  Trash2Icon,
-  XIcon,
-} from 'lucide-react';
-import Link from 'next/link';
+import { toast } from '@isbp/ui/toast';
+import { CornerLeftUpIcon, ExternalLinkIcon, LinkIcon, PencilIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useId, useState } from 'react';
+import { useState } from 'react';
 import {
   isOpenTask,
   type ProjectDetail,
@@ -50,10 +40,17 @@ import {
   type TaskStatus,
 } from '../../contracts';
 import { INVALIDATE, localToday, projectHref, taskApi, taskHref, useProject } from '../lib';
-import { DueDate, PriorityLabel, TaskStatusBadge, TaskStatusIcon, TaskTypeIcon } from './badges';
+import {
+  DueDate,
+  PriorityIcon,
+  PriorityLabel,
+  TaskStatusIcon,
+  TaskStatusBadge,
+  TaskTypeIcon,
+} from './badges';
 import { Conversation } from './conversation';
 import { CustomFieldsCard } from './custom-fields';
-import { ConfirmDialog, LabelInput, MarkdownEditor, MemberSelect, MilestoneSelect } from './inputs';
+import { LabelInput, MarkdownEditor, MemberSelect, MilestoneSelect, toIsoDate } from './inputs';
 import { useMoveTask, useTaskErrorText, useUpdateTask } from './task-actions';
 import { TaskPicker } from './task-picker';
 
@@ -61,32 +58,35 @@ import { TaskPicker } from './task-picker';
 export type OpenTask = (reference: string) => void;
 
 function TaskLink({ task, onOpen }: { task: TaskRef; onOpen?: OpenTask }) {
+  const closed = !isOpenTask(task.status);
   const content = (
-    <>
-      <TaskStatusIcon status={task.status} className="text-muted-foreground" />
-      <span className="shrink-0 font-mono text-xs text-muted-foreground">{task.reference}</span>
-      <span
-        className={cn('min-w-0 truncate', !isOpenTask(task.status) && 'text-muted-foreground line-through')}
-      >
+    <HStack as="span" gap={2} vAlign="center">
+      <TaskStatusIcon status={task.status} />
+      <Text type="code" color="secondary">
+        {task.reference}
+      </Text>
+      <Text color={closed ? 'secondary' : 'primary'} hasStrikethrough={closed} maxLines={1}>
         {task.title}
-      </span>
-    </>
+      </Text>
+    </HStack>
   );
-  const cls =
-    'flex min-w-0 flex-1 items-center gap-2 rounded-sm text-left text-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50';
-  return onOpen ? (
-    <button type="button" className={cls} onClick={() => onOpen(task.reference)}>
-      {content}
-    </button>
-  ) : (
-    <Link href={taskHref(task.reference)} className={cls}>
-      {content}
-    </Link>
+  return (
+    <span className="min-w-0 flex-1">
+      {onOpen ? (
+        <Link color="primary" onClick={() => onOpen(task.reference)}>
+          {content}
+        </Link>
+      ) : (
+        <Link color="primary" href={taskHref(task.reference)}>
+          {content}
+        </Link>
+      )}
+    </span>
   );
 }
 
 /** Title as a heading with an inline editor. */
-function TitleEditor({ task, as: Heading }: { task: TaskDetail; as: 'h1' | 'h2' }) {
+function TitleEditor({ task, level }: { task: TaskDetail; level: 1 | 2 }) {
   const t = useTranslations('projects.task');
   const tc = useTranslations('common');
   const { update, isPending } = useUpdateTask(task.reference);
@@ -100,53 +100,52 @@ function TitleEditor({ task, as: Heading }: { task: TaskDetail; as: 'h1' | 'h2' 
   if (editing)
     return (
       <form
-        className="flex flex-wrap items-center gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           void save();
         }}
       >
-        <Input
-          autoFocus
-          value={draft}
-          maxLength={300}
-          aria-label={t('titleLabel')}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              e.stopPropagation();
-              setEditing(false);
-            }
-          }}
-          className="h-10 min-w-0 flex-1 text-lg font-semibold"
-        />
-        <Button type="submit" size="sm" loading={isPending}>
-          {tc('save')}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
-          {tc('cancel')}
-        </Button>
+        <HStack gap={2} vAlign="end" wrap="wrap">
+          <StackItem size="fill" className="min-w-48">
+            <TextInput
+              label={t('titleLabel')}
+              isLabelHidden
+              hasAutoFocus
+              value={draft}
+              onChange={(v) => setDraft(v.slice(0, 300))}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  setEditing(false);
+                }
+              }}
+            />
+          </StackItem>
+          <Button label={tc('save')} variant="primary" size="sm" isLoading={isPending} type="submit" />
+          <Button label={tc('cancel')} variant="ghost" size="sm" onClick={() => setEditing(false)} />
+        </HStack>
       </form>
     );
   return (
-    <div className="flex items-start gap-2">
-      <Heading className="min-w-0 flex-1 text-xl font-semibold tracking-tight text-balance break-words">
-        {task.title}
-      </Heading>
+    <HStack gap={2} vAlign="start">
+      <StackItem size="fill" className="min-w-0">
+        <Heading level={level} textWrap="balance">
+          {task.title}
+        </Heading>
+      </StackItem>
       {task.viewer.canEdit && (
-        <Button
+        <IconButton
+          label={t('editTitle')}
           variant="ghost"
-          size="icon-sm"
-          aria-label={t('editTitle')}
+          size="sm"
+          icon={<Icon icon={PencilIcon} />}
           onClick={() => {
             setDraft(task.title);
             setEditing(true);
           }}
-        >
-          <PencilIcon />
-        </Button>
+        />
       )}
-    </div>
+    </HStack>
   );
 }
 
@@ -158,93 +157,71 @@ function StatusMenu({ task }: { task: TaskDetail }) {
   const blockers = task.blockedBy.filter((b) => b.status !== 'done' && b.status !== 'cancelled');
   if (!task.viewer.canEdit) return <TaskStatusBadge status={task.status} />;
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isPending}
-          aria-label={t('changeStatus', { status: ts(task.status) })}
-        >
-          <TaskStatusIcon status={task.status} />
-          {ts(task.status)}
-          <ChevronDownIcon className="opacity-60" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuLabel>{t('moveTo')}</DropdownMenuLabel>
-        <DropdownMenuRadioGroup
-          value={task.status}
-          onValueChange={(v) => {
-            if (v !== task.status)
-              void move({ ref: task.reference, status: v as TaskStatus }).catch(() => undefined);
-          }}
-        >
-          {TASK_STATUSES.map((s) => {
-            const blocked = s === 'in_progress' && blockers.length > 0 && task.status !== 'in_progress';
-            return (
-              <DropdownMenuRadioItem key={s} value={s} disabled={blocked}>
-                <span className="flex min-w-0 flex-col">
-                  <span className="flex items-center gap-2">
-                    <TaskStatusIcon status={s} className="text-muted-foreground" />
-                    {ts(s)}
-                  </span>
-                  {blocked && (
-                    <span className="text-xs text-muted-foreground">
-                      {t('blockedBy', { refs: blockers.map((b) => b.reference).join(', ') })}
-                    </span>
-                  )}
-                </span>
-              </DropdownMenuRadioItem>
-            );
-          })}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
+    <DropdownMenu
+      alignment="start"
+      menuWidth={256}
+      button={{
+        label: ts(task.status),
+        'aria-label': t('changeStatus', { status: ts(task.status) }),
+        variant: 'secondary',
+        size: 'sm',
+        isDisabled: isPending,
+        icon: <TaskStatusIcon status={task.status} />,
+      }}
+    >
+      <DropdownMenuRadioGroup
+        label={t('moveTo')}
+        value={task.status}
+        onChange={(v) => {
+          if (v !== task.status)
+            void move({ ref: task.reference, status: v as TaskStatus }).catch(() => undefined);
+        }}
+      >
+        {TASK_STATUSES.map((s) => {
+          const blocked = s === 'in_progress' && blockers.length > 0 && task.status !== 'in_progress';
+          return (
+            <DropdownMenuRadioItem
+              key={s}
+              value={s}
+              label={ts(s)}
+              icon={<TaskStatusIcon status={s} />}
+              isDisabled={blocked}
+              description={
+                blocked ? t('blockedBy', { refs: blockers.map((b) => b.reference).join(', ') }) : undefined
+              }
+            />
+          );
+        })}
+      </DropdownMenuRadioGroup>
     </DropdownMenu>
-  );
-}
-
-function FieldRow({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
-  return (
-    <div className="grid min-w-0 grid-cols-1 gap-1.5">
-      {htmlFor ? (
-        <Label htmlFor={htmlFor} className="text-xs text-muted-foreground">
-          {label}
-        </Label>
-      ) : (
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      )}
-      <div className="min-w-0">{children}</div>
-    </div>
   );
 }
 
 /** Number input that saves on blur (hours). */
 function HoursInput({
-  id,
+  label,
   value,
   disabled,
   onSave,
 }: {
-  id: string;
+  label: string;
   value: number | null;
   disabled?: boolean;
   onSave: (v: number | null) => void;
 }) {
   // Remounted (keyed by the saved value) when the task changes elsewhere.
-  const [draft, setDraft] = useState(value === null ? '' : String(value));
+  const [draft, setDraft] = useState<number | null>(value);
   return (
-    <Input
-      id={id}
-      type="number"
-      inputMode="decimal"
+    <NumberInput
+      label={label}
+      hasClear
       min={0}
       step={0.5}
       value={draft}
-      disabled={disabled}
-      onChange={(e) => setDraft(e.target.value)}
+      isDisabled={disabled}
+      onChange={setDraft}
       onBlur={() => {
-        const next = draft.trim() === '' ? null : Math.max(0, Number(draft));
+        const next = draft === null ? null : Math.max(0, draft);
         if (next !== value && (next === null || Number.isFinite(next))) onSave(next);
       }}
     />
@@ -259,155 +236,127 @@ function Properties({ task, project }: { task: TaskDetail; project: ProjectDetai
   const { update } = useUpdateTask(task.reference);
   const { user } = usePlatform();
   const today = localToday(user.timezone);
-  const id = useId();
   const can = task.viewer.canEdit;
   const members = project?.members ?? [];
   const date = (field: 'startDate' | 'dueDate', label: string) => (
-    <FieldRow label={label} htmlFor={`${id}-${field}`}>
-      <Input
-        id={`${id}-${field}`}
-        type="date"
-        key={`${field}:${task[field] ?? ''}`}
-        defaultValue={task[field] ?? ''}
-        disabled={!can}
-        onBlur={(e) => {
-          const v = e.target.value || null;
-          if (v !== task[field]) void update({ [field]: v });
+    <VStack gap={1}>
+      <DateInput
+        label={label}
+        hasClear
+        value={toIsoDate(task[field])}
+        isDisabled={!can}
+        onChange={(v) => {
+          const next = v ?? null;
+          if (next !== task[field]) void update({ [field]: next });
         }}
       />
       {field === 'dueDate' && task.dueDate && task.dueDate < today && isOpenTask(task.status) && (
-        <DueDate date={task.dueDate} status={task.status} today={today} long className="mt-1" />
+        <DueDate date={task.dueDate} status={task.status} today={today} long />
       )}
-    </FieldRow>
+    </VStack>
   );
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <FieldRow label={t('assignee')} htmlFor={`${id}-assignee`}>
-        <MemberSelect
-          id={`${id}-assignee`}
-          members={members}
-          value={task.assignee?.id ?? null}
-          disabled={!can || !project}
-          onChange={(assigneeId) => void update({ assigneeId })}
-        />
-      </FieldRow>
-      <FieldRow label={t('reporter')}>
+    <Grid columns={{ minWidth: 164, max: 2 }} gap={4}>
+      <MemberSelect
+        members={members}
+        value={task.assignee?.id ?? null}
+        isDisabled={!can || !project}
+        onChange={(assigneeId) => void update({ assigneeId })}
+      />
+      <VStack gap={1}>
+        <Text type="label">{t('reporter')}</Text>
         {task.reporter ? (
-          <span className="flex h-9 min-w-0 items-center gap-2 text-sm">
+          <HStack gap={2} vAlign="center" className="h-8 min-w-0">
             <UserAvatar
               name={task.reporter.displayName}
               src={task.reporter.avatarUrl}
               className="size-5 text-[9px]"
             />
-            <span className="truncate">{task.reporter.displayName}</span>
-          </span>
+            <Text maxLines={1}>{task.reporter.displayName}</Text>
+          </HStack>
         ) : (
-          <span className="flex h-9 items-center text-sm text-muted-foreground">—</span>
+          <Text type="supporting">—</Text>
         )}
-      </FieldRow>
-      <FieldRow label={t('type')} htmlFor={`${id}-type`}>
-        <Select
-          value={task.type}
-          disabled={!can}
-          onValueChange={(v) => void update({ type: v as TaskDetail['type'] })}
-        >
-          <SelectTrigger id={`${id}-type`} className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {TASK_TYPES.map((ty) => (
-              <SelectItem key={ty} value={ty}>
-                <TaskTypeIcon type={ty} label={false} />
-                {tt(ty)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FieldRow>
-      <FieldRow label={t('priority')} htmlFor={`${id}-priority`}>
-        <Select
-          value={task.priority}
-          disabled={!can}
-          onValueChange={(v) => void update({ priority: v as TaskDetail['priority'] })}
-        >
-          <SelectTrigger id={`${id}-priority`} className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {TASK_PRIORITIES.map((p) => (
-              <SelectItem key={p} value={p} textValue={tp(p)}>
-                <PriorityLabel priority={p} className="text-sm font-normal" />
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FieldRow>
-      <FieldRow label={t('milestone')} htmlFor={`${id}-milestone`}>
-        <MilestoneSelect
-          id={`${id}-milestone`}
-          milestones={project?.milestones ?? (task.milestone ? [task.milestone] : [])}
-          value={task.milestone?.id ?? null}
-          disabled={!can || !project}
-          onChange={(milestoneId) => void update({ milestoneId })}
-        />
-      </FieldRow>
+      </VStack>
+      <Selector
+        label={t('type')}
+        value={task.type}
+        isDisabled={!can}
+        onChange={(v) => void update({ type: v as TaskDetail['type'] })}
+        options={TASK_TYPES.map((ty) => ({
+          value: ty,
+          label: tt(ty),
+          icon: <TaskTypeIcon type={ty} label={false} />,
+        }))}
+      />
+      <Selector
+        label={t('priority')}
+        value={task.priority}
+        isDisabled={!can}
+        onChange={(v) => void update({ priority: v as TaskDetail['priority'] })}
+        options={TASK_PRIORITIES.map((p) => ({
+          value: p,
+          label: tp(p),
+          icon: <PriorityIcon priority={p} />,
+        }))}
+      />
+      <MilestoneSelect
+        milestones={project?.milestones ?? (task.milestone ? [task.milestone] : [])}
+        value={task.milestone?.id ?? null}
+        isDisabled={!can || !project}
+        onChange={(milestoneId) => void update({ milestoneId })}
+      />
       <div className="hidden sm:block" aria-hidden />
       {date('startDate', t('startDate'))}
       {date('dueDate', t('dueDate'))}
       <Disclosure
         summary={t('planning')}
         defaultOpen={Boolean(task.estimateHours || task.remainingHours || task.labels.length)}
-        className="sm:col-span-2"
+        className="col-span-full"
         triggerClassName="w-auto justify-start py-1 text-sm font-medium text-muted-foreground"
       >
-        <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2">
-          <FieldRow label={t('estimateHours')} htmlFor={`${id}-estimate`}>
-            <HoursInput
-              key={`e:${task.estimateHours ?? ''}`}
-              id={`${id}-estimate`}
-              value={task.estimateHours}
-              disabled={!can}
-              onSave={(estimateHours) => void update({ estimateHours })}
-            />
-          </FieldRow>
-          <FieldRow label={t('remainingHours')} htmlFor={`${id}-remaining`}>
-            <HoursInput
-              key={`r:${task.remainingHours ?? ''}`}
-              id={`${id}-remaining`}
-              value={task.remainingHours}
-              disabled={!can}
-              onSave={(remainingHours) => void update({ remainingHours })}
-            />
-          </FieldRow>
-          <div className="sm:col-span-2">
-            <FieldRow label={t('labels')} htmlFor={`${id}-labels`}>
-              {can ? (
-                <LabelInput
-                  id={`${id}-labels`}
-                  value={task.labels}
-                  suggestions={project?.labels ?? []}
-                  placeholder={t('labelsPlaceholder')}
-                  onChange={(labels) => void update({ labels })}
-                />
-              ) : task.labels.length ? (
-                <span className="flex flex-wrap gap-1.5">
-                  {task.labels.map((l) => (
-                    <span
-                      key={l}
-                      className="rounded-md bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
-                    >
-                      {l}
-                    </span>
-                  ))}
-                </span>
-              ) : (
-                <span className="text-sm text-muted-foreground">—</span>
-              )}
-            </FieldRow>
+        <Grid columns={{ minWidth: 164, max: 2 }} gap={4} className="pt-2">
+          <HoursInput
+            key={`e:${task.estimateHours ?? ''}`}
+            label={t('estimateHours')}
+            value={task.estimateHours}
+            disabled={!can}
+            onSave={(estimateHours) => void update({ estimateHours })}
+          />
+          <HoursInput
+            key={`r:${task.remainingHours ?? ''}`}
+            label={t('remainingHours')}
+            value={task.remainingHours}
+            disabled={!can}
+            onSave={(remainingHours) => void update({ remainingHours })}
+          />
+          <div className="col-span-full">
+            {can ? (
+              <LabelInput
+                label={t('labels')}
+                value={task.labels}
+                suggestions={project?.labels ?? []}
+                placeholder={t('labelsPlaceholder')}
+                onChange={(labels) => void update({ labels })}
+              />
+            ) : (
+              <VStack gap={1}>
+                <Text type="label">{t('labels')}</Text>
+                {task.labels.length ? (
+                  <HStack gap={1.5} wrap="wrap">
+                    {task.labels.map((l) => (
+                      <Token key={l} label={l} size="sm" />
+                    ))}
+                  </HStack>
+                ) : (
+                  <Text type="supporting">—</Text>
+                )}
+              </VStack>
+            )}
           </div>
-        </div>
+        </Grid>
       </Disclosure>
-    </div>
+    </Grid>
   );
 }
 
@@ -419,44 +368,48 @@ function DescriptionSection({ task }: { task: TaskDetail }) {
   const [draft, setDraft] = useState(task.description ?? '');
   return (
     <section className="grid gap-2" aria-label={t('description')}>
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">{t('description')}</h2>
+      <HStack gap={2} vAlign="center" hAlign="between">
+        <Heading level={3} accessibilityLevel={2}>
+          {t('description')}
+        </Heading>
         {task.viewer.canEdit && !editing && (
           <Button
+            label={tc('edit')}
             variant="ghost"
             size="sm"
+            icon={<Icon icon={PencilIcon} />}
             onClick={() => {
               setDraft(task.description ?? '');
               setEditing(true);
             }}
-          >
-            <PencilIcon />
-            {tc('edit')}
-          </Button>
+          />
         )}
-      </div>
+      </HStack>
       {editing ? (
         <form
-          className="grid gap-2"
           onSubmit={async (e) => {
             e.preventDefault();
             if (await update({ description: draft.trim() || null })) setEditing(false);
           }}
         >
-          <MarkdownEditor value={draft} onChange={setDraft} label={t('description')} rows={8} autoFocus />
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setEditing(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" size="sm" loading={isPending}>
-              {tc('save')}
-            </Button>
-          </div>
+          <VStack gap={2}>
+            <MarkdownEditor
+              value={draft}
+              onChange={setDraft}
+              label={t('description')}
+              rows={8}
+              hasAutoFocus
+            />
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="secondary" size="sm" onClick={() => setEditing(false)} />
+              <Button label={tc('save')} variant="primary" size="sm" isLoading={isPending} type="submit" />
+            </HStack>
+          </VStack>
         </form>
       ) : task.description ? (
         <Markdown>{task.description}</Markdown>
       ) : (
-        <p className="text-sm text-muted-foreground">{t('noDescription')}</p>
+        <Text type="supporting">{t('noDescription')}</Text>
       )}
     </section>
   );
@@ -482,17 +435,15 @@ function Relations({ task, onOpen }: { task: TaskDetail; onOpen?: OpenTask }) {
   return (
     <section className="grid gap-4" aria-label={t('relations')}>
       {blockers.length > 0 && (
-        <p
-          role="status"
-          className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
-        >
-          <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-warning-foreground" aria-hidden />
-          <span>{t('blockedExplain', { refs: blockers.map((b) => b.reference).join(', ') })}</span>
-        </p>
+        <Banner
+          status="warning"
+          title={t('blockedExplain', { refs: blockers.map((b) => b.reference).join(', ') })}
+          collapsible={false}
+        />
       )}
       <div className="grid gap-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold">{t('blockedByTitle')}</h3>
+        <HStack gap={2} vAlign="center" hAlign="between">
+          <Heading level={3}>{t('blockedByTitle')}</Heading>
           {can && (
             <TaskPicker
               projectKey={task.project.key}
@@ -503,35 +454,33 @@ function Relations({ task, onOpen }: { task: TaskDetail; onOpen?: OpenTask }) {
               }
             />
           )}
-        </div>
+        </HStack>
         {task.blockedBy.length ? (
           <ul className="grid gap-1">
             {task.blockedBy.map((b) => (
               <li key={b.id} className="flex min-w-0 items-center gap-2">
                 <TaskLink task={b} onOpen={onOpen} />
                 {can && (
-                  <Button
+                  <IconButton
+                    label={t('removeDependency', { reference: b.reference })}
                     variant="ghost"
-                    size="icon-sm"
-                    className="size-7"
-                    aria-label={t('removeDependency', { reference: b.reference })}
+                    size="sm"
+                    icon={<Icon icon={XIcon} />}
                     onClick={() =>
                       removeDep.mutateAsync(b.reference).catch((err) => toast.error(errorText(err)))
                     }
-                  >
-                    <XIcon className="size-3.5" />
-                  </Button>
+                  />
                 )}
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">{t('noDependencies')}</p>
+          <Text type="supporting">{t('noDependencies')}</Text>
         )}
       </div>
       {task.blocking.length > 0 && (
         <div className="grid gap-1.5">
-          <h3 className="text-sm font-semibold">{t('blockingTitle')}</h3>
+          <Heading level={3}>{t('blockingTitle')}</Heading>
           <ul className="grid gap-1">
             {task.blocking.map((b) => (
               <li key={b.id} className="flex min-w-0 items-center gap-2">
@@ -542,8 +491,8 @@ function Relations({ task, onOpen }: { task: TaskDetail; onOpen?: OpenTask }) {
         </div>
       )}
       <div className="grid gap-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold">{t('parent')}</h3>
+        <HStack gap={2} vAlign="center" hAlign="between">
+          <Heading level={3}>{t('parent')}</Heading>
           {can && (
             <TaskPicker
               projectKey={task.project.key}
@@ -552,30 +501,28 @@ function Relations({ task, onOpen }: { task: TaskDetail; onOpen?: OpenTask }) {
               onPick={(picked) => void update({ parentId: picked.id })}
             />
           )}
-        </div>
+        </HStack>
         {task.parent ? (
           <div className="flex min-w-0 items-center gap-2">
-            <CornerLeftUpIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <Icon icon={CornerLeftUpIcon} size="sm" color="secondary" />
             <TaskLink task={task.parent} onOpen={onOpen} />
             {can && (
-              <Button
+              <IconButton
+                label={t('clearParent')}
                 variant="ghost"
-                size="icon-sm"
-                className="size-7"
-                aria-label={t('clearParent')}
+                size="sm"
+                icon={<Icon icon={XIcon} />}
                 onClick={() => void update({ parentId: null })}
-              >
-                <XIcon className="size-3.5" />
-              </Button>
+              />
             )}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">{t('noParent')}</p>
+          <Text type="supporting">{t('noParent')}</Text>
         )}
       </div>
       {task.children.length > 0 && (
         <div className="grid gap-1.5">
-          <h3 className="text-sm font-semibold">{t('children', { count: task.children.length })}</h3>
+          <Heading level={3}>{t('children', { count: task.children.length })}</Heading>
           <ul className="grid gap-1">
             {task.children.map((c) => (
               <li key={c.id} className="flex min-w-0 items-center gap-2">
@@ -625,42 +572,38 @@ function TaskMenu({
   };
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon-sm" aria-label={t('more')}>
-            <MoreHorizontalIcon />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
-          {fullPage && (
-            <DropdownMenuItem asChild>
-              <Link href={taskHref(task.reference)}>
-                <ExternalLinkIcon /> {t('openPage')}
-              </Link>
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem onSelect={copy}>
-            <LinkIcon /> {t('copyLink')}
-          </DropdownMenuItem>
-          {task.viewer.canDelete && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onSelect={() => setConfirm(true)}>
-                <Trash2Icon /> {t('delete')}
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <ConfirmDialog
-        open={confirm}
+      <MoreMenu
+        label={t('more')}
+        variant="secondary"
+        size="sm"
+        alignment="end"
+        items={[
+          ...(fullPage
+            ? [{ label: t('openPage'), icon: ExternalLinkIcon, href: taskHref(task.reference) }]
+            : []),
+          { label: t('copyLink'), icon: LinkIcon, onClick: copy },
+          ...(task.viewer.canDelete
+            ? [
+                { type: 'divider' as const },
+                {
+                  label: t('delete'),
+                  icon: Trash2Icon,
+                  variant: 'destructive' as const,
+                  onClick: () => setConfirm(true),
+                },
+              ]
+            : []),
+        ]}
+      />
+      <AlertDialog
+        isOpen={confirm}
         onOpenChange={setConfirm}
         title={t('deleteTitle', { reference: task.reference })}
         description={t('deleteBody')}
-        confirmLabel={tc('delete')}
-        destructive
-        loading={remove.isPending}
-        onConfirm={() => remove.mutate(undefined)}
+        actionLabel={tc('delete')}
+        cancelLabel={tc('cancel')}
+        isActionLoading={remove.isPending}
+        onAction={() => remove.mutate(undefined)}
       />
     </>
   );
@@ -701,19 +644,23 @@ export function TaskDetailView({
 
   const header = (
     <div className="grid gap-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5 font-mono font-medium text-foreground">
+      <HStack gap={3} vAlign="center" wrap="wrap">
+        <HStack gap={1.5} vAlign="center">
           <TaskTypeIcon type={task.type} label={false} />
-          {task.reference}
-        </span>
-        <span>{tt(task.type)}</span>
-        <span aria-hidden>·</span>
-        <Link href={projectHref(task.project.key)} className="min-w-0 truncate hover:underline">
+          <Text type="code" weight="medium">
+            {task.reference}
+          </Text>
+        </HStack>
+        <Text type="supporting">{tt(task.type)}</Text>
+        <Text type="supporting" aria-hidden>
+          ·
+        </Text>
+        <Link href={projectHref(task.project.key)} color="secondary">
           {task.project.name}
         </Link>
-      </div>
-      <TitleEditor task={task} as={sheet ? 'h2' : 'h1'} />
-      <div className="flex flex-wrap items-center gap-2">
+      </HStack>
+      <TitleEditor task={task} level={sheet ? 2 : 1} />
+      <HStack gap={2} vAlign="center" wrap="wrap">
         <StatusMenu task={task} />
         <PriorityLabel priority={task.priority} />
         <span className="ml-auto flex gap-2">
@@ -723,7 +670,7 @@ export function TaskDetailView({
             onDeleted={onDeleted ?? (() => router.push(projectHref(task.project.key)))}
           />
         </span>
-      </div>
+      </HStack>
     </div>
   );
 
@@ -782,17 +729,18 @@ export function TaskDetailView({
           <RecordPanels record={record} />
           <Card className="gap-2 py-4">
             <CardHeader className="px-4">
-              <CardTitle className="text-sm">{t('project')}</CardTitle>
+              <CardTitle>{t('project')}</CardTitle>
               <CardAction>
-                <Button asChild variant="ghost" size="sm">
-                  <Link href={`${projectHref(task.project.key)}?view=board&task=${task.reference}`}>
-                    {t('openOnBoard')}
-                  </Link>
-                </Button>
+                <Button
+                  label={t('openOnBoard')}
+                  variant="ghost"
+                  size="sm"
+                  href={`${projectHref(task.project.key)}?view=board&task=${task.reference}`}
+                />
               </CardAction>
             </CardHeader>
-            <CardContent className="px-4 text-sm">
-              <Link href={projectHref(task.project.key)} className="font-medium hover:underline">
+            <CardContent className="px-4">
+              <Link href={projectHref(task.project.key)} color="primary" weight="medium">
                 {task.project.key} · {task.project.name}
               </Link>
             </CardContent>

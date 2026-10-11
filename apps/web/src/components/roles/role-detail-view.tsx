@@ -1,32 +1,30 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Card as SurfaceCard } from '@astryxdesign/core/Card';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
 import type { PermissionInfo, Role, RoleAssignment } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { AnimatedItem, AnimatedList, FadeIn } from '@isbp/ui/motion';
-import { BackLink } from '@isbp/ui/page-header';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { Hint } from '@isbp/ui/tooltip';
+import { toast } from '@isbp/ui/toast';
 import {
   AlertTriangleIcon,
   ArrowRightIcon,
   BlocksIcon,
   CopyIcon,
   LockIcon,
-  MoreHorizontalIcon,
   PencilIcon,
   ShieldCheckIcon,
   ShieldIcon,
@@ -37,10 +35,9 @@ import {
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { ActivityFeed } from '@/components/audit/activity-feed';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { useApiMutation, useApiQuery } from '@/lib/api';
@@ -71,6 +68,7 @@ export function RoleDetailView({ id }: { id: string }) {
   const canAssign = useCan('core.roles.assign');
   const canAudit = useCan('core.audit.read');
   const tr = useTranslations();
+  const panelId = useId();
   const [codes, setCodes] = useState(false);
   const [tab, setTab] = useState<'permissions' | 'activity'>('permissions');
   const { data: role, isLoading, error } = useApiQuery<Role>(`/roles/${id}`);
@@ -151,11 +149,7 @@ export function RoleDetailView({ id }: { id: string }) {
       <EmptyState
         icon={<ShieldXIcon />}
         title={t('detail.notFound')}
-        action={
-          <Button variant="outline" asChild>
-            <Link href="/admin/roles">{t('title')}</Link>
-          </Button>
-        }
+        action={<Button label={t('title')} variant="secondary" href="/admin/roles" />}
       />
     );
   }
@@ -165,29 +159,26 @@ export function RoleDetailView({ id }: { id: string }) {
 
   return (
     <div className="space-y-5">
-      <BackLink href="/admin/roles" label={t('title')} highlight={role.id} />
-
-      <FadeIn y={4} className="flex flex-col gap-4 sm:flex-row sm:items-start">
-        <span
-          className={`grid size-12 shrink-0 place-items-center rounded-xl ${role.isSystem ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}
-          aria-hidden
-        >
-          {role.isSystem ? <ShieldIcon className="size-6" /> : <ShieldCheckIcon className="size-6" />}
-        </span>
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-xl font-semibold tracking-tight">{name}</h1>
+      <DetailHeader
+        className="pb-0"
+        back={{ href: '/admin/roles', label: t('title'), highlight: role.id }}
+        icon={role.isSystem ? <ShieldIcon /> : <ShieldCheckIcon />}
+        title={name}
+        badges={
+          <>
             {role.isSystem ? (
-              <Badge variant="muted">
-                <LockIcon aria-hidden /> {t('badges.system')}
-              </Badge>
+              <Badge
+                variant="neutral"
+                label={t('badges.system')}
+                icon={<Icon icon={LockIcon} size="xsm" />}
+              />
             ) : (
-              <Badge variant="info">{t('badges.custom')}</Badge>
+              <Badge variant="info" label={t('badges.custom')} />
             )}
             {role.moduleId && (
-              <Badge variant="outline" className="font-normal">
-                <BlocksIcon aria-hidden />{' '}
-                {t('badges.module', {
+              <Badge
+                variant="neutral"
+                label={t('badges.module', {
                   module:
                     role.moduleId === 'core'
                       ? t('list.platform')
@@ -195,117 +186,144 @@ export function RoleDetailView({ id }: { id: string }) {
                         ? tr(`${role.moduleId}.meta.name`)
                         : role.moduleId,
                 })}
-              </Badge>
+                icon={<Icon icon={BlocksIcon} size="xsm" />}
+              />
             )}
             <RequestBadges role={role} showDuration />
-          </div>
-          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-            {codes && <code className="font-mono text-xs">{role.key}</code>}
-            <span className="inline-flex items-center gap-1.5">
-              <UsersIcon className="size-3.5" aria-hidden />
-              {t('card.assignments', { count: role.assignmentCount })}
-            </span>
-          </p>
-          {description && <p className="max-w-3xl text-sm">{description}</p>}
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          {canAssign && (
-            <Button onClick={() => setDialog('grant')}>
-              <ShieldCheckIcon /> {t('grantRole')}
-            </Button>
-          )}
-          {editable && (
-            <Button variant="outline" onClick={() => setDialog('edit')}>
-              <PencilIcon /> {tc('edit')}
-            </Button>
-          )}
-          {canManage &&
-            (editable ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" aria-label={t('detail.more')}>
-                    <MoreHorizontalIcon />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onSelect={() => setDialog('duplicate')}>
-                    <CopyIcon /> {t('detail.duplicate')}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive" onSelect={() => setDialog('delete')}>
-                    <Trash2Icon /> {tc('delete')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button variant="outline" onClick={() => setDialog('duplicate')}>
-                <CopyIcon /> {t('detail.duplicate')}
-              </Button>
-            ))}
-        </div>
-      </FadeIn>
+          </>
+        }
+        meta={
+          <VStack gap={1.5}>
+            <HStack gap={3} wrap="wrap" vAlign="center">
+              {codes && <Text type="code">{role.key}</Text>}
+              <HStack gap={1.5} vAlign="center">
+                <Icon icon={UsersIcon} size="sm" color="secondary" />
+                <Text type="supporting">{t('card.assignments', { count: role.assignmentCount })}</Text>
+              </HStack>
+            </HStack>
+            {description && <Text>{description}</Text>}
+          </VStack>
+        }
+        primaryAction={
+          canAssign && (
+            <Button
+              label={t('grantRole')}
+              variant="primary"
+              icon={<Icon icon={ShieldCheckIcon} />}
+              onClick={() => setDialog('grant')}
+            />
+          )
+        }
+        actions={[
+          ...(editable
+            ? [
+                {
+                  id: 'edit',
+                  label: tc('edit'),
+                  icon: <Icon icon={PencilIcon} />,
+                  onSelect: () => setDialog('edit'),
+                },
+              ]
+            : []),
+          ...(canManage && !editable
+            ? [
+                {
+                  id: 'duplicate',
+                  label: t('detail.duplicate'),
+                  icon: <Icon icon={CopyIcon} />,
+                  onSelect: () => setDialog('duplicate'),
+                },
+              ]
+            : []),
+        ]}
+        menu={
+          canManage && editable
+            ? [
+                {
+                  id: 'duplicate',
+                  label: t('detail.duplicate'),
+                  icon: <Icon icon={CopyIcon} />,
+                  onSelect: () => setDialog('duplicate'),
+                },
+                {
+                  id: 'delete',
+                  label: tc('delete'),
+                  icon: <Icon icon={Trash2Icon} />,
+                  destructive: true,
+                  onSelect: () => setDialog('delete'),
+                },
+              ]
+            : []
+        }
+      />
 
       {role.isSystem && (
-        <FadeIn
-          delay={0.05}
-          className="flex items-start gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm"
-        >
-          <LockIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <p>
-            <span className="font-medium">{t('detail.systemTitle')}</span>{' '}
-            <span className="text-muted-foreground">{t('detail.systemNotice')}</span>
-          </p>
+        <FadeIn delay={0.05}>
+          <Banner
+            status="info"
+            title={t('detail.systemTitle')}
+            description={t('detail.systemNotice')}
+            icon={<Icon icon={LockIcon} />}
+            collapsible={false}
+          />
         </FadeIn>
       )}
 
-      <Tabs value={canAudit ? tab : 'permissions'} onValueChange={(v) => setTab(v as typeof tab)}>
+      <VStack gap={4}>
         {canAudit && (
-          <TabsList>
-            <TabsTrigger value="permissions">{t('detail.tabs.permissions')}</TabsTrigger>
-            <TabsTrigger value="activity">{t('detail.tabs.activity')}</TabsTrigger>
-          </TabsList>
+          <TabList
+            role="tablist"
+            aria-label={name}
+            value={tab}
+            onChange={(v) => setTab(v === 'activity' ? 'activity' : 'permissions')}
+            hasDivider
+          >
+            <Tab value="permissions" label={t('detail.tabs.permissions')} panelId={panelId} />
+            <Tab value="activity" label={t('detail.tabs.activity')} panelId={panelId} />
+          </TabList>
         )}
-        <TabsContent value="permissions">
-          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('detail.permissions')}</CardTitle>
-                <CardDescription>
-                  {editable ? t('detail.permissionsHint') : t('detail.permissionsReadOnly')}
-                </CardDescription>
-                <CardAction className="flex flex-wrap items-center justify-end gap-2">
-                  <Badge variant="muted" className="tabular-nums">
-                    {t('card.permissions', { count: current.length })}
-                  </Badge>
-                  <Button variant="ghost" size="sm" aria-pressed={codes} onClick={() => setCodes(!codes)}>
-                    {codes ? t('detail.hideCodes') : t('detail.showCodes')}
-                  </Button>
-                </CardAction>
-              </CardHeader>
-              <CardContent>
-                <PermissionEditor
-                  catalog={catalog.data?.items ?? []}
-                  loading={catalog.isLoading}
-                  showCodes={codes}
-                  value={current}
-                  readOnly={!editable}
-                  onChange={editable ? (next) => setDraft(next) : undefined}
-                />
-              </CardContent>
-            </Card>
+        <div role={canAudit ? 'tabpanel' : undefined} id={panelId}>
+          {!canAudit || tab === 'permissions' ? (
+            <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('detail.permissions')}</CardTitle>
+                  <CardDescription>
+                    {editable ? t('detail.permissionsHint') : t('detail.permissionsReadOnly')}
+                  </CardDescription>
+                  <CardAction className="flex flex-wrap items-center justify-end gap-2">
+                    <Badge variant="neutral" label={t('card.permissions', { count: current.length })} />
+                    <Button
+                      label={codes ? t('detail.hideCodes') : t('detail.showCodes')}
+                      variant="ghost"
+                      size="sm"
+                      aria-pressed={codes}
+                      onClick={() => setCodes(!codes)}
+                    />
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  <PermissionEditor
+                    catalog={catalog.data?.items ?? []}
+                    loading={catalog.isLoading}
+                    showCodes={codes}
+                    value={current}
+                    readOnly={!editable}
+                    onChange={editable ? (next) => setDraft(next) : undefined}
+                  />
+                </CardContent>
+              </Card>
 
-            <div className="grid min-w-0 gap-4">
-              <RoleAssignmentsCard role={role} onGrant={canAssign ? () => setDialog('grant') : undefined} />
-              <RoleRequestSettingsCard role={role} />
+              <div className="grid min-w-0 gap-4">
+                <RoleAssignmentsCard role={role} onGrant={canAssign ? () => setDialog('grant') : undefined} />
+                <RoleRequestSettingsCard role={role} />
+              </div>
             </div>
-          </div>
-        </TabsContent>
-        {canAudit && (
-          <TabsContent value="activity">
+          ) : (
             <ActivityFeed subject={{ type: 'role', id: role.id }} description={t('detail.activityHint')} />
-          </TabsContent>
-        )}
-      </Tabs>
+          )}
+        </div>
+      </VStack>
 
       <AnimatePresence>
         {dirty && editable && (
@@ -316,47 +334,57 @@ export function RoleDetailView({ id }: { id: string }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24 }}
             transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-            className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-xl border bg-background/95 p-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:flex-row sm:items-center"
+            className="sticky bottom-4 z-20"
           >
-            <div
-              className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 pl-1 text-sm"
-              aria-live="polite"
-            >
-              <span className="size-2 shrink-0 rounded-full bg-warning" aria-hidden />
-              <span className="font-medium">{t('detail.unsaved', { count: changes })}</span>
-              {added.length > 0 && (
-                <span className="text-success tabular-nums">
-                  {t('detail.added', { count: added.length })}
-                </span>
-              )}
-              {removed.length > 0 && (
-                <span className="text-destructive tabular-nums">
-                  {t('detail.removed', { count: removed.length })}
-                </span>
-              )}
-              {blocked.length > 0 && (
-                <span className="flex basis-full items-start gap-1.5 text-xs text-destructive">
-                  <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                  {t('detail.blocked', { permissions: blocked.slice(0, 5).join(', ') })}
-                </span>
-              )}
-            </div>
-            <div className="flex shrink-0 gap-2">
-              <Button variant="ghost" onClick={() => setDraft(null)} disabled={save.isPending}>
-                {t('detail.discard')}
-              </Button>
-              <Button
-                loading={save.isPending}
-                disabled={blocked.length > 0}
-                onClick={() =>
-                  save.mutate(normalizePermissions(current), {
-                    onError: (err) => toast.error(accessError(err)),
-                  })
-                }
-              >
-                {tc('saveChanges')}
-              </Button>
-            </div>
+            <SurfaceCard padding={3} elevation="high">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="min-w-0 flex-1" aria-live="polite">
+                  <HStack gap={3} wrap="wrap" vAlign="center">
+                    <Icon icon={AlertTriangleIcon} color="warning" />
+                    <Text weight="medium">{t('detail.unsaved', { count: changes })}</Text>
+                    {added.length > 0 && (
+                      <Text color="secondary" hasTabularNumbers>
+                        {t('detail.added', { count: added.length })}
+                      </Text>
+                    )}
+                    {removed.length > 0 && (
+                      <Text color="secondary" hasTabularNumbers>
+                        {t('detail.removed', { count: removed.length })}
+                      </Text>
+                    )}
+                  </HStack>
+                  {blocked.length > 0 && (
+                    <HStack gap={1.5} vAlign="start" paddingBlockStart={1}>
+                      <Icon icon={AlertTriangleIcon} size="sm" color="error" />
+                      <StackItem size="fill">
+                        <Text type="supporting">
+                          {t('detail.blocked', { permissions: blocked.slice(0, 5).join(', ') })}
+                        </Text>
+                      </StackItem>
+                    </HStack>
+                  )}
+                </div>
+                <HStack gap={2}>
+                  <Button
+                    label={t('detail.discard')}
+                    variant="ghost"
+                    isDisabled={save.isPending}
+                    onClick={() => setDraft(null)}
+                  />
+                  <Button
+                    label={tc('saveChanges')}
+                    variant="primary"
+                    isLoading={save.isPending}
+                    isDisabled={blocked.length > 0}
+                    onClick={() =>
+                      save.mutate(normalizePermissions(current), {
+                        onError: (err) => toast.error(accessError(err)),
+                      })
+                    }
+                  />
+                </HStack>
+              </div>
+            </SurfaceCard>
           </motion.div>
         )}
       </AnimatePresence>
@@ -397,12 +425,13 @@ export function RoleDetailView({ id }: { id: string }) {
         onConfirm={() => remove.mutate(undefined, { onError: (err) => toast.error(accessError(err)) })}
       >
         {role.assignmentCount > 0 && (
-          <p className="flex items-start gap-2 rounded-md bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
-            <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            {t('detail.deleteWarning', { count: role.assignmentCount })}
-          </p>
+          <Banner
+            status="warning"
+            title={t('detail.deleteWarning', { count: role.assignmentCount })}
+            collapsible={false}
+          />
         )}
-        {role.requestable && <p className="text-sm text-muted-foreground">{t('detail.deleteRequested')}</p>}
+        {role.requestable && <Text color="secondary">{t('detail.deleteRequested')}</Text>}
       </ConfirmDialog>
     </div>
   );
@@ -432,9 +461,13 @@ function RoleAssignmentsCard({ role, onGrant }: { role: Role; onGrant?: () => vo
         <CardDescription>{t('detail.assignmentsHint')}</CardDescription>
         {onGrant && (
           <CardAction>
-            <Button size="sm" variant="outline" onClick={onGrant}>
-              <ShieldCheckIcon /> {t('detail.grant')}
-            </Button>
+            <Button
+              label={t('detail.grant')}
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={ShieldCheckIcon} />}
+              onClick={onGrant}
+            />
           </CardAction>
         )}
       </CardHeader>
@@ -460,20 +493,18 @@ function RoleAssignmentsCard({ role, onGrant }: { role: Role; onGrant?: () => vo
                     </div>
                   </div>
                   {canAssign && (
-                    <Hint label={t('assignments.revoke')}>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="shrink-0 text-muted-foreground hover:text-destructive"
-                        aria-label={t('assignments.revokeLabel', {
+                    <Tooltip content={t('assignments.revoke')}>
+                      <IconButton
+                        label={t('assignments.revokeLabel', {
                           role: roleText(role).name,
                           name: a.principal.name,
                         })}
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon={ShieldOffIcon} />}
                         onClick={() => setRevoking(a)}
-                      >
-                        <ShieldOffIcon />
-                      </Button>
-                    </Hint>
+                      />
+                    </Tooltip>
                   )}
                 </div>
               </AnimatedItem>
@@ -481,12 +512,17 @@ function RoleAssignmentsCard({ role, onGrant }: { role: Role; onGrant?: () => vo
           </AnimatedList>
         )}
         {total > 0 && (
-          <Button variant="link" size="sm" asChild className="mt-2 h-auto px-0">
-            <Link href={`/admin/roles?tab=assignments&roleId=${role.id}`}>
-              {total > items.length ? t('detail.viewAll', { count: total }) : t('detail.manageAssignments')}{' '}
-              <ArrowRightIcon />
-            </Link>
-          </Button>
+          <div className="mt-2">
+            <Button
+              label={
+                total > items.length ? t('detail.viewAll', { count: total }) : t('detail.manageAssignments')
+              }
+              variant="ghost"
+              size="sm"
+              endContent={<Icon icon={ArrowRightIcon} />}
+              href={`/admin/roles?tab=assignments&roleId=${role.id}`}
+            />
+          </div>
         )}
       </CardContent>
       <RevokeAssignmentDialog assignment={revoking} onOpenChange={(o) => !o && setRevoking(null)} />

@@ -1,29 +1,29 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ApiError } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
+import { FormDialog } from '@isbp/ui/form-dialog';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Switch } from '@isbp/ui/switch';
-import { Textarea } from '@isbp/ui/textarea';
+import { StatTile } from '@isbp/ui/stat-tile';
 import { ExternalLinkIcon, MailIcon, PencilIcon, PhoneIcon, UserIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import type { CreateVendorInput, Vendor, VendorDetail } from '../contracts';
@@ -41,27 +41,17 @@ export function VendorFormDialog({
   vendor?: Vendor;
   onSaved?: (v: VendorDetail) => void;
 }) {
-  const t = useTranslations('itam.vendorForm');
-  const tc = useTranslations('common');
+  // Mounted per opening: the dialog takes its accessible name from the header it opens with.
+  if (!open) return null;
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{vendor ? t('editTitle', { name: vendor.name }) : t('createTitle')}</DialogTitle>
-          <DialogDescription>{t('hint')}</DialogDescription>
-        </DialogHeader>
-        {open && (
-          <VendorForm
-            vendor={vendor}
-            onCancel={() => onOpenChange(false)}
-            onSaved={(v) => {
-              onOpenChange(false);
-              onSaved?.(v);
-            }}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+    <VendorForm
+      vendor={vendor}
+      onCancel={() => onOpenChange(false)}
+      onSaved={(v) => {
+        onOpenChange(false);
+        onSaved?.(v);
+      }}
+    />
   );
 }
 
@@ -77,7 +67,6 @@ function VendorForm({
   const t = useTranslations('itam');
   const tc = useTranslations('common');
   const errorText = useErrorText();
-  const activeId = useId();
   const schema = useMemo(
     () =>
       z.object({
@@ -148,38 +137,45 @@ function VendorForm({
   const field = (
     name: 'name' | 'website' | 'contactName' | 'contactEmail' | 'phone',
     label: string,
-    type?: string,
+    options: { type?: 'email'; isRequired?: boolean } = {},
   ) => (
     <FormField
       control={form.control}
       name={name}
-      render={({ field: f }) => (
-        <FormItem className="min-w-0">
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <Input type={type} {...f} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
+      render={({ field: f, fieldState }) => (
+        <TextInput
+          label={label}
+          type={options.type}
+          isRequired={options.isRequired}
+          value={f.value}
+          onChange={f.onChange}
+          onBlur={f.onBlur}
+          ref={f.ref}
+          status={fieldStatus(fieldState)}
+        />
       )}
     />
   );
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="grid gap-4" noValidate>
-        {field('name', t('fields.name'))}
+      <FormDialog
+        isOpen
+        onOpenChange={(o) => !o && onCancel()}
+        size="md"
+        title={vendor ? t('vendorForm.editTitle', { name: vendor.name }) : t('vendorForm.createTitle')}
+        subtitle={t('vendorForm.hint')}
+        onSubmit={onSubmit}
+        submitLabel={vendor ? tc('saveChanges') : tc('create')}
+        cancelLabel={tc('cancel')}
+        isSubmitting={save.isPending}
+        defaultOptionality="optional"
+      >
+        {field('name', t('fields.name'), { isRequired: true })}
         <FormField
           control={form.control}
           name="active"
           render={({ field: f }) => (
-            <FormItem className="flex flex-row items-center gap-3">
-              <FormControl>
-                <Switch id={activeId} checked={f.value} onCheckedChange={f.onChange} />
-              </FormControl>
-              <FormLabel htmlFor={activeId} className="font-normal">
-                {t('vendors.active')}
-              </FormLabel>
-            </FormItem>
+            <Switch label={t('vendors.active')} value={f.value} onChange={f.onChange} />
           )}
         />
         <OptionalFields
@@ -192,40 +188,32 @@ function VendorForm({
           ])}
           filled={detailsFilled}
         >
-          {field('website', t('vendors.website'), 'url')}
-          <div className="grid gap-4 sm:grid-cols-2">
+          {field('website', t('vendors.website'))}
+          <Grid columns={{ minWidth: 200 }} gap={4}>
             {field('contactName', t('vendors.contact'))}
-            {field('phone', t('vendors.phone'), 'tel')}
-          </div>
-          {field('contactEmail', t('vendors.email'), 'email')}
+            {field('phone', t('vendors.phone'))}
+          </Grid>
+          {field('contactEmail', t('vendors.email'), { type: 'email' })}
           <FormField
             control={form.control}
             name="notes"
-            render={({ field: f }) => (
-              <FormItem>
-                <FormLabel>{t('fields.notes')}</FormLabel>
-                <FormControl>
-                  <Textarea rows={3} {...f} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            render={({ field: f, fieldState }) => (
+              <TextArea
+                label={t('fields.notes')}
+                rows={3}
+                value={f.value}
+                onChange={f.onChange}
+                onBlur={f.onBlur}
+                ref={f.ref}
+                status={fieldStatus(fieldState)}
+              />
             )}
           />
         </OptionalFields>
         {form.formState.errors.root && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
+          <Banner status="error" title={form.formState.errors.root.message ?? ''} collapsible={false} />
         )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {vendor ? tc('saveChanges') : tc('create')}
-          </Button>
-        </DialogFooter>
-      </form>
+      </FormDialog>
     </Form>
   );
 }
@@ -256,119 +244,106 @@ export function VendorSheet({
               {v ? (v.active ? t('vendors.activeVendor') : t('vendors.inactiveVendor')) : ''}
             </SheetDescription>
           </SheetHeader>
-          <SheetBody className="space-y-5 pb-6">
+          <SheetBody className="pb-6">
             {isLoading || !v ? (
               <Skeleton className="h-64 w-full" />
             ) : (
-              <>
-                <dl className="grid grid-cols-2 gap-2">
-                  <div className="rounded-lg border px-3 py-2">
-                    <dt className="text-xs text-muted-foreground">{t('vendors.annualSpend')}</dt>
-                    <dd className="text-lg font-semibold">
-                      {money(v.annualSpend, v.currency, { compact: true })}
-                    </dd>
-                  </div>
-                  <div className="rounded-lg border px-3 py-2">
-                    <dt className="text-xs text-muted-foreground">{t('vendors.hardware12m')}</dt>
-                    <dd className="text-lg font-semibold">
-                      {money(v.hardwareSpend12m, v.currency, { compact: true })}
-                    </dd>
-                  </div>
-                </dl>
-                <section className="grid gap-2 text-sm" aria-label={t('vendors.contact')}>
+              <VStack gap={5}>
+                <Grid columns={2} gap={2}>
+                  <StatTile
+                    label={t('vendors.annualSpend')}
+                    value={money(v.annualSpend, v.currency, { compact: true })}
+                  />
+                  <StatTile
+                    label={t('vendors.hardware12m')}
+                    value={money(v.hardwareSpend12m, v.currency, { compact: true })}
+                  />
+                </Grid>
+                <VStack as="section" gap={2} aria-label={t('vendors.contact')}>
                   {v.contactName && (
-                    <p className="flex items-center gap-2">
-                      <UserIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                      {v.contactName}
-                    </p>
+                    <HStack gap={2} vAlign="center">
+                      <Icon icon={UserIcon} color="secondary" />
+                      <Text>{v.contactName}</Text>
+                    </HStack>
                   )}
                   {v.contactEmail && (
-                    <a href={`mailto:${v.contactEmail}`} className="flex items-center gap-2 hover:underline">
-                      <MailIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                      {v.contactEmail}
-                    </a>
+                    <HStack gap={2} vAlign="center">
+                      <Icon icon={MailIcon} color="secondary" />
+                      <Link href={`mailto:${v.contactEmail}`}>{v.contactEmail}</Link>
+                    </HStack>
                   )}
                   {v.phone && (
-                    <a
-                      href={`tel:${v.phone.replace(/[^\d+]/g, '')}`}
-                      className="flex items-center gap-2 hover:underline"
-                    >
-                      <PhoneIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                      {v.phone}
-                    </a>
+                    <HStack gap={2} vAlign="center">
+                      <Icon icon={PhoneIcon} color="secondary" />
+                      <Link href={`tel:${v.phone.replace(/[^\d+]/g, '')}`}>{v.phone}</Link>
+                    </HStack>
                   )}
                   {v.website && (
-                    <a
-                      href={v.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex min-w-0 items-center gap-2 hover:underline"
-                    >
-                      <ExternalLinkIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                      <span className="truncate">{v.website}</span>
-                    </a>
+                    <HStack gap={2} vAlign="center">
+                      <Icon icon={ExternalLinkIcon} color="secondary" />
+                      <StackItem size="fill">
+                        <Link href={v.website} target="_blank" maxLines={1}>
+                          {v.website}
+                        </Link>
+                      </StackItem>
+                    </HStack>
                   )}
-                  {v.notes && <p className="whitespace-pre-wrap text-muted-foreground">{v.notes}</p>}
-                </section>
-                <section className="grid gap-2">
-                  <h3 className="text-sm font-semibold">
-                    {t('vendors.contracts', { count: v.contracts.length })}
-                  </h3>
+                  {v.notes && (
+                    <Text as="p" color="secondary">
+                      {v.notes}
+                    </Text>
+                  )}
+                </VStack>
+                <VStack as="section" gap={2}>
+                  <Heading level={3}>{t('vendors.contracts', { count: v.contracts.length })}</Heading>
                   {v.contracts.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">—</p>
+                    <Text color="secondary">—</Text>
                   ) : (
-                    <ul className="divide-y rounded-lg border">
+                    <List hasDividers>
                       {v.contracts.map((c) => (
-                        <li key={c.id} className="grid gap-1 px-3 py-2 text-sm">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <Link
-                              href={contractHref(c)}
-                              className="min-w-0 flex-1 truncate font-medium hover:underline"
-                            >
-                              {c.title}
-                            </Link>
-                            <ContractStatusBadge status={c.status} />
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            <span className="font-mono">{c.reference}</span> · {day(c.endDate)} ·{' '}
-                            {money(c.annualCost, c.currency)}
-                          </span>
-                        </li>
+                        <ListItem
+                          key={c.id}
+                          href={contractHref(c)}
+                          label={c.title}
+                          description={`${c.reference} · ${day(c.endDate)} · ${money(c.annualCost, c.currency)}`}
+                          endContent={<ContractStatusBadge status={c.status} />}
+                        />
                       ))}
-                    </ul>
+                    </List>
                   )}
-                </section>
-                <section className="grid gap-2">
-                  <h3 className="text-sm font-semibold">
-                    {t('vendors.licenses', { count: v.licenses.length })}
-                  </h3>
+                </VStack>
+                <VStack as="section" gap={2}>
+                  <Heading level={3}>{t('vendors.licenses', { count: v.licenses.length })}</Heading>
                   {v.licenses.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">—</p>
+                    <Text color="secondary">—</Text>
                   ) : (
-                    <ul className="divide-y rounded-lg border">
+                    <List hasDividers>
                       {v.licenses.map((l) => (
-                        <li key={l.id} className="flex min-w-0 items-center gap-2 px-3 py-2 text-sm">
-                          <Link href={licenseHref(l)} className="min-w-0 flex-1 truncate hover:underline">
-                            {l.product}
-                          </Link>
-                          <ComplianceBadge state={l.complianceState} />
-                        </li>
+                        <ListItem
+                          key={l.id}
+                          href={licenseHref(l)}
+                          label={l.product}
+                          endContent={<ComplianceBadge state={l.complianceState} />}
+                        />
                       ))}
-                    </ul>
+                    </List>
                   )}
-                </section>
-                <p className="text-xs text-muted-foreground">
-                  <Badge variant="muted" className="mr-1">
-                    {v.counts.assets}
-                  </Badge>
-                  {t('vendors.assetsBought')}
-                </p>
+                </VStack>
+                <HStack gap={1} vAlign="center">
+                  <Badge variant="neutral" label={v.counts.assets} />
+                  <Text type="supporting">{t('vendors.assetsBought')}</Text>
+                </HStack>
                 {canEdit && (
-                  <Button variant="outline" onClick={() => setEditing(true)}>
-                    <PencilIcon /> {t('actions.edit')}
-                  </Button>
+                  <HStack>
+                    <Button
+                      label={t('actions.edit')}
+                      variant="secondary"
+                      icon={<Icon icon={PencilIcon} />}
+                      onClick={() => setEditing(true)}
+                    />
+                  </HStack>
                 )}
-              </>
+              </VStack>
             )}
           </SheetBody>
         </SheetContent>

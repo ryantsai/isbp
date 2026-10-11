@@ -1,8 +1,9 @@
 'use client';
 
+import { Collapsible } from '@astryxdesign/core/Collapsible';
+import { Text } from '@astryxdesign/core/Text';
 import { ApiError } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { useErrorText } from '@isbp/ui/query';
 import {
   ArrowRightIcon,
@@ -19,9 +20,10 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { changeSetHref } from '../../contracts';
-import { type Meta, TONE } from '../badges';
+import { type Meta, ToneBadge, ToneText } from '../badges';
 import type { ConfirmationDto } from '../lib';
 import { useToolText } from './thread';
+import { Button } from '@astryxdesign/core/Button';
 
 function outcome(c: ConfirmationDto): {
   meta: Meta;
@@ -79,9 +81,8 @@ export function ConfirmationCard({
   const toolText = useToolText();
   const errorOf = useDecideErrorText();
   const { meta, key } = outcome(confirmation);
-  const Icon = meta.icon;
   const pending = confirmation.status === 'pending';
-  const statusRef = useRef<HTMLParagraphElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
   const [decidedHere, setDecidedHere] = useState(false);
 
   // The buttons go away once decided: keep the keyboard user's place on the outcome.
@@ -121,33 +122,31 @@ export function ConfirmationCard({
         </div>
       </div>
 
-      <p
+      <div
         ref={statusRef}
         tabIndex={-1}
         role="status"
-        className={cn(
-          'inline-flex w-fit items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
-          TONE[meta.tone],
-        )}
+        className="w-fit rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
-        <Icon className="size-3.5 shrink-0" aria-hidden />
-        {key === 'failed'
-          ? t('failed', { message: confirmation.result?.message ?? confirmation.result?.code ?? '' })
-          : t(key)}
-      </p>
+        <ToneBadge
+          meta={meta}
+          label={
+            key === 'failed'
+              ? t('failed', { message: confirmation.result?.message ?? confirmation.result?.code ?? '' })
+              : t(key)
+          }
+        />
+      </div>
 
       {hasInput && (
-        <details className="min-w-0">
-          <summary className="w-fit cursor-pointer rounded-sm text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50">
-            {t('input')}
-          </summary>
+        <Collapsible defaultIsOpen={false} trigger={<Text color="accent">{t('input')}</Text>}>
           <pre
             tabIndex={0}
             className="mt-1.5 max-h-60 overflow-auto rounded-md bg-muted/60 p-2.5 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             {JSON.stringify(input, null, 2)}
           </pre>
-        </details>
+        </Collapsible>
       )}
 
       {confirmation.changeSetId && (
@@ -165,30 +164,29 @@ export function ConfirmationCard({
         <>
           <p className="text-xs text-muted-foreground">{t('hint')}</p>
           {error ? (
-            <p role="alert" className="flex items-start gap-1.5 text-xs text-destructive">
-              <CircleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-              {errorOf(error)}
-            </p>
+            <div role="alert">
+              <ToneText meta={{ icon: CircleAlertIcon, tone: 'destructive' }} label={errorOf(error)} wrap />
+            </div>
           ) : null}
           <div className="flex flex-wrap gap-2">
             <Button
-              size="sm"
-              onClick={() => decide(true)}
-              loading={deciding}
-              disabled={disabled}
+              label={t('approve')}
+              // Names what is being confirmed (the visible "Confirm" is not enough once there are several cards).
               aria-label={t('approveAria', { label: confirmation.label })}
-            >
-              {t('approve')}
-            </Button>
-            <Button
+              variant="primary"
               size="sm"
-              variant="outline"
-              onClick={() => decide(false)}
-              disabled={deciding || disabled}
+              isLoading={deciding}
+              isDisabled={disabled}
+              onClick={() => decide(true)}
+            />
+            <Button
+              label={t('decline')}
               aria-label={t('declineAria', { label: confirmation.label })}
-            >
-              {t('decline')}
-            </Button>
+              variant="secondary"
+              size="sm"
+              isDisabled={deciding || disabled}
+              onClick={() => decide(false)}
+            />
           </div>
         </>
       )}

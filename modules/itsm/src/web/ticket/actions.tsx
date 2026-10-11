@@ -1,32 +1,21 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { DropdownMenu } from '@astryxdesign/core/DropdownMenu';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { toast } from '@isbp/ui/sonner';
-import { Textarea } from '@isbp/ui/textarea';
+import { toast } from '@isbp/ui/toast';
 import {
   BugIcon,
   CheckCircle2Icon,
-  ChevronDownIcon,
   ClipboardCheckIcon,
   FilePenLineIcon,
   FlagIcon,
@@ -124,7 +113,7 @@ export function ResolveDialog({
   const t = useTranslations('itsm.actions.resolve');
   const tr = useTranslations('itsm.resolution');
   const tc = useTranslations('common');
-  const id = useId();
+  const formId = useId();
   const status = intent?.status ?? null;
   const [code, setCode] = useState<ResolutionCode | ''>('');
   const [notes, setNotes] = useState('');
@@ -152,106 +141,87 @@ export function ResolveDialog({
     : CODES.filter((c) => c !== 'cancelled_by_requester');
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t(`${kind}.title`)}</DialogTitle>
-          <DialogDescription>
-            {ticket.reference} · {ticket.title}
-          </DialogDescription>
-        </DialogHeader>
-        <form
-          noValidate
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setTouched(true);
-            if (missingCode || missingNotes || !status) return;
-            transition.mutate(
-              {
-                status,
-                resolutionCode: code as ResolutionCode,
-                resolutionNotes: notes.trim(),
-                ...(article && !cancelling ? { articleId: article.id } : {}),
-              },
-              { onError: (err) => onError(err) },
-            );
-          }}
-        >
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-code`}>{t('code')}</Label>
-            <Select value={code || undefined} onValueChange={(v) => setCode(v as ResolutionCode)}>
-              <SelectTrigger
-                id={`${id}-code`}
-                className="w-full"
-                aria-invalid={touched && missingCode ? true : undefined}
-                aria-describedby={touched && missingCode ? `${id}-code-error` : undefined}
-              >
-                <SelectValue placeholder={t('codePlaceholder')} />
-              </SelectTrigger>
-              <SelectContent>
-                {codes.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {tr(c)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {touched && missingCode && (
-              <p id={`${id}-code-error`} className="text-sm text-destructive">
-                {t('codeRequired')}
-              </p>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-notes`}>{t(cancelling ? 'reason' : 'notes')}</Label>
-            <Textarea
-              id={`${id}-notes`}
-              rows={5}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              aria-invalid={touched && missingNotes ? true : undefined}
-              aria-describedby={`${id}-notes-hint${touched && missingNotes ? ` ${id}-notes-error` : ''}`}
-            />
-            <p id={`${id}-notes-hint`} className="text-xs text-muted-foreground">
-              {t(cancelling ? 'cancelHint' : 'notesHint')}
-            </p>
-            {touched && missingNotes && (
-              <p id={`${id}-notes-error`} className="text-sm text-destructive">
-                {t(cancelling ? 'reasonRequired' : 'notesRequired')}
-              </p>
-            )}
-          </div>
-          {!cancelling && (
-            <div className="grid gap-2">
-              <Label htmlFor={`${id}-article`}>{t('article')}</Label>
-              <ArticlePicker
-                id={`${id}-article`}
-                value={article}
-                onChange={(a) =>
-                  setArticle(a ? { id: a.id, reference: a.reference ?? '', title: a.title } : null)
-                }
-                aria-describedby={`${id}-article-hint`}
-              />
-              <p id={`${id}-article-hint`} className="text-xs text-muted-foreground">
-                {t('articleHint')}
-              </p>
-            </div>
-          )}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button
-              type="submit"
-              variant={cancelling ? 'destructive' : 'default'}
-              loading={transition.isPending}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={512} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t(`${kind}.title`)}
+            subtitle={`${ticket.reference} · ${ticket.title}`}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <form
+              id={formId}
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                setTouched(true);
+                if (missingCode || missingNotes || !status) return;
+                transition.mutate(
+                  {
+                    status,
+                    resolutionCode: code as ResolutionCode,
+                    resolutionNotes: notes.trim(),
+                    ...(article && !cancelling ? { articleId: article.id } : {}),
+                  },
+                  { onError: (err) => onError(err) },
+                );
+              }}
             >
-              {t(`${kind}.submit`)}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+              <FormLayout defaultOptionality="optional">
+                <Selector
+                  label={t('code')}
+                  isRequired
+                  placeholder={t('codePlaceholder')}
+                  value={code || undefined}
+                  onChange={(v) => setCode(v as ResolutionCode)}
+                  options={codes.map((c) => ({ value: c, label: tr(c) }))}
+                  status={touched && missingCode ? { type: 'error', message: t('codeRequired') } : undefined}
+                />
+                <TextArea
+                  label={t(cancelling ? 'reason' : 'notes')}
+                  isRequired
+                  rows={5}
+                  value={notes}
+                  onChange={setNotes}
+                  description={t(cancelling ? 'cancelHint' : 'notesHint')}
+                  status={
+                    touched && missingNotes
+                      ? { type: 'error', message: t(cancelling ? 'reasonRequired' : 'notesRequired') }
+                      : undefined
+                  }
+                />
+                {!cancelling && (
+                  <ArticlePicker
+                    label={t('article')}
+                    description={t('articleHint')}
+                    value={article}
+                    onChange={(a) =>
+                      setArticle(a ? { id: a.id, reference: a.reference ?? '', title: a.title } : null)
+                    }
+                  />
+                )}
+              </FormLayout>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t(`${kind}.submit`)}
+                variant={cancelling ? 'destructive' : 'primary'}
+                type="submit"
+                form={formId}
+                isLoading={transition.isPending}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -268,7 +238,7 @@ export function EditDialog({
 }) {
   const t = useTranslations('itsm.actions.edit');
   const tc = useTranslations('common');
-  const id = useId();
+  const formId = useId();
   const [title, setTitle] = useState(ticket.title);
   const [description, setDescription] = useState(ticket.description);
   const [touched, setTouched] = useState(false);
@@ -284,60 +254,54 @@ export function EditDialog({
   );
   const invalid = title.trim().length < 3;
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>{ticket.reference}</DialogDescription>
-        </DialogHeader>
-        <form
-          noValidate
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setTouched(true);
-            if (!invalid) save.mutate({ title: title.trim(), description: description.trim() });
-          }}
-        >
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-title`}>{t('titleLabel')}</Label>
-            <Input
-              id={`${id}-title`}
-              value={title}
-              maxLength={200}
-              onChange={(e) => setTitle(e.target.value)}
-              aria-invalid={touched && invalid ? true : undefined}
-              aria-describedby={touched && invalid ? `${id}-title-error` : undefined}
-            />
-            {touched && invalid && (
-              <p id={`${id}-title-error`} className="text-sm text-destructive">
-                {t('titleTooShort')}
-              </p>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-description`}>{t('descriptionLabel')}</Label>
-            <Textarea
-              id={`${id}-description`}
-              rows={10}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              aria-describedby={`${id}-description-hint`}
-            />
-            <p id={`${id}-description-hint`} className="text-xs text-muted-foreground">
-              {t('markdownHint')}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={save.isPending}>
-              {tc('saveChanges')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={672} purpose="form">
+      <Layout
+        header={<DialogHeader title={t('title')} subtitle={ticket.reference} onOpenChange={onOpenChange} />}
+        content={
+          <LayoutContent padding={4}>
+            <form
+              id={formId}
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                setTouched(true);
+                if (!invalid) save.mutate({ title: title.trim(), description: description.trim() });
+              }}
+            >
+              <FormLayout defaultOptionality="optional">
+                <TextInput
+                  label={t('titleLabel')}
+                  isRequired
+                  value={title}
+                  onChange={(v) => setTitle(v.slice(0, 200))}
+                  status={touched && invalid ? { type: 'error', message: t('titleTooShort') } : undefined}
+                />
+                <TextArea
+                  label={t('descriptionLabel')}
+                  rows={10}
+                  value={description}
+                  onChange={setDescription}
+                  description={t('markdownHint')}
+                />
+              </FormLayout>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={tc('saveChanges')}
+                variant="primary"
+                type="submit"
+                form={formId}
+                isLoading={save.isPending}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -370,15 +334,18 @@ export function NextStepButton({
   onClick: () => void;
 }) {
   const t = useTranslations('itsm.actions.next');
-  const Icon = NEXT_ICON[step.key];
   return (
-    <span className="inline-flex flex-wrap items-center gap-2">
-      {disabledHint && <span className="text-sm text-muted-foreground">{disabledHint}</span>}
-      <Button onClick={onClick} loading={pending} disabled={Boolean(disabledHint)}>
-        <Icon aria-hidden />
-        {t(step.key)}
-      </Button>
-    </span>
+    <HStack gap={2} wrap="wrap" vAlign="center">
+      {disabledHint && <Text color="secondary">{disabledHint}</Text>}
+      <Button
+        label={t(step.key)}
+        variant="primary"
+        icon={<Icon icon={NEXT_ICON[step.key]} />}
+        isLoading={pending}
+        isDisabled={Boolean(disabledHint)}
+        onClick={onClick}
+      />
+    </HStack>
   );
 }
 
@@ -397,31 +364,26 @@ export function StatusMenu({
   const t = useTranslations('itsm.actions');
   const ts = useTranslations('itsm.status');
   if (!statuses.length) return null;
+  const item = (s: TicketStatus) => ({
+    label: ticket.signOff && s === 'in_progress' ? t('withdrawResolution') : ts(s),
+    icon: statusIcon(s),
+    variant: s === 'cancelled' || s === 'rejected' ? ('destructive' as const) : undefined,
+    onClick: () => onSelect(s),
+  });
+  // Exits that end the ticket go last (they open the dialog that asks for the reason).
+  const ends = (s: TicketStatus) => s === 'cancelled' || s === 'rejected';
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" loading={pending}>
-          {t('otherStatus')}
-          <ChevronDownIcon aria-hidden />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-52">
-        <DropdownMenuLabel>{t('moveTo')}</DropdownMenuLabel>
-        {statuses.map((s) => {
-          const Icon: LucideIcon = statusIcon(s);
-          return (
-            <DropdownMenuItem
-              key={s}
-              onSelect={() => onSelect(s)}
-              variant={s === 'cancelled' || s === 'rejected' ? 'destructive' : 'default'}
-            >
-              <Icon aria-hidden />
-              {ticket.signOff && s === 'in_progress' ? t('withdrawResolution') : ts(s)}
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <DropdownMenu
+      button={{ label: t('otherStatus'), variant: 'secondary', isLoading: pending }}
+      menuWidth={208}
+      items={[
+        {
+          type: 'section',
+          title: t('moveTo'),
+          items: [...statuses.filter((s) => !ends(s)), ...statuses.filter(ends)].map(item),
+        },
+      ]}
+    />
   );
 }
 

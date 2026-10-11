@@ -1,18 +1,16 @@
 'use client';
 
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useApi, type WebPageProps } from '@isbp/sdk/web';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
-import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
 import {
   DecisionDone,
@@ -26,9 +24,8 @@ import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RecordValues } from '@isbp/ui/record-picker';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
+import { toast } from '@isbp/ui/toast';
 import {
   BadgeCheckIcon,
   BanIcon,
@@ -45,7 +42,6 @@ import {
   UserCheckIcon,
   XCircleIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { REVIEW_DECISIONS, type Review, type ReviewItem } from '../../contracts';
@@ -69,44 +65,52 @@ function AccountSummary({ item }: { item: ReviewItem }) {
   const stillEnabled =
     item.decision !== null && item.decision !== 'keep' && item.doneOn && item.accountStatus === 'enabled';
   return (
-    <div className="grid min-w-0 gap-1">
-      <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-mono font-medium wrap-break-word">{item.accountName}</span>
+    <VStack gap={1}>
+      <HStack gap={2} vAlign="center" wrap="wrap">
+        <Text type="code" weight="medium" wordBreak="break-word">
+          {item.accountName}
+        </Text>
         <PrivilegeBadge privilege={item.privilege} />
-      </p>
-      <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-        {who && <span className="wrap-break-word">{who}</span>}
+      </HStack>
+      <HStack gap={2} vAlign="center" wrap="wrap">
+        {who && <Text type="supporting">{who}</Text>}
         {item.user && item.userName && item.user.displayName !== item.userName && (
-          <span className="wrap-break-word">({item.user.displayName})</span>
+          <Text type="supporting">({item.user.displayName})</Text>
         )}
         <AccountStateText state={item.accountStatus} />
-        {item.detail && <span className="wrap-break-word">{item.detail}</span>}
-      </p>
+        {item.detail && <Text type="supporting">{item.detail}</Text>}
+      </HStack>
       {item.decision && item.decision !== 'keep' && (
-        <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <HStack gap={2} vAlign="center" wrap="wrap">
           {item.doneOn ? (
-            <span className="text-muted-foreground">{t('review.doneOn', { date: day(item.doneOn) })}</span>
+            <Text type="supporting">{t('review.doneOn', { date: day(item.doneOn) })}</Text>
           ) : (
-            <span className="font-medium text-warning-foreground">{t('review.notDoneYet')}</span>
+            <Text type="supporting" weight="medium">
+              {t('review.notDoneYet')}
+            </Text>
           )}
           {item.ticket &&
             (item.ticket.href ? (
-              <Link href={item.ticket.href} className="underline">
-                {t('review.ticket', { reference: item.ticket.reference })}
-              </Link>
+              <Link href={item.ticket.href}>{t('review.ticket', { reference: item.ticket.reference })}</Link>
             ) : (
-              <span>{t('review.ticket', { reference: item.ticket.reference })}</span>
+              <Text type="supporting">{t('review.ticket', { reference: item.ticket.reference })}</Text>
             ))}
-        </p>
+        </HStack>
       )}
       {stillEnabled && (
-        <p className="inline-flex items-center gap-1 text-xs font-medium text-warning-foreground">
-          <TriangleAlertIcon className="size-3.5" aria-hidden />
-          {t(`review.stillEnabled.${item.decision as 'disable' | 'delete'}`)}
-        </p>
+        <HStack gap={1} vAlign="center">
+          <Icon icon={TriangleAlertIcon} color="warning" />
+          <Text type="supporting" weight="medium">
+            {t(`review.stillEnabled.${item.decision as 'disable' | 'delete'}`)}
+          </Text>
+        </HStack>
       )}
-      {item.note && <p className="text-xs wrap-break-word text-muted-foreground">{item.note}</p>}
-    </div>
+      {item.note && (
+        <Text as="p" type="supporting" wordBreak="break-word">
+          {item.note}
+        </Text>
+      )}
+    </VStack>
   );
 }
 
@@ -212,16 +216,20 @@ export default function ReviewPage({ params }: WebPageProps) {
         primaryAction={
           canDecide ? (
             <Button
-              disabled={!allDecided}
-              loading={complete.isPending}
+              label={t('review.complete')}
+              variant="primary"
+              icon={<Icon icon={SendIcon} />}
+              isLoading={complete.isPending}
+              isDisabled={!allDecided}
               onClick={() => complete.mutate(undefined)}
-            >
-              <SendIcon /> {t('review.complete')}
-            </Button>
+            />
           ) : r.viewer.canSignOff ? (
-            <Button onClick={() => setDialog('signoff')}>
-              <BadgeCheckIcon /> {t('review.signOff')}
-            </Button>
+            <Button
+              label={t('review.signOff')}
+              variant="primary"
+              icon={<Icon icon={BadgeCheckIcon} />}
+              onClick={() => setDialog('signoff')}
+            />
           ) : undefined
         }
         actions={
@@ -285,24 +293,28 @@ export default function ReviewPage({ params }: WebPageProps) {
         summary={t('review.summary', { ...p.byDecision, undecided: p.total - p.decided })}
       >
         {canDecide && !allDecided && p.total > 0 && (
-          <p className="text-sm text-muted-foreground">{t('review.completeWhenDone')}</p>
+          <Text as="p" color="secondary">
+            {t('review.completeWhenDone')}
+          </Text>
         )}
         {r.status === 'completed' && (
-          <p className="text-sm">
+          <Text as="p">
             {t('review.waitingSignOff', {
               name: r.completedBy?.displayName ?? r.reviewer?.displayName ?? '',
             })}
-          </p>
+          </Text>
         )}
         {r.signedOffBy && (
-          <p className="text-sm">
+          <Text as="p">
             {t('review.signedOffBy', { name: r.signedOffBy.displayName })}
             {r.signOffNote ? ` — ${r.signOffNote}` : ''}
-          </p>
+          </Text>
         )}
       </DecisionProgress>
       {r.status === 'scheduled' ? (
-        <p className="text-sm text-muted-foreground">{t('review.scheduled', { date: day(r.startOn) })}</p>
+        <Text as="p" color="secondary">
+          {t('review.scheduled', { date: day(r.startOn) })}
+        </Text>
       ) : (
         <>
           {canDecide && allDecided && view === 'todo' && (
@@ -320,22 +332,20 @@ export default function ReviewPage({ params }: WebPageProps) {
             actions={
               <>
                 {view !== 'todo' && (
-                  <Select
+                  <Selector
+                    label={t('review.filter')}
+                    isLabelHidden
+                    width={176}
                     value={filter ?? 'any'}
-                    onValueChange={(v) => set({ filter: v === 'any' ? undefined : v })}
-                  >
-                    <SelectTrigger className="w-full sm:w-44" aria-label={t('review.filter')}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">{t('review.anyDecision')}</SelectItem>
-                      {FILTERS.map((f) => (
-                        <SelectItem key={f} value={f}>
-                          {f === 'admin' ? t('review.views.admin') : t(`reviewDecision.${f}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(v) => set({ filter: v === 'any' ? undefined : v })}
+                    options={[
+                      { value: 'any', label: t('review.anyDecision') },
+                      ...FILTERS.map((f) => ({
+                        value: f,
+                        label: f === 'admin' ? t('review.views.admin') : t(`reviewDecision.${f}`),
+                      })),
+                    ]}
+                  />
                 )}
                 <SearchInput
                   value={state.q ?? ''}
@@ -384,9 +394,12 @@ export default function ReviewPage({ params }: WebPageProps) {
                     description={canDecide ? t('review.noItemsHint') : undefined}
                     action={
                       canDecide ? (
-                        <Button variant="outline" onClick={() => setDialog('import')}>
-                          <FileUpIcon /> {t('review.import')}
-                        </Button>
+                        <Button
+                          label={t('review.import')}
+                          variant="secondary"
+                          icon={<Icon icon={FileUpIcon} />}
+                          onClick={() => setDialog('import')}
+                        />
                       ) : undefined
                     }
                   />
@@ -430,53 +443,55 @@ export default function ReviewPage({ params }: WebPageProps) {
         onConfirm={(note) => signOff.mutate({ note })}
         pending={signOff.isPending}
       />
-      <AlertDialog open={dialog === 'tickets'} onOpenChange={(o) => setDialog(o ? 'tickets' : null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('review.ticketsTitle', { count: r.viewer.ticketsToRaise })}
-            </AlertDialogTitle>
-            <AlertDialogDescription>{t('review.ticketsDescription')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <ul className="max-h-48 list-disc space-y-0.5 overflow-y-auto pl-5 text-sm">
-            {(toTicket.data?.items ?? []).map((i) => (
-              <li key={i.id} className="wrap-break-word">
-                {t(`review.ticketLine.${i.decision as 'disable' | 'delete'}`, { account: i.accountName })}
-              </li>
-            ))}
-          </ul>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                tickets.mutate(undefined);
-              }}
-            >
-              {t('review.raiseTickets', { count: r.viewer.ticketsToRaise })}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <AlertDialog open={dialog === 'cancel'} onOpenChange={(o) => setDialog(o ? 'cancel' : null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('review.cancelTitle', { reference: r.reference })}</AlertDialogTitle>
-            <AlertDialogDescription>{t('review.cancelDescription')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc('back')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                cancel.mutate(undefined);
-              }}
-            >
-              {t('review.cancel')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Lists the accounts the tickets are raised for, which an AlertDialog's plain description cannot hold. */}
+      <Dialog isOpen={dialog === 'tickets'} onOpenChange={(o) => setDialog(o ? 'tickets' : null)} width={448}>
+        <Layout
+          header={
+            <DialogHeader
+              title={t('review.ticketsTitle', { count: r.viewer.ticketsToRaise })}
+              subtitle={t('review.ticketsDescription')}
+              onOpenChange={(o) => setDialog(o ? 'tickets' : null)}
+            />
+          }
+          content={
+            <LayoutContent padding={4}>
+              <List listStyle="disc" density="compact">
+                {(toTicket.data?.items ?? []).map((i) => (
+                  <ListItem
+                    key={i.id}
+                    label={t(`review.ticketLine.${i.decision as 'disable' | 'delete'}`, {
+                      account: i.accountName,
+                    })}
+                  />
+                ))}
+              </List>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider padding={3}>
+              <HStack gap={2} hAlign="end">
+                <Button label={tc('cancel')} variant="ghost" onClick={() => setDialog(null)} />
+                <Button
+                  label={t('review.raiseTickets', { count: r.viewer.ticketsToRaise })}
+                  variant="primary"
+                  isLoading={tickets.isPending}
+                  onClick={() => tickets.mutate(undefined)}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
+      <AlertDialog
+        isOpen={dialog === 'cancel'}
+        onOpenChange={(o) => setDialog(o ? 'cancel' : null)}
+        title={t('review.cancelTitle', { reference: r.reference })}
+        description={t('review.cancelDescription')}
+        cancelLabel={tc('back')}
+        actionLabel={t('review.cancel')}
+        isActionLoading={cancel.isPending}
+        onAction={() => cancel.mutate(undefined)}
+      />
     </div>
   );
 }

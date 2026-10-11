@@ -2,20 +2,7 @@
 
 import type { ApiClient, CreateApiClientInput, CreatedSecret, UpdateApiClientInput } from '@isbp/contracts';
 import { isPermissionPattern } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
-import { Textarea } from '@isbp/ui/textarea';
-import { AlertTriangleIcon, InfoIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useAccessErrorText, useGrantable } from '@/components/roles/role-utils';
@@ -30,6 +17,13 @@ import {
   type SecretExpiry,
   SecretExpiryField,
 } from './client-parts';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 
 const CIDR_RE = /^[0-9a-fA-F:.]+(\/\d{1,3})?$/;
 
@@ -165,144 +159,115 @@ export function ClientFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')} className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{editing ? t('editTitle', { name: client!.name }) : t('createTitle')}</DialogTitle>
-          <DialogDescription>{editing ? t('editDescription') : t('createDescription')}</DialogDescription>
-        </DialogHeader>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit();
-          }}
-          noValidate
-          className="min-w-0 space-y-5"
-        >
-          {editing && (
-            <p className="flex items-start gap-2 rounded-md border border-info/30 bg-info/5 px-3 py-2 text-sm">
-              <InfoIcon className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
-              {t('tokensRevoked')}
-            </p>
-          )}
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-name`}>{t('name')}</Label>
-            <Input
-              id={`${id}-name`}
-              value={draft.name}
-              onChange={(e) => set({ name: e.target.value })}
-              placeholder={t('namePlaceholder')}
-              maxLength={200}
-              autoComplete="off"
-              autoFocus
-              aria-invalid={nameError ? true : undefined}
-              aria-describedby={nameError ? `${id}-name-error` : undefined}
-            />
-            {nameError && (
-              <p id={`${id}-name-error`} className="text-xs text-destructive">
-                {nameError}
-              </p>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-desc`}>
-              {t('description')} <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-            </Label>
-            <Textarea
-              id={`${id}-desc`}
-              rows={2}
-              value={draft.description}
-              onChange={(e) => set({ description: e.target.value })}
-              placeholder={t('descriptionPlaceholder')}
-              maxLength={2000}
-            />
-          </div>
-
-          <ApplicationReachField
-            value={draft.reach}
-            onChange={(reach) => set({ reach })}
-            invalid={reachError}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={576} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={editing ? t('editTitle', { name: client!.name }) : t('createTitle')}
+            subtitle={editing ? t('editDescription') : t('createDescription')}
+            onOpenChange={onOpenChange}
           />
-
-          {!editing && (
-            <SecretExpiryField
-              choice={draft.expiry}
-              custom={draft.customDays}
-              onChoice={(expiry) => set({ expiry })}
-              onCustom={(customDays) => set({ customDays })}
-              showError={submitted}
-            />
-          )}
-
-          <OptionalFields
-            label={t('advanced')}
-            open={advanced}
-            onOpenChange={setAdvanced}
-            filled={countFilled(draft.permissions, draft.cidrs)}
-          >
-            <div className="grid gap-2">
-              <Label htmlFor={`${id}-perms`}>{t('permissions')}</Label>
-              <ChipsInput
-                id={`${id}-perms`}
-                value={draft.permissions}
-                onChange={(permissions) => set({ permissions })}
-                validate={(p) => (isPlatformPattern(p) ? null : t('permissionInvalid'))}
-                placeholder="core.users.read"
-                addLabel={tc('add')}
-                removeLabel={(p) => t('removeEntry', { value: p })}
-                chipClassName={(p) =>
-                  blocked.includes(p) ? 'border-destructive/50 text-destructive' : undefined
-                }
-                describedBy={`${id}-perms-hint`}
-              />
-              {blocked.length > 0 ? (
-                <p className="flex items-start gap-1.5 text-xs text-destructive" role="alert">
-                  <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                  {t('notHeld', { permissions: blocked.join(', ') })}
-                </p>
-              ) : (
-                <p id={`${id}-perms-hint`} className="text-xs text-muted-foreground">
-                  {t('permissionsHint')}
-                </p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor={`${id}-cidrs`}>{t('cidrs')}</Label>
-              <ChipsInput
-                id={`${id}-cidrs`}
-                value={draft.cidrs}
-                onChange={(cidrs) => set({ cidrs })}
-                validate={(c) => (c.length <= 64 && CIDR_RE.test(c) ? null : t('cidrInvalid'))}
-                placeholder="10.0.0.0/8"
-                addLabel={tc('add')}
-                removeLabel={(c) => t('removeEntry', { value: c })}
-                describedBy={`${id}-cidrs-hint`}
-              />
-              <p id={`${id}-cidrs-hint`} className="text-xs text-muted-foreground">
-                {t('cidrsHint')}
-              </p>
-            </div>
-          </OptionalFields>
-
-          {rootError && (
-            <p
-              role="alert"
-              className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+        }
+        content={
+          <LayoutContent padding={4}>
+            <form
+              id={id}
+              onSubmit={(e) => {
+                e.preventDefault();
+                submit();
+              }}
+              noValidate
             >
-              <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-              {rootError}
-            </p>
-          )}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={pending}>
-              {editing ? tc('saveChanges') : t('submit')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+              <FormLayout defaultOptionality="optional">
+                {editing && <Banner status="info" title={t('tokensRevoked')} collapsible={false} />}
+                <TextInput
+                  label={t('name')}
+                  isRequired
+                  value={draft.name}
+                  onChange={(name) => set({ name: name.slice(0, 200) })}
+                  placeholder={t('namePlaceholder')}
+                  autoComplete="off"
+                  hasAutoFocus
+                  status={nameError ? { type: 'error', message: nameError } : undefined}
+                />
+                <TextArea
+                  label={t('description')}
+                  isOptional
+                  rows={2}
+                  value={draft.description}
+                  onChange={(description) => set({ description: description.slice(0, 2000) })}
+                  placeholder={t('descriptionPlaceholder')}
+                />
+
+                <ApplicationReachField
+                  value={draft.reach}
+                  onChange={(reach) => set({ reach })}
+                  invalid={reachError}
+                />
+
+                {!editing && (
+                  <SecretExpiryField
+                    choice={draft.expiry}
+                    custom={draft.customDays}
+                    onChoice={(expiry) => set({ expiry })}
+                    onCustom={(customDays) => set({ customDays })}
+                    showError={submitted}
+                  />
+                )}
+
+                <OptionalFields
+                  label={t('advanced')}
+                  open={advanced}
+                  onOpenChange={setAdvanced}
+                  filled={countFilled(draft.permissions, draft.cidrs)}
+                >
+                  <FormLayout defaultOptionality="optional">
+                    <ChipsInput
+                      label={t('permissions')}
+                      description={blocked.length > 0 ? undefined : t('permissionsHint')}
+                      value={draft.permissions}
+                      onChange={(permissions) => set({ permissions })}
+                      validate={(p) => (isPlatformPattern(p) ? null : t('permissionInvalid'))}
+                      placeholder="core.users.read"
+                      chipColor={(p) => (blocked.includes(p) ? 'red' : undefined)}
+                      invalid={blocked.length > 0 ? t('notHeld', { permissions: blocked.join(', ') }) : null}
+                    />
+                    <ChipsInput
+                      label={t('cidrs')}
+                      description={t('cidrsHint')}
+                      value={draft.cidrs}
+                      onChange={(cidrs) => set({ cidrs })}
+                      validate={(c) => (c.length <= 64 && CIDR_RE.test(c) ? null : t('cidrInvalid'))}
+                      placeholder="10.0.0.0/8"
+                    />
+                  </FormLayout>
+                </OptionalFields>
+
+                {rootError && <Banner status="error" title={rootError} collapsible={false} />}
+              </FormLayout>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button
+                label={tc('cancel')}
+                variant="ghost"
+                type="button"
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={editing ? tc('saveChanges') : t('submit')}
+                variant="primary"
+                isLoading={pending}
+                type="submit"
+                form={id}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }

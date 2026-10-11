@@ -1,24 +1,26 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from '@astryxdesign/core/Table';
 import type { ApiClient, ApiClientSecret, CreatedSecret } from '@isbp/contracts';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { FadeIn } from '@isbp/ui/motion';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
-import { Hint } from '@isbp/ui/tooltip';
+import { toast } from '@isbp/ui/toast';
 import {
   ArrowLeftIcon,
   BanIcon,
@@ -31,10 +33,9 @@ import {
   PlusIcon,
   ShieldIcon,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useNow, useTranslations } from 'next-intl';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DateTime, RelativeTime } from '@/components/relative-time';
 import { AppTile, CopyButton } from '@/components/applications/app-parts';
@@ -91,50 +92,62 @@ function AddSecretDialog({
       silent: true,
     },
   );
+  const formId = useId();
+  const change = (o: boolean) => {
+    if (o) {
+      setChoice('365');
+      setCustom('');
+      setSubmitted(false);
+    }
+    onOpenChange(o);
+  };
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        if (o) {
-          setChoice('365');
-          setCustom('');
-          setSubmitted(false);
+    <Dialog isOpen={open} onOpenChange={change} width={448} purpose="form">
+      <Layout
+        header={<DialogHeader title={t('addTitle')} subtitle={t('addDescription')} onOpenChange={change} />}
+        content={
+          <LayoutContent padding={4}>
+            <form
+              id={formId}
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSubmitted(true);
+                if (!isExpiryValid(choice, custom)) return;
+                add.mutate(expiryDays(choice, custom), { onError: (err) => toast.error(errorText(err)) });
+              }}
+              noValidate
+            >
+              <SecretExpiryField
+                choice={choice}
+                custom={custom}
+                onChoice={setChoice}
+                onCustom={setCustom}
+                showError={submitted}
+              />
+            </form>
+          </LayoutContent>
         }
-        onOpenChange(o);
-      }}
-    >
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('addTitle')}</DialogTitle>
-          <DialogDescription>{t('addDescription')}</DialogDescription>
-        </DialogHeader>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setSubmitted(true);
-            if (!isExpiryValid(choice, custom)) return;
-            add.mutate(expiryDays(choice, custom), { onError: (err) => toast.error(errorText(err)) });
-          }}
-          className="space-y-5"
-          noValidate
-        >
-          <SecretExpiryField
-            choice={choice}
-            custom={custom}
-            onChoice={setChoice}
-            onCustom={setCustom}
-            showError={submitted}
-          />
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={add.isPending}>
-              <KeyRoundIcon /> {t('generate')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button
+                label={tc('cancel')}
+                variant="ghost"
+                type="button"
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={t('generate')}
+                variant="primary"
+                icon={<Icon icon={KeyRoundIcon} />}
+                isLoading={add.isPending}
+                type="submit"
+                form={formId}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -168,9 +181,13 @@ function SecretsCard({ client, onAdd }: { client: ApiClient; onAdd?: () => void 
         <CardDescription>{t('hint')}</CardDescription>
         {onAdd && (
           <CardAction>
-            <Button size="sm" onClick={onAdd}>
-              <PlusIcon /> {t('add')}
-            </Button>
+            <Button
+              label={t('add')}
+              variant="primary"
+              size="sm"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={onAdd}
+            />
           </CardAction>
         )}
       </CardHeader>
@@ -178,77 +195,59 @@ function SecretsCard({ client, onAdd }: { client: ApiClient; onAdd?: () => void 
         {secrets.length === 0 ? (
           <EmptyState icon={<KeyRoundIcon />} title={t('empty')} className="py-6" />
         ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('columns.secret')}</TableHead>
-                  <TableHead className="hidden sm:table-cell">{t('columns.created')}</TableHead>
-                  <TableHead>{t('columns.expires')}</TableHead>
-                  <TableHead className="hidden md:table-cell">{t('columns.lastUsed')}</TableHead>
-                  <TableHead>{t('columns.status')}</TableHead>
-                  {onAdd && (
-                    <TableHead className="w-12">
-                      <span className="sr-only">{t('columns.actions')}</span>
-                    </TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <AnimatePresence initial={false}>
-                  {secrets.map((s) => {
-                    const state = secretState(s, now.getTime());
-                    return (
-                      <motion.tr
-                        key={s.id}
-                        layout
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`border-b transition-colors last:border-0 hover:bg-muted/50 ${state !== 'active' ? 'text-muted-foreground' : ''}`}
-                      >
-                        <TableCell>
-                          <code className="font-mono text-xs">{s.prefix}…</code>
-                        </TableCell>
-                        <TableCell className="hidden whitespace-nowrap sm:table-cell">
-                          <RelativeTime date={s.createdAt} />
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {s.expiresAt ? (
-                            <RelativeTime date={s.expiresAt} />
-                          ) : (
-                            <span>{t('neverExpires')}</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="hidden whitespace-nowrap md:table-cell">
-                          <RelativeTime date={s.lastUsedAt} />
-                        </TableCell>
-                        <TableCell>
-                          <SecretStatusBadge secret={s} />
-                        </TableCell>
-                        {onAdd && (
-                          <TableCell className="text-right">
-                            {state === 'active' && (
-                              <Hint label={t('revoke')}>
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  aria-label={t('revokeLabel', { prefix: s.prefix })}
-                                  onClick={() => setRevoking(s)}
-                                  className="text-muted-foreground hover:text-destructive"
-                                >
-                                  <BanIcon />
-                                </Button>
-                              </Hint>
-                            )}
-                          </TableCell>
+          <Table density="compact" aria-label={t('title')}>
+            <TableHeader>
+              <TableRow isHeaderRow>
+                <TableHeaderCell>{t('columns.secret')}</TableHeaderCell>
+                <TableHeaderCell>{t('columns.created')}</TableHeaderCell>
+                <TableHeaderCell>{t('columns.expires')}</TableHeaderCell>
+                <TableHeaderCell>{t('columns.lastUsed')}</TableHeaderCell>
+                <TableHeaderCell>{t('columns.status')}</TableHeaderCell>
+                {onAdd && (
+                  <TableHeaderCell>
+                    <span className="sr-only">{t('columns.actions')}</span>
+                  </TableHeaderCell>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {secrets.map((s) => {
+                const state = secretState(s, now.getTime());
+                return (
+                  <TableRow key={s.id}>
+                    <TableCell>
+                      <code className="font-mono text-xs">{s.prefix}…</code>
+                    </TableCell>
+                    <TableCell>
+                      <RelativeTime date={s.createdAt} />
+                    </TableCell>
+                    <TableCell>
+                      {s.expiresAt ? <RelativeTime date={s.expiresAt} /> : <span>{t('neverExpires')}</span>}
+                    </TableCell>
+                    <TableCell>
+                      <RelativeTime date={s.lastUsedAt} />
+                    </TableCell>
+                    <TableCell>
+                      <SecretStatusBadge secret={s} />
+                    </TableCell>
+                    {onAdd && (
+                      <TableCell>
+                        {state === 'active' && (
+                          <IconButton
+                            label={t('revokeLabel', { prefix: s.prefix })}
+                            variant="ghost"
+                            size="sm"
+                            icon={<Icon icon={BanIcon} />}
+                            onClick={() => setRevoking(s)}
+                          />
                         )}
-                      </motion.tr>
-                    );
-                  })}
-                </AnimatePresence>
-              </TableBody>
-            </Table>
-          </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
       </CardContent>
       <ConfirmDialog
@@ -283,11 +282,14 @@ export function ApiClientDetailView({ id }: { id: string }) {
   });
 
   const back = (
-    <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-      <Link href="/admin/api-clients">
-        <ArrowLeftIcon /> {t('title')}
-      </Link>
-    </Button>
+    <Button
+      label={t('title')}
+      variant="ghost"
+      size="sm"
+      icon={<Icon icon={ArrowLeftIcon} />}
+      href="/admin/api-clients"
+      className="-ml-2 text-muted-foreground"
+    />
   );
 
   if (!canManage) {
@@ -365,9 +367,12 @@ export function ApiClientDetailView({ id }: { id: string }) {
         </div>
         {!revoked && (
           <div className="flex shrink-0 gap-2">
-            <Button variant="outline" onClick={() => setDialog('edit')}>
-              <PencilIcon /> {tc('edit')}
-            </Button>
+            <Button
+              label={tc('edit')}
+              variant="secondary"
+              icon={<Icon icon={PencilIcon} />}
+              onClick={() => setDialog('edit')}
+            />
           </div>
         )}
       </FadeIn>
@@ -394,9 +399,13 @@ export function ApiClientDetailView({ id }: { id: string }) {
             <CardDescription>{t('detail.reachHint')}</CardDescription>
             {!revoked && (
               <CardAction>
-                <Button variant="outline" size="sm" onClick={() => setDialog('edit')}>
-                  <PencilIcon /> {tc('edit')}
-                </Button>
+                <Button
+                  label={tc('edit')}
+                  variant="secondary"
+                  size="sm"
+                  icon={<Icon icon={PencilIcon} />}
+                  onClick={() => setDialog('edit')}
+                />
               </CardAction>
             )}
           </CardHeader>
@@ -404,10 +413,11 @@ export function ApiClientDetailView({ id }: { id: string }) {
             <dl className="grid gap-4">
               <Field label={t('detail.applications')}>
                 {client.allApplications ? (
-                  <Badge variant="info">
-                    <GlobeIcon aria-hidden />
-                    {t('allApplications')}
-                  </Badge>
+                  <Badge
+                    variant="info"
+                    label={t('allApplications')}
+                    icon={<Icon icon={GlobeIcon} size="xsm" />}
+                  />
                 ) : client.applications.length === 0 ? (
                   <span className="text-muted-foreground">{t('noApplications')}</span>
                 ) : (
@@ -492,9 +502,12 @@ export function ApiClientDetailView({ id }: { id: string }) {
               <CardTitle className="text-destructive">{t('detail.dangerTitle')}</CardTitle>
               <CardDescription>{t('detail.dangerHint')}</CardDescription>
               <CardAction>
-                <Button variant="destructive" onClick={() => setDialog('revoke')}>
-                  <ShieldIcon /> {t('detail.revoke')}
-                </Button>
+                <Button
+                  label={t('detail.revoke')}
+                  variant="destructive"
+                  icon={<Icon icon={ShieldIcon} />}
+                  onClick={() => setDialog('revoke')}
+                />
               </CardAction>
             </CardHeader>
           </Card>

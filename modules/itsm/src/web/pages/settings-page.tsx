@@ -1,8 +1,9 @@
 'use client';
 
+import { Icon } from '@astryxdesign/core/Icon';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
 import { useListState } from '@isbp/ui/data-table';
 import { PageHeader } from '@isbp/ui/page-header';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { CalendarClockIcon, FolderTreeIcon, StoreIcon, TimerIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { CalendarsTab } from '../settings/calendars-tab';
@@ -18,6 +19,8 @@ const TABS = [
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
 
+const panelId = (id: TabId) => `itsm-settings-${id}-panel`;
+
 /** Service desk administration: categories, SLA policies, business calendars and the service catalog. */
 export default function SettingsPage() {
   const t = useTranslations('itsm.settingsPage');
@@ -26,26 +29,27 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader title={t('title')} description={t('description')} />
-      <Tabs
+      <TabList
+        role="tablist"
         value={tab}
-        onValueChange={(v) =>
-          set({ tab: v === 'categories' ? undefined : v, edit: undefined, create: undefined })
-        }
+        hasDivider
+        onChange={(v) => set({ tab: v === 'categories' ? undefined : v, edit: undefined, create: undefined })}
       >
-        <TabsList>
-          {TABS.map(({ id, icon: Icon }) => (
-            <TabsTrigger key={id} value={id}>
-              <Icon aria-hidden />
-              {t(`tabs.${id}`)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {TABS.map(({ id, Body }) => (
-          <TabsContent key={id} value={id}>
-            {tab === id && <Body />}
-          </TabsContent>
+        {TABS.map(({ id, icon }) => (
+          <Tab
+            key={id}
+            value={id}
+            label={t(`tabs.${id}`)}
+            icon={<Icon icon={icon} />}
+            panelId={panelId(id)}
+          />
         ))}
-      </Tabs>
+      </TabList>
+      {TABS.map(({ id, Body }) => (
+        <div key={id} role="tabpanel" id={panelId(id)} hidden={tab !== id} className="pt-4">
+          {tab === id && <Body />}
+        </div>
+      ))}
     </>
   );
 }

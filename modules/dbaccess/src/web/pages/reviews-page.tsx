@@ -1,14 +1,17 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
+import { Segmented } from '@isbp/ui/segmented';
 import { ArrowRightIcon, ClipboardCheckIcon, PlusIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -49,7 +52,7 @@ export default function ReviewsPage() {
         header: t('name'),
         meta: { className: 'max-w-72' },
         cell: ({ row }) => (
-          <span className="grid min-w-0">
+          <VStack className="min-w-0">
             <Link
               href={`/dbaccess/reviews/${row.original.reference}`}
               onClick={(e) => e.stopPropagation()}
@@ -57,8 +60,10 @@ export default function ReviewsPage() {
             >
               {row.original.name}
             </Link>
-            <span className="font-mono text-xs text-muted-foreground">{row.original.reference}</span>
-          </span>
+            <Text type="code" color="secondary">
+              {row.original.reference}
+            </Text>
+          </VStack>
         ),
       },
       {
@@ -76,7 +81,7 @@ export default function ReviewsPage() {
         id: 'policy',
         header: t('policy'),
         meta: { className: 'hidden lg:table-cell', headerClassName: 'hidden lg:table-cell' },
-        cell: ({ row }) => <span className="text-sm">{tp(row.original.policy)}</span>,
+        cell: ({ row }) => <Text>{tp(row.original.policy)}</Text>,
       },
       {
         id: 'progress',
@@ -111,9 +116,12 @@ export default function ReviewsPage() {
           description={canManage ? t('emptyHintManager') : t('emptyHint')}
           action={
             canManage && (
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon /> {t('new')}
-              </Button>
+              <Button
+                label={t('new')}
+                variant="primary"
+                icon={<Icon icon={PlusIcon} />}
+                onClick={() => setCreating(true)}
+              />
             )
           }
         />
@@ -128,9 +136,12 @@ export default function ReviewsPage() {
         description={t('description')}
         actions={
           canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon /> {t('new')}
-            </Button>
+            <Button
+              label={t('new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreating(true)}
+            />
           )
         }
       />
@@ -161,25 +172,16 @@ export default function ReviewsPage() {
             </Stagger>
           </section>
         )}
-        <Tabs
-          value={view}
-          onValueChange={(v) => set({ view: v === 'all' ? undefined : v })}
-          className="min-w-0"
-        >
-          <TabsList>
-            {VIEWS.map((v) => (
-              <TabsTrigger key={v} value={v}>
-                {v === 'all' ? tc('all') : t(`views.${v}`)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {/* Each tab only filters the same list; every tab still has its panel. */}
-          {VIEWS.map((v) => (
-            <TabsContent key={v} value={v} className="min-w-0">
-              {v === view && table}
-            </TabsContent>
-          ))}
-        </Tabs>
+        <VStack gap={3} className="min-w-0">
+          {/* The views only filter the same list, so they are a segmented control, not tabs. */}
+          <Segmented
+            label={t('title')}
+            value={view}
+            onChange={(v) => set({ view: v === 'all' ? undefined : v })}
+            options={VIEWS.map((v) => ({ value: v, label: v === 'all' ? tc('all') : t(`views.${v}`) }))}
+          />
+          {table}
+        </VStack>
       </div>
       {canManage && (
         <ReviewFormDialog

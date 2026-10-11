@@ -99,7 +99,9 @@ test('the jobs list filters by view; a failing job shows its streak and run hist
   await expect(page.getByText('demo-partner-key')).toHaveCount(0);
   await page.getByRole('tab', { name: /Runs/ }).click();
   await expect(page).toHaveURL(/tab=runs/);
-  await expect(page.getByRole('tabpanel').getByText('Failed').first()).toBeVisible();
+  await expect(
+    page.getByRole('tabpanel').getByText('Failed').filter({ visible: true }).first(),
+  ).toBeVisible();
 });
 
 test('creating a job, running it now and following the run live', async ({ page, request }) => {

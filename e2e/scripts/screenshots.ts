@@ -149,7 +149,8 @@ async function capture(browser: Browser, s: Session, shot: Shot, locale: Locale)
     await page.goto(shot.path);
     await ready(page);
     await page
-      .locator(shot.waitFor ?? 'main h1')
+      // The shell's content area is a role=main element (older markup: <main>): a selector's `main` means either.
+      .locator((shot.waitFor ?? 'main h1').replace(/(^|[\s,>])main\b/g, '$1:is(main, [role="main"])'))
       .first()
       .waitFor({ timeout: 30_000 });
     await settle(page);
@@ -173,7 +174,8 @@ async function main() {
   const shots = loadShots(process.argv.slice(2));
   if (!shots.length) throw new Error('No screenshots match');
   for (const locale of LOCALES) mkdirSync(join(ROOT, 'apps/web/public/help', locale), { recursive: true });
-  const browser = await chromium.launch();
+  // A machine without Playwright's Chromium can use an installed browser: E2E_BROWSER_CHANNEL=msedge (or chrome).
+  const browser = await chromium.launch({ channel: process.env.E2E_BROWSER_CHANNEL || undefined });
   const failures: string[] = [];
   try {
     for (const as of [...new Set(shots.map((s) => s.as))]) {

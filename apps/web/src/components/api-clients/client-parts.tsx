@@ -1,20 +1,27 @@
 'use client';
 
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Field } from '@astryxdesign/core/Field';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { Token } from '@astryxdesign/core/Token';
+import { Tokenizer } from '@astryxdesign/core/Tokenizer';
+import { createStaticSource, type SearchableItem } from '@astryxdesign/core/Typeahead';
+import { Button } from '@astryxdesign/core/Button';
 import type { ApiClient, ApiClientSecret, Application } from '@isbp/contracts';
 import { usePlatform } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import { Input } from '@isbp/ui/input';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { BanIcon, ClockIcon, KeyRoundIcon, PlusIcon, ShieldCheckIcon, XIcon } from 'lucide-react';
+import { StatusBadge } from '@isbp/ui/status';
+import { BanIcon, CircleCheckIcon, ClockIcon, KeyRoundIcon, ShieldCheckIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useNow, useTranslations } from 'next-intl';
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { AppTile, CodeBlock, useAppText, useOrigin } from '@/components/applications/app-parts';
-import { Segmented } from '@/components/roles/segmented';
 import { useApiQuery } from '@/lib/api';
 
 /* ───────────────────────── status ───────────────────────── */
@@ -22,15 +29,9 @@ import { useApiQuery } from '@/lib/api';
 export function ClientStatusBadge({ client }: { client: Pick<ApiClient, 'revokedAt'> }) {
   const t = useTranslations('applications.clients.status');
   return client.revokedAt ? (
-    <Badge variant="muted">
-      <BanIcon aria-hidden />
-      {t('revoked')}
-    </Badge>
+    <StatusBadge tone="muted" icon={BanIcon} label={t('revoked')} />
   ) : (
-    <Badge variant="success">
-      <span className="size-1.5 rounded-full bg-current" aria-hidden />
-      {t('active')}
-    </Badge>
+    <StatusBadge tone="success" icon={CircleCheckIcon} label={t('active')} />
   );
 }
 
@@ -46,60 +47,48 @@ export function SecretStatusBadge({ secret }: { secret: ApiClientSecret }) {
   const t = useTranslations('applications.clients.status');
   const now = useNow({ updateInterval: 60_000 });
   const state = secretState(secret, now.getTime());
-  if (state === 'active')
-    return (
-      <Badge variant="success">
-        <span className="size-1.5 rounded-full bg-current" aria-hidden />
-        {t('active')}
-      </Badge>
-    );
-  if (state === 'expired')
-    return (
-      <Badge variant="warning">
-        <ClockIcon aria-hidden />
-        {t('expired')}
-      </Badge>
-    );
-  return (
-    <Badge variant="muted">
-      <BanIcon aria-hidden />
-      {t('revoked')}
-    </Badge>
-  );
+  if (state === 'active') return <StatusBadge tone="success" icon={CircleCheckIcon} label={t('active')} />;
+  if (state === 'expired') return <StatusBadge tone="warning" icon={ClockIcon} label={t('expired')} />;
+  return <StatusBadge tone="muted" icon={BanIcon} label={t('revoked')} />;
 }
 
 /* ───────────────────────── chips input ───────────────────────── */
 
-/** Free-text list (patterns, CIDRs) as removable chips; Enter or "Add" validates and appends. */
+/** A list that only ever grows by what the person types: there is nothing to suggest. */
+const NO_SUGGESTIONS = createStaticSource<SearchableItem>([]);
+
+/**
+ * Free-text list (patterns, CIDRs) as removable chips: type an entry, then pick "Create" (or press Enter). Entries
+ * are validated before they join the list; several separated by spaces or commas are added together.
+ */
 export function ChipsInput({
-  id,
+  label,
+  description,
   value,
   onChange,
   validate,
   placeholder,
-  addLabel,
-  removeLabel,
-  chipClassName,
-  describedBy,
-  disabled,
+  chipColor,
+  invalid,
+  isDisabled,
 }: {
-  id?: string;
+  label: string;
+  description?: string;
   value: string[];
   onChange: (next: string[]) => void;
   /** Returns an error message, or null when the entry is acceptable. */
   validate: (entry: string) => string | null;
   placeholder?: string;
-  addLabel: string;
-  removeLabel: (entry: string) => string;
-  chipClassName?: (entry: string) => string | undefined;
-  describedBy?: string;
-  disabled?: boolean;
+  /** Colours a chip (e.g. red for an entry the person may not grant). */
+  chipColor?: (entry: string) => 'red' | undefined;
+  /** A problem with the list as a whole (shown unless the last entry typed was itself rejected). */
+  invalid?: string | null;
+  isDisabled?: boolean;
 }) {
   const t = useTranslations('applications.clients.form');
-  const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const errorId = useId();
-  const add = () => {
+  const items = useMemo<SearchableItem[]>(() => value.map((v) => ({ id: v, label: v })), [value]);
+  const add = (draft: string) => {
     const entries = draft
       .split(/[\s,]+/)
       .map((s) => s.trim())
@@ -111,75 +100,29 @@ export function ChipsInput({
       if (problem) return setError(problem);
     }
     onChange([...value, ...entries]);
-    setDraft('');
     setError(null);
   };
   return (
-    <div className="space-y-2">
-      <div className="flex gap-2">
-        <Input
-          id={id}
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            if (error) setError(null);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ',') {
-              e.preventDefault();
-              add();
-            }
-          }}
-          placeholder={placeholder}
-          spellCheck={false}
-          autoComplete="off"
-          className="font-mono text-sm"
-          disabled={disabled}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={[error ? errorId : null, describedBy].filter(Boolean).join(' ') || undefined}
-        />
-        <Button type="button" variant="outline" onClick={add} disabled={disabled || !draft.trim()}>
-          <PlusIcon /> {addLabel}
-        </Button>
-      </div>
-      {error && (
-        <p id={errorId} className="text-xs text-destructive" role="alert">
-          {error}
-        </p>
+    <Tokenizer
+      label={label}
+      description={description}
+      placeholder={placeholder}
+      searchSource={NO_SUGGESTIONS}
+      value={items}
+      hasCreate
+      debounceMs={0}
+      isDisabled={isDisabled}
+      status={error || invalid ? { type: 'error', message: error ?? invalid ?? undefined } : undefined}
+      onChangeQuery={() => error && setError(null)}
+      onChange={(next, change) => {
+        if (change.type === 'create') return add(change.item.label);
+        setError(null);
+        onChange(next.map((item) => item.id));
+      }}
+      renderToken={(item, onRemove) => (
+        <Token label={item.label} color={chipColor?.(item.id) ?? 'default'} onRemove={onRemove} />
       )}
-      {value.length > 0 && (
-        <ul className="flex flex-wrap gap-1.5">
-          <AnimatePresence initial={false}>
-            {value.map((v) => (
-              <motion.li
-                key={v}
-                layout
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.85 }}
-                transition={{ duration: 0.15 }}
-                className={cn(
-                  'inline-flex max-w-full items-center gap-1 rounded-md border bg-muted px-1.5 py-0.5 font-mono text-xs',
-                  chipClassName?.(v),
-                )}
-              >
-                <span className="truncate">{v}</span>
-                {!disabled && (
-                  <button
-                    type="button"
-                    onClick={() => onChange(value.filter((x) => x !== v))}
-                    aria-label={removeLabel(v)}
-                    className="rounded-sm p-0.5 opacity-70 outline-none hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <XIcon className="size-3" />
-                  </button>
-                )}
-              </motion.li>
-            ))}
-          </AnimatePresence>
-        </ul>
-      )}
-    </div>
+    />
   );
 }
 
@@ -208,96 +151,79 @@ export function ApplicationReachField({
   const { data, isLoading, error, refetch } = useApiQuery<{ items: Application[] }>('/applications');
   const apps = data?.items ?? [];
   return (
-    <div className="grid gap-2" role="group" aria-labelledby={`${id}-label`}>
-      <span id={`${id}-label`} className="text-sm font-medium">
-        {t('applications')}
-      </span>
-      <Segmented
-        label={t('applications')}
-        value={value.allApplications ? 'all' : 'selected'}
-        onChange={(v) => onChange({ ...value, allApplications: v === 'all' })}
-        disabled={disabled}
-        options={[
-          { value: 'selected', label: t('selectedApps') },
-          { value: 'all', label: t('allApps') },
-        ]}
-      />
-      <AnimatePresence initial={false} mode="wait">
-        {value.allApplications ? (
-          <motion.p
-            key="all"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-xs text-muted-foreground"
-          >
-            {t('allAppsHint')}
-          </motion.p>
-        ) : (
-          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {isLoading ? (
-              <Skeleton className="h-32 w-full rounded-lg" />
-            ) : error && !data ? (
-              <p className="flex items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-3 text-sm text-muted-foreground">
-                {t('appsFailed')}
-                <Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
-                  {t('retry')}
-                </Button>
-              </p>
-            ) : (
-              <ul
-                className={cn(
-                  'max-h-56 divide-y overflow-y-auto rounded-lg border',
-                  invalid && 'border-destructive',
-                )}
-                aria-describedby={invalid ? `${id}-error` : undefined}
-              >
-                {apps.map((a) => {
-                  const checked = value.applicationIds.includes(a.id);
-                  const cid = `${id}-${a.id}`;
-                  return (
-                    <li key={a.id}>
-                      <label
-                        htmlFor={cid}
-                        className="flex cursor-pointer items-center gap-3 px-3 py-2 transition-colors hover:bg-muted/50 has-[button:disabled]:cursor-not-allowed"
-                      >
-                        <Checkbox
-                          id={cid}
-                          checked={checked}
-                          disabled={disabled}
-                          onCheckedChange={(v) =>
-                            onChange({
-                              ...value,
-                              applicationIds: v
-                                ? [...value.applicationIds, a.id]
-                                : value.applicationIds.filter((x) => x !== a.id),
-                            })
-                          }
-                        />
+    <Field
+      label={t('applications')}
+      isGroupLabel
+      inputID={`${id}-reach`}
+      description={value.allApplications ? t('allAppsHint') : t('selectedHint')}
+      status={invalid ? { type: 'error', message: invalid } : undefined}
+      statusVariant="detached"
+      isDisabled={disabled}
+    >
+      <VStack gap={2} id={`${id}-reach`}>
+        <SegmentedControl
+          label={t('applications')}
+          value={value.allApplications ? 'all' : 'selected'}
+          onChange={(v) => onChange({ ...value, allApplications: v === 'all' })}
+          isDisabled={disabled}
+        >
+          <SegmentedControlItem value="selected" label={t('selectedApps')} />
+          <SegmentedControlItem value="all" label={t('allApps')} />
+        </SegmentedControl>
+        <AnimatePresence initial={false} mode="wait">
+          {!value.allApplications && (
+            <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              {isLoading ? (
+                <Skeleton className="h-32 w-full rounded-lg" />
+              ) : error && !data ? (
+                <HStack gap={2} hAlign="between" vAlign="center">
+                  <Text color="secondary">{t('appsFailed')}</Text>
+                  <Button
+                    label={t('retry')}
+                    variant="secondary"
+                    size="sm"
+                    type="button"
+                    onClick={() => void refetch()}
+                  />
+                </HStack>
+              ) : (
+                <ul
+                  className={cn(
+                    'max-h-56 divide-y overflow-y-auto rounded-lg border',
+                    invalid && 'border-destructive',
+                  )}
+                >
+                  {apps.map((a) => {
+                    const checked = value.applicationIds.includes(a.id);
+                    return (
+                      <li key={a.id} className="flex items-center gap-3 px-3 py-2">
                         <AppTile app={a} size="sm" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm">{appText(a).name}</span>
-                          <code className="block truncate font-mono text-xs text-muted-foreground">
-                            {a.key}
-                          </code>
-                        </span>
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-            {invalid ? (
-              <p id={`${id}-error`} className="mt-1.5 text-xs text-destructive">
-                {invalid}
-              </p>
-            ) : (
-              <p className="mt-1.5 text-xs text-muted-foreground">{t('selectedHint')}</p>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+                        <div className="min-w-0 flex-1">
+                          <CheckboxInput
+                            label={appText(a).name}
+                            description={a.key}
+                            value={checked}
+                            isDisabled={disabled}
+                            onChange={(next) =>
+                              onChange({
+                                ...value,
+                                applicationIds: next
+                                  ? [...value.applicationIds, a.id]
+                                  : value.applicationIds.filter((x) => x !== a.id),
+                              })
+                            }
+                          />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </VStack>
+    </Field>
   );
 }
 
@@ -336,45 +262,40 @@ export function SecretExpiryField({
   const id = useId();
   const invalid = showError && !isExpiryValid(choice, custom);
   return (
-    <div className="grid gap-2" role="group" aria-labelledby={`${id}-label`}>
-      <span id={`${id}-label`} className="text-sm font-medium">
-        {t('secretExpiry')}
-      </span>
-      <Segmented
-        label={t('secretExpiry')}
-        value={choice}
-        onChange={onChoice}
-        options={SECRET_EXPIRY.map((e) => ({ value: e, label: t(`expiry.${e}`) }))}
-        className="[&>button]:px-2"
-      />
-      {choice === 'custom' && (
-        <div className="flex items-center gap-2">
-          <label htmlFor={`${id}-days`} className="sr-only">
-            {t('customDays')}
-          </label>
-          <Input
-            id={`${id}-days`}
-            inputMode="numeric"
-            value={custom}
-            onChange={(e) => onCustom(e.target.value.replace(/[^\d]/g, ''))}
-            className="w-28 tabular-nums"
-            placeholder="60"
-            aria-invalid={invalid || undefined}
-            aria-describedby={invalid ? `${id}-error` : undefined}
-          />
-          <span className="text-sm text-muted-foreground">{t('daysUnit')}</span>
-        </div>
-      )}
-      {invalid ? (
-        <p id={`${id}-error`} className="text-xs text-destructive">
-          {t('daysInvalid')}
-        </p>
-      ) : (
-        <p className="text-xs text-muted-foreground">
-          {choice === 'never' ? t('neverHint') : t('expiryHint')}
-        </p>
-      )}
-    </div>
+    <Field
+      label={t('secretExpiry')}
+      isGroupLabel
+      inputID={`${id}-expiry`}
+      description={choice === 'never' ? t('neverHint') : t('expiryHint')}
+      status={invalid ? { type: 'error', message: t('daysInvalid') } : undefined}
+      statusVariant="detached"
+    >
+      <VStack gap={2} id={`${id}-expiry`}>
+        <SegmentedControl
+          label={t('secretExpiry')}
+          value={choice}
+          onChange={(v) => onChoice(v as SecretExpiry)}
+        >
+          {SECRET_EXPIRY.map((e) => (
+            <SegmentedControlItem key={e} value={e} label={t(`expiry.${e}`)} />
+          ))}
+        </SegmentedControl>
+        {choice === 'custom' && (
+          <HStack gap={2} vAlign="center">
+            <TextInput
+              label={t('customDays')}
+              isLabelHidden
+              value={custom}
+              onChange={(v) => onCustom(v.replace(/[^\d]/g, ''))}
+              placeholder="60"
+              width={112}
+              status={invalid ? { type: 'error' } : undefined}
+            />
+            <Text color="secondary">{t('daysUnit')}</Text>
+          </HStack>
+        )}
+      </VStack>
+    </Field>
   );
 }
 
@@ -387,6 +308,8 @@ export function SecretExpiryField({
 export function ClientExamples({ client, secret }: { client: ApiClient; secret?: string }) {
   const t = useTranslations('applications.clients.examples');
   const { user } = usePlatform();
+  const panelId = useId();
+  const [tab, setTab] = useState<'key' | 'oauth'>('key');
   const origin = useOrigin() || 'https://isbp.example.com';
   const base = `${origin}/api/v1`;
   const key = secret ?? '<API key>';
@@ -398,25 +321,35 @@ export function ClientExamples({ client, secret }: { client: ApiClient; secret?:
   const roleQuery = `curl -H "Authorization: Bearer ${key}" \\\n  "${base}/role-query/users/${encodeURIComponent(user.username)}?application=${appKey}"`;
   const token = `curl -u "${client.clientId}:${secretValue}" \\\n  -d grant_type=client_credentials -d scope=${scope} \\\n  ${base}/oauth/token`;
   return (
-    <Tabs defaultValue="key">
-      <TabsList className="w-full">
-        <TabsTrigger value="key" className="flex-1">
-          <KeyRoundIcon /> {t('apiKey')}
-        </TabsTrigger>
-        <TabsTrigger value="oauth" className="flex-1">
-          <ShieldCheckIcon /> {t('oauth')}
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="key" className="space-y-2">
-        <p className="text-xs text-muted-foreground">
-          {queriesApps ? t('apiKeyHint', { user: user.username }) : t('apiKeyHintNoApps')}
-        </p>
-        <CodeBlock code={roleQuery} copyLabel={t('copyApiKey')} />
-      </TabsContent>
-      <TabsContent value="oauth" className="space-y-2">
-        <p className="text-xs text-muted-foreground">{t('oauthHint')}</p>
-        <CodeBlock code={token} copyLabel={t('copyOauth')} />
-      </TabsContent>
-    </Tabs>
+    <VStack gap={3}>
+      <TabList role="tablist" value={tab} onChange={(v) => setTab(v as 'key' | 'oauth')} hasDivider>
+        <Tab value="key" label={t('apiKey')} icon={<Icon icon={KeyRoundIcon} />} panelId={panelId} />
+        <Tab value="oauth" label={t('oauth')} icon={<Icon icon={ShieldCheckIcon} />} panelId={panelId} />
+      </TabList>
+      <div
+        role="tabpanel"
+        id={panelId}
+        aria-label={t(tab === 'key' ? 'apiKey' : 'oauth')}
+        className="min-w-0"
+      >
+        <VStack gap={2}>
+          {tab === 'key' ? (
+            <>
+              <Text type="supporting" color="secondary">
+                {queriesApps ? t('apiKeyHint', { user: user.username }) : t('apiKeyHintNoApps')}
+              </Text>
+              <CodeBlock code={roleQuery} copyLabel={t('copyApiKey')} />
+            </>
+          ) : (
+            <>
+              <Text type="supporting" color="secondary">
+                {t('oauthHint')}
+              </Text>
+              <CodeBlock code={token} copyLabel={t('copyOauth')} />
+            </>
+          )}
+        </VStack>
+      </div>
+    </VStack>
   );
 }

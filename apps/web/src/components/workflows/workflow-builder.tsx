@@ -1,44 +1,31 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import type { FormDetail, WorkflowDefinition, WorkflowTrigger } from '@isbp/contracts';
 import { formFields, localize } from '@isbp/sdk';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { useCan } from '@isbp/sdk/web';
+import { DetailHeader } from '@isbp/ui/page-header';
 import { RelativeTime } from '@isbp/ui/relative-time';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import { Textarea } from '@isbp/ui/textarea';
-import { cn } from '@isbp/ui';
-import {
-  AlertTriangleIcon,
-  ArchiveIcon,
-  ArrowLeftIcon,
-  MoreHorizontalIcon,
-  RocketIcon,
-  SaveIcon,
-  StarIcon,
-  StarOffIcon,
-  UndoIcon,
-} from 'lucide-react';
+import { toast } from '@isbp/ui/toast';
+import { ArchiveIcon, RocketIcon, SaveIcon, StarIcon, StarOffIcon, UndoIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
-import { useCan } from '@isbp/sdk/web';
 import { ActivityFeed } from '@/components/audit/activity-feed';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { RepeatApproversField } from './repeat-approvers-field';
-import { FORM_TRIGGER } from './workflow-labels';
 import {
   useWorkflowEditor,
   useWorkflowName,
@@ -47,6 +34,7 @@ import {
   type WorkflowEditor,
   WorkflowEditorError,
 } from './workflow-editor';
+import { FORM_TRIGGER } from './workflow-labels';
 
 /** The "Workflow" tab of the inspector: name, what it's for, the form whose answers it uses, where it's used, versions. */
 function SettingsPanel({
@@ -72,101 +60,96 @@ function SettingsPanel({
     <>
       <fieldset disabled={editor.readOnly} className="grid gap-5">
         <legend className="sr-only">{t('tabs.settings')}</legend>
-        <div className="grid gap-1.5">
-          <Label htmlFor="wf-name">{t('name')}</Label>
-          <Input id="wf-name" value={editor.name} onChange={(e) => editor.setName(e.target.value)} />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="wf-desc">{t('description')}</Label>
-          <Textarea
-            id="wf-desc"
-            rows={3}
-            value={editor.description}
-            onChange={(e) => editor.setDescription(e.target.value)}
-          />
-        </div>
+        <TextInput label={t('name')} value={editor.name} onChange={editor.setName} />
+        <TextArea
+          label={t('description')}
+          rows={3}
+          value={editor.description}
+          onChange={editor.setDescription}
+        />
         <RepeatApproversField editor={editor} />
         {trigger && (
-          <div className="grid gap-1 rounded-lg bg-muted/40 p-3 text-sm">
-            <span className="font-medium">{tr.has(trigger.name) ? tr(trigger.name) : trigger.name}</span>
-            {trigger.description && (
-              <span className="text-muted-foreground">
-                {tr.has(trigger.description) ? tr(trigger.description) : trigger.description}
-              </span>
-            )}
-          </div>
+          <Card padding={3} variant="muted">
+            <VStack gap={1}>
+              <Text weight="medium">{tr.has(trigger.name) ? tr(trigger.name) : trigger.name}</Text>
+              {trigger.description && (
+                <Text color="secondary">
+                  {tr.has(trigger.description) ? tr(trigger.description) : trigger.description}
+                </Text>
+              )}
+            </VStack>
+          </Card>
         )}
         {def.triggerKey === FORM_TRIGGER && !def.usedBy.forms.length && (
-          <div className="grid gap-1.5">
-            <Label htmlFor="wf-form">{t('factsFromForm')}</Label>
-            <Select value={formId ?? undefined} onValueChange={onFormId}>
-              <SelectTrigger id="wf-form" className="w-full">
-                <SelectValue placeholder={t('pickForm')} />
-              </SelectTrigger>
-              <SelectContent>
-                {(forms.data?.items ?? []).map((f) => (
-                  <SelectItem key={f.id} value={f.id}>
-                    {f.name[locale] ?? f.name.en ?? f.key}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">{t('factsFromFormHint')}</p>
-          </div>
+          <Selector
+            label={t('factsFromForm')}
+            description={t('factsFromFormHint')}
+            placeholder={t('pickForm')}
+            width="100%"
+            hasSearch={(forms.data?.items.length ?? 0) > 12}
+            value={formId ?? undefined}
+            options={(forms.data?.items ?? []).map((f) => ({
+              value: f.id,
+              label: f.name[locale] ?? f.name.en ?? f.key,
+            }))}
+            onChange={onFormId}
+          />
         )}
       </fieldset>
-      <div className="mt-5 grid gap-2 text-sm">
-        <h3 className="font-semibold">{t('usedBy')}</h3>
+      <VStack gap={2} className="mt-5">
+        <Heading level={3}>{t('usedBy')}</Heading>
         {!def.usedBy.forms.length && !def.usedBy.roles.length ? (
-          <p className="text-muted-foreground">
+          <Text color="secondary">
             {def.isDefault && def.triggerKey !== FORM_TRIGGER ? t('usedByDefault') : t('usedByNothing')}
-          </p>
+          </Text>
         ) : (
           <ul className="grid gap-1">
             {def.usedBy.forms.map((f) => (
               <li key={f.id}>
-                <Link className="text-primary hover:underline" href={`/admin/forms/${f.id}?tab=approval`}>
-                  {localize(f.name, locale) || f.key}
-                </Link>
+                <Link href={`/admin/forms/${f.id}?tab=approval`}>{localize(f.name, locale) || f.key}</Link>
               </li>
             ))}
             {def.usedBy.roles.map((r) => (
               <li key={r.id}>
-                <Link className="text-primary hover:underline" href={`/admin/roles/${r.id}`}>
-                  {r.name}
-                </Link>
+                <Link href={`/admin/roles/${r.id}`}>{r.name}</Link>
               </li>
             ))}
           </ul>
         )}
         {def.triggerKey === FORM_TRIGGER && def.usedBy.forms.length > 0 && (
-          <p className="text-xs text-muted-foreground">{t('editInForm')}</p>
+          <Text type="supporting" color="secondary">
+            {t('editInForm')}
+          </Text>
         )}
-      </div>
-      <div className="mt-5 grid gap-2 text-sm">
-        <h3 className="font-semibold">{t('versions')}</h3>
+      </VStack>
+      <VStack gap={2} className="mt-5">
+        <Heading level={3}>{t('versions')}</Heading>
         {!def.versions.length ? (
-          <p className="text-muted-foreground">{t('noVersions')}</p>
+          <Text color="secondary">{t('noVersions')}</Text>
         ) : (
           <ol className="grid gap-1.5">
             {def.versions.map((v) => (
-              <li key={v.version} className="flex items-center justify-between gap-2">
-                <span className={cn('font-medium', v.version === def.publishedVersion && 'text-success')}>
-                  {t('version', { version: v.version })}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {v.publishedBy?.displayName ?? t('system')} · <RelativeTime date={v.publishedAt} />
-                </span>
+              <li key={v.version}>
+                <HStack gap={2} vAlign="center" hAlign="between">
+                  {v.version === def.publishedVersion ? (
+                    <Badge variant="success" label={t('version', { version: v.version })} />
+                  ) : (
+                    <Text weight="medium">{t('version', { version: v.version })}</Text>
+                  )}
+                  <Text type="supporting" color="secondary">
+                    {v.publishedBy?.displayName ?? t('system')} · <RelativeTime date={v.publishedAt} />
+                  </Text>
+                </HStack>
               </li>
             ))}
           </ol>
         )}
-      </div>
+      </VStack>
       {canAudit && (
-        <div className="mt-5 grid gap-2 text-sm">
-          <h3 className="font-semibold">{t('activity')}</h3>
+        <VStack gap={2} className="mt-5">
+          <Heading level={3}>{t('activity')}</Heading>
           <ActivityFeed subject={{ type: 'workflow', id: def.id }} description={t('activityDescription')} />
-        </div>
+        </VStack>
       )}
     </>
   );
@@ -205,125 +188,112 @@ function Editor({ def, trigger }: { def: WorkflowDefinition; trigger: WorkflowTr
   };
 
   const name = editor.name || display(def.name);
+  // Forms use the workflow they name: a default means nothing for them.
+  const menu = [
+    ...(!isForm && !def.isDefault && def.publishedVersion !== null && !def.archived
+      ? [
+          {
+            label: t('makeDefault'),
+            icon: <Icon icon={StarIcon} />,
+            onSelect: () => action.mutate(`/workflows/${def.id}/default`),
+          },
+        ]
+      : []),
+    ...(!isForm && def.isDefault && !trigger?.required
+      ? [
+          {
+            label: t('clearDefault'),
+            icon: <Icon icon={StarOffIcon} />,
+            onSelect: () => clearDefault.mutate(undefined),
+          },
+        ]
+      : []),
+    ...(def.archived
+      ? [
+          {
+            label: t('restore'),
+            icon: <Icon icon={UndoIcon} />,
+            onSelect: () => action.mutate(`/workflows/${def.id}/restore`),
+          },
+        ]
+      : [
+          {
+            label: t('archive'),
+            icon: <Icon icon={ArchiveIcon} />,
+            destructive: true,
+            onSelect: () => setConfirm('archive'),
+          },
+        ]),
+  ];
+
   return (
-    <div className="grid gap-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0 space-y-1">
-          <Link
-            href="/admin/workflows"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+    <VStack gap={4}>
+      <DetailHeader
+        back={{ href: '/admin/workflows', label: t('back') }}
+        title={name}
+        meta={trigger ? (tr.has(trigger.name) ? tr(trigger.name) : trigger.name) : def.triggerKey}
+        status={
+          <motion.span
+            key={def.publishedVersion ?? 'draft'}
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
           >
-            <ArrowLeftIcon className="size-3.5" aria-hidden />
-            {t('back')}
-          </Link>
-          <h1 className="text-xl font-semibold tracking-tight wrap-anywhere">{name}</h1>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>{trigger ? (tr.has(trigger.name) ? tr(trigger.name) : trigger.name) : def.triggerKey}</span>
-            <motion.span
-              key={def.publishedVersion ?? 'draft'}
-              initial={{ scale: 0.85, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            >
-              <Badge variant={def.publishedVersion ? 'success' : 'muted'}>{status.version}</Badge>
-            </motion.span>
+            <Badge variant={def.publishedVersion ? 'success' : 'neutral'} label={status.version} />
+          </motion.span>
+        }
+        badges={
+          <>
             {def.isDefault && !isForm && (
-              <Badge variant="info">
-                <StarIcon aria-hidden />
-                {t('default')}
-              </Badge>
+              <Badge variant="info" label={t('default')} icon={<Icon icon={StarIcon} size="xsm" />} />
             )}
-            {status.changed && <Badge variant="warning">{t('unpublished')}</Badge>}
+            {status.changed && <Badge variant="warning" label={t('unpublished')} />}
             {def.archived && (
-              <Badge variant="muted">
-                <ArchiveIcon aria-hidden />
-                {t('archived')}
-              </Badge>
+              <Badge variant="neutral" label={t('archived')} icon={<Icon icon={ArchiveIcon} size="xsm" />} />
             )}
             <span aria-live="polite">
               <AnimatePresence initial={false}>
                 {editor.dirty && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="font-medium text-warning-foreground"
-                  >
-                    {t('unsaved')}
+                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <Badge variant="warning" label={t('unsaved')} />
                   </motion.span>
                 )}
               </AnimatePresence>
             </span>
-          </div>
-        </div>
-        {editor.canManage && (
-          <div className="flex flex-wrap items-center gap-2">
-            {!def.archived && (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => void run('save')}
-                  disabled={!editor.dirty || editor.busy !== null}
-                  loading={editor.busy === 'saving'}
-                >
-                  <SaveIcon />
-                  {t('save')}
-                </Button>
-                <Button
-                  onClick={() => void run('publish')}
-                  disabled={editor.busy !== null || !editor.unpublished}
-                  loading={editor.busy === 'publishing'}
-                >
-                  <RocketIcon />
-                  {t('publish')}
-                </Button>
-              </>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label={t('more')}>
-                  <MoreHorizontalIcon />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {/* Forms use the workflow they name: a default means nothing for them. */}
-                {!isForm && !def.isDefault && def.publishedVersion !== null && !def.archived && (
-                  <DropdownMenuItem onSelect={() => action.mutate(`/workflows/${def.id}/default`)}>
-                    <StarIcon />
-                    {t('makeDefault')}
-                  </DropdownMenuItem>
-                )}
-                {!isForm && def.isDefault && !trigger?.required && (
-                  <DropdownMenuItem onSelect={() => clearDefault.mutate(undefined)}>
-                    <StarOffIcon />
-                    {t('clearDefault')}
-                  </DropdownMenuItem>
-                )}
-                {def.archived ? (
-                  <DropdownMenuItem onSelect={() => action.mutate(`/workflows/${def.id}/restore`)}>
-                    <UndoIcon />
-                    {t('restore')}
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem variant="destructive" onSelect={() => setConfirm('archive')}>
-                    <ArchiveIcon />
-                    {t('archive')}
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          </>
+        }
+        menu={editor.canManage ? menu : []}
+        primaryAction={
+          editor.canManage && !def.archived ? (
+            <Button
+              label={t('publish')}
+              variant="primary"
+              icon={<Icon icon={RocketIcon} />}
+              isLoading={editor.busy === 'publishing'}
+              isDisabled={editor.busy !== null || !editor.unpublished}
+              onClick={() => void run('publish')}
+            />
+          ) : undefined
+        }
+      >
+        {editor.canManage && !def.archived && (
+          <Button
+            label={t('save')}
+            variant="secondary"
+            icon={<Icon icon={SaveIcon} />}
+            isLoading={editor.busy === 'saving'}
+            isDisabled={!editor.dirty || editor.busy !== null}
+            onClick={() => void run('save')}
+          />
         )}
-      </div>
+      </DetailHeader>
 
       {editor.globalIssues.length > 0 && (
-        <div
-          role="status"
-          className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
-        >
-          <AlertTriangleIcon className="size-4 text-warning-foreground" aria-hidden />
-          {editor.globalIssues.map((i) => (ti.has(i.code) ? ti(i.code) : i.code)).join(' ')}
-        </div>
+        <Banner
+          status="warning"
+          title={editor.globalIssues.map((i) => (ti.has(i.code) ? ti(i.code) : i.code)).join(' ')}
+          collapsible={false}
+        />
       )}
 
       <WorkflowCanvas
@@ -348,7 +318,7 @@ function Editor({ def, trigger }: { def: WorkflowDefinition; trigger: WorkflowTr
         loading={action.isPending}
         onConfirm={() => action.mutate(`/workflows/${def.id}/archive`)}
       />
-    </div>
+    </VStack>
   );
 }
 

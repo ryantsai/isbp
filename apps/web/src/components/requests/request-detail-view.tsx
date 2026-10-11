@@ -9,19 +9,6 @@ import type {
 } from '@isbp/contracts';
 import { type LocalizedText, localize } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@isbp/ui/alert-dialog';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { FormAnswers } from '@isbp/ui/form-renderer';
@@ -29,9 +16,8 @@ import { Disclosure, SuccessMark } from '@isbp/ui/motion';
 import { DetailHeader } from '@isbp/ui/page-header';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { MappedStatus } from '@isbp/ui/status';
+import { MappedStatus, StatusBadge } from '@isbp/ui/status';
 import {
-  AlertTriangleIcon,
   ArrowRightIcon,
   CircleCheckIcon,
   FileQuestionIcon,
@@ -40,9 +26,8 @@ import {
   UndoIcon,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { NavIcon } from '../nav-icon';
 import { useRoleText } from '../roles/role-utils';
@@ -53,6 +38,10 @@ import { ApprovalPathList, pathSteps } from './approval-path';
 import { RequestActions, RequestReminders } from './request-actions';
 import { RequestDecisions, RequestEvidence } from './request-evidence';
 import { REQUESTER_STATUS, type RequesterStatus, requesterStatusOf } from './request-status';
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
 
 type Lookup = { kind: 'access'; request: AccessRequest } | { kind: 'form'; submission: FormSubmission };
 
@@ -64,52 +53,30 @@ function answered(value: unknown) {
 
 function WithdrawButton({ path }: { path: string }) {
   const t = useTranslations('requests.detail');
+  const [open, setOpen] = useState(false);
   const withdraw = useApiMutation((api) => api.post(path, {}), {
     invalidate: ['/requests', '/me/requests', '/workflow-instances', '/me/badges', '/requestable-roles'],
     success: t('withdrawn'),
   });
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button variant="outline">
-          <UndoIcon />
-          {t('withdraw')}
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t('withdrawTitle')}</AlertDialogTitle>
-          <AlertDialogDescription>{t('withdrawBody')}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{t('keep')}</AlertDialogCancel>
-          <AlertDialogAction onClick={() => withdraw.mutate(undefined)}>{t('withdraw')}</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
-function Banner({
-  tone,
-  icon,
-  children,
-}: {
-  tone: 'success' | 'destructive';
-  icon: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <div
-      className={
-        tone === 'success'
-          ? 'flex items-start gap-2 rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-sm'
-          : 'flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm'
-      }
-    >
-      <span className={tone === 'success' ? 'text-success' : 'text-destructive'}>{icon}</span>
-      <div>{children}</div>
-    </div>
+    <>
+      <Button
+        label={t('withdraw')}
+        variant="secondary"
+        icon={<AstryxIcon icon={UndoIcon} />}
+        onClick={() => setOpen(true)}
+      />
+      <AlertDialog
+        isOpen={open}
+        onOpenChange={setOpen}
+        title={t('withdrawTitle')}
+        description={t('withdrawBody')}
+        cancelLabel={t('keep')}
+        actionLabel={t('withdraw')}
+        isActionLoading={withdraw.isPending}
+        onAction={() => withdraw.mutate(undefined, { onSuccess: () => setOpen(false) })}
+      />
+    </>
   );
 }
 
@@ -197,17 +164,23 @@ function AccessDetails({ r }: { r: AccessRequest }) {
   return (
     <div className="grid grid-cols-1 gap-4">
       {r.status === 'approved' && (
-        <Banner tone="success" icon={<CircleCheckIcon className="size-4" />}>
-          {r.expiresAt
-            ? t('grantedUntil', {
-                date: format.dateTime(new Date(r.expiresAt), { dateStyle: 'long', timeStyle: 'short' }),
-              })
-            : t('grantedPermanent')}
-        </Banner>
+        <Banner
+          status="success"
+          collapsible={false}
+          title={
+            r.expiresAt
+              ? t('grantedUntil', {
+                  date: format.dateTime(new Date(r.expiresAt), { dateStyle: 'long', timeStyle: 'short' }),
+                })
+              : t('grantedPermanent')
+          }
+        />
       )}
       {r.status === 'failed' && (
-        <Banner tone="destructive" icon={<AlertTriangleIcon className="size-4" />}>
-          {t(
+        <Banner
+          status="error"
+          collapsible={false}
+          title={t(
             `failure.${
               r.failureReason === 'role_deleted' ||
               r.failureReason === 'beneficiary_suspended' ||
@@ -216,7 +189,7 @@ function AccessDetails({ r }: { r: AccessRequest }) {
                 : 'beneficiary_inactive'
             }`,
           )}
-        </Banner>
+        />
       )}
       <Card>
         <CardContent>
@@ -287,15 +260,17 @@ function FulfilmentCard({ f }: { f: NonNullable<FormSubmission['fulfilment']> })
             {t('fulfilment.updated')} <RelativeTime date={f.updatedAt} />
           </span>
         </span>
-        <Badge variant={FULFILMENT_TONE[f.tone ?? 'neutral']}>
-          {root.has(f.statusKey) ? root(f.statusKey) : f.statusKey.split('.').pop()}
-        </Badge>
-        <Button asChild variant="outline" size="sm">
-          <Link href={f.href}>
-            {t('fulfilment.openRef', { reference: f.reference })}
-            <ArrowRightIcon aria-hidden />
-          </Link>
-        </Button>
+        <StatusBadge
+          tone={FULFILMENT_TONE[f.tone ?? 'neutral']}
+          label={root.has(f.statusKey) ? root(f.statusKey) : f.statusKey.split('.').pop()}
+        />
+        <Button
+          label={t('fulfilment.openRef', { reference: f.reference })}
+          variant="secondary"
+          size="sm"
+          endContent={<AstryxIcon icon={ArrowRightIcon} />}
+          href={f.href}
+        />
       </CardContent>
     </Card>
   );
@@ -329,12 +304,14 @@ function TodoDone({ assignmentId }: { assignmentId: string }) {
         </p>
         {period && <p className="text-sm text-muted-foreground">{t('recorded', { period })}</p>}
       </div>
-      <Button asChild variant="outline" size="sm" className="self-start sm:self-auto">
-        <Link href="/my-work">
-          {t('back')}
-          <ArrowRightIcon aria-hidden />
-        </Link>
-      </Button>
+      <Button
+        label={t('back')}
+        variant="secondary"
+        size="sm"
+        endContent={<AstryxIcon icon={ArrowRightIcon} />}
+        href="/my-work"
+        className="self-start sm:self-auto"
+      />
     </section>
   );
 }
@@ -515,11 +492,7 @@ export function RequestDetailView({ reference }: { reference: string }) {
       <EmptyState
         icon={<FileQuestionIcon />}
         title={t('notFound')}
-        action={
-          <Button asChild variant="outline">
-            <Link href="/requests">{t('back')}</Link>
-          </Button>
-        }
+        action={<Button label={t('back')} variant="secondary" href="/requests" />}
       />
     );
   return <RequestBody lookup={data} reference={reference} todoId={todoId} />;

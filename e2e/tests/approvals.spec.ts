@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { type APIRequestContext, type Browser, expect, type Page, test } from './fixtures';
+import { adaptPage, type APIRequestContext, type Browser, expect, type Page, test } from './fixtures';
 import { settle } from './helpers';
 
 const DEMO_PASSWORD = process.env.E2E_DEMO_PASSWORD ?? 'Demo-2026!pass';
@@ -23,7 +23,7 @@ async function signInAs(browser: Browser, baseURL: string, username: string) {
   return {
     context,
     csrf,
-    page: await context.newPage(),
+    page: adaptPage(await context.newPage()),
     async close() {
       await context.request.patch('/api/v1/me', { data: { locale: user.locale }, headers });
       await context.close();

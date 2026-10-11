@@ -1,14 +1,25 @@
 'use client';
 
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { ToggleButton } from '@astryxdesign/core/ToggleButton';
+import { Token } from '@astryxdesign/core/Token';
 import { type Condition, type ConditionOp, type ConditionValue, TODAY_FACT } from '@isbp/sdk';
-import { ArrowLeftRightIcon, PlusIcon, Trash2Icon, XIcon } from 'lucide-react';
+import { ArrowLeftRightIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useId } from 'react';
+import { useCallback, useId, useState } from 'react';
+import { useLatest } from '../lib/use-latest';
 import { cn } from '../lib/utils';
-import { Button } from './button';
-import { Input } from './input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 
 /** A field a condition can test: workflow facts (`role.riskLevel`) or other form fields. */
 export interface FactOption {
@@ -136,22 +147,56 @@ function OtherFactSelect({
       f.path !== rule.fact &&
       (!fact || f.type === fact.type || f.type === 'string' || fact.type === 'string'),
   );
+  const options = others.map((f) => ({ value: f.path, label: f.label }));
+  if (rule.valueFact && !others.some((f) => f.path === rule.valueFact))
+    options.push({ value: rule.valueFact, label: rule.valueFact });
   return (
-    <Select value={rule.valueFact || undefined} onValueChange={onChange}>
-      <SelectTrigger aria-label={t('otherField')} className="w-full">
-        <SelectValue placeholder={t('otherField')} />
-      </SelectTrigger>
-      <SelectContent>
-        {others.map((f) => (
-          <SelectItem key={f.path} value={f.path}>
-            {f.label}
-          </SelectItem>
-        ))}
-        {rule.valueFact && !others.some((f) => f.path === rule.valueFact) && (
-          <SelectItem value={rule.valueFact}>{rule.valueFact}</SelectItem>
-        )}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={t('otherField')}
+      isLabelHidden
+      width="100%"
+      placeholder={t('otherField')}
+      hasSearch={options.length > 10}
+      options={options}
+      value={rule.valueFact || undefined}
+      onChange={onChange}
+    />
+  );
+}
+
+/** "A, B, C" in one box: the list is read when the field is left. */
+function ListValueInput({
+  fact,
+  rule,
+  label,
+  onChange,
+}: {
+  fact: FactOption | undefined;
+  rule: Rule;
+  label: string;
+  onChange: (v: Rule['value']) => void;
+}) {
+  const t = useTranslations('ui.conditions');
+  const [text, setText] = useState(
+    Array.isArray(rule.value) ? rule.value.join(', ') : String(rule.value ?? ''),
+  );
+  return (
+    <TextInput
+      label={label}
+      isLabelHidden
+      placeholder={fact?.options ? fact.options.map((o) => o.value).join(', ') : t('listPlaceholder')}
+      value={text}
+      onChange={setText}
+      onBlur={() =>
+        onChange(
+          text
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .map((s) => (fact?.type === 'number' && Number.isFinite(Number(s)) ? Number(s) : s)),
+        )
+      }
+    />
   );
 }
 
@@ -170,61 +215,71 @@ function ValueInput({
   if (NO_VALUE.includes(rule.op)) return null;
   if (fact?.type === 'boolean') {
     return (
-      <Select value={rule.value === false ? 'false' : 'true'} onValueChange={(v) => onChange(v === 'true')}>
-        <SelectTrigger aria-label={label} className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="true">{t('true')}</SelectItem>
-          <SelectItem value="false">{t('false')}</SelectItem>
-        </SelectContent>
-      </Select>
+      <Selector
+        label={label}
+        isLabelHidden
+        width="100%"
+        options={[
+          { value: 'true', label: t('true') },
+          { value: 'false', label: t('false') },
+        ]}
+        value={rule.value === false ? 'false' : 'true'}
+        onChange={(v) => onChange(v === 'true')}
+      />
     );
   }
   if (fact?.options?.length && !LIST_OPS.includes(rule.op)) {
     return (
-      <Select value={typeof rule.value === 'string' ? rule.value : undefined} onValueChange={onChange}>
-        <SelectTrigger aria-label={label} className="w-full">
-          <SelectValue placeholder={t('valuePlaceholder')} />
-        </SelectTrigger>
-        <SelectContent>
-          {fact.options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <Selector
+        label={label}
+        isLabelHidden
+        width="100%"
+        placeholder={t('valuePlaceholder')}
+        hasSearch={fact.options.length > 10}
+        options={fact.options}
+        value={typeof rule.value === 'string' ? rule.value : undefined}
+        onChange={(v) => onChange(v)}
+      />
     );
   }
   if (LIST_OPS.includes(rule.op)) {
-    const text = Array.isArray(rule.value) ? rule.value.join(', ') : String(rule.value ?? '');
+    return <ListValueInput fact={fact} rule={rule} label={label} onChange={onChange} />;
+  }
+  if (fact?.type === 'number') {
+    const n =
+      rule.value === undefined || rule.value === null || rule.value === '' ? null : Number(rule.value);
     return (
-      <Input
-        aria-label={label}
-        placeholder={fact?.options ? fact.options.map((o) => o.value).join(', ') : t('listPlaceholder')}
-        defaultValue={text}
-        onBlur={(e) =>
-          onChange(
-            e.target.value
-              .split(',')
-              .map((s) => s.trim())
-              .filter(Boolean)
-              .map((s) => (fact?.type === 'number' && Number.isFinite(Number(s)) ? Number(s) : s)),
-          )
+      <NumberInput
+        label={label}
+        isLabelHidden
+        placeholder={t('valuePlaceholder')}
+        value={n !== null && Number.isFinite(n) ? n : null}
+        hasClear
+        onChange={(v) => onChange(v ?? undefined)}
+      />
+    );
+  }
+  if (fact?.type === 'date') {
+    return (
+      <DateInput
+        label={label}
+        isLabelHidden
+        placeholder={t('valuePlaceholder')}
+        hasClear
+        value={
+          (typeof rule.value === 'string' && rule.value ? rule.value : undefined) as ISODateString | undefined
         }
+        onChange={(v) => onChange(v ?? undefined)}
       />
     );
   }
   return (
-    <Input
-      aria-label={label}
-      type={fact?.type === 'number' ? 'number' : fact?.type === 'date' ? 'date' : 'text'}
+    <TextInput
+      label={label}
+      isLabelHidden
       placeholder={t('valuePlaceholder')}
       value={rule.value === undefined || rule.value === null ? '' : String(rule.value)}
-      onChange={(e) =>
-        onChange(fact?.type === 'number' && e.target.value !== '' ? Number(e.target.value) : e.target.value)
-      }
+      onChange={(v) => onChange(v)}
     />
   );
 }
@@ -239,57 +294,26 @@ function OffsetInput({
 }) {
   const t = useTranslations('ui.conditions');
   return (
-    <div className="flex shrink-0 items-center gap-1">
-      <Input
-        type="number"
-        inputMode="numeric"
-        step={1}
-        min={-36_500}
-        max={36_500}
-        aria-label={t('offsetDays')}
-        title={t('offsetDays')}
-        placeholder="±0"
-        className="w-20"
-        value={value ?? ''}
-        onChange={(e) => {
-          const n = e.target.value === '' ? undefined : Math.trunc(Number(e.target.value));
-          onChange(
-            n === undefined || !Number.isFinite(n) || n === 0
-              ? undefined
-              : Math.max(-36_500, Math.min(36_500, n)),
-          );
-        }}
-      />
-      <span aria-hidden className="text-xs text-muted-foreground">
-        {t('days')}
-      </span>
-    </div>
+    <NumberInput
+      label={t('offsetDays')}
+      isLabelHidden
+      width={144}
+      isIntegerOnly
+      min={-36_500}
+      max={36_500}
+      placeholder="±0"
+      units={t('days')}
+      hasClear
+      value={value ?? null}
+      onChange={(n) => onChange(n === null || n === 0 ? undefined : n)}
+    />
   );
 }
 
 /** The value "Today" (`valueFact: 'today'`) in place of a date, with a button back to a fixed date. */
-function TodayValue({ label, onClear }: { label: string; onClear: () => void }) {
+function TodayValue({ onClear }: { onClear: () => void }) {
   const t = useTranslations('ui.conditions');
-  return (
-    <div
-      role="group"
-      aria-label={label}
-      className="flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-muted/40 pr-1 pl-3 text-sm shadow-xs"
-    >
-      <span className="truncate">{t('today')}</span>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="size-7"
-        aria-label={t('pickDate')}
-        title={t('pickDate')}
-        onClick={onClear}
-      >
-        <XIcon />
-      </Button>
-    </div>
-  );
+  return <Token label={t('today')} onRemove={onClear} />;
 }
 
 /**
@@ -315,11 +339,17 @@ export function ConditionBuilder({
   const uid = useId();
   const group = toGroup(value);
   const todayOffered = facts.some((f) => f.path === TODAY_FACT);
-  const emit = (g: Group) => onChange(fromGroup(g));
+  // The newest group: a value input commits when it is left, which can land after another change and before the next
+  // render (see `useLatest`).
+  const latest = useLatest(group);
+  const emit = (g: Group) => {
+    latest.set(g);
+    onChange(fromGroup(g));
+  };
   const update = (i: number, patch: Partial<Rule>) =>
     emit({
-      ...group,
-      rules: group.rules.map((r, j) => {
+      ...latest.get(),
+      rules: latest.get().rules.map((r, j) => {
         if (j !== i) return r;
         const next: Rule = { ...r, ...patch };
         // A comparison with another fact has no fixed value (and only some operators compare).
@@ -338,22 +368,22 @@ export function ConditionBuilder({
     // Lays out by its own width (container query), so it also fits narrow side panels.
     <div className={cn('@container grid gap-3', className)}>
       {group.rules.length > 1 && (
-        <div className="flex items-center gap-2 text-sm">
-          <span>{t('match')}</span>
-          <Select value={group.mode} onValueChange={(m) => emit({ ...group, mode: m as Group['mode'] })}>
-            <SelectTrigger size="sm" aria-label={t('match')}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('all')}</SelectItem>
-              <SelectItem value="any">{t('any')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <HStack gap={2} vAlign="center">
+          <Text>{t('match')}</Text>
+          <Selector
+            label={t('match')}
+            isLabelHidden
+            size="sm"
+            options={[
+              { value: 'all', label: t('all') },
+              { value: 'any', label: t('any') },
+            ]}
+            value={group.mode}
+            onChange={(m) => emit({ ...latest.get(), mode: m as Group['mode'] })}
+          />
+        </HStack>
       )}
-      {!group.rules.length && (
-        <p className="text-sm text-muted-foreground">{emptyText ?? t('noConditions')}</p>
-      )}
+      {!group.rules.length && <Text color="secondary">{emptyText ?? t('noConditions')}</Text>}
       <ul className="grid gap-2">
         <AnimatePresence initial={false}>
           {group.rules.map((rule, i) => {
@@ -365,6 +395,8 @@ export function ConditionBuilder({
             const isToday = rule.valueFact === TODAY_FACT;
             const otherFacts = todayButton ? facts.filter((f) => f.path !== TODAY_FACT) : facts;
             const comparesField = Boolean(rule.valueFact) && !isToday;
+            const factOptions = facts.map((f) => ({ value: f.path, label: f.label }));
+            if (rule.fact && !fact) factOptions.push({ value: rule.fact, label: rule.fact });
             return (
               <motion.li
                 key={`${uid}-${i}`}
@@ -372,124 +404,121 @@ export function ConditionBuilder({
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, height: 0 }}
-                className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-start gap-2 rounded-lg border bg-card/60 p-2 @2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto]"
               >
-                <Select
-                  value={rule.fact || undefined}
-                  onValueChange={(path) => {
-                    const next = facts.find((f) => f.path === path);
-                    const nextOps = opsFor(next?.type);
-                    update(i, {
-                      fact: path,
-                      op: nextOps.includes(rule.op) ? rule.op : nextOps[0]!,
-                      value: next?.type === 'boolean' ? true : undefined,
-                      valueFact: rule.valueFact === path ? undefined : rule.valueFact,
-                    });
-                  }}
-                >
-                  <SelectTrigger aria-label={t('fact')} className="col-span-2 w-full @2xl:col-span-1">
-                    <SelectValue placeholder={t('fact')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {facts.map((f) => (
-                      <SelectItem key={f.path} value={f.path}>
-                        {f.label}
-                      </SelectItem>
-                    ))}
-                    {rule.fact && !fact && <SelectItem value={rule.fact}>{rule.fact}</SelectItem>}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="@2xl:order-last"
-                  aria-label={t('removeCondition', { n: i + 1 })}
-                  onClick={() => emit({ ...group, rules: group.rules.filter((_, j) => j !== i) })}
-                >
-                  <Trash2Icon />
-                </Button>
-                <Select value={rule.op} onValueChange={(op) => update(i, { op: op as ConditionOp })}>
-                  <SelectTrigger aria-label={t('op')} className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(ops.includes(rule.op) ? ops : [rule.op, ...ops]).map((op) => (
-                      <SelectItem key={op} value={op}>
-                        {t(opKey(op, fact?.type))}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {/* The value, then its extras (days to add, compare with a field); the extras wrap when narrow. */}
-                <div className="col-span-2 flex min-w-0 flex-wrap items-start gap-1 @2xl:col-span-1">
-                  <div className="flex min-w-36 flex-1 items-start gap-1">
-                    <div className="min-w-0 flex-1">
-                      {isToday && todayButton ? (
-                        <TodayValue label={t('value')} onClear={() => update(i, { valueFact: undefined })} />
-                      ) : rule.valueFact ? (
-                        <OtherFactSelect
-                          fact={fact}
-                          rule={rule}
-                          facts={otherFacts}
-                          onChange={(path) => update(i, { valueFact: path })}
-                        />
-                      ) : (
-                        <ValueInput
-                          fact={fact}
-                          rule={rule}
-                          label={t('value')}
-                          onChange={(v) => update(i, { value: v })}
-                        />
-                      )}
-                    </div>
-                    {todayButton && !rule.valueFact && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="shrink-0 px-2.5"
-                        aria-label={t('useToday')}
-                        title={t('useToday')}
-                        onClick={() => update(i, { valueFact: TODAY_FACT })}
-                      >
-                        {t('today')}
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-start gap-1 empty:hidden">
-                    {fact?.type === 'date' && compares && (
-                      <OffsetInput
-                        value={rule.valueOffsetDays}
-                        onChange={(valueOffsetDays) => update(i, { valueOffsetDays })}
+                <Card variant="muted" padding={2}>
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-start gap-2 @2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto]">
+                    <div className="col-span-2 min-w-0 @2xl:col-span-1">
+                      <Selector
+                        label={t('fact')}
+                        isLabelHidden
+                        width="100%"
+                        placeholder={t('fact')}
+                        hasSearch={factOptions.length > 10}
+                        options={factOptions}
+                        value={rule.fact || undefined}
+                        onChange={(path) => {
+                          const next = facts.find((f) => f.path === path);
+                          const nextOps = opsFor(next?.type);
+                          update(i, {
+                            fact: path,
+                            op: nextOps.includes(rule.op) ? rule.op : nextOps[0]!,
+                            value: next?.type === 'boolean' ? true : undefined,
+                            valueFact: rule.valueFact === path ? undefined : rule.valueFact,
+                          });
+                        }}
                       />
-                    )}
-                    {compares && otherFacts.some((f) => f.path !== rule.fact) && fact?.type !== 'boolean' && (
-                      <Button
+                    </div>
+                    <div className="@2xl:order-last">
+                      <IconButton
+                        label={t('removeCondition', { n: i + 1 })}
+                        variant="ghost"
+                        icon={<Icon icon={Trash2Icon} />}
                         type="button"
-                        variant={comparesField ? 'secondary' : 'ghost'}
-                        size="icon"
-                        aria-pressed={comparesField}
-                        aria-label={t('compareWithField')}
-                        title={t('compareWithField')}
                         onClick={() =>
-                          update(
-                            i,
-                            comparesField
-                              ? { valueFact: undefined }
-                              : {
-                                  valueFact:
-                                    otherFacts.find(
-                                      (f) => f.path !== rule.fact && (!fact || f.type === fact.type),
-                                    )?.path ?? otherFacts.find((f) => f.path !== rule.fact)?.path,
-                                },
-                          )
+                          emit({ ...latest.get(), rules: latest.get().rules.filter((_, j) => j !== i) })
                         }
-                      >
-                        <ArrowLeftRightIcon />
-                      </Button>
-                    )}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <Selector
+                        label={t('op')}
+                        isLabelHidden
+                        width="100%"
+                        options={(ops.includes(rule.op) ? ops : [rule.op, ...ops]).map((op) => ({
+                          value: op,
+                          label: t(opKey(op, fact?.type)),
+                        }))}
+                        value={rule.op}
+                        onChange={(op) => update(i, { op: op as ConditionOp })}
+                      />
+                    </div>
+                    {/* The value, then its extras (days to add, compare with a field); the extras wrap when narrow. */}
+                    <div className="col-span-2 flex min-w-0 flex-wrap items-start gap-1 @2xl:col-span-1">
+                      <div className="flex min-w-36 flex-1 items-start gap-1">
+                        <div className="min-w-0 flex-1">
+                          {isToday && todayButton ? (
+                            <TodayValue onClear={() => update(i, { valueFact: undefined })} />
+                          ) : rule.valueFact ? (
+                            <OtherFactSelect
+                              fact={fact}
+                              rule={rule}
+                              facts={otherFacts}
+                              onChange={(path) => update(i, { valueFact: path })}
+                            />
+                          ) : (
+                            <ValueInput
+                              fact={fact}
+                              rule={rule}
+                              label={t('value')}
+                              onChange={(v) => update(i, { value: v })}
+                            />
+                          )}
+                        </div>
+                        {todayButton && !rule.valueFact && (
+                          <Button
+                            label={t('today')}
+                            variant="secondary"
+                            tooltip={t('useToday')}
+                            type="button"
+                            onClick={() => update(i, { valueFact: TODAY_FACT })}
+                          />
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-start gap-1 empty:hidden">
+                        {fact?.type === 'date' && compares && (
+                          <OffsetInput
+                            value={rule.valueOffsetDays}
+                            onChange={(valueOffsetDays) => update(i, { valueOffsetDays })}
+                          />
+                        )}
+                        {compares &&
+                          otherFacts.some((f) => f.path !== rule.fact) &&
+                          fact?.type !== 'boolean' && (
+                            <ToggleButton
+                              label={t('compareWithField')}
+                              tooltip={t('compareWithField')}
+                              isIconOnly
+                              icon={<Icon icon={ArrowLeftRightIcon} />}
+                              isPressed={comparesField}
+                              onPressedChange={() =>
+                                update(
+                                  i,
+                                  comparesField
+                                    ? { valueFact: undefined }
+                                    : {
+                                        valueFact:
+                                          otherFacts.find(
+                                            (f) => f.path !== rule.fact && (!fact || f.type === fact.type),
+                                          )?.path ?? otherFacts.find((f) => f.path !== rule.fact)?.path,
+                                      },
+                                )
+                              }
+                            />
+                          )}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </Card>
               </motion.li>
             );
           })}
@@ -497,14 +526,16 @@ export function ConditionBuilder({
       </ul>
       <div>
         <Button
-          type="button"
-          variant="outline"
+          label={t('addCondition')}
+          variant="secondary"
           size="sm"
+          icon={<Icon icon={PlusIcon} />}
+          type="button"
           onClick={() =>
             emit({
-              ...group,
+              ...latest.get(),
               rules: [
-                ...group.rules,
+                ...latest.get().rules,
                 {
                   fact: facts[0]?.path ?? '',
                   op: opsFor(facts[0]?.type)[0]!,
@@ -513,10 +544,7 @@ export function ConditionBuilder({
               ],
             })
           }
-        >
-          <PlusIcon />
-          {t('addCondition')}
-        </Button>
+        />
       </div>
     </div>
   );

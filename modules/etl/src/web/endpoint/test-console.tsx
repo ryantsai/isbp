@@ -1,29 +1,27 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { ScrollableArea } from '@astryxdesign/core/ScrollableArea';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Table } from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { ApiError } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { problemOfError, RunProblemBanner } from '@isbp/ui/run-detail';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { CodeEditor } from '@isbp/ui/code-editor';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Textarea } from '@isbp/ui/textarea';
-import { CircleCheckIcon, CircleXIcon, PlayIcon, RocketIcon } from 'lucide-react';
+import { problemOfError, RunProblemBanner } from '@isbp/ui/run-detail';
+import { FlaskConicalIcon, PlayIcon, RocketIcon } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import type { EndpointDetail, ParamDef, TestRequest, TestResult } from '../../contracts';
-import { TONE } from '../badges';
 import { INVALIDATE, useDuration } from '../lib';
 
 const DRAFT = 'draft';
@@ -50,7 +48,6 @@ function ParamInput({
 }) {
   const t = useTranslations('etl.test');
   const tp = useTranslations('etl.params');
-  const id = useId();
   const hint = [
     tp(`types.${param.type}`) + (param.list ? ` · ${t('listHint')}` : ''),
     param.required && param.default === null ? t('required') : null,
@@ -58,94 +55,59 @@ function ParamInput({
   ]
     .filter(Boolean)
     .join(' · ');
+  const description = `${param.description ? `${param.description} · ` : ''}${hint}`;
+  const status = error ? { type: 'error' as const, message: error } : undefined;
   const choices =
     param.type === 'boolean' ? ['true', 'false'] : !param.list && param.enum?.length ? param.enum : null;
-  return (
-    <div className="grid min-w-0 gap-1.5">
-      <Label htmlFor={id} className="font-mono">
-        {param.name}
-      </Label>
-      {choices ? (
-        <Select value={value || UNSET} onValueChange={(v) => onChange(v === UNSET ? '' : v)}>
-          <SelectTrigger
-            id={id}
-            className="w-full"
-            aria-describedby={`${id}-hint`}
-            aria-invalid={Boolean(error) || undefined}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={UNSET}>{t('notSet')}</SelectItem>
-            {choices.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : (
-        <Input
-          id={id}
-          value={value}
-          placeholder={param.example ?? param.default ?? undefined}
-          aria-describedby={`${id}-hint`}
-          aria-invalid={Boolean(error) || undefined}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      )}
-      <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-        {param.description ? `${param.description} · ` : ''}
-        {hint}
-      </p>
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
+  return choices ? (
+    <Selector
+      label={param.name}
+      description={description}
+      options={[{ value: UNSET, label: t('notSet') }, ...choices.map((c) => ({ value: c, label: c }))]}
+      value={value || UNSET}
+      onChange={(v) => onChange(v === UNSET ? '' : v)}
+      status={status}
+    />
+  ) : (
+    <TextInput
+      label={param.name}
+      description={description}
+      placeholder={param.example ?? param.default ?? undefined}
+      value={value}
+      onChange={onChange}
+      status={status}
+    />
   );
 }
 
-/** Rows of a test run as a scrollable, focusable table. */
+interface ResultRow extends Record<string, unknown> {
+  id: number;
+  cells: Record<string, unknown>;
+}
+
+/** Rows of a test run as a scrollable table. */
 function ResultTable({ result }: { result: TestResult }) {
   const t = useTranslations('etl.test');
-  const rows = result.rows.slice(0, SHOWN_ROWS);
+  const rows: ResultRow[] = result.rows.slice(0, SHOWN_ROWS).map((cells, id) => ({ id, cells }));
   return (
-    <div
-      role="region"
-      aria-label={t('results')}
-      tabIndex={0}
-      className="max-h-[28rem] min-w-0 overflow-auto rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-    >
-      <table className="w-full text-sm">
-        <caption className="sr-only">{t('results')}</caption>
-        <thead className="sticky top-0 bg-muted/80 backdrop-blur">
-          <tr>
-            {result.columns.map((c) => (
-              <th
-                key={c.name}
-                scope="col"
-                className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap"
-              >
-                {c.name} <span className="font-normal text-muted-foreground">{c.type}</span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="border-t">
-              {result.columns.map((c) => (
-                <td
-                  key={c.name}
-                  className="max-w-72 truncate px-3 py-1.5 font-mono text-xs"
-                  title={display(row[c.name])}
-                >
-                  {display(row[c.name])}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ScrollableArea label={t('results')} role="region" className="max-h-[28rem]">
+      <Table
+        aria-label={t('results')}
+        density="compact"
+        textOverflow="truncate"
+        data={rows}
+        idKey="id"
+        columns={result.columns.map((c) => ({
+          key: c.name,
+          header: (
+            <>
+              {c.name} <Text type="supporting">{c.type}</Text>
+            </>
+          ),
+          renderCell: (r: ResultRow) => <Text type="code">{display(r.cells[c.name])}</Text>,
+        }))}
+      />
+    </ScrollableArea>
   );
 }
 
@@ -162,7 +124,6 @@ export function PublishDialog({
   const t = useTranslations('etl.publish');
   const tc = useTranslations('common');
   const errorText = useErrorText();
-  const id = useId();
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const next = Math.max(0, ...endpoint.versions.map((v) => v.version)) + 1;
@@ -180,47 +141,52 @@ export function PublishDialog({
     },
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('title', { version: next })}</DialogTitle>
-          <DialogDescription>{t('hint')}</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-note`}>{t('note')}</Label>
-          <Textarea
-            id={`${id}-note`}
-            rows={3}
-            maxLength={2_000}
-            value={note}
-            placeholder={t('notePlaceholder')}
-            onChange={(e) => setNote(e.target.value)}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={512} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('title', { version: next })}
+            subtitle={t('hint')}
+            onOpenChange={onOpenChange}
           />
-        </div>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button
-            loading={publish.isPending}
-            onClick={async () => {
-              setError(null);
-              try {
-                await publish.mutateAsync({ note: note.trim() || null });
-              } catch (err) {
-                setError(errorText(err));
-              }
-            }}
-          >
-            <RocketIcon /> {t('confirm', { version: next })}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+        }
+        content={
+          <LayoutContent padding={4}>
+            <FormLayout defaultOptionality="optional">
+              <TextArea
+                label={t('note')}
+                rows={3}
+                maxLength={2_000}
+                placeholder={t('notePlaceholder')}
+                value={note}
+                onChange={setNote}
+              />
+              {error && <Banner status="error" title={error} collapsible={false} />}
+            </FormLayout>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t('confirm', { version: next })}
+                variant="primary"
+                icon={<Icon icon={RocketIcon} />}
+                isLoading={publish.isPending}
+                onClick={async () => {
+                  setError(null);
+                  try {
+                    await publish.mutateAsync({ note: note.trim() || null });
+                  } catch (err) {
+                    setError(errorText(err));
+                  }
+                }}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -292,90 +258,83 @@ export function TestConsole({ endpoint, onPublish }: { endpoint: EndpointDetail;
         </CardHeader>
         <CardContent>
           <form
-            className="grid min-w-0 gap-4"
             onSubmit={(e) => {
               e.preventDefault();
               void onRun();
             }}
           >
-            <div className="grid gap-1.5">
-              <Label htmlFor={`${id}-target`}>{t('runWhat')}</Label>
-              <Select
+            <FormLayout defaultOptionality="optional">
+              <Selector
+                label={t('runWhat')}
+                options={[
+                  ...(endpoint.viewer.canManage ? [{ value: DRAFT, label: t('draft') }] : []),
+                  ...versions.map((v) => ({
+                    value: String(v.version),
+                    label: t('version', { version: v.version }),
+                  })),
+                ]}
                 value={target}
-                onValueChange={(v) => {
+                onChange={(v) => {
                   setTarget(v);
                   setResult(null);
                 }}
-              >
-                <SelectTrigger id={`${id}-target`} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {endpoint.viewer.canManage && <SelectItem value={DRAFT}>{t('draft')}</SelectItem>}
-                  {versions.map((v) => (
-                    <SelectItem key={v.version} value={String(v.version)}>
-                      {t('version', { version: v.version })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {params.length === 0 && <p className="text-sm text-muted-foreground">{t('noParams')}</p>}
-            {params.map((p) => (
-              <ParamInput
-                key={p.name}
-                param={p}
-                value={values[p.name] ?? ''}
-                error={errors[p.name]}
-                onChange={(v) => setValues((s) => ({ ...s, [p.name]: v }))}
               />
-            ))}
-            <Button type="submit" loading={run.isPending} disabled={!endpoint.viewer.canManage}>
-              <PlayIcon /> {t('run')}
-            </Button>
-            {!endpoint.viewer.canManage && <p className="text-xs text-muted-foreground">{t('manageOnly')}</p>}
+              {params.length === 0 && <Text color="secondary">{t('noParams')}</Text>}
+              {params.map((p) => (
+                <ParamInput
+                  key={p.name}
+                  param={p}
+                  value={values[p.name] ?? ''}
+                  error={errors[p.name]}
+                  onChange={(v) => setValues((s) => ({ ...s, [p.name]: v }))}
+                />
+              ))}
+              <div>
+                <Button
+                  label={t('run')}
+                  variant="primary"
+                  icon={<Icon icon={PlayIcon} />}
+                  isLoading={run.isPending}
+                  isDisabled={!endpoint.viewer.canManage}
+                  type="submit"
+                />
+              </div>
+              {!endpoint.viewer.canManage && <Text type="supporting">{t('manageOnly')}</Text>}
+            </FormLayout>
           </form>
         </CardContent>
       </Card>
 
-      <div className="grid min-w-0 gap-4 xl:col-span-2" aria-live="polite">
-        {failure && (
-          <p
-            role="alert"
-            className={cn('flex items-start gap-2 rounded-lg px-3 py-2 text-sm', TONE.destructive)}
-          >
-            <CircleXIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span className="min-w-0 wrap-anywhere">{failure}</span>
-          </p>
-        )}
-        {!result && !failure && (
-          <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-            {t('empty')}
-          </div>
-        )}
+      <VStack gap={4} className="min-w-0 xl:col-span-2" aria-live="polite">
+        {failure && <Banner status="error" title={failure} collapsible={false} />}
+        {!result && !failure && <EmptyState icon={<FlaskConicalIcon />} title={t('empty')} />}
         {result && (
           <>
             {result.ok ? (
-              <div
-                className={cn(
-                  'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 text-sm',
-                  TONE.success,
-                )}
-              >
-                <CircleCheckIcon className="size-4 shrink-0" aria-hidden />
-                <span className="font-medium">
-                  {t('rows', { count: result.rowCount })} · {duration(result.durationMs)}
-                </span>
-                {result.truncated && <span>{t('truncated')}</span>}
-                {result.rowCount > SHOWN_ROWS && (
-                  <span>{t('shownRows', { n: format.number(SHOWN_ROWS) })}</span>
-                )}
-                {canPublish && (
-                  <Button size="sm" className="ml-auto" onClick={onPublish}>
-                    <RocketIcon /> {t('publish')}
-                  </Button>
-                )}
-              </div>
+              <Banner
+                status="success"
+                title={`${t('rows', { count: result.rowCount })} · ${duration(result.durationMs)}`}
+                description={
+                  [
+                    result.truncated ? t('truncated') : null,
+                    result.rowCount > SHOWN_ROWS ? t('shownRows', { n: format.number(SHOWN_ROWS) }) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') || undefined
+                }
+                endContent={
+                  canPublish ? (
+                    <Button
+                      label={t('publish')}
+                      variant="primary"
+                      size="sm"
+                      icon={<Icon icon={RocketIcon} />}
+                      onClick={onPublish}
+                    />
+                  ) : undefined
+                }
+                collapsible={false}
+              />
             ) : (
               <RunProblemBanner
                 live
@@ -387,10 +346,10 @@ export function TestConsole({ endpoint, onPublish }: { endpoint: EndpointDetail;
               />
             )}
             {result.boundSql && (
-              <div className="grid min-w-0 gap-1.5">
-                <span id={`${id}-bound`} className="text-sm font-medium">
+              <VStack gap={1.5} className="min-w-0">
+                <Text type="label" id={`${id}-bound`}>
                   {t('boundSql')}
-                </span>
+                </Text>
                 <CodeEditor
                   value={result.boundSql}
                   language="sql"
@@ -400,12 +359,12 @@ export function TestConsole({ endpoint, onPublish }: { endpoint: EndpointDetail;
                   maxHeight="14rem"
                   aria-labelledby={`${id}-bound`}
                 />
-              </div>
+              </VStack>
             )}
             {result.ok && result.columns.length > 0 && <ResultTable result={result} />}
           </>
         )}
-      </div>
+      </VStack>
     </div>
   );
 }

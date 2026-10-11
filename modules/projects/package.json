@@ -31,6 +31,7 @@
     "zod": "catalog:"
   },
   "peerDependencies": {
+    "@astryxdesign/core": "*",
     "@dnd-kit/core": "*",
     "@dnd-kit/sortable": "*",
     "@dnd-kit/utilities": "*",
@@ -45,6 +46,9 @@
     "react-hook-form": "*"
   },
   "peerDependenciesMeta": {
+    "@astryxdesign/core": {
+      "optional": true
+    },
     "@dnd-kit/core": {
       "optional": true
     },
@@ -80,6 +84,7 @@
     }
   },
   "devDependencies": {
+    "@astryxdesign/core": "catalog:",
     "@dnd-kit/core": "catalog:",
     "@dnd-kit/sortable": "catalog:",
     "@dnd-kit/utilities": "catalog:",

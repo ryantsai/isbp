@@ -1,26 +1,25 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { DateTimeInput, type ISODateTimeString } from '@astryxdesign/core/DateTimeInput';
+import { Field } from '@astryxdesign/core/Field';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
 import { localize } from '@isbp/sdk';
 import { usePlatform } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { FormDialog } from '@isbp/ui/form-dialog';
 import { Collapse } from '@isbp/ui/motion';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Textarea } from '@isbp/ui/textarea';
-import { ShieldCheckIcon, SkipForwardIcon, UserCheckIcon, XCircleIcon } from 'lucide-react';
+import { SkipForwardIcon, UserCheckIcon, XCircleIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type FormEvent, type ReactNode, useId, useState } from 'react';
 import {
@@ -34,7 +33,7 @@ import {
   type WipeMethod,
 } from '../contracts';
 import { addMonths, todayIn } from '../model';
-import { AssetStatusBadge } from './badges';
+import { ASSET_STATUS, AssetStatusBadge } from './badges';
 import { INVALIDATE, useDay, useItamSettings } from './lib';
 
 export type AssetAction = 'assign' | 'return' | 'status' | 'dispose' | 'wipe';
@@ -53,7 +52,7 @@ function ActionDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  description?: ReactNode;
+  description?: string;
   submitLabel: string;
   pending: boolean;
   disabled?: boolean;
@@ -66,25 +65,20 @@ function ActionDialog({
     if (!disabled) onSubmit();
   };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
-        </DialogHeader>
-        <form onSubmit={submit} className="grid gap-4" noValidate>
-          {children}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={pending} disabled={disabled}>
-              {submitLabel}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      isOpen={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      subtitle={description}
+      onSubmit={submit}
+      submitLabel={submitLabel}
+      cancelLabel={tc('cancel')}
+      isSubmitting={pending}
+      isSubmitDisabled={disabled}
+      defaultOptionality="optional"
+    >
+      {children}
+    </FormDialog>
   );
 }
 
@@ -101,27 +95,21 @@ function NoteField({
   required?: boolean;
   hint?: string;
 }) {
-  const id = useId();
   return (
-    <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Textarea
-        id={id}
-        rows={3}
-        value={value}
-        required={required}
-        aria-describedby={hint ? `${id}-hint` : undefined}
-        onChange={(e) => onChange(e.target.value)}
-        maxLength={2000}
-      />
-      {hint && (
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-          {hint}
-        </p>
-      )}
-    </div>
+    <TextArea
+      label={label}
+      description={hint}
+      rows={3}
+      value={value}
+      onChange={onChange}
+      isRequired={required}
+      maxLength={2000}
+    />
   );
 }
+
+/** A date held as `YYYY-MM-DD` text (empty = none) as the Astryx date field wants it. */
+const asDate = (value: string) => (value || undefined) as ISODateString | undefined;
 
 /** Assign / Return / Change status / Request disposal for one asset (mounted per opening). */
 export function AssetActionDialog({
@@ -177,16 +165,16 @@ function AssignDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChang
       disabled={!person}
       onSubmit={() => assign.mutate({ userId: person!.id, note: note.trim() || null })}
     >
-      <div className="grid gap-2">
-        <Label htmlFor={id}>{t('person')}</Label>
+      <Field label={t('person')} inputID={id} isRequired>
         <PersonPicker
           id={id}
+          aria-label={t('person')}
           value={person}
           onChange={setPerson}
           placeholder={t('personPlaceholder')}
           excludeIds={asset.assignee ? [asset.assignee.id] : []}
         />
-      </div>
+      </Field>
       <NoteField value={note} onChange={setNote} label={t('note')} />
     </ActionDialog>
   );
@@ -203,7 +191,6 @@ function ReturnDialog({
 }) {
   const t = useTranslations('itam.actions');
   const ts = useTranslations('itam.status');
-  const id = useId();
   const day = useDay();
   const settings = useItamSettings();
   const { user } = usePlatform();
@@ -239,67 +226,34 @@ function ReturnDialog({
         })
       }
     >
-      <div className="grid gap-2">
-        <Label htmlFor={id}>{t('returnTo')}</Label>
-        <Select value={toStatus} onValueChange={(v) => setToStatus(v as typeof toStatus)}>
-          <SelectTrigger id={id} className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {RETURN_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {ts(s)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid gap-3 rounded-lg border p-3">
-        <div className="flex items-start gap-2">
-          <Checkbox
-            id={`${id}-wipe`}
-            checked={scheduleWipe}
-            onCheckedChange={(v) => setScheduleWipe(v === true)}
-            aria-describedby={`${id}-wipe-hint`}
+      <Selector
+        label={t('returnTo')}
+        value={toStatus}
+        onChange={(v) => setToStatus(v as typeof toStatus)}
+        options={RETURN_STATUSES.map((s) => ({ value: s, label: ts(s) }))}
+      />
+      <CheckboxInput
+        label={t('scheduleWipe')}
+        description={t('scheduleWipeHint')}
+        value={scheduleWipe}
+        onChange={setScheduleWipe}
+      />
+      <Collapse open={scheduleWipe && !alreadyWiped}>
+        <VStack gap={2}>
+          <DateInput
+            label={t('retainUntil')}
+            description={t('retainUntilHint')}
+            value={asDate(retainUntil)}
+            onChange={(v) => setRetainUntil(v ?? '')}
           />
-          <div className="grid gap-1">
-            <Label htmlFor={`${id}-wipe`}>{t('scheduleWipe')}</Label>
-            <p id={`${id}-wipe-hint`} className="text-xs text-muted-foreground">
-              {t('scheduleWipeHint')}
-            </p>
-          </div>
-        </div>
-        <Collapse open={scheduleWipe && !alreadyWiped}>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-retain`}>{t('retainUntil')}</Label>
-            <Input
-              id={`${id}-retain`}
-              type="date"
-              value={retainUntil}
-              aria-describedby={`${id}-retain-hint`}
-              onChange={(e) => setRetainUntil(e.target.value)}
-            />
-            <p id={`${id}-retain-hint`} className="text-xs text-muted-foreground">
-              {t('retainUntilHint')}
-            </p>
-            <p className="text-sm" aria-live="polite">
-              {t('wipeBy', { date: day(wipeBy), months: settings.wipeMonths })}
-            </p>
-          </div>
-        </Collapse>
-        {asset.dataBearing && onWiped && (
-          <div className="flex items-start gap-2">
-            <Checkbox
-              id={`${id}-wiped`}
-              checked={alreadyWiped}
-              onCheckedChange={(v) => setAlreadyWiped(v === true)}
-            />
-            <Label htmlFor={`${id}-wiped`} className="font-normal">
-              {t('alreadyWiped')}
-            </Label>
-          </div>
-        )}
-      </div>
+          <Text as="p" aria-live="polite">
+            {t('wipeBy', { date: day(wipeBy), months: settings.wipeMonths })}
+          </Text>
+        </VStack>
+      </Collapse>
+      {asset.dataBearing && onWiped && (
+        <CheckboxInput label={t('alreadyWiped')} value={alreadyWiped} onChange={setAlreadyWiped} />
+      )}
       <NoteField value={note} onChange={setNote} label={t('note')} hint={t('returnNoteHint')} />
     </ActionDialog>
   );
@@ -344,40 +298,29 @@ function WipeDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChange:
         })
       }
     >
-      <div className="grid gap-2">
-        <Label htmlFor={`${id}-method`}>{t('method')}</Label>
-        <Select value={method} onValueChange={(v) => setMethod(v as WipeMethod)}>
-          <SelectTrigger id={`${id}-method`} className="w-full">
-            <SelectValue placeholder={t('methodPlaceholder')} />
-          </SelectTrigger>
-          <SelectContent>
-            {WIPE_METHODS.map((m) => (
-              <SelectItem key={m} value={m}>
-                {tm(m)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid min-w-0 gap-2">
-          <Label htmlFor={`${id}-when`}>{t('when')}</Label>
-          <Input
-            id={`${id}-when`}
-            type="datetime-local"
-            value={when}
-            aria-describedby={`${id}-when-hint`}
-            onChange={(e) => setWhen(e.target.value)}
-          />
-          <p id={`${id}-when-hint`} className="text-xs text-muted-foreground">
-            {t('whenHint')}
-          </p>
-        </div>
-        <div className="grid min-w-0 gap-2">
-          <Label htmlFor={`${id}-who`}>{t('who')}</Label>
-          <PersonPicker id={`${id}-who`} value={person} onChange={setPerson} placeholder={user.displayName} />
-        </div>
-      </div>
+      <Selector
+        label={t('method')}
+        isRequired
+        placeholder={t('methodPlaceholder')}
+        value={method || undefined}
+        onChange={(v) => setMethod(v as WipeMethod)}
+        options={WIPE_METHODS.map((m) => ({ value: m, label: tm(m) }))}
+      />
+      <DateTimeInput
+        label={t('when')}
+        description={t('whenHint')}
+        value={(when || undefined) as ISODateTimeString | undefined}
+        onChange={(v) => setWhen(v ?? '')}
+      />
+      <Field label={t('who')} inputID={id}>
+        <PersonPicker
+          id={id}
+          aria-label={t('who')}
+          value={person}
+          onChange={setPerson}
+          placeholder={user.displayName}
+        />
+      </Field>
       <NoteField value={note} onChange={setNote} label={t('note')} hint={t('noteHint')} />
     </ActionDialog>
   );
@@ -386,7 +329,6 @@ function WipeDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChange:
 function StatusDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChange: (o: boolean) => void }) {
   const t = useTranslations('itam.actions');
   const ts = useTranslations('itam.status');
-  const id = useId();
   // Deploying is "Assign" (it needs a person); disposing is "Request disposal" (it needs approval).
   const options = (asset.viewer.transitions as AssetStatus[]).filter((s) => s !== 'deployed');
   const [status, setStatus] = useState<AssetStatus | ''>('');
@@ -405,39 +347,29 @@ function StatusDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChang
       open
       onOpenChange={onOpenChange}
       title={t('statusTitle', { tag: asset.tag })}
-      description={
-        <span className="inline-flex flex-wrap items-center gap-1.5">
-          {t('currently')} <AssetStatusBadge status={asset.status} />
-        </span>
-      }
       submitLabel={t('changeStatus')}
       pending={change.isPending}
       disabled={!status}
       onSubmit={() => status && change.mutate({ status, note: note.trim() || null })}
     >
-      <div className="grid gap-2">
-        <Label htmlFor={id}>{t('newStatus')}</Label>
-        <Select value={status} onValueChange={(v) => setStatus(v as AssetStatus)}>
-          <SelectTrigger id={id} className="w-full">
-            <SelectValue placeholder={t('newStatusPlaceholder')} />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((s) => (
-              <SelectItem key={s} value={s}>
-                <AssetStatusBadge status={s} />
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <HStack gap={2} vAlign="center">
+        <Text>{t('currently')}</Text>
+        <AssetStatusBadge status={asset.status} />
+      </HStack>
+      <VStack gap={2}>
+        <Selector
+          label={t('newStatus')}
+          isRequired
+          placeholder={t('newStatusPlaceholder')}
+          value={status || undefined}
+          onChange={(v) => setStatus(v as AssetStatus)}
+          options={options.map((s) => ({ value: s, label: ts(s), icon: ASSET_STATUS[s].icon }))}
+        />
         {asset.assignee && status && !['deployed', 'in_repair', 'lost'].includes(status) && (
-          <p className="text-xs text-muted-foreground">
-            {t('releasesAssignee', { name: asset.assignee.displayName })}
-          </p>
+          <Text type="supporting">{t('releasesAssignee', { name: asset.assignee.displayName })}</Text>
         )}
-        {asset.status === 'retired' && (
-          <p className="text-xs text-muted-foreground">{t('disposalViaRequest')}</p>
-        )}
-      </div>
+        {asset.status === 'retired' && <Text type="supporting">{t('disposalViaRequest')}</Text>}
+      </VStack>
       <NoteField value={note} onChange={setNote} label={t('note')} />
     </ActionDialog>
   );
@@ -471,56 +403,54 @@ function DisposeDialog({ asset, onOpenChange }: { asset: AssetDetail; onOpenChan
     >
       {/* A dry run of the bound disposal workflow, so the notice follows whatever the admin configured. */}
       {preview.data?.securitySignOff && (
-        <p className="flex gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
-          <ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-          {t('securitySignOff')}
-        </p>
+        <Banner status="info" title={t('securitySignOff')} collapsible={false} />
       )}
-      <section aria-labelledby={`${id}-approvers`} aria-busy={preview.isPending} className="grid gap-2">
-        <h3 id={`${id}-approvers`} className="text-sm font-medium">
+      <VStack as="section" gap={2} aria-labelledby={`${id}-approvers`} aria-busy={preview.isPending}>
+        <Heading level={3} id={`${id}-approvers`}>
           {t('approvers')}
-        </h3>
+        </Heading>
         {preview.isError ? (
-          <p role="alert" className="text-sm text-destructive">
+          <Text as="p" role="alert">
             {errorText(preview.error)}
-          </p>
+          </Text>
         ) : !preview.data ? (
           <Skeleton className="h-10 w-full rounded-lg" />
         ) : preview.data.steps.length ? (
-          <ol className="grid gap-2">
+          <List>
             {preview.data.steps.map((s) => (
-              <li key={s.id} className="flex gap-2 text-sm">
-                {s.outcome === 'reject' ? (
-                  <XCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
-                ) : s.outcome === 'ask' ? (
-                  <UserCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                ) : (
-                  <SkipForwardIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-                )}
-                <div className="min-w-0">
-                  <div className="font-medium">{localize(s.name, locale)}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {s.outcome === 'ask'
-                      ? [
-                          s.people
-                            .slice(0, 4)
-                            .map((p) => p.displayName)
-                            .join(', '),
-                          s.people.length > 4 ? t('approversMore', { count: s.people.length - 4 }) : null,
-                          s.people.length > 1 ? `(${t('approversAnyOf')})` : null,
-                        ]
-                          .filter(Boolean)
-                          .join(' ')
-                      : t(s.outcome === 'reject' ? 'approverReject' : 'approverNoApprover')}
-                  </div>
-                </div>
-              </li>
+              <ListItem
+                key={s.id}
+                startContent={
+                  s.outcome === 'reject' ? (
+                    <Icon icon={XCircleIcon} color="error" />
+                  ) : s.outcome === 'ask' ? (
+                    <Icon icon={UserCheckIcon} color="accent" />
+                  ) : (
+                    <Icon icon={SkipForwardIcon} color="secondary" />
+                  )
+                }
+                label={localize(s.name, locale)}
+                description={
+                  s.outcome === 'ask'
+                    ? [
+                        s.people
+                          .slice(0, 4)
+                          .map((p) => p.displayName)
+                          .join(', '),
+                        s.people.length > 4 ? t('approversMore', { count: s.people.length - 4 }) : null,
+                        s.people.length > 1 ? `(${t('approversAnyOf')})` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' ')
+                    : t(s.outcome === 'reject' ? 'approverReject' : 'approverNoApprover')
+                }
+              />
             ))}
-          </ol>
+          </List>
         ) : (
-          <p className="text-sm text-muted-foreground">{t('approversNone')}</p>
+          <Text type="supporting">{t('approversNone')}</Text>
         )}
-      </section>
+      </VStack>
       <NoteField
         value={note}
         onChange={setNote}

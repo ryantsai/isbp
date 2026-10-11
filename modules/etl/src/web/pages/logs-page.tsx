@@ -1,22 +1,27 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CodeBlock } from '@astryxdesign/core/CodeBlock';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, DataTableSummary, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
+import { StatusBadge } from '@isbp/ui/status';
 import { BotIcon, ScrollTextIcon, SearchXIcon, UserIcon, ZapIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
-import { DataApiTabs } from '../section-tabs';
-import { type ReactNode, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   CALL_PERIODS,
   type CallDetail,
@@ -24,47 +29,47 @@ import {
   type CallerDto,
   type EndpointSummary,
 } from '../../contracts';
-import { HttpStatus, TONE } from '../badges';
+import { HttpStatus } from '../badges';
 import { endpointHref, useDuration } from '../lib';
+import { DataApiTabs } from '../section-tabs';
 
 const ALL = '__all__';
 const FILTERS = ['endpoint', 'status', 'caller', 'period', 'q'] as const;
 
+/** A filter select with an "all" entry (a sentinel option: `Selector` has no empty value). */
 function FilterSelect({
   value,
   onChange,
   label,
   allLabel,
-  children,
-  className,
+  options,
+  width = 176,
 }: {
   value: string | undefined;
   onChange: (v: string | undefined) => void;
   label: string;
   allLabel?: string;
-  children: ReactNode;
-  className?: string;
+  options: { value: string; label: string }[];
+  width?: number;
 }) {
   return (
-    <Select value={value ?? ALL} onValueChange={(v) => onChange(v === ALL ? undefined : v)}>
-      <SelectTrigger className={cn('w-full sm:w-44', className)} aria-label={label}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {allLabel && <SelectItem value={ALL}>{allLabel}</SelectItem>}
-        {children}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={label}
+      isLabelHidden
+      width={width}
+      options={allLabel ? [{ value: ALL, label: allLabel }, ...options] : options}
+      value={value ?? ALL}
+      onChange={(v) => onChange(v === ALL ? undefined : v)}
+    />
   );
 }
 
 function CallerName({ caller }: { caller: CallerDto }) {
-  const Icon = caller.type === 'client' ? BotIcon : UserIcon;
   return (
-    <span className="flex min-w-0 items-center gap-1.5">
-      <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-      <span className="truncate">{caller.name}</span>
-    </span>
+    <HStack gap={1.5} vAlign="center" className="min-w-0">
+      <Icon icon={caller.type === 'client' ? BotIcon : UserIcon} color="secondary" />
+      <Text maxLines={1}>{caller.name}</Text>
+    </HStack>
   );
 }
 
@@ -74,12 +79,6 @@ function CallSheet({ id, onClose }: { id: string | null; onClose: () => void }) 
   const tc = useTranslations('common');
   const duration = useDuration();
   const { data } = useApiQuery<CallDetail>(id ? `/etl/calls/${id}` : null);
-  const row = (label: string, value: ReactNode) => (
-    <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] gap-3 py-2 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 wrap-anywhere">{value}</dd>
-    </div>
-  );
   return (
     <Sheet open={id !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent closeLabel={tc('close')} className="sm:max-w-lg">
@@ -93,38 +92,40 @@ function CallSheet({ id, onClose }: { id: string | null; onClose: () => void }) 
           {!data ? (
             <Skeleton className="h-48 w-full" />
           ) : (
-            <div className="grid gap-4">
-              <dl className="divide-y">
-                {row(t('when'), <DateTime date={data.createdAt} />)}
-                {row(
-                  t('endpoint'),
-                  <Link className="text-primary hover:underline" href={endpointHref(data.endpoint.slug)}>
-                    {data.endpoint.name}
-                  </Link>,
-                )}
-                {row(t('caller'), <CallerName caller={data.caller} />)}
-                {row(t('status'), <HttpStatus status={data.status} code={data.errorCode} />)}
-                {row(t('duration'), duration(data.durationMs))}
-                {row(t('rows'), data.rows ?? '—')}
-                {row(t('cache'), data.cached ? t('hit') : t('miss'))}
-                {row(t('requestId'), <code className="font-mono text-xs">{data.requestId ?? '—'}</code>)}
-              </dl>
-              {data.errorMessage && (
-                <p className={cn('rounded-lg px-3 py-2 text-sm wrap-anywhere', TONE.destructive)}>
-                  {data.errorMessage}
-                </p>
-              )}
-              <div className="grid gap-1.5">
-                <span className="text-sm font-medium">{t('params')}</span>
-                <pre
-                  tabIndex={0}
-                  className="max-h-64 overflow-auto rounded-lg border bg-muted/20 p-3 font-mono text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
-                  {JSON.stringify(data.params, null, 2)}
-                </pre>
-                <p className="text-xs text-muted-foreground">{t('maskedHint')}</p>
-              </div>
-            </div>
+            <VStack gap={4}>
+              <MetadataList label={{ position: 'start', width: 136 }}>
+                <MetadataListItem label={t('when')}>
+                  <DateTime date={data.createdAt} />
+                </MetadataListItem>
+                <MetadataListItem label={t('endpoint')}>
+                  <Link href={endpointHref(data.endpoint.slug)}>{data.endpoint.name}</Link>
+                </MetadataListItem>
+                <MetadataListItem label={t('caller')}>
+                  <CallerName caller={data.caller} />
+                </MetadataListItem>
+                <MetadataListItem label={t('status')}>
+                  <HttpStatus status={data.status} code={data.errorCode} />
+                </MetadataListItem>
+                <MetadataListItem label={t('duration')}>{duration(data.durationMs)}</MetadataListItem>
+                <MetadataListItem label={t('rows')}>{data.rows ?? '—'}</MetadataListItem>
+                <MetadataListItem label={t('cache')}>{data.cached ? t('hit') : t('miss')}</MetadataListItem>
+                <MetadataListItem label={t('requestId')}>
+                  <Text type="code">{data.requestId ?? '—'}</Text>
+                </MetadataListItem>
+              </MetadataList>
+              {data.errorMessage && <Banner status="error" title={data.errorMessage} collapsible={false} />}
+              <VStack gap={1.5}>
+                <Text type="label">{t('params')}</Text>
+                <CodeBlock
+                  code={JSON.stringify(data.params, null, 2)}
+                  language="json"
+                  width="100%"
+                  maxHeight="16rem"
+                  isWrapped
+                />
+                <Text type="supporting">{t('maskedHint')}</Text>
+              </VStack>
+            </VStack>
           )}
         </SheetBody>
       </SheetContent>
@@ -170,17 +171,19 @@ export default function LogsPage() {
         header: t('logs.endpoint'),
         meta: { wrap: true, className: 'max-w-72' },
         cell: ({ row }) => (
-          <div className="flex min-w-0 flex-col">
-            <span className="font-medium wrap-anywhere">{row.original.endpoint.name}</span>
-            <span className="font-mono text-xs wrap-anywhere text-muted-foreground">
+          <VStack gap={0} className="min-w-0">
+            <Text weight="medium" className="wrap-anywhere">
+              {row.original.endpoint.name}
+            </Text>
+            <Text type="code" color="secondary" className="wrap-anywhere">
               {row.original.endpoint.slug}
               {row.original.version !== null && ` · v${row.original.version}`}
-            </span>
+            </Text>
             <DataTableSummary>
               <RelativeTime date={row.original.createdAt} />
               <span className="tabular-nums">{duration(row.original.durationMs)}</span>
             </DataTableSummary>
-          </div>
+          </VStack>
         ),
       },
       {
@@ -200,15 +203,10 @@ export default function LogsPage() {
         header: t('logs.duration'),
         meta: { sortKey: 'durationMs', priority: 2, className: 'tabular-nums' },
         cell: ({ row }) => (
-          <span className="flex items-center gap-1">
+          <HStack gap={1} vAlign="center">
             {duration(row.original.durationMs)}
-            {row.original.cached && (
-              <span className={cn('inline-flex items-center gap-0.5 rounded px-1 text-[11px]', TONE.info)}>
-                <ZapIcon className="size-3" aria-hidden />
-                {t('logs.cached')}
-              </span>
-            )}
-          </span>
+            {row.original.cached && <StatusBadge tone="info" icon={ZapIcon} label={t('logs.cached')} />}
+          </HStack>
         ),
       },
       {
@@ -255,56 +253,41 @@ export default function LogsPage() {
               onChange={(v) => set({ endpoint: v })}
               label={t('logs.endpoint')}
               allLabel={t('logs.allEndpoints')}
-              className="sm:w-56"
-            >
-              {endpoints.map((e) => (
-                <SelectItem key={e.id} value={e.id}>
-                  {e.name}
-                </SelectItem>
-              ))}
-            </FilterSelect>
+              options={endpoints.map((e) => ({ value: e.id, label: e.name }))}
+              width={224}
+            />
             <FilterSelect
               value={str('status')}
               onChange={(v) => set({ status: v })}
               label={t('logs.status')}
               allLabel={t('logs.allStatuses')}
-            >
-              <SelectItem value="ok">{t('logs.ok')}</SelectItem>
-              <SelectItem value="error">{t('logs.error')}</SelectItem>
-            </FilterSelect>
+              options={[
+                { value: 'ok', label: t('logs.ok') },
+                { value: 'error', label: t('logs.error') },
+              ]}
+            />
             <FilterSelect
               value={str('caller')}
               onChange={(v) => set({ caller: v })}
               label={t('logs.caller')}
               allLabel={t('logs.allCallers')}
-            >
-              {callers.map((c) => (
-                <SelectItem key={`${c.type}:${c.id}`} value={`${c.type}:${c.id}`}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </FilterSelect>
+              options={callers.map((c) => ({ value: `${c.type}:${c.id}`, label: c.name }))}
+            />
             <FilterSelect
               value={period}
               onChange={(v) => set({ period: v === '7d' ? undefined : v })}
               label={t('logs.period')}
-            >
-              {CALL_PERIODS.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {t(`logs.periods.${p}`)}
-                </SelectItem>
-              ))}
-            </FilterSelect>
+              options={CALL_PERIODS.map((p) => ({ value: p, label: t(`logs.periods.${p}`) }))}
+            />
             {filtered && (
               <Button
+                label={tc('clearFilters')}
                 variant="ghost"
                 size="sm"
                 onClick={() =>
                   set(Object.fromEntries(FILTERS.filter((k) => k !== 'period').map((k) => [k, undefined])))
                 }
-              >
-                {tc('clearFilters')}
-              </Button>
+              />
             )}
           </>
         }

@@ -97,7 +97,7 @@ test('form builder: a table field shows its columns and opens the column editor'
   const columns = page.getByRole('list', { name: 'Columns' });
   await expect(columns.getByRole('listitem')).toHaveCount(3);
   await columns.getByRole('button', { name: /Port/ }).first().click();
-  await expect(page.getByLabel('Minimum')).toBeVisible();
+  await expect(page.getByLabel('Minimum', { exact: true })).toBeVisible();
   await expectAccessible(page);
 });
 
@@ -125,6 +125,8 @@ test('filling in a table: add, fill, move and remove rows; cell errors on the ce
   await expect(row1.getByText('Enter at most 65535')).toBeVisible();
   await expect(row1.getByLabel('Port')).toHaveAttribute('aria-invalid', 'true');
   await row1.getByLabel('Port').fill('443');
+  // A number commits on blur: leave the cell before clicking elsewhere.
+  await row1.getByLabel('Port').press('Tab');
 
   // Move row 2 up, then add and remove a third row.
   await page.getByRole('button', { name: 'Move row 2 up' }).click();

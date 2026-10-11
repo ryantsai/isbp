@@ -2,7 +2,6 @@
 
 import type { AiConfigInfo, AiStatusInfo } from '@isbp/contracts';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
 import { Card, CardContent } from '@isbp/ui/card';
 import { Disclosure, duration, ease, FadeIn } from '@isbp/ui/motion';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -23,6 +22,8 @@ import { motion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useId } from 'react';
 import { modelLabel, useUsd } from './ai-meta';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /**
  * Top of Administration → AI: the mode features run in, whether data leaves the platform, and spend. The embedding
@@ -75,17 +76,23 @@ export function StatusHero({ status, config }: { status?: AiStatusInfo; config?:
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-sm text-muted-foreground">{generative ? t('generative') : t('builtin')}</p>
                 {generative && keyMissing ? (
-                  <Badge variant="warning">
-                    <TriangleAlertIcon aria-hidden /> {t('keyMissing')}
-                  </Badge>
+                  <Badge
+                    variant="warning"
+                    label={t('keyMissing')}
+                    icon={<Icon icon={TriangleAlertIcon} size="xsm" />}
+                  />
                 ) : generative ? (
-                  <Badge variant="success">
-                    <CircleCheckIcon aria-hidden /> {t('on')}
-                  </Badge>
+                  <Badge
+                    variant="success"
+                    label={t('on')}
+                    icon={<Icon icon={CircleCheckIcon} size="xsm" />}
+                  />
                 ) : (
-                  <Badge variant="muted">
-                    <CircleMinusIcon aria-hidden /> {t('noModel')}
-                  </Badge>
+                  <Badge
+                    variant="neutral"
+                    label={t('noModel')}
+                    icon={<Icon icon={CircleMinusIcon} size="xsm" />}
+                  />
                 )}
               </div>
               <h2 className="text-lg font-semibold tracking-tight break-words">

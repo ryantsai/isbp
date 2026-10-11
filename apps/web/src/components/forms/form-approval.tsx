@@ -8,34 +8,14 @@ import type {
 } from '@isbp/contracts';
 import { type FieldDef, localize, newStepId, type WorkflowGraph } from '@isbp/sdk';
 import { useApi, useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
-import { FadeIn } from '@isbp/ui/motion';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
-import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
 import { IconTile } from '@isbp/ui/icon-tile';
-import {
-  ArrowUpRightIcon,
-  InfoIcon,
-  LockIcon,
-  TriangleAlertIcon,
-  UserCheckIcon,
-  WorkflowIcon,
-} from 'lucide-react';
-import Link from 'next/link';
+import { FadeIn } from '@isbp/ui/motion';
+import { Skeleton } from '@isbp/ui/skeleton';
+import { toast } from '@isbp/ui/toast';
+import { ArrowUpRightIcon, LockIcon, UserCheckIcon, WorkflowIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useId, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { invalidatePaths, useErrorText } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { RepeatApproversField } from '@/components/workflows/repeat-approvers-field';
@@ -46,6 +26,13 @@ import {
   WorkflowCanvas,
   type WorkflowEditor,
 } from '@/components/workflows/workflow-editor';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { TextInput } from '@astryxdesign/core/TextInput';
 
 const NO_APPROVAL = '__none__';
 
@@ -109,7 +96,6 @@ export function FormApproval({
   const client = useQueryClient();
   const errorText = useErrorText();
   const display = useWorkflowName();
-  const uid = useId();
   const canRead = useCan('core.workflows.read');
   const canManage = useCan('core.workflows.manage');
   const [creating, setCreating] = useState(false);
@@ -138,45 +124,37 @@ export function FormApproval({
   };
 
   const picker = (
-    <div className="grid gap-1.5">
-      <Label htmlFor={`${uid}-pick`} className="text-xs font-normal text-muted-foreground">
-        {workflowId ? t('change') : t('useExisting')}
-      </Label>
-      <Select
-        value={workflowId ?? NO_APPROVAL}
-        onValueChange={(v) => onLink(v === NO_APPROVAL ? null : v)}
-        disabled={readOnly}
-      >
-        <SelectTrigger id={`${uid}-pick`} className="w-full sm:w-72">
-          <SelectValue placeholder={t('pick')} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={NO_APPROVAL}>{t('none')}</SelectItem>
-          <SelectSeparator />
-          {workflowId && !usable.some((w) => w.id === workflowId) && (
-            <SelectItem value={workflowId}>{editor?.name || t('pick')}</SelectItem>
-          )}
-          {usable.map((w) => (
-            <SelectItem key={w.id} value={w.id}>
-              {display(w.name)}
-              {w.publishedVersion === null && (
-                <Badge variant="muted" className="ml-1">
-                  {t('notPublished')}
-                </Badge>
-              )}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <Selector
+      label={workflowId ? t('change') : t('useExisting')}
+      width={288}
+      value={workflowId ?? NO_APPROVAL}
+      onChange={(v) => onLink(v === NO_APPROVAL ? null : v)}
+      isDisabled={readOnly}
+      placeholder={t('pick')}
+      options={[
+        { value: NO_APPROVAL, label: t('none') },
+        { type: 'divider' },
+        ...(workflowId && !usable.some((w) => w.id === workflowId)
+          ? [{ value: workflowId, label: editor?.name || t('pick') }]
+          : []),
+        ...usable.map((w) => ({
+          value: w.id,
+          label: display(w.name),
+          description: w.publishedVersion === null ? t('notPublished') : undefined,
+        })),
+      ]}
+    />
   );
 
   if (!canRead)
     return (
       <Card className="mx-auto w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <LockIcon className="size-4" aria-hidden /> {t('title')}
+          <CardTitle>
+            <HStack gap={2} vAlign="center">
+              <Icon icon={LockIcon} />
+              {t('title')}
+            </HStack>
           </CardTitle>
           <CardDescription>
             {form.workflow ? t('noAccessNamed', { name: display(form.workflow.name) }) : t('noAccess')}
@@ -189,27 +167,35 @@ export function FormApproval({
     return (
       <FadeIn>
         <Card className="mx-auto w-full max-w-2xl">
-          <CardHeader className="flex items-start gap-3">
-            <IconTile aria-hidden>
-              <UserCheckIcon className="size-5" aria-hidden />
-            </IconTile>
-            <div className="grid gap-1">
-              <CardTitle className="text-base">
-                <h2>{t('emptyTitle')}</h2>
-              </CardTitle>
-              <CardDescription>{t('emptyDescription')}</CardDescription>
-            </div>
+          <CardHeader>
+            <HStack gap={3} vAlign="start">
+              <IconTile aria-hidden>
+                <UserCheckIcon />
+              </IconTile>
+              <StackItem size="fill">
+                <VStack gap={1}>
+                  <Heading level={2}>{t('emptyTitle')}</Heading>
+                  <CardDescription>{t('emptyDescription')}</CardDescription>
+                </VStack>
+              </StackItem>
+            </HStack>
           </CardHeader>
-          <CardContent className="grid gap-5">
-            {canManage && !readOnly && (
-              <div className="grid gap-1.5 justify-items-start">
-                <Button onClick={() => void create()} loading={creating}>
-                  <WorkflowIcon /> {t('setUp')}
-                </Button>
-                <p className="text-xs text-muted-foreground">{t('setUpHint')}</p>
-              </div>
-            )}
-            {usable.length > 0 && picker}
+          <CardContent>
+            <VStack gap={5} hAlign="start">
+              {canManage && !readOnly && (
+                <VStack gap={1.5} hAlign="start">
+                  <Button
+                    label={t('setUp')}
+                    variant="primary"
+                    icon={<Icon icon={WorkflowIcon} />}
+                    isLoading={creating}
+                    onClick={() => void create()}
+                  />
+                  <Text type="supporting">{t('setUpHint')}</Text>
+                </VStack>
+              )}
+              {usable.length > 0 && picker}
+            </VStack>
           </CardContent>
         </Card>
       </FadeIn>
@@ -232,64 +218,51 @@ export function FormApproval({
 
   return (
     <FadeIn className="grid gap-4">
-      <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <span className="mt-5 grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-            <WorkflowIcon className="size-4" aria-hidden />
-          </span>
-          <div className="grid min-w-0 flex-1 gap-1.5">
-            <Label htmlFor={`${uid}-name`} className="text-xs font-normal text-muted-foreground">
-              {t('name')}
-            </Label>
-            <Input
-              id={`${uid}-name`}
-              value={editor.name}
-              disabled={editor.readOnly || readOnly}
-              onChange={(e) => editor.setName(e.target.value)}
-              className="h-8 max-w-md font-medium"
-            />
-            <p className="text-xs text-muted-foreground" aria-live="polite">
-              {status}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-end gap-2">
-          {picker}
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={`/admin/workflows/${workflowId}`}>
-              <ArrowUpRightIcon /> {t('openDesigner')}
-            </Link>
-          </Button>
-        </div>
-      </div>
+      <Card>
+        <CardContent>
+          <HStack gap={3} wrap="wrap" vAlign="end" hAlign="between">
+            <StackItem size="fill">
+              <VStack gap={1.5}>
+                <TextInput
+                  label={t('name')}
+                  value={editor.name}
+                  isDisabled={editor.readOnly || readOnly}
+                  onChange={editor.setName}
+                />
+                <Text type="supporting" aria-live="polite">
+                  {status}
+                </Text>
+              </VStack>
+            </StackItem>
+            <HStack gap={2} wrap="wrap" vAlign="end">
+              {picker}
+              <Button
+                label={t('openDesigner')}
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={ArrowUpRightIcon} />}
+                href={`/admin/workflows/${workflowId}`}
+              />
+            </HStack>
+          </HStack>
+        </CardContent>
+      </Card>
 
       {sharedWith.length > 0 && (
-        <p className="flex items-start gap-2 rounded-lg bg-info/10 px-3 py-2 text-sm text-info">
-          <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t('shared', {
+        <Banner
+          status="info"
+          collapsible={false}
+          title={t('shared', {
             count: sharedWith.length,
             names: sharedWith.map((f) => localize(f.name, locale) || f.key).join(', '),
           })}
-        </p>
+        />
       )}
-      {pendingLink && (
-        <p className="flex items-start gap-2 rounded-lg bg-info/10 px-3 py-2 text-sm text-info">
-          <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t('pendingLink')}
-        </p>
-      )}
+      {pendingLink && <Banner status="info" collapsible={false} title={t('pendingLink')} />}
       {editor.readOnly && !editor.def.archived && (
-        <p className="flex items-start gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-          <LockIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t('readOnly')}
-        </p>
+        <Banner status="info" collapsible={false} icon={<Icon icon={LockIcon} />} title={t('readOnly')} />
       )}
-      {editor.def.archived && (
-        <p className="flex items-start gap-2 rounded-lg bg-warning/10 px-3 py-2 text-sm text-warning-foreground">
-          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t('archived')}
-        </p>
-      )}
+      {editor.def.archived && <Banner status="warning" collapsible={false} title={t('archived')} />}
       {checks}
 
       <WorkflowCanvas

@@ -1,6 +1,4 @@
 'use client';
-
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useApiQuery } from '@isbp/ui/query';
 import { AlarmClockIcon, ArrowRightIcon, DatabaseIcon } from 'lucide-react';
@@ -8,6 +6,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { MySummary } from '../../contracts';
 import { useDate, useLocalized } from '../lib';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /**
  * `core.dashboard.work`: "Access expiring soon" for the person's own database access, with Extend. Reviews awaiting
@@ -28,12 +28,13 @@ export default function DatabaseAccessWork() {
         </CardTitle>
         <CardDescription>{t('expiringDescription', { count: data.expiring.length })}</CardDescription>
         <CardAction>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/dbaccess">
-              {t('open')}
-              <ArrowRightIcon />
-            </Link>
-          </Button>
+          <Button
+            label={t('open')}
+            variant="ghost"
+            size="sm"
+            endContent={<Icon icon={ArrowRightIcon} />}
+            href="/dbaccess"
+          />
         </CardAction>
       </CardHeader>
       <CardContent className="grid gap-4">

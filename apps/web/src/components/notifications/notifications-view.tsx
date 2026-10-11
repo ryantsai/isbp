@@ -1,22 +1,26 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Item } from '@astryxdesign/core/Item';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import type { Notification, NotificationPage } from '@isbp/contracts';
 import { useApi } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { Hint } from '@isbp/ui/tooltip';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { BellOffIcon, CheckCheckIcon, CheckIcon, Settings2Icon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useFormatter, useNow, useTimeZone, useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { RelativeTime } from '@/components/relative-time';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { TypeIcon, useTypeLabel } from './notification-meta';
@@ -46,6 +50,11 @@ interface DayGroup {
   items: Notification[];
 }
 
+/** A list count, capped so the segment stays narrow. */
+function count(value: number) {
+  return value > 999 ? '999+' : String(value);
+}
+
 /** The personal inbox: everything notified to me, grouped by day, live-updated by the shell's SSE. */
 export function NotificationsView() {
   const t = useTranslations('notifications');
@@ -60,7 +69,7 @@ export function NotificationsView() {
   // Optimistic "read" marks so the dot disappears before the refetch lands.
   const [readLocally, setReadLocally] = useState<ReadonlySet<string>>(new Set());
 
-  // Counts for both tabs (cheap; refreshed with every live update like the list itself).
+  // Counts for both views (cheap; refreshed with every live update like the list itself).
   const counts = useApiQuery<NotificationPage>(PATH, { pageSize: 1 });
   const list = useInfiniteQuery({
     queryKey: [PATH, { view, pageSize: PAGE_SIZE, infinite: true }],
@@ -155,7 +164,7 @@ export function NotificationsView() {
 
   const loading = list.isLoading;
 
-  // One panel per tab (Radix renders only the active one), so each trigger controls a real panel.
+  // One list; the control above only filters it (all / unread).
   const panel = (
     <div aria-busy={loading} className="pt-2">
       {loading && !items.length ? (
@@ -169,9 +178,12 @@ export function NotificationsView() {
               description={t('empty.unreadBody')}
               action={
                 total > 0 ? (
-                  <Button variant="outline" size="sm" onClick={() => setView('all')}>
-                    {t('empty.viewAll')}
-                  </Button>
+                  <Button
+                    label={t('empty.viewAll')}
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setView('all')}
+                  />
                 ) : undefined
               }
             />
@@ -180,7 +192,7 @@ export function NotificationsView() {
           )}
         </motion.div>
       ) : (
-        <div className="space-y-5">
+        <VStack gap={5}>
           <AnimatePresence initial={false}>
             {groups.map((g) => (
               <motion.section
@@ -191,12 +203,15 @@ export function NotificationsView() {
                 exit={{ opacity: 0 }}
                 aria-labelledby={`day-${g.key}`}
               >
-                <h2
+                <Heading
+                  level={2}
                   id={`day-${g.key}`}
-                  className="sticky top-14 z-10 -mx-1 mb-1 bg-background/85 px-1 py-1.5 text-xs font-semibold text-muted-foreground backdrop-blur supports-[backdrop-filter]:bg-background/70"
+                  weight="semibold"
+                  color="secondary"
+                  className="sticky top-14 z-10 -mx-1 mb-1 bg-background/85 px-1 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-background/70"
                 >
                   {dayLabel(g)}
-                </h2>
+                </Heading>
                 <ul className="space-y-1">
                   <AnimatePresence initial={false}>
                     {g.items.map((n) => (
@@ -212,22 +227,21 @@ export function NotificationsView() {
               </motion.section>
             ))}
           </AnimatePresence>
-          <div className="flex flex-col items-center gap-2 pt-2 pb-4">
-            <p className="text-xs text-muted-foreground" aria-live="polite">
+          <VStack gap={2} hAlign="center" className="pt-2 pb-4">
+            <Text type="supporting" color="secondary" aria-live="polite">
               {t('showing', { shown: items.length, total: listTotal })}
-            </p>
+            </Text>
             {list.hasNextPage && (
               <Button
-                variant="outline"
+                label={t('loadMore')}
+                variant="secondary"
                 size="sm"
+                isLoading={list.isFetchingNextPage}
                 onClick={() => void list.fetchNextPage()}
-                loading={list.isFetchingNextPage}
-              >
-                {t('loadMore')}
-              </Button>
+              />
             )}
-          </div>
-        </div>
+          </VStack>
+        </VStack>
       )}
     </div>
   );
@@ -239,57 +253,31 @@ export function NotificationsView() {
         description={t('description')}
         actions={
           <>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/settings#notifications">
-                <Settings2Icon /> {t('settingsLink')}
-              </Link>
-            </Button>
             <Button
-              variant="outline"
+              label={t('settingsLink')}
+              variant="ghost"
               size="sm"
-              disabled={!unread}
-              loading={markAll.isPending}
+              icon={<Icon icon={Settings2Icon} />}
+              href="/settings#notifications"
+            />
+            <Button
+              label={t('markAllRead')}
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={CheckCheckIcon} />}
+              isDisabled={!unread}
+              isLoading={markAll.isPending}
               onClick={() => markAll.mutate(undefined)}
-            >
-              {!markAll.isPending && <CheckCheckIcon />} {t('markAllRead')}
-            </Button>
+            />
           </>
         }
       />
-      <Tabs value={view} onValueChange={setView} className="gap-0">
-        <TabsList aria-label={t('tabs.label')} className="w-full">
-          <TabsTrigger value="all">
-            {t('tabs.all')}
-            <CountPill value={total} active={view === 'all'} />
-          </TabsTrigger>
-          <TabsTrigger value="unread">
-            {t('tabs.unread')}
-            <CountPill value={unread} active={view === 'unread'} highlight={unread > 0} />
-          </TabsTrigger>
-        </TabsList>
-        {(['all', 'unread'] as const).map((v) => (
-          <TabsContent key={v} value={v}>
-            {panel}
-          </TabsContent>
-        ))}
-      </Tabs>
+      <SegmentedControl label={t('tabs.label')} value={view} onChange={setView} layout="fill">
+        <SegmentedControlItem value="all" label={`${t('tabs.all')} ${count(total)}`} />
+        <SegmentedControlItem value="unread" label={`${t('tabs.unread')} ${count(unread)}`} />
+      </SegmentedControl>
+      {panel}
     </div>
-  );
-}
-
-function CountPill({ value, active, highlight }: { value: number; active: boolean; highlight?: boolean }) {
-  return (
-    <motion.span
-      key={value}
-      initial={{ scale: 0.8, opacity: 0.4 }}
-      animate={{ scale: 1, opacity: 1 }}
-      className={cn(
-        'min-w-5 rounded-full px-1.5 text-center text-[11px] leading-5 font-medium tabular-nums',
-        highlight ? 'bg-primary text-primary-foreground' : active ? 'bg-accent text-foreground' : 'bg-muted',
-      )}
-    >
-      {value > 999 ? '999+' : value}
-    </motion.span>
   );
 }
 
@@ -323,15 +311,8 @@ export function plainText(s: string): string {
 function NotificationRow({ n, unread, onOpen }: { n: Notification; unread: boolean; onOpen: () => void }) {
   const t = useTranslations('notifications');
   const typeLabel = useTypeLabel();
-  const label = (
-    <>
-      {unread && <span className="sr-only">{t('unread')} </span>}
-      {plainText(n.title)}
-    </>
-  );
-  // The title is the row's main control; its ::after stretches over the row so the whole card clicks.
-  const titleClass =
-    'rounded-sm outline-none after:absolute after:inset-0 after:rounded-lg after:content-[""] focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50';
+  // The title owns the row's keyboard access; the row hands clicks anywhere else on it to this control.
+  const titleRef = useRef<HTMLAnchorElement | HTMLButtonElement>(null);
 
   return (
     <motion.li
@@ -340,68 +321,80 @@ function NotificationRow({ n, unread, onOpen }: { n: Notification; unread: boole
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: 24, transition: { duration: 0.2 } }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className={cn(
-        'group relative flex gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-muted/60',
-        unread && 'bg-primary/[0.04] dark:bg-primary/[0.07]',
-      )}
     >
-      <div className="relative">
-        <TypeIcon type={n.type} />
-        <AnimatePresence initial={false}>
-          {unread && (
-            <motion.span
-              aria-hidden
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-              className="absolute -top-1 -left-1 size-2.5 rounded-full bg-primary ring-2 ring-background"
-            />
-          )}
-        </AnimatePresence>
-      </div>
-      <div className="min-w-0 flex-1">
-        <p
-          className={cn('text-sm leading-snug', unread ? 'font-semibold' : 'font-medium text-foreground/90')}
-        >
-          {n.href ? (
-            <Link href={n.href} onClick={onOpen} className={titleClass}>
-              {label}
-            </Link>
-          ) : (
-            <button type="button" onClick={onOpen} className={cn(titleClass, 'text-left')}>
-              {label}
-            </button>
-          )}
-        </p>
-        {n.body && <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{plainText(n.body)}</p>}
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
-          {n.actorName && (
-            <>
-              <span className="inline-flex min-w-0 items-center gap-1.5">
-                <UserAvatar name={n.actorName} className="size-5 text-[9px]" />
-                <span className="truncate">{n.actorName}</span>
+      <Item
+        className="group"
+        align="start"
+        isHighlighted={unread}
+        interactiveRef={titleRef}
+        startContent={
+          <div className="relative">
+            <TypeIcon type={n.type} />
+            {unread && (
+              <span className="absolute -top-1 -left-1">
+                <StatusDot variant="accent" label={t('unread')} aria-hidden />
               </span>
-              <span aria-hidden>·</span>
-            </>
-          )}
-          <RelativeTime date={n.createdAt} />
-          <span aria-hidden>·</span>
-          <span className="truncate">{typeLabel(n.type)}</span>
-        </div>
-      </div>
-      {unread && (
-        <Hint label={t('markRead')}>
-          <Button
-            variant="ghost"
-            size="icon-sm"
+            )}
+          </div>
+        }
+        label={
+          <Link
+            ref={titleRef}
+            href={n.href ?? undefined}
             onClick={onOpen}
-            aria-label={t('markReadLabel', { title: n.title })}
-            className="relative z-10 shrink-0 self-center sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+            color="primary"
+            weight={unread ? 'semibold' : 'medium'}
           >
-            <CheckIcon />
-          </Button>
-        </Hint>
-      )}
+            {unread && <span className="sr-only">{t('unread')} </span>}
+            {plainText(n.title)}
+          </Link>
+        }
+        description={
+          <VStack gap={1.5}>
+            {n.body && (
+              <Text type="supporting" color="secondary" maxLines={2}>
+                {plainText(n.body)}
+              </Text>
+            )}
+            <HStack gap={1.5} vAlign="center" wrap="wrap" className="min-w-0">
+              {n.actorName && (
+                <>
+                  <HStack gap={1.5} vAlign="center" className="min-w-0">
+                    <UserAvatar name={n.actorName} className="size-5 text-[9px]" />
+                    <Text type="supporting" color="secondary" maxLines={1}>
+                      {n.actorName}
+                    </Text>
+                  </HStack>
+                  <Text type="supporting" color="secondary" aria-hidden>
+                    ·
+                  </Text>
+                </>
+              )}
+              <Text type="supporting" color="secondary">
+                <RelativeTime date={n.createdAt} />
+              </Text>
+              <Text type="supporting" color="secondary" aria-hidden>
+                ·
+              </Text>
+              <Text type="supporting" color="secondary" maxLines={1}>
+                {typeLabel(n.type)}
+              </Text>
+            </HStack>
+          </VStack>
+        }
+        endContent={
+          unread ? (
+            <IconButton
+              label={t('markReadLabel', { title: n.title })}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={CheckIcon} />}
+              onClick={onOpen}
+              className="sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+            />
+          ) : undefined
+        }
+      />
     </motion.li>
   );
 }

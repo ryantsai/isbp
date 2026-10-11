@@ -1,14 +1,19 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { pixel, proportional, Table } from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
 import type { AiUsageReport } from '@isbp/contracts';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
+import { StatTile } from '@isbp/ui/stat-tile';
 import {
   ActivityIcon,
   BanIcon,
@@ -30,7 +35,6 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useState } from 'react';
 import { DateTime } from '@/components/relative-time';
-import { Segmented } from '@/components/roles/segmented';
 import { useApiQuery } from '@/lib/api';
 import { USAGE_PATH, modelLabel, useUsd } from './ai-meta';
 import { DailyChart, type Measure } from './cost-chart';
@@ -56,13 +60,11 @@ export function UsagePanel() {
 
   return (
     <div className="space-y-5">
-      <Segmented
-        label={t('range')}
-        value={String(days) as `${Range}`}
-        onChange={(v) => setDays(Number(v) as Range)}
-        options={RANGES.map((d) => ({ value: String(d) as `${Range}`, label: t('days', { count: d }) }))}
-        className="w-fit"
-      />
+      <SegmentedControl label={t('range')} value={String(days)} onChange={(v) => setDays(Number(v) as Range)}>
+        {RANGES.map((d) => (
+          <SegmentedControlItem key={d} value={String(d)} label={t('days', { count: d })} />
+        ))}
+      </SegmentedControl>
       {!data ? (
         <UsageSkeleton />
       ) : (
@@ -122,7 +124,7 @@ function Kpis({ report }: { report: AiUsageReport }) {
         label={t('errors')}
         value={n(x.errors + x.blocked)}
         hint={t('errorsHint', { errors: x.errors, blocked: x.blocked })}
-        tone={x.errors + x.blocked > 0 ? 'warning' : 'primary'}
+        tone={x.errors + x.blocked > 0 ? 'warning' : 'default'}
       />
       <Kpi icon={<WrenchIcon />} label={t('toolCalls')} value={n(x.toolCalls)} hint={t('toolCallsHint')} />
     </Stagger>
@@ -134,34 +136,17 @@ function Kpi({
   label,
   value,
   hint,
-  tone = 'primary',
+  tone = 'default',
 }: {
   icon: ReactNode;
   label: string;
   value: string;
   hint: string;
-  tone?: 'primary' | 'warning';
+  tone?: 'default' | 'warning';
 }) {
   return (
     <StaggerItem className="min-w-0">
-      <Card className="h-full gap-2 py-4">
-        <CardContent className="space-y-1 px-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-sm text-muted-foreground">{label}</p>
-            <span
-              className={cn(
-                'grid size-7 shrink-0 place-items-center rounded-md [&_svg]:size-3.5',
-                tone === 'warning' ? 'bg-warning/15 text-warning-foreground' : 'bg-primary/10 text-primary',
-              )}
-              aria-hidden
-            >
-              {icon}
-            </span>
-          </div>
-          <p className="truncate text-xl font-semibold tracking-tight">{value}</p>
-          <p className="text-xs text-muted-foreground">{hint}</p>
-        </CardContent>
-      </Card>
+      <StatTile icon={icon} label={label} value={value} hint={hint} tone={tone} className="h-full" />
     </StaggerItem>
   );
 }
@@ -183,28 +168,20 @@ function DailyCard({ report, className }: { report: AiUsageReport; className?: s
         <CardDescription>{t('description')}</CardDescription>
         <CardAction>
           <Button
-            type="button"
+            label={view === 'chart' ? t('showTable') : t('showChart')}
             variant="ghost"
             size="sm"
+            icon={<Icon icon={view === 'chart' ? TableIcon : ChartColumnIcon} />}
             onClick={() => setView((v) => (v === 'chart' ? 'table' : 'chart'))}
-          >
-            {view === 'chart' ? <TableIcon aria-hidden /> : <ChartColumnIcon aria-hidden />}
-            {view === 'chart' ? t('showTable') : t('showChart')}
-          </Button>
+          />
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
         {view === 'chart' && (
-          <Segmented
-            label={t('measure')}
-            value={effective}
-            onChange={setMeasure}
-            options={[
-              { value: 'cost', label: t('cost') },
-              { value: 'calls', label: t('calls') },
-            ]}
-            className="w-fit"
-          />
+          <SegmentedControl label={t('measure')} value={effective} onChange={(v) => setMeasure(v as Measure)}>
+            <SegmentedControlItem value="cost" label={t('cost')} />
+            <SegmentedControlItem value="calls" label={t('calls')} />
+          </SegmentedControl>
         )}
         {hasCalls || view === 'table' ? (
           <DailyChart data={report.daily} measure={effective} view={view} />
@@ -234,10 +211,6 @@ function useModuleName() {
   };
 }
 
-function Num({ children, className }: { children: ReactNode; className?: string }) {
-  return <TableCell className={cn('text-right tabular-nums', className)}>{children}</TableCell>;
-}
-
 function TableCard({
   title,
   description,
@@ -260,7 +233,13 @@ function TableCard({
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent className={isEmpty ? undefined : 'px-0'}>
-        {isEmpty ? <p className="py-6 text-center text-sm text-muted-foreground">{empty}</p> : children}
+        {isEmpty ? (
+          <Text as="p" display="block" color="secondary" justify="center">
+            {empty}
+          </Text>
+        ) : (
+          children
+        )}
       </CardContent>
     </Card>
   );
@@ -278,48 +257,73 @@ function ByFeature({ report }: { report: AiUsageReport }) {
       empty={t('empty')}
       isEmpty={!report.byFeature.length}
     >
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="pl-5">{t('module')}</TableHead>
-            <TableHead>{t('feature')}</TableHead>
-            <TableHead className="text-right">{t('calls')}</TableHead>
-            <TableHead className="text-right">{t('tokens')}</TableHead>
-            <TableHead className="text-right">{t('cost')}</TableHead>
-            <TableHead className="text-right">{t('latency')}</TableHead>
-            <TableHead className="pr-5 text-right">{t('errors')}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {report.byFeature.map((r) => (
-            <TableRow key={`${r.moduleId}/${r.feature}`}>
-              <TableCell className="pl-5">{moduleName(r.moduleId)}</TableCell>
-              <TableCell>
-                <code className="font-mono text-xs">{r.feature}</code>
-              </TableCell>
-              <Num>{format.number(r.calls)}</Num>
-              <Num>
-                {t('tokensValue', {
-                  input: format.number(r.inputTokens),
-                  output: format.number(r.outputTokens),
-                })}
-              </Num>
-              <Num>{usd(r.costUsd)}</Num>
-              <Num>{r.avgLatencyMs == null ? '—' : t('ms', { ms: r.avgLatencyMs })}</Num>
-              <Num className={cn('pr-5', r.errors > 0 && 'text-destructive')}>
-                {r.errors > 0 ? (
-                  <span className="inline-flex items-center gap-1">
-                    <CircleXIcon className="size-3.5" aria-hidden />
-                    {format.number(r.errors)}
-                  </span>
-                ) : (
-                  0
-                )}
-              </Num>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <Table
+        aria-label={t('title')}
+        density="compact"
+        idKey={(r) => `${r.moduleId}/${r.feature}`}
+        data={report.byFeature}
+        columns={[
+          {
+            key: 'module',
+            header: t('module'),
+            width: proportional(1, { minWidth: 120 }),
+            renderCell: (r) => moduleName(r.moduleId),
+          },
+          {
+            key: 'feature',
+            header: t('feature'),
+            width: proportional(1, { minWidth: 140 }),
+            renderCell: (r) => <Text type="code">{r.feature}</Text>,
+          },
+          {
+            key: 'calls',
+            header: t('calls'),
+            align: 'end',
+            width: pixel(80),
+            renderCell: (r) => format.number(r.calls),
+          },
+          {
+            key: 'tokens',
+            header: t('tokens'),
+            align: 'end',
+            width: proportional(1, { minWidth: 120 }),
+            renderCell: (r) =>
+              t('tokensValue', {
+                input: format.number(r.inputTokens),
+                output: format.number(r.outputTokens),
+              }),
+          },
+          {
+            key: 'cost',
+            header: t('cost'),
+            align: 'end',
+            width: pixel(88),
+            renderCell: (r) => usd(r.costUsd),
+          },
+          {
+            key: 'latency',
+            header: t('latency'),
+            align: 'end',
+            width: pixel(112),
+            renderCell: (r) => (r.avgLatencyMs == null ? '—' : t('ms', { ms: r.avgLatencyMs })),
+          },
+          {
+            key: 'errors',
+            header: t('errors'),
+            align: 'end',
+            width: pixel(80),
+            renderCell: (r) =>
+              r.errors > 0 ? (
+                <HStack gap={1} hAlign="end" vAlign="center">
+                  <Icon icon={CircleXIcon} color="error" size="xsm" />
+                  {format.number(r.errors)}
+                </HStack>
+              ) : (
+                0
+              ),
+          },
+        ]}
+      />
     </TableCard>
   );
 }
@@ -331,27 +335,43 @@ function ByModel({ report }: { report: AiUsageReport }) {
   const provider = useProviderLabel();
   return (
     <TableCard title={t('title')} empty={t('empty')} isEmpty={!report.byModel.length}>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="pl-5">{t('model')}</TableHead>
-            <TableHead className="text-right">{t('calls')}</TableHead>
-            <TableHead className="pr-5 text-right">{t('cost')}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {report.byModel.map((r) => (
-            <TableRow key={`${r.provider}/${r.model ?? ''}`}>
-              <TableCell className="pl-5">
-                <span className="block font-medium">{r.model ? modelLabel(r.model) : '—'}</span>
-                <span className="block text-xs text-muted-foreground">{provider(r.provider)}</span>
-              </TableCell>
-              <Num>{format.number(r.calls)}</Num>
-              <Num className="pr-5">{usd(r.costUsd)}</Num>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <Table
+        aria-label={t('title')}
+        density="compact"
+        idKey={(r) => `${r.provider}/${r.model ?? ''}`}
+        data={report.byModel}
+        columns={[
+          {
+            key: 'model',
+            header: t('model'),
+            width: proportional(2, { minWidth: 120 }),
+            renderCell: (r) => (
+              <>
+                <Text as="div" display="block" weight="medium">
+                  {r.model ? modelLabel(r.model) : '—'}
+                </Text>
+                <Text as="div" display="block" type="supporting" color="secondary">
+                  {provider(r.provider)}
+                </Text>
+              </>
+            ),
+          },
+          {
+            key: 'calls',
+            header: t('calls'),
+            align: 'end',
+            width: pixel(72),
+            renderCell: (r) => format.number(r.calls),
+          },
+          {
+            key: 'cost',
+            header: t('cost'),
+            align: 'end',
+            width: pixel(88),
+            renderCell: (r) => usd(r.costUsd),
+          },
+        ]}
+      />
     </TableCard>
   );
 }
@@ -360,52 +380,34 @@ function StatusBadge({ status }: { status: AiUsageReport['recent'][number]['stat
   const t = useTranslations('ai.usage.recent.statuses');
   switch (status) {
     case 'ok':
-      return (
-        <Badge variant="success">
-          <CircleCheckIcon aria-hidden /> {t('ok')}
-        </Badge>
-      );
+      return <Badge variant="success" label={t('ok')} icon={<Icon icon={CircleCheckIcon} size="xsm" />} />;
     case 'error':
-      return (
-        <Badge variant="destructive">
-          <CircleXIcon aria-hidden /> {t('error')}
-        </Badge>
-      );
+      return <Badge variant="error" label={t('error')} icon={<Icon icon={CircleXIcon} size="xsm" />} />;
     case 'blocked':
-      return (
-        <Badge variant="warning">
-          <BanIcon aria-hidden /> {t('blocked')}
-        </Badge>
-      );
+      return <Badge variant="warning" label={t('blocked')} icon={<Icon icon={BanIcon} size="xsm" />} />;
     default:
-      return (
-        <Badge variant="warning">
-          <BanIcon aria-hidden /> {t('refused')}
-        </Badge>
-      );
+      return <Badge variant="warning" label={t('refused')} icon={<Icon icon={BanIcon} size="xsm" />} />;
   }
 }
 
 function Principal({ principal }: { principal: AiUsageReport['recent'][number]['principal'] }) {
   const t = useTranslations('ai.usage.recent.principals');
   const icon =
-    principal.type === 'ai_agent' ? (
-      <BotIcon className="size-3.5 shrink-0 text-primary" aria-hidden />
-    ) : principal.type === 'user' ? (
-      <UserIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-    ) : principal.type === 'service' ? (
-      <KeyRoundIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-    ) : (
-      <SettingsIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-    );
+    principal.type === 'ai_agent'
+      ? BotIcon
+      : principal.type === 'user'
+        ? UserIcon
+        : principal.type === 'service'
+          ? KeyRoundIcon
+          : SettingsIcon;
   const fallback =
     principal.type === 'system' ? t('system') : principal.type === 'service' ? t('service') : t('unknown');
   return (
-    <span className="inline-flex items-center gap-1.5">
-      {icon}
+    <HStack gap={1.5} vAlign="center">
+      <Icon icon={icon} color={principal.type === 'ai_agent' ? 'accent' : 'secondary'} size="xsm" />
       {principal.name ?? fallback}
       {principal.type === 'ai_agent' && <span className="sr-only">{t('agent')}</span>}
-    </span>
+    </HStack>
   );
 }
 
@@ -420,61 +422,94 @@ function RecentCalls({ report }: { report: AiUsageReport }) {
       empty={t('empty')}
       isEmpty={!report.recent.length}
     >
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="pl-5">{t('time')}</TableHead>
-            <TableHead>{t('feature')}</TableHead>
-            <TableHead>{t('principal')}</TableHead>
-            <TableHead>{t('model')}</TableHead>
-            <TableHead className="text-right">{t('tokens')}</TableHead>
-            <TableHead className="text-right">{t('cost')}</TableHead>
-            <TableHead className="text-right">{t('latency')}</TableHead>
-            <TableHead className="pr-5">{t('status')}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {report.recent.map((r) => (
-            <TableRow key={r.id}>
-              <TableCell className="pl-5 text-muted-foreground">
+      <Table
+        aria-label={t('title')}
+        density="compact"
+        idKey="id"
+        data={report.recent}
+        columns={[
+          {
+            key: 'time',
+            header: t('time'),
+            width: proportional(1, { minWidth: 180 }),
+            renderCell: (r) => (
+              <Text color="secondary">
                 <DateTime date={r.createdAt} />
-              </TableCell>
-              <TableCell>
-                <code className="block font-mono text-xs">{r.feature}</code>
-                <span className="text-xs text-muted-foreground">
+              </Text>
+            ),
+          },
+          {
+            key: 'feature',
+            header: t('feature'),
+            width: proportional(1, { minWidth: 150 }),
+            renderCell: (r) => (
+              <>
+                <Text as="div" display="block" type="code">
+                  {r.feature}
+                </Text>
+                <Text as="div" display="block" type="supporting" color="secondary">
                   {t(`kinds.${r.kind}`)}
                   {r.masked > 0 && ` · ${t('masked', { count: r.masked })}`}
-                </span>
-              </TableCell>
-              <TableCell>
-                <Principal principal={r.principal} />
-              </TableCell>
-              <TableCell>{r.model ? modelLabel(r.model) : '—'}</TableCell>
-              <Num>
-                {r.kind === 'tool'
-                  ? '—'
-                  : t('tokensValue', {
-                      input: format.number(r.inputTokens),
-                      output: format.number(r.outputTokens),
-                    })}
-              </Num>
-              <Num>{usd(r.costUsd)}</Num>
-              <Num>{r.latencyMs == null ? '—' : t('ms', { ms: r.latencyMs })}</Num>
-              <TableCell className="pr-5">
+                </Text>
+              </>
+            ),
+          },
+          {
+            key: 'principal',
+            header: t('principal'),
+            width: proportional(1, { minWidth: 130 }),
+            renderCell: (r) => <Principal principal={r.principal} />,
+          },
+          {
+            key: 'model',
+            header: t('model'),
+            width: proportional(1, { minWidth: 120 }),
+            renderCell: (r) => (r.model ? modelLabel(r.model) : '—'),
+          },
+          {
+            key: 'tokens',
+            header: t('tokens'),
+            align: 'end',
+            width: proportional(1, { minWidth: 120 }),
+            renderCell: (r) =>
+              r.kind === 'tool'
+                ? '—'
+                : t('tokensValue', {
+                    input: format.number(r.inputTokens),
+                    output: format.number(r.outputTokens),
+                  }),
+          },
+          {
+            key: 'cost',
+            header: t('cost'),
+            align: 'end',
+            width: pixel(88),
+            renderCell: (r) => usd(r.costUsd),
+          },
+          {
+            key: 'latency',
+            header: t('latency'),
+            align: 'end',
+            width: pixel(112),
+            renderCell: (r) => (r.latencyMs == null ? '—' : t('ms', { ms: r.latencyMs })),
+          },
+          {
+            key: 'status',
+            header: t('status'),
+            width: proportional(1, { minWidth: 120 }),
+            renderCell: (r) => (
+              <VStack gap={0.5}>
                 <StatusBadge status={r.status} />
                 {r.error && (
-                  <span
-                    className="mt-0.5 block max-w-56 truncate font-mono text-[11px] text-muted-foreground"
-                    title={r.error}
-                  >
+                  <Text type="code" color="secondary" maxLines={1}>
                     {r.error}
-                  </span>
+                  </Text>
                 )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+              </VStack>
+            ),
+          },
+        ]}
+      />
     </TableCard>
   );
 }

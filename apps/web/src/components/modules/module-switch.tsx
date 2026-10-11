@@ -1,32 +1,29 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
 import type { ModuleInfo } from '@isbp/contracts';
 import { ApiError, useCan } from '@isbp/sdk/web';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
-import { Button } from '@isbp/ui/button';
-import { toast } from '@isbp/ui/sonner';
-import { Switch } from '@isbp/ui/switch';
-import { Hint } from '@isbp/ui/tooltip';
-import {
-  CalendarClockIcon,
-  LayoutPanelLeftIcon,
-  RadioTowerIcon,
-  ServerOffIcon,
-  TriangleAlertIcon,
-} from 'lucide-react';
+import { toast } from '@isbp/ui/toast';
+import { CalendarClockIcon, LayoutPanelLeftIcon, RadioTowerIcon, ServerOffIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useApiMutation, useErrorText } from '@/lib/api';
 import { useManifestText } from './use-manifest-text';
+
+const IMPACTS = [
+  ['pages', LayoutPanelLeftIcon],
+  ['api', ServerOffIcon],
+  ['jobs', CalendarClockIcon],
+  ['events', RadioTowerIcon],
+] as const;
 
 /**
  * Enable/disable switch for a module. Enabling is immediate; disabling asks for confirmation and
@@ -86,88 +83,91 @@ export function ModuleSwitch({
     });
 
   const checked = toggle.isPending ? Boolean(toggle.variables) : m.enabled;
-  const control = (
-    <Switch
-      checked={checked}
-      disabled={!canManage || m.system || toggle.isPending}
-      onCheckedChange={(next) => (next ? run(true) : setConfirming(true))}
-      aria-label={t('toggle.label', { name })}
-    />
-  );
+  const close = (open: boolean) => {
+    if (!toggle.isPending) setConfirming(open);
+  };
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <HStack gap={2} vAlign="center">
         {showLabel && (
-          <span className="text-xs font-medium text-muted-foreground">
+          <Text type="supporting" weight="medium">
             {checked ? tc('enabled') : tc('disabled')}
-          </span>
+          </Text>
         )}
-        {m.system ? (
-          <Hint label={t('systemHint')}>
-            <span className="inline-flex" tabIndex={0}>
-              {control}
-            </span>
-          </Hint>
-        ) : (
-          control
-        )}
-      </div>
+        <Switch
+          label={t('toggle.label', { name })}
+          isLabelHidden
+          value={checked}
+          isDisabled={!canManage || m.system || toggle.isPending}
+          disabledMessage={m.system ? t('systemHint') : undefined}
+          onChange={(next) => (next ? run(true) : setConfirming(true))}
+        />
+      </HStack>
 
-      <AlertDialog open={confirming} onOpenChange={(o) => !toggle.isPending && setConfirming(o)}>
-        <AlertDialogContent className="sm:max-w-lg">
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('disable.title', { name })}</AlertDialogTitle>
-            <AlertDialogDescription>{t('disable.body')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <ul className="grid gap-2 text-sm sm:grid-cols-2">
-            {(
-              [
-                ['pages', LayoutPanelLeftIcon],
-                ['api', ServerOffIcon],
-                ['jobs', CalendarClockIcon],
-                ['events', RadioTowerIcon],
-              ] as const
-            ).map(([key, Icon]) => (
-              <li key={key} className="flex items-start gap-2 rounded-lg border bg-muted/30 px-3 py-2">
-                <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-                <span>{t(`disable.impact.${key}`)}</span>
-              </li>
-            ))}
-          </ul>
-          {activeDependents.length > 0 ? (
-            <div
-              role="alert"
-              className="flex gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm text-warning-foreground"
-            >
-              <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-              <div>
-                <p className="font-medium">{t('disable.blockedTitle', { count: activeDependents.length })}</p>
-                <p className="mt-0.5">{format.list(activeDependents.map(nameOf), { type: 'conjunction' })}</p>
-              </div>
-            </div>
-          ) : (
-            m.dependents.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                {t('disable.inactiveDependents', {
-                  names: format.list(m.dependents.map(nameOf), { type: 'conjunction' }),
-                })}
-              </p>
-            )
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={toggle.isPending}>{tc('cancel')}</AlertDialogCancel>
-            <Button
-              variant="destructive"
-              loading={toggle.isPending}
-              disabled={activeDependents.length > 0}
-              onClick={() => run(false)}
-            >
-              {t('disable.confirm')}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Built on `Dialog` (like `ConfirmDialog`): the impact list and the blockers go inside it. */}
+      <Dialog isOpen={confirming} onOpenChange={close} width={512} purpose="form" role="alertdialog">
+        <Layout
+          header={
+            <DialogHeader
+              title={t('disable.title', { name })}
+              subtitle={t('disable.body')}
+              hasDivider={false}
+            />
+          }
+          content={
+            <LayoutContent padding={4}>
+              <VStack gap={3}>
+                <Grid columns={{ minWidth: 200 }} gap={2}>
+                  {IMPACTS.map(([key, icon]) => (
+                    <HStack key={key} gap={2} vAlign="start">
+                      <Icon icon={icon} color="secondary" />
+                      <Text>{t(`disable.impact.${key}`)}</Text>
+                    </HStack>
+                  ))}
+                </Grid>
+                {activeDependents.length > 0 ? (
+                  <Banner
+                    status="warning"
+                    title={t('disable.blockedTitle', { count: activeDependents.length })}
+                    description={format.list(activeDependents.map(nameOf), { type: 'conjunction' })}
+                    collapsible={false}
+                  />
+                ) : (
+                  m.dependents.length > 0 && (
+                    <Text type="supporting">
+                      {t('disable.inactiveDependents', {
+                        names: format.list(m.dependents.map(nameOf), { type: 'conjunction' }),
+                      })}
+                    </Text>
+                  )
+                )}
+              </VStack>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter padding={3}>
+              <HStack gap={2} hAlign="end" wrap="wrap">
+                {/* Cancel is the least destructive choice, so it takes the initial focus. */}
+                <Button
+                  label={tc('cancel')}
+                  variant="ghost"
+                  isDisabled={toggle.isPending}
+                  onClick={() => close(false)}
+                  data-autofocus="true"
+                />
+                <Button
+                  label={t('disable.confirm')}
+                  variant="destructive"
+                  isLoading={toggle.isPending}
+                  isDisabled={activeDependents.length > 0}
+                  onClick={() => run(false)}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Dialog>
     </>
   );
 }

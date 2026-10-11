@@ -53,7 +53,7 @@ test('adds a connection after testing it, disables it, then deletes it', async (
   await page.goto('/admin/databases');
   await page.getByRole('button', { name: 'Add connection' }).first().click();
   const sheet = page.getByRole('dialog', { name: 'Add a database connection' });
-  await sheet.getByRole('textbox', { name: 'Name', exact: true }).fill('E2E reporting copy');
+  await sheet.getByRole('textbox', { name: /^Name/ }).fill('E2E reporting copy');
   await expect(sheet.getByRole('textbox', { name: 'Key' })).toHaveValue('e2e-reporting-copy');
   await sheet.getByRole('combobox', { name: 'Engine' }).click();
   await page.getByRole('option', { name: 'PostgreSQL' }).click();
@@ -72,7 +72,7 @@ test('adds a connection after testing it, disables it, then deletes it', async (
 
   await sheet.getByLabel('Password', { exact: true }).fill(PG.password);
   await sheet.getByRole('button', { name: 'Test connection' }).click();
-  await expect(sheet.getByRole('status')).toContainText(/Connected in \d+ ms/);
+  await expect(sheet.getByText(/Connected in \d+ ms/)).toBeVisible();
   await expectAccessible(page, 'connection form');
   await sheet.getByRole('button', { name: 'Add connection' }).click();
   await expect(sheet).toBeHidden();

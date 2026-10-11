@@ -1,25 +1,22 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
 import type { AuditLog, ModuleInfo } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { type FilterDef, FilterBar } from '@isbp/ui/filter-bar';
-import { Input } from '@isbp/ui/input';
 import { PageHeader } from '@isbp/ui/page-header';
 import { SearchInput } from '@isbp/ui/search-input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
-import { toast } from '@isbp/ui/sonner';
-import { Hint } from '@isbp/ui/tooltip';
+import { toast } from '@isbp/ui/toast';
 import { DownloadIcon, ScrollTextIcon } from 'lucide-react';
 import { useNow, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -137,18 +134,24 @@ export function AuditView() {
             <div className="flex min-w-0 items-center gap-2.5">
               <AuditIcon log={row.original} className="size-7 [&_svg]:size-3.5" />
               <div className="min-w-0">
-                {/* A real button so keyboard users can open the record (rows are mouse-clickable). */}
-                <button
-                  type="button"
+                {/* A real button (a `Link` without href) so keyboard users can open the record (rows are mouse-clickable). */}
+                <Link
+                  color="primary"
+                  weight="medium"
+                  display="block"
+                  maxLines={1}
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelected(row.original);
                   }}
-                  className="block max-w-full truncate rounded-sm text-left font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 >
                   {actionLabel(row.original.action)}
-                </button>
-                {line && <span className="block truncate text-xs text-muted-foreground">{line}</span>}
+                </Link>
+                {line && (
+                  <Text as="div" display="block" type="supporting" color="secondary" maxLines={1}>
+                    {line}
+                  </Text>
+                )}
               </div>
             </div>
           );
@@ -237,6 +240,15 @@ export function AuditView() {
     return named ?? `${v.slice(0, 8)}…`;
   };
 
+  const moduleOptions = [
+    { value: ALL, label: t('filters.allModules') },
+    { type: 'divider' as const },
+    ...(modules.data?.items ?? []).map((m) => ({ value: m.id, label: moduleName(m) })),
+    ...(query.moduleId && !modules.data?.items.some((m) => m.id === query.moduleId)
+      ? [{ value: query.moduleId, label: query.moduleId }]
+      : []),
+  ];
+
   const filters: FilterDef[] = [
     {
       id: 'changed',
@@ -245,20 +257,18 @@ export function AuditView() {
       value: changed ? t(`changed.${changed}`) : undefined,
       onClear: () => set({ changed: undefined }),
       control: (
-        <Select value={changed ?? ALL} onValueChange={(v) => set({ changed: v === ALL ? undefined : v })}>
-          <SelectTrigger className="w-44" aria-label={t('filters.changed')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('filters.anything')}</SelectItem>
-            <SelectSeparator />
-            {CHANGED_KEYS.map((k) => (
-              <SelectItem key={k} value={k}>
-                {t(`changed.${k}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Selector
+          label={t('filters.changed')}
+          isLabelHidden
+          value={changed ?? ALL}
+          onChange={(v) => set({ changed: v === ALL ? undefined : v })}
+          options={[
+            { value: ALL, label: t('filters.anything') },
+            { type: 'divider' },
+            ...CHANGED_KEYS.map((k) => ({ value: k, label: t(`changed.${k}`) })),
+          ]}
+          width={176}
+        />
       ),
     },
     {
@@ -268,29 +278,24 @@ export function AuditView() {
       value: period ? t(`period.${period}`) : undefined,
       onClear: () => set({ period: undefined, from: undefined, to: undefined }),
       control: (
-        <Select
+        <Selector
+          label={t('filters.period')}
+          isLabelHidden
           value={period ?? ALL}
-          onValueChange={(v) =>
+          onChange={(v) =>
             set(
               v === 'custom'
                 ? { period: 'custom' }
                 : { period: v === ALL ? undefined : v, from: undefined, to: undefined },
             )
           }
-        >
-          <SelectTrigger className="w-40" aria-label={t('filters.period')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('period.any')}</SelectItem>
-            <SelectSeparator />
-            {PERIODS.map((p) => (
-              <SelectItem key={p} value={p}>
-                {t(`period.${p}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          options={[
+            { value: ALL, label: t('period.any') },
+            { type: 'divider' },
+            ...PERIODS.map((p) => ({ value: p, label: t(`period.${p}`) })),
+          ]}
+          width={160}
+        />
       ),
     },
     ...(period === 'custom'
@@ -301,13 +306,14 @@ export function AuditView() {
             value: from,
             onClear: () => set({ from: undefined }),
             control: (
-              <Input
-                type="date"
-                aria-label={t('filters.from')}
-                value={from ?? ''}
-                max={to ?? today}
-                onChange={(e) => set({ from: e.target.value || undefined, period: 'custom' })}
-                className="w-full sm:w-[9.5rem]"
+              <DateInput
+                label={t('filters.from')}
+                isLabelHidden
+                value={from as ISODateString | undefined}
+                max={(to ?? today) as ISODateString}
+                hasClear
+                onChange={(v) => set({ from: v || undefined, period: 'custom' })}
+                width={170}
               />
             ),
           },
@@ -317,13 +323,14 @@ export function AuditView() {
             value: to,
             onClear: () => set({ to: undefined }),
             control: (
-              <Input
-                type="date"
-                aria-label={t('filters.to')}
-                value={to ?? ''}
-                min={from}
-                onChange={(e) => set({ to: e.target.value || undefined, period: 'custom' })}
-                className="w-full sm:w-[9.5rem]"
+              <DateInput
+                label={t('filters.to')}
+                isLabelHidden
+                value={to as ISODateString | undefined}
+                min={from as ISODateString | undefined}
+                hasClear
+                onChange={(v) => set({ to: v || undefined, period: 'custom' })}
+                width={170}
               />
             ),
           },
@@ -335,23 +342,18 @@ export function AuditView() {
       value: query.category ? t(`category.${query.category}`) : undefined,
       onClear: () => set({ category: undefined }),
       control: (
-        <Select
+        <Selector
+          label={t('filters.category')}
+          isLabelHidden
           value={query.category ?? ALL}
-          onValueChange={(v) => set({ category: v === ALL ? undefined : v })}
-        >
-          <SelectTrigger className="w-full" aria-label={t('filters.category')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('filters.allCategories')}</SelectItem>
-            <SelectSeparator />
-            {CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c}>
-                {t(`category.${c}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(v) => set({ category: v === ALL ? undefined : v })}
+          options={[
+            { value: ALL, label: t('filters.allCategories') },
+            { type: 'divider' },
+            ...CATEGORIES.map((c) => ({ value: c, label: t(`category.${c}`) })),
+          ]}
+          width="100%"
+        />
       ),
     },
     {
@@ -360,23 +362,18 @@ export function AuditView() {
       value: query.outcome ? t(`outcome.${query.outcome}`) : undefined,
       onClear: () => set({ outcome: undefined }),
       control: (
-        <Select
+        <Selector
+          label={t('filters.outcome')}
+          isLabelHidden
           value={query.outcome ?? ALL}
-          onValueChange={(v) => set({ outcome: v === ALL ? undefined : v })}
-        >
-          <SelectTrigger className="w-full" aria-label={t('filters.outcome')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('filters.allOutcomes')}</SelectItem>
-            <SelectSeparator />
-            {OUTCOMES.map((o) => (
-              <SelectItem key={o} value={o}>
-                {t(`outcome.${o}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(v) => set({ outcome: v === ALL ? undefined : v })}
+          options={[
+            { value: ALL, label: t('filters.allOutcomes') },
+            { type: 'divider' },
+            ...OUTCOMES.map((o) => ({ value: o, label: t(`outcome.${o}`) })),
+          ]}
+          width="100%"
+        />
       ),
     },
     ...(canModules
@@ -391,26 +388,15 @@ export function AuditView() {
               : undefined,
             onClear: () => set({ moduleId: undefined }),
             control: (
-              <Select
+              <Selector
+                label={t('filters.module')}
+                isLabelHidden
                 value={query.moduleId ?? ALL}
-                onValueChange={(v) => set({ moduleId: v === ALL ? undefined : v })}
-              >
-                <SelectTrigger className="w-full" aria-label={t('filters.module')}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>{t('filters.allModules')}</SelectItem>
-                  <SelectSeparator />
-                  {(modules.data?.items ?? []).map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {moduleName(m)}
-                    </SelectItem>
-                  ))}
-                  {query.moduleId && !modules.data?.items.some((m) => m.id === query.moduleId) && (
-                    <SelectItem value={query.moduleId}>{query.moduleId}</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+                onChange={(v) => set({ moduleId: v === ALL ? undefined : v })}
+                options={moduleOptions}
+                hasSearch
+                width="100%"
+              />
             ),
           },
         ]
@@ -421,7 +407,7 @@ export function AuditView() {
       label: t(`filters.${k}`),
       value: linkValue(k),
       onClear: () => set({ [k]: undefined }),
-      control: <span className="text-sm">{linkValue(k)}</span>,
+      control: <Text>{linkValue(k)}</Text>,
     })),
   ];
 
@@ -431,11 +417,16 @@ export function AuditView() {
         title={t('title')}
         description={t('description')}
         actions={
-          <Hint label={t('export.hint')}>
-            <Button variant="outline" size="sm" onClick={exportCsv} disabled={!data?.items.length}>
-              <DownloadIcon /> {t('export.button')}
-            </Button>
-          </Hint>
+          <Tooltip content={t('export.hint')}>
+            <Button
+              label={t('export.button')}
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={DownloadIcon} />}
+              isDisabled={!data?.items.length}
+              onClick={exportCsv}
+            />
+          </Tooltip>
         }
       />
       <DataTable

@@ -1,20 +1,17 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type LocalizedText, localizedTextSchema } from '@isbp/sdk';
 import { ApiError } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { fieldStatus, Form, FormField } from '@isbp/ui/form';
 import { LocalizedInput } from '@isbp/ui/localized-input';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
@@ -24,6 +21,7 @@ import {
   SheetContent,
   SheetDescription,
   SheetFooter,
+  SheetForm,
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
@@ -66,7 +64,7 @@ function ClassForm({ cls, onDone }: { cls: CiClass | null; onDone: () => void })
   const ti = useTranslations('cmdb.icons');
   const tc = useTranslations('common');
   const errorText = useErrorText();
-  const iconLabel = useId();
+  const ids = { name: useId(), description: useId() };
   const schema = useMemo(
     () =>
       z.object({
@@ -120,154 +118,112 @@ function ClassForm({ cls, onDone }: { cls: CiClass | null; onDone: () => void })
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
-        <SheetBody className="space-y-5">
-          <FormField
-            control={form.control}
-            name="key"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('key')}</FormLabel>
-                <FormControl>
-                  <Input {...field} disabled={Boolean(cls)} className="font-mono" autoFocus={!cls} />
-                </FormControl>
-                <FormDescription>{t('keyHint')}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field, fieldState }) => (
-              <FormItem>
-                <FormLabel>{t('name')}</FormLabel>
-                <FormControl>
+      <SheetForm onSubmit={onSubmit} noValidate>
+        <SheetBody className="py-2">
+          <FormLayout defaultOptionality="optional">
+            <FormField
+              control={form.control}
+              name="key"
+              render={({ field, fieldState }) => (
+                <TextInput
+                  label={t('key')}
+                  isRequired
+                  description={t('keyHint')}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  isDisabled={Boolean(cls)}
+                  hasAutoFocus={!cls}
+                  status={fieldStatus(fieldState)}
+                />
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field, fieldState }) => (
+                <Field label={t('name')} inputID={ids.name} isRequired status={fieldStatus(fieldState)}>
                   <LocalizedInput
+                    id={ids.name}
                     value={field.value}
                     onChange={field.onChange}
                     invalid={Boolean(fieldState.error)}
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <OptionalFields
-            hint={list([t('classDescription'), t('icon'), t('sortOrder')])}
-            filled={detailsFilled}
-          >
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('classDescription')}</FormLabel>
-                  <FormControl>
-                    <LocalizedInput multiline value={field.value} onChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
+                </Field>
               )}
             />
-            <FormField
-              control={form.control}
-              name="icon"
-              render={({ field }) => (
-                <FormItem>
-                  <span id={iconLabel} className="text-sm leading-none font-medium">
-                    {t('icon')}
-                  </span>
-                  <div
-                    role="radiogroup"
-                    aria-labelledby={iconLabel}
-                    className="grid grid-cols-6 gap-1.5 sm:grid-cols-8"
-                  >
-                    {Object.entries(CLASS_ICONS).map(([name, Icon]) => {
-                      const checked = field.value === name;
-                      return (
-                        <button
-                          key={name}
-                          type="button"
-                          role="radio"
-                          aria-checked={checked}
-                          aria-label={ti.has(name) ? ti(name) : name}
-                          title={ti.has(name) ? ti(name) : name}
-                          tabIndex={checked || (!field.value && name === 'box') ? 0 : -1}
-                          onClick={() => field.onChange(name)}
-                          onKeyDown={(e) => {
-                            const names = Object.keys(CLASS_ICONS);
-                            const i = names.indexOf(name);
-                            const step =
-                              e.key === 'ArrowRight' || e.key === 'ArrowDown'
-                                ? 1
-                                : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
-                                  ? -1
-                                  : 0;
-                            if (!step) return;
-                            e.preventDefault();
-                            const next = names[(i + step + names.length) % names.length]!;
-                            field.onChange(next);
-                            (
-                              e.currentTarget.parentElement?.querySelector(
-                                `[data-icon="${next}"]`,
-                              ) as HTMLElement | null
-                            )?.focus();
-                          }}
-                          data-icon={name}
-                          className={cn(
-                            'grid aspect-square place-items-center rounded-lg border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
-                            checked &&
-                              'border-primary bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
-                          )}
-                        >
-                          <Icon className="size-4" aria-hidden />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="sortOrder"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('sortOrder')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
+            <OptionalFields
+              hint={list([t('classDescription'), t('icon'), t('sortOrder')])}
+              filled={detailsFilled}
+            >
+              <FormLayout defaultOptionality="optional">
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <Field label={t('classDescription')} inputID={ids.description} isOptional>
+                      <LocalizedInput
+                        id={ids.description}
+                        multiline
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </Field>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="icon"
+                  render={({ field }) => (
+                    <Selector
+                      label={t('icon')}
+                      value={field.value}
+                      hasSearch
+                      onChange={field.onChange}
+                      options={Object.entries(CLASS_ICONS).map(([name, glyph]) => ({
+                        value: name,
+                        label: ti.has(name) ? ti(name) : name,
+                        icon: <Icon icon={glyph} />,
+                      }))}
+                    />
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sortOrder"
+                  render={({ field, fieldState }) => (
+                    <NumberInput
+                      label={t('sortOrder')}
+                      description={t('sortOrderHint')}
                       min={0}
                       max={10000}
-                      className="w-32"
-                      name={field.name}
-                      ref={field.ref}
+                      isIntegerOnly
+                      width={160}
+                      value={field.value === '' || field.value == null ? null : Number(field.value)}
+                      onChange={field.onChange}
                       onBlur={field.onBlur}
-                      value={String(field.value ?? '')}
-                      onChange={(e) => field.onChange(e.target.value)}
+                      status={fieldStatus(fieldState)}
                     />
-                  </FormControl>
-                  <FormDescription>{t('sortOrderHint')}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </OptionalFields>
-          {form.formState.errors.root && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {form.formState.errors.root.message}
-            </p>
-          )}
+                  )}
+                />
+              </FormLayout>
+            </OptionalFields>
+            {form.formState.errors.root && (
+              <Banner status="error" title={form.formState.errors.root.message ?? ''} collapsible={false} />
+            )}
+          </FormLayout>
         </SheetBody>
         <SheetFooter>
-          <Button type="button" variant="outline" onClick={onDone}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {cls ? tc('saveChanges') : tc('create')}
-          </Button>
+          <Button label={tc('cancel')} variant="secondary" type="button" onClick={onDone} />
+          <Button
+            label={cls ? tc('saveChanges') : tc('create')}
+            variant="primary"
+            isLoading={save.isPending}
+            type="submit"
+          />
         </SheetFooter>
-      </form>
+      </SheetForm>
     </Form>
   );
 }

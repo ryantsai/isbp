@@ -167,18 +167,18 @@ test('Discovery: map a discovered title to a licence, undo it, and import an inv
   await page.getByRole('button', { name: 'Import CSV' }).click();
   const importer = page.getByRole('dialog', { name: 'Import an inventory CSV' });
   await expect(importer.getByRole('cell', { name: 'serial_number' })).toBeVisible();
-  await importer.getByLabel('CSV file').setInputFiles({
+  await importer.locator('input[type=file]').setInputFiles({
     name: 'e2e-inventory.csv',
     mimeType: 'text/csv',
     buffer: Buffer.from('Serial Number,Product,Publisher\nE2E-UNKNOWN-1,Google Chrome,Google\n,Orphan,\n'),
   });
-  await expect(importer.getByRole('status')).toContainText('2 rows for 1 device');
-  await expect(importer.getByRole('status')).toContainText('Line 3: no serial number or asset tag');
+  await expect(importer.locator('div[role=status]')).toContainText('2 rows for 1 device');
+  await expect(importer.locator('div[role=status]')).toContainText('Line 3: no serial number or asset tag');
   await importer.getByRole('button', { name: 'Import 1 device' }).click();
   // The button (and its "Loading" status) goes once the import is done.
   await expect(importer.getByRole('button', { name: /Import 1 device/ })).toBeHidden();
-  await expect(importer.getByRole('status')).toContainText('1 device is not registered in Assets');
-  await expect(importer.getByRole('status')).toContainText('E2E-UNKNOWN-1');
+  await expect(importer.locator('div[role=status]')).toContainText('1 device is not registered in Assets');
+  await expect(importer.locator('div[role=status]')).toContainText('E2E-UNKNOWN-1');
   await importer.getByRole('button', { name: 'Close' }).first().click();
   await expect(importer).toBeHidden();
 });

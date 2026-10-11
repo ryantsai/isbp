@@ -1,20 +1,23 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan, usePlatform } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Switch } from '@isbp/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
+import { Segmented } from '@isbp/ui/segmented';
 import { KeyRoundIcon, PlusIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ACCOUNT_VIEWS, type SharedAccountListItem } from '../../contracts';
 import { AccountFormSheet, PasswordChangedDialog } from '../account-dialogs';
 import { PasswordDueBadge, SharedAccountStatusBadge } from '../badges';
@@ -28,7 +31,6 @@ export default function AccountsPage() {
   const tc = useTranslations('common');
   const router = useRouter();
   const day = useDay();
-  const mineId = useId();
   const canManage = useCan('isms.accounts.manage');
   const canRead = useCan('isms.accounts.read');
   // Custodians and members only see their accounts: no "Only mine" switch or status tabs for them.
@@ -57,12 +59,10 @@ export default function AccountsPage() {
         header: t('fields.accountName'),
         meta: { sortKey: 'accountName', className: 'max-w-56' },
         cell: ({ row }) => (
-          <Link
-            href={accountHref(row.original.reference)}
-            onClick={(e) => e.stopPropagation()}
-            className="block truncate font-mono text-sm font-medium outline-none hover:underline focus-visible:underline"
-          >
-            {row.original.accountName}
+          <Link href={accountHref(row.original.reference)} onClick={(e) => e.stopPropagation()}>
+            <Text type="code" weight="medium" maxLines={1}>
+              {row.original.accountName}
+            </Text>
           </Link>
         ),
       },
@@ -71,23 +71,21 @@ export default function AccountsPage() {
         header: t('fields.targetSystem'),
         meta: {
           sortKey: 'targetSystem',
-          className: 'hidden max-w-56 sm:table-cell',
-          headerClassName: 'hidden sm:table-cell',
+          priority: 2,
+          className: 'max-w-56',
         },
-        cell: ({ row }) => <span className="block truncate">{row.original.targetSystem ?? '—'}</span>,
+        cell: ({ row }) => <Text maxLines={1}>{row.original.targetSystem ?? '—'}</Text>,
       },
       {
         id: 'custodian',
         header: t('fields.custodian'),
-        meta: { className: 'hidden max-w-44 md:table-cell', headerClassName: 'hidden md:table-cell' },
-        cell: ({ row }) => (
-          <span className="block truncate">{row.original.custodian?.displayName ?? '—'}</span>
-        ),
+        meta: { priority: 2, className: 'max-w-44' },
+        cell: ({ row }) => <Text maxLines={1}>{row.original.custodian?.displayName ?? '—'}</Text>,
       },
       {
         id: 'members',
         header: t('fields.members'),
-        meta: { className: 'hidden tabular-nums lg:table-cell', headerClassName: 'hidden lg:table-cell' },
+        meta: { priority: 3, className: 'tabular-nums' },
         cell: ({ row }) => row.original.memberCount,
       },
       {
@@ -95,8 +93,7 @@ export default function AccountsPage() {
         header: t('fields.lastPasswordChangeOn'),
         meta: {
           sortKey: 'lastPasswordChangeOn',
-          className: 'hidden lg:table-cell',
-          headerClassName: 'hidden lg:table-cell',
+          priority: 2,
         },
         cell: ({ row }) => day(row.original.lastPasswordChangeOn),
       },
@@ -105,8 +102,7 @@ export default function AccountsPage() {
         header: t('fields.nextReviewOn'),
         meta: {
           sortKey: 'nextReviewOn',
-          className: 'hidden xl:table-cell',
-          headerClassName: 'hidden xl:table-cell',
+          priority: 3,
         },
         cell: ({ row }) => day(row.original.nextReviewOn),
       },
@@ -123,21 +119,21 @@ export default function AccountsPage() {
       {
         id: 'actions',
         header: () => <span className="sr-only">{tc('actions')}</span>,
+        meta: { priority: 2 },
         cell: ({ row }) =>
           row.original.status === 'active' &&
           row.original.passwordChange.due &&
           (canManage || row.original.custodian?.id === user.id) ? (
             <Button
+              label={t('accounts.recordChange')}
+              aria-label={t('accounts.recordChangeFor', { account: row.original.accountName })}
+              variant="secondary"
               size="sm"
-              variant="outline"
               onClick={(e) => {
                 e.stopPropagation();
                 setRecording(row.original);
               }}
-              aria-label={t('accounts.recordChangeFor', { account: row.original.accountName })}
-            >
-              {t('accounts.recordChange')}
-            </Button>
+            />
           ) : null,
       },
     ],
@@ -170,16 +166,11 @@ export default function AccountsPage() {
             className="sm:w-64"
           />
           {readsAll && (
-            <div className="flex items-center gap-2">
-              <Switch
-                id={mineId}
-                checked={mine}
-                onCheckedChange={(v) => set({ mine: v ? 'true' : undefined })}
-              />
-              <label htmlFor={mineId} className="text-sm">
-                {t('accounts.onlyMine')}
-              </label>
-            </div>
+            <Switch
+              label={t('accounts.onlyMine')}
+              value={mine}
+              onChange={(v) => set({ mine: v ? 'true' : undefined })}
+            />
           )}
         </>
       }
@@ -200,9 +191,12 @@ export default function AccountsPage() {
             action={
               canManage &&
               view === 'active' && (
-                <Button onClick={() => setCreating(true)}>
-                  <PlusIcon /> {t('accounts.new')}
-                </Button>
+                <Button
+                  label={t('accounts.new')}
+                  variant="primary"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={() => setCreating(true)}
+                />
               )
             }
           />
@@ -217,34 +211,26 @@ export default function AccountsPage() {
         description={t('accounts.description')}
         actions={
           canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon /> {t('accounts.new')}
-            </Button>
+            <Button
+              label={t('accounts.new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreating(true)}
+            />
           )
         }
       />
-      {!readsAll ? (
-        table
-      ) : (
-        <Tabs
-          value={view}
-          onValueChange={(v) => set({ view: v === 'active' ? undefined : v })}
-          className="gap-4"
-        >
-          <TabsList className="max-w-full justify-start overflow-x-auto">
-            {ACCOUNT_VIEWS.map((v) => (
-              <TabsTrigger key={v} value={v}>
-                {t(`accounts.views.${v}`)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {ACCOUNT_VIEWS.map((v) => (
-            <TabsContent key={v} value={v} className="min-w-0">
-              {view === v && table}
-            </TabsContent>
-          ))}
-        </Tabs>
-      )}
+      <VStack gap={4}>
+        {readsAll && (
+          <Segmented
+            label={t('fields.status')}
+            value={view}
+            onChange={(v) => set({ view: v === 'active' ? undefined : v })}
+            options={ACCOUNT_VIEWS.map((v) => ({ value: v, label: t(`accounts.views.${v}`) }))}
+          />
+        )}
+        {table}
+      </VStack>
       {recording && (
         <PasswordChangedDialog account={recording} open onOpenChange={(o) => !o && setRecording(null)} />
       )}

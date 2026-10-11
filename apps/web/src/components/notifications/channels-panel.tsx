@@ -1,34 +1,29 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { Token } from '@astryxdesign/core/Token';
 import type { NotificationChannel } from '@isbp/contracts';
 import { ApiError } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card } from '@isbp/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
-import { Switch } from '@isbp/ui/switch';
-import { Hint } from '@isbp/ui/tooltip';
+import { toast } from '@isbp/ui/toast';
 import {
-  CircleCheckIcon,
-  CircleXIcon,
   GlobeIcon,
   HistoryIcon,
-  MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
   RadioTowerIcon,
   SendIcon,
   Trash2Icon,
-  TriangleAlertIcon,
-  XIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -64,13 +59,18 @@ export function ChannelsPanel() {
   });
 
   return (
-    <div className="space-y-4">
+    <VStack gap={4}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="max-w-2xl text-sm text-muted-foreground">{t('intro')}</p>
+        <Text color="secondary" className="max-w-2xl">
+          {t('intro')}
+        </Text>
         {items.length > 0 && (
-          <Button onClick={() => setCreating(true)} className="shrink-0 self-start sm:self-auto">
-            <PlusIcon /> {t('add')}
-          </Button>
+          <Button
+            label={t('add')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            onClick={() => setCreating(true)}
+          />
         )}
       </div>
 
@@ -87,9 +87,12 @@ export function ChannelsPanel() {
             title={t('emptyTitle')}
             description={t('emptyBody')}
             action={
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon /> {t('add')}
-              </Button>
+              <Button
+                label={t('add')}
+                variant="primary"
+                icon={<Icon icon={PlusIcon} />}
+                onClick={() => setCreating(true)}
+              />
             }
           />
         </Card>
@@ -140,7 +143,7 @@ export function ChannelsPanel() {
         loading={remove.isPending}
         onConfirm={() => removing && remove.mutate(removing.id)}
       />
-    </div>
+    </VStack>
   );
 }
 
@@ -190,146 +193,127 @@ function ChannelCard({
 
   return (
     <Card className="h-full gap-0 overflow-hidden py-0">
-      <div className="flex items-start gap-3 p-4">
+      <HStack gap={3} vAlign="start" className="p-4">
         <ChannelTile kind={c.type} />
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate font-semibold" title={c.name}>
+        <StackItem size="fill" className="min-w-0">
+          <Heading level={3} weight="semibold" maxLines={1}>
             {c.name}
-          </h3>
-          <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="shrink-0">{channelLabel(c.type)}</span>
-            <span aria-hidden>·</span>
-            <span className="truncate font-mono" title={c.host}>
+          </Heading>
+          <HStack gap={1.5} className="min-w-0">
+            <Text type="supporting" color="secondary" className="shrink-0">
+              {channelLabel(c.type)}
+            </Text>
+            <Text type="supporting" color="secondary" aria-hidden>
+              ·
+            </Text>
+            <Text type="code" color="secondary" size="xsm" maxLines={1}>
               {c.host}
-            </span>
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className={enabled ? 'text-xs font-medium text-success' : 'text-xs text-muted-foreground'}>
+            </Text>
+          </HStack>
+        </StackItem>
+        <HStack gap={2} vAlign="center" className="shrink-0">
+          <Text
+            type="supporting"
+            color={enabled ? 'primary' : 'secondary'}
+            weight={enabled ? 'medium' : 'normal'}
+          >
             {enabled ? tc('enabled') : tc('disabled')}
-          </span>
+          </Text>
           <Switch
-            checked={enabled}
-            disabled={toggle.isPending}
-            onCheckedChange={(v) => toggle.mutate(v)}
-            aria-label={t('toggle', { name: c.name })}
+            label={t('toggle', { name: c.name })}
+            isLabelHidden
+            size="sm"
+            value={enabled}
+            isDisabled={toggle.isPending}
+            onChange={(v) => toggle.mutate(v)}
           />
-        </div>
-      </div>
+        </HStack>
+      </HStack>
 
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-3 border-y bg-muted/20 px-5 py-3.5">
-        <div className="col-span-2">
-          <dt className="mb-1.5 text-[11px] text-muted-foreground">{t('subscribed')}</dt>
-          <dd>
-            <PatternChips patterns={c.types} />
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="text-[11px] text-muted-foreground">{t('language')}</dt>
-          <dd className="mt-0.5 flex items-center gap-1.5 truncate text-sm">
-            <GlobeIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+      <Divider />
+      <VStack gap={3} className="px-4 py-3">
+        <VStack gap={1.5}>
+          <Text type="supporting" color="secondary">
+            {t('subscribed')}
+          </Text>
+          <PatternChips patterns={c.types} />
+        </VStack>
+        <MetadataList columns={2}>
+          <MetadataListItem label={t('language')} icon={<Icon icon={GlobeIcon} />}>
             <span lang={c.locale}>{localeLabel(c.locale)}</span>
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="text-[11px] text-muted-foreground">{t('lastDelivery')}</dt>
-          <dd className="mt-0.5 flex items-center gap-1.5 truncate text-sm">
-            <HistoryIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          </MetadataListItem>
+          <MetadataListItem label={t('lastDelivery')} icon={<Icon icon={HistoryIcon} />}>
             {c.lastDeliveryAt ? <RelativeTime date={c.lastDeliveryAt} /> : <span>{t('noDelivery')}</span>}
-          </dd>
-        </div>
-      </dl>
+          </MetadataListItem>
+        </MetadataList>
+      </VStack>
 
       <div aria-live="polite">
-        <AnimatePresence initial={false}>
-          {result ? (
-            <motion.div
-              key={result.ok ? 'ok' : 'fail'}
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
+        {result ? (
+          result.ok ? (
+            <Banner
+              status="success"
+              container="section"
+              title={t('test.sent')}
+              isDismissable
+              dismissLabel={tc('close')}
+              onDismiss={() => setResult(null)}
+            />
+          ) : (
+            <Banner
+              status="error"
+              container="section"
+              title={t('test.failed')}
+              isDismissable
+              dismissLabel={tc('close')}
+              onDismiss={() => setResult(null)}
+              collapsible={false}
             >
-              <div
-                className={
-                  result.ok
-                    ? 'flex items-start gap-2 border-b bg-success/8 px-5 py-3 text-sm'
-                    : 'flex items-start gap-2 border-b bg-destructive/6 px-5 py-3 text-sm'
-                }
-              >
-                {result.ok ? (
-                  <CircleCheckIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-                ) : (
-                  <CircleXIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">{result.ok ? t('test.sent') : t('test.failed')}</p>
-                  {!result.ok && result.reason && (
-                    <p className="mt-0.5 font-mono text-xs break-words text-muted-foreground">
-                      {result.reason}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="-my-1 size-7"
-                  onClick={() => setResult(null)}
-                  aria-label={tc('close')}
-                >
-                  <XIcon />
-                </Button>
-              </div>
-            </motion.div>
-          ) : c.lastError ? (
-            <motion.div
-              key="last-error"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="flex items-start gap-2 border-b px-5 py-3 text-sm">
-                <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-warning-foreground" aria-hidden />
-                <div className="min-w-0">
-                  <p className="font-medium">{t('lastError')}</p>
-                  <p
-                    className="line-clamp-2 font-mono text-xs break-words text-muted-foreground"
-                    title={c.lastError}
-                  >
-                    {c.lastError}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
+              {result.reason && (
+                <Text type="code" color="secondary" size="xsm">
+                  {result.reason}
+                </Text>
+              )}
+            </Banner>
+          )
+        ) : c.lastError ? (
+          <Banner status="warning" container="section" title={t('lastError')} collapsible={false}>
+            <Text type="code" color="secondary" size="xsm" maxLines={2}>
+              {c.lastError}
+            </Text>
+          </Banner>
+        ) : null}
       </div>
 
-      <div className="mt-auto flex flex-wrap items-center gap-2 bg-muted/20 px-5 py-3">
-        <Hint label={t('test.hint')}>
-          <Button variant="outline" size="sm" onClick={runTest} loading={test.isPending}>
-            {!test.isPending && <SendIcon />} {t('test.button')}
-          </Button>
-        </Hint>
-        <div className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={onEdit} aria-label={t('editLabel', { name: c.name })}>
-            <PencilIcon /> {tc('edit')}
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label={t('more', { name: c.name })}>
-                <MoreHorizontalIcon />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-                <Trash2Icon /> {t('delete')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+      <Divider />
+      <HStack gap={2} vAlign="center" wrap="wrap" className="mt-auto px-4 py-3">
+        <Button
+          label={t('test.button')}
+          variant="secondary"
+          size="sm"
+          icon={<Icon icon={SendIcon} />}
+          tooltip={t('test.hint')}
+          isLoading={test.isPending}
+          onClick={runTest}
+        />
+        <HStack gap={1} vAlign="center" className="ml-auto">
+          <Button
+            label={tc('edit')}
+            aria-label={t('editLabel', { name: c.name })}
+            variant="ghost"
+            size="sm"
+            icon={<Icon icon={PencilIcon} />}
+            onClick={onEdit}
+          />
+          <MoreMenu
+            label={t('more', { name: c.name })}
+            size="sm"
+            placement="below"
+            alignment="end"
+            items={[{ label: t('delete'), icon: Trash2Icon, variant: 'destructive', onClick: onDelete }]}
+          />
+        </HStack>
+      </HStack>
     </Card>
   );
 }
@@ -345,17 +329,19 @@ export function PatternChips({ patterns }: { patterns: readonly string[] }) {
         const label = patternLabel(p);
         const reach = p.includes('*') && known.length ? typesMatching(p, known).length : null;
         return (
-          <li key={p}>
-            <Badge variant="outline" className="max-w-full gap-1.5 bg-background font-normal" title={p}>
-              {label ? (
-                <span className="truncate">{label}</span>
-              ) : (
-                <code className="truncate font-mono text-[11px]">{p}</code>
-              )}
-              {reach !== null && p !== '*' && (
-                <span className="text-muted-foreground tabular-nums">{t('reach', { count: reach })}</span>
-              )}
-            </Badge>
+          <li key={p} className="max-w-full">
+            <Token
+              size="sm"
+              label={label ?? p}
+              description={p}
+              endContent={
+                reach !== null && p !== '*' ? (
+                  <Text type="supporting" color="secondary" size="xsm" hasTabularNumbers>
+                    {t('reach', { count: reach })}
+                  </Text>
+                ) : undefined
+              }
+            />
           </li>
         );
       })}

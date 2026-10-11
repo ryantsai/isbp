@@ -1,20 +1,25 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { Link as AstryxLink } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { pixel, proportional, Table } from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
+import { Meter } from '@isbp/ui/meter';
 import { Disclosure } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { SectionTabs } from '@isbp/ui/section-tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { StatTile } from '@isbp/ui/stat-tile';
 import {
@@ -32,7 +37,6 @@ import {
   WandSparklesIcon,
   XIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useMemo } from 'react';
@@ -68,21 +72,26 @@ function Outcome({ c }: { c: Conversation }) {
   const t = useTranslations('helpdesk-ai');
   if (c.status === 'escalated')
     return (
-      <Badge variant="info">
-        <TicketCheckIcon aria-hidden />{' '}
-        {c.ticketRef ? t('outcome.escalatedTo', { reference: c.ticketRef }) : t('outcome.escalated')}
-      </Badge>
+      <Badge
+        variant="info"
+        label={c.ticketRef ? t('outcome.escalatedTo', { reference: c.ticketRef }) : t('outcome.escalated')}
+        icon={<AstryxIcon icon={TicketCheckIcon} size="xsm" />}
+      />
     );
   if (c.deflected)
     return (
-      <Badge variant="success">
-        <CircleCheckIcon aria-hidden /> {t('outcome.deflected')}
-      </Badge>
+      <Badge
+        variant="success"
+        label={t('outcome.deflected')}
+        icon={<AstryxIcon icon={CircleCheckIcon} size="xsm" />}
+      />
     );
   return (
-    <Badge variant="muted">
-      <MessageCircleIcon aria-hidden /> {t('outcome.open')}
-    </Badge>
+    <Badge
+      variant="neutral"
+      label={t('outcome.open')}
+      icon={<AstryxIcon icon={MessageCircleIcon} size="xsm" />}
+    />
   );
 }
 
@@ -149,13 +158,16 @@ function Insights({ canReview, canReports }: { canReview: boolean; canReports: b
               />
             )}
             <div className="min-w-0">
-              <Link
+              <AstryxLink
                 href={`/helpdesk-ai/conversations/${row.original.id}`}
                 onClick={(e) => e.stopPropagation()}
-                className="block truncate rounded-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                color="primary"
+                weight="medium"
+                display="block"
+                maxLines={1}
               >
                 {row.original.title || t('history.untitled')}
-              </Link>
+              </AstryxLink>
               <span className="block truncate text-xs text-muted-foreground">
                 {row.original.user?.displayName}
               </span>
@@ -209,24 +221,21 @@ function Insights({ canReview, canReports }: { canReview: boolean; canReports: b
         description={t('insights.description')}
         actions={
           <>
-            <Select value={String(days)} onValueChange={(v) => set({ days: v === '30' ? undefined : v })}>
-              <SelectTrigger className="w-40" aria-label={t('insights.period')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PERIODS.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {t('insights.lastDays', { days: Number(p) })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Selector
+              label={t('insights.period')}
+              isLabelHidden
+              value={String(days)}
+              onChange={(v) => set({ days: v === '30' ? undefined : v })}
+              options={PERIODS.map((p) => ({ value: p, label: t('insights.lastDays', { days: Number(p) }) }))}
+              width={160}
+            />
             {canConfigure && (
-              <Button variant="outline" asChild>
-                <Link href="/admin/ai">
-                  <SettingsIcon /> {t('insights.configure')}
-                </Link>
-              </Button>
+              <Button
+                label={t('insights.configure')}
+                variant="secondary"
+                icon={<AstryxIcon icon={SettingsIcon} />}
+                href="/admin/ai"
+              />
             )}
           </>
         }
@@ -350,9 +359,11 @@ function Insights({ canReview, canReports }: { canReview: boolean; canReports: b
                           </ConfigRow>
                         </dl>
                       </Disclosure>
-                      <Button variant="link" className="mt-2 h-auto px-0" asChild>
-                        <Link href="/admin/ai">{t('insights.configure')} →</Link>
-                      </Button>
+                      <div className="mt-2">
+                        <AstryxLink href="/admin/ai" isStandalone>
+                          {t('insights.configure')} →
+                        </AstryxLink>
+                      </div>
                     </>
                   )}
                 </CardContent>
@@ -390,22 +401,27 @@ function Insights({ canReview, canReports }: { canReview: boolean; canReports: b
                           <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                           <span className="truncate">{t(`insightStatus.${key}`)}</span>
                         </span>
-                        <span className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
-                          <span
-                            className="block h-full rounded-full bg-chart-1 transition-[width] duration-200 ease-move motion-reduce:transition-none"
-                            style={{ width: `${(n / maxStatus) * 100}%` }}
-                          />
-                        </span>
+                        <Meter
+                          value={n}
+                          max={maxStatus}
+                          label={t(`insightStatus.${key}`)}
+                          valueText={format.number(n)}
+                          size="sm"
+                        />
                         <span className="w-8 text-right font-medium tabular-nums">{format.number(n)}</span>
                       </li>
                     ))}
                   </ul>
                   {(pending.data?.total ?? 0) > 0 && (
-                    <Button variant="link" size="sm" className="mt-2 h-auto px-0" asChild>
-                      <a href="#hai-pending">
-                        <ArrowDownIcon /> {t('breakdown.showPending')}
-                      </a>
-                    </Button>
+                    <div className="mt-2">
+                      <Button
+                        label={t('breakdown.showPending')}
+                        variant="ghost"
+                        size="sm"
+                        icon={<AstryxIcon icon={ArrowDownIcon} />}
+                        href="#hai-pending"
+                      />
+                    </div>
                   )}
                   <p className="mt-4 text-xs text-muted-foreground">
                     {t('breakdown.kbDrafts', { count: data.kbDrafts })}
@@ -422,50 +438,55 @@ function Insights({ canReview, canReports }: { canReview: boolean; canReports: b
                 </CardHeader>
                 <CardContent>
                   {data.usage.byFeature.length ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b text-xs text-muted-foreground">
-                            <th scope="col" className="py-2 pr-3 text-left font-medium">
-                              {t('usage.feature')}
-                            </th>
-                            <th scope="col" className="px-3 py-2 text-right font-medium">
-                              {t('usage.calls')}
-                            </th>
-                            <th scope="col" className="px-3 py-2 text-right font-medium">
-                              {t('usage.tokens')}
-                            </th>
-                            <th scope="col" className="py-2 pl-3 text-right font-medium">
-                              {t('usage.cost')}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {data.usage.byFeature.map((f) => {
+                    <Table
+                      aria-label={t('usage.title')}
+                      density="compact"
+                      idKey="feature"
+                      data={data.usage.byFeature}
+                      columns={[
+                        {
+                          key: 'feature',
+                          header: t('usage.feature'),
+                          width: proportional(2, { minWidth: 120 }),
+                          renderCell: (f) => {
                             const key = `features.${f.feature.replace('helpdesk-ai.', '').replace('-', '_')}`;
                             return (
-                              <tr key={f.feature} className="border-b last:border-0">
-                                <th scope="row" className="py-2 pr-3 text-left font-normal">
-                                  {t.has(key) ? t(key) : f.feature}
-                                  {f.errors > 0 && (
-                                    <span className="ml-1.5 text-xs text-destructive">
-                                      {t('usage.errors', { count: f.errors })}
-                                    </span>
-                                  )}
-                                </th>
-                                <td className="px-3 py-2 text-right tabular-nums">
-                                  {format.number(f.calls)}
-                                </td>
-                                <td className="px-3 py-2 text-right tabular-nums">
-                                  {format.number(f.inputTokens + f.outputTokens, { notation: 'compact' })}
-                                </td>
-                                <td className="py-2 pl-3 text-right tabular-nums">{money(f.costUsd)}</td>
-                              </tr>
+                              <>
+                                {t.has(key) ? t(key) : f.feature}
+                                {f.errors > 0 && (
+                                  <Text type="supporting" color="secondary">
+                                    {' '}
+                                    {t('usage.errors', { count: f.errors })}
+                                  </Text>
+                                )}
+                              </>
                             );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                          },
+                        },
+                        {
+                          key: 'calls',
+                          header: t('usage.calls'),
+                          align: 'end',
+                          width: pixel(72),
+                          renderCell: (f) => format.number(f.calls),
+                        },
+                        {
+                          key: 'tokens',
+                          header: t('usage.tokens'),
+                          align: 'end',
+                          width: pixel(84),
+                          renderCell: (f) =>
+                            format.number(f.inputTokens + f.outputTokens, { notation: 'compact' }),
+                        },
+                        {
+                          key: 'cost',
+                          header: t('usage.cost'),
+                          align: 'end',
+                          width: pixel(88),
+                          renderCell: (f) => money(f.costUsd),
+                        },
+                      ]}
+                    />
                   ) : (
                     <EmptyState
                       icon={<CoinsIcon />}
@@ -520,20 +541,19 @@ function Insights({ canReview, canReports }: { canReview: boolean; canReports: b
                   placeholder={t('table.search')}
                   className="w-full sm:w-64"
                 />
-                <Select
+                <Selector
+                  label={t('table.outcome')}
+                  isLabelHidden
                   value={status ?? ALL}
-                  onValueChange={(v) => set({ status: v === ALL ? undefined : v })}
-                >
-                  <SelectTrigger className="w-full sm:w-44" aria-label={t('table.outcome')}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL}>{t('table.allOutcomes')}</SelectItem>
-                    <SelectItem value="open">{t('outcome.open')}</SelectItem>
-                    <SelectItem value="resolved">{t('outcome.deflected')}</SelectItem>
-                    <SelectItem value="escalated">{t('outcome.escalated')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(v) => set({ status: v === ALL ? undefined : v })}
+                  options={[
+                    { value: ALL, label: t('table.allOutcomes') },
+                    { value: 'open', label: t('outcome.open') },
+                    { value: 'resolved', label: t('outcome.deflected') },
+                    { value: 'escalated', label: t('outcome.escalated') },
+                  ]}
+                  width={176}
+                />
               </>
             }
             empty={<EmptyState icon={<MessagesSquareIcon />} title={t('table.empty')} />}
@@ -571,13 +591,12 @@ function PendingCard({ data }: { data: PendingTriage | undefined }) {
                   key={p.insightId}
                   className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm"
                 >
-                  <Link
-                    href={p.href}
-                    className="min-w-0 flex-1 basis-64 truncate rounded-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  >
-                    <span className="font-mono text-xs text-muted-foreground">{p.reference}</span>
-                    {p.title && <> {p.title}</>}
-                  </Link>
+                  <span className="min-w-0 flex-1 basis-64">
+                    <AstryxLink href={p.href} color="primary" weight="medium" display="block" maxLines={1}>
+                      <span className="font-mono text-xs text-muted-foreground">{p.reference}</span>
+                      {p.title && <> {p.title}</>}
+                    </AstryxLink>
+                  </span>
                   <span
                     className="min-w-0 basis-56 truncate text-muted-foreground"
                     title={suggested.join(' · ')}
@@ -622,12 +641,8 @@ function ConfigRow({ label, children }: { label: string; children: ReactNode }) 
 function OnOff({ on }: { on: boolean }) {
   const t = useTranslations('helpdesk-ai');
   return on ? (
-    <Badge variant="success">
-      <CheckIcon aria-hidden /> {t('config.on')}
-    </Badge>
+    <Badge variant="success" label={t('config.on')} icon={<AstryxIcon icon={CheckIcon} size="xsm" />} />
   ) : (
-    <Badge variant="muted">
-      <XIcon aria-hidden /> {t('config.off')}
-    </Badge>
+    <Badge variant="neutral" label={t('config.off')} icon={<AstryxIcon icon={XIcon} size="xsm" />} />
   );
 }

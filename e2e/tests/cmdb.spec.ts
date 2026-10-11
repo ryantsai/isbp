@@ -31,7 +31,7 @@ test.describe.configure({ mode: 'serial' });
 test('CI list: quick views and search', async ({ page }) => {
   await page.goto('/cmdb');
   await expect(page.getByRole('heading', { name: 'Configuration items', level: 1 })).toBeVisible();
-  await page.getByRole('tab', { name: 'Business services' }).click();
+  await page.getByRole('radio', { name: 'Business services' }).click();
   await expect(page).toHaveURL(/view=services/);
   await expect(page.getByRole('link', { name: 'Email & Calendar' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'tpe-sw-core-01' })).toHaveCount(0);
@@ -49,7 +49,7 @@ test('CI list: search and Status stay in view, the other filters sit under Filte
   const applied = page.getByRole('list', { name: 'Applied filters' });
   await expect(applied).toContainText('Critical');
   await expect(page.getByRole('link', { name: 'tpe-sw-core-01' })).toBeVisible();
-  await applied.getByRole('button', { name: 'Remove filter: Criticality' }).click();
+  await applied.getByRole('button', { name: /^Remove Criticality/ }).click();
   await expect(page).not.toHaveURL(/criticality=/);
 });
 

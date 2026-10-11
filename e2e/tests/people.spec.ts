@@ -83,11 +83,10 @@ test('Add person: the display name and manager fill themselves in, groups are ch
     // The chosen department shows its name only (no tree glyph).
     await expect(sheet.getByRole('combobox', { name: 'Department' })).toHaveText('Service Desk');
 
-    await sheet.getByRole('button', { name: 'Add groups' }).click();
-    await page.getByPlaceholder('Search groups…').fill('Network');
+    await sheet.getByRole('combobox', { name: 'Add groups' }).fill('Network');
     await page.getByRole('option', { name: /Network Team/ }).click();
-    await page.keyboard.press('Escape');
-    await expect(sheet.getByRole('list', { name: 'Chosen groups' })).toContainText('Network Team');
+    // The list closes by itself after a pick; the group is now a chip.
+    await expect(sheet.getByRole('button', { name: 'Remove Network Team' })).toBeVisible();
     await expectAccessible(page);
 
     await sheet.getByRole('button', { name: 'Create' }).click();
@@ -127,10 +126,8 @@ test('the Groups tab adds and removes groups, and Move to another department doe
     await page.goto(`/admin/users/${id}?tab=groups`);
     await page.getByRole('button', { name: 'Add to groups' }).click();
     const dialog = page.getByRole('dialog', { name: `Add E2E Mover ${unique} to groups` });
-    await dialog.getByRole('button', { name: 'Choose groups' }).click();
-    await page.getByPlaceholder('Search groups…').fill('Network');
+    await dialog.getByRole('combobox', { name: /groups/i }).fill('Network');
     await page.getByRole('option', { name: /Network Team/ }).click();
-    await page.keyboard.press('Escape');
     await dialog.getByRole('button', { name: 'Add to 1 group' }).click();
     await expect(page.getByRole('link', { name: 'Network Team' })).toBeVisible();
 

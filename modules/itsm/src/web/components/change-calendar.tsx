@@ -1,7 +1,20 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Spinner } from '@astryxdesign/core/Spinner';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from '@astryxdesign/core/Table';
+import { Heading } from '@astryxdesign/core/Text';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { NavProgress, useReducedMotion } from '@isbp/ui/motion';
 import { useApiInfiniteQuery } from '@isbp/ui/query';
@@ -13,7 +26,6 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ClockIcon,
-  LoaderCircleIcon,
   type LucideIcon,
   ServerIcon,
   TriangleAlertIcon,
@@ -110,82 +122,70 @@ function MonthGrid({ month, items, timeZone }: { month: string; items: CalendarI
     format.dateTime(new Date(msOf(key)), { dateStyle: 'full', timeZone: 'UTC' });
 
   return (
-    <div className="overflow-x-auto rounded-xl border bg-card">
-      <table className="w-full min-w-[44rem] table-fixed border-collapse text-sm">
-        <caption className="sr-only">
-          {t('caption', {
-            month: format.dateTime(new Date(msOf(`${month}-01`)), {
-              month: 'long',
-              year: 'numeric',
-              timeZone: 'UTC',
-            }),
-          })}
-        </caption>
-        <thead>
-          <tr className="border-b bg-muted/40">
-            {Array.from({ length: 7 }, (_, i) => (
-              <th
-                key={i}
-                scope="col"
-                className="px-2 py-2 text-left text-xs font-medium text-muted-foreground"
-              >
-                {weekday(i)}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {weeks.map((week) => (
-            <tr key={week[0]!.key} className="border-b last:border-b-0">
-              {week.map((d) => {
-                const list = byDay.get(d.key) ?? [];
-                const isToday = d.key === today;
-                return (
-                  <td
-                    key={d.key}
-                    className={cn(
-                      'h-28 border-r p-1.5 align-top last:border-r-0',
-                      !d.inMonth && 'bg-muted/30',
-                    )}
-                  >
-                    <div className="mb-1 flex items-center justify-between">
-                      <time
-                        dateTime={d.key}
-                        className={cn(
-                          'grid size-6 place-items-center rounded-full text-xs tabular-nums',
-                          isToday && 'bg-primary font-semibold text-primary-foreground',
-                          !isToday && !d.inMonth && 'text-muted-foreground',
-                        )}
-                      >
-                        <span aria-hidden>{d.day}</span>
-                        <span className="sr-only">
-                          {longDay(d.key)}
-                          {isToday && ` (${t('today')})`}
-                        </span>
-                      </time>
-                    </div>
-                    {list.length > 0 && (
-                      <ul className="grid gap-1" aria-label={t('changesOn', { day: longDay(d.key) })}>
-                        {list.slice(0, 3).map((it) => (
-                          <li key={it.id} className="min-w-0">
-                            <Pill item={it} timeZone={timeZone} />
-                          </li>
-                        ))}
-                        {list.length > 3 && (
-                          <li className="px-1 text-[11px] text-muted-foreground">
-                            {t('more', { count: list.length - 3 })}
-                          </li>
-                        )}
-                      </ul>
-                    )}
-                  </td>
-                );
-              })}
-            </tr>
+    <Table dividers="grid" density="compact">
+      <caption className="sr-only">
+        {t('caption', {
+          month: format.dateTime(new Date(msOf(`${month}-01`)), {
+            month: 'long',
+            year: 'numeric',
+            timeZone: 'UTC',
+          }),
+        })}
+      </caption>
+      <TableHeader>
+        <TableRow>
+          {Array.from({ length: 7 }, (_, i) => (
+            <TableHeaderCell key={i} scope="col" className="min-w-24">
+              {weekday(i)}
+            </TableHeaderCell>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {weeks.map((week) => (
+          <TableRow key={week[0]!.key}>
+            {week.map((d) => {
+              const list = byDay.get(d.key) ?? [];
+              const isToday = d.key === today;
+              return (
+                <TableCell key={d.key} className={cn('h-28 p-1.5 align-top', !d.inMonth && 'bg-muted/30')}>
+                  <div className="mb-1 flex items-center justify-between">
+                    <time
+                      dateTime={d.key}
+                      className={cn(
+                        'grid size-6 place-items-center rounded-full text-xs tabular-nums',
+                        isToday && 'bg-primary font-semibold text-primary-foreground',
+                        !isToday && !d.inMonth && 'text-muted-foreground',
+                      )}
+                    >
+                      <span aria-hidden>{d.day}</span>
+                      <span className="sr-only">
+                        {longDay(d.key)}
+                        {isToday && ` (${t('today')})`}
+                      </span>
+                    </time>
+                  </div>
+                  {list.length > 0 && (
+                    <ul className="grid gap-1" aria-label={t('changesOn', { day: longDay(d.key) })}>
+                      {list.slice(0, 3).map((it) => (
+                        <li key={it.id} className="min-w-0">
+                          <Pill item={it} timeZone={timeZone} />
+                        </li>
+                      ))}
+                      {list.length > 3 && (
+                        <li className="px-1 text-[11px] text-muted-foreground">
+                          {t('more', { count: list.length - 3 })}
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </TableCell>
+              );
+            })}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -258,10 +258,11 @@ function Agenda({ items, timeZone }: { items: CalendarItem[]; timeZone: string }
                           />
                         )}
                       {it.hasConflict && (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning-foreground">
-                          <TriangleAlertIcon className="size-3" aria-hidden />
-                          {t('conflict')}
-                        </span>
+                        <Badge
+                          variant="warning"
+                          icon={<AstryxIcon icon={TriangleAlertIcon} />}
+                          label={t('conflict')}
+                        />
                       )}
                     </span>
                     {(it.cis.length > 0 || it.assignee) && (
@@ -310,22 +311,15 @@ function ShowMore({
     <div className="mt-4 grid justify-items-center gap-2">
       {more && (
         <Button
-          variant="outline"
-          aria-disabled={loading || undefined}
+          label={t('showMore')}
+          variant="secondary"
+          isLoading={loading}
           onClick={async () => {
             if (loading) return;
             const next = await onMore();
             if (!next.hasNextPage) doneRef.current?.focus();
           }}
-        >
-          {loading && (
-            <LoaderCircleIcon
-              className="animate-spin motion-reduce:animate-[spin_2s_linear_infinite]"
-              aria-hidden
-            />
-          )}
-          {t('showMore')}
-        </Button>
+        />
       )}
       <p
         ref={doneRef}
@@ -406,30 +400,26 @@ export function ChangeCalendar({
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="icon-sm"
+          <IconButton
+            label={t('previous')}
+            variant="secondary"
+            size="sm"
+            icon={<AstryxIcon icon={ChevronLeftIcon} />}
             onClick={() => onMonthChange(shiftMonth(month, -1))}
-            aria-label={t('previous')}
-          >
-            <ChevronLeftIcon />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-sm"
+          />
+          <IconButton
+            label={t('next')}
+            variant="secondary"
+            size="sm"
+            icon={<AstryxIcon icon={ChevronRightIcon} />}
             onClick={() => onMonthChange(shiftMonth(month, 1))}
-            aria-label={t('next')}
-          >
-            <ChevronRightIcon />
-          </Button>
+          />
         </div>
-        <h2 className="min-w-36 text-lg font-semibold" aria-live="polite">
+        <Heading level={2} aria-live="polite">
           {label}
-        </h2>
+        </Heading>
         {month !== thisMonth && (
-          <Button variant="ghost" size="sm" onClick={() => onMonthChange(thisMonth)}>
-            {t('today')}
-          </Button>
+          <Button label={t('today')} variant="ghost" size="sm" onClick={() => onMonthChange(thisMonth)} />
         )}
       </div>
       <ul
@@ -476,10 +466,7 @@ export function ChangeCalendar({
           <div role="status" className="text-sm text-muted-foreground">
             {isFetchingNextPage && (
               <p className="mb-2 inline-flex items-center gap-2">
-                <LoaderCircleIcon
-                  className="size-3.5 animate-spin motion-reduce:animate-[spin_2s_linear_infinite]"
-                  aria-hidden
-                />
+                <Spinner size="sm" />
                 {t('loadingMore')}
               </p>
             )}
@@ -490,9 +477,12 @@ export function ChangeCalendar({
           {failed && (
             <div role="alert" className="mb-2 flex flex-wrap items-center gap-2 text-sm">
               <span>{t('partialFailed')}</span>
-              <Button variant="outline" size="sm" onClick={() => void fetchNextPage()}>
-                {tc('retry')}
-              </Button>
+              <Button
+                label={tc('retry')}
+                variant="secondary"
+                size="sm"
+                onClick={() => void fetchNextPage()}
+              />
             </div>
           )}
           <NavProgress active={isFetching} />

@@ -1,6 +1,12 @@
 'use client';
 
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { ScrollableArea } from '@astryxdesign/core/ScrollableArea';
+import { Table } from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
+import { ToggleButton, ToggleButtonGroup } from '@astryxdesign/core/ToggleButton';
 import { cn } from '@isbp/ui';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { motion, useReducedMotion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useId, useState } from 'react';
@@ -27,44 +33,36 @@ export function ChartFrame({
   const id = useId();
   const [asTable, setAsTable] = useState(false);
   return (
-    <section
-      aria-labelledby={`${id}-title`}
-      className={cn(
-        'flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-4 text-card-foreground',
-        className,
-      )}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h2 id={`${id}-title`} className="font-semibold">
-            {title}
-          </h2>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {actions}
-          <div
-            className="flex items-center gap-0.5 rounded-md border p-0.5"
-            role="group"
-            aria-label={t('viewAs')}
-          >
-            {(['chart', 'table'] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                aria-pressed={(v === 'table') === asTable}
-                onClick={() => setAsTable(v === 'table')}
-                className="rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 aria-pressed:bg-secondary aria-pressed:font-medium aria-pressed:text-secondary-foreground"
-              >
-                {t(v)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      {!asTable && legend}
-      <div className="min-w-0">{asTable ? table : chart}</div>
-    </section>
+    <Card role="region" aria-labelledby={`${id}-title`} className={cn('min-w-0', className)}>
+      <CardHeader>
+        <HStack gap={2} hAlign="between" vAlign="start" wrap="wrap">
+          <VStack gap={0.5} className="min-w-0">
+            <CardTitle id={`${id}-title`} role="heading" aria-level={2}>
+              {title}
+            </CardTitle>
+            {description && <CardDescription>{description}</CardDescription>}
+          </VStack>
+          <HStack gap={2} wrap="wrap" vAlign="center">
+            {actions}
+            <ToggleButtonGroup
+              label={t('viewAs')}
+              size="sm"
+              value={asTable ? 'table' : 'chart'}
+              onChange={(v) => {
+                if (typeof v === 'string') setAsTable(v === 'table');
+              }}
+            >
+              <ToggleButton value="chart" label={t('chart')} />
+              <ToggleButton value="table" label={t('table')} />
+            </ToggleButtonGroup>
+          </HStack>
+        </HStack>
+      </CardHeader>
+      <CardContent className="grid min-w-0 gap-4">
+        {!asTable && legend}
+        <div className="min-w-0">{asTable ? table : chart}</div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -77,64 +75,37 @@ export function DataTableView({
   rows: { key: string; cells: (string | number)[] }[];
   caption?: string;
 }) {
+  const data = rows.map((r) => ({ key: r.key, ...r.cells }));
   return (
-    // Focusable so keyboard users can scroll it (axe: scrollable-region-focusable).
-    <div
-      className="max-h-80 overflow-auto rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-      role="region"
-      aria-label={caption}
-      tabIndex={0}
-    >
-      <table className="w-full text-sm">
-        {caption && <caption className="sr-only">{caption}</caption>}
-        <thead className="sticky top-0 bg-muted/60">
-          <tr>
-            {head.map((h, i) => (
-              <th
-                key={h}
-                scope="col"
-                className={cn(
-                  'px-3 py-2 text-left text-xs font-medium whitespace-nowrap',
-                  i > 0 && 'text-right',
-                )}
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.key} className="border-t">
-              {r.cells.map((c, i) =>
-                i === 0 ? (
-                  <th key={i} scope="row" className="px-3 py-1.5 text-left font-normal whitespace-nowrap">
-                    {c}
-                  </th>
-                ) : (
-                  <td key={i} className="px-3 py-1.5 text-right tabular-nums">
-                    {c}
-                  </td>
-                ),
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ScrollableArea label={caption ?? ''} role="region" className="max-h-80">
+      <Table
+        aria-label={caption}
+        density="compact"
+        data={data}
+        idKey="key"
+        columns={head.map((h, i) => ({
+          key: String(i),
+          header: h,
+          align: i > 0 ? ('end' as const) : undefined,
+          renderCell: (r: Record<string, unknown>) => (
+            <Text hasTabularNumbers={i > 0}>{r[String(i)] as string | number}</Text>
+          ),
+        }))}
+      />
+    </ScrollableArea>
   );
 }
 
 export function Legend({ items }: { items: { key: string; label: string; className: string }[] }) {
   return (
-    <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+    <HStack as="ul" gap={4} wrap="wrap" vAlign="center">
       {items.map((s) => (
-        <li key={s.key} className="flex items-center gap-1.5">
+        <HStack as="li" key={s.key} gap={1.5} vAlign="center">
           <span className={cn('size-2.5 rounded-sm', s.className)} aria-hidden />
-          <span className="text-muted-foreground">{s.label}</span>
-        </li>
+          <Text type="supporting">{s.label}</Text>
+        </HStack>
       ))}
-    </ul>
+    </HStack>
   );
 }
 
@@ -194,10 +165,10 @@ export function CallBars({
           );
         })}
       </ul>
-      <figcaption className="flex justify-between gap-2 text-xs text-muted-foreground">
-        <span>{buckets[0] && label(buckets[0].at)}</span>
-        <span>{buckets.at(-1) && label(buckets.at(-1)!.at)}</span>
-      </figcaption>
+      <HStack as="figcaption" hAlign="between" gap={2}>
+        <Text type="supporting">{buckets[0] && label(buckets[0].at)}</Text>
+        <Text type="supporting">{buckets.at(-1) && label(buckets.at(-1)!.at)}</Text>
+      </HStack>
     </figure>
   );
 }

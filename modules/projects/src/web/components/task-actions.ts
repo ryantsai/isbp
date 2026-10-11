@@ -1,7 +1,7 @@
 'use client';
 
 import { ApiError } from '@isbp/sdk/web';
-import { toast } from '@isbp/ui/sonner';
+import { toast } from '@isbp/ui/toast';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';

@@ -1,7 +1,12 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import type { DbConnectionDto, DbTestResult } from '@isbp/contracts';
-import { Badge } from '@isbp/ui/badge';
+import { StatusBadge, type StatusTone } from '@isbp/ui/status';
 import { CheckCircle2Icon, CircleDashedIcon, LockIcon, PauseCircleIcon, XCircleIcon } from 'lucide-react';
 import { useFormatter, useNow, useTranslations } from 'next-intl';
 
@@ -9,11 +14,7 @@ export type DbConnection = DbConnectionDto & { lastCheckedAt: string | null };
 
 export function EngineBadge({ engine }: { engine: DbConnection['engine'] }) {
   const t = useTranslations('databases.engines');
-  return (
-    <Badge variant="outline" className="font-normal">
-      {t(engine)}
-    </Badge>
-  );
+  return <Badge variant="neutral" label={t(engine)} />;
 }
 
 export function PurposeBadges({
@@ -25,19 +26,14 @@ export function PurposeBadges({
 }) {
   const t = useTranslations('databases');
   return (
-    <span className="flex flex-wrap items-center gap-1">
+    <HStack gap={1} wrap="wrap" vAlign="center">
       {purposes.map((p) => (
-        <Badge key={p} variant={p === 'admin' ? 'warning' : 'info'}>
-          {t(`purposes.${p}`)}
-        </Badge>
+        <Badge key={p} variant={p === 'admin' ? 'warning' : 'info'} label={t(`purposes.${p}`)} />
       ))}
       {readOnly && (
-        <Badge variant="muted">
-          <LockIcon aria-hidden />
-          {t('readOnly')}
-        </Badge>
+        <Badge variant="neutral" label={t('readOnly')} icon={<Icon icon={LockIcon} size="xsm" />} />
       )}
-    </span>
+    </HStack>
   );
 }
 
@@ -47,25 +43,22 @@ export function ConnectionStatus({ connection }: { connection: DbConnection }) {
   const format = useFormatter();
   const now = useNow({ updateInterval: 60_000 });
   const { status, enabled, lastCheckedAt } = connection;
-  const [Icon, label, tone] = !enabled
-    ? [PauseCircleIcon, t('disabled'), 'text-muted-foreground']
+  const [icon, label, tone]: [typeof CheckCircle2Icon, string, StatusTone] = !enabled
+    ? [PauseCircleIcon, t('disabled'), 'muted']
     : status === 'ok'
-      ? [CheckCircle2Icon, t('ok'), 'text-success']
+      ? [CheckCircle2Icon, t('ok'), 'success']
       : status === 'error'
-        ? [XCircleIcon, t('error'), 'text-destructive']
-        : [CircleDashedIcon, t('unknown'), 'text-muted-foreground'];
+        ? [XCircleIcon, t('error'), 'destructive']
+        : [CircleDashedIcon, t('unknown'), 'muted'];
   return (
-    <span className="block min-w-0">
-      <span className={`flex items-center gap-1.5 font-medium ${tone}`}>
-        <Icon className="size-4 shrink-0" aria-hidden />
-        {label}
-      </span>
+    <VStack gap={1} hAlign="start">
+      <StatusBadge tone={tone} icon={icon} label={label} />
       {lastCheckedAt && (
-        <span className="block text-xs text-muted-foreground">
+        <Text type="supporting">
           {t('checked', { when: format.relativeTime(new Date(lastCheckedAt), now) })}
-        </span>
+        </Text>
       )}
-    </span>
+    </VStack>
   );
 }
 
@@ -74,34 +67,32 @@ export function TestResultNote({ result }: { result: DbTestResult }) {
   const t = useTranslations('databases.test');
   if (result.ok)
     return (
-      <div
-        role="status"
-        className="flex items-start gap-2 rounded-md border border-success/30 bg-success/8 px-3 py-2 text-sm"
-      >
-        <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-        <div className="min-w-0">
-          <p className="font-medium">{t('ok', { ms: result.latencyMs ?? 0 })}</p>
-          {result.version && (
-            <p className="break-words text-xs text-muted-foreground">
-              {t('version', { version: result.version })}
-            </p>
-          )}
-        </div>
-      </div>
+      <Banner
+        status="success"
+        title={t('ok', { ms: result.latencyMs ?? 0 })}
+        description={result.version ? t('version', { version: result.version }) : undefined}
+        collapsible={false}
+      />
     );
   return (
-    <div
-      role="alert"
-      className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm"
-    >
-      <XCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
-      <div className="min-w-0">
-        <p className="font-medium text-destructive">{t('failed')}</p>
-        {result.error?.dbCode && (
-          <p className="text-xs text-muted-foreground">{t('code', { code: result.error.dbCode })}</p>
-        )}
-        {result.error?.message && <p className="break-words font-mono text-xs">{result.error.message}</p>}
-      </div>
-    </div>
+    <Banner
+      status="error"
+      title={t('failed')}
+      description={
+        result.error?.dbCode || result.error?.message ? (
+          <VStack gap={1} hAlign="start">
+            {result.error?.dbCode && (
+              <Text type="supporting">{t('code', { code: result.error.dbCode })}</Text>
+            )}
+            {result.error?.message && (
+              <Text type="code" wordBreak="break-word">
+                {result.error.message}
+              </Text>
+            )}
+          </VStack>
+        ) : undefined
+      }
+      collapsible={false}
+    />
   );
 }

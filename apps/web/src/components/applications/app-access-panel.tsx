@@ -1,25 +1,21 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
 import type { Application, Role, RoleAssignment } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { SearchInput } from '@isbp/ui/search-input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
-import { toast } from '@isbp/ui/sonner';
-import { Hint } from '@isbp/ui/tooltip';
+import { toast } from '@isbp/ui/toast';
 import {
   HandIcon,
+  type LucideIcon,
   RefreshCwIcon,
   SearchXIcon,
   ShieldCheckIcon,
@@ -29,7 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { RelativeTime } from '@/components/relative-time';
 import { ExpiryCell, PrincipalCell, ScopeBadge } from '@/components/roles/assignment-parts';
@@ -40,23 +36,22 @@ import { APP_INVALIDATE } from './app-parts';
 
 const ALL = '__all__';
 
-const SOURCE_ICON: Record<string, ReactNode> = {
-  request: <HandIcon aria-hidden />,
-  manual: <UserCogIcon aria-hidden />,
-  sync: <RefreshCwIcon aria-hidden />,
+const SOURCE_ICON: Record<string, LucideIcon> = {
+  request: HandIcon,
+  manual: UserCogIcon,
+  sync: RefreshCwIcon,
 };
 
 /** How the grant was made: a request, by an administrator, or by directory sync — icon + text. */
 export function GrantSourceBadge({ source }: { source: string }) {
   const tc = useTranslations('common.source_values');
+  const icon = SOURCE_ICON[source];
   return (
     <Badge
-      variant={source === 'request' ? 'info' : 'outline'}
-      className={source === 'request' ? undefined : 'font-normal text-muted-foreground'}
-    >
-      {SOURCE_ICON[source] ?? null}
-      {tc.has(source) ? tc(source) : source}
-    </Badge>
+      variant={source === 'request' ? 'info' : 'neutral'}
+      label={tc.has(source) ? tc(source) : source}
+      icon={icon ? <Icon icon={icon} size="xsm" /> : undefined}
+    />
   );
 }
 
@@ -158,17 +153,15 @@ export function AppAccessPanel({ app }: { app: Application }) {
               cell: ({ row }) => {
                 const a = row.original;
                 return (
-                  <Hint label={tr('revoke')}>
-                    <Button
+                  <Tooltip content={tr('revoke')}>
+                    <IconButton
+                      label={tr('revokeLabel', { role: a.role.name, name: a.principal.name })}
                       variant="ghost"
-                      size="icon-sm"
-                      aria-label={tr('revokeLabel', { role: a.role.name, name: a.principal.name })}
+                      size="sm"
+                      icon={<Icon icon={ShieldOffIcon} />}
                       onClick={() => setRevoking(a)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <ShieldOffIcon />
-                    </Button>
-                  </Hint>
+                    />
+                  </Tooltip>
                 );
               },
             } satisfies DataTableColumn<RoleAssignment>,
@@ -188,9 +181,13 @@ export function AppAccessPanel({ app }: { app: Application }) {
           {t('summary', { members: app.counts.members, grants: data?.total ?? 0 })}
         </p>
         {canManage && (
-          <Button onClick={() => setGranting(true)} className="shrink-0">
-            <ShieldCheckIcon /> {t('grant')}
-          </Button>
+          <Button
+            label={t('grant')}
+            variant="primary"
+            icon={<Icon icon={ShieldCheckIcon} />}
+            onClick={() => setGranting(true)}
+            className="shrink-0"
+          />
         )}
       </div>
       <DataTable
@@ -217,24 +214,25 @@ export function AppAccessPanel({ app }: { app: Application }) {
               placeholder={tr('searchPlaceholder')}
               className="sm:w-72"
             />
-            <Select value={roleId ?? ALL} onValueChange={(v) => set({ roleId: v === ALL ? undefined : v })}>
-              <SelectTrigger className="w-full sm:w-52" aria-label={tr('filters.role')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="max-h-80">
-                <SelectItem value={ALL}>{tr('filters.allRoles')}</SelectItem>
-                {allRoles.length > 0 && <SelectSeparator />}
-                {allRoles.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
-                    {r.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Selector
+              label={tr('filters.role')}
+              isLabelHidden
+              width={208}
+              value={roleId ?? ALL}
+              onChange={(v) => set({ roleId: v === ALL ? undefined : v })}
+              options={[
+                { value: ALL, label: tr('filters.allRoles') },
+                ...(allRoles.length > 0 ? [{ type: 'divider' as const }] : []),
+                ...allRoles.map((r) => ({ value: r.id, label: r.name })),
+              ]}
+            />
             {filtered && (
-              <Button variant="ghost" size="sm" onClick={() => set({ q: undefined, roleId: undefined })}>
-                {tc('clearFilters')}
-              </Button>
+              <Button
+                label={tc('clearFilters')}
+                variant="ghost"
+                size="sm"
+                onClick={() => set({ q: undefined, roleId: undefined })}
+              />
             )}
           </>
         }
@@ -246,9 +244,12 @@ export function AppAccessPanel({ app }: { app: Application }) {
             action={
               !filtered &&
               canManage && (
-                <Button variant="outline" onClick={() => setGranting(true)}>
-                  <ShieldCheckIcon /> {t('grant')}
-                </Button>
+                <Button
+                  label={t('grant')}
+                  variant="secondary"
+                  icon={<Icon icon={ShieldCheckIcon} />}
+                  onClick={() => setGranting(true)}
+                />
               )
             }
           />

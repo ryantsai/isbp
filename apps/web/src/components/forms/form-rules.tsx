@@ -1,5 +1,14 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
+import { Field } from '@astryxdesign/core/Field';
+import { FieldStatus } from '@astryxdesign/core/FieldStatus';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import {
   type Condition,
   conditionFacts,
@@ -9,13 +18,11 @@ import {
   localize,
   RESERVED_FACTS,
 } from '@isbp/sdk';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
+import { Card, CardContent } from '@isbp/ui/card';
 import { ConditionBuilder, useConditionText } from '@isbp/ui/condition-builder';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
+import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import {
   Sheet,
   SheetBody,
@@ -25,7 +32,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import { PencilIcon, PlusIcon, ShieldCheckIcon, Trash2Icon, TriangleAlertIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
@@ -108,90 +114,74 @@ function RuleSheet({
           <SheetTitle>{isNew ? t('addTitle') : t('editTitle')}</SheetTitle>
           <SheetDescription>{t('sheetHint')}</SheetDescription>
         </SheetHeader>
-        <SheetBody className="grid gap-4 pb-6">
-          <section aria-labelledby={`${uid}-when`} className="grid gap-2">
-            <h3 id={`${uid}-when`} className="text-sm font-medium">
-              {t('when')}
-            </h3>
-            <p className="text-xs text-muted-foreground">{t('whenHint')}</p>
-            <ConditionBuilder
-              value={value.when}
-              onChange={(when) => setValue((v) => ({ ...v, when }))}
-              facts={facts}
-              emptyText={t('whenEmpty')}
-            />
-          </section>
-          <section aria-labelledby={`${uid}-require`} className="grid gap-2">
-            <h3 id={`${uid}-require`} className="text-sm font-medium">
-              {t('require')}
-            </h3>
-            <p className="text-xs text-muted-foreground">{t('requireHint')}</p>
-            <ConditionBuilder
-              value={value.require}
-              onChange={(require) => setValue((v) => ({ ...v, require }))}
-              facts={facts}
-              emptyText={t('requireEmpty')}
-            />
-            {(shown('requireEmpty') || shown('conditionIncomplete')) && (
-              <p role="alert" className="text-xs font-medium text-destructive">
-                {t(shown('requireEmpty') ? 'issues.requireEmpty' : 'issues.conditionIncomplete')}
-              </p>
-            )}
-          </section>
-          <div className="grid gap-1.5">
-            <Label htmlFor={`${uid}-message`}>{t('message')}</Label>
-            <LocalizedInput
-              id={`${uid}-message`}
-              value={value.message}
-              invalid={shown('messageEmpty')}
-              aria-describedby={`${uid}-message-hint`}
-              placeholder={t('messagePlaceholder')}
-              onChange={(message) => setValue((v) => ({ ...v, message }))}
-            />
-            <p id={`${uid}-message-hint`} className="text-xs text-muted-foreground">
-              {shown('messageEmpty') ? (
-                <span className="font-medium text-destructive">{t('issues.messageEmpty')}</span>
-              ) : (
-                t('messageHint')
+        <SheetBody className="pb-6">
+          <VStack gap={5}>
+            <VStack as="section" gap={2} aria-labelledby={`${uid}-when`}>
+              <Heading level={3} id={`${uid}-when`}>
+                {t('when')}
+              </Heading>
+              <Text type="supporting">{t('whenHint')}</Text>
+              <ConditionBuilder
+                value={value.when}
+                onChange={(when) => setValue((v) => ({ ...v, when }))}
+                facts={facts}
+                emptyText={t('whenEmpty')}
+              />
+            </VStack>
+            <VStack as="section" gap={2} aria-labelledby={`${uid}-require`}>
+              <Heading level={3} id={`${uid}-require`}>
+                {t('require')}
+              </Heading>
+              <Text type="supporting">{t('requireHint')}</Text>
+              <ConditionBuilder
+                value={value.require}
+                onChange={(require) => setValue((v) => ({ ...v, require }))}
+                facts={facts}
+                emptyText={t('requireEmpty')}
+              />
+              {(shown('requireEmpty') || shown('conditionIncomplete')) && (
+                <FieldStatus
+                  type="error"
+                  variant="detached"
+                  message={t(shown('requireEmpty') ? 'issues.requireEmpty' : 'issues.conditionIncomplete')}
+                />
               )}
-            </p>
-          </div>
-          <fieldset className="grid gap-2">
-            <legend className="mb-1 text-sm font-medium">{t('showOn')}</legend>
-            <p className="-mt-1 text-xs text-muted-foreground">{t('showOnHint')}</p>
-            <div className="grid gap-1.5 sm:grid-cols-2">
+            </VStack>
+            <Field
+              label={t('message')}
+              inputID={`${uid}-message`}
+              description={t('messageHint')}
+              status={
+                shown('messageEmpty') ? { type: 'error', message: t('issues.messageEmpty') } : undefined
+              }
+              statusVariant="detached"
+            >
+              <LocalizedInput
+                id={`${uid}-message`}
+                value={value.message}
+                invalid={shown('messageEmpty')}
+                placeholder={t('messagePlaceholder')}
+                onChange={(message) => setValue((v) => ({ ...v, message }))}
+              />
+            </Field>
+            <CheckboxList
+              label={t('showOn')}
+              description={t('showOnHint')}
+              value={value.fields}
+              onChange={(keys) => setValue((v) => ({ ...v, fields: keys }))}
+              status={
+                shown('unknownField') ? { type: 'error', message: t('issues.unknownField') } : undefined
+              }
+            >
               {fields.map((f) => (
-                <label
-                  key={f.key}
-                  className="flex min-w-0 cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50"
-                >
-                  <Checkbox
-                    checked={value.fields.includes(f.key)}
-                    onCheckedChange={(c) =>
-                      setValue((v) => ({
-                        ...v,
-                        fields: c === true ? [...v.fields, f.key] : v.fields.filter((k) => k !== f.key),
-                      }))
-                    }
-                  />
-                  <span className="truncate">{localize(f.label, locale) || f.key}</span>
-                </label>
+                <CheckboxListItem key={f.key} value={f.key} label={localize(f.label, locale) || f.key} />
               ))}
-            </div>
-          </fieldset>
-          {shown('unknownField') && (
-            <p role="alert" className="text-xs font-medium text-destructive">
-              {t('issues.unknownField')}
-            </p>
-          )}
+            </CheckboxList>
+          </VStack>
         </SheetBody>
         <SheetFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            {t('cancel')}
-          </Button>
-          <Button type="button" onClick={save}>
-            {isNew ? t('add') : t('apply')}
-          </Button>
+          <Button label={t('cancel')} variant="ghost" onClick={onClose} />
+          <Button label={isNew ? t('add') : t('apply')} variant="primary" onClick={save} />
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -235,18 +225,24 @@ export function FormRules({
     });
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold">{t('title')}</h2>
-          <p className="text-sm text-muted-foreground">{t('description')}</p>
-        </div>
+    <VStack gap={4} maxWidth={768} className="mx-auto w-full">
+      <HStack gap={3} wrap="wrap" hAlign="between" vAlign="start">
+        <StackItem size="fill">
+          <VStack gap={0.5}>
+            <Heading level={2}>{t('title')}</Heading>
+            <Text type="supporting">{t('description')}</Text>
+          </VStack>
+        </StackItem>
         {!readOnly && (
-          <Button type="button" onClick={() => open(null)} disabled={!fields.length}>
-            <PlusIcon /> {t('addRule')}
-          </Button>
+          <Button
+            label={t('addRule')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            isDisabled={!fields.length}
+            onClick={() => open(null)}
+          />
         )}
-      </div>
+      </HStack>
       {!rules.length ? (
         <EmptyState
           icon={<ShieldCheckIcon />}
@@ -259,65 +255,69 @@ export function FormRules({
           {rules.map((rule) => {
             const problems = issues.get(rule.id) ?? [];
             const message = localize(rule.message, locale);
+            const name = message || t('noMessage');
             return (
               <AnimatedItem key={rule.id} className="pb-3">
-                <div className="grid gap-2 rounded-xl border bg-card p-4">
-                  <div className="flex items-start gap-3">
-                    <ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <p className="font-medium break-words">
-                        {message || <span className="text-muted-foreground italic">{t('noMessage')}</span>}
-                      </p>
-                      <p className="text-sm break-words text-muted-foreground">
-                        {rule.when
-                          ? t('summaryWhen', {
-                              when: conditionText(rule.when),
-                              require: conditionText(rule.require),
-                            })
-                          : t('summary', { require: conditionText(rule.require) })}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {rule.fields?.length
-                          ? t('shownOn', { fields: rule.fields.map(labelOf).join(', ') })
-                          : t('shownAbove')}
-                      </p>
-                    </div>
-                    {!readOnly && (
-                      <div className="flex shrink-0 gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={t('edit', { name: message || t('noMessage') })}
-                          onClick={() => open(rule)}
-                        >
-                          <PencilIcon />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={t('remove', { name: message || t('noMessage') })}
-                          onClick={() => {
-                            onChange(rules.filter((r) => r.id !== rule.id));
-                            setAnnouncement(t('removed'));
-                          }}
-                        >
-                          <Trash2Icon />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  {problems.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {problems.map((code) => (
-                        <Badge key={code} variant="destructive">
-                          <TriangleAlertIcon aria-hidden /> {t(`issues.${code}`)}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <Card>
+                  <CardContent>
+                    <VStack gap={2}>
+                      <HStack gap={3} vAlign="start">
+                        <Icon icon={ShieldCheckIcon} color="accent" />
+                        <StackItem size="fill">
+                          <VStack gap={1}>
+                            <Text weight="medium" wordBreak="break-word">
+                              {name}
+                            </Text>
+                            <Text type="supporting" wordBreak="break-word">
+                              {rule.when
+                                ? t('summaryWhen', {
+                                    when: conditionText(rule.when),
+                                    require: conditionText(rule.require),
+                                  })
+                                : t('summary', { require: conditionText(rule.require) })}
+                            </Text>
+                            <Text type="supporting" size="xsm">
+                              {rule.fields?.length
+                                ? t('shownOn', { fields: rule.fields.map(labelOf).join(', ') })
+                                : t('shownAbove')}
+                            </Text>
+                          </VStack>
+                        </StackItem>
+                        {!readOnly && (
+                          <HStack gap={1}>
+                            <IconButton
+                              label={t('edit', { name })}
+                              variant="ghost"
+                              icon={<Icon icon={PencilIcon} />}
+                              onClick={() => open(rule)}
+                            />
+                            <IconButton
+                              label={t('remove', { name })}
+                              variant="ghost"
+                              icon={<Icon icon={Trash2Icon} />}
+                              onClick={() => {
+                                onChange(rules.filter((r) => r.id !== rule.id));
+                                setAnnouncement(t('removed'));
+                              }}
+                            />
+                          </HStack>
+                        )}
+                      </HStack>
+                      {problems.length > 0 && (
+                        <HStack gap={1.5} wrap="wrap">
+                          {problems.map((code) => (
+                            <Badge
+                              variant="error"
+                              label={t(`issues.${code}`)}
+                              icon={<Icon icon={TriangleAlertIcon} size="xsm" />}
+                              key={code}
+                            />
+                          ))}
+                        </HStack>
+                      )}
+                    </VStack>
+                  </CardContent>
+                </Card>
               </AnimatedItem>
             );
           })}
@@ -343,6 +343,6 @@ export function FormRules({
           }}
         />
       )}
-    </div>
+    </VStack>
   );
 }

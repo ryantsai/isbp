@@ -1,7 +1,6 @@
 'use client';
 
 import { ApiError, type WebPageProps } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -11,6 +10,8 @@ import type { TicketDetail } from '../../contracts';
 import { ticketApi } from '../lib';
 import { AgentView } from '../ticket/agent-view';
 import { RequesterView } from '../ticket/requester-view';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 function TicketSkeleton() {
   return (
@@ -50,10 +51,12 @@ export default function TicketPage({ params }: WebPageProps) {
         description={status === 404 ? t('notFoundHint', { reference: ref }) : undefined}
         action={
           status !== 403 && status !== 404 ? (
-            <Button variant="outline" onClick={() => void refetch()}>
-              <RotateCwIcon />
-              {tc('retry')}
-            </Button>
+            <Button
+              label={tc('retry')}
+              variant="secondary"
+              icon={<Icon icon={RotateCwIcon} />}
+              onClick={() => void refetch()}
+            />
           ) : undefined
         }
         className="rounded-xl border border-dashed"

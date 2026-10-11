@@ -1,14 +1,19 @@
 'use client';
 
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Banner } from '@astryxdesign/core/Banner';
+import { DateTimeInput, type ISODateTimeString } from '@astryxdesign/core/DateTimeInput';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
 import { useApiQuery } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Textarea } from '@isbp/ui/textarea';
-import { CheckCircle2Icon, TriangleAlertIcon } from 'lucide-react';
+import { CheckCircle2Icon } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { changeTypeSchema, riskSchema } from '../../contracts';
 import { fromLocalInput, ticketHref } from '../lib';
 import type { ChangeConflict, ChangeType, Risk } from '../types';
@@ -18,7 +23,7 @@ export interface ChangePlanValues {
   changeType: ChangeType;
   risk: Risk;
   reason: string;
-  /** `datetime-local` values. */
+  /** Local date-time values (`YYYY-MM-DDTHH:mm`, the browser's time zone). */
   plannedStart: string;
   plannedEnd: string;
   implementationPlan: string;
@@ -44,6 +49,8 @@ export const windowInvalid = (v: Pick<ChangePlanValues, 'plannedStart' | 'planne
 export type ChangePlanPart = 'classification' | 'reason' | 'window' | 'plans';
 const ALL_PARTS: readonly ChangePlanPart[] = ['classification', 'reason', 'window', 'plans'];
 
+const asDateTime = (v: string) => (v ? (v as ISODateTimeString) : undefined);
+
 /**
  * Type, risk, reason, planned window and the implementation / backout / test plans (`parts` picks some, in this
  * order). `windowRequired`: the window is needed now (submitting) — empty fields are errors.
@@ -63,112 +70,77 @@ export function ChangePlanFields({
 }) {
   const t = useTranslations('itsm');
   const tp = useTranslations('itsm.changePlan');
-  const id = useId();
   const set = <K extends keyof ChangePlanValues>(k: K, v: ChangePlanValues[K]) =>
     onChange({ ...value, [k]: v });
   const badWindow = showErrors && windowInvalid(value);
   const missingStart = showErrors && windowRequired && !value.plannedStart;
   const missingEnd = showErrors && windowRequired && !value.plannedEnd;
   return (
-    <div className="grid gap-4">
+    <FormLayout defaultOptionality="optional">
       {parts.includes('classification') && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={`${id}-type`}>{tp('changeType')}</Label>
-            <Select value={value.changeType} onValueChange={(v) => set('changeType', v as ChangeType)}>
-              <SelectTrigger id={`${id}-type`} className="w-full" aria-describedby={`${id}-type-hint`}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {changeTypeSchema.options.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {t(`changeType.${c}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p id={`${id}-type-hint`} className="text-xs text-muted-foreground">
-              {tp(`typeHint.${value.changeType}`)}
-            </p>
-          </div>
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={`${id}-risk`}>{tp('risk')}</Label>
-            <Select value={value.risk} onValueChange={(v) => set('risk', v as Risk)}>
-              <SelectTrigger id={`${id}-risk`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {riskSchema.options.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {t(`risk.${r}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <VStack gap={2}>
+          <Grid columns={{ minWidth: 220 }} gap={3}>
+            <Selector
+              label={tp('changeType')}
+              width="100%"
+              value={value.changeType}
+              onChange={(v) => set('changeType', v as ChangeType)}
+              options={changeTypeSchema.options.map((c) => ({ value: c, label: t(`changeType.${c}`) }))}
+            />
+            <Selector
+              label={tp('risk')}
+              width="100%"
+              value={value.risk}
+              onChange={(v) => set('risk', v as Risk)}
+              options={riskSchema.options.map((r) => ({ value: r, label: t(`risk.${r}`) }))}
+            />
+          </Grid>
+          <Text type="supporting">{tp(`typeHint.${value.changeType}`)}</Text>
+        </VStack>
       )}
       {parts.includes('reason') && (
-        <div className="grid gap-2">
-          <Label htmlFor={`${id}-reason`}>{tp('reason')}</Label>
-          <Textarea
-            id={`${id}-reason`}
-            rows={2}
-            value={value.reason}
-            onChange={(e) => set('reason', e.target.value)}
-          />
-        </div>
+        <TextArea
+          label={tp('reason')}
+          rows={2}
+          value={value.reason}
+          onChange={(reason) => set('reason', reason)}
+        />
       )}
       {parts.includes('window') && (
-        <fieldset className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <legend className="mb-2 text-sm font-medium">{tp('window')}</legend>
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={`${id}-start`} className="text-xs text-muted-foreground">
-              {tp('start')}
-            </Label>
-            <Input
-              id={`${id}-start`}
-              type="datetime-local"
-              value={value.plannedStart}
-              onChange={(e) => set('plannedStart', e.target.value)}
-              aria-invalid={missingStart || undefined}
-              aria-describedby={missingStart ? `${id}-start-error` : undefined}
+        <VStack gap={2}>
+          <Text type="label">{tp('window')}</Text>
+          <Grid columns={{ minWidth: 220 }} gap={3}>
+            <DateTimeInput
+              label={tp('start')}
+              isRequired={windowRequired}
+              hourFormat="24h"
+              hasClear
+              value={asDateTime(value.plannedStart)}
+              onChange={(v) => set('plannedStart', v ?? '')}
+              status={missingStart ? { type: 'error', message: tp('windowRequired') } : undefined}
             />
-            {missingStart && (
-              <p id={`${id}-start-error`} className="text-sm text-destructive">
-                {tp('windowRequired')}
-              </p>
-            )}
-          </div>
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={`${id}-end`} className="text-xs text-muted-foreground">
-              {tp('end')}
-            </Label>
-            <Input
-              id={`${id}-end`}
-              type="datetime-local"
-              value={value.plannedEnd}
-              min={value.plannedStart || undefined}
-              onChange={(e) => set('plannedEnd', e.target.value)}
-              aria-invalid={badWindow || missingEnd || undefined}
-              aria-describedby={badWindow || missingEnd ? `${id}-end-error` : undefined}
+            <DateTimeInput
+              label={tp('end')}
+              isRequired={windowRequired}
+              hourFormat="24h"
+              hasClear
+              value={asDateTime(value.plannedEnd)}
+              min={asDateTime(value.plannedStart)}
+              onChange={(v) => set('plannedEnd', v ?? '')}
+              status={
+                badWindow || missingEnd
+                  ? { type: 'error', message: badWindow ? tp('endBeforeStart') : tp('windowRequired') }
+                  : undefined
+              }
             />
-            {(badWindow || missingEnd) && (
-              <p id={`${id}-end-error`} className="text-sm text-destructive">
-                {badWindow ? tp('endBeforeStart') : tp('windowRequired')}
-              </p>
-            )}
-          </div>
-        </fieldset>
+          </Grid>
+        </VStack>
       )}
       {parts.includes('plans') &&
         (['implementationPlan', 'backoutPlan', 'testPlan'] as const).map((k) => (
-          <div key={k} className="grid gap-2">
-            <Label htmlFor={`${id}-${k}`}>{tp(k)}</Label>
-            <Textarea id={`${id}-${k}`} rows={3} value={value[k]} onChange={(e) => set(k, e.target.value)} />
-          </div>
+          <TextArea key={k} label={tp(k)} rows={3} value={value[k]} onChange={(v) => set(k, v)} />
         ))}
-    </div>
+    </FormLayout>
   );
 }
 
@@ -207,11 +179,7 @@ export function ConflictCheck({
   return (
     <div aria-live="polite" aria-busy={isFetching || undefined}>
       {!data ? null : items.length ? (
-        <div className="grid gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm">
-          <p className="flex items-center gap-2 font-medium">
-            <TriangleAlertIcon className="size-4 shrink-0 text-warning-foreground" aria-hidden />
-            {t('found', { count: items.length })}
-          </p>
+        <Banner status="warning" title={t('found', { count: items.length })} collapsible={false}>
           <ul className="grid gap-1.5">
             {items.map((c) => (
               <li key={c.id} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -223,7 +191,7 @@ export function ConflictCheck({
                 </Link>
                 <span className="min-w-0 truncate">{c.title}</span>
                 <TicketStatusBadge status={c.status} />
-                <span className="w-full text-xs text-muted-foreground">
+                <Text as="div" type="supporting" size="xsm">
                   {format.dateTimeRange(new Date(c.plannedStart), new Date(c.plannedEnd), {
                     month: 'short',
                     day: 'numeric',
@@ -232,16 +200,16 @@ export function ConflictCheck({
                   })}
                   {' · '}
                   {t('shared', { cis: c.sharedCis.map((s) => s.name).join(', ') })}
-                </span>
+                </Text>
               </li>
             ))}
           </ul>
-        </div>
+        </Banner>
       ) : (
-        <p className="flex items-center gap-2 text-sm text-success">
-          <CheckCircle2Icon className="size-4" aria-hidden />
-          {t('none')}
-        </p>
+        <HStack gap={2} vAlign="center">
+          <Icon icon={CheckCircle2Icon} color="success" />
+          <Text color="secondary">{t('none')}</Text>
+        </HStack>
       )}
     </div>
   );

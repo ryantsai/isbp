@@ -1,13 +1,14 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { List, ListItem } from '@astryxdesign/core/List';
 import type { AuditLog } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader } from '@isbp/ui/card';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { ArrowRightIcon, HistoryIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { AuditIcon, useActionLabel } from '@/components/audit-action';
@@ -66,40 +67,29 @@ export function ActivityFeed({
         ) : items.length === 0 ? (
           <EmptyState icon={<HistoryIcon />} title={t('empty')} variant="compact" />
         ) : (
-          <ol className="-mx-2 divide-y">
-            {items.map((log) => {
-              const line = text.summary(log, about);
-              return (
-                <li key={log.seq}>
-                  <button
-                    type="button"
-                    onClick={() => setOpen(log)}
-                    className="flex w-full items-start gap-3 rounded-md px-2 py-2.5 text-left text-sm outline-none hover:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  >
-                    <AuditIcon log={log} />
-                    <span className="min-w-0 flex-1 pt-1">
-                      <span className="font-medium">{log.actorName ?? t('system')}</span>{' '}
-                      <span className="text-muted-foreground">{actionLabel(log.action)}</span>
-                      {line && (
-                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">{line}</span>
-                      )}
-                    </span>
-                    <RelativeTime
-                      date={log.occurredAt}
-                      className="shrink-0 pt-1 text-xs text-muted-foreground"
-                    />
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
+          <List hasDividers>
+            {items.map((log) => (
+              <ListItem
+                key={log.seq}
+                label={`${log.actorName ?? t('system')} ${actionLabel(log.action)}`}
+                description={text.summary(log, about) || undefined}
+                startContent={<AuditIcon log={log} />}
+                endContent={<RelativeTime date={log.occurredAt} className="text-xs text-muted-foreground" />}
+                onClick={() => setOpen(log)}
+              />
+            ))}
+          </List>
         )}
         {(more || items.length > 0) && (
-          <Button variant="link" size="sm" asChild className="mt-2 h-auto px-0">
-            <Link href={auditHref}>
-              {t('openAuditLog')} <ArrowRightIcon />
-            </Link>
-          </Button>
+          <div className="mt-2">
+            <Button
+              label={t('openAuditLog')}
+              variant="ghost"
+              size="sm"
+              endContent={<Icon icon={ArrowRightIcon} />}
+              href={auditHref}
+            />
+          </div>
         )}
       </CardContent>
       <AuditDetailSheet log={open} onOpenChange={(o) => !o && setOpen(null)} />

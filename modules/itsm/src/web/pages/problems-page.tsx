@@ -1,14 +1,16 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { DataTable, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { BugIcon, PlusIcon, SearchXIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -76,7 +78,7 @@ export default function ProblemsPage() {
             onChange={(categoryId) => set({ categoryId: categoryId ?? undefined })}
             noneLabel={t('anyCategory')}
             aria-label={t('category')}
-            className="sm:w-56"
+            width={224}
           />
         </>
       }
@@ -96,26 +98,27 @@ export default function ProblemsPage() {
         description={t('description')}
         actions={
           canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon /> {t('new')}
-            </Button>
+            <Button
+              label={t('new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreating(true)}
+            />
           )
         }
       />
-      <Tabs value={view} onValueChange={(v) => set({ view: v === 'open' ? undefined : v })}>
-        <TabsList aria-label={t('viewsLabel')}>
+      <VStack gap={4}>
+        <SegmentedControl
+          label={t('viewsLabel')}
+          value={view}
+          onChange={(v) => set({ view: v === 'open' ? undefined : v })}
+        >
           {VIEWS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {t(`views.${v}`)}
-            </TabsTrigger>
+            <SegmentedControlItem key={v} value={v} label={t(`views.${v}`)} />
           ))}
-        </TabsList>
-        {VIEWS.map((v) => (
-          <TabsContent key={v} value={v}>
-            {v === view ? table : null}
-          </TabsContent>
-        ))}
-      </Tabs>
+        </SegmentedControl>
+        {table}
+      </VStack>
       {canManage && (
         <NewProblemDialog
           open={creating}

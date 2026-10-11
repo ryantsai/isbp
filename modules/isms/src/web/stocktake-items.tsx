@@ -3,7 +3,7 @@
 import { useApi } from '@isbp/sdk/web';
 import { DecisionList, type DecisionListProps, type DecisionOption } from '@isbp/ui/decision-list';
 import { useApiMutation } from '@isbp/ui/query';
-import { toast } from '@isbp/ui/sonner';
+import { toast } from '@isbp/ui/toast';
 import { CheckIcon, PencilLineIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';

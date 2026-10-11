@@ -1,25 +1,18 @@
 'use client';
 
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useApi, useCan, type WebPageProps } from '@isbp/sdk/web';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
-import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
 import { DecisionDone, DecisionProgress, DecisionViews } from '@isbp/ui/decision-list';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { BadgeCheckIcon, ClipboardCheckIcon, DownloadIcon, XCircleIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -102,9 +95,13 @@ export default function StocktakePage({ params }: WebPageProps) {
           .join(' · ')}
         primaryAction={
           canSignOff ? (
-            <Button onClick={() => setSigning(true)} disabled={p.done < p.total}>
-              <BadgeCheckIcon /> {t('stocktake.signOff')}
-            </Button>
+            <Button
+              label={t('stocktake.signOff')}
+              variant="primary"
+              icon={<Icon icon={BadgeCheckIcon} />}
+              isDisabled={p.done < p.total}
+              onClick={() => setSigning(true)}
+            />
           ) : undefined
         }
         menu={[
@@ -135,20 +132,26 @@ export default function StocktakePage({ params }: WebPageProps) {
         summary={t('stocktake.summary', { ...p.byResult, pending: p.total - p.done })}
       >
         {canSignOff && p.done < p.total && (
-          <p className="text-sm text-muted-foreground">{t('stocktake.signOffWhenDone')}</p>
+          <Text as="p" color="secondary">
+            {t('stocktake.signOffWhenDone')}
+          </Text>
         )}
         {s.viewer.canSignOff && open && p.total > 0 && p.done === p.total && (
-          <p className="text-sm font-medium">{t('stocktake.readyToSignOff')}</p>
+          <Text as="p" weight="medium">
+            {t('stocktake.readyToSignOff')}
+          </Text>
         )}
         {s.signedOffBy && (
-          <p className="text-sm">
+          <Text as="p">
             {t('stocktake.signedOffBy', { name: s.signedOffBy.displayName })}
             {s.signOffNote ? ` — ${s.signOffNote}` : ''}
-          </p>
+          </Text>
         )}
       </DecisionProgress>
       {s.status === 'scheduled' ? (
-        <p className="text-sm text-muted-foreground">{t('stocktake.scheduled', { date: day(s.startOn) })}</p>
+        <Text as="p" color="secondary">
+          {t('stocktake.scheduled', { date: day(s.startOn) })}
+        </Text>
       ) : (
         <>
           {open && participant && mine && s.viewer.pendingForMe === 0 && view === 'todo' && (
@@ -170,36 +173,30 @@ export default function StocktakePage({ params }: WebPageProps) {
             actions={
               <>
                 {participant && readsAll && (
-                  <Select
+                  <Selector
+                    label={t('stocktake.scope.label')}
+                    isLabelHidden
+                    width={176}
                     value={mine ? 'mine' : 'everyone'}
-                    onValueChange={(v) => set({ mine: v === 'mine' ? 'true' : 'false' })}
-                  >
-                    <SelectTrigger className="w-full sm:w-44" aria-label={t('stocktake.scope.label')}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mine">{t('stocktake.scope.mine')}</SelectItem>
-                      <SelectItem value="everyone">{t('stocktake.scope.everyone')}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    onChange={(v) => set({ mine: v === 'mine' ? 'true' : 'false' })}
+                    options={[
+                      { value: 'mine', label: t('stocktake.scope.mine') },
+                      { value: 'everyone', label: t('stocktake.scope.everyone') },
+                    ]}
+                  />
                 )}
                 {view === 'done' && (
-                  <Select
+                  <Selector
+                    label={t('fields.result')}
+                    isLabelHidden
+                    width={160}
                     value={result ?? 'any'}
-                    onValueChange={(v) => set({ result: v === 'any' ? undefined : v })}
-                  >
-                    <SelectTrigger className="w-full sm:w-40" aria-label={t('fields.result')}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">{t('stocktake.anyResult')}</SelectItem>
-                      {STOCKTAKE_RESULTS.map((r) => (
-                        <SelectItem key={r} value={r}>
-                          {t(`stocktakeResult.${r}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(v) => set({ result: v === 'any' ? undefined : v })}
+                    options={[
+                      { value: 'any', label: t('stocktake.anyResult') },
+                      ...STOCKTAKE_RESULTS.map((r) => ({ value: r, label: t(`stocktakeResult.${r}`) })),
+                    ]}
+                  />
                 )}
                 <SearchInput
                   value={state.q ?? ''}
@@ -245,25 +242,16 @@ export default function StocktakePage({ params }: WebPageProps) {
         onConfirm={(note) => signOff.mutate(note)}
         pending={signOff.isPending}
       />
-      <AlertDialog open={cancelling} onOpenChange={setCancelling}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('stocktake.cancelTitle', { reference: s.reference })}</AlertDialogTitle>
-            <AlertDialogDescription>{t('stocktake.cancelDescription')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc('back')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                cancel.mutate(undefined);
-              }}
-            >
-              {t('stocktake.cancel')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AlertDialog
+        isOpen={cancelling}
+        onOpenChange={setCancelling}
+        title={t('stocktake.cancelTitle', { reference: s.reference })}
+        description={t('stocktake.cancelDescription')}
+        cancelLabel={tc('back')}
+        actionLabel={t('stocktake.cancel')}
+        isActionLoading={cancel.isPending}
+        onAction={() => cancel.mutate(undefined)}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@isbp/ui/button';
+import { Button } from '@astryxdesign/core/Button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { TriangleAlertIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -20,7 +20,7 @@ export default function AppError({
       icon={<TriangleAlertIcon />}
       title={t('shell.errorTitle')}
       description={`${t('shell.errorBody')}${error.digest ? ` (${error.digest})` : ''}`}
-      action={<Button onClick={reset}>{t('common.retry')}</Button>}
+      action={<Button label={t('common.retry')} variant="primary" onClick={reset} />}
     />
   );
 }

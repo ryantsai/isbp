@@ -2,16 +2,11 @@
 
 import type { CustomField } from '@isbp/contracts';
 import { defaultFieldValues, type FieldDef, type FormElement } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
 import { Form } from '@isbp/ui/form';
 import { FormAnswers, FormFields, useFieldsResolver } from '@isbp/ui/form-renderer';
 import { usePeople } from '@isbp/ui/person-picker';
@@ -19,7 +14,7 @@ import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { PencilIcon, PlusIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { type FieldValues, useForm } from 'react-hook-form';
 import type { TicketDetail, UpdateTicketInput } from '../../contracts';
 import { INVALIDATE, ticketApi } from '../lib';
@@ -53,6 +48,7 @@ function EditFieldsDialog({
 }) {
   const t = useTranslations('itsm.customFields');
   const tc = useTranslations('common');
+  const formId = useId();
   const resolver = useFieldsResolver(fields);
   const form = useForm<FieldValues>({
     resolver,
@@ -66,32 +62,41 @@ function EditFieldsDialog({
     { invalidate: INVALIDATE, success: tc('saved'), onSuccess: () => onOpenChange(false) },
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('editTitle')}</DialogTitle>
-          <DialogDescription>{ticket.reference}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form
-            noValidate
-            className="grid gap-2"
-            onSubmit={form.handleSubmit((values) =>
-              save.mutate({ attributes: { ...ticket.attributes, ...values } }),
-            )}
-          >
-            <FormFields elements={elements} form={form} />
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={save.isPending}>
-                {tc('saveChanges')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={576} purpose="form">
+      <Form {...form}>
+        <Layout
+          header={
+            <DialogHeader title={t('editTitle')} subtitle={ticket.reference} onOpenChange={onOpenChange} />
+          }
+          content={
+            <LayoutContent padding={4}>
+              <form
+                id={formId}
+                noValidate
+                onSubmit={form.handleSubmit((values) =>
+                  save.mutate({ attributes: { ...ticket.attributes, ...values } }),
+                )}
+              >
+                <FormFields elements={elements} form={form} />
+              </form>
+            </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider padding={3}>
+              <HStack gap={2} hAlign="end">
+                <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+                <Button
+                  label={tc('saveChanges')}
+                  variant="primary"
+                  type="submit"
+                  form={formId}
+                  isLoading={save.isPending}
+                />
+              </HStack>
+            </LayoutFooter>
+          }
+        />
+      </Form>
     </Dialog>
   );
 }
@@ -126,10 +131,13 @@ export function CustomFieldsCard({ ticket }: { ticket: TicketDetail }) {
         <CardTitle>{t('title')}</CardTitle>
         {editable && filled && (
           <CardAction>
-            <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-              <PencilIcon />
-              {tc('edit')}
-            </Button>
+            <Button
+              label={tc('edit')}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={PencilIcon} />}
+              onClick={() => setEditing(true)}
+            />
           </CardAction>
         )}
       </CardHeader>
@@ -145,10 +153,13 @@ export function CustomFieldsCard({ ticket }: { ticket: TicketDetail }) {
         ) : (
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
             {t('empty')}
-            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-              <PlusIcon />
-              {t('add')}
-            </Button>
+            <Button
+              label={t('add')}
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setEditing(true)}
+            />
           </div>
         )}
       </CardContent>

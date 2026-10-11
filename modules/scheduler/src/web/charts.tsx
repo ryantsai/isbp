@@ -1,6 +1,9 @@
 'use client';
 
+import { Heading } from '@astryxdesign/core/Text';
+import { ToggleButton, ToggleButtonGroup } from '@astryxdesign/core/ToggleButton';
 import { cn } from '@isbp/ui';
+import { Card, CardAction, CardContent, CardDescription, CardHeader } from '@isbp/ui/card';
 import { motion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useId, useState } from 'react';
@@ -25,41 +28,29 @@ export function ChartFrame({
   const id = useId();
   const [asTable, setAsTable] = useState(false);
   return (
-    <section
-      aria-labelledby={`${id}-title`}
-      className={cn(
-        'flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-4 text-card-foreground',
-        className,
-      )}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h2 id={`${id}-title`} className="font-semibold">
-            {title}
-          </h2>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
-        </div>
-        <div
-          className="flex items-center gap-0.5 rounded-md border p-0.5"
-          role="group"
-          aria-label={t('viewAs')}
-        >
-          {(['chart', 'table'] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              aria-pressed={(v === 'table') === asTable}
-              onClick={() => setAsTable(v === 'table')}
-              className="rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 aria-pressed:bg-secondary aria-pressed:font-medium aria-pressed:text-secondary-foreground"
-            >
-              {t(v)}
-            </button>
-          ))}
-        </div>
-      </div>
-      {!asTable && legend}
-      <div className="min-w-0">{asTable ? table : chart}</div>
-    </section>
+    <Card role="region" aria-labelledby={`${id}-title`} className={cn('min-w-0', className)}>
+      <CardHeader>
+        <Heading level={2} id={`${id}-title`}>
+          {title}
+        </Heading>
+        {description && <CardDescription>{description}</CardDescription>}
+        <CardAction>
+          <ToggleButtonGroup
+            label={t('viewAs')}
+            size="sm"
+            value={asTable ? 'table' : 'chart'}
+            onChange={(v) => v && setAsTable(v === 'table')}
+          >
+            <ToggleButton value="chart" label={t('chart')} />
+            <ToggleButton value="table" label={t('table')} />
+          </ToggleButtonGroup>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="grid min-w-0 gap-4">
+        {!asTable && legend}
+        <div className="min-w-0">{asTable ? table : chart}</div>
+      </CardContent>
+    </Card>
   );
 }
 

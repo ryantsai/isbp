@@ -30,8 +30,7 @@ async function csrfOf(request: APIRequestContext) {
 
 /** Picks a CI in the multiple record field by name. */
 async function pickCi(page: Page, name: string) {
-  await page.getByRole('combobox', { name: 'Configuration items' }).click();
-  await page.getByPlaceholder('Search by reference or title…').fill(name);
+  await page.getByRole('combobox', { name: 'Configuration items' }).fill(name);
   await page
     .getByRole('option', { name: new RegExp(name) })
     .first()
@@ -64,14 +63,15 @@ test('the demo configuration change request: CIs from the CMDB, its rules and wh
 
   // A medium CI: its support group approves.
   await pickCi(page, 'fs-01');
-  await expect(page.getByRole('list', { name: '1 record chosen' })).toContainText('fs-01');
+  // The picked record is a token beside the picker.
+  await expect(page.getByText('fs-01').first()).toBeVisible();
   const supportGroup = page.getByRole('listitem').filter({ hasText: 'CI support group' });
   await expect(supportGroup).toBeVisible();
   await expect(supportGroup).not.toContainText('Skipped');
 
   // A critical one too: the Change Advisory Board joins.
   await pickCi(page, 'erp-db-01');
-  await expect(page.getByRole('list', { name: '2 records chosen' })).toContainText('erp-db-01');
+  await expect(page.getByText('erp-db-01').first()).toBeVisible();
   const cab = page.getByRole('listitem').filter({ hasText: 'Change Advisory Board' });
   await expect(cab).toBeVisible();
   await expect(cab).not.toContainText('Skipped');

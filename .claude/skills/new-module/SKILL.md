@@ -52,7 +52,7 @@ Use the patterns in `docs/ai/recipes.md`.
 
 ## 5. Web
 
-`defineWebModule` routes and slots, pages per `docs/ai/ui-guidelines.md`, and catalogs in en, zh-TW and ja-JP
+`defineWebModule` routes and slots, pages per `docs/ai/ui-guidelines.md` built from Astryx components (`docs/ai/ui-components.md`: never invent a control), and catalogs in en, zh-TW and ja-JP
 (same keys and ICU arguments; terminology table).
 
 ## 6. Tests

@@ -1,5 +1,20 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { Card } from '@astryxdesign/core/Card';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Selector, type SelectorOptionType } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   type CreateRoleAssignmentInput,
@@ -9,27 +24,8 @@ import {
   scopeTypeSchema,
   type UserDetail,
 } from '@isbp/contracts';
-import { Button } from '@isbp/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { OptionalFields } from '@isbp/ui/optional-fields';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
@@ -39,27 +35,19 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { Textarea } from '@isbp/ui/textarea';
-import {
-  AlertTriangleIcon,
-  FileKeyIcon,
-  GlobeIcon,
-  NetworkIcon,
-  ShieldCheckIcon,
-  UserIcon,
-  UsersRoundIcon,
-} from 'lucide-react';
+import { FileKeyIcon, GlobeIcon, NetworkIcon, ShieldCheckIcon, UserIcon, UsersRoundIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useFormatter, useNow, useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
+import { PermissionChip } from '@/components/applications/app-permission-picker';
 import { DepartmentSelect } from '@/components/pickers/department-select';
 import { UserPicker } from '@/components/pickers/user-picker';
 import { applyServerErrors, useApiMutation, useApiQuery } from '@/lib/api';
 import { ACCESS_INVALIDATE } from './assignment-parts';
 import { GroupPicker } from './group-picker';
-import { Segmented } from './segmented';
+import { Segmented } from '@isbp/ui/segmented';
 import {
   currentTime,
   fromDateInput,
@@ -118,6 +106,7 @@ export function GrantRoleSheet({
   const roleText = useRoleText();
   const grantable = useGrantable();
   const accessError = useAccessErrorText();
+  const ids = useId();
   const [advanced, setAdvanced] = useState(false);
 
   const schema = useMemo(
@@ -258,15 +247,23 @@ export function GrantRoleSheet({
         ? tc('scope_values.record')
         : null;
 
-  const roleItem = (r: Role) => {
+  const roleOption = (r: Role) => {
     const ok = canGrantRole(r);
-    return (
-      <SelectItem key={r.id} value={r.id} disabled={!ok}>
-        {roleText(r).name}
-        {!ok && <span className="text-xs text-muted-foreground"> — {t('roleNotHeld')}</span>}
-      </SelectItem>
-    );
+    return {
+      value: r.id,
+      label: roleText(r).name,
+      disabled: !ok,
+      description: ok ? undefined : t('roleNotHeld'),
+    };
   };
+  const roleOptions: SelectorOptionType[] = [
+    ...(customRoles.length > 0
+      ? [{ type: 'section' as const, title: tr('customRoles'), options: customRoles.map(roleOption) }]
+      : []),
+    ...(systemRoles.length > 0
+      ? [{ type: 'section' as const, title: tr('systemRoles'), options: systemRoles.map(roleOption) }]
+      : []),
+  ];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -277,301 +274,308 @@ export function GrantRoleSheet({
         </SheetHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
-            <SheetBody className="space-y-5 py-2">
-              {/* role */}
-              <FormField
-                control={form.control}
-                name="roleId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('role')}</FormLabel>
-                    <Select value={field.value || undefined} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={roles.isLoading ? tc('loading') : t('rolePlaceholder')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="max-h-80">
-                        {customRoles.length > 0 && (
-                          <SelectGroup>
-                            <SelectLabel>{tr('customRoles')}</SelectLabel>
-                            {customRoles.map(roleItem)}
-                          </SelectGroup>
+            <SheetBody>
+              <FormLayout defaultOptionality="required">
+                {/* role */}
+                <FormField
+                  control={form.control}
+                  name="roleId"
+                  render={({ field, fieldState }) => (
+                    <VStack gap={2}>
+                      <Selector
+                        label={t('role')}
+                        value={field.value || undefined}
+                        onChange={field.onChange}
+                        options={roleOptions}
+                        placeholder={roles.isLoading ? tc('loading') : t('rolePlaceholder')}
+                        isLoading={roles.isLoading}
+                        hasSearch={allRoles.length > 8}
+                        status={fieldStatus(fieldState)}
+                      />
+                      <AnimatePresence initial={false} mode="wait">
+                        {selectedRole && (
+                          <motion.div
+                            key={selectedRole.id}
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.18 }}
+                          >
+                            <Card variant="muted" padding={3}>
+                              <VStack gap={2}>
+                                {roleText(selectedRole).description && (
+                                  <Text color="secondary">{roleText(selectedRole).description}</Text>
+                                )}
+                                <HStack gap={1} wrap="wrap" vAlign="center">
+                                  {selectedRole.permissions.slice(0, 6).map((p) => (
+                                    <PermissionChip key={p} value={p} />
+                                  ))}
+                                  {selectedRole.permissions.length > 6 && (
+                                    <Text type="supporting">
+                                      {tr('card.more', { count: selectedRole.permissions.length - 6 })}
+                                    </Text>
+                                  )}
+                                  {selectedRole.permissions.length === 0 && (
+                                    <Text type="supporting">{tr('card.permissions', { count: 0 })}</Text>
+                                  )}
+                                </HStack>
+                              </VStack>
+                            </Card>
+                          </motion.div>
                         )}
-                        {systemRoles.length > 0 && (
-                          <SelectGroup>
-                            <SelectLabel>{tr('systemRoles')}</SelectLabel>
-                            {systemRoles.map(roleItem)}
-                          </SelectGroup>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <AnimatePresence initial={false} mode="wait">
-                      {selectedRole && (
+                      </AnimatePresence>
+                    </VStack>
+                  )}
+                />
+
+                {/* who */}
+                <Field
+                  label={t('to')}
+                  isGroupLabel
+                  labelID={`${ids}-to`}
+                  inputID={`${ids}-principal`}
+                  description={principalType === 'group' ? t('groupHint') : t('userHint')}
+                  status={principalError ? { type: 'error', message: principalError } : undefined}
+                >
+                  <VStack gap={2}>
+                    <SegmentedControl
+                      label={t('principalType')}
+                      value={principalType}
+                      onChange={(v) => {
+                        if (v === principalType) return;
+                        form.setValue('principalType', v as Values['principalType']);
+                        form.setValue('principal', null);
+                        form.clearErrors('principal');
+                      }}
+                    >
+                      <SegmentedControlItem
+                        value="user"
+                        label={t('person')}
+                        icon={<Icon icon={UserIcon} />}
+                      />
+                      <SegmentedControlItem
+                        value="group"
+                        label={t('group')}
+                        icon={<Icon icon={UsersRoundIcon} />}
+                      />
+                    </SegmentedControl>
+                    {principalType === 'user' ? (
+                      <UserPicker
+                        id={`${ids}-principal`}
+                        value={principal ? { id: principal.id, displayName: principal.name } : null}
+                        onChange={(u) =>
+                          form.setValue('principal', u ? { id: u.id, name: u.displayName } : null, {
+                            shouldValidate: form.formState.isSubmitted,
+                          })
+                        }
+                        placeholder={t('userPlaceholder')}
+                        aria-label={t('person')}
+                      />
+                    ) : (
+                      <GroupPicker
+                        id={`${ids}-principal`}
+                        value={principal}
+                        onChange={(g) =>
+                          form.setValue('principal', g ? { id: g.id, name: g.name } : null, {
+                            shouldValidate: form.formState.isSubmitted,
+                          })
+                        }
+                        placeholder={t('groupPlaceholder')}
+                        aria-label={t('group')}
+                      />
+                    )}
+                  </VStack>
+                </Field>
+
+                {/* how long */}
+                <Field
+                  label={t('duration')}
+                  isGroupLabel
+                  labelID={`${ids}-duration`}
+                  inputID={`${ids}-duration-input`}
+                >
+                  <VStack gap={2}>
+                    <Segmented
+                      label={t('duration')}
+                      value={expiry}
+                      onChange={(v) =>
+                        form.setValue('expiry', v, { shouldValidate: form.formState.isSubmitted })
+                      }
+                      options={EXPIRY.map((e) => ({ value: e, label: t(`expiry.${e}`) }))}
+                    />
+                    <AnimatePresence initial={false}>
+                      {expiry === 'custom' && (
                         <motion.div
-                          key={selectedRole.id}
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.18 }}
-                          className="space-y-2 rounded-md bg-muted/50 px-3 py-2.5 text-sm"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden px-0.5 pt-1 pb-0.5"
                         >
-                          {roleText(selectedRole).description && (
-                            <p className="text-muted-foreground">{roleText(selectedRole).description}</p>
-                          )}
-                          <div className="flex flex-wrap gap-1">
-                            {selectedRole.permissions.slice(0, 6).map((p) => (
-                              <code
-                                key={p}
-                                className="rounded bg-background px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground"
-                              >
-                                {p}
-                              </code>
-                            ))}
-                            {selectedRole.permissions.length > 6 && (
-                              <span className="px-1 text-xs text-muted-foreground">
-                                {tr('card.more', { count: selectedRole.permissions.length - 6 })}
-                              </span>
+                          <FormField
+                            control={form.control}
+                            name="customDate"
+                            render={({ field, fieldState }) => (
+                              <DateInput
+                                label={t('customDate')}
+                                isLabelHidden
+                                value={(field.value || undefined) as ISODateString | undefined}
+                                onChange={(v) => field.onChange(v ?? '')}
+                                min={toDateInput(new Date(now.getTime() + DAY)) as ISODateString}
+                                status={fieldStatus(fieldState)}
+                                width={208}
+                              />
                             )}
-                            {selectedRole.permissions.length === 0 && (
-                              <span className="text-xs text-muted-foreground">
-                                {tr('card.permissions', { count: 0 })}
-                              </span>
-                            )}
-                          </div>
+                          />
                         </motion.div>
                       )}
                     </AnimatePresence>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <div aria-live="polite">
+                      <Text type="supporting">
+                        {expiresAt
+                          ? t('endsAt', {
+                              date: format.dateTime(expiresAt, { dateStyle: 'medium', timeStyle: 'short' }),
+                            })
+                          : t('permanentHint')}
+                      </Text>
+                    </div>
+                  </VStack>
+                </Field>
 
-              {/* who */}
-              <div className="grid gap-2" role="group" aria-labelledby="grant-principal-label">
-                <span id="grant-principal-label" className="text-sm font-medium">
-                  {t('to')}
-                </span>
-                <Segmented
-                  label={t('principalType')}
-                  value={principalType}
-                  onChange={(v) => {
-                    if (v === principalType) return;
-                    form.setValue('principalType', v);
-                    form.setValue('principal', null);
-                    form.clearErrors('principal');
-                  }}
-                  options={[
-                    { value: 'user', label: t('person'), icon: <UserIcon /> },
-                    { value: 'group', label: t('group'), icon: <UsersRoundIcon /> },
-                  ]}
+                <FormField
+                  control={form.control}
+                  name="reason"
+                  render={({ field, fieldState }) => (
+                    <TextArea
+                      label={t('reason')}
+                      isOptional
+                      rows={2}
+                      maxLength={500}
+                      placeholder={t('reasonPlaceholder')}
+                      description={t('reasonHint')}
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
+                    />
+                  )}
                 />
-                {principalType === 'user' ? (
-                  <UserPicker
-                    value={principal ? { id: principal.id, displayName: principal.name } : null}
-                    onChange={(u) =>
-                      form.setValue('principal', u ? { id: u.id, name: u.displayName } : null, {
-                        shouldValidate: form.formState.isSubmitted,
-                      })
-                    }
-                    placeholder={t('userPlaceholder')}
-                    aria-label={t('person')}
-                    aria-describedby={principalError ? 'grant-principal-error' : undefined}
-                  />
-                ) : (
-                  <GroupPicker
-                    value={principal}
-                    onChange={(g) =>
-                      form.setValue('principal', g ? { id: g.id, name: g.name } : null, {
-                        shouldValidate: form.formState.isSubmitted,
-                      })
-                    }
-                    placeholder={t('groupPlaceholder')}
-                    aria-label={t('group')}
-                    invalid={Boolean(principalError)}
-                    describedBy={principalError ? 'grant-principal-error' : undefined}
-                  />
-                )}
-                <p className="text-xs text-muted-foreground">
-                  {principalType === 'group' ? t('groupHint') : t('userHint')}
-                </p>
-                {principalError && (
-                  <p id="grant-principal-error" className="text-xs text-destructive animate-in fade-in-0">
-                    {principalError}
-                  </p>
-                )}
-              </div>
 
-              {/* how long */}
-              <div className="grid gap-2" role="group" aria-labelledby="grant-duration-label">
-                <span id="grant-duration-label" className="text-sm font-medium">
-                  {t('duration')}
-                </span>
-                <Segmented
-                  label={t('duration')}
-                  value={expiry}
-                  onChange={(v) => form.setValue('expiry', v, { shouldValidate: form.formState.isSubmitted })}
-                  options={EXPIRY.map((e) => ({ value: e, label: t(`expiry.${e}`) }))}
-                  className="[&>button]:px-2"
-                />
-                <AnimatePresence initial={false}>
-                  {expiry === 'custom' && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
+                {/* advanced: scope */}
+                <OptionalFields
+                  label={advanced ? tc('hideAdvanced') : t('limitScope')}
+                  open={advanced}
+                  onOpenChange={setAdvanced}
+                  hint={scopeLabel}
+                >
+                  <VStack gap={4}>
+                    <Field
+                      label={t('scope')}
+                      isGroupLabel
+                      labelID={`${ids}-scope`}
+                      inputID={`${ids}-scope-input`}
+                      description={t(`scopeHint.${scopeType}`)}
                     >
+                      <SegmentedControl
+                        label={t('scope')}
+                        value={scopeType}
+                        onChange={(v) => {
+                          form.setValue('scopeType', v as Values['scopeType']);
+                          form.clearErrors(['departmentId', 'recordType', 'recordId']);
+                        }}
+                      >
+                        <SegmentedControlItem
+                          value="global"
+                          label={tc('scope_values.global')}
+                          icon={<Icon icon={GlobeIcon} />}
+                        />
+                        <SegmentedControlItem
+                          value="department"
+                          label={tc('scope_values.department')}
+                          icon={<Icon icon={NetworkIcon} />}
+                        />
+                        <SegmentedControlItem
+                          value="record"
+                          label={tc('scope_values.record')}
+                          icon={<Icon icon={FileKeyIcon} />}
+                        />
+                      </SegmentedControl>
+                    </Field>
+                    {scopeType === 'department' && (
                       <FormField
                         control={form.control}
-                        name="customDate"
-                        render={({ field }) => (
-                          <FormItem className="px-0.5 pt-1 pb-0.5">
-                            <FormLabel className="sr-only">{t('customDate')}</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="date"
-                                min={toDateInput(new Date(now.getTime() + DAY))}
-                                {...field}
-                                className="w-full sm:w-52"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                        name="departmentId"
+                        render={({ field, fieldState }) => (
+                          <Field
+                            label={tc('department')}
+                            inputID={`${ids}-department`}
+                            status={fieldStatus(fieldState)}
+                          >
+                            <DepartmentSelect
+                              id={`${ids}-department`}
+                              value={field.value}
+                              onChange={field.onChange}
+                              noneLabel={t('chooseDepartment')}
+                            />
+                          </Field>
                         )}
                       />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <p className="text-xs text-muted-foreground" aria-live="polite">
-                  {expiresAt
-                    ? t('endsAt', {
-                        date: format.dateTime(expiresAt, { dateStyle: 'medium', timeStyle: 'short' }),
-                      })
-                    : t('permanentHint')}
-                </p>
-              </div>
-
-              <FormField
-                control={form.control}
-                name="reason"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t('reason')}{' '}
-                      <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea rows={2} maxLength={500} placeholder={t('reasonPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormDescription>{t('reasonHint')}</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* advanced: scope */}
-              <OptionalFields
-                label={advanced ? tc('hideAdvanced') : t('limitScope')}
-                open={advanced}
-                onOpenChange={setAdvanced}
-                hint={scopeLabel}
-              >
-                <div className="grid gap-2">
-                  <span className="text-sm font-medium">{t('scope')}</span>
-                  <Segmented
-                    label={t('scope')}
-                    value={scopeType}
-                    onChange={(v) => {
-                      form.setValue('scopeType', v);
-                      form.clearErrors(['departmentId', 'recordType', 'recordId']);
-                    }}
-                    options={[
-                      { value: 'global', label: tc('scope_values.global'), icon: <GlobeIcon /> },
-                      {
-                        value: 'department',
-                        label: tc('scope_values.department'),
-                        icon: <NetworkIcon />,
-                      },
-                      { value: 'record', label: tc('scope_values.record'), icon: <FileKeyIcon /> },
-                    ]}
-                  />
-                  <p className="text-xs text-muted-foreground">{t(`scopeHint.${scopeType}`)}</p>
-                </div>
-                {scopeType === 'department' && (
-                  <FormField
-                    control={form.control}
-                    name="departmentId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{tc('department')}</FormLabel>
-                        <FormControl>
-                          <DepartmentSelect
-                            value={field.value}
-                            onChange={field.onChange}
-                            noneLabel={t('chooseDepartment')}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
                     )}
-                  />
-                )}
-                {scopeType === 'record' && (
-                  <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
-                    <FormField
-                      control={form.control}
-                      name="recordType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('recordType')}</FormLabel>
-                          <FormControl>
-                            <Input
+                    {scopeType === 'record' && (
+                      <Grid columns={{ minWidth: 160 }} gap={3}>
+                        <FormField
+                          control={form.control}
+                          name="recordType"
+                          render={({ field, fieldState }) => (
+                            <TextInput
+                              label={t('recordType')}
                               placeholder="group"
-                              spellCheck={false}
                               autoComplete="off"
-                              className="font-mono"
-                              {...field}
+                              value={field.value ?? ''}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              status={fieldStatus(fieldState)}
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="recordId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('recordId')}</FormLabel>
-                          <FormControl>
-                            <Input spellCheck={false} autoComplete="off" className="font-mono" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-              </OptionalFields>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="recordId"
+                          render={({ field, fieldState }) => (
+                            <TextInput
+                              label={t('recordId')}
+                              autoComplete="off"
+                              value={field.value ?? ''}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              status={fieldStatus(fieldState)}
+                            />
+                          )}
+                        />
+                      </Grid>
+                    )}
+                  </VStack>
+                </OptionalFields>
 
-              {rootError && (
-                <p
-                  role="alert"
-                  className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-                >
-                  <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
-                  {rootError}
-                </p>
-              )}
+                {rootError && <Banner status="error" title={rootError} collapsible={false} />}
+              </FormLayout>
             </SheetBody>
             <SheetFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={mutation.isPending}>
-                <ShieldCheckIcon /> {t('submit')}
-              </Button>
+              <Button
+                label={tc('cancel')}
+                variant="secondary"
+                type="button"
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                label={t('submit')}
+                variant="primary"
+                icon={<Icon icon={ShieldCheckIcon} />}
+                isLoading={mutation.isPending}
+                type="submit"
+              />
             </SheetFooter>
           </form>
         </Form>

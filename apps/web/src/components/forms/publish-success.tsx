@@ -1,11 +1,13 @@
 'use client';
 
-import { Button } from '@isbp/ui/button';
-import { SuccessMark } from '@isbp/ui/motion';
-import { toast } from '@isbp/ui/sonner';
-import { CopyIcon, ExternalLinkIcon, XIcon } from 'lucide-react';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
+import { toast } from '@isbp/ui/toast';
+import { CopyIcon, ExternalLinkIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 /**
@@ -48,35 +50,39 @@ export function PublishSuccess({
           transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
           className="overflow-hidden"
         >
-          <div
-            role="status"
-            className="flex flex-col gap-3 rounded-xl border border-success/30 bg-success/8 p-3 sm:flex-row sm:items-center"
-          >
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <SuccessMark className="size-8" />
-              <div className="min-w-0">
-                <p className="font-medium">
-                  {live ? t('title', { version, audience }) : t('titleOff', { version })}
-                </p>
-                <p className="truncate font-mono text-xs text-muted-foreground">{href}</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => void copy()}>
-                <CopyIcon /> {t('copy')}
-              </Button>
-              {live && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={href}>
-                    <ExternalLinkIcon /> {t('open')}
-                  </Link>
-                </Button>
-              )}
-              <Button variant="ghost" size="icon-sm" aria-label={t('dismiss')} onClick={onClose}>
-                <XIcon />
-              </Button>
-            </div>
-          </div>
+          <Banner
+            status="success"
+            title={live ? t('title', { version, audience }) : t('titleOff', { version })}
+            description={
+              <Text type="code" maxLines={1}>
+                {href}
+              </Text>
+            }
+            collapsible={false}
+            isDismissable
+            dismissLabel={t('dismiss')}
+            onDismiss={onClose}
+            endContent={
+              <HStack gap={2} wrap="wrap">
+                <Button
+                  label={t('copy')}
+                  variant="secondary"
+                  size="sm"
+                  icon={<Icon icon={CopyIcon} />}
+                  onClick={() => void copy()}
+                />
+                {live && (
+                  <Button
+                    label={t('open')}
+                    variant="secondary"
+                    size="sm"
+                    icon={<Icon icon={ExternalLinkIcon} />}
+                    href={href}
+                  />
+                )}
+              </HStack>
+            }
+          />
         </motion.div>
       )}
     </AnimatePresence>

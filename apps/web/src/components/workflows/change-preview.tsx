@@ -19,7 +19,7 @@ import { CircleAlertIcon, FlaskConicalIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
 import { useApiQuery } from '@/lib/api';
-import { Segmented } from '../roles/segmented';
+import { Segmented } from '@isbp/ui/segmented';
 import { useFieldFacts } from './field-facts';
 import { type SimulationView, Simulator } from './simulator';
 import { useFactOptions } from './use-fact-label';

@@ -1,25 +1,17 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { Selector, type SelectorOptionType } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Tooltip } from '@astryxdesign/core/Tooltip';
 import type { Role, RoleAssignment } from '@isbp/contracts';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Label } from '@isbp/ui/label';
 import { SearchInput } from '@isbp/ui/search-input';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
-import { Switch } from '@isbp/ui/switch';
-import { Hint } from '@isbp/ui/tooltip';
 import { SearchXIcon, ShieldOffIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -135,17 +127,15 @@ export function AssignmentsTable() {
                 const a = row.original;
                 const label = t('revokeLabel', { role: roleText(a.role).name, name: a.principal.name });
                 return (
-                  <Hint label={t('revoke')}>
-                    <Button
+                  <Tooltip content={t('revoke')}>
+                    <IconButton
+                      label={label}
                       variant="ghost"
-                      size="icon-sm"
-                      aria-label={label}
+                      size="sm"
+                      icon={<Icon icon={ShieldOffIcon} />}
                       onClick={() => setRevoking(a)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <ShieldOffIcon />
-                    </Button>
-                  </Hint>
+                    />
+                  </Tooltip>
                 );
               },
             } satisfies DataTableColumn<RoleAssignment>,
@@ -156,6 +146,22 @@ export function AssignmentsTable() {
   );
 
   const allRoles = roles.data?.items ?? [];
+  const roleOptions: SelectorOptionType[] = [
+    { value: ALL, label: t('filters.allRoles') },
+    { type: 'divider' },
+    ...[false, true].flatMap((system) => {
+      const list = allRoles.filter((r) => r.isSystem === system);
+      return list.length
+        ? [
+            {
+              type: 'section' as const,
+              title: system ? tr('systemRoles') : tr('customRoles'),
+              options: list.map((r) => ({ value: r.id, label: roleText(r).name })),
+            },
+          ]
+        : [];
+    }),
+  ];
 
   return (
     <>
@@ -183,47 +189,26 @@ export function AssignmentsTable() {
               placeholder={t('searchPlaceholder')}
               className="sm:w-72"
             />
-            <Select value={roleId ?? ALL} onValueChange={(v) => set({ roleId: v === ALL ? undefined : v })}>
-              <SelectTrigger className="w-52" aria-label={t('filters.role')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="max-h-80">
-                <SelectItem value={ALL}>{t('filters.allRoles')}</SelectItem>
-                <SelectSeparator />
-                {[false, true].map((system) => {
-                  const list = allRoles.filter((r) => r.isSystem === system);
-                  if (!list.length) return null;
-                  return (
-                    <SelectGroup key={String(system)}>
-                      <SelectLabel>{system ? tr('systemRoles') : tr('customRoles')}</SelectLabel>
-                      {list.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {roleText(r).name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2 px-1">
-              <Switch
-                id="assignments-expired"
-                checked={includeExpired}
-                onCheckedChange={(v) => set({ includeExpired: v ? '1' : undefined })}
-              />
-              <Label htmlFor="assignments-expired" className="font-normal">
-                {t('filters.includeExpired')}
-              </Label>
-            </div>
+            <Selector
+              label={t('filters.role')}
+              isLabelHidden
+              width={208}
+              value={roleId ?? ALL}
+              onChange={(v) => set({ roleId: v === ALL ? undefined : v })}
+              options={roleOptions}
+            />
+            <Switch
+              label={t('filters.includeExpired')}
+              value={includeExpired}
+              onChange={(v) => set({ includeExpired: v ? '1' : undefined })}
+            />
             {filtered && (
               <Button
+                label={tc('clearFilters')}
                 variant="ghost"
                 size="sm"
                 onClick={() => set({ q: undefined, roleId: undefined, includeExpired: undefined })}
-              >
-                {tc('clearFilters')}
-              </Button>
+              />
             )}
           </>
         }

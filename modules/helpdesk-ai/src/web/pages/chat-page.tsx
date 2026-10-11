@@ -1,6 +1,4 @@
 'use client';
-
-import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
 import { PageHeader } from '@isbp/ui/page-header';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
@@ -9,6 +7,8 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { ChatPanel } from '../chat/chat-panel';
 import { ConversationHistory } from '../chat/history';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /**
  * Full-page virtual agent with the conversation history (the open conversation is `?c=` in the URL). `?q=` puts a
@@ -30,12 +30,18 @@ export default function ChatPage() {
         actions={
           // On a desktop the conversation list beside the chat has "New conversation"; on a phone it's here.
           <div className="flex gap-2 lg:hidden">
-            <Button variant="outline" onClick={() => setHistoryOpen(true)}>
-              <HistoryIcon /> {t('history.title')}
-            </Button>
-            <Button variant="outline" onClick={() => select(undefined)}>
-              <PlusIcon /> {t('history.new')}
-            </Button>
+            <Button
+              label={t('history.title')}
+              variant="secondary"
+              icon={<Icon icon={HistoryIcon} />}
+              onClick={() => setHistoryOpen(true)}
+            />
+            <Button
+              label={t('history.new')}
+              variant="secondary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => select(undefined)}
+            />
           </div>
         }
       />

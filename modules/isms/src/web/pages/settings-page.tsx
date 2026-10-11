@@ -1,20 +1,33 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import type { LocalizedText } from '@isbp/sdk';
 import { useApi } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
@@ -24,14 +37,11 @@ import {
   SheetContent,
   SheetDescription,
   SheetFooter,
+  SheetForm,
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Switch } from '@isbp/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { Textarea } from '@isbp/ui/textarea';
 import { ArchiveIcon, ArchiveRestoreIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
@@ -90,12 +100,19 @@ function ClassForm({ klass, onDone }: { klass: AssetClass | null; onDone: () => 
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const api = useApi();
-  const ids = { code: useId(), name: useId(), description: useId(), order: useId() };
+  const ids = {
+    name: useId(),
+    description: useId(),
+    subclasses: useId(),
+    guidance: useId(),
+    panels: useId(),
+    hint: useId(),
+  };
   const base = useId();
   const [code, setCode] = useState(klass?.code ?? '');
   const [name, setName] = useState<LocalizedText>(klass?.name ?? {});
   const [description, setDescription] = useState<LocalizedText>(klass?.description ?? {});
-  const [sortOrder, setSortOrder] = useState(String(klass?.sortOrder ?? 100));
+  const [sortOrder, setSortOrder] = useState<number>(klass?.sortOrder ?? 100);
   const [guidance, setGuidance] = useState<Guidance>(klass?.guidance ?? EMPTY_GUIDANCE);
   const [subs, setSubs] = useState<SubDraft[]>(
     klass?.subclasses.map((s) => ({ id: s.id, key: s.key, name: s.name, archived: s.archived })) ?? [],
@@ -118,7 +135,7 @@ function ClassForm({ klass, onDone }: { klass: AssetClass | null; onDone: () => 
         name,
         description: Object.keys(description).length ? description : null,
         guidance,
-        sortOrder: Number(sortOrder) || 0,
+        sortOrder: sortOrder || 0,
         subclasses: subs.map((s) => ({
           ...(s.id ? { id: s.id } : {}),
           key: s.key.trim(),
@@ -132,152 +149,137 @@ function ClassForm({ klass, onDone }: { klass: AssetClass | null; onDone: () => 
     }
   };
   return (
-    <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col" noValidate>
-      <SheetBody className="space-y-5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[8rem_minmax(0,1fr)_6rem]">
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.code}>{t('settings.classes.code')}</Label>
-            <Input
-              id={ids.code}
-              value={code}
-              disabled={Boolean(klass)}
-              maxLength={4}
-              className="font-mono uppercase"
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              aria-describedby={`${ids.code}-hint`}
-            />
-          </div>
-          <div className="grid min-w-0 gap-1.5">
-            <Label htmlFor={ids.name}>{tc('name')}</Label>
-            <LocalizedInput id={ids.name} value={name} onChange={setName} />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.order}>{t('settings.classes.order')}</Label>
-            <Input
-              id={ids.order}
-              inputMode="numeric"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-            />
-          </div>
-        </div>
-        <p id={`${ids.code}-hint`} className="-mt-3 text-xs text-muted-foreground">
-          {klass ? t('settings.classes.codeFixed') : t('settings.classes.codeHint')}
-        </p>
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={ids.description}>{tc('description')}</Label>
-          <LocalizedInput id={ids.description} value={description} onChange={setDescription} multiline />
-        </div>
-        <fieldset className="min-w-0 space-y-2">
-          <legend className="text-sm font-medium">{t('settings.classes.subclasses')}</legend>
-          {subs.map((s, i) => (
-            <div
-              key={s.id ?? `new-${i}`}
-              className="grid grid-cols-1 items-start gap-2 rounded-md border p-2 sm:grid-cols-[9rem_minmax(0,1fr)_auto]"
-            >
-              <div className="grid gap-1">
-                <Label htmlFor={`${base}-key-${i}`} className="text-xs">
-                  {tc('key')}
-                </Label>
-                <Input
-                  id={`${base}-key-${i}`}
-                  value={s.key}
-                  className="font-mono"
-                  onChange={(e) =>
-                    setSubs(subs.map((x, j) => (j === i ? { ...x, key: e.target.value.toLowerCase() } : x)))
-                  }
+    <SheetForm onSubmit={submit} noValidate>
+      <SheetBody className="py-2">
+        <VStack gap={5}>
+          <FormLayout defaultOptionality="optional">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[8rem_minmax(0,1fr)_7rem]">
+              <TextInput
+                label={t('settings.classes.code')}
+                isRequired
+                isDisabled={Boolean(klass)}
+                value={code}
+                onChange={(v) => setCode(v.toUpperCase().slice(0, 4))}
+              />
+              <Field label={tc('name')} inputID={ids.name} isRequired>
+                <LocalizedInput id={ids.name} value={name} onChange={setName} />
+              </Field>
+              <NumberInput
+                label={t('settings.classes.order')}
+                isIntegerOnly
+                value={sortOrder}
+                onChange={setSortOrder}
+              />
+            </div>
+            <Text as="p" type="supporting" id={ids.hint}>
+              {klass ? t('settings.classes.codeFixed') : t('settings.classes.codeHint')}
+            </Text>
+            <Field label={tc('description')} inputID={ids.description}>
+              <LocalizedInput id={ids.description} value={description} onChange={setDescription} multiline />
+            </Field>
+          </FormLayout>
+          <VStack gap={3} role="group" aria-labelledby={ids.subclasses}>
+            <Text type="label" id={ids.subclasses}>
+              {t('settings.classes.subclasses')}
+            </Text>
+            {subs.map((s, i) => (
+              <VStack key={s.id ?? `new-${i}`} gap={3}>
+                {i > 0 && <Divider />}
+                <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-[9rem_minmax(0,1fr)_auto]">
+                  <TextInput
+                    label={tc('key')}
+                    value={s.key}
+                    onChange={(v) =>
+                      setSubs(subs.map((x, j) => (j === i ? { ...x, key: v.toLowerCase() } : x)))
+                    }
+                  />
+                  <Field label={tc('name')} inputID={`${base}-name-${i}`}>
+                    <LocalizedInput
+                      id={`${base}-name-${i}`}
+                      value={s.name}
+                      onChange={(v) => setSubs(subs.map((x, j) => (j === i ? { ...x, name: v } : x)))}
+                    />
+                  </Field>
+                  <HStack gap={2} vAlign="center" className="sm:pt-6">
+                    <Switch
+                      label={t('settings.inUse')}
+                      value={!s.archived}
+                      onChange={(v) => setSubs(subs.map((x, j) => (j === i ? { ...x, archived: !v } : x)))}
+                    />
+                    {!s.id && (
+                      <IconButton
+                        label={t('settings.classes.removeSubclass')}
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon={Trash2Icon} />}
+                        type="button"
+                        onClick={() => setSubs(subs.filter((_, j) => j !== i))}
+                      />
+                    )}
+                  </HStack>
+                </div>
+              </VStack>
+            ))}
+            <div>
+              <Button
+                label={t('settings.classes.addSubclass')}
+                variant="secondary"
+                size="sm"
+                icon={<Icon icon={PlusIcon} />}
+                type="button"
+                onClick={() => setSubs([...subs, { key: '', name: {}, archived: false }])}
+              />
+            </div>
+          </VStack>
+          <VStack gap={3} role="group" aria-labelledby={ids.guidance}>
+            <Text type="label" id={ids.guidance}>
+              {t('settings.classes.guidance')}
+            </Text>
+            <Text as="p" type="supporting">
+              {t('settings.classes.guidanceHint')}
+            </Text>
+            <TabList role="tablist" value={dim} onChange={(v) => setDim(v as typeof dim)} hasDivider>
+              {CIA_DIMENSIONS.map((d) => (
+                <Tab
+                  key={d}
+                  value={d}
+                  label={t(`settings.classes.dimension.${d}`)}
+                  panelId={`${ids.panels}-${d}`}
                 />
-              </div>
-              <div className="grid min-w-0 gap-1">
-                <Label htmlFor={`${base}-name-${i}`} className="text-xs">
-                  {tc('name')}
-                </Label>
-                <LocalizedInput
-                  id={`${base}-name-${i}`}
-                  value={s.name}
-                  onChange={(v) => setSubs(subs.map((x, j) => (j === i ? { ...x, name: v } : x)))}
-                />
-              </div>
-              <div className="flex items-center gap-2 pt-5">
-                <Switch
-                  id={`${base}-arch-${i}`}
-                  checked={!s.archived}
-                  onCheckedChange={(v) => setSubs(subs.map((x, j) => (j === i ? { ...x, archived: !v } : x)))}
-                />
-                <Label htmlFor={`${base}-arch-${i}`} className="text-xs">
-                  {t('settings.inUse')}
-                </Label>
-                {!s.id && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t('settings.classes.removeSubclass')}
-                    onClick={() => setSubs(subs.filter((_, j) => j !== i))}
-                  >
-                    <Trash2Icon />
-                  </Button>
+              ))}
+            </TabList>
+            {CIA_DIMENSIONS.map((d) => (
+              <div key={d} role="tabpanel" id={`${ids.panels}-${d}`} hidden={dim !== d}>
+                {dim === d && (
+                  <FormLayout defaultOptionality="optional">
+                    {[...CIA_LEVELS].reverse().map((level) => {
+                      const id = `${base}-${d}-${level}`;
+                      return (
+                        <Field key={level} label={t('assetForm.level', { level })} inputID={id}>
+                          <LocalizedInput
+                            id={id}
+                            multiline
+                            value={guidance[d][String(level) as '1']}
+                            onChange={(v) =>
+                              setGuidance({ ...guidance, [d]: { ...guidance[d], [String(level)]: v } })
+                            }
+                          />
+                        </Field>
+                      );
+                    })}
+                  </FormLayout>
                 )}
               </div>
-            </div>
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setSubs([...subs, { key: '', name: {}, archived: false }])}
-          >
-            <PlusIcon /> {t('settings.classes.addSubclass')}
-          </Button>
-        </fieldset>
-        <fieldset className="min-w-0 space-y-3">
-          <legend className="text-sm font-medium">{t('settings.classes.guidance')}</legend>
-          <p className="text-xs text-muted-foreground">{t('settings.classes.guidanceHint')}</p>
-          <Tabs value={dim} onValueChange={(v) => setDim(v as typeof dim)} className="gap-3">
-            <TabsList>
-              {CIA_DIMENSIONS.map((d) => (
-                <TabsTrigger key={d} value={d}>
-                  {t(`settings.classes.dimension.${d}`)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {CIA_DIMENSIONS.map((d) => (
-              <TabsContent key={d} value={d} className="space-y-3">
-                {[...CIA_LEVELS].reverse().map((level) => {
-                  const id = `${base}-${d}-${level}`;
-                  return (
-                    <div key={level} className="grid min-w-0 gap-1.5">
-                      <Label htmlFor={id}>{t('assetForm.level', { level })}</Label>
-                      <LocalizedInput
-                        id={id}
-                        multiline
-                        value={guidance[d][String(level) as '1']}
-                        onChange={(v) =>
-                          setGuidance({ ...guidance, [d]: { ...guidance[d], [String(level)]: v } })
-                        }
-                      />
-                    </div>
-                  );
-                })}
-              </TabsContent>
             ))}
-          </Tabs>
-        </fieldset>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
+          </VStack>
+          {error && <Banner status="error" title={error} collapsible={false} />}
+        </VStack>
       </SheetBody>
       <SheetFooter>
-        <Button type="button" variant="outline" onClick={onDone}>
-          {tc('cancel')}
-        </Button>
-        <Button type="submit" loading={save.isPending}>
-          {tc('save')}
-        </Button>
+        <Button label={tc('cancel')} variant="secondary" type="button" onClick={onDone} />
+        <Button label={tc('save')} variant="primary" isLoading={save.isPending} type="submit" />
       </SheetFooter>
-    </form>
+    </SheetForm>
   );
 }
 
@@ -294,45 +296,53 @@ function ClassesTab() {
   );
   if (isLoading) return <Skeleton className="h-40 w-full" />;
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setEditing('new')}>
-          <PlusIcon /> {t('classes.new')}
-        </Button>
-      </div>
+    <VStack gap={4}>
+      <HStack hAlign="end">
+        <Button
+          label={t('classes.new')}
+          variant="primary"
+          icon={<Icon icon={PlusIcon} />}
+          onClick={() => setEditing('new')}
+        />
+      </HStack>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {(data?.items ?? []).map((c) => (
           <Card key={c.id} className="min-w-0">
             <CardHeader>
               <CardTitle className="flex flex-wrap items-center gap-2">
-                <span className="font-mono">{c.code}</span> {localized(c.name)}
-                {c.archived && <Badge variant="muted">{t('archived')}</Badge>}
+                <Text type="code">{c.code}</Text> {localized(c.name)}
+                {c.archived && <Badge variant="neutral" label={t('archived')} />}
               </CardTitle>
               <CardDescription>
                 {t('classes.counts', { subclasses: c.subclasses.length, assets: c.assetCount })}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                {c.subclasses
-                  .filter((s) => !s.archived)
-                  .map((s) => localized(s.name))
-                  .join(' · ') || '—'}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => setEditing(c)}>
-                  <PencilIcon /> {tc('edit')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  loading={archive.isPending && archive.variables?.id === c.id}
-                  onClick={() => archive.mutate(c)}
-                >
-                  {c.archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />}{' '}
-                  {c.archived ? t('restore') : t('archive')}
-                </Button>
-              </div>
+            <CardContent>
+              <VStack gap={3}>
+                <Text as="p" color="secondary">
+                  {c.subclasses
+                    .filter((s) => !s.archived)
+                    .map((s) => localized(s.name))
+                    .join(' · ') || '—'}
+                </Text>
+                <HStack gap={2} wrap="wrap">
+                  <Button
+                    label={tc('edit')}
+                    variant="secondary"
+                    size="sm"
+                    icon={<Icon icon={PencilIcon} />}
+                    onClick={() => setEditing(c)}
+                  />
+                  <Button
+                    label={c.archived ? t('restore') : t('archive')}
+                    variant="ghost"
+                    size="sm"
+                    icon={<Icon icon={c.archived ? ArchiveRestoreIcon : ArchiveIcon} />}
+                    isLoading={archive.isPending && archive.variables?.id === c.id}
+                    onClick={() => archive.mutate(c)}
+                  />
+                </HStack>
+              </VStack>
             </CardContent>
           </Card>
         ))}
@@ -342,7 +352,7 @@ function ClassesTab() {
         open={editing !== null}
         onOpenChange={(o) => !o && setEditing(null)}
       />
-    </div>
+    </VStack>
   );
 }
 
@@ -361,7 +371,6 @@ function SiteDialog({
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const api = useApi();
-  const ids = { code: useId(), name: useId(), description: useId() };
   const [code, setCode] = useState(site?.code ?? '');
   const [name, setName] = useState(site?.name ?? '');
   const [description, setDescription] = useState(site?.description ?? '');
@@ -381,64 +390,62 @@ function SiteDialog({
     { invalidate: INVALIDATE, success: t('saved'), silent: true },
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{site ? t('sites.editTitle', { code: site.code }) : t('sites.newTitle')}</DialogTitle>
-          <DialogDescription>{t('sites.hint')}</DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[8rem_minmax(0,1fr)]">
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.code}>{t('sites.code')}</Label>
-            <Input
-              id={ids.code}
-              value={code}
-              disabled={Boolean(site)}
-              maxLength={8}
-              className="font-mono uppercase"
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.name}>{tc('name')}</Label>
-            <Input id={ids.name} value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="grid gap-1.5 sm:col-span-2">
-            <Label htmlFor={ids.description}>{tc('description')}</Label>
-            <Textarea
-              id={ids.description}
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-        </div>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button
-            type="button"
-            loading={save.isPending}
-            onClick={async () => {
-              setError(null);
-              try {
-                await save.mutateAsync(undefined);
-                onOpenChange(false);
-              } catch (err) {
-                setError(errorText(err));
-              }
-            }}
-          >
-            {tc('save')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={512} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={site ? t('sites.editTitle', { code: site.code }) : t('sites.newTitle')}
+            subtitle={t('sites.hint')}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <FormLayout defaultOptionality="optional">
+              <Grid columns={{ minWidth: 160 }} gap={4}>
+                <TextInput
+                  label={t('sites.code')}
+                  isRequired
+                  isDisabled={Boolean(site)}
+                  value={code}
+                  onChange={(v) => setCode(v.toUpperCase().slice(0, 8))}
+                />
+                <TextInput label={tc('name')} isRequired value={name} onChange={setName} />
+                <GridSpan columns="full">
+                  <TextArea
+                    label={tc('description')}
+                    rows={2}
+                    value={description}
+                    onChange={setDescription}
+                  />
+                </GridSpan>
+              </Grid>
+              {error && <Banner status="error" title={error} collapsible={false} />}
+            </FormLayout>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={tc('save')}
+                variant="primary"
+                isLoading={save.isPending}
+                onClick={async () => {
+                  setError(null);
+                  try {
+                    await save.mutateAsync(undefined);
+                    onOpenChange(false);
+                  } catch (err) {
+                    setError(errorText(err));
+                  }
+                }}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -458,63 +465,68 @@ function SitesTab() {
   );
   if (isLoading) return <Skeleton className="h-40 w-full" />;
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setEditing('new')}>
-          <PlusIcon /> {t('sites.new')}
-        </Button>
-      </div>
-      <div className="overflow-x-auto rounded-md border">
-        <Table aria-label={t('tabs.sites')}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('sites.code')}</TableHead>
-              <TableHead>{tc('name')}</TableHead>
-              <TableHead className="hidden sm:table-cell">{t('sites.assets')}</TableHead>
-              <TableHead>{tc('status')}</TableHead>
-              <TableHead>
-                <span className="sr-only">{tc('actions')}</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(data?.items ?? []).map((s) => (
-              <TableRow key={s.id}>
-                <TableCell className="font-mono">{s.code}</TableCell>
-                <TableCell>{s.name}</TableCell>
-                <TableCell className="hidden tabular-nums sm:table-cell">{s.assetCount}</TableCell>
-                <TableCell>
-                  {s.archived ? (
-                    <Badge variant="muted">{t('archived')}</Badge>
-                  ) : (
-                    <Badge variant="success">{t('inUse')}</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right whitespace-nowrap">
-                  <Button
-                    size="icon-sm"
+    <VStack gap={4}>
+      <HStack hAlign="end">
+        <Button
+          label={t('sites.new')}
+          variant="primary"
+          icon={<Icon icon={PlusIcon} />}
+          onClick={() => setEditing('new')}
+        />
+      </HStack>
+      <Table aria-label={t('tabs.sites')}>
+        <TableHeader>
+          <TableRow>
+            <TableHeaderCell>{t('sites.code')}</TableHeaderCell>
+            <TableHeaderCell>{tc('name')}</TableHeaderCell>
+            <TableHeaderCell className="hidden sm:table-cell">{t('sites.assets')}</TableHeaderCell>
+            <TableHeaderCell>{tc('status')}</TableHeaderCell>
+            <TableHeaderCell>
+              <span className="sr-only">{tc('actions')}</span>
+            </TableHeaderCell>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(data?.items ?? []).map((s) => (
+            <TableRow key={s.id}>
+              <TableCell>
+                <Text type="code">{s.code}</Text>
+              </TableCell>
+              <TableCell>{s.name}</TableCell>
+              <TableCell className="hidden sm:table-cell">
+                <Text hasTabularNumbers>{s.assetCount}</Text>
+              </TableCell>
+              <TableCell>
+                {s.archived ? (
+                  <Badge variant="neutral" label={t('archived')} />
+                ) : (
+                  <Badge variant="success" label={t('inUse')} />
+                )}
+              </TableCell>
+              <TableCell>
+                <HStack gap={1} hAlign="end" wrap="nowrap">
+                  <IconButton
+                    label={t('sites.editTitle', { code: s.code })}
                     variant="ghost"
-                    aria-label={t('sites.editTitle', { code: s.code })}
+                    size="sm"
+                    icon={<Icon icon={PencilIcon} />}
                     onClick={() => setEditing(s)}
-                  >
-                    <PencilIcon />
-                  </Button>
-                  <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    aria-label={
+                  />
+                  <IconButton
+                    label={
                       s.archived ? t('restoreItem', { name: s.code }) : t('archiveItem', { name: s.code })
                     }
+                    variant="ghost"
+                    size="sm"
+                    icon={<Icon icon={s.archived ? ArchiveRestoreIcon : ArchiveIcon} />}
                     onClick={() => toggle.mutate(s)}
-                  >
-                    {s.archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                  />
+                </HStack>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
       {editing !== null && (
         <SiteDialog
           site={editing === 'new' ? null : editing}
@@ -522,7 +534,7 @@ function SitesTab() {
           onOpenChange={(o) => !o && setEditing(null)}
         />
       )}
-    </div>
+    </VStack>
   );
 }
 
@@ -541,16 +553,16 @@ function LabelDialog({
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const api = useApi();
-  const ids = { key: useId(), name: useId(), description: useId(), rank: useId() };
+  const ids = { name: useId(), description: useId() };
   const [key, setKey] = useState(label?.key ?? '');
   const [name, setName] = useState<LocalizedText>(label?.name ?? {});
   const [description, setDescription] = useState<LocalizedText>(label?.description ?? {});
-  const [rank, setRank] = useState(String(label?.rank ?? 10));
+  const [rank, setRank] = useState<number>(label?.rank ?? 10);
   const [error, setError] = useState<string | null>(null);
   const body = {
     name,
     description: Object.keys(description).length ? description : null,
-    rank: Number(rank) || 0,
+    rank: rank || 0,
   };
   const save = useApiMutation(
     () =>
@@ -560,63 +572,71 @@ function LabelDialog({
     { invalidate: INVALIDATE, success: t('saved'), silent: true },
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{label ? t('labels.editTitle') : t('labels.newTitle')}</DialogTitle>
-          <DialogDescription>{t('labels.hint')}</DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_6rem]">
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.key}>{tc('key')}</Label>
-            <Input
-              id={ids.key}
-              value={key}
-              disabled={Boolean(label)}
-              className="font-mono"
-              onChange={(e) => setKey(e.target.value.toLowerCase())}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.rank}>{t('labels.rank')}</Label>
-            <Input id={ids.rank} inputMode="numeric" value={rank} onChange={(e) => setRank(e.target.value)} />
-          </div>
-          <div className="grid min-w-0 gap-1.5 sm:col-span-2">
-            <Label htmlFor={ids.name}>{tc('name')}</Label>
-            <LocalizedInput id={ids.name} value={name} onChange={setName} />
-          </div>
-          <div className="grid min-w-0 gap-1.5 sm:col-span-2">
-            <Label htmlFor={ids.description}>{tc('description')}</Label>
-            <LocalizedInput id={ids.description} value={description} onChange={setDescription} multiline />
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">{t('labels.rankHint')}</p>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button
-            type="button"
-            loading={save.isPending}
-            onClick={async () => {
-              setError(null);
-              try {
-                await save.mutateAsync(undefined);
-                onOpenChange(false);
-              } catch (err) {
-                setError(errorText(err));
-              }
-            }}
-          >
-            {tc('save')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={512} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={label ? t('labels.editTitle') : t('labels.newTitle')}
+            subtitle={t('labels.hint')}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <FormLayout defaultOptionality="optional">
+              <Grid columns={{ minWidth: 160 }} gap={4} align="end">
+                <TextInput
+                  label={tc('key')}
+                  isRequired
+                  isDisabled={Boolean(label)}
+                  value={key}
+                  onChange={(v) => setKey(v.toLowerCase())}
+                />
+                <NumberInput
+                  label={t('labels.rank')}
+                  description={t('labels.rankHint')}
+                  isIntegerOnly
+                  value={rank}
+                  onChange={setRank}
+                />
+              </Grid>
+              <Field label={tc('name')} inputID={ids.name} isRequired>
+                <LocalizedInput id={ids.name} value={name} onChange={setName} />
+              </Field>
+              <Field label={tc('description')} inputID={ids.description}>
+                <LocalizedInput
+                  id={ids.description}
+                  value={description}
+                  onChange={setDescription}
+                  multiline
+                />
+              </Field>
+              {error && <Banner status="error" title={error} collapsible={false} />}
+            </FormLayout>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={tc('save')}
+                variant="primary"
+                isLoading={save.isPending}
+                onClick={async () => {
+                  setError(null);
+                  try {
+                    await save.mutateAsync(undefined);
+                    onOpenChange(false);
+                  } catch (err) {
+                    setError(errorText(err));
+                  }
+                }}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -637,65 +657,70 @@ function LabelsTab() {
   );
   if (isLoading) return <Skeleton className="h-40 w-full" />;
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setEditing('new')}>
-          <PlusIcon /> {t('labels.new')}
-        </Button>
-      </div>
-      <div className="overflow-x-auto rounded-md border">
-        <Table aria-label={t('tabs.labels')}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{tc('name')}</TableHead>
-              <TableHead className="hidden sm:table-cell">{tc('key')}</TableHead>
-              <TableHead className="hidden sm:table-cell">{t('labels.rank')}</TableHead>
-              <TableHead>{tc('status')}</TableHead>
-              <TableHead>
-                <span className="sr-only">{tc('actions')}</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(data?.items ?? []).map((l) => (
-              <TableRow key={l.id}>
-                <TableCell>{localized(l.name)}</TableCell>
-                <TableCell className="hidden font-mono text-xs sm:table-cell">{l.key}</TableCell>
-                <TableCell className="hidden tabular-nums sm:table-cell">{l.rank}</TableCell>
-                <TableCell>
-                  {l.archived ? (
-                    <Badge variant="muted">{t('archived')}</Badge>
-                  ) : (
-                    <Badge variant="success">{t('inUse')}</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right whitespace-nowrap">
-                  <Button
-                    size="icon-sm"
+    <VStack gap={4}>
+      <HStack hAlign="end">
+        <Button
+          label={t('labels.new')}
+          variant="primary"
+          icon={<Icon icon={PlusIcon} />}
+          onClick={() => setEditing('new')}
+        />
+      </HStack>
+      <Table aria-label={t('tabs.labels')}>
+        <TableHeader>
+          <TableRow>
+            <TableHeaderCell>{tc('name')}</TableHeaderCell>
+            <TableHeaderCell className="hidden sm:table-cell">{tc('key')}</TableHeaderCell>
+            <TableHeaderCell className="hidden sm:table-cell">{t('labels.rank')}</TableHeaderCell>
+            <TableHeaderCell>{tc('status')}</TableHeaderCell>
+            <TableHeaderCell>
+              <span className="sr-only">{tc('actions')}</span>
+            </TableHeaderCell>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(data?.items ?? []).map((l) => (
+            <TableRow key={l.id}>
+              <TableCell>{localized(l.name)}</TableCell>
+              <TableCell className="hidden sm:table-cell">
+                <Text type="code">{l.key}</Text>
+              </TableCell>
+              <TableCell className="hidden sm:table-cell">
+                <Text hasTabularNumbers>{l.rank}</Text>
+              </TableCell>
+              <TableCell>
+                {l.archived ? (
+                  <Badge variant="neutral" label={t('archived')} />
+                ) : (
+                  <Badge variant="success" label={t('inUse')} />
+                )}
+              </TableCell>
+              <TableCell>
+                <HStack gap={1} hAlign="end" wrap="nowrap">
+                  <IconButton
+                    label={t('labels.editItem', { name: localized(l.name) })}
                     variant="ghost"
-                    aria-label={t('labels.editItem', { name: localized(l.name) })}
+                    size="sm"
+                    icon={<Icon icon={PencilIcon} />}
                     onClick={() => setEditing(l)}
-                  >
-                    <PencilIcon />
-                  </Button>
-                  <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    aria-label={
+                  />
+                  <IconButton
+                    label={
                       l.archived
                         ? t('restoreItem', { name: localized(l.name) })
                         : t('archiveItem', { name: localized(l.name) })
                     }
+                    variant="ghost"
+                    size="sm"
+                    icon={<Icon icon={l.archived ? ArchiveRestoreIcon : ArchiveIcon} />}
                     onClick={() => toggle.mutate(l)}
-                  >
-                    {l.archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                  />
+                </HStack>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
       {editing !== null && (
         <LabelDialog
           label={editing === 'new' ? null : editing}
@@ -703,33 +728,34 @@ function LabelsTab() {
           onOpenChange={(o) => !o && setEditing(null)}
         />
       )}
-    </div>
+    </VStack>
   );
 }
 
 /** Information security → Settings: classes (with sub-classes and C/I/A guidance), sites and classification labels. */
 export default function SettingsPage() {
   const t = useTranslations('isms.settings');
+  const panels = useId();
   const [tab, setTab] = useState<Tab>('classes');
   return (
     <>
       <PageHeader title={t('title')} description={t('description')} />
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="gap-4">
-        <TabsList>
-          <TabsTrigger value="classes">{t('tabs.classes')}</TabsTrigger>
-          <TabsTrigger value="sites">{t('tabs.sites')}</TabsTrigger>
-          <TabsTrigger value="labels">{t('tabs.labels')}</TabsTrigger>
-        </TabsList>
-        <TabsContent value="classes" className="min-w-0">
+      <VStack gap={4}>
+        <TabList role="tablist" value={tab} onChange={(v) => setTab(v as Tab)} hasDivider>
+          <Tab value="classes" label={t('tabs.classes')} panelId={`${panels}-classes`} />
+          <Tab value="sites" label={t('tabs.sites')} panelId={`${panels}-sites`} />
+          <Tab value="labels" label={t('tabs.labels')} panelId={`${panels}-labels`} />
+        </TabList>
+        <div role="tabpanel" id={`${panels}-classes`} hidden={tab !== 'classes'} className="min-w-0">
           {tab === 'classes' && <ClassesTab />}
-        </TabsContent>
-        <TabsContent value="sites" className="min-w-0">
+        </div>
+        <div role="tabpanel" id={`${panels}-sites`} hidden={tab !== 'sites'} className="min-w-0">
           {tab === 'sites' && <SitesTab />}
-        </TabsContent>
-        <TabsContent value="labels" className="min-w-0">
+        </div>
+        <div role="tabpanel" id={`${panels}-labels`} hidden={tab !== 'labels'} className="min-w-0">
           {tab === 'labels' && <LabelsTab />}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </VStack>
     </>
   );
 }

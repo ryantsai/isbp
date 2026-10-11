@@ -24,7 +24,10 @@ test('knowledge home: instant search with highlighted matches, keyboard navigati
   await expect(page.getByRole('heading', { name: 'Knowledge base', level: 1 })).toBeVisible();
   // Writers reach Manage and Categories through the section tabs (no duplicate header buttons or links).
   const sections = page.getByRole('navigation', { name: 'Knowledge base sections' });
-  await expect(sections.getByRole('link', { name: 'Browse' })).toHaveAttribute('aria-current', 'page');
+  await expect(sections.getByRole('link', { name: 'Browse' })).toHaveAttribute(
+    'aria-current',
+    /^(page|true)$/,
+  );
   await expect(sections.getByRole('link', { name: 'Manage' })).toBeVisible();
   await expect(sections.getByRole('link', { name: 'Categories' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Manage articles' })).toHaveCount(0);
@@ -153,7 +156,7 @@ test("categories: full-width list, Edit and Delete in each row's menu, the form 
     page
       .getByRole('navigation', { name: 'Knowledge base sections' })
       .getByRole('link', { name: 'Categories' }),
-  ).toHaveAttribute('aria-current', 'page');
+  ).toHaveAttribute('aria-current', /^(page|true)$/);
   await page.getByRole('button', { name: 'Actions for Network & VPN' }).click();
   await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeVisible();
   await page.getByRole('menuitem', { name: 'Edit' }).click();
@@ -190,7 +193,7 @@ test('in-app help: the user menu opens the user guide, with screenshots and link
   await expect(page.getByRole('heading', { name: 'Start here', level: 1 })).toBeVisible();
   await expect(page.getByText(/Part of the IS Big Platform user guide/)).toBeVisible();
   // The guide's screenshots load (served by the web app, inline only for /help/).
-  const shot = page.locator('main img[src^="/help/en/"]').first();
+  const shot = page.getByRole('main').locator('img[src^="/help/en/"]').first();
   await shot.scrollIntoViewIfNeeded();
   await expect.poll(() => shot.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
   await expectAccessible(page);

@@ -1,9 +1,11 @@
 'use client';
 
-import { cn } from '@isbp/ui';
+import { Collapsible } from '@astryxdesign/core/Collapsible';
+import { Table } from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
 import { motion, useReducedMotion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react';
+import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import type { Overview } from '../../contracts';
 
 type Day = Overview['daily'][number];
@@ -41,7 +43,6 @@ export function DailyChart({ data }: { data: Day[] }) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState<number | null>(null);
-  const tableId = useId();
 
   useEffect(() => {
     const el = box.current;
@@ -230,44 +231,22 @@ export function DailyChart({ data }: { data: Day[] }) {
         </p>
       </div>
 
-      <details className="group text-sm">
-        <summary className="w-fit cursor-pointer rounded-sm text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50">
-          {t('chart.table')}
-        </summary>
-        <div className="mt-2 max-h-64 overflow-auto rounded-lg border">
-          <table id={tableId} className="w-full text-xs">
-            <caption className="sr-only">{t('chart.caption')}</caption>
-            <thead className="sticky top-0 bg-muted/80 backdrop-blur">
-              <tr>
-                <th scope="col" className="px-3 py-1.5 text-left font-medium">
-                  {t('chart.date')}
-                </th>
-                <th scope="col" className="px-3 py-1.5 text-right font-medium">
-                  {t('chart.conversations')}
-                </th>
-                <th scope="col" className="px-3 py-1.5 text-right font-medium">
-                  {t('chart.escalated')}
-                </th>
-                <th scope="col" className="px-3 py-1.5 text-right font-medium">
-                  {t('chart.deflected')}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...data].reverse().map((d) => (
-                <tr key={d.date} className={cn('border-t', !d.conversations && 'text-muted-foreground')}>
-                  <th scope="row" className="px-3 py-1 text-left font-normal">
-                    {label(d.date, true)}
-                  </th>
-                  <td className="px-3 py-1 text-right tabular-nums">{d.conversations}</td>
-                  <td className="px-3 py-1 text-right tabular-nums">{d.escalations}</td>
-                  <td className="px-3 py-1 text-right tabular-nums">{d.deflections}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <Collapsible trigger={<Text color="secondary">{t('chart.table')}</Text>} defaultIsOpen={false}>
+        <div className="max-h-64 overflow-auto rounded-lg border">
+          <Table
+            aria-label={t('chart.caption')}
+            density="compact"
+            idKey="date"
+            data={[...data].reverse()}
+            columns={[
+              { key: 'date', header: t('chart.date'), renderCell: (d) => label(d.date, true) },
+              { key: 'conversations', header: t('chart.conversations'), align: 'end' },
+              { key: 'escalations', header: t('chart.escalated'), align: 'end' },
+              { key: 'deflections', header: t('chart.deflected'), align: 'end' },
+            ]}
+          />
         </div>
-      </details>
+      </Collapsible>
     </div>
   );
 }

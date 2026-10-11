@@ -1,9 +1,12 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
@@ -11,14 +14,14 @@ import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
 import { InboxIcon, PlusIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import type { Item } from '../../contracts';
 import { ItemFormDialog } from '../item-form';
 
-const STATUS_VARIANT = { draft: 'muted', active: 'success', archived: 'secondary' } as const;
+/** A status is icon + text, never colour alone; here the text is the chip. Map each status once. */
+const STATUS_VARIANT = { draft: 'neutral', active: 'success', archived: 'neutral' } as const;
 
 export default function ListPage() {
   const t = useTranslations('__ID__');
@@ -35,7 +38,7 @@ export default function ListPage() {
         header: t('fields.title'),
         meta: { sortKey: 'title' },
         cell: ({ row }) => (
-          <Link href={`/__ID__/${row.original.id}`} className="font-medium hover:underline" onClick={(e) => e.stopPropagation()}>
+          <Link href={`/__ID__/${row.original.id}`} onClick={(e) => e.stopPropagation()}>
             {row.original.title}
           </Link>
         ),
@@ -44,13 +47,17 @@ export default function ListPage() {
         id: 'status',
         header: t('fields.status'),
         meta: { sortKey: 'status' },
-        cell: ({ row }) => <Badge variant={STATUS_VARIANT[row.original.status]}>{t(`status.${row.original.status}`)}</Badge>,
+        cell: ({ row }) => <Badge variant={STATUS_VARIANT[row.original.status]} label={t(`status.${row.original.status}`)} />,
       },
-      { id: 'owner', header: t('fields.owner'), meta: { className: 'text-muted-foreground' }, cell: ({ row }) => row.original.owner?.displayName ?? '—' },
+      {
+        id: 'owner',
+        header: t('fields.owner'),
+        cell: ({ row }) => <Text color="secondary">{row.original.owner?.displayName ?? '—'}</Text>,
+      },
       {
         id: 'updatedAt',
         header: t('fields.updated'),
-        meta: { sortKey: 'updatedAt', className: 'text-muted-foreground' },
+        meta: { sortKey: 'updatedAt' },
         cell: ({ row }) => <RelativeTime date={row.original.updatedAt} />,
       },
     ],
@@ -64,9 +71,7 @@ export default function ListPage() {
         description={t('meta.description')}
         actions={
           canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon /> {t('createTitle')}
-            </Button>
+            <Button label={t('createTitle')} variant="primary" icon={<Icon icon={PlusIcon} />} onClick={() => setCreating(true)} />
           )
         }
       />

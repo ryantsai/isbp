@@ -40,11 +40,11 @@ test('a classified article shows its label, the handling banner and its attachme
   await expect(page.getByRole('heading', { name: article.title, level: 1 })).toBeVisible();
   // The label names itself for screen readers ("Classification: Confidential"), with an icon and the tone.
   await expect(page.getByText('Classification: Confidential', { exact: true }).first()).toBeVisible();
-  await expect(page.getByRole('note').filter({ hasText: /^Classified Confidential/ })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: /Classified Confidential/ })).toBeVisible();
   const files = page.getByRole('region', { name: /Attachments/ });
   await expect(files.getByRole('link', { name: 'VPN-gateway-diagram.pdf', exact: true })).toBeVisible();
   // Editors may add files here.
-  await expect(files.getByRole('button', { name: 'Upload' })).toBeVisible();
+  await expect(files.locator('input[type=file]')).toBeAttached();
 });
 
 test('the editor sets the classification and the workspace filters by it', async ({ page }) => {

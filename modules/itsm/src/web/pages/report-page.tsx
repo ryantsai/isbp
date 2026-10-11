@@ -1,28 +1,27 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { ClickableCard } from '@astryxdesign/core/ClickableCard';
+import { Divider } from '@astryxdesign/core/Divider';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { parseRecordRef } from '@isbp/sdk';
 import { useCan, usePlatform } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Card, CardContent } from '@isbp/ui/card';
+import { EmptyState } from '@isbp/ui/empty-state';
+import { AnimatedItem, AnimatedList } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
-import { Textarea } from '@isbp/ui/textarea';
-import {
-  ArrowLeftIcon,
-  BookOpenIcon,
-  CircleSlashIcon,
-  FeatherIcon,
-  LightbulbIcon,
-  SendIcon,
-  SnailIcon,
-} from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import Link from 'next/link';
+import { BookOpenIcon, CircleSlashIcon, FeatherIcon, LightbulbIcon, SendIcon, SnailIcon } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { type FormEvent, useEffect, useId, useState } from 'react';
+import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
 import type { CreateTicketInput, TicketDetail } from '../../contracts';
 import { LinkedRecordChip } from '../components/linked-record-chip';
 import { ServicePicker } from '../components/pickers';
@@ -59,40 +58,47 @@ function useDeflection(text: string, enabled: boolean) {
 function Suggestions({ articles }: { articles: ArticleHit[] }) {
   const t = useTranslations('itsm.report');
   return (
-    <>
+    <VStack gap={2}>
       {articles.length ? (
-        <ul className="grid gap-2">
-          <AnimatePresence initial={false}>
-            {articles.map((a, i) => (
-              <motion.li
-                key={a.id}
-                layout
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25, delay: i * 0.05 }}
-              >
-                <Link
-                  href={a.href}
-                  className="group grid gap-1 rounded-xl border bg-card p-3 transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:hover:translate-y-0"
-                >
-                  <span className="flex items-start gap-2 text-sm font-medium group-hover:underline">
-                    <BookOpenIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                    {a.title}
-                  </span>
-                  <span className="line-clamp-3 text-xs text-muted-foreground">{a.snippet || a.summary}</span>
-                </Link>
-              </motion.li>
-            ))}
-          </AnimatePresence>
-        </ul>
+        <AnimatedList>
+          {articles.map((a) => (
+            <AnimatedItem key={a.id} className="pb-2">
+              <ClickableCard label={a.title} href={a.href} padding={3}>
+                <VStack gap={1}>
+                  <HStack gap={2} vAlign="start">
+                    <Icon icon={BookOpenIcon} color="accent" />
+                    <Text weight="medium">{a.title}</Text>
+                  </HStack>
+                  <Text type="supporting" maxLines={3}>
+                    {a.snippet || a.summary}
+                  </Text>
+                </VStack>
+              </ClickableCard>
+            </AnimatedItem>
+          ))}
+        </AnimatedList>
       ) : (
-        <p className="rounded-xl border border-dashed px-3 py-4 text-sm text-muted-foreground">
-          {t('suggestions.empty')}
-        </p>
+        <EmptyState variant="compact" title={t('suggestions.empty')} />
       )}
-      {articles.length > 0 && <p className="text-xs text-muted-foreground">{t('suggestions.hint')}</p>}
-    </>
+      {articles.length > 0 && (
+        <Text as="p" type="supporting">
+          {t('suggestions.hint')}
+        </Text>
+      )}
+    </VStack>
+  );
+}
+
+/** The heading of the suggestions block (a level-2 outline entry, sized like a card title). */
+function SuggestionsHeading({ id }: { id: string }) {
+  const t = useTranslations('itsm.report');
+  return (
+    <HStack gap={2} vAlign="center">
+      <Icon icon={LightbulbIcon} color="accent" />
+      <Heading level={3} accessibilityLevel={2} id={id}>
+        {t('suggestions.title')}
+      </Heading>
+    </HStack>
   );
 }
 
@@ -102,6 +108,7 @@ export default function ReportPage() {
   const router = useRouter();
   const id = useId();
   const { enabledModules } = usePlatform();
+  const titleInput = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [urgency, setUrgency] = useState<1 | 2 | 3>(2);
@@ -129,7 +136,7 @@ export default function ReportPage() {
     e.preventDefault();
     if (title.trim().length < 3) {
       setErrors({ title: t('titleRequired') });
-      document.getElementById(`${id}-title`)?.focus();
+      titleInput.current?.focus();
       return;
     }
     setErrors({});
@@ -147,143 +154,84 @@ export default function ReportPage() {
   return (
     <div className="mx-auto grid max-w-5xl gap-2">
       <PageHeader
-        eyebrow={
-          <Link href="/requests" className="inline-flex items-center gap-1 hover:text-foreground">
-            <ArrowLeftIcon className="size-3.5" aria-hidden />
-            {t('back')}
-          </Link>
-        }
+        back={{ href: '/requests', label: t('back') }}
         title={t('title')}
         description={t('description')}
       />
       <div className={cn('grid grid-cols-1 gap-4', knowledge && 'lg:grid-cols-[minmax(0,1fr)_20rem]')}>
-        <form
-          noValidate
-          onSubmit={onSubmit}
-          className="grid min-w-0 gap-4 rounded-xl border bg-card p-4 sm:p-5"
-        >
-          {link && <LinkedRecordChip record={link} onRemove={() => setDropLink(true)} />}
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-title`} className="text-base">
-              {t('whatsWrong')}
-            </Label>
-            <Input
-              id={`${id}-title`}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t('whatsWrongPlaceholder')}
-              maxLength={200}
-              autoComplete="off"
-              aria-invalid={errors.title ? true : undefined}
-              aria-describedby={errors.title ? `${id}-title-error` : undefined}
-              className="h-10"
-            />
-            {errors.title && (
-              <p id={`${id}-title-error`} className="text-sm text-destructive">
-                {errors.title}
-              </p>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-description`} className="text-base">
-              {t('tellUsMore')}
-            </Label>
-            <Textarea
-              id={`${id}-description`}
-              rows={6}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={t('tellUsMorePlaceholder')}
-              aria-describedby={`${id}-description-hint`}
-            />
-            <p id={`${id}-description-hint`} className="text-xs text-muted-foreground">
-              {t('tellUsMoreHint')}
-            </p>
-          </div>
-          {articles.length > 0 && (
-            <section className="grid gap-2 lg:hidden" aria-labelledby={`${id}-help-inline`}>
-              <h2 id={`${id}-help-inline`} className="flex items-center gap-2 text-sm font-semibold">
-                <LightbulbIcon className="size-4 text-primary" aria-hidden />
-                {t('suggestions.title')}
-              </h2>
-              <Suggestions articles={articles} />
-            </section>
-          )}
-          <fieldset className="grid gap-2">
-            <legend className="mb-2 text-base font-medium">{t('impactLegend')}</legend>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {IMPACT.map((o) => {
-                const Icon = o.icon;
-                return (
-                  <label
-                    key={o.key}
-                    className={cn(
-                      'flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-all hover:bg-accent/50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50',
-                      urgency === o.urgency && 'border-primary bg-primary/5 shadow-xs',
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name={`${id}-urgency`}
-                      value={o.urgency}
-                      checked={urgency === o.urgency}
-                      onChange={() => setUrgency(o.urgency)}
-                      className="sr-only"
+        <Card className="min-w-0">
+          <CardContent>
+            <form noValidate onSubmit={onSubmit}>
+              <FormLayout defaultOptionality="optional">
+                {link && <LinkedRecordChip record={link} onRemove={() => setDropLink(true)} />}
+                <TextInput
+                  ref={titleInput}
+                  label={t('whatsWrong')}
+                  isRequired
+                  value={title}
+                  onChange={(v) => setTitle(v.slice(0, 200))}
+                  placeholder={t('whatsWrongPlaceholder')}
+                  autoComplete="off"
+                  status={errors.title ? { type: 'error', message: errors.title } : undefined}
+                  statusVariant="detached"
+                />
+                <TextArea
+                  label={t('tellUsMore')}
+                  rows={6}
+                  value={description}
+                  onChange={setDescription}
+                  placeholder={t('tellUsMorePlaceholder')}
+                  description={t('tellUsMoreHint')}
+                />
+                {articles.length > 0 && (
+                  <VStack as="section" gap={2} className="lg:hidden" aria-labelledby={`${id}-help-inline`}>
+                    <SuggestionsHeading id={`${id}-help-inline`} />
+                    <Suggestions articles={articles} />
+                  </VStack>
+                )}
+                <RadioList
+                  label={t('impactLegend')}
+                  value={String(urgency)}
+                  onChange={(v) => setUrgency(Number(v) as 1 | 2 | 3)}
+                >
+                  {IMPACT.map((o) => (
+                    <RadioListItem
+                      key={o.key}
+                      value={String(o.urgency)}
+                      label={t(`impact.${o.key}`)}
+                      description={t(`impact.${o.key}Hint`)}
+                      endContent={<Icon icon={o.icon} color="secondary" />}
                     />
-                    <span
-                      className={cn(
-                        'grid size-8 shrink-0 place-items-center rounded-lg',
-                        urgency === o.urgency
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground',
-                      )}
-                      aria-hidden
-                    >
-                      <Icon className="size-4" />
-                    </span>
-                    <span className="grid gap-0.5">
-                      <span className="text-sm font-medium">{t(`impact.${o.key}`)}</span>
-                      <span className="text-xs text-muted-foreground">{t(`impact.${o.key}Hint`)}</span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-          {services && (
-            <div className="grid gap-2">
-              <Label htmlFor={`${id}-service`} className="text-base">
-                {t('whichService')}{' '}
-                <span className="text-sm font-normal text-muted-foreground">({t('optional')})</span>
-              </Label>
-              <ServicePicker
-                id={`${id}-service`}
-                value={service}
-                onChange={setService}
-                aria-describedby={`${id}-service-hint`}
-              />
-              <p id={`${id}-service-hint`} className="text-xs text-muted-foreground">
-                {t('whichServiceHint')}
-              </p>
-            </div>
-          )}
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
-            <Button asChild variant="ghost">
-              <Link href="/requests">{t('cancel')}</Link>
-            </Button>
-            <Button type="submit" loading={submit.isPending}>
-              <SendIcon />
-              {t('submit')}
-            </Button>
-          </div>
-        </form>
+                  ))}
+                </RadioList>
+                {services && (
+                  <ServicePicker
+                    label={t('whichService')}
+                    description={t('whichServiceHint')}
+                    isOptional
+                    value={service}
+                    onChange={setService}
+                  />
+                )}
+                <Divider />
+                <HStack gap={2} wrap="wrap" hAlign="end" vAlign="center">
+                  <Button label={t('cancel')} variant="ghost" href="/requests" />
+                  <Button
+                    label={t('submit')}
+                    variant="primary"
+                    icon={<Icon icon={SendIcon} />}
+                    isLoading={submit.isPending}
+                    type="submit"
+                  />
+                </HStack>
+              </FormLayout>
+            </form>
+          </CardContent>
+        </Card>
 
         {knowledge && (
           <aside className="hidden min-w-0 content-start gap-3 lg:grid" aria-labelledby={`${id}-help`}>
-            <h2 id={`${id}-help`} className="flex items-center gap-2 text-sm font-semibold">
-              <LightbulbIcon className="size-4 text-primary" aria-hidden />
-              {t('suggestions.title')}
-            </h2>
+            <SuggestionsHeading id={`${id}-help`} />
             <Suggestions articles={articles} />
           </aside>
         )}

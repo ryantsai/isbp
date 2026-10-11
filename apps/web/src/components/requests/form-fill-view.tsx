@@ -10,13 +10,12 @@ import {
   localize,
 } from '@isbp/sdk';
 import { ApiError, useApi } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Form } from '@isbp/ui/form';
 import { FormErrorSummary, FormFields, useFieldErrorText, useFormResolver } from '@isbp/ui/form-renderer';
 import { PageHeader } from '@isbp/ui/page-header';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { toast } from '@isbp/ui/sonner';
+import { toast } from '@isbp/ui/toast';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ArrowLeftIcon, FileQuestionIcon, InfoIcon, SendIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -28,6 +27,8 @@ import { useApiMutation, useApiQuery, useErrorText } from '@/lib/api';
 import { AssignmentBanner } from '../assignments/assignment-banner';
 import { NavIcon } from '../nav-icon';
 import { ApprovalPath } from './request-access-view';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /**
  * "Who will approve this?" for the answers so far: a dry run of the form's workflow on the server (the same facts a
@@ -178,13 +179,14 @@ function FormBody({
           />
         )}
         <div className="flex items-center justify-end gap-2 border-t pt-4">
-          <Button asChild variant="ghost">
-            <Link href="/requests">{t('cancel')}</Link>
-          </Button>
-          <Button type="submit" disabled={submit.isPending}>
-            <SendIcon />
-            {t('submit')}
-          </Button>
+          <Button label={t('cancel')} variant="ghost" href="/requests" />
+          <Button
+            label={t('submit')}
+            variant="primary"
+            icon={<Icon icon={SendIcon} />}
+            isDisabled={submit.isPending}
+            type="submit"
+          />
         </div>
       </form>
     </Form>
@@ -242,11 +244,7 @@ export function FormFillView({ formKey, assignmentId }: { formKey: string; assig
           icon={<FileQuestionIcon />}
           title={t('unavailable')}
           description={t('unavailableHint')}
-          action={
-            <Button asChild variant="outline">
-              <Link href="/requests">{t('back')}</Link>
-            </Button>
-          }
+          action={<Button label={t('back')} variant="secondary" href="/requests" />}
           className="rounded-xl border border-dashed"
         />
       ) : (

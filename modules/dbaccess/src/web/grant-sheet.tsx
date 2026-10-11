@@ -1,6 +1,4 @@
 'use client';
-
-import { Button } from '@isbp/ui/button';
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { DateTime } from '@isbp/ui/relative-time';
@@ -13,6 +11,8 @@ import type { Grant } from '../contracts';
 import { EngineLabel, GrantStatusBadge, RiskBadge } from './badges';
 import { ReasonDialog } from './dialogs';
 import { INVALIDATE, requestHref, useLocalized } from './lib';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /** One grant: who, what, where, until when, its last error, and the DBA / owner actions. */
 export function GrantSheet({ grantId, onClose }: { grantId: string | null; onClose: () => void }) {
@@ -121,14 +121,21 @@ function GrantDetail({ id }: { id: string }) {
         )}
         <div className="flex flex-wrap gap-2">
           {data.viewer.canRetry && (
-            <Button loading={retry.isPending} onClick={() => retry.mutate(undefined)}>
-              <RotateCwIcon /> {t(data.operation === 'grant' ? 'retryGrant' : 'retryRevoke')}
-            </Button>
+            <Button
+              label={t(data.operation === 'grant' ? 'retryGrant' : 'retryRevoke')}
+              variant="primary"
+              icon={<Icon icon={RotateCwIcon} />}
+              isLoading={retry.isPending}
+              onClick={() => retry.mutate(undefined)}
+            />
           )}
           {data.viewer.canRevoke && (
-            <Button variant="destructive" onClick={() => setRevoking(true)}>
-              <BanIcon /> {t('revoke')}
-            </Button>
+            <Button
+              label={t('revoke')}
+              variant="destructive"
+              icon={<Icon icon={BanIcon} />}
+              onClick={() => setRevoking(true)}
+            />
           )}
         </div>
       </SheetBody>

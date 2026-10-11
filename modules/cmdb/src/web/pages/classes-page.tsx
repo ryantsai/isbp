@@ -1,15 +1,23 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from '@astryxdesign/core/Table';
 import { localize } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiMutation } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
-import { Hint } from '@isbp/ui/tooltip';
 import { LockIcon, PencilIcon, PlusIcon, ShapesIcon, Trash2Icon } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
@@ -50,9 +58,12 @@ export default function ClassesPage() {
         title={t('title')}
         description={t('description')}
         actions={
-          <Button onClick={() => open(null)}>
-            <PlusIcon /> {t('new')}
-          </Button>
+          <Button
+            label={t('new')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            onClick={() => open(null)}
+          />
         }
       />
       {isLoading ? (
@@ -68,14 +79,18 @@ export default function ClassesPage() {
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
           <Table aria-label={t('title')}>
-            <TableHeader className="bg-muted/40">
-              <TableRow className="hover:bg-transparent">
-                <TableHead>{t('columns.class')}</TableHead>
-                <TableHead className="hidden md:table-cell">{t('columns.type')}</TableHead>
-                <TableHead className="text-right">{t('columns.cis')}</TableHead>
-                <TableHead className="w-24">
+            <TableHeader>
+              <TableRow isHeaderRow>
+                <TableHeaderCell className="whitespace-nowrap">{t('columns.class')}</TableHeaderCell>
+                <TableHeaderCell className="hidden md:table-cell max-w-none whitespace-nowrap">
+                  {t('columns.type')}
+                </TableHeaderCell>
+                <TableHeaderCell className="text-right max-w-none whitespace-nowrap">
+                  {t('columns.cis')}
+                </TableHeaderCell>
+                <TableHeaderCell className="max-w-none whitespace-nowrap">
                   <span className="sr-only">{tc('actions')}</span>
-                </TableHead>
+                </TableHeaderCell>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -99,56 +114,40 @@ export default function ClassesPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell className="hidden max-w-none whitespace-nowrap md:table-cell">
                       {c.system ? (
-                        <Badge variant="muted">
-                          <LockIcon aria-hidden /> {t('system')}
-                        </Badge>
+                        <Badge
+                          variant="neutral"
+                          label={t('system')}
+                          icon={<Icon icon={LockIcon} size="xsm" />}
+                        />
                       ) : (
-                        <Badge variant="outline" className="font-normal">
-                          {t('custom')}
-                        </Badge>
+                        <Badge variant="neutral" label={t('custom')} className="font-normal" />
                       )}
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground tabular-nums">
+                    <TableCell className="max-w-none whitespace-nowrap text-right text-muted-foreground tabular-nums">
                       <Link href={`/cmdb?class=${c.key}`} className="hover:text-foreground hover:underline">
                         {t('ciCount', { count: c.ciCount })}
                       </Link>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-none whitespace-nowrap">
                       <div className="flex justify-end gap-1">
-                        <Button
+                        <IconButton
+                          label={t('edit', { name })}
                           variant="ghost"
-                          size="icon-sm"
+                          size="sm"
+                          icon={<Icon icon={PencilIcon} />}
                           onClick={() => open(c)}
-                          aria-label={t('edit', { name })}
-                        >
-                          <PencilIcon />
-                        </Button>
-                        {locked ? (
-                          <Hint label={t('cantDelete')}>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-disabled
-                              aria-label={t('delete', { name })}
-                              className="cursor-not-allowed text-muted-foreground/50 hover:bg-transparent hover:text-muted-foreground/50"
-                              onClick={(e) => e.preventDefault()}
-                            >
-                              <Trash2Icon />
-                            </Button>
-                          </Hint>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="text-muted-foreground hover:text-destructive"
-                            onClick={() => setDeleting(c)}
-                            aria-label={t('delete', { name })}
-                          >
-                            <Trash2Icon />
-                          </Button>
-                        )}
+                        />
+                        <IconButton
+                          label={t('delete', { name })}
+                          variant="ghost"
+                          size="sm"
+                          icon={<Icon icon={Trash2Icon} />}
+                          isDisabled={locked}
+                          tooltip={locked ? t('cantDelete') : undefined}
+                          onClick={() => setDeleting(c)}
+                        />
                       </div>
                     </TableCell>
                   </TableRow>

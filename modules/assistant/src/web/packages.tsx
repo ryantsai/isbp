@@ -1,15 +1,20 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { FileInput } from '@astryxdesign/core/FileInput';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Text } from '@astryxdesign/core/Text';
 import { localize } from '@isbp/sdk';
 import { ApiError } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
-import { Label } from '@isbp/ui/label';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
 import { CircleAlertIcon, FileJsonIcon, type LucideIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useId, useState } from 'react';
+import { useState } from 'react';
 import { CHANGE_SET_PACKAGE_FORMAT } from '../contracts';
+import { ToneText } from './badges';
 import { usePermissionList } from './change-set/permission-names';
 import {
   type ChangeSetDetailDto,
@@ -29,27 +34,15 @@ const SHOWN_ISSUES = 12;
 
 /** An icon and text in a status colour (never colour alone), wrapping instead of truncating. */
 export function Note({
-  icon: Icon,
+  icon,
   tone,
   children,
 }: {
   icon: LucideIcon;
   tone: 'info' | 'warning' | 'destructive';
-  children: ReactNode;
+  children: string;
 }) {
-  return (
-    <p
-      className={cn(
-        'flex items-start gap-1.5 text-xs font-medium',
-        tone === 'info' && 'text-info',
-        tone === 'warning' && 'text-warning-foreground',
-        tone === 'destructive' && 'text-destructive',
-      )}
-    >
-      <Icon className="mt-px size-3.5 shrink-0" aria-hidden />
-      <span className="min-w-0 break-words">{children}</span>
-    </p>
-  );
+  return <ToneText meta={{ icon, tone }} label={children} wrap />;
 }
 
 /** A module's name from its catalog (`<module>.meta.name`), or its id. */
@@ -97,25 +90,16 @@ export function PackageError({ error }: { error: unknown }) {
     } else title = errorText(error);
   } else title = errorText(error);
   return (
-    <div
-      role="alert"
-      className="grid gap-1.5 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
-    >
-      <p className="flex items-start gap-2 font-medium">
-        <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span className="min-w-0 break-words">{title}</span>
-      </p>
+    <Banner status="error" title={title} collapsible={false}>
       {lines.length > 0 && (
-        <ul className="grid gap-0.5 pl-6 text-xs text-foreground">
+        <List listStyle="disc" density="compact">
           {lines.map((line, i) => (
-            <li key={i} className="list-disc break-words">
-              {line}
-            </li>
+            <ListItem key={i} label={line} />
           ))}
-          {more > 0 && <li className="list-disc">{t('more', { count: more })}</li>}
-        </ul>
+          {more > 0 && <ListItem label={t('more', { count: more })} />}
+        </List>
       )}
-    </div>
+    </Banner>
   );
 }
 
@@ -127,8 +111,8 @@ type Parsed =
 export function ImportFile({ onCreated }: { onCreated: (detail: ChangeSetDetailDto) => void }) {
   const t = useTranslations('assistant.packages.file');
   const locale = useLocale();
-  const id = useId();
   const [fileName, setFileName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<Parsed | null>(null);
   const run = useApiMutation(
     (api, body: Record<string, unknown>) => api.post<ChangeSetDetailDto>(IMPORT_PATH, body),
@@ -154,58 +138,57 @@ export function ImportFile({ onCreated }: { onCreated: (detail: ChangeSetDetailD
     const title = isRecord(json.title) ? localize(json.title, locale) || null : null;
     return { ok: true, body: json, title, count: Array.isArray(json.items) ? json.items.length : null };
   };
-  const choose = async (file: File | undefined) => {
+  const choose = async (picked: File | File[] | null) => {
+    const next = Array.isArray(picked) ? (picked[0] ?? null) : picked;
     run.reset();
-    setFileName(file?.name ?? null);
-    setParsed(file ? await read(file) : null);
+    setFile(next);
+    setFileName(next?.name ?? null);
+    setParsed(next ? await read(next) : null);
   };
 
   const ok = parsed?.ok ? parsed : null;
   return (
-    <div className="grid min-w-0 gap-3">
-      <p className="text-sm text-muted-foreground">{t('hint')}</p>
-      <div className="grid gap-1.5">
-        <Label htmlFor={`${id}-file`}>{t('label')}</Label>
-        <input
-          id={`${id}-file`}
-          type="file"
-          accept=".json,application/json"
-          disabled={run.isPending}
-          aria-describedby={`${id}-file-hint`}
-          onChange={(e) => void choose(e.target.files?.[0])}
-          className="block w-full min-w-0 rounded-md border bg-background text-sm file:mr-3 file:border-0 file:border-r file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-        />
-        <p id={`${id}-file-hint`} className="text-xs text-muted-foreground">
-          {t('fileHint')}
-        </p>
-      </div>
-      <div role="status" aria-live="polite" className="grid gap-2 text-sm">
+    <VStack gap={3} className="min-w-0">
+      <Text color="secondary">{t('hint')}</Text>
+      <FileInput
+        label={t('label')}
+        description={t('fileHint')}
+        accept=".json,application/json"
+        isDisabled={run.isPending}
+        value={file}
+        onChange={(picked) => void choose(picked)}
+      />
+      <div role="status" aria-live="polite">
         {parsed && !parsed.ok && (
-          <p className="flex items-start gap-2 text-destructive">
-            <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span className="min-w-0">{t(`problems.${parsed.reason}`)}</span>
-          </p>
+          <ToneText
+            meta={{ icon: CircleAlertIcon, tone: 'destructive' }}
+            label={t(`problems.${parsed.reason}`)}
+            wrap
+          />
         )}
         {ok && (
-          <p className="flex items-start gap-2">
-            <FileJsonIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-            <span className="min-w-0 break-words">
-              <span className="font-medium break-all">{fileName}</span>
+          <HStack gap={2} vAlign="start">
+            <Icon icon={FileJsonIcon} color="accent" />
+            <Text wordBreak="break-word">
+              <Text weight="medium" wordBreak="break-all">
+                {fileName}
+              </Text>
               {': '}
               {ok.title ? t('parsed', { title: ok.title, count: ok.count ?? 0 }) : t('parsedUntitled')}
-            </span>
-          </p>
+            </Text>
+          </HStack>
         )}
       </div>
       {run.error ? <PackageError error={run.error} /> : null}
-      <Button
-        className="justify-self-start"
-        disabled={!ok || run.isPending}
-        loading={run.isPending}
-        onClick={() => ok && run.mutate(ok.body)}
-      >
-        {t('import')}
-      </Button>
-    </div>
+      <HStack>
+        <Button
+          label={t('import')}
+          variant="primary"
+          isLoading={run.isPending}
+          isDisabled={!ok || run.isPending}
+          onClick={() => ok && run.mutate(ok.body)}
+        />
+      </HStack>
+    </VStack>
   );
 }

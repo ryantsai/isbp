@@ -1,13 +1,14 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
 import { localize } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
   CalendarClockIcon,
   CircleAlertIcon,
@@ -243,16 +244,16 @@ function PackCard({
           </div>
         </div>
         <Button
+          label={t('review')}
+          variant="primary"
+          isLoading={installing}
+          isDisabled={!pack.canPropose || disabled}
           className="justify-self-start"
-          disabled={!pack.canPropose || disabled}
-          loading={installing}
           aria-describedby={`${id}-name`}
           onClick={onInstall}
-        >
-          {t('review')}
-        </Button>
+        />
       </div>
-      <Disclosure title={t('contents.title')} icon={<PackageOpenIcon />} level={4}>
+      <Disclosure title={t('contents.title')} icon={PackageOpenIcon}>
         <PackContents pack={pack} />
       </Disclosure>
     </article>
@@ -325,6 +326,7 @@ export default function PacksPage() {
   if (picked && picked === urlTab) setPicked(null);
   const tab = picked ?? urlTab;
   const created = (detail: ChangeSetDetailDto) => router.push(changeSetHref(detail.id));
+  const panelId = useId();
   return (
     <>
       <PageHeader
@@ -332,32 +334,30 @@ export default function PacksPage() {
         description={t('description')}
         back={{ href: '/assistant/change-sets', label: t('back') }}
       />
-      <Tabs
-        value={tab}
-        onValueChange={(v) => {
-          setPicked(v as Tab);
-          set({ tab: v === 'builtin' ? undefined : v });
-        }}
-        className="min-w-0"
-      >
-        <TabsList aria-label={t('tabsLabel')}>
+      <VStack gap={2} className="min-w-0">
+        <TabList
+          role="tablist"
+          aria-label={t('tabsLabel')}
+          value={tab}
+          onChange={(v) => {
+            setPicked(v as Tab);
+            set({ tab: v === 'builtin' ? undefined : v });
+          }}
+          hasDivider
+        >
           {TABS.map((x) => (
-            <TabsTrigger key={x} value={x}>
-              {t(`tabs.${x}`)}
-            </TabsTrigger>
+            <Tab key={x} value={x} label={t(`tabs.${x}`)} panelId={panelId} />
           ))}
-        </TabsList>
-        <TabsContent value="builtin" className="min-w-0 pt-2">
+        </TabList>
+        <div role="tabpanel" id={panelId} aria-label={t(`tabs.${tab}`)} className="min-w-0 pt-2">
           {tab === 'builtin' && <BuiltinPacks onCreated={created} />}
-        </TabsContent>
-        <TabsContent value="file" className="min-w-0 pt-2">
           {tab === 'file' && (
             <div className="max-w-2xl rounded-xl border bg-card p-4">
               <ImportFile onCreated={created} />
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </VStack>
     </>
   );
 }

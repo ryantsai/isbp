@@ -1,20 +1,22 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Collapsible } from '@astryxdesign/core/Collapsible';
+import type { DropdownMenuOption } from '@astryxdesign/core/DropdownMenu';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
+import { Text } from '@astryxdesign/core/Text';
 import type { Group, WorkflowInstanceSummary } from '@isbp/contracts';
 import { localize } from '@isbp/sdk';
 import type { WebPageProps } from '@isbp/sdk/web';
 import { useCan, usePlatform } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { duration, ease, FadeIn, useReducedMotion } from '@isbp/ui/motion';
+import { ease, FadeIn, useReducedMotion } from '@isbp/ui/motion';
 import { useApiQuery } from '@isbp/ui/query';
 import { DateTime, RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
@@ -23,7 +25,6 @@ import {
   ArrowUpRightIcon,
   BanIcon,
   BotIcon,
-  ChevronDownIcon,
   ChevronsDownUpIcon,
   ChevronsUpDownIcon,
   CircleAlertIcon,
@@ -35,12 +36,10 @@ import {
   InboxIcon,
   ListChecksIcon,
   ListTreeIcon,
-  MoreHorizontalIcon,
   PencilIcon,
   RefreshCwIcon,
   RocketIcon,
   SendIcon,
-  ShieldAlertIcon,
   Undo2Icon,
   UndoDotIcon,
   UsersIcon,
@@ -49,7 +48,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useId, useMemo, useState } from 'react';
-import { type ChangeSetItem, packageFileName } from '../../contracts';
+import type { ChangeSetItem } from '../../contracts';
 import {
   countByKind,
   groupByProcess,
@@ -131,32 +130,37 @@ function LastErrorBanner({ error }: { error: NonNullable<ChangeSetDetailDto['las
     error.code !== 'FORBIDDEN';
 
   return (
-    <FadeIn
-      role="alert"
-      className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm"
-    >
-      <CircleAlertIcon className="mt-0.5 size-5 shrink-0 text-destructive" aria-hidden />
-      <div className="min-w-0 flex-1 space-y-1">
-        <p className="font-semibold text-destructive">{t('title')}</p>
-        <p>{text}</p>
-        {d.label && error.code !== 'VALIDATION_FAILED' && error.code !== 'CHANGE_SET_STALE' && (
-          <p>{t('item', { label: d.label })}</p>
-        )}
-        {showMessage && <p className="text-xs break-words text-foreground">{error.message}</p>}
-        {d.issues && d.issues.length > 0 && (
-          <ul className="list-inside list-disc text-xs">
-            {d.issues.slice(0, 10).map((i, n) => (
-              <li key={n} className="break-words">
-                {i.path && <code className="mr-1 font-mono">{i.path}</code>}
-                {i.message}
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="text-xs text-foreground">
-          <DateTime date={error.at} />
-        </p>
-      </div>
+    <FadeIn>
+      <Banner status="error" title={t('title')} description={text} collapsible={false}>
+        <VStack gap={1}>
+          {d.label && error.code !== 'VALIDATION_FAILED' && error.code !== 'CHANGE_SET_STALE' && (
+            <Text>{t('item', { label: d.label })}</Text>
+          )}
+          {showMessage && (
+            <Text type="supporting" wordBreak="break-word">
+              {error.message}
+            </Text>
+          )}
+          {d.issues && d.issues.length > 0 && (
+            <List listStyle="disc" density="compact">
+              {d.issues.slice(0, 10).map((i, n) => (
+                <ListItem
+                  key={n}
+                  label={
+                    <>
+                      {i.path && <Text type="code">{i.path} </Text>}
+                      {i.message}
+                    </>
+                  }
+                />
+              ))}
+            </List>
+          )}
+          <Text type="supporting">
+            <DateTime date={error.at} />
+          </Text>
+        </VStack>
+      </Banner>
     </FadeIn>
   );
 }
@@ -198,11 +202,14 @@ function ReviewCard({ detail }: { detail: ChangeSetDetailDto }) {
         )}
         <p className="text-xs text-muted-foreground">{t('approveApplies')}</p>
         {wf?.myTaskId ? (
-          <Button asChild size="sm" className="justify-self-start">
-            <Link href="/approvals">
-              <InboxIcon /> {t('yourTurn')}
-            </Link>
-          </Button>
+          <Button
+            label={t('yourTurn')}
+            variant="primary"
+            size="sm"
+            icon={<Icon icon={InboxIcon} />}
+            href="/approvals"
+            className="justify-self-start"
+          />
         ) : null}
       </CardContent>
     </Card>
@@ -416,6 +423,32 @@ function ChangeSetView({ detail, refetch }: { detail: ChangeSetDetailDto; refetc
   // Export works in every status (a package file for another environment), once there is something to export.
   const canExport = detail.items.length > 0;
   const more = p.canDiscard || p.canWithdraw || canExport;
+  // Destructive entries go last, after a divider. The export is a file download (the API names the file).
+  const moreItems: DropdownMenuOption[] = [
+    ...(canExport
+      ? [
+          {
+            label: t('actions.export'),
+            icon: DownloadIcon,
+            onClick: () => window.location.assign(exportHref(detail.id)),
+          },
+        ]
+      : []),
+    ...(p.canWithdraw
+      ? [{ label: t('actions.withdraw'), icon: UndoDotIcon, onClick: () => setDialog('withdraw') }]
+      : []),
+    ...(p.canDiscard
+      ? [
+          ...(canExport || p.canWithdraw ? [{ type: 'divider' as const }] : []),
+          {
+            label: t('actions.discard'),
+            icon: BanIcon,
+            variant: 'destructive' as const,
+            onClick: () => setDialog('discard'),
+          },
+        ]
+      : []),
+  ];
 
   const items = useMemo(() => [...detail.items].sort((a, b) => a.position - b.position), [detail.items]);
   // Described and grouped by what was proposed: its "$ref"s keep a form and its workflow together once applied too.
@@ -464,11 +497,14 @@ function ChangeSetView({ detail, refetch }: { detail: ChangeSetDetailDto; refetc
 
   return (
     <div className="grid min-w-0 grid-cols-1 gap-4">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 justify-self-start text-muted-foreground">
-        <Link href="/assistant/change-sets">
-          <ArrowLeftIcon /> {t('back')}
-        </Link>
-      </Button>
+      <Button
+        label={t('back')}
+        variant="ghost"
+        size="sm"
+        icon={<Icon icon={ArrowLeftIcon} />}
+        href="/assistant/change-sets"
+        className="-ml-2 justify-self-start text-muted-foreground"
+      />
 
       <FadeIn className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 space-y-2">
@@ -487,15 +523,14 @@ function ChangeSetView({ detail, refetch }: { detail: ChangeSetDetailDto; refetc
               {detail.title || t('untitled')}
             </h1>
             {p.canEdit && (
-              <Button
-                size="icon-sm"
+              <IconButton
+                label={t('edit')}
                 variant="ghost"
+                size="sm"
+                icon={<Icon icon={PencilIcon} />}
                 className="mt-0.5 shrink-0 text-muted-foreground"
                 onClick={() => setDialog('edit')}
-                aria-label={t('edit')}
-              >
-                <PencilIcon />
-              </Button>
+              />
             )}
           </div>
           <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -519,92 +554,67 @@ function ChangeSetView({ detail, refetch }: { detail: ChangeSetDetailDto; refetc
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {open && detail.items.length > 0 && (
-            <Button variant="outline" onClick={() => check.mutate()} loading={check.isPending}>
-              {!check.isPending && <ListChecksIcon />}
-              {t('actions.check')}
-            </Button>
+            <Button
+              label={t('actions.check')}
+              variant="secondary"
+              icon={<Icon icon={ListChecksIcon} />}
+              isLoading={check.isPending}
+              onClick={() => check.mutate()}
+            />
           )}
           {p.canRollback && (
-            <Button variant="outline" onClick={() => setDialog('rollback')}>
-              <Undo2Icon /> {t('actions.rollback')}
-            </Button>
+            <Button
+              label={t('actions.rollback')}
+              variant="secondary"
+              icon={<Icon icon={Undo2Icon} />}
+              onClick={() => setDialog('rollback')}
+            />
           )}
           {p.canSubmit && (
-            <Button variant={p.canApply ? 'outline' : 'default'} onClick={() => setDialog('submit')}>
-              <SendIcon /> {t('actions.submit')}
-            </Button>
+            <Button
+              label={t('actions.submit')}
+              variant={p.canApply ? 'secondary' : 'primary'}
+              icon={<Icon icon={SendIcon} />}
+              onClick={() => setDialog('submit')}
+            />
           )}
           {p.canApply && (
-            <Button onClick={() => setDialog('apply')}>
-              <RocketIcon /> {t('actions.apply')}
-            </Button>
+            <Button
+              label={t('actions.apply')}
+              variant="primary"
+              icon={<Icon icon={RocketIcon} />}
+              onClick={() => setDialog('apply')}
+            />
           )}
-          {more && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label={t('actions.more')}>
-                  <MoreHorizontalIcon />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {canExport && (
-                  <DropdownMenuItem asChild>
-                    <a href={exportHref(detail.id)} download={packageFileName(detail.reference)}>
-                      <DownloadIcon /> {t('actions.export')}
-                    </a>
-                  </DropdownMenuItem>
-                )}
-                {p.canWithdraw && (
-                  <DropdownMenuItem onSelect={() => setDialog('withdraw')}>
-                    <UndoDotIcon /> {t('actions.withdraw')}
-                  </DropdownMenuItem>
-                )}
-                {p.canDiscard && (
-                  <DropdownMenuItem variant="destructive" onSelect={() => setDialog('discard')}>
-                    <BanIcon /> {t('actions.discard')}
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          {more && <MoreMenu label={t('actions.more')} alignment="end" items={moreItems} />}
         </div>
       </FadeIn>
 
-      {actionError && (
-        <p
-          role="alert"
-          className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
-        >
-          <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {errorOf(actionError)}
-        </p>
-      )}
+      {actionError && <Banner status="error" title={errorOf(actionError)} collapsible={false} />}
       {detail.lastError && <LastErrorBanner error={detail.lastError} />}
       <ReadyToUse detail={detail} headingId={headingId} />
       <NextSteps detail={detail} headingId={headingId} />
 
       {open && !p.canApply && p.missing.length > 0 && (
-        <div className="flex items-start gap-3 rounded-xl border border-info/30 bg-info/8 px-4 py-3 text-sm">
-          <ShieldAlertIcon className="mt-0.5 size-5 shrink-0 text-info" aria-hidden />
-          <div className="min-w-0 space-y-1">
-            <p className="font-semibold text-info">{t('missing.title')}</p>
-            <p>
-              {t(detail.status === 'in_review' ? 'missing.bodyInReview' : 'missing.body', {
-                permissions: permissionList(p.missing),
-              })}
-            </p>
-          </div>
-        </div>
+        <Banner
+          status="info"
+          title={t('missing.title')}
+          description={t(detail.status === 'in_review' ? 'missing.bodyInReview' : 'missing.body', {
+            permissions: permissionList(p.missing),
+          })}
+          collapsible={false}
+        />
       )}
       {detail.status === 'applied' && p.rollbackBlocked && (
-        <p className="flex items-start gap-2 rounded-lg bg-warning/15 px-3 py-2 text-sm text-warning-foreground">
-          <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t(
+        <Banner
+          status="warning"
+          title={t(
             p.rollbackBlocked === 'not_reversible'
               ? 'rollbackBlocked.notReversible'
               : 'rollbackBlocked.other',
           )}
-        </p>
+          collapsible={false}
+        />
       )}
 
       <div className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -623,7 +633,7 @@ function ChangeSetView({ detail, refetch }: { detail: ChangeSetDetailDto; refetc
                 <Fact label={t('stats.items')}>{ta('card.items', { count: detail.itemCount })}</Fact>
                 {open && (
                   <Fact label={t('stats.result')}>
-                    <span className="flex flex-col gap-1" role="status">
+                    <VStack gap={1} role="status">
                       {detail.items.length === 0 ? (
                         <span className="text-muted-foreground">—</span>
                       ) : counts.failing + counts.needsApprover + counts.unchecked === 0 ? (
@@ -647,7 +657,7 @@ function ChangeSetView({ detail, refetch }: { detail: ChangeSetDetailDto; refetc
                           )}
                         </>
                       )}
-                    </span>
+                    </VStack>
                   </Fact>
                 )}
                 {open && (
@@ -660,21 +670,22 @@ function ChangeSetView({ detail, refetch }: { detail: ChangeSetDetailDto; refetc
                 </Fact>
               </dl>
               {detail.destructive && open && (
-                <p className="flex items-start gap-2 text-xs text-destructive">
-                  <CircleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                  {t('destructiveNote')}
-                </p>
+                <ToneText
+                  meta={{ icon: CircleAlertIcon, tone: 'destructive' }}
+                  label={t('destructiveNote')}
+                  wrap
+                />
               )}
               {open && detail.items.some((i) => i.stale) && p.canEdit && (
                 <Button
-                  variant="outline"
+                  label={t('actions.refresh')}
+                  variant="secondary"
                   size="sm"
+                  icon={<Icon icon={RefreshCwIcon} />}
+                  isLoading={refresh.isPending}
                   onClick={() => refresh.mutate()}
-                  loading={refresh.isPending}
                   className="justify-self-start"
-                >
-                  {!refresh.isPending && <RefreshCwIcon />} {t('actions.refresh')}
-                </Button>
+                />
               )}
             </CardContent>
           </Card>
@@ -726,12 +737,20 @@ function ChangeSetView({ detail, refetch }: { detail: ChangeSetDetailDto; refetc
             </div>
             {grouped && collapsible && (
               <div className="flex flex-wrap gap-1">
-                <Button variant="ghost" size="sm" onClick={() => setAll(true)}>
-                  <ChevronsUpDownIcon /> {t('expandAll')}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setAll(false)}>
-                  <ChevronsDownUpIcon /> {t('collapseAll')}
-                </Button>
+                <Button
+                  label={t('expandAll')}
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={ChevronsUpDownIcon} />}
+                  onClick={() => setAll(true)}
+                />
+                <Button
+                  label={t('collapseAll')}
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={ChevronsDownUpIcon} />}
+                  onClick={() => setAll(false)}
+                />
               </div>
             )}
           </div>
@@ -856,68 +875,52 @@ function GroupSection({
   renderItem: (item: ChangeSetItem) => ReactNode;
 }) {
   const ta = useTranslations('assistant');
-  const reduce = useReducedMotion();
   return (
     <section
       id={domId}
       aria-labelledby={`${domId}-title`}
-      className={cn('min-w-0 scroll-mt-20 rounded-xl border bg-muted/30', open && 'pb-3')}
+      className="min-w-0 scroll-mt-20 rounded-xl border bg-muted/30"
     >
-      <h3 id={`${domId}-title`} className="m-0">
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls={open ? `${domId}-items` : undefined}
-          onClick={() => onOpenChange(!open)}
-          className="flex w-full min-w-0 items-start gap-3 rounded-xl px-4 py-3 text-left outline-none hover:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      <div className="px-4">
+        <Collapsible
+          isOpen={open}
+          onOpenChange={onOpenChange}
+          trigger={
+            <VStack gap={1}>
+              <Text id={`${domId}-title`} type="large" weight="semibold" wordBreak="break-word">
+                {title}
+              </Text>
+              <HStack gap={2} wrap="wrap" vAlign="center">
+                <Text type="supporting">{ta('card.items', { count: items.length })}</Text>
+                <Text type="supporting" aria-hidden>
+                  ·
+                </Text>
+                <GroupStatus items={items} status={status} />
+              </HStack>
+            </VStack>
+          }
         >
-          <span className="min-w-0 flex-1 space-y-1">
-            <span className="block text-base font-semibold break-words">{title}</span>
-            <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-              <span>{ta('card.items', { count: items.length })}</span>
-              <span aria-hidden>·</span>
-              <GroupStatus items={items} status={status} />
-            </span>
-          </span>
-          <ChevronDownIcon
-            aria-hidden
-            className={cn(
-              'mt-1 size-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none',
-              open && 'rotate-180',
-            )}
-          />
-        </button>
-      </h3>
-      {!open && (summary.length > 0 || hint) && (
-        <div className="grid gap-0.5 px-4 pb-3 text-sm text-muted-foreground">
-          {(summary.length ? summary : [hint!]).map((line, i) => (
-            <p key={i} className="min-w-0 break-words">
-              {line}
-            </p>
-          ))}
-        </div>
-      )}
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            id={`${domId}-items`}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={reduce ? { duration: 0 } : { duration: duration.base, ease: ease.move }}
-            className="overflow-hidden"
-          >
-            {hint && <p className="px-4 pb-2 text-sm text-muted-foreground">{hint}</p>}
-            <ol className="grid min-w-0 gap-3 px-3">
+          <VStack gap={2} className="-mx-1 pb-3">
+            {hint && <Text color="secondary">{hint}</Text>}
+            <ol className="grid min-w-0 gap-3">
               {items.map((item) => (
                 <li key={item.id} className="min-w-0">
                   {renderItem(item)}
                 </li>
               ))}
             </ol>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </VStack>
+        </Collapsible>
+      </div>
+      {!open && (summary.length > 0 || hint) && (
+        <VStack gap={0.5} className="px-4 pb-3">
+          {(summary.length ? summary : [hint!]).map((line, i) => (
+            <Text key={i} color="secondary" wordBreak="break-word">
+              {line}
+            </Text>
+          ))}
+        </VStack>
+      )}
     </section>
   );
 }

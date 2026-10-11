@@ -1,11 +1,13 @@
 'use client';
-
-import { Button } from '@isbp/ui/button';
-import { Kbd } from '@isbp/ui/kbd';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Kbd } from '@astryxdesign/core/Kbd';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
-import { Textarea } from '@isbp/ui/textarea';
-import { CheckCircle2Icon, LockIcon, MessageSquareReplyIcon, SendIcon } from 'lucide-react';
+import { CheckCircle2Icon, LockIcon, type LucideIcon, MessageSquareReplyIcon, SendIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   type Dispatch,
@@ -57,15 +59,15 @@ function Pane({
   sendLabel: string;
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
   error: string | null;
-  icon: ReactNode;
+  icon: LucideIcon;
   /** A second action next to Send (e.g. "Send and resolve"). */
   extra?: ReactNode;
   /** Replaces "Markdown supported. Send with" (requesters don't need to know about Markdown). */
   hint?: string;
 }) {
   const t = useTranslations('itsm.composer');
-  const id = useId();
-  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+  // ⌘/Ctrl+Enter sends (the key event bubbles up from the text area).
+  const onKeyDown = (e: KeyboardEvent<HTMLFormElement>) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (value.trim() && !pending) onSend();
@@ -73,42 +75,43 @@ function Pane({
   };
   return (
     <form
-      className="grid gap-2"
+      onKeyDown={onKeyDown}
       onSubmit={(e) => {
         e.preventDefault();
         if (value.trim()) onSend();
       }}
     >
-      <label htmlFor={id} className={showLabel ? 'text-sm font-medium' : 'sr-only'}>
-        {label}
-      </label>
-      <Textarea
-        id={id}
-        ref={textareaRef}
-        rows={4}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
-        placeholder={placeholder}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={`${id}-hint ${id}-error`}
-        className="min-h-24 resize-y"
-      />
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-          {hint ?? t('hint')} <Kbd>{t('shortcut')}</Kbd>
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
+      <VStack gap={2}>
+        <TextArea
+          ref={textareaRef}
+          label={label}
+          isLabelHidden={!showLabel}
+          rows={4}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          status={error ? { type: 'error', message: error } : undefined}
+          statusVariant="detached"
+        />
+        <HStack gap={2} wrap="wrap" vAlign="center">
+          <StackItem size="fill">
+            <HStack gap={1.5} wrap="wrap" vAlign="center">
+              <Text type="supporting">{hint ?? t('hint')}</Text>
+              <Kbd keys="mod+enter" />
+            </HStack>
+          </StackItem>
           {extra}
-          <Button type="submit" size="sm" loading={pending} disabled={!value.trim()}>
-            {icon}
-            {sendLabel}
-          </Button>
-        </div>
-      </div>
-      <p id={`${id}-error`} role="alert" className="text-sm text-destructive empty:hidden">
-        {error}
-      </p>
+          <Button
+            type="submit"
+            size="sm"
+            variant="primary"
+            label={sendLabel}
+            icon={<Icon icon={icon} />}
+            isLoading={pending}
+            isDisabled={!value.trim()}
+          />
+        </HStack>
+      </VStack>
     </form>
   );
 }
@@ -136,6 +139,7 @@ export function Composer({
 }) {
   const t = useTranslations('itsm.composer');
   const errorText = useErrorText();
+  const id = useId();
   const [error, setError] = useState<{ tab: ComposerTab; text: string } | null>(null);
   const send = useApiMutation(
     (api, vars: CommentInput & { tab: ComposerTab }) =>
@@ -179,7 +183,7 @@ export function Composer({
           hint={t('requester.hint')}
           textareaRef={state.replyRef}
           error={error?.tab === 'reply' ? error.text : null}
-          icon={<SendIcon />}
+          icon={SendIcon}
         />
       </section>
     );
@@ -191,23 +195,27 @@ export function Composer({
 
   return (
     <section aria-label={t('label')} className="rounded-xl border bg-card p-3 sm:p-4">
-      <Tabs value={active} onValueChange={(v) => state.setTab(v as ComposerTab)} className="gap-3">
-        <TabsList>
+      <VStack gap={3}>
+        <TabList
+          role="tablist"
+          aria-label={t('label')}
+          value={active}
+          onChange={(v) => state.setTab(v as ComposerTab)}
+        >
           {canComment && (
-            <TabsTrigger value="reply">
-              <MessageSquareReplyIcon aria-hidden />
-              {t('replyTab')}
-            </TabsTrigger>
+            <Tab
+              value="reply"
+              label={t('replyTab')}
+              panelId={`${id}-reply`}
+              icon={<Icon icon={MessageSquareReplyIcon} />}
+            />
           )}
           {canWorkNote && (
-            <TabsTrigger value="note">
-              <LockIcon aria-hidden />
-              {t('noteTab')}
-            </TabsTrigger>
+            <Tab value="note" label={t('noteTab')} panelId={`${id}-note`} icon={<Icon icon={LockIcon} />} />
           )}
-        </TabsList>
-        {canComment && (
-          <TabsContent value="reply">
+        </TabList>
+        {active === 'reply' && canComment && (
+          <div role="tabpanel" id={`${id}-reply`} aria-label={t('replyTab')}>
             <Pane
               value={state.reply}
               onChange={state.setReply}
@@ -218,44 +226,44 @@ export function Composer({
               sendLabel={t('send')}
               textareaRef={state.replyRef}
               error={error?.tab === 'reply' ? error.text : null}
-              icon={<SendIcon />}
+              icon={SendIcon}
               extra={
                 resolveWith && (
                   <Button
-                    type="button"
+                    label={t(resolveWith.kind === 'fulfil' ? 'sendAndFulfil' : 'sendAndResolve')}
+                    variant="secondary"
                     size="sm"
-                    variant="outline"
-                    disabled={!state.reply.trim() || send.isPending}
+                    icon={<Icon icon={CheckCircle2Icon} />}
+                    isDisabled={!state.reply.trim() || send.isPending}
                     onClick={() => resolveWith.onResolve(state.reply.trim())}
-                  >
-                    <CheckCircle2Icon aria-hidden />
-                    {t(resolveWith.kind === 'fulfil' ? 'sendAndFulfil' : 'sendAndResolve')}
-                  </Button>
+                  />
                 )
               }
             />
-          </TabsContent>
+          </div>
         )}
-        {canWorkNote && (
-          <TabsContent value="note">
-            <div className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <LockIcon className="size-3.5" aria-hidden />
-              {t('noteHint')}
-            </div>
-            <Pane
-              value={state.note}
-              onChange={state.setNote}
-              onSend={() => submit('note')}
-              pending={send.isPending && send.variables?.tab === 'note'}
-              placeholder={t('notePlaceholder')}
-              label={t('noteTab')}
-              sendLabel={t('addNote')}
-              error={error?.tab === 'note' ? error.text : null}
-              icon={<LockIcon />}
-            />
-          </TabsContent>
+        {active === 'note' && canWorkNote && (
+          <div role="tabpanel" id={`${id}-note`} aria-label={t('noteTab')}>
+            <VStack gap={2}>
+              <HStack gap={1.5} vAlign="center">
+                <Icon icon={LockIcon} size="sm" color="secondary" />
+                <Text type="supporting">{t('noteHint')}</Text>
+              </HStack>
+              <Pane
+                value={state.note}
+                onChange={state.setNote}
+                onSend={() => submit('note')}
+                pending={send.isPending && send.variables?.tab === 'note'}
+                placeholder={t('notePlaceholder')}
+                label={t('noteTab')}
+                sendLabel={t('addNote')}
+                error={error?.tab === 'note' ? error.text : null}
+                icon={LockIcon}
+              />
+            </VStack>
+          </div>
         )}
-      </Tabs>
+      </VStack>
     </section>
   );
 }

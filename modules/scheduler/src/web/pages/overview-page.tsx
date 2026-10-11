@@ -1,7 +1,7 @@
 'use client';
 
+import { HStack } from '@astryxdesign/core/Layout';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { ErrorState } from '@isbp/ui/empty-state';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
@@ -26,6 +26,8 @@ import { CHART_SERIES, type ChartSeries, type Dashboard, type RunDetail } from '
 import { ChartFrame, DataTableView, Legend, type SeriesDef, StackedColumns } from '../charts';
 import { INVALIDATE, jobHref, runHref, useDurationMs } from '../lib';
 import { SchedulerHeader } from '../section-header';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /** Fixed categorical order: colours never move between series. */
 const SERIES_COLOR: Record<ChartSeries, string> = {
@@ -60,12 +62,13 @@ function ListCard({
         <CardTitle id={id}>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
         <CardAction>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={href}>
-              {t('viewAll')}
-              <ArrowRightIcon />
-            </Link>
-          </Button>
+          <Button
+            label={t('viewAll')}
+            variant="ghost"
+            size="sm"
+            endContent={<Icon icon={ArrowRightIcon} />}
+            href={href}
+          />
         </CardAction>
       </CardHeader>
       <CardContent>
@@ -97,25 +100,28 @@ function FailingJobs({ failing }: { failing: Dashboard['failing'] }) {
   return (
     <Card className="min-w-0" role="region" aria-labelledby={id}>
       <CardHeader>
-        <CardTitle id={id} className="flex items-center gap-2">
-          {failing.length > 0 ? (
-            <CircleXIcon className="size-4 text-destructive" aria-hidden />
-          ) : (
-            <CircleCheckIcon className="size-4 text-success" aria-hidden />
-          )}
-          {t('overview.failing')}
+        <CardTitle id={id}>
+          <HStack gap={2} vAlign="center">
+            {failing.length > 0 ? (
+              <Icon icon={CircleXIcon} color="error" />
+            ) : (
+              <Icon icon={CircleCheckIcon} color="success" />
+            )}
+            {t('overview.failing')}
+          </HStack>
         </CardTitle>
         <CardDescription>
           {failing.length > 0 ? t('overview.failingHint') : t('overview.noFailing')}
         </CardDescription>
         {failing.length > 0 && (
           <CardAction>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/scheduler/jobs?view=failing">
-                {t('overview.viewAll')}
-                <ArrowRightIcon />
-              </Link>
-            </Button>
+            <Button
+              label={t('overview.viewAll')}
+              variant="ghost"
+              size="sm"
+              endContent={<Icon icon={ArrowRightIcon} />}
+              href="/scheduler/jobs?view=failing"
+            />
           </CardAction>
         )}
       </CardHeader>
@@ -149,20 +155,23 @@ function FailingJobs({ failing }: { failing: Dashboard['failing'] }) {
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
                     {f.lastFailure && (
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={runHref(f.lastFailure.runId)}>{t('overview.seeRun')}</Link>
-                      </Button>
+                      <Button
+                        label={t('overview.seeRun')}
+                        variant="secondary"
+                        size="sm"
+                        href={runHref(f.lastFailure.runId)}
+                      />
                     )}
                     {canRun && f.enabled && (
                       <Button
-                        size="sm"
-                        variant="outline"
-                        loading={run.isPending && run.variables === f.job.id}
-                        onClick={() => run.mutate(f.job.id)}
+                        label={t('job.runNow')}
                         aria-label={t('overview.runNowJob', { job: f.job.name })}
-                      >
-                        <PlayIcon /> {t('job.runNow')}
-                      </Button>
+                        variant="secondary"
+                        size="sm"
+                        icon={<Icon icon={PlayIcon} />}
+                        isLoading={run.isPending && run.variables === f.job.id}
+                        onClick={() => run.mutate(f.job.id)}
+                      />
                     )}
                   </div>
                 </li>

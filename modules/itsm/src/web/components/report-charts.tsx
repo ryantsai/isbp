@@ -1,5 +1,16 @@
 'use client';
 
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from '@astryxdesign/core/Table';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { Card, CardAction, CardContent, CardHeader } from '@isbp/ui/card';
 import { useReducedMotion } from '@isbp/ui/motion';
 import { cn } from '@isbp/ui';
 import { motion } from 'motion/react';
@@ -61,70 +72,60 @@ export function ChartFrame({
   const id = useId();
   const [asTable, setAsTable] = useState(false);
   return (
-    <section
-      aria-labelledby={`${id}-title`}
-      className="flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-4 text-card-foreground"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h2 id={`${id}-title`} className="font-semibold">
-            {title}
-          </h2>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+    <Card role="region" aria-labelledby={`${id}-title`} className="min-w-0">
+      <CardHeader>
+        <Heading level={4} accessibilityLevel={2} id={`${id}-title`}>
+          {title}
+        </Heading>
+        {description && <Text color="secondary">{description}</Text>}
+        <CardAction>
+          <SegmentedControl
+            label={t('viewAs')}
+            size="sm"
+            value={asTable ? 'table' : 'chart'}
+            onChange={(v) => setAsTable(v === 'table')}
+          >
+            {(['chart', 'table'] as const).map((v) => (
+              <SegmentedControlItem key={v} value={v} label={t(v)} />
+            ))}
+          </SegmentedControl>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {legend}
+        <div className={cn('min-w-0 transition-opacity', busy && 'opacity-60')}>
+          {asTable ? table : chart}
         </div>
-        <div
-          className="flex items-center gap-0.5 rounded-md border p-0.5"
-          role="group"
-          aria-label={t('viewAs')}
-        >
-          {(['chart', 'table'] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              aria-pressed={(v === 'table') === asTable}
-              onClick={() => setAsTable(v === 'table')}
-              className="rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 aria-pressed:bg-secondary aria-pressed:font-medium aria-pressed:text-secondary-foreground"
-            >
-              {t(v)}
-            </button>
-          ))}
-        </div>
-      </div>
-      {legend}
-      <div className={cn('min-w-0 transition-opacity', busy && 'opacity-60')}>{asTable ? table : chart}</div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 
 export function DataTableView({ head, rows }: { head: string[]; rows: (string | number)[][] }) {
   return (
-    <div className="max-h-72 overflow-auto rounded-lg border">
-      <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-muted/60">
-          <tr>
+    <div className="max-h-72 overflow-auto">
+      <Table density="compact">
+        <TableHeader>
+          <TableRow>
             {head.map((h, i) => (
-              <th
-                key={h}
-                scope="col"
-                className={cn('px-3 py-2 text-left text-xs font-medium', i > 0 && 'text-right')}
-              >
+              <TableHeaderCell key={h} scope="col" className={cn(i > 0 && 'text-right')}>
                 {h}
-              </th>
+              </TableHeaderCell>
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map((r) => (
-            <tr key={String(r[0])} className="border-t">
+            <TableRow key={String(r[0])}>
               {r.map((c, i) => (
-                <td key={i} className={cn('px-3 py-1.5', i > 0 && 'text-right tabular-nums')}>
+                <TableCell key={i} className={cn(i > 0 && 'text-right tabular-nums')}>
                   {c}
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

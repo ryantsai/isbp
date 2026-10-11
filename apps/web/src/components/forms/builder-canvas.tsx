@@ -1,14 +1,18 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Card } from '@astryxdesign/core/Card';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable } from '@dnd-kit/sortable';
 import { type Condition, type FieldDef, type FormElement, isField, localize } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
+import { EmptyState } from '@isbp/ui/empty-state';
 import { duration, ease, useReducedMotion } from '@isbp/ui/motion';
-import { Switch } from '@isbp/ui/switch';
-import { Hint } from '@isbp/ui/tooltip';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -20,13 +24,14 @@ import {
   GripVerticalIcon,
   LockIcon,
   MousePointerClickIcon,
+  PencilIcon,
   Trash2Icon,
   TriangleAlertIcon,
   UserRoundIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useId, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useShowFieldKeys } from '@/components/fields/field-keys';
 import { ElementTypeIcon } from '@/components/fields/field-types';
 import type { FieldIssue } from '@/components/fields/field-utils';
@@ -91,55 +96,43 @@ function ControlMock({ field }: { field: FieldDef }) {
           ) : (
             <span className="truncate">{placeholder || tu('select.placeholder')}</span>
           )}
-          <ChevronDownIcon className="size-4 shrink-0 opacity-50" aria-hidden />
+          <Icon icon={ChevronDownIcon} size="sm" color="secondary" />
         </Box>
       );
     case 'multiselect': {
       const options = field.options ?? [];
       const chosen = Array.isArray(dv) ? dv : [];
       return (
-        <div className="flex flex-wrap gap-1.5">
+        <HStack gap={1.5} wrap="wrap" vAlign="center">
           {options.slice(0, 5).map((o) => (
-            <span
+            <Badge
               key={o.value}
-              className={cn(
-                'flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs',
-                chosen.includes(o.value) && 'border-primary/50 bg-primary/5',
-              )}
-            >
-              <span
-                className={cn(
-                  'size-3 rounded-[3px] border',
-                  chosen.includes(o.value) && 'border-primary bg-primary',
-                )}
-              />
-              {localize(o.label, locale) || o.value}
-            </span>
+              variant={chosen.includes(o.value) ? 'info' : 'neutral'}
+              label={localize(o.label, locale) || o.value}
+            />
           ))}
-          {options.length > 5 && (
-            <span className="self-center text-xs text-muted-foreground">+{options.length - 5}</span>
-          )}
-        </div>
+          {options.length > 5 && <Text type="supporting">+{options.length - 5}</Text>}
+        </HStack>
       );
     }
     case 'date':
       return (
         <Box className="justify-between">
           {shown(typeof dv === 'string' ? dv : undefined)}
-          <CalendarDaysIcon className="size-4 shrink-0 opacity-60" aria-hidden />
+          <Icon icon={CalendarDaysIcon} size="sm" color="secondary" />
         </Box>
       );
     case 'user':
       return (
         <Box>
-          <UserRoundIcon className="size-4 shrink-0 opacity-60" aria-hidden />
+          <Icon icon={UserRoundIcon} size="sm" color="secondary" />
           <span className="truncate">{tu('person.placeholder')}</span>
         </Box>
       );
     case 'record':
       return (
         <Box>
-          <BoxesIcon className="size-4 shrink-0 opacity-60" aria-hidden />
+          <Icon icon={BoxesIcon} size="sm" color="secondary" />
           <span className="truncate">
             {placeholder || tu(field.record?.multiple ? 'record.placeholderMany' : 'record.placeholder')}
           </span>
@@ -150,14 +143,16 @@ function ControlMock({ field }: { field: FieldDef }) {
       const columns = field.rows?.fields ?? [];
       return (
         <div className="grid gap-1 overflow-hidden rounded-md border p-2">
-          <div className="flex gap-2 text-xs font-medium text-muted-foreground">
+          <HStack gap={2}>
             {columns.slice(0, 4).map((c) => (
-              <span key={c.key} className="min-w-0 flex-1 truncate">
-                {localize(c.label, locale) || c.key}
-              </span>
+              <StackItem size="fill" key={c.key}>
+                <Text type="supporting" weight="medium" maxLines={1}>
+                  {localize(c.label, locale) || c.key}
+                </Text>
+              </StackItem>
             ))}
-            {columns.length > 4 && <span className="shrink-0">+{columns.length - 4}</span>}
-          </div>
+            {columns.length > 4 && <Text type="supporting">+{columns.length - 4}</Text>}
+          </HStack>
           {[0, 1].map((n) => (
             <div key={n} className="flex gap-2">
               {columns.slice(0, 4).map((c) => (
@@ -179,33 +174,29 @@ function ElementBody({ el, locale }: { el: FormElement; locale: string }) {
     const label = localize(el.label, locale);
     const help = localize(el.help, locale);
     return (
-      <div className="grid gap-2">
-        <span className="flex items-center gap-1 text-sm leading-none font-medium">
-          {label || <span className="text-muted-foreground italic">{t('untitled')}</span>}
-          {el.required && (
-            <span aria-hidden className="text-destructive">
-              *
-            </span>
-          )}
-        </span>
+      <VStack gap={2}>
+        <Text weight="medium">
+          {label || <i>{t('untitled')}</i>}
+          {el.required && <span aria-hidden> *</span>}
+        </Text>
         <ControlMock field={el} />
-        {help && <span className="text-xs text-muted-foreground">{help}</span>}
-      </div>
+        {help && <Text type="supporting">{help}</Text>}
+      </VStack>
     );
   }
   if (el.type === 'heading')
     return (
-      <span className="block pt-1 text-base font-semibold">
-        {localize(el.text, locale) || (
-          <span className="text-muted-foreground italic">{t('emptyHeading')}</span>
-        )}
-      </span>
+      <Text type="large" weight="semibold" as="div">
+        {localize(el.text, locale) || <i>{t('emptyHeading')}</i>}
+      </Text>
     );
   if (el.type === 'paragraph')
     return (
-      <span className="block text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
-        {localize(el.text, locale) || <span className="italic">{t('emptyParagraph')}</span>}
-      </span>
+      <Text as="div" color="secondary">
+        <span className="whitespace-pre-line">
+          {localize(el.text, locale) || <i>{t('emptyParagraph')}</i>}
+        </span>
+      </Text>
     );
   return <span className="my-2 block h-px w-full bg-border" />;
 }
@@ -282,19 +273,17 @@ function CanvasItem({
       animate={{ opacity: dimmed || isDragging ? 0.4 : 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
       transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.8 }}
-      className={cn('relative', half ? 'sm:col-span-1' : 'sm:col-span-2')}
+      className={cn('relative min-w-0', half ? 'sm:col-span-1' : 'sm:col-span-2')}
       data-element={el.id}
     >
       {drop && drop.index === index && <DropLine vertical={drop.vertical} />}
-      <div
+      <Card
+        padding={3}
+        variant={selected ? 'blue' : issues.length > 0 ? 'red' : 'default'}
+        elevation={selected ? 'low' : 'none'}
+        aria-current={selected ? 'true' : undefined}
         onClick={onSelect}
-        className={cn(
-          'group relative flex gap-1.5 rounded-xl border bg-card p-3 pl-1.5 transition-[border-color,box-shadow,background-color]',
-          selected
-            ? 'border-primary/60 bg-primary/[0.03] shadow-sm ring-2 ring-primary/30'
-            : 'hover:border-foreground/20 hover:shadow-sm',
-          issues.length > 0 && !selected && 'border-destructive/50',
-        )}
+        className="group relative"
       >
         {fresh && !reduce && (
           <motion.span
@@ -305,113 +294,105 @@ function CanvasItem({
             transition={{ duration: duration.base, delay: 0.25, ease: ease.exit }}
           />
         )}
-        <button
-          type="button"
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          aria-label={t('dragHandle', { name })}
-          className="grid h-7 w-5 shrink-0 cursor-grab touch-none place-items-center rounded text-muted-foreground/70 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 active:cursor-grabbing"
-        >
-          <GripVerticalIcon className="size-4" aria-hidden />
-        </button>
-        <button
-          type="button"
-          data-select={el.id}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect();
-          }}
-          aria-label={t('editElement', { name, type: typeName })}
-          aria-current={selected ? 'true' : undefined}
-          aria-describedby={issues.length ? issueId : undefined}
-          className="min-w-0 flex-1 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
-        >
-          <ElementBody el={el} locale={locale} />
-          <span className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-              <ElementTypeIcon type={el.type} size="sm" className="size-4 rounded [&_svg]:size-3" />
-              {field && showKey ? <code className="font-mono">{el.key}</code> : typeName}
-              {locked && showKey && <LockIcon className="size-3" aria-label={t('lockedKey')} />}
-            </span>
-            {el.visibleWhen && (
-              <Badge variant="info" className="max-w-full font-normal">
-                <GitBranchIcon aria-hidden />
-                <span
-                  className="truncate"
-                  title={t('shownWhen', { condition: conditionText(el.visibleWhen) })}
-                >
-                  {t('shownWhen', { condition: conditionText(el.visibleWhen) })}
-                </span>
-              </Badge>
-            )}
-            {issues.length > 0 && (
-              <Badge id={issueId} variant="destructive" className="max-w-full">
-                <TriangleAlertIcon aria-hidden />
-                <span className="truncate">
-                  {issues.length === 1
-                    ? tf(`issues.${issues[0]!.code}`, issues[0]!.params ?? {})
-                    : t('issueCount', { count: issues.length })}
-                </span>
-              </Badge>
-            )}
-          </span>
-        </button>
+        <HStack gap={1.5} vAlign="start">
+          <IconButton
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            label={t('dragHandle', { name })}
+            variant="ghost"
+            size="sm"
+            icon={<Icon icon={GripVerticalIcon} />}
+            className="cursor-grab touch-none active:cursor-grabbing"
+          />
+          <StackItem size="fill">
+            <VStack gap={3}>
+              <ElementBody el={el} locale={locale} />
+              <HStack gap={1.5} wrap="wrap" vAlign="center">
+                <HStack gap={1} vAlign="center">
+                  <ElementTypeIcon type={el.type} size="sm" className="size-4 rounded [&_svg]:size-3" />
+                  <Text type="supporting" size="xsm">
+                    {field && showKey ? <code>{el.key}</code> : typeName}
+                  </Text>
+                  {locked && showKey && (
+                    <Icon icon={LockIcon} size="xsm" color="secondary" label={t('lockedKey')} />
+                  )}
+                </HStack>
+                {el.visibleWhen && (
+                  <Badge
+                    variant="info"
+                    label={t('shownWhen', { condition: conditionText(el.visibleWhen) })}
+                    icon={<Icon icon={GitBranchIcon} size="xsm" />}
+                  />
+                )}
+                {issues.length > 0 && (
+                  <Badge
+                    id={issueId}
+                    variant="error"
+                    label={
+                      issues.length === 1
+                        ? tf(`issues.${issues[0]!.code}`, issues[0]!.params ?? {})
+                        : t('issueCount', { count: issues.length })
+                    }
+                    icon={<Icon icon={TriangleAlertIcon} size="xsm" />}
+                  />
+                )}
+              </HStack>
+            </VStack>
+          </StackItem>
+        </HStack>
         <div
           className={cn(
-            'absolute -top-3.5 right-2 z-10 flex items-center gap-0.5 rounded-lg border bg-popover p-0.5 shadow-sm transition-opacity',
+            'absolute -top-3.5 right-2 z-10 transition-opacity',
             selected ? 'opacity-100' : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100',
           )}
           onClick={(e) => e.stopPropagation()}
         >
-          <Hint label={t('moveUp')}>
-            <Button
-              type="button"
-              variant="ghost"
-              className="size-7"
-              aria-label={t('moveUpNamed', { name })}
-              disabled={index === 0}
-              onClick={() => onMove(-1)}
-            >
-              <ArrowUpIcon />
-            </Button>
-          </Hint>
-          <Hint label={t('moveDown')}>
-            <Button
-              type="button"
-              variant="ghost"
-              className="size-7"
-              aria-label={t('moveDownNamed', { name })}
-              disabled={index === count - 1}
-              onClick={() => onMove(1)}
-            >
-              <ArrowDownIcon />
-            </Button>
-          </Hint>
-          <Hint label={t('duplicate')}>
-            <Button
-              type="button"
-              variant="ghost"
-              className="size-7"
-              aria-label={t('duplicateNamed', { name })}
-              onClick={onDuplicate}
-            >
-              <CopyPlusIcon />
-            </Button>
-          </Hint>
-          <Hint label={t('remove')}>
-            <Button
-              type="button"
-              variant="ghost"
-              className="size-7 hover:text-destructive"
-              aria-label={t('removeNamed', { name })}
-              onClick={onRemove}
-            >
-              <Trash2Icon />
-            </Button>
-          </Hint>
+          <Card padding={0.5} elevation="low">
+            <HStack gap={0.5} vAlign="center">
+              <IconButton
+                label={t('editElement', { name, type: typeName })}
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={PencilIcon} />}
+                data-select={el.id}
+                aria-describedby={issues.length ? issueId : undefined}
+                onClick={onSelect}
+              />
+              <IconButton
+                label={t('moveUpNamed', { name })}
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={ArrowUpIcon} />}
+                isDisabled={index === 0}
+                onClick={() => onMove(-1)}
+              />
+              <IconButton
+                label={t('moveDownNamed', { name })}
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={ArrowDownIcon} />}
+                isDisabled={index === count - 1}
+                onClick={() => onMove(1)}
+              />
+              <IconButton
+                label={t('duplicateNamed', { name })}
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={CopyPlusIcon} />}
+                onClick={onDuplicate}
+              />
+              <IconButton
+                label={t('removeNamed', { name })}
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={Trash2Icon} />}
+                onClick={onRemove}
+              />
+            </HStack>
+          </Card>
         </div>
-      </div>
+      </Card>
     </motion.div>
   );
 }
@@ -423,11 +404,17 @@ export function CanvasGhost({ el }: { el: FormElement }) {
   const label = isField(el) ? localize(el.label, locale) : localize(el.text, locale);
   const typeName = isField(el) ? tf(`types.${el.type}.name`) : tf(`display.${el.type}.name`);
   return (
-    <div className="flex w-64 items-center gap-2.5 rounded-xl border border-primary/50 bg-card p-2.5 shadow-xl ring-4 ring-primary/10">
-      <GripVerticalIcon className="size-4 text-muted-foreground" aria-hidden />
-      <ElementTypeIcon type={el.type} size="sm" />
-      <span className="truncate text-sm font-medium">{label || typeName}</span>
-    </div>
+    <Card padding={3} elevation="high" width={256}>
+      <HStack gap={3} vAlign="center">
+        <Icon icon={GripVerticalIcon} color="secondary" />
+        <ElementTypeIcon type={el.type} size="sm" />
+        <StackItem size="fill">
+          <Text weight="medium" maxLines={1}>
+            {label || typeName}
+          </Text>
+        </StackItem>
+      </HStack>
+    </Card>
   );
 }
 
@@ -438,24 +425,20 @@ function EndZone({ empty, active, onAddHint }: { empty: boolean; active: boolean
     <div
       ref={setNodeRef}
       className={cn(
-        'relative grid place-items-center rounded-xl border-2 border-dashed text-center text-sm text-muted-foreground transition-colors sm:col-span-2',
-        empty ? 'min-h-56 gap-3 p-8' : 'min-h-16 p-4',
-        (isOver || active) && 'border-primary/60 bg-primary/5 text-primary',
+        'relative grid place-items-center rounded-xl border-2 border-dashed text-center transition-colors sm:col-span-2',
+        empty ? 'min-h-56 p-4' : 'min-h-16 p-4',
+        (isOver || active) && 'border-primary/60 bg-primary/5',
       )}
     >
       {empty ? (
-        <div className="grid justify-items-center gap-3">
-          <span className="grid size-11 place-items-center rounded-full bg-muted text-muted-foreground">
-            <MousePointerClickIcon className="size-5" aria-hidden />
-          </span>
-          <span className="max-w-xs">
-            <span className="block font-medium text-foreground">{t('emptyTitle')}</span>
-            <span className="block">{t('emptyDescription')}</span>
-          </span>
-          {onAddHint}
-        </div>
+        <EmptyState
+          icon={<MousePointerClickIcon />}
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
+          action={onAddHint}
+        />
       ) : (
-        <span>{t('dropHere')}</span>
+        <Text color="secondary">{t('dropHere')}</Text>
       )}
     </div>
   );
@@ -507,63 +490,64 @@ export function BuilderCanvas({
 }) {
   const t = useTranslations('forms.builder');
   const tf = useTranslations('fields');
-  const uid = useId();
   const [showKeys, setShowKeys] = useShowFieldKeys();
   const fresh = useFreshIds(elements);
   return (
-    <section
+    <Card
+      variant="muted"
+      padding={4}
+      role="region"
       aria-label={t('canvas')}
-      className="rounded-2xl border bg-muted/30 p-3 sm:p-5"
       onClick={(e) => {
         if (e.target === e.currentTarget) onSelect('');
       }}
     >
-      <div className="mx-auto mb-2 flex max-w-3xl justify-end">
-        <label
-          htmlFor={`${uid}-keys`}
-          className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground"
-        >
-          <Switch id={`${uid}-keys`} checked={showKeys} onCheckedChange={setShowKeys} />
-          {tf('showKeys')}
-        </label>
-      </div>
-      <div className="mx-auto grid max-w-3xl gap-5 rounded-xl border bg-background p-4 sm:p-5">
-        {header}
-        <SortableContext items={elements.map((e) => e.id)} strategy={noSortingTransforms}>
-          <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
-            <AnimatePresence initial={false} mode="popLayout">
-              {elements.map((el, i) => (
-                <CanvasItem
-                  key={el.id}
-                  el={el}
-                  index={i}
-                  count={elements.length}
-                  selected={selectedId === el.id}
-                  issues={issues.get(el.id) ?? []}
-                  conditionText={conditionText}
-                  locked={lockedIds.has(el.id)}
-                  showKey={showKeys}
-                  fresh={fresh.has(el.id)}
-                  drop={drop}
-                  dimmed={draggingId === el.id}
-                  onSelect={() => onSelect(el.id)}
-                  onMove={(by) => onMove(el.id, by)}
-                  onDuplicate={() => onDuplicate(el.id)}
-                  onRemove={() => onRemove(el.id)}
-                />
-              ))}
-            </AnimatePresence>
-            <div className="relative sm:col-span-2">
-              {drop && drop.index === elements.length && elements.length > 0 && <DropLine vertical={false} />}
-              <EndZone
-                empty={elements.length === 0}
-                active={Boolean(drop && drop.index === elements.length)}
-                onAddHint={emptyAction}
-              />
-            </div>
-          </div>
-        </SortableContext>
-      </div>
-    </section>
+      <VStack gap={2}>
+        <HStack hAlign="end">
+          <Switch label={tf('showKeys')} value={showKeys} onChange={setShowKeys} size="sm" />
+        </HStack>
+        <Card padding={5} maxWidth={768} className="mx-auto w-full">
+          <VStack gap={5}>
+            {header}
+            <SortableContext items={elements.map((e) => e.id)} strategy={noSortingTransforms}>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
+                <AnimatePresence initial={false} mode="popLayout">
+                  {elements.map((el, i) => (
+                    <CanvasItem
+                      key={el.id}
+                      el={el}
+                      index={i}
+                      count={elements.length}
+                      selected={selectedId === el.id}
+                      issues={issues.get(el.id) ?? []}
+                      conditionText={conditionText}
+                      locked={lockedIds.has(el.id)}
+                      showKey={showKeys}
+                      fresh={fresh.has(el.id)}
+                      drop={drop}
+                      dimmed={draggingId === el.id}
+                      onSelect={() => onSelect(el.id)}
+                      onMove={(by) => onMove(el.id, by)}
+                      onDuplicate={() => onDuplicate(el.id)}
+                      onRemove={() => onRemove(el.id)}
+                    />
+                  ))}
+                </AnimatePresence>
+                <div className="relative sm:col-span-2">
+                  {drop && drop.index === elements.length && elements.length > 0 && (
+                    <DropLine vertical={false} />
+                  )}
+                  <EndZone
+                    empty={elements.length === 0}
+                    active={Boolean(drop && drop.index === elements.length)}
+                    onAddHint={emptyAction}
+                  />
+                </div>
+              </div>
+            </SortableContext>
+          </VStack>
+        </Card>
+      </VStack>
+    </Card>
   );
 }

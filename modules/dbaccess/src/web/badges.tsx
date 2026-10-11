@@ -1,7 +1,10 @@
 'use client';
 
+import { HStack } from '@astryxdesign/core/Layout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Text } from '@astryxdesign/core/Text';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
+import { StatusBadge, type StatusTone } from '@isbp/ui/status';
 import {
   AlarmClockIcon,
   BanIcon,
@@ -33,12 +36,17 @@ import type {
   Risk,
 } from '../contracts';
 
-type Variant = 'info' | 'success' | 'warning' | 'destructive' | 'muted' | 'secondary';
+type Variant = Extract<StatusTone, 'info' | 'success' | 'warning' | 'destructive' | 'muted'>;
+
+/** A spinning loader for work in flight (honours reduced motion). */
+function SpinnerIcon({ className }: { className?: string }) {
+  return <LoaderCircleIcon aria-hidden className={cn(className, 'motion-safe:animate-spin')} />;
+}
 
 /** Icon + text + tone: status is never shown by colour alone. */
 function ToneBadge({
   variant,
-  icon: Icon,
+  icon,
   label,
   className,
   spin,
@@ -49,12 +57,7 @@ function ToneBadge({
   className?: string;
   spin?: boolean;
 }) {
-  return (
-    <Badge variant={variant} className={className}>
-      <Icon aria-hidden className={cn(spin && 'motion-safe:animate-spin')} />
-      {label}
-    </Badge>
-  );
+  return <StatusBadge tone={variant} icon={spin ? SpinnerIcon : icon} label={label} className={className} />;
 }
 
 export const GRANT_META: Record<GrantViewStatus, { variant: Variant; icon: LucideIcon; spin?: boolean }> = {
@@ -89,7 +92,7 @@ export function RequestStatusBadge({ status, className }: { status: RequestStatu
 }
 
 const RISK_META: Record<Risk, { variant: Variant; icon: LucideIcon }> = {
-  low: { variant: 'secondary', icon: ShieldCheckIcon },
+  low: { variant: 'muted', icon: ShieldCheckIcon },
   medium: { variant: 'warning', icon: ShieldIcon },
   high: { variant: 'destructive', icon: ShieldAlertIcon },
 };
@@ -133,10 +136,12 @@ export function DecisionBadge({
 export function EngineLabel({ engine, className }: { engine: string; className?: string }) {
   const t = useTranslations('dbaccess.engine');
   return (
-    <span className={cn('inline-flex min-w-0 items-center gap-1 text-xs text-muted-foreground', className)}>
-      <DatabaseIcon className="size-3.5 shrink-0" aria-hidden />
-      <span className="truncate">{t.has(engine) ? t(engine) : engine}</span>
-    </span>
+    <HStack as="span" gap={1} vAlign="center" className={cn('min-w-0', className)}>
+      <Icon icon={DatabaseIcon} size="sm" color="secondary" />
+      <Text type="supporting" maxLines={1}>
+        {t.has(engine) ? t(engine) : engine}
+      </Text>
+    </HStack>
   );
 }
 
@@ -151,9 +156,7 @@ export function EnvironmentBadge({
   return environment === 'production' ? (
     <ToneBadge variant="warning" icon={FlameIcon} label={t(environment)} className={className} />
   ) : (
-    <Badge variant="outline" className={className}>
-      {t(environment)}
-    </Badge>
+    <StatusBadge tone="neutral" label={t(environment)} className={className} />
   );
 }
 

@@ -1,16 +1,18 @@
 'use client';
 
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { DataTable, type DataTableColumn, type ListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { HistoryIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useId, useMemo } from 'react';
+import { useMemo } from 'react';
 import { RUN_STATUSES, type RunStatus, type RunSummary } from '../contracts';
 import { KindLabel, RunStatusBadge, TriggerLabel } from './badges';
 import { runHref } from './lib';
@@ -34,7 +36,6 @@ export function RunsTable({
   const tc = useTranslations('common');
   const format = useFormatter();
   const router = useRouter();
-  const id = useId();
   const status = RUN_STATUSES.includes(state.status as RunStatus) ? (state.status as RunStatus) : undefined;
   const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<RunSummary>>(
     '/integrations/runs',
@@ -49,20 +50,21 @@ export function RunsTable({
         header: t('run'),
         meta: { className: 'max-w-72' },
         cell: ({ row }) => (
-          <span className="flex min-w-0 flex-col gap-0.5">
+          <VStack gap={0.5} className="min-w-0">
             <Link
               href={runHref(row.original.id)}
               onClick={(e) => e.stopPropagation()}
-              className="truncate font-medium outline-none hover:underline focus-visible:underline"
+              weight="medium"
+              maxLines={1}
             >
               {row.original.profile.name}
             </Link>
-            <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+            <HStack gap={2} wrap="wrap" vAlign="center">
               <KindLabel kind={row.original.kind} />
               <span aria-hidden>·</span>
               <TriggerLabel trigger={row.original.trigger} />
-            </span>
-          </span>
+            </HStack>
+          </VStack>
         ),
       },
       {
@@ -77,14 +79,14 @@ export function RunsTable({
         cell: ({ row }) => {
           const c = row.original.counts;
           return (
-            <span className="text-xs text-muted-foreground">
+            <Text type="supporting">
               {t('countsLine', {
                 read: format.number(c.read),
                 written: format.number(c.created + c.updated + c.remoteCreated + c.pushed),
                 conflicts: format.number(c.conflicts),
                 errors: format.number(c.errors),
               })}
-            </span>
+            </Text>
           );
         },
       },
@@ -114,24 +116,17 @@ export function RunsTable({
       onPageChange={(page) => set({ page })}
       onPageSizeChange={(pageSize) => set({ pageSize })}
       toolbar={
-        <div className="flex items-center gap-2">
-          <label htmlFor={`${id}-status`} className="sr-only">
-            {tc('status')}
-          </label>
-          <Select value={status ?? ALL} onValueChange={(v) => set({ status: v === ALL ? undefined : v })}>
-            <SelectTrigger id={`${id}-status`} className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>{t('allStatuses')}</SelectItem>
-              {RUN_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {ts(s)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Selector
+          label={tc('status')}
+          isLabelHidden
+          width={176}
+          options={[
+            { value: ALL, label: t('allStatuses') },
+            ...RUN_STATUSES.map((s) => ({ value: s, label: ts(s) })),
+          ]}
+          value={status ?? ALL}
+          onChange={(v) => set({ status: v === ALL ? undefined : v })}
+        />
       }
       empty={
         <EmptyState

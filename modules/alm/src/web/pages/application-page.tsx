@@ -1,11 +1,15 @@
 'use client';
 
+import { HStack } from '@astryxdesign/core/Layout';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Link } from '@astryxdesign/core/Link';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import { Text } from '@astryxdesign/core/Text';
 import type { RecordPanelSlotProps } from '@isbp/contracts';
 import { Slot, type WebPageProps } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
@@ -14,7 +18,6 @@ import { FadeIn } from '@isbp/ui/motion';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
   AppWindowIcon,
   ArrowLeftIcon,
@@ -31,7 +34,6 @@ import {
   RefreshCwIcon,
   RocketIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useId, useState } from 'react';
@@ -129,24 +131,19 @@ function DetailsCard({ app }: { app: AppDetail }) {
             {app.techStack.length > 0 && (
               <span className="flex flex-wrap gap-1">
                 {app.techStack.map((s) => (
-                  <Badge key={s} variant="secondary" className="font-normal">
-                    {s}
-                  </Badge>
+                  <Badge variant="neutral" label={s} key={s} />
                 ))}
               </span>
             )}
           </Field>
           {app.documentationUrl && (
             <Field label={t('fields.documentationUrl')}>
-              <a
-                href={app.documentationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-primary hover:underline focus-visible:underline focus-visible:outline-none"
-              >
-                <BookOpenIcon className="size-3.5" aria-hidden />
-                {t('app.openDocs')}
-              </a>
+              <Link href={app.documentationUrl} target="_blank">
+                <span className="inline-flex items-center gap-1">
+                  <Icon icon={BookOpenIcon} size="xsm" />
+                  {t('app.openDocs')}
+                </span>
+              </Link>
             </Field>
           )}
         </dl>
@@ -161,18 +158,17 @@ function CiCard({ app }: { app: AppDetail }) {
   return (
     <Card className="min-w-0">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <NetworkIcon className="size-4 text-primary" aria-hidden />
-          {t('app.ci')}
+        <CardTitle>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={NetworkIcon} color="accent" />
+            {t('app.ci')}
+          </HStack>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {app.ci ? (
           <div className="grid gap-1">
-            <Link
-              href={`/cmdb/${app.ci.reference}`}
-              className="truncate font-medium text-primary hover:underline focus-visible:underline focus-visible:outline-none"
-            >
+            <Link href={`/cmdb/${app.ci.reference}`} weight="medium">
               {app.ci.name}
             </Link>
             <p className="text-xs text-muted-foreground">
@@ -205,19 +201,14 @@ function Branches({ repo }: { repo: Repository }) {
         <span>{t('branches', { count: branches.length })}</span>
         {branches.length > 0 && (
           <Button
-            variant="link"
+            label={open ? t('hideBranches') : t('showBranches')}
+            variant="ghost"
             size="sm"
-            className="h-auto p-0 text-xs"
+            endContent={<Icon icon={ChevronDownIcon} />}
             aria-expanded={open}
             aria-controls={listId}
             onClick={() => setOpen((o) => !o)}
-          >
-            {open ? t('hideBranches') : t('showBranches')}
-            <ChevronDownIcon
-              className={cn('transition-transform motion-reduce:transition-none', open && 'rotate-180')}
-              aria-hidden
-            />
-          </Button>
+          />
         )}
       </p>
       {open && (
@@ -225,11 +216,7 @@ function Branches({ repo }: { repo: Repository }) {
           {branches.map((b) => (
             <li key={b.name} className="flex min-w-0 items-center gap-2">
               <span className="truncate font-mono">{b.name}</span>
-              {b.name === repo.defaultBranch && (
-                <Badge variant="outline" className="shrink-0">
-                  {t('defaultBranch')}
-                </Badge>
-              )}
+              {b.name === repo.defaultBranch && <Badge variant="neutral" label={t('defaultBranch')} />}
               {b.committedAt && (
                 <RelativeTime date={b.committedAt} className="ml-auto shrink-0 text-muted-foreground" />
               )}
@@ -259,22 +246,18 @@ function PullRequests({ repo }: { repo: Repository }) {
               <li key={pr.id} className="grid min-w-0 gap-0.5 text-sm">
                 <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                   {url ? (
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="min-w-0 font-medium wrap-anywhere text-primary hover:underline focus-visible:underline focus-visible:outline-none"
-                    >
+                    <Link href={url} target="_blank" weight="medium">
                       {pr.title}
-                    </a>
+                    </Link>
                   ) : (
                     <span className="min-w-0 font-medium wrap-anywhere">{pr.title}</span>
                   )}
                   {pr.draft && (
-                    <Badge variant="muted" className="gap-1">
-                      <FilePenLineIcon aria-hidden />
-                      {t('draft')}
-                    </Badge>
+                    <Badge
+                      variant="neutral"
+                      label={t('draft')}
+                      icon={<Icon icon={FilePenLineIcon} size="xsm" />}
+                    />
                   )}
                 </span>
                 <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
@@ -306,14 +289,9 @@ function RepositoryItem({ repo }: { repo: Repository }) {
   return (
     <li className="grid min-w-0 gap-2">
       <div className="grid min-w-0 gap-1">
-        <a
-          href={repo.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="truncate text-sm font-medium text-primary hover:underline focus-visible:underline focus-visible:outline-none"
-        >
+        <Link href={repo.url} target="_blank" weight="medium">
           {repo.name}
-        </a>
+        </Link>
         <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
           <span>{t(`provider.${repo.provider}`)}</span>
           <span aria-hidden>·</span>
@@ -369,9 +347,11 @@ function RepositoriesCard({ app }: { app: AppDetail }) {
   return (
     <Card className="min-w-0">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <GitBranchIcon className="size-4 text-primary" aria-hidden />
-          {t('app.repositories')}
+        <CardTitle>
+          <HStack gap={2} vAlign="center">
+            <Icon icon={GitBranchIcon} color="accent" />
+            {t('app.repositories')}
+          </HStack>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -401,6 +381,9 @@ export default function ApplicationPage({ params }: WebPageProps) {
   } = useApiQuery<AppDetail>(`/alm/applications/${encodeURIComponent(code)}`);
   const [state, set] = useListState();
   const [dialog, setDialog] = useState<Dialog>(null);
+  // The URL is the source of truth, but it reaches this page a render later: show the chosen tab at once.
+  const [picked, setPicked] = useState<{ tab: string; seen: unknown } | null>(null);
+  const panelId = useId();
   const close = (open: boolean) => !open && setDialog(null);
 
   if (isLoading)
@@ -421,16 +404,19 @@ export default function ApplicationPage({ params }: WebPageProps) {
   if (error || !app) return <EmptyState icon={<FileQuestionIcon />} title={t('app.notFound')} />;
 
   const visible = TABS.filter((tab) => tab !== 'settings' || app.viewer.canEdit);
-  const tab: Tab = visible.includes(state.tab as Tab) ? (state.tab as Tab) : 'overview';
+  const rawTab = picked && picked.seen === state.tab ? picked.tab : state.tab;
+  const tab: Tab = visible.includes(rawTab as Tab) ? (rawTab as Tab) : 'overview';
   const record: RecordPanelSlotProps['record'] = { type: 'alm.application', id: app.id };
 
   return (
     <div className="space-y-5">
-      <Button variant="ghost" size="sm" asChild className="-ml-2 text-muted-foreground">
-        <Link href="/alm">
-          <ArrowLeftIcon /> {t('inventory.title')}
-        </Link>
-      </Button>
+      <Button
+        label={t('inventory.title')}
+        variant="ghost"
+        size="sm"
+        icon={<Icon icon={ArrowLeftIcon} />}
+        href="/alm"
+      />
 
       <FadeIn y={4} className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <div className="flex min-w-0 flex-1 items-start gap-4">
@@ -472,110 +458,118 @@ export default function ApplicationPage({ params }: WebPageProps) {
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           {app.viewer.canEdit && (
-            <Button variant="outline" onClick={() => setDialog('edit')}>
-              <PencilIcon /> {t('app.edit')}
-            </Button>
+            <Button
+              label={t('app.edit')}
+              variant="secondary"
+              icon={<Icon icon={PencilIcon} />}
+              onClick={() => setDialog('edit')}
+            />
           )}
           {app.viewer.canDeploy && app.environments.length > 0 && (
-            <Button variant="outline" onClick={() => setDialog('deploy')}>
-              <RocketIcon /> {t('app.recordDeployment')}
-            </Button>
+            <Button
+              label={t('app.recordDeployment')}
+              variant="secondary"
+              icon={<Icon icon={RocketIcon} />}
+              onClick={() => setDialog('deploy')}
+            />
           )}
           {app.viewer.canManageReleases && (
-            <Button onClick={() => setDialog('release')}>
-              <PlusIcon /> {t('app.newRelease')}
-            </Button>
+            <Button
+              label={t('app.newRelease')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setDialog('release')}
+            />
           )}
         </div>
       </FadeIn>
 
-      <Tabs
+      <TabList
+        role="tablist"
+        hasDivider
         value={tab}
-        onValueChange={(v) =>
-          set({ tab: v === 'overview' ? undefined : v, page: undefined, sort: undefined })
+        onChange={(v) => {
+          setPicked({ tab: v, seen: state.tab });
+          set({ tab: v === 'overview' ? undefined : v, page: undefined, sort: undefined });
+        }}
+      >
+        <Tab value="overview" label={t('app.tabs.overview')} panelId={panelId} />
+        <Tab
+          value="releases"
+          label={t('app.tabs.releases')}
+          panelId={panelId}
+          endContent={<Badge variant="neutral" label={format.number(app.counts.releases)} />}
+        />
+        <Tab
+          value="deployments"
+          label={t('app.tabs.deployments')}
+          panelId={panelId}
+          endContent={<Badge variant="neutral" label={format.number(app.counts.deployments)} />}
+        />
+        {app.viewer.canEdit && <Tab value="settings" label={t('app.tabs.settings')} panelId={panelId} />}
+      </TabList>
+
+      <div
+        role="tabpanel"
+        id={panelId}
+        aria-label={t(`app.tabs.${tab}`)}
+        className={
+          tab === 'overview' ? 'grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3' : 'min-w-0'
         }
       >
-        <TabsList>
-          <TabsTrigger value="overview">{t('app.tabs.overview')}</TabsTrigger>
-          <TabsTrigger value="releases">
-            {t('app.tabs.releases')}
-            <Badge variant="muted" className="px-1.5 tabular-nums">
-              {format.number(app.counts.releases)}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="deployments">
-            {t('app.tabs.deployments')}
-            <Badge variant="muted" className="px-1.5 tabular-nums">
-              {format.number(app.counts.deployments)}
-            </Badge>
-          </TabsTrigger>
-          {app.viewer.canEdit && <TabsTrigger value="settings">{t('app.tabs.settings')}</TabsTrigger>}
-        </TabsList>
-
-        <TabsContent value="overview" className="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-3">
-          <div className="grid min-w-0 gap-4 lg:col-span-2">
-            <Card className="min-w-0">
-              <CardHeader>
-                <CardTitle>{t('pipeline.title')}</CardTitle>
-              </CardHeader>
-              <CardContent className="min-w-0">
-                <EnvironmentPipeline code={app.code} environments={app.environments} />
-              </CardContent>
-            </Card>
-            <DoraCard code={app.code} />
-            <Card className="min-w-0">
-              <CardHeader>
-                <CardTitle>{t('fields.description')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {app.description ? (
-                  <Markdown>{app.description}</Markdown>
-                ) : (
-                  <p className="text-sm text-muted-foreground">{t('app.noDescription')}</p>
-                )}
-              </CardContent>
-            </Card>
-            <RepositoriesCard app={app} />
-            <CustomFieldsCard attributes={app.attributes} />
-          </div>
-          <div className="grid min-w-0 gap-4">
-            <OwnershipCard app={app} />
-            <CiCard app={app} />
-            <DetailsCard app={app} />
-            <Slot
-              name="core.record.links"
-              props={{ record } satisfies RecordPanelSlotProps}
-              fallback={<Skeleton className="h-28 w-full" />}
-            />
-            <Slot
-              name="core.record.files"
-              props={{ record } satisfies RecordPanelSlotProps}
-              fallback={<Skeleton className="h-28 w-full" />}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="releases" className="min-w-0">
-          {tab === 'releases' && (
-            <ReleasesTable
-              code={app.code}
-              onNew={app.viewer.canManageReleases ? () => setDialog('release') : undefined}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="deployments" className="min-w-0">
-          {tab === 'deployments' && (
-            <DeploymentsTable application={app.code} environments={app.environments} />
-          )}
-        </TabsContent>
-
-        {app.viewer.canEdit && (
-          <TabsContent value="settings" className="min-w-0">
-            {tab === 'settings' && <SettingsTab app={app} />}
-          </TabsContent>
+        {tab === 'overview' && (
+          <>
+            <div className="grid min-w-0 gap-4 lg:col-span-2">
+              <Card className="min-w-0">
+                <CardHeader>
+                  <CardTitle>{t('pipeline.title')}</CardTitle>
+                </CardHeader>
+                <CardContent className="min-w-0">
+                  <EnvironmentPipeline code={app.code} environments={app.environments} />
+                </CardContent>
+              </Card>
+              <DoraCard code={app.code} />
+              <Card className="min-w-0">
+                <CardHeader>
+                  <CardTitle>{t('fields.description')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {app.description ? (
+                    <Markdown>{app.description}</Markdown>
+                  ) : (
+                    <Text color="secondary">{t('app.noDescription')}</Text>
+                  )}
+                </CardContent>
+              </Card>
+              <RepositoriesCard app={app} />
+              <CustomFieldsCard attributes={app.attributes} />
+            </div>
+            <div className="grid min-w-0 gap-4">
+              <OwnershipCard app={app} />
+              <CiCard app={app} />
+              <DetailsCard app={app} />
+              <Slot
+                name="core.record.links"
+                props={{ record } satisfies RecordPanelSlotProps}
+                fallback={<Skeleton className="h-28 w-full" />}
+              />
+              <Slot
+                name="core.record.files"
+                props={{ record } satisfies RecordPanelSlotProps}
+                fallback={<Skeleton className="h-28 w-full" />}
+              />
+            </div>
+          </>
         )}
-      </Tabs>
+        {tab === 'releases' && (
+          <ReleasesTable
+            code={app.code}
+            onNew={app.viewer.canManageReleases ? () => setDialog('release') : undefined}
+          />
+        )}
+        {tab === 'deployments' && <DeploymentsTable application={app.code} environments={app.environments} />}
+        {tab === 'settings' && app.viewer.canEdit && <SettingsTab app={app} />}
+      </div>
 
       {app.viewer.canEdit && <AppFormDialog open={dialog === 'edit'} onOpenChange={close} app={app} />}
       {app.viewer.canManageReleases && (

@@ -1,32 +1,24 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { countFilled, OptionalFields } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Textarea } from '@isbp/ui/textarea';
+import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useId, useMemo, useState } from 'react';
 import { type FieldValues, useForm, type UseFormReturn, useWatch } from 'react-hook-form';
@@ -44,7 +36,7 @@ import {
   RESERVED_CODES,
   suggestCode,
 } from '../contracts';
-import { CriticalityBadge, HostingLabel, StageBadge } from './badges';
+import { CRITICALITY_META, HOSTING_ICON, STAGE_META } from './badges';
 import {
   attributesPayload,
   CustomFieldsSection,
@@ -53,7 +45,7 @@ import {
   useAttributeDefaults,
   useAttributesResolver,
 } from './custom-fields';
-import { INVALIDATE } from './lib';
+import { asDay, INVALIDATE } from './lib';
 import { CiPicker, LookupSelect, NONE } from './pickers';
 
 /** Create (no `app`) or edit an application: identity, lifecycle, ownership, CMDB link and details. */
@@ -69,44 +61,44 @@ export function AppFormDialog({
   onSaved?: (app: AppDetail) => void;
 }) {
   const t = useTranslations('alm.form');
-  const tc = useTranslations('common');
+  // The dialog's name is set here, not left to the header: the form inside is mounted per opening, after the dialog.
+  const title = app ? t('editTitle', { name: app.name }) : t('createTitle');
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{app ? t('editTitle', { name: app.name }) : t('createTitle')}</DialogTitle>
-          <DialogDescription>{t('hint')}</DialogDescription>
-        </DialogHeader>
-        {/* Mounted per opening: the form starts from the application as it is now. */}
-        {open && (
-          <AppForm
-            app={app}
-            onCancel={() => onOpenChange(false)}
-            onSaved={(saved) => {
-              onOpenChange(false);
-              onSaved?.(saved);
-            }}
-          />
-        )}
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={768} purpose="form" aria-label={title}>
+      {/* Mounted per opening: the form starts from the application as it is now. */}
+      {open && (
+        <AppForm
+          title={title}
+          app={app}
+          onCancel={() => onOpenChange(false)}
+          onSaved={(saved) => {
+            onOpenChange(false);
+            onSaved?.(saved);
+          }}
+        />
+      )}
     </Dialog>
   );
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <fieldset className="grid min-w-0 gap-4">
-      <legend className="mb-3 text-xs font-semibold text-muted-foreground">{title}</legend>
+    <VStack gap={3} role="group" aria-label={title}>
+      <Text type="label" color="secondary">
+        {title}
+      </Text>
       {children}
-    </fieldset>
+    </VStack>
   );
 }
 
 function AppForm({
+  title,
   app,
   onCancel,
   onSaved,
 }: {
+  title: string;
   app?: AppDetail;
   onCancel: () => void;
   onSaved: (app: AppDetail) => void;
@@ -116,15 +108,8 @@ function AppForm({
   const errorText = useErrorText();
   const applyErrors = useApplyServerErrors();
   const { fields, elements, ready } = useAppFields();
-  const ids = {
-    business: useId(),
-    technical: useId(),
-    team: useId(),
-    support: useId(),
-    department: useId(),
-    ci: useId(),
-    ciHint: useId(),
-  };
+  const formId = useId();
+  const ids = { business: useId(), technical: useId() };
   const [businessOwner, setBusinessOwner] = useState<PersonOption | null>(app?.businessOwner ?? null);
   const [technicalOwner, setTechnicalOwner] = useState<PersonOption | null>(app?.technicalOwner ?? null);
   const [ci, setCi] = useState<LookupItem | null>(
@@ -274,57 +259,38 @@ function AppForm({
   const enumSelect = <K extends 'stage' | 'criticality' | 'hosting' | 'dataClassification' | 'disposition'>(
     name: K,
     label: string,
-    values: readonly string[],
-    render: (v: string) => ReactNode,
+    options: readonly { value: string; label: string; icon?: LucideIcon }[],
     none?: string,
   ) => (
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem className="min-w-0">
-          <FormLabel>{label}</FormLabel>
-          <Select value={field.value as string} onValueChange={field.onChange}>
-            <FormControl>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              {none && (
-                <SelectItem value={NONE}>
-                  <span className="text-muted-foreground">{none}</span>
-                </SelectItem>
-              )}
-              {values.map((v) => (
-                <SelectItem key={v} value={v}>
-                  {render(v)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <Selector
+          label={label}
+          width="100%"
+          value={field.value as string}
+          onChange={(v) => field.onChange(v)}
+          options={none ? [{ value: NONE, label: none }, ...options] : [...options]}
+          status={fieldStatus(fieldState)}
+        />
       )}
     />
   );
 
-  const lookup = (name: 'teamGroupId' | 'supportGroupId' | 'departmentId', id: string, label: string) => (
+  const lookup = (name: 'teamGroupId' | 'supportGroupId' | 'departmentId', label: string) => (
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem className="min-w-0">
-          <FormLabel htmlFor={id}>{label}</FormLabel>
-          <LookupSelect
-            id={id}
-            kind={name === 'departmentId' ? 'departments' : 'groups'}
-            value={field.value === NONE ? null : field.value}
-            onChange={(v) => field.onChange(v ?? NONE)}
-            noneLabel={t('form.none')}
-          />
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <LookupSelect
+          kind={name === 'departmentId' ? 'departments' : 'groups'}
+          label={label}
+          value={field.value === NONE ? null : field.value}
+          onChange={(v) => field.onChange(v ?? NONE)}
+          noneLabel={t('form.none')}
+          status={fieldStatus(fieldState)}
+        />
       )}
     />
   );
@@ -339,225 +305,269 @@ function AppForm({
     value: PersonOption | null,
     set: (p: PersonOption | null) => void,
     field: 'businessOwnerId' | 'technicalOwnerId',
-  ) => (
-    <div className="grid min-w-0 gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      <PersonPicker id={id} value={value} placeholder={t('form.personPlaceholder')} onChange={set} />
-      {serverError(field) && <p className="text-xs text-destructive">{serverError(field)}</p>}
-    </div>
-  );
+  ) => {
+    const message = serverError(field);
+    return (
+      <Field label={label} inputID={id} status={message ? { type: 'error', message } : undefined}>
+        <PersonPicker id={id} value={value} placeholder={t('form.personPlaceholder')} onChange={set} />
+      </Field>
+    );
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="grid gap-4" noValidate>
-        <Section title={t('form.sections.identity')}>
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.name')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      autoFocus
-                      maxLength={200}
-                      placeholder={t('form.namePlaceholder')}
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        if (!codeTouched)
-                          form.setValue('code', suggestCode(e.target.value), { shouldValidate: false });
-                      }}
+      <Layout
+        header={
+          <DialogHeader
+            title={title}
+            subtitle={t('form.hint')}
+            onOpenChange={(next) => !next && onCancel()}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <form id={formId} onSubmit={onSubmit} noValidate>
+              <FormLayout defaultOptionality="optional">
+                <Section title={t('form.sections.identity')}>
+                  <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4} align="end">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label={t('fields.name')}
+                          isRequired
+                          hasAutoFocus
+                          placeholder={t('form.namePlaceholder')}
+                          value={field.value}
+                          onChange={(value) => {
+                            field.onChange(value);
+                            if (!codeTouched)
+                              form.setValue('code', suggestCode(value), { shouldValidate: false });
+                          }}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
+                        />
+                      )}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.code')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      className="font-mono"
-                      maxLength={32}
-                      readOnly={Boolean(app)}
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      {...field}
-                      onChange={(e) => {
-                        setCodeTouched(true);
-                        field.onChange(e.target.value.toLowerCase());
-                      }}
+                    <FormField
+                      control={form.control}
+                      name="code"
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          label={t('fields.code')}
+                          isRequired
+                          isReadOnly={Boolean(app)}
+                          autoComplete="off"
+                          description={app ? t('form.codePermanent') : t('form.codeHint')}
+                          value={field.value}
+                          onChange={(value) => {
+                            setCodeTouched(true);
+                            field.onChange(value.toLowerCase());
+                          }}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          status={fieldStatus(fieldState)}
+                        />
+                      )}
                     />
-                  </FormControl>
-                  <FormDescription>{app ? t('form.codePermanent') : t('form.codeHint')}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {enumSelect('stage', t('fields.stage'), APP_STAGES, (v) => (
-              <StageBadge stage={v as never} />
-            ))}
-            {enumSelect('criticality', t('fields.criticality'), CRITICALITIES, (v) => (
-              <CriticalityBadge criticality={v as never} />
-            ))}
-            {enumSelect('hosting', t('fields.hosting'), HOSTINGS, (v) => (
-              <HostingLabel hosting={v as never} />
-            ))}
-            {enumSelect('dataClassification', t('fields.dataClassification'), DATA_CLASSIFICATIONS, (v) =>
-              t(`classification.${v}`),
-            )}
-          </div>
-        </Section>
+                  </Grid>
+                  <Grid columns={{ minWidth: 160, repeat: 'fit' }} gap={4} align="end">
+                    {enumSelect(
+                      'stage',
+                      t('fields.stage'),
+                      APP_STAGES.map((v) => ({ value: v, label: t(`stage.${v}`), icon: STAGE_META[v].icon })),
+                    )}
+                    {enumSelect(
+                      'criticality',
+                      t('fields.criticality'),
+                      CRITICALITIES.map((v) => ({
+                        value: v,
+                        label: t(`criticality.${v}`),
+                        icon: CRITICALITY_META[v].icon,
+                      })),
+                    )}
+                    {enumSelect(
+                      'hosting',
+                      t('fields.hosting'),
+                      HOSTINGS.map((v) => ({ value: v, label: t(`hosting.${v}`), icon: HOSTING_ICON[v] })),
+                    )}
+                    {enumSelect(
+                      'dataClassification',
+                      t('fields.dataClassification'),
+                      DATA_CLASSIFICATIONS.map((v) => ({ value: v, label: t(`classification.${v}`) })),
+                    )}
+                  </Grid>
+                </Section>
 
-        <Section title={t('form.sections.ownership')}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {person(
-              ids.business,
-              t('fields.businessOwner'),
-              businessOwner,
-              setBusinessOwner,
-              'businessOwnerId',
-            )}
-            {person(
-              ids.technical,
-              t('fields.technicalOwner'),
-              technicalOwner,
-              setTechnicalOwner,
-              'technicalOwnerId',
-            )}
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {lookup('teamGroupId', ids.team, t('fields.team'))}
-            {lookup('supportGroupId', ids.support, t('fields.supportGroup'))}
-            {lookup('departmentId', ids.department, t('fields.department'))}
-          </div>
-        </Section>
+                <Section title={t('form.sections.ownership')}>
+                  <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4} align="end">
+                    {person(
+                      ids.business,
+                      t('fields.businessOwner'),
+                      businessOwner,
+                      setBusinessOwner,
+                      'businessOwnerId',
+                    )}
+                    {person(
+                      ids.technical,
+                      t('fields.technicalOwner'),
+                      technicalOwner,
+                      setTechnicalOwner,
+                      'technicalOwnerId',
+                    )}
+                  </Grid>
+                  <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={4} align="end">
+                    {lookup('teamGroupId', t('fields.team'))}
+                    {lookup('supportGroupId', t('fields.supportGroup'))}
+                    {lookup('departmentId', t('fields.department'))}
+                  </Grid>
+                </Section>
 
-        <OptionalFields
-          label={t('form.sections.details')}
-          filled={detailsFilled}
-          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
-        >
-          {enumSelect(
-            'disposition',
-            t('fields.disposition'),
-            DISPOSITIONS,
-            (v) => t(`disposition.${v}`),
-            t('form.notDecided'),
-          )}
-          <FormField
-            control={form.control}
-            name="goLiveDate"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.goLiveDate')}</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="retireDate"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.retireDate')}</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={ids.ci}>{t('fields.ci')}</Label>
-            <CiPicker id={ids.ci} value={ci} onChange={setCi} aria-describedby={ids.ciHint} />
-            <p id={ids.ciHint} className="text-xs text-muted-foreground">
-              {t('form.ciHint')}
-            </p>
-          </div>
-          <FormField
-            control={form.control}
-            name="vendor"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.vendor')}</FormLabel>
-                <FormControl>
-                  <Input maxLength={200} placeholder={t('form.vendorPlaceholder')} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="techStack"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.techStack')}</FormLabel>
-                <FormControl>
-                  <Input placeholder={t('form.techStackPlaceholder')} {...field} />
-                </FormControl>
-                <FormDescription>{t('form.techStackHint')}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="documentationUrl"
-            render={({ field }) => (
-              <FormItem className="min-w-0 sm:col-span-2">
-                <FormLabel>{t('fields.documentationUrl')}</FormLabel>
-                <FormControl>
-                  <Input type="url" inputMode="url" placeholder="https://" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>{t('fields.description')}</FormLabel>
-                <FormControl>
-                  <Textarea rows={4} {...field} />
-                </FormControl>
-                <FormDescription>{t('form.markdownHint')}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </OptionalFields>
+                <OptionalFields label={t('form.sections.details')} filled={detailsFilled}>
+                  <FormLayout defaultOptionality="optional">
+                    <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4} align="end">
+                      {enumSelect(
+                        'disposition',
+                        t('fields.disposition'),
+                        DISPOSITIONS.map((v) => ({ value: v, label: t(`disposition.${v}`) })),
+                        t('form.notDecided'),
+                      )}
+                      <FormField
+                        control={form.control}
+                        name="goLiveDate"
+                        render={({ field, fieldState }) => (
+                          <DateInput
+                            label={t('fields.goLiveDate')}
+                            hasClear
+                            value={asDay(field.value)}
+                            onChange={(d) => field.onChange(d ?? '')}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="retireDate"
+                        render={({ field, fieldState }) => (
+                          <DateInput
+                            label={t('fields.retireDate')}
+                            hasClear
+                            value={asDay(field.value)}
+                            onChange={(d) => field.onChange(d ?? '')}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                      <CiPicker
+                        label={t('fields.ci')}
+                        description={t('form.ciHint')}
+                        value={ci}
+                        onChange={setCi}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="vendor"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('fields.vendor')}
+                            placeholder={t('form.vendorPlaceholder')}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="techStack"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            label={t('fields.techStack')}
+                            placeholder={t('form.techStackPlaceholder')}
+                            description={t('form.techStackHint')}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                      <GridSpan columns="full">
+                        <FormField
+                          control={form.control}
+                          name="documentationUrl"
+                          render={({ field, fieldState }) => (
+                            <TextInput
+                              label={t('fields.documentationUrl')}
+                              placeholder="https://"
+                              autoComplete="off"
+                              value={field.value}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              status={fieldStatus(fieldState)}
+                            />
+                          )}
+                        />
+                      </GridSpan>
+                      <GridSpan columns="full">
+                        <FormField
+                          control={form.control}
+                          name="description"
+                          render={({ field, fieldState }) => (
+                            <TextArea
+                              label={t('fields.description')}
+                              rows={4}
+                              description={t('form.markdownHint')}
+                              value={field.value}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              status={fieldStatus(fieldState)}
+                            />
+                          )}
+                        />
+                      </GridSpan>
+                    </Grid>
+                  </FormLayout>
+                </OptionalFields>
 
-        <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
+                <CustomFieldsSection
+                  elements={elements}
+                  form={form as unknown as UseFormReturn<FieldValues>}
+                />
 
-        {form.formState.errors.root && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
-        )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {app ? tc('saveChanges') : tc('create')}
-          </Button>
-        </DialogFooter>
-      </form>
+                {form.formState.errors.root && (
+                  <Banner
+                    status="error"
+                    title={form.formState.errors.root.message ?? ''}
+                    collapsible={false}
+                  />
+                )}
+              </FormLayout>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={onCancel} />
+              <Button
+                label={app ? tc('saveChanges') : tc('create')}
+                variant="primary"
+                type="submit"
+                form={formId}
+                isLoading={save.isPending}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Form>
   );
 }

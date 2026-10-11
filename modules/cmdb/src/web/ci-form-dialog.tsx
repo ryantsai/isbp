@@ -1,32 +1,22 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { fieldStatus, Form, FormField } from '@isbp/ui/form';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useState } from 'react';
 import { type FieldValues, useForm, type UseFormReturn, useWatch } from 'react-hook-form';
@@ -38,7 +28,7 @@ import {
   type CiDetail,
   type CreateCiInput,
 } from '../contracts';
-import { CiStatusBadge, CriticalityBadge } from './badges';
+import { CRITICALITY_ICON } from './badges';
 import { ClassIcon } from './class-icon';
 import {
   attributesPayload,
@@ -52,6 +42,8 @@ import { INVALIDATE, useClasses, useLookup } from './data';
 import { TagInput } from './tag-input';
 
 const NONE = '__none__';
+/** Lists longer than this get a search box in the dropdown. */
+const SEARCH_FROM = 8;
 
 /**
  * Create (no `ci`) or edit a configuration item: identity, lifecycle, ownership, description, tags and
@@ -71,27 +63,27 @@ export function CiFormDialog({
   onSaved?: (ci: CiDetail) => void;
 }) {
   const t = useTranslations('cmdb');
-  const tc = useTranslations('common');
+  // The form (and its header) mounts after the dialog opens, so name the dialog here: Astryx reads the title at mount.
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>
-            {ci ? t('form.editTitle', { reference: ci.reference }) : t('form.createTitle')}
-          </DialogTitle>
-          <DialogDescription>{t('form.hint')}</DialogDescription>
-        </DialogHeader>
-        {/* Mounted per opening: the form starts from the CI as it is now. */}
+    <Dialog
+      isOpen={open}
+      onOpenChange={onOpenChange}
+      width={672}
+      purpose="form"
+      aria-label={ci ? t('form.editTitle', { reference: ci.reference }) : t('form.createTitle')}
+    >
+      {/* Mounted per opening: the form starts from the CI as it is now. */}
+      {open && (
         <CiForm
           ci={ci}
           defaultClass={defaultClass}
-          onCancel={() => onOpenChange(false)}
+          onOpenChange={onOpenChange}
           onSaved={(saved) => {
             onOpenChange(false);
             onSaved?.(saved);
           }}
         />
-      </DialogContent>
+      )}
     </Dialog>
   );
 }
@@ -99,12 +91,12 @@ export function CiFormDialog({
 function CiForm({
   ci,
   defaultClass,
-  onCancel,
+  onOpenChange,
   onSaved,
 }: {
   ci?: CiDetail;
   defaultClass?: string;
-  onCancel: () => void;
+  onOpenChange: (open: boolean) => void;
   onSaved: (ci: CiDetail) => void;
 }) {
   const t = useTranslations('cmdb');
@@ -116,7 +108,7 @@ function CiForm({
   const departments = useLookup('departments');
   const { fields, elements, ready } = useCiFields();
   const [owner, setOwner] = useState<PersonOption | null>(ci?.owner ? { ...ci.owner } : null);
-  const ids = { owner: useId(), tags: useId(), tagsHint: useId() };
+  const ids = { owner: useId(), form: useId() };
 
   const schema = useMemo(
     () =>
@@ -211,236 +203,232 @@ function CiForm({
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem className="min-w-0">
-          <FormLabel>{label}</FormLabel>
-          <Select value={field.value} onValueChange={field.onChange}>
-            <FormControl>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              <SelectItem value={NONE}>
-                <span className="text-muted-foreground">{placeholder}</span>
-              </SelectItem>
-              {items.map((g) => (
-                <SelectItem key={g.id} value={g.id}>
-                  {g.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <Selector
+          label={label}
+          value={field.value}
+          hasSearch={items.length > SEARCH_FROM}
+          onChange={field.onChange}
+          status={fieldStatus(fieldState)}
+          options={[
+            { value: NONE, label: placeholder },
+            ...items.map((g) => ({ value: g.id, label: g.name })),
+          ]}
+        />
       )}
     />
   );
 
   return (
-    <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-5" noValidate>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.name')}</FormLabel>
-                <FormControl>
-                  <Input autoFocus placeholder={t('form.namePlaceholder')} maxLength={200} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="classKey"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.class')}</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={t('form.classPlaceholder')} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {classOptions.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>
-                        <ClassIcon name={c.icon} className="size-4 text-muted-foreground" />
-                        {c.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+    <Layout
+      header={
+        <DialogHeader
+          title={ci ? t('form.editTitle', { reference: ci.reference }) : t('form.createTitle')}
+          subtitle={t('form.hint')}
+          onOpenChange={onOpenChange}
+        />
+      }
+      content={
+        <LayoutContent padding={4}>
+          <Form {...form}>
+            <form id={ids.form} onSubmit={onSubmit} noValidate>
+              <FormLayout defaultOptionality="optional">
+                <Grid columns={{ minWidth: 240 }} gap={4}>
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        label={t('fields.name')}
+                        isRequired
+                        hasAutoFocus
+                        placeholder={t('form.namePlaceholder')}
+                        value={field.value}
+                        onChange={(value) => field.onChange(value.slice(0, 200))}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="classKey"
+                    render={({ field, fieldState }) => (
+                      <Selector
+                        label={t('fields.class')}
+                        // A searchable Selector is a button: aria-required is not allowed on it.
+                        isRequired={classOptions.length <= SEARCH_FROM}
+                        value={field.value || undefined}
+                        placeholder={t('form.classPlaceholder')}
+                        hasSearch={classOptions.length > SEARCH_FROM}
+                        onChange={field.onChange}
+                        status={fieldStatus(fieldState)}
+                        options={classOptions.map((c) => ({
+                          value: c.value,
+                          label: c.label,
+                          icon: <ClassIcon name={c.icon} className="size-4 text-muted-foreground" />,
+                        }))}
+                      />
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field, fieldState }) => (
+                      <Selector
+                        label={t('fields.status')}
+                        value={field.value}
+                        onChange={field.onChange}
+                        status={fieldStatus(fieldState)}
+                        options={CI_STATUSES.map((s) => ({
+                          value: s,
+                          label: t(`status.${s}`),
+                        }))}
+                      />
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="criticality"
+                    render={({ field, fieldState }) => (
+                      <Selector
+                        label={t('fields.criticality')}
+                        value={field.value}
+                        onChange={field.onChange}
+                        status={fieldStatus(fieldState)}
+                        options={CI_CRITICALITIES.map((c) => ({
+                          value: c,
+                          label: t(`criticality.${c}`),
+                          icon: <Icon icon={CRITICALITY_ICON[c]} />,
+                        }))}
+                      />
+                    )}
+                  />
+                  <Field
+                    label={t('fields.owner')}
+                    inputID={ids.owner}
+                    status={fieldStatus({ error: form.formState.errors.ownerId })}
+                  >
+                    <PersonPicker
+                      id={ids.owner}
+                      value={owner}
+                      placeholder={t('form.ownerPlaceholder')}
+                      invalid={Boolean(form.formState.errors.ownerId)}
+                      onChange={(p) => {
+                        setOwner(p);
+                        form.setValue('ownerId', p?.id ?? null, { shouldDirty: true });
+                        form.clearErrors('ownerId');
+                      }}
+                    />
+                  </Field>
+                  {select(
+                    'supportGroupId',
+                    t('fields.supportGroup'),
+                    t('form.groupPlaceholder'),
+                    groups.items,
+                  )}
+                </Grid>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.status')}</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {CI_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        <CiStatusBadge status={s} quiet={false} />
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="criticality"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.criticality')}</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {CI_CRITICALITIES.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        <CriticalityBadge criticality={c} />
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                <OptionalFields
+                  hint={list([
+                    t('fields.environment'),
+                    t('fields.department'),
+                    t('fields.description'),
+                    t('fields.tags'),
+                  ])}
+                  filled={detailsFilled}
+                >
+                  <Grid columns={{ minWidth: 240 }} gap={4}>
+                    <FormField
+                      control={form.control}
+                      name="environment"
+                      render={({ field, fieldState }) => (
+                        <Selector
+                          label={t('fields.environment')}
+                          value={field.value}
+                          onChange={field.onChange}
+                          status={fieldStatus(fieldState)}
+                          options={[
+                            { value: NONE, label: t('fields.notSet') },
+                            ...CI_ENVIRONMENTS.map((e) => ({ value: e, label: t(`environment.${e}`) })),
+                          ]}
+                        />
+                      )}
+                    />
+                    {select(
+                      'departmentId',
+                      t('fields.department'),
+                      t('form.departmentPlaceholder'),
+                      departments.items,
+                    )}
+                    <GridSpan columns="full">
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field, fieldState }) => (
+                          <TextArea
+                            label={t('fields.description')}
+                            rows={3}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                    </GridSpan>
+                    <GridSpan columns="full">
+                      <FormField
+                        control={form.control}
+                        name="tags"
+                        render={({ field, fieldState }) => (
+                          <TagInput
+                            label={t('fields.tags')}
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder={t('form.tagsPlaceholder')}
+                            description={t('form.tagsHint')}
+                            status={fieldStatus(fieldState)}
+                          />
+                        )}
+                      />
+                    </GridSpan>
+                  </Grid>
+                </OptionalFields>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="grid min-w-0 gap-2">
-            <Label htmlFor={ids.owner}>{t('fields.owner')}</Label>
-            <PersonPicker
-              id={ids.owner}
-              value={owner}
-              placeholder={t('form.ownerPlaceholder')}
-              invalid={Boolean(form.formState.errors.ownerId)}
-              onChange={(p) => {
-                setOwner(p);
-                form.setValue('ownerId', p?.id ?? null, { shouldDirty: true });
-                form.clearErrors('ownerId');
-              }}
-            />
-            {form.formState.errors.ownerId && (
-              <p className="text-xs text-destructive">{form.formState.errors.ownerId.message}</p>
-            )}
-          </div>
-          {select('supportGroupId', t('fields.supportGroup'), t('form.groupPlaceholder'), groups.items)}
-        </div>
-
-        <OptionalFields
-          hint={list([
-            t('fields.environment'),
-            t('fields.department'),
-            t('fields.description'),
-            t('fields.tags'),
-          ])}
-          filled={detailsFilled}
-          contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
-        >
-          <FormField
-            control={form.control}
-            name="environment"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>{t('fields.environment')}</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={NONE}>
-                      <span className="text-muted-foreground">{t('fields.notSet')}</span>
-                    </SelectItem>
-                    {CI_ENVIRONMENTS.map((e) => (
-                      <SelectItem key={e} value={e}>
-                        {t(`environment.${e}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {select('departmentId', t('fields.department'), t('form.departmentPlaceholder'), departments.items)}
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>{t('fields.description')}</FormLabel>
-                <FormControl>
-                  <Textarea rows={3} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="tags"
-            render={({ field, fieldState }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel htmlFor={ids.tags}>{t('fields.tags')}</FormLabel>
-                <TagInput
-                  id={ids.tags}
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder={t('form.tagsPlaceholder')}
-                  aria-describedby={ids.tagsHint}
-                  invalid={Boolean(fieldState.error)}
+                <CustomFieldsSection
+                  elements={elements}
+                  form={form as unknown as UseFormReturn<FieldValues>}
                 />
-                <FormDescription id={ids.tagsHint}>{t('form.tagsHint')}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </OptionalFields>
 
-        <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
-
-        {form.formState.errors.root && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
-        )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {ci ? tc('saveChanges') : tc('create')}
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
+                {form.formState.errors.root && (
+                  <Banner
+                    status="error"
+                    title={form.formState.errors.root.message ?? ''}
+                    collapsible={false}
+                  />
+                )}
+              </FormLayout>
+            </form>
+          </Form>
+        </LayoutContent>
+      }
+      footer={
+        <LayoutFooter hasDivider padding={3}>
+          <HStack gap={2} hAlign="end">
+            <Button label={tc('cancel')} variant="ghost" type="button" onClick={() => onOpenChange(false)} />
+            <Button
+              label={ci ? tc('saveChanges') : tc('create')}
+              variant="primary"
+              isLoading={save.isPending}
+              type="submit"
+              form={ids.form}
+            />
+          </HStack>
+        </LayoutFooter>
+      }
+    />
   );
 }

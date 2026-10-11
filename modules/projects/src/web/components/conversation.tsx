@@ -1,7 +1,15 @@
 'use client';
 
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { Markdown } from '@isbp/ui/markdown';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
@@ -10,28 +18,29 @@ import {
   ArrowRightLeftIcon,
   CirclePlusIcon,
   GitBranchIcon,
+  type LucideIcon,
   PencilIcon,
   Trash2Icon,
   UserRoundIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { type ReactNode, useId, useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import type { Activity, Comment, TaskDetail } from '../../contracts';
 import { dateValue, INVALIDATE, taskApi } from '../lib';
-import { ConfirmDialog, MarkdownEditor } from './inputs';
+import { MarkdownEditor } from './inputs';
 import { Via } from './via';
 
 type Entry =
   { kind: 'comment'; at: string; comment: Comment } | { kind: 'activity'; at: string; activity: Activity };
 
-const ICONS: Record<Activity['kind'], ReactNode> = {
-  created: <CirclePlusIcon className="size-3.5" aria-hidden />,
-  status: <ArrowRightLeftIcon className="size-3.5" aria-hidden />,
-  assignee: <UserRoundIcon className="size-3.5" aria-hidden />,
-  field: <PencilIcon className="size-3.5" aria-hidden />,
+const ICONS: Record<Activity['kind'], LucideIcon | null> = {
+  created: CirclePlusIcon,
+  status: ArrowRightLeftIcon,
+  assignee: UserRoundIcon,
+  field: PencilIcon,
   comment: null,
-  dependency: <GitBranchIcon className="size-3.5" aria-hidden />,
+  dependency: GitBranchIcon,
 };
 
 /** One activity line, e.g. "Alice moved it from To do to In progress". */
@@ -90,6 +99,15 @@ function useActivityText() {
   };
 }
 
+function ActivityIcon({ kind }: { kind: Activity['kind'] }) {
+  const Glyph = ICONS[kind];
+  return (
+    <IconTile size="xs" variant="outline" className="text-muted-foreground" aria-hidden>
+      {Glyph ? <Glyph /> : null}
+    </IconTile>
+  );
+}
+
 function CommentItem({ comment, taskRef }: { comment: Comment; taskRef: string }) {
   const t = useTranslations('projects.comments');
   const tc = useTranslations('common');
@@ -112,77 +130,85 @@ function CommentItem({ comment, taskRef }: { comment: Comment; taskRef: string }
   return (
     <article className="flex gap-3" aria-label={t('by', { name })}>
       <UserAvatar name={name} src={comment.author?.avatarUrl} className="mt-0.5 size-7 text-[10px]" />
-      <div className="min-w-0 flex-1 rounded-lg border bg-card">
-        <header className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b px-3 py-1.5 text-sm">
-          <span className="font-medium">{name}</span>
-          <RelativeTime date={comment.createdAt} className="text-xs text-muted-foreground" />
+      <Card padding={0} className="min-w-0 flex-1">
+        <HStack gap={2} vAlign="center" wrap="wrap" paddingInline={3} paddingBlock={1.5}>
+          <Text weight="medium">{name}</Text>
+          <Text type="supporting">
+            <RelativeTime date={comment.createdAt} />
+          </Text>
           {comment.via && (
-            <span className="text-xs text-muted-foreground">
+            <Text type="supporting">
               <Via via={comment.via} />
-            </span>
+            </Text>
           )}
-          {comment.editedAt && <span className="text-xs text-muted-foreground">{t('edited')}</span>}
-          <span className="ml-auto flex gap-1">
+          {comment.editedAt && <Text type="supporting">{t('edited')}</Text>}
+          <HStack gap={1} className="ml-auto">
             {comment.canEdit && !editing && (
-              <Button
+              <IconButton
+                label={t('edit')}
                 variant="ghost"
-                size="icon-sm"
-                className="size-7"
-                aria-label={t('edit')}
+                size="sm"
+                icon={<Icon icon={PencilIcon} />}
                 onClick={() => {
                   setDraft(comment.body);
                   setEditing(true);
                 }}
-              >
-                <PencilIcon className="size-3.5" />
-              </Button>
+              />
             )}
             {comment.canDelete && (
-              <Button
+              <IconButton
+                label={t('delete')}
                 variant="ghost"
-                size="icon-sm"
-                className="size-7"
-                aria-label={t('delete')}
+                size="sm"
+                icon={<Icon icon={Trash2Icon} />}
                 onClick={() => setConfirm(true)}
-              >
-                <Trash2Icon className="size-3.5" />
-              </Button>
+              />
             )}
-          </span>
-        </header>
-        <div className="px-3 py-2">
+          </HStack>
+        </HStack>
+        <Divider />
+        <VStack paddingInline={3} paddingBlock={2}>
           {editing ? (
             <form
-              className="grid gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (draft.trim()) save.mutate(draft.trim());
               }}
             >
-              <MarkdownEditor value={draft} onChange={setDraft} label={t('edit')} rows={4} autoFocus />
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setEditing(false)}>
-                  {tc('cancel')}
-                </Button>
-                <Button type="submit" size="sm" loading={save.isPending} disabled={!draft.trim()}>
-                  {tc('save')}
-                </Button>
-              </div>
+              <VStack gap={2}>
+                <MarkdownEditor value={draft} onChange={setDraft} label={t('edit')} rows={4} hasAutoFocus />
+                <HStack gap={2} hAlign="end">
+                  <Button
+                    label={tc('cancel')}
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setEditing(false)}
+                  />
+                  <Button
+                    label={tc('save')}
+                    variant="primary"
+                    size="sm"
+                    isLoading={save.isPending}
+                    isDisabled={!draft.trim()}
+                    type="submit"
+                  />
+                </HStack>
+              </VStack>
             </form>
           ) : (
             <Markdown>{comment.body}</Markdown>
           )}
-        </div>
-      </div>
-      <ConfirmDialog
-        open={confirm}
+        </VStack>
+      </Card>
+      <AlertDialog
+        isOpen={confirm}
         onOpenChange={setConfirm}
         title={t('deleteTitle')}
         description={t('deleteBody')}
-        confirmLabel={tc('delete')}
-        destructive
-        loading={remove.isPending}
-        onConfirm={() => remove.mutate(undefined)}
+        actionLabel={tc('delete')}
+        cancelLabel={tc('cancel')}
+        isActionLoading={remove.isPending}
+        onAction={() => remove.mutate(undefined)}
       />
     </article>
   );
@@ -191,7 +217,7 @@ function CommentItem({ comment, taskRef }: { comment: Comment; taskRef: string }
 /** Comments and the activity timeline, merged in time order, with the comment composer. */
 export function Conversation({ task }: { task: TaskDetail }) {
   const t = useTranslations('projects.comments');
-  const composerId = useId();
+  const headingId = useId();
   const comments = useApiQuery<{ items: Comment[] }>(`${taskApi(task.reference)}/comments`);
   const activity = useApiQuery<{ items: Activity[] }>(`${taskApi(task.reference)}/activity`);
   const text = useActivityText();
@@ -223,10 +249,10 @@ export function Conversation({ task }: { task: TaskDetail }) {
   }, [comments.data, activity.data]);
 
   return (
-    <section aria-labelledby={`${composerId}-heading`} className="grid gap-4">
-      <h2 id={`${composerId}-heading`} className="text-base font-semibold">
+    <section aria-labelledby={headingId} className="grid gap-4">
+      <Heading level={3} accessibilityLevel={2} id={headingId}>
         {t('title')}
-      </h2>
+      </Heading>
       {comments.isLoading || activity.isLoading ? (
         <Skeleton className="h-32 w-full rounded-lg" />
       ) : (
@@ -243,21 +269,25 @@ export function Conversation({ task }: { task: TaskDetail }) {
                 {e.kind === 'comment' ? (
                   <CommentItem comment={e.comment} taskRef={task.reference} />
                 ) : (
-                  <div className="flex items-center gap-2 pl-2 text-sm text-muted-foreground">
-                    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-muted text-foreground">
-                      {ICONS[e.activity.kind]}
-                    </span>
+                  <HStack gap={2} vAlign="center" paddingInlineStart={2}>
+                    <ActivityIcon kind={e.activity.kind} />
                     <span className="min-w-0 flex-1 wrap-anywhere">
-                      {text(e.activity)}
-                      {e.activity.via && (
-                        <>
-                          {' '}
-                          <Via via={e.activity.via} />
-                        </>
-                      )}
+                      <Text type="supporting">
+                        {text(e.activity)}
+                        {e.activity.via && (
+                          <>
+                            {' '}
+                            <Via via={e.activity.via} />
+                          </>
+                        )}
+                      </Text>
                     </span>
-                    <RelativeTime date={e.activity.createdAt} className="shrink-0 text-xs" />
-                  </div>
+                    <span className="shrink-0">
+                      <Text type="supporting">
+                        <RelativeTime date={e.activity.createdAt} />
+                      </Text>
+                    </span>
+                  </HStack>
                 )}
               </motion.li>
             ))}
@@ -266,29 +296,33 @@ export function Conversation({ task }: { task: TaskDetail }) {
       )}
       {task.viewer.canComment ? (
         <form
-          className="grid gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             if (draft.trim()) post.mutate(draft.trim());
           }}
         >
-          <MarkdownEditor
-            key={composerKey}
-            id={composerId}
-            value={draft}
-            onChange={setDraft}
-            label={t('add')}
-            placeholder={t('placeholder')}
-            rows={3}
-          />
-          <div className="flex justify-end">
-            <Button type="submit" loading={post.isPending} disabled={!draft.trim()}>
-              {t('submit')}
-            </Button>
-          </div>
+          <VStack gap={2}>
+            <MarkdownEditor
+              key={composerKey}
+              value={draft}
+              onChange={setDraft}
+              label={t('add')}
+              placeholder={t('placeholder')}
+              rows={3}
+            />
+            <HStack hAlign="end">
+              <Button
+                label={t('submit')}
+                variant="primary"
+                isLoading={post.isPending}
+                isDisabled={!draft.trim()}
+                type="submit"
+              />
+            </HStack>
+          </VStack>
         </form>
       ) : (
-        <p className="text-sm text-muted-foreground">{t('readOnly')}</p>
+        <Text type="supporting">{t('readOnly')}</Text>
       )}
     </section>
   );

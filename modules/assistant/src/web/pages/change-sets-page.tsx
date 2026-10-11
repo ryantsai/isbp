@@ -1,16 +1,18 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import {
   BotIcon,
   CircleCheckIcon,
@@ -58,7 +60,7 @@ export default function ChangeSetsPage() {
   const ts = useTranslations('assistant.status');
   const tc = useTranslations('common');
   const router = useRouter();
-  const id = useId();
+  const panelId = useId();
   const canReadAll = useCan('assistant.change-sets.read');
   const [state, set] = useListState({ pageSize: 25 });
   // `?packages=1` (older links, the navigation's "Process packs") opens the process packs page.
@@ -192,26 +194,24 @@ export default function ChangeSetsPage() {
       toolbar={
         <>
           <SearchInput value={q ?? ''} onChange={(v) => set({ q: v })} placeholder={t('search')} />
-          <label htmlFor={`${id}-status`} className="sr-only">
-            {tc('status')}
-          </label>
-          <Select value={status ?? ALL} onValueChange={(v) => set({ status: v === ALL ? undefined : v })}>
-            <SelectTrigger id={`${id}-status`} className="w-full sm:w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>{t('allStatuses')}</SelectItem>
-              {CHANGE_SET_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {ts(s)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Selector
+            label={tc('status')}
+            isLabelHidden
+            width={176}
+            value={status ?? ALL}
+            onChange={(v) => set({ status: v === ALL ? undefined : v })}
+            options={[
+              { value: ALL, label: t('allStatuses') },
+              ...CHANGE_SET_STATUSES.map((s) => ({ value: s, label: ts(s) })),
+            ]}
+          />
           {filtered && (
-            <Button variant="ghost" size="sm" onClick={() => set({ status: undefined, q: undefined })}>
-              {tc('clearFilters')}
-            </Button>
+            <Button
+              label={tc('clearFilters')}
+              variant="ghost"
+              size="sm"
+              onClick={() => set({ status: undefined, q: undefined })}
+            />
           )}
         </>
       }
@@ -231,34 +231,38 @@ export default function ChangeSetsPage() {
         title={t('title')}
         description={t('description')}
         actions={
-          <Button variant="outline" asChild>
-            <Link href={PACKS_HREF}>
-              <PackageIcon /> {t('installPack')}
-            </Link>
-          </Button>
+          <Button
+            label={t('installPack')}
+            variant="secondary"
+            icon={<Icon icon={PackageIcon} />}
+            href={PACKS_HREF}
+          />
         }
       />
-      <div className="grid min-w-0 grid-cols-1 gap-4">
-        {canReadAll ? (
-          <Tabs value={scope} onValueChange={(v) => set({ scope: v === 'mine' ? undefined : v })}>
-            <TabsList aria-label={t('tabs.label')}>
-              {SCOPES.map((s) => (
-                <TabsTrigger key={s} value={s}>
-                  {t(`tabs.${s}`)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {/* Each tab only filters the same list; every tab still has its panel. */}
+      <VStack gap={4} className="min-w-0">
+        {canReadAll && (
+          // The two views filter one list; they share its panel.
+          <TabList
+            role="tablist"
+            aria-label={t('tabs.label')}
+            value={scope}
+            onChange={(v) => set({ scope: v === 'mine' ? undefined : v })}
+            hasDivider
+          >
             {SCOPES.map((s) => (
-              <TabsContent key={s} value={s} className="min-w-0">
-                {s === scope && table}
-              </TabsContent>
+              <Tab key={s} value={s} label={t(`tabs.${s}`)} panelId={panelId} />
             ))}
-          </Tabs>
-        ) : (
-          table
+          </TabList>
         )}
-      </div>
+        <div
+          role={canReadAll ? 'tabpanel' : undefined}
+          id={panelId}
+          aria-label={canReadAll ? t(`tabs.${scope}`) : undefined}
+          className="min-w-0"
+        >
+          {table}
+        </div>
+      </VStack>
       <p className="sr-only" aria-live="polite">
         {data ? t('liveCount', { count: data.total }) : ''}
       </p>

@@ -13,17 +13,10 @@ import {
   ROW_FIELD_TYPES,
 } from '@isbp/sdk';
 import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
 import { ConditionBuilder } from '@isbp/ui/condition-builder';
 import { FieldControl } from '@isbp/ui/form-renderer';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { LocalizedInput } from '@isbp/ui/localized-input';
 import { Disclosure } from '@isbp/ui/motion';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Switch } from '@isbp/ui/switch';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -40,9 +33,8 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { type ReactNode, useId, useMemo, useState } from 'react';
-import { Segmented } from '@/components/roles/segmented';
 import { useShowFieldKeys } from './field-keys';
-import { ElementTypeIcon, FIELD_TYPE_ORDER } from './field-types';
+import { ELEMENT_ICONS, ElementTypeIcon, FIELD_TYPE_ORDER } from './field-types';
 import {
   CHOICE_TYPES,
   changeFieldType,
@@ -64,6 +56,19 @@ import {
 } from './field-utils';
 import { OptionsEditor } from './options-editor';
 import { RecordOptionsEditor } from './record-options';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
+import { Field } from '@astryxdesign/core/Field';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 
 const NONE = '__none__';
 const PATTERN_PRESETS = [
@@ -101,6 +106,11 @@ function IssueText({ id, issues }: { id: string; issues: readonly FieldIssue[] }
   );
 }
 
+/**
+ * Label, hint and issues around a CUSTOM control (a localized input, a field control, a group). Astryx inputs draw
+ * their own; this is the same frame (`Field`) for the controls that don't. `htmlFor` is the id of the control inside
+ * (none = a group, labelled as a whole).
+ */
 function Row({
   label,
   htmlFor,
@@ -114,7 +124,7 @@ function Row({
 }: {
   label: string;
   htmlFor?: string;
-  hint?: ReactNode;
+  hint?: string;
   hintId?: string;
   issues?: readonly FieldIssue[];
   issueId?: string;
@@ -122,60 +132,64 @@ function Row({
   children: ReactNode;
   aside?: ReactNode;
 }) {
-  const tc = useTranslations('common');
+  const ti = useTranslations('fields.issues');
+  const fallbackId = useId();
+  const message = issues.map((i) => ti(i.code, i.params ?? {})).join(' ');
   return (
-    <div className="grid gap-1.5">
-      <div className="flex min-h-5 items-center justify-between gap-2">
-        <Label htmlFor={htmlFor}>
-          {label}
-          {optional && <span className="font-normal text-muted-foreground">({tc('optional')})</span>}
-        </Label>
-        {aside}
-      </div>
-      {children}
-      {hint && (
-        <p id={hintId} className="text-xs text-muted-foreground">
-          {hint}
-        </p>
-      )}
-      {issueId && <IssueText id={issueId} issues={issues} />}
-    </div>
+    <VStack gap={1}>
+      <Field
+        label={label}
+        inputID={htmlFor ?? fallbackId}
+        isGroupLabel={!htmlFor}
+        isOptional={optional}
+        description={hint}
+        descriptionID={hint ? hintId : undefined}
+        status={issueId && issues.length ? { type: 'error', message, messageID: issueId } : undefined}
+        statusVariant="detached"
+      >
+        {children}
+      </Field>
+      {aside}
+    </VStack>
   );
 }
 
+/** A number box that can be emptied (`undefined`), rounded and clamped. */
 function NumberBox({
-  id,
+  label,
+  hint,
+  optional,
   value,
   onChange,
   invalid,
-  describedBy,
   integer,
   min,
   max,
 }: {
-  id: string;
+  label: string;
+  hint?: string;
+  optional?: boolean;
   value: number | undefined;
   onChange: (v: number | undefined) => void;
   invalid?: boolean;
-  describedBy?: string;
   integer?: boolean;
   min?: number;
   max?: number;
 }) {
   return (
-    <Input
-      id={id}
-      type="number"
-      inputMode={integer ? 'numeric' : 'decimal'}
-      step={integer ? 1 : 'any'}
+    <NumberInput
+      label={label}
+      description={hint}
+      isOptional={optional}
+      hasClear
+      isIntegerOnly={integer}
       min={min}
       max={max}
-      value={value ?? ''}
-      aria-invalid={invalid || undefined}
-      aria-describedby={describedBy}
-      onChange={(e) => {
-        if (e.target.value === '') return onChange(undefined);
-        let n = Number(e.target.value);
+      value={value ?? null}
+      status={invalid ? { type: 'error' } : undefined}
+      onChange={(v) => {
+        if (v === null || v === undefined) return onChange(undefined);
+        let n = Number(v);
         if (!Number.isFinite(n)) return;
         if (integer) n = Math.trunc(n);
         if (min !== undefined) n = Math.max(min, n);
@@ -188,37 +202,29 @@ function NumberBox({
 
 /** Lists the field types with icon, name and a one-line description. */
 export function FieldTypeSelect({
-  id,
   value,
   onChange,
   types = FIELD_TYPE_ORDER,
   disabled,
-  describedBy,
+  description,
 }: {
-  id?: string;
   value: FieldType;
   onChange: (type: FieldType) => void;
   types?: readonly FieldType[];
   disabled?: boolean;
-  describedBy?: string;
+  description?: string;
 }) {
   const t = useTranslations('fields.types');
+  const te = useTranslations('fields.editor');
   return (
-    <Select value={value} onValueChange={(v) => onChange(v as FieldType)} disabled={disabled}>
-      <SelectTrigger id={id} className="h-auto min-h-9 w-full py-1" aria-describedby={describedBy}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {types.map((type) => (
-          <SelectItem key={type} value={type}>
-            <span className="flex min-w-0 items-center gap-2">
-              <ElementTypeIcon type={type} size="sm" />
-              <span className="truncate">{t(`${type}.name`)}</span>
-            </span>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={te('type')}
+      description={description}
+      value={value}
+      isDisabled={disabled}
+      onChange={(v) => onChange(v as FieldType)}
+      options={types.map((type) => ({ value: type, label: t(`${type}.name`), icon: ELEMENT_ICONS[type] }))}
+    />
   );
 }
 
@@ -235,6 +241,7 @@ function PatternEditor({
   issues: readonly FieldIssue[];
 }) {
   const t = useTranslations('fields.editor');
+  const ti = useTranslations('fields.issues');
   const uid = useId();
   const [sample, setSample] = useState('');
   const [customMode, setCustomMode] = useState(false);
@@ -242,76 +249,57 @@ function PatternEditor({
   const mode = value ? (preset?.id ?? CUSTOM) : customMode ? CUSTOM : NONE;
   const safe = value ? isSafePattern(value) : false;
   const matches = value && safe && sample ? new RegExp(`^(?:${value})$`, 'u').test(sample.trim()) : null;
+  const patternIssues = issues.length ? issues.map((i) => ti(i.code, i.params ?? {})).join(' ') : '';
   return (
     <div className="grid gap-3">
-      <Row label={t('format')} htmlFor={`${uid}-format`}>
-        <Select
-          value={mode}
-          onValueChange={(v) => {
-            setCustomMode(v === CUSTOM);
-            if (v === NONE) onChange(undefined);
-            else if (v !== CUSTOM) onChange(PATTERN_PRESETS.find((p) => p.id === v)?.pattern);
-          }}
-        >
-          <SelectTrigger id={`${uid}-format`} className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NONE}>{t('formatAny')}</SelectItem>
-            {PATTERN_PRESETS.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {t(`presets.${p.id}`)}
-              </SelectItem>
-            ))}
-            <SelectItem value={CUSTOM}>{t('formatCustom')}</SelectItem>
-          </SelectContent>
-        </Select>
-      </Row>
+      <Selector
+        label={t('format')}
+        value={mode}
+        onChange={(v) => {
+          setCustomMode(v === CUSTOM);
+          if (v === NONE) onChange(undefined);
+          else if (v !== CUSTOM) onChange(PATTERN_PRESETS.find((p) => p.id === v)?.pattern);
+        }}
+        options={[
+          { value: NONE, label: t('formatAny') },
+          ...PATTERN_PRESETS.map((p) => ({ value: p.id, label: t(`presets.${p.id}`) })),
+          { value: CUSTOM, label: t('formatCustom') },
+        ]}
+      />
       {mode === CUSTOM && (
-        <Row
+        <TextInput
           label={t('pattern')}
-          htmlFor={`${uid}-pattern`}
-          hint={t('patternHint')}
-          hintId={`${uid}-hint`}
-          issues={issues}
-          issueId={`${uid}-issues`}
-        >
-          <Input
-            id={`${uid}-pattern`}
-            value={value ?? ''}
-            maxLength={200}
-            spellCheck={false}
-            placeholder="[A-Z]{2}-\d{4}"
-            className="font-mono text-sm"
-            aria-invalid={issues.length > 0 || undefined}
-            aria-describedby={`${uid}-hint ${uid}-issues`}
-            onChange={(e) => onChange(e.target.value || undefined)}
-          />
-        </Row>
+          description={t('patternHint')}
+          placeholder="[A-Z]{2}-\d{4}"
+          value={value ?? ''}
+          status={issues.length > 0 ? { type: 'error', message: patternIssues } : undefined}
+          onChange={(v) => onChange(v || undefined)}
+        />
       )}
       {mode !== CUSTOM && <IssueText id={`${uid}-issues`} issues={issues} />}
       {value && safe && (
-        <div className="flex items-center gap-2">
-          <Input
-            aria-label={t('patternTest')}
+        <HStack gap={2} vAlign="center">
+          <TextInput
+            label={t('patternTest')}
+            isLabelHidden
+            size="sm"
             placeholder={t('patternTest')}
             value={sample}
-            onChange={(e) => setSample(e.target.value)}
-            className="h-8 text-sm"
+            onChange={setSample}
           />
           <span aria-live="polite" className="shrink-0">
             {matches === true && (
-              <Badge variant="success">
-                <CheckIcon aria-hidden /> {t('patternMatches')}
-              </Badge>
+              <Badge
+                variant="success"
+                label={t('patternMatches')}
+                icon={<Icon icon={CheckIcon} size="xsm" />}
+              />
             )}
             {matches === false && (
-              <Badge variant="destructive">
-                <XIcon aria-hidden /> {t('patternNoMatch')}
-              </Badge>
+              <Badge variant="error" label={t('patternNoMatch')} icon={<Icon icon={XIcon} size="xsm" />} />
             )}
           </span>
-        </div>
+        </HStack>
       )}
     </div>
   );
@@ -327,43 +315,42 @@ function DefaultValueEditor({
   issues: readonly FieldIssue[];
 }) {
   const t = useTranslations('fields.editor');
+  const ti = useTranslations('fields.issues');
   const locale = useLocale();
   const uid = useId();
   const describedBy = issues.length ? `${uid}-issues` : undefined;
-  let control: ReactNode;
-  if (field.type === 'boolean') {
-    control = (
-      <label className="flex items-center gap-2 text-sm">
-        <Checkbox
-          checked={field.defaultValue === true}
-          onCheckedChange={(c) => onChange(c === true ? true : undefined)}
-        />
-        {t('checkedByDefault')}
-      </label>
-    );
-  } else if (field.type === 'select') {
-    control = (
-      <Select
+  if (field.type === 'select') {
+    return (
+      <Selector
+        label={t('defaultValue')}
+        isOptional
         value={typeof field.defaultValue === 'string' && field.defaultValue ? field.defaultValue : NONE}
-        onValueChange={(v) => onChange(v === NONE ? undefined : v)}
-      >
-        <SelectTrigger id={`${uid}-default`} className="w-full" aria-describedby={describedBy}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={NONE}>{t('noDefault')}</SelectItem>
-          {(field.options ?? [])
+        status={
+          issues.length > 0
+            ? { type: 'error', message: issues.map((i) => ti(i.code, i.params ?? {})).join(' ') }
+            : undefined
+        }
+        onChange={(v) => onChange(v === NONE ? undefined : v)}
+        options={[
+          { value: NONE, label: t('noDefault') },
+          ...(field.options ?? [])
             .filter((o) => o.value.trim())
-            .map((o: FieldOption) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label[locale as keyof LocalizedText] || o.label.en || o.value}
-              </SelectItem>
-            ))}
-        </SelectContent>
-      </Select>
+            .map((o: FieldOption) => ({
+              value: o.value,
+              label: o.label[locale as keyof LocalizedText] || o.label.en || o.value,
+            })),
+        ]}
+      />
     );
-  } else {
-    control = (
+  }
+  const control: ReactNode =
+    field.type === 'boolean' ? (
+      <CheckboxInput
+        label={t('checkedByDefault')}
+        value={field.defaultValue === true}
+        onChange={(c) => onChange(c ? true : undefined)}
+      />
+    ) : (
       <FieldControl
         field={{ ...field, required: false, placeholder: undefined }}
         value={field.defaultValue ?? (field.type === 'multiselect' ? [] : '')}
@@ -374,7 +361,6 @@ function DefaultValueEditor({
         aria-describedby={describedBy}
       />
     );
-  }
   return (
     <Row
       label={t('defaultValue')}
@@ -384,17 +370,16 @@ function DefaultValueEditor({
       issueId={`${uid}-issues`}
       aside={
         field.defaultValue !== undefined &&
-        field.type !== 'select' &&
         field.type !== 'boolean' && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="-my-1 h-7 text-xs"
-            onClick={() => onChange(undefined)}
-          >
-            {t('clearDefault')}
-          </Button>
+          <div>
+            <Button
+              label={t('clearDefault')}
+              variant="ghost"
+              size="sm"
+              type="button"
+              onClick={() => onChange(undefined)}
+            />
+          </div>
         )
       }
     >
@@ -455,6 +440,7 @@ function FieldPropsEditor({
   className,
 }: FieldEditorProps & { field: FieldDef & { id?: string } }) {
   const t = useTranslations('fields');
+  const ti = useTranslations('fields.issues');
   const locale = useLocale();
   const uid = useId();
   const facts = useMemo(() => fieldFacts(siblings, locale), [siblings, locale]);
@@ -499,21 +485,13 @@ function FieldPropsEditor({
     <div className={cn('grid gap-4', className)}>
       <div className="grid gap-4">
         {!hideType && (
-          <Row
-            label={t('editor.type')}
-            htmlFor={`${uid}-type`}
-            hint={lockedType ? t('editor.typeLocked') : undefined}
-            hintId={`${uid}-type-hint`}
-          >
-            <FieldTypeSelect
-              id={`${uid}-type`}
-              value={field.type}
-              types={types}
-              disabled={lockedType}
-              describedBy={lockedType ? `${uid}-type-hint` : undefined}
-              onChange={(type) => onChange(changeFieldType(field, type, defaultOptions))}
-            />
-          </Row>
+          <FieldTypeSelect
+            value={field.type}
+            types={types}
+            disabled={lockedType}
+            description={lockedType ? t('editor.typeLocked') : undefined}
+            onChange={(type) => onChange(changeFieldType(field, type, defaultOptions))}
+          />
         )}
         <Row
           label={t('editor.label')}
@@ -533,22 +511,14 @@ function FieldPropsEditor({
             }}
           />
         </Row>
-        <label
-          htmlFor={`${uid}-required`}
-          className="flex cursor-pointer items-start justify-between gap-4 rounded-lg border p-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50"
-        >
-          <span className="grid gap-0.5">
-            <span className="text-sm font-medium">{t('editor.required')}</span>
-            <span className="text-xs text-muted-foreground">
-              {field.type === 'boolean' ? t('editor.requiredHintBoolean') : t('editor.requiredHint')}
-            </span>
-          </span>
-          <Switch
-            id={`${uid}-required`}
-            checked={Boolean(field.required)}
-            onCheckedChange={(required) => set({ required })}
-          />
-        </label>
+        <Switch
+          label={t('editor.required')}
+          description={field.type === 'boolean' ? t('editor.requiredHintBoolean') : t('editor.requiredHint')}
+          labelPosition="start"
+          labelSpacing="spread"
+          value={Boolean(field.required)}
+          onChange={(required) => set({ required })}
+        />
       </div>
 
       {choice && (
@@ -617,24 +587,25 @@ function FieldPropsEditor({
               </Row>
             )}
             {hasWidth && (
-              <div className="grid gap-1.5">
-                <span className="text-sm font-medium" id={`${uid}-width`}>
-                  {t('editor.width')}
-                </span>
-                <Segmented
+              <VStack gap={1.5} hAlign="start">
+                <Text type="label">{t('editor.width')}</Text>
+                <SegmentedControl
                   label={t('editor.width')}
                   value={field.width === 'half' ? 'half' : 'full'}
-                  onChange={(width) => set({ width })}
-                  options={[
-                    {
-                      value: 'full',
-                      label: t('editor.widthFull'),
-                      icon: <RectangleHorizontalIcon aria-hidden />,
-                    },
-                    { value: 'half', label: t('editor.widthHalf'), icon: <Columns2Icon aria-hidden /> },
-                  ]}
-                />
-              </div>
+                  onChange={(width) => set({ width: width === 'half' ? 'half' : 'full' })}
+                >
+                  <SegmentedControlItem
+                    value="full"
+                    label={t('editor.widthFull')}
+                    icon={<Icon icon={RectangleHorizontalIcon} />}
+                  />
+                  <SegmentedControlItem
+                    value="half"
+                    label={t('editor.widthHalf')}
+                    icon={<Icon icon={Columns2Icon} />}
+                  />
+                </SegmentedControl>
+              </VStack>
             )}
           </div>
 
@@ -649,62 +620,44 @@ function FieldPropsEditor({
               )}
               {hasRange && (
                 <div className="grid grid-cols-2 gap-3">
-                  <Row
+                  <NumberBox
                     label={field.type === 'number' ? t('editor.min') : t('editor.minChoices')}
-                    htmlFor={`${uid}-min`}
-                  >
-                    <NumberBox
-                      id={`${uid}-min`}
-                      value={field.validation?.min}
-                      integer={field.type === 'multiselect'}
-                      min={field.type === 'multiselect' ? 0 : undefined}
-                      invalid={of('validation').length > 0}
-                      describedBy={described('validation')}
-                      onChange={(min) => setValidation({ min })}
-                    />
-                  </Row>
-                  <Row
+                    value={field.validation?.min}
+                    integer={field.type === 'multiselect'}
+                    min={field.type === 'multiselect' ? 0 : undefined}
+                    invalid={of('validation').length > 0}
+                    onChange={(min) => setValidation({ min })}
+                  />
+                  <NumberBox
                     label={field.type === 'number' ? t('editor.max') : t('editor.maxChoices')}
-                    htmlFor={`${uid}-max`}
-                  >
-                    <NumberBox
-                      id={`${uid}-max`}
-                      value={field.validation?.max}
-                      integer={field.type === 'multiselect'}
-                      min={field.type === 'multiselect' ? 1 : undefined}
-                      invalid={of('validation').length > 0}
-                      describedBy={described('validation')}
-                      onChange={(max) => setValidation({ max })}
-                    />
-                  </Row>
+                    value={field.validation?.max}
+                    integer={field.type === 'multiselect'}
+                    min={field.type === 'multiselect' ? 1 : undefined}
+                    invalid={of('validation').length > 0}
+                    onChange={(max) => setValidation({ max })}
+                  />
                 </div>
               )}
               {hasLength && (
                 <div className="grid grid-cols-2 gap-3">
-                  <Row label={t('editor.minLength')} htmlFor={`${uid}-minlen`}>
-                    <NumberBox
-                      id={`${uid}-minlen`}
-                      value={field.validation?.minLength}
-                      integer
-                      min={0}
-                      max={10_000}
-                      invalid={of('validation').length > 0}
-                      describedBy={described('validation')}
-                      onChange={(minLength) => setValidation({ minLength })}
-                    />
-                  </Row>
-                  <Row label={t('editor.maxLength')} htmlFor={`${uid}-maxlen`}>
-                    <NumberBox
-                      id={`${uid}-maxlen`}
-                      value={field.validation?.maxLength}
-                      integer
-                      min={1}
-                      max={10_000}
-                      invalid={of('validation').length > 0}
-                      describedBy={described('validation')}
-                      onChange={(maxLength) => setValidation({ maxLength })}
-                    />
-                  </Row>
+                  <NumberBox
+                    label={t('editor.minLength')}
+                    value={field.validation?.minLength}
+                    integer
+                    min={0}
+                    max={10_000}
+                    invalid={of('validation').length > 0}
+                    onChange={(minLength) => setValidation({ minLength })}
+                  />
+                  <NumberBox
+                    label={t('editor.maxLength')}
+                    value={field.validation?.maxLength}
+                    integer
+                    min={1}
+                    max={10_000}
+                    invalid={of('validation').length > 0}
+                    onChange={(maxLength) => setValidation({ maxLength })}
+                  />
                 </div>
               )}
               <IssueText id={`${uid}-validation-issues`} issues={of('validation')} />
@@ -739,42 +692,34 @@ function FieldPropsEditor({
           summary={t('editor.advanced')}
           contentClassName="grid gap-4 pt-2 pb-2"
         >
-          <Row
+          <TextInput
             label={t('editor.key')}
-            htmlFor={`${uid}-key`}
-            hint={lockedKey ? t('editor.keyLocked') : t('editor.keyHint')}
-            hintId={`${uid}-key-hint`}
-            issues={of('key')}
-            issueId={`${uid}-key-issues`}
-            aside={
-              auto && (
-                <Badge variant="muted" className="font-normal">
-                  <WandSparklesIcon aria-hidden /> {t('editor.keyAuto')}
-                </Badge>
-              )
+            description={lockedKey ? t('editor.keyLocked') : t('editor.keyHint')}
+            autoComplete="off"
+            value={field.key}
+            isReadOnly={lockedKey}
+            startIcon={lockedKey ? LockIcon : undefined}
+            status={
+              of('key').length > 0
+                ? {
+                    type: 'error',
+                    message: of('key')
+                      .map((i) => ti(i.code, i.params ?? {}))
+                      .join(' '),
+                  }
+                : undefined
             }
-          >
-            <div className="relative">
-              <Input
-                id={`${uid}-key`}
-                value={field.key}
-                readOnly={lockedKey}
-                maxLength={64}
-                spellCheck={false}
-                autoComplete="off"
-                aria-invalid={of('key').length > 0 || undefined}
-                aria-describedby={described('key', `${uid}-key-hint`)}
-                onChange={(e) => set({ key: e.target.value.replace(/[^A-Za-z0-9_]/g, '') })}
-                className="font-mono text-sm read-only:bg-muted/50 read-only:text-muted-foreground"
+            onChange={(v) => set({ key: v.replace(/[^A-Za-z0-9_]/g, '') })}
+          />
+          {auto && (
+            <div>
+              <Badge
+                variant="neutral"
+                label={t('editor.keyAuto')}
+                icon={<Icon icon={WandSparklesIcon} size="xsm" />}
               />
-              {lockedKey && (
-                <LockIcon
-                  aria-hidden
-                  className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 text-muted-foreground"
-                />
-              )}
             </div>
-          </Row>
+          )}
         </Disclosure>
       </div>
     </div>
@@ -833,44 +778,42 @@ function RowsEditor({
   return (
     <div className="grid gap-4">
       <div className="grid grid-cols-2 gap-3">
-        <Row label={t('min')} htmlFor={`${uid}-min`} optional>
-          <NumberBox
-            id={`${uid}-min`}
-            value={rows.min}
-            integer
-            min={0}
-            max={MAX_ROWS}
-            invalid={rangeIssues.some((i) => i.code === 'rowsRangeInvalid')}
-            onChange={(min) => set({ min })}
-          />
-        </Row>
-        <Row
+        <NumberBox
+          label={t('min')}
+          optional
+          value={rows.min}
+          integer
+          min={0}
+          max={MAX_ROWS}
+          invalid={rangeIssues.some((i) => i.code === 'rowsRangeInvalid')}
+          onChange={(min) => set({ min })}
+        />
+        <NumberBox
           label={t('max')}
-          htmlFor={`${uid}-max`}
           optional
           hint={t('maxHint', { max: MAX_ROWS })}
-          hintId={`${uid}-max-hint`}
-        >
-          <NumberBox
-            id={`${uid}-max`}
-            value={rows.max}
-            integer
-            min={1}
-            max={MAX_ROWS}
-            invalid={rangeIssues.some((i) => i.code === 'rowsRangeInvalid')}
-            describedBy={`${uid}-max-hint`}
-            onChange={(max) => set({ max })}
-          />
-        </Row>
+          value={rows.max}
+          integer
+          min={1}
+          max={MAX_ROWS}
+          invalid={rangeIssues.some((i) => i.code === 'rowsRangeInvalid')}
+          onChange={(max) => set({ max })}
+        />
       </div>
       <div className="grid gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h4 id={`${uid}-columns`} className="text-sm font-medium">
             {t('columns')}
           </h4>
-          <Button type="button" variant="outline" size="sm" onClick={add} disabled={columns.length >= 20}>
-            <PlusIcon /> {t('addColumn')}
-          </Button>
+          <Button
+            label={t('addColumn')}
+            variant="secondary"
+            size="sm"
+            icon={<Icon icon={PlusIcon} />}
+            isDisabled={columns.length >= 20}
+            type="button"
+            onClick={add}
+          />
         </div>
         <p className="text-xs text-muted-foreground">{t('columnsHint')}</p>
         <ol aria-labelledby={`${uid}-columns`} className="grid gap-2">
@@ -904,41 +847,41 @@ function RowsEditor({
                       </code>
                     )}
                     {invalid && (
-                      <Badge variant="destructive" className="shrink-0">
-                        <TriangleAlertIcon aria-hidden /> {t('needsAttention')}
-                      </Badge>
+                      <Badge
+                        variant="error"
+                        label={t('needsAttention')}
+                        icon={<Icon icon={TriangleAlertIcon} size="xsm" />}
+                        className="shrink-0"
+                      />
                     )}
                   </button>
-                  <Button
-                    type="button"
+                  <IconButton
+                    label={t('moveUp', { name })}
                     variant="ghost"
-                    size="icon-sm"
-                    disabled={i === 0}
-                    aria-label={t('moveUp', { name })}
+                    size="sm"
+                    icon={<Icon icon={ArrowUpIcon} />}
+                    isDisabled={i === 0}
+                    type="button"
                     onClick={() => move(i, -1)}
-                  >
-                    <ArrowUpIcon />
-                  </Button>
-                  <Button
-                    type="button"
+                  />
+                  <IconButton
+                    label={t('moveDown', { name })}
                     variant="ghost"
-                    size="icon-sm"
-                    disabled={i === columns.length - 1}
-                    aria-label={t('moveDown', { name })}
+                    size="sm"
+                    icon={<Icon icon={ArrowDownIcon} />}
+                    isDisabled={i === columns.length - 1}
+                    type="button"
                     onClick={() => move(i, 1)}
-                  >
-                    <ArrowDownIcon />
-                  </Button>
-                  <Button
-                    type="button"
+                  />
+                  <IconButton
+                    label={t('remove', { name })}
                     variant="ghost"
-                    size="icon-sm"
-                    disabled={columns.length <= 1}
-                    aria-label={t('remove', { name })}
+                    size="sm"
+                    icon={<Icon icon={Trash2Icon} />}
+                    isDisabled={columns.length <= 1}
+                    type="button"
                     onClick={() => remove(i)}
-                  >
-                    <Trash2Icon />
-                  </Button>
+                  />
                 </div>
                 {expanded && (
                   <div id={`${uid}-col-${i}`} className="border-t p-3">

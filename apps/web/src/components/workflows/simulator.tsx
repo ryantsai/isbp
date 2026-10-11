@@ -1,5 +1,17 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import type { ISODateString } from '@astryxdesign/core/Calendar';
+import { Card } from '@astryxdesign/core/Card';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import type { Department, UserDetail } from '@isbp/contracts';
 import {
   findStep,
@@ -12,18 +24,12 @@ import {
   type WorkflowGraph,
 } from '@isbp/sdk';
 import { useApi } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import type { FactOption } from '@isbp/ui/condition-builder';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { Disclosure } from '@isbp/ui/motion';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Switch } from '@isbp/ui/switch';
 import type { StepRuntime } from '@isbp/ui/workflow-diagram';
-import { cn } from '@isbp/ui';
 import { CheckIcon, FlaskConicalIcon, XIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { useApiQuery } from '@/lib/api';
 import { type PickedUser, UserPicker } from '../pickers/user-picker';
 import { GroupPicker } from '../roles/group-picker';
@@ -72,33 +78,29 @@ function FactInput({
   departments: Department[];
 }) {
   const t = useTranslations('workflows.builder.test');
-  const fid = `${useId()}-fact`;
   const [groupName, setGroupName] = useState<string | null>(null);
-  let control;
   if (fact.type === 'boolean')
-    control = <Switch id={fid} checked={value === true} onCheckedChange={(c) => onChange(c)} />;
-  else if (fact.options?.length || isDepartmentFact(fact.path)) {
+    return <Switch label={fact.label} value={value === true} onChange={(c) => onChange(c)} />;
+  if (fact.options?.length || isDepartmentFact(fact.path)) {
     const options = fact.options?.length
       ? fact.options
       : departments.map((d) => ({ value: d.code, label: d.name }));
-    control = (
-      <Select value={typeof value === 'string' ? value : undefined} onValueChange={(x) => onChange(x)}>
-        <SelectTrigger id={fid} className="w-full">
-          <SelectValue placeholder={t('any')} />
-        </SelectTrigger>
-        <SelectContent className="max-h-72">
-          {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    return (
+      <Selector
+        label={fact.label}
+        placeholder={t('any')}
+        width="100%"
+        hasSearch={options.length > 12}
+        value={typeof value === 'string' && value ? value : undefined}
+        options={options.map((o) => ({ value: o.value, label: o.label }))}
+        onChange={(x) => onChange(x)}
+      />
     );
-  } else if (fact.ref === 'group')
-    control = (
+  }
+  if (fact.ref === 'group')
+    return (
       <GroupPicker
-        id={fid}
+        label={fact.label}
         value={
           typeof value === 'string' && value ? { id: value, key: value, name: groupName ?? value } : null
         }
@@ -108,24 +110,28 @@ function FactInput({
         }}
       />
     );
-  else
-    control = (
-      <Input
-        id={fid}
-        type={fact.type === 'number' ? 'number' : fact.type === 'date' ? 'date' : 'text'}
-        value={value === undefined ? '' : String(value)}
-        onChange={(e) =>
-          onChange(fact.type === 'number' && e.target.value !== '' ? Number(e.target.value) : e.target.value)
-        }
+  if (fact.type === 'number')
+    return (
+      <NumberInput
+        label={fact.label}
+        value={typeof value === 'number' ? value : null}
+        onChange={(n) => onChange(n)}
+      />
+    );
+  if (fact.type === 'date')
+    return (
+      <DateInput
+        label={fact.label}
+        value={typeof value === 'string' && value ? (value as ISODateString) : undefined}
+        onChange={(d) => onChange(d ?? '')}
       />
     );
   return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={fid} className="text-xs font-normal">
-        {fact.label}
-      </Label>
-      {control}
-    </div>
+    <TextInput
+      label={fact.label}
+      value={value === undefined ? '' : String(value)}
+      onChange={(v) => onChange(v)}
+    />
   );
 }
 
@@ -220,24 +226,24 @@ export function Simulator({
   const set = (path: string) => (v: unknown) => setValues((cur) => ({ ...cur, [path]: v }));
 
   return (
-    <div className="grid gap-5">
-      <p className="text-sm text-muted-foreground">{t('intro')}</p>
+    <VStack gap={5}>
+      <Text color="secondary">{t('intro')}</Text>
       {personal.length > 0 && (
-        <div className="grid gap-1.5">
-          <Label htmlFor="sim-try-as" className="text-sm font-semibold">
+        <VStack gap={1.5}>
+          <Text type="label" as="div">
             {t('tryAs')}
-          </Label>
+          </Text>
           <UserPicker
-            id="sim-try-as"
+            aria-label={t('tryAs')}
             value={person}
             onChange={(u) => void tryAs(u)}
             placeholder={t('tryAsHint')}
           />
-        </div>
+        </VStack>
       )}
       {answers.length > 0 && (
-        <div className="grid gap-3">
-          <h3 className="text-sm font-semibold">{t('facts')}</h3>
+        <VStack gap={3}>
+          <Heading level={3}>{t('facts')}</Heading>
           {answers.map((f) => (
             <FactInput
               key={f.path}
@@ -247,7 +253,7 @@ export function Simulator({
               departments={departments.data?.items ?? []}
             />
           ))}
-        </div>
+        </VStack>
       )}
       {personal.length > 0 && (
         <Disclosure summary={t('enterYourself')} contentClassName="grid gap-3 pt-1">
@@ -263,8 +269,8 @@ export function Simulator({
         </Disclosure>
       )}
       {approvals.length > 0 && (
-        <div className="grid gap-2">
-          <h3 className="text-sm font-semibold">{t('decisions')}</h3>
+        <VStack gap={2}>
+          <Heading level={3}>{t('decisions')}</Heading>
           <ul className="grid gap-1.5">
             {approvals.map((s) => {
               const name = localize(s.name, locale);
@@ -273,105 +279,100 @@ export function Simulator({
               const earlier = graph.repeatApprovers === 'skip' ? stepsBefore(graph, s.id) : [];
               const choice = typeof d === 'string' ? 'ask' : `at:${d.alreadyApprovedAt}`;
               return (
-                <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <span className="min-w-0 truncate">{name}</span>
-                  {earlier.length > 0 && (
-                    <Select
-                      value={choice}
-                      onValueChange={(v) =>
-                        setDecisions({
-                          ...decisions,
-                          [s.id]: v === 'ask' ? 'approved' : { alreadyApprovedAt: v.slice('at:'.length) },
-                        })
-                      }
-                    >
-                      <SelectTrigger aria-label={name} className="h-7 w-auto max-w-[60%] text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ask">{tRepeat('ask')}</SelectItem>
-                        {earlier.map((e) => (
-                          <SelectItem key={e.id} value={`at:${e.id}`}>
-                            {t('alreadyAt', { step: localize(e.name, locale) })}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  {typeof d === 'string' && (
-                    <div
-                      className="flex shrink-0 rounded-md border p-0.5"
-                      role="group"
-                      aria-label={localize(s.name, locale)}
-                    >
-                      {(['approved', 'rejected'] as const).map((x) => (
-                        <button
-                          key={x}
-                          type="button"
-                          aria-pressed={d === x}
-                          onClick={() => setDecisions({ ...decisions, [s.id]: x })}
-                          className={cn(
-                            'inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none',
-                            d === x
-                              ? x === 'approved'
-                                ? 'bg-success/15 text-success'
-                                : 'bg-destructive/10 text-destructive'
-                              : 'text-muted-foreground',
-                          )}
-                        >
-                          {x === 'approved' ? <CheckIcon className="size-3" /> : <XIcon className="size-3" />}
-                          {t(x)}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                <li key={s.id}>
+                  <HStack gap={2} hAlign="between" vAlign="center" wrap="wrap">
+                    <StackItem size="fill" className="min-w-0">
+                      <Text maxLines={1}>{name}</Text>
+                    </StackItem>
+                    {earlier.length > 0 && (
+                      <Selector
+                        label={name}
+                        isLabelHidden
+                        size="sm"
+                        value={choice}
+                        options={[
+                          { value: 'ask', label: tRepeat('ask') },
+                          ...earlier.map((e) => ({
+                            value: `at:${e.id}`,
+                            label: t('alreadyAt', { step: localize(e.name, locale) }),
+                          })),
+                        ]}
+                        onChange={(v) =>
+                          setDecisions({
+                            ...decisions,
+                            [s.id]: v === 'ask' ? 'approved' : { alreadyApprovedAt: v.slice('at:'.length) },
+                          })
+                        }
+                      />
+                    )}
+                    {typeof d === 'string' && (
+                      <SegmentedControl
+                        label={name}
+                        size="sm"
+                        value={d}
+                        onChange={(x) => setDecisions({ ...decisions, [s.id]: x as 'approved' | 'rejected' })}
+                      >
+                        <SegmentedControlItem
+                          value="approved"
+                          label={t('approved')}
+                          icon={<Icon icon={CheckIcon} />}
+                        />
+                        <SegmentedControlItem
+                          value="rejected"
+                          label={t('rejected')}
+                          icon={<Icon icon={XIcon} />}
+                        />
+                      </SegmentedControl>
+                    )}
+                  </HStack>
                 </li>
               );
             })}
           </ul>
-        </div>
+        </VStack>
       )}
-      <div className="flex gap-2">
-        <Button type="button" onClick={run}>
-          <FlaskConicalIcon />
-          {t('run')}
-        </Button>
+      <HStack gap={2}>
+        <Button label={t('run')} variant="primary" icon={<Icon icon={FlaskConicalIcon} />} onClick={run} />
         {result && (
           <Button
-            type="button"
+            label={t('clear')}
             variant="ghost"
             onClick={() => {
               setResult(null);
               onResult(null);
             }}
-          >
-            {t('clear')}
-          </Button>
+          />
         )}
-      </div>
+      </HStack>
       {result && (
-        <div aria-live="polite" className="grid gap-2 rounded-lg border bg-muted/30 p-3 text-sm">
-          <p className="font-medium">
-            {t(result.outcome === 'approved' ? 'outcomeApproved' : 'outcomeRejected')}
-          </p>
-          <ol className="grid gap-1 text-xs text-muted-foreground">
-            {result.order.map((sid, i) => {
-              const step = walkSteps(graph.steps).find((s) => s.step.id === sid)?.step;
-              const st = result.state.steps[sid];
-              const from =
-                st?.reason === 'already-approved' && st.from ? findStep(graph, st.from) : undefined;
-              return (
-                <li key={sid}>
-                  {i + 1}. {step ? localize(step.name, locale) : sid} —{' '}
-                  {from
-                    ? t('alreadyAt', { step: localize(from.name, locale) })
-                    : t(`status.${st?.status ?? 'waiting'}`)}
-                </li>
-              );
-            })}
-          </ol>
+        <div aria-live="polite">
+          <Card padding={3}>
+            <VStack gap={2}>
+              <Text weight="medium">
+                {t(result.outcome === 'approved' ? 'outcomeApproved' : 'outcomeRejected')}
+              </Text>
+              <ol className="grid gap-1">
+                {result.order.map((sid, i) => {
+                  const step = walkSteps(graph.steps).find((s) => s.step.id === sid)?.step;
+                  const st = result.state.steps[sid];
+                  const from =
+                    st?.reason === 'already-approved' && st.from ? findStep(graph, st.from) : undefined;
+                  return (
+                    <li key={sid}>
+                      <Text type="supporting" color="secondary">
+                        {i + 1}. {step ? localize(step.name, locale) : sid} —{' '}
+                        {from
+                          ? t('alreadyAt', { step: localize(from.name, locale) })
+                          : t(`status.${st?.status ?? 'waiting'}`)}
+                      </Text>
+                    </li>
+                  );
+                })}
+              </ol>
+            </VStack>
+          </Card>
         </div>
       )}
-    </div>
+    </VStack>
   );
 }

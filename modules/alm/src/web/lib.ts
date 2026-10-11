@@ -1,5 +1,6 @@
 'use client';
 
+import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { useApiQuery } from '@isbp/ui/query';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
@@ -77,3 +78,8 @@ export function isoToday(timeZone: string, offsetDays = 0, now = new Date()) {
 
 /** A `YYYY-MM-DD` calendar date as a Date at UTC midnight (format it with `timeZone: 'UTC'`). */
 export const dateOnly = (iso: string) => new Date(`${iso}T00:00:00Z`);
+
+/** A `YYYY-MM-DD` string as the Astryx date inputs take it (anything else is no date). */
+export function asDay(value: string | null | undefined): ISODateString | undefined {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? (value as ISODateString) : undefined;
+}

@@ -1,8 +1,10 @@
 'use client';
 
-import { cn } from '@isbp/ui';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import { CalendarClockIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import type { ChangeInfo } from '../contracts';
 import { ChangeStatusChip } from './badges';
@@ -22,37 +24,34 @@ export function useWindowText() {
 }
 
 /** One ITSM change: reference (linked to ITSM), title, status chip and planned window. */
-export function ChangeLine({ change, className }: { change: ChangeInfo; className?: string }) {
+export function ChangeLine({ change }: { change: ChangeInfo }) {
   const t = useTranslations('alm.changes');
   const windowText = useWindowText();
   const w = windowText(change);
   return (
-    <div className={cn('flex min-w-0 flex-col gap-1', className)}>
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <Link
-          href={change.href}
-          className="font-mono text-xs font-medium text-primary hover:underline focus-visible:underline focus-visible:outline-none"
-        >
-          {change.reference}
+    <VStack gap={1}>
+      <HStack gap={2} wrap="wrap" vAlign="center">
+        <Link href={change.href} weight="medium">
+          <Text type="code">{change.reference}</Text>
         </Link>
         <ChangeStatusChip status={change.status} />
-      </div>
-      <p className="truncate text-sm">{change.title}</p>
-      <p className="flex items-center gap-1 text-xs text-muted-foreground">
-        <CalendarClockIcon className="size-3.5 shrink-0" aria-hidden />
-        {w ? (
-          <>
-            <span>{w}</span>
-            {change.authorized && (
-              <span className={change.inWindow ? 'text-success' : 'text-warning-foreground'}>
-                · {change.inWindow ? t('inWindow') : t('outsideWindow')}
-              </span>
-            )}
-          </>
-        ) : (
-          t('noWindow')
-        )}
-      </p>
-    </div>
+      </HStack>
+      <Text maxLines={1}>{change.title}</Text>
+      <HStack gap={1} vAlign="center">
+        <Icon icon={CalendarClockIcon} size="xsm" color="secondary" />
+        <Text type="supporting">
+          {w ? (
+            <>
+              {w}
+              {change.authorized && (
+                <Text weight="medium">{` · ${change.inWindow ? t('inWindow') : t('outsideWindow')}`}</Text>
+              )}
+            </>
+          ) : (
+            t('noWindow')
+          )}
+        </Text>
+      </HStack>
+    </VStack>
   );
 }

@@ -1,7 +1,9 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import { Meter } from '@isbp/ui/meter';
 import { StatusBadge as SharedStatusBadge, type StatusTone } from '@isbp/ui/status';
 import {
@@ -18,6 +20,10 @@ import {
   PencilLineIcon,
   SearchXIcon,
   ShieldAlertIcon,
+  SignalHighIcon,
+  SignalIcon,
+  SignalLowIcon,
+  SignalMediumIcon,
   Trash2Icon,
   XCircleIcon,
 } from 'lucide-react';
@@ -96,25 +102,21 @@ export function AssetStatusBadge({
   );
 }
 
+/** The four-step gauge of an asset value 1–4 (Lucide's signal bars: one to four). */
+const GAUGE = [SignalLowIcon, SignalMediumIcon, SignalHighIcon, SignalIcon] as const;
+
 /**
  * Asset value 1–4 as text with a four-step gauge. A value is not a status: the chip is neutral, and only the highest
  * value stands out (warning), so a register of mostly 2s and 3s doesn't look like a list of alarms.
  */
-export function ValueBadge({ value, className }: { value: number; className?: string }) {
+export function ValueBadge({ value }: { value: number }) {
   const t = useTranslations('isms.value');
   return (
-    <Badge variant={value >= 4 ? 'warning' : 'outline'} className={cn('gap-1.5 tabular-nums', className)}>
-      <span aria-hidden className="flex h-2.5 items-end gap-px">
-        {[1, 2, 3, 4].map((step) => (
-          <span
-            key={step}
-            className={cn('w-[3px] rounded-[1px]', step <= value ? 'bg-current' : 'bg-current/25')}
-            style={{ height: `${25 * step}%` }}
-          />
-        ))}
-      </span>
-      {t('badge', { value })}
-    </Badge>
+    <Badge
+      variant={value >= 4 ? 'warning' : 'neutral'}
+      icon={<Icon icon={GAUGE[Math.min(Math.max(value, 1), 4) - 1]!} />}
+      label={t('badge', { value })}
+    />
   );
 }
 
@@ -192,26 +194,22 @@ export function PrivilegeBadge({ privilege }: { privilege: (typeof PRIVILEGES)[n
   return privilege === 'admin' ? (
     <StatusBadge tone={{ variant: 'warning', icon: KeyRoundIcon }} label={t('admin')} />
   ) : (
-    <span className="text-sm text-muted-foreground">{t('user')}</span>
+    <Text color="secondary">{t('user')}</Text>
   );
 }
 
 export function AccountStateText({ state }: { state: (typeof ACCOUNT_STATES)[number] }) {
   const t = useTranslations('isms.accountState');
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 text-sm',
-        state === 'disabled' && 'text-muted-foreground',
-      )}
-    >
-      {state === 'enabled' ? (
-        <CheckCircle2Icon aria-hidden className="size-3.5 text-success" />
-      ) : (
-        <BanIcon aria-hidden className="size-3.5" />
-      )}
-      {t(state)}
-    </span>
+    <HStack gap={1} vAlign="center">
+      <Icon
+        icon={state === 'enabled' ? CheckCircle2Icon : BanIcon}
+        color={state === 'enabled' ? 'success' : 'secondary'}
+      />
+      <Text type="supporting" color={state === 'disabled' ? 'secondary' : 'primary'}>
+        {t(state)}
+      </Text>
+    </HStack>
   );
 }
 

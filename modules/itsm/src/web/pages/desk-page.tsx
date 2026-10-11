@@ -1,9 +1,13 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Selector, type SelectorOptionType } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { DataTable, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { FilterBar, type FilterDef } from '@isbp/ui/filter-bar';
@@ -12,14 +16,6 @@ import { PageHeader } from '@isbp/ui/page-header';
 import { PersonPicker, usePeople } from '@isbp/ui/person-picker';
 import { useApiQuery } from '@isbp/ui/query';
 import { SearchInput } from '@isbp/ui/search-input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
 import { Skeleton } from '@isbp/ui/skeleton';
 import {
   AlarmClockOffIcon,
@@ -125,48 +121,45 @@ function QueueRail({
   const t = useTranslations('itsm.desk.queues');
   return (
     <nav aria-label={t('label')} className="hidden lg:block">
-      <h2 className="mb-2 px-2 text-xs font-semibold text-muted-foreground">{t('label')}</h2>
-      <ul className="grid gap-0.5">
+      <List
+        density="compact"
+        header={
+          <Text as="span" type="label" color="secondary">
+            {t('label')}
+          </Text>
+        }
+      >
         {QUEUES.filter((q) => !q.hidden || q.id === active).map((q) => {
           const count = counts?.[q.count];
-          const Icon = q.icon;
-          const isActive = active === q.id;
           return (
-            <li key={q.id}>
-              <button
-                type="button"
-                onClick={() => onSelect(q.id)}
-                aria-current={isActive ? 'true' : undefined}
-                className={cn(
-                  'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none',
-                  isActive ? 'bg-accent font-medium text-accent-foreground' : 'text-muted-foreground',
-                )}
-              >
-                <Icon className="size-4 shrink-0" aria-hidden />
-                <span className="min-w-0 flex-1 truncate">{t(q.id)}</span>
-                {count === undefined ? (
+            <ListItem
+              key={q.id}
+              label={t(q.id)}
+              startContent={<Icon icon={q.icon} />}
+              isSelected={active === q.id}
+              onClick={() => onSelect(q.id)}
+              endContent={
+                count === undefined ? (
                   counts ? null : (
                     <Skeleton className="h-4 w-5" />
                   )
                 ) : (
-                  <span
-                    className={cn(
-                      'min-w-6 rounded-md px-1.5 text-center text-xs tabular-nums',
-                      q.alert && count > 0
-                        ? 'bg-destructive/10 font-medium text-destructive dark:bg-destructive/20'
-                        : 'text-muted-foreground',
-                    )}
-                  >
-                    {/* Live counts (refetched every minute) tick to their new value. */}
-                    <AnimatedNumber value={count} />
-                    <span className="sr-only"> {t('tickets', { count })}</span>
-                  </span>
-                )}
-              </button>
-            </li>
+                  <Badge
+                    variant={q.alert && count > 0 ? 'error' : 'neutral'}
+                    label={
+                      <>
+                        {/* Live counts (refetched every minute) tick to their new value. */}
+                        <AnimatedNumber value={count} />
+                        <span className="sr-only"> {t('tickets', { count })}</span>
+                      </>
+                    }
+                  />
+                )
+              }
+            />
           );
         })}
-      </ul>
+      </List>
     </nav>
   );
 }
@@ -227,7 +220,45 @@ export default function DeskPage() {
     state.ciId,
   );
   const category = categories.find((c) => c.id === state.categoryId);
+  const clearAll = () =>
+    set({
+      q: undefined,
+      type: undefined,
+      status: undefined,
+      priority: undefined,
+      groupId: undefined,
+      assigneeId: undefined,
+      categoryId: undefined,
+      ciId: undefined,
+    });
   const typeValue = type ?? (allTypes ? ALL : DESK);
+
+  const typeOptions: SelectorOptionType[] = [
+    { value: DESK, label: t('filters.deskTypes') },
+    { value: ALL, label: t('filters.allTypes') },
+    { type: 'divider' },
+    ...TYPES.map((ty) => ({ value: ty, label: t(`typesPlural.${ty}`) })),
+  ];
+  const priorityOptions = [
+    { value: ALL, label: t('filters.anyPriority') },
+    ...['1', '2', '3', '4'].map((p) => ({ value: p, label: t(`priority.${p}`) })),
+  ];
+  const statusOptions: SelectorOptionType[] = [
+    { value: 'open', label: t('filters.open') },
+    { value: 'done', label: t('filters.done') },
+    { value: 'any', label: t('filters.anyStatus') },
+    { type: 'divider' },
+    ...statusesOf(type).map((st: TicketStatus) => ({ value: st, label: t(`status.${st}`) })),
+  ];
+  const sortOptions = [
+    ...(SORTS[sort] ? [] : [{ value: sort, label: t('filters.sortCustom') }]),
+    ...Object.entries(SORTS).map(([value, key]) => ({ value, label: t(`filters.sorts.${key}`) })),
+  ];
+
+  const queueOptions = QUEUES.filter((q) => !q.hidden || q.id === queue).map((q) => {
+    const n = counts?.[q.count];
+    return { value: q.id, label: `${t(`desk.queues.${q.id}`)}${n !== undefined ? ` · ${n}` : ''}` };
+  });
 
   const filters: FilterDef[] = [
     {
@@ -238,24 +269,14 @@ export default function DeskPage() {
         typeValue === DESK ? undefined : typeValue === ALL ? t('filters.allTypes') : t(`typesPlural.${type}`),
       onClear: () => set({ type: undefined, status: undefined }),
       control: (
-        <Select
+        <Selector
+          label={t('filters.type')}
+          isLabelHidden
+          width={192}
           value={typeValue}
-          onValueChange={(v) => set({ type: v === DESK ? undefined : v, status: undefined })}
-        >
-          <SelectTrigger className="w-full sm:w-48" aria-label={t('filters.type')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={DESK}>{t('filters.deskTypes')}</SelectItem>
-            <SelectItem value={ALL}>{t('filters.allTypes')}</SelectItem>
-            <SelectSeparator />
-            {TYPES.map((ty) => (
-              <SelectItem key={ty} value={ty}>
-                {t(`typesPlural.${ty}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(v) => set({ type: v === DESK ? undefined : v, status: undefined })}
+          options={typeOptions}
+        />
       ),
     },
     {
@@ -265,22 +286,14 @@ export default function DeskPage() {
       value: state.priority ? t(`priority.${state.priority}`) : undefined,
       onClear: () => set({ priority: undefined }),
       control: (
-        <Select
+        <Selector
+          label={t('filters.priority')}
+          isLabelHidden
+          width={144}
           value={(state.priority as string | undefined) ?? ALL}
-          onValueChange={(v) => set({ priority: v === ALL ? undefined : v })}
-        >
-          <SelectTrigger className="w-full sm:w-36" aria-label={t('filters.priority')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t('filters.anyPriority')}</SelectItem>
-            {['1', '2', '3', '4'].map((p) => (
-              <SelectItem key={p} value={p}>
-                {t(`priority.${p}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(v) => set({ priority: v === ALL ? undefined : v })}
+          options={priorityOptions}
+        />
       ),
     },
     {
@@ -297,22 +310,14 @@ export default function DeskPage() {
         : undefined,
       onClear: () => set({ status: undefined }),
       control: (
-        <Select value={status} onValueChange={(v) => set({ status: v === 'open' ? undefined : v })}>
-          <SelectTrigger className="w-full" aria-label={t('filters.status')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="open">{t('filters.open')}</SelectItem>
-            <SelectItem value="done">{t('filters.done')}</SelectItem>
-            <SelectItem value="any">{t('filters.anyStatus')}</SelectItem>
-            <SelectSeparator />
-            {statusesOf(type).map((s: TicketStatus) => (
-              <SelectItem key={s} value={s}>
-                {t(`status.${s}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Selector
+          label={t('filters.status')}
+          isLabelHidden
+          width="100%"
+          value={status}
+          onChange={(v) => set({ status: v === 'open' ? undefined : v })}
+          options={statusOptions}
+        />
       ),
     },
     {
@@ -326,6 +331,7 @@ export default function DeskPage() {
           onChange={(groupId) => set({ groupId: groupId ?? undefined })}
           noneLabel={t('filters.anyGroup')}
           aria-label={t('filters.group')}
+          width="100%"
         />
       ),
     },
@@ -356,6 +362,7 @@ export default function DeskPage() {
           onChange={(categoryId) => set({ categoryId: categoryId ?? undefined })}
           noneLabel={t('filters.anyCategory')}
           aria-label={t('filters.category')}
+          width="100%"
         />
       ),
     },
@@ -368,7 +375,7 @@ export default function DeskPage() {
       label: t('filters.ci'),
       value: t('filters.ciSet'),
       onClear: () => set({ ciId: undefined }),
-      control: <span className="text-sm text-muted-foreground">{t('filters.ciSet')}</span>,
+      control: <Text color="secondary">{t('filters.ciSet')}</Text>,
     });
 
   return (
@@ -377,9 +384,12 @@ export default function DeskPage() {
         title={t('desk.title')}
         description={t('desk.description')}
         actions={
-          <Button onClick={() => setCreating(true)}>
-            <PlusIcon /> {t('desk.new')}
-          </Button>
+          <Button
+            label={t('desk.new')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            onClick={() => setCreating(true)}
+          />
         }
       />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[13rem_minmax(0,1fr)]">
@@ -390,24 +400,14 @@ export default function DeskPage() {
         />
         <div className="grid min-w-0 gap-3">
           <div className="lg:hidden">
-            <Select
+            <Selector
+              label={t('desk.queues.label')}
+              isLabelHidden
+              width="100%"
               value={queue}
-              onValueChange={(q) => set({ view: q === 'all' ? undefined : q, sort: undefined })}
-            >
-              <SelectTrigger className="w-full" aria-label={t('desk.queues.label')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {QUEUES.filter((q) => !q.hidden || q.id === queue).map((q) => (
-                  <SelectItem key={q.id} value={q.id}>
-                    {t(`desk.queues.${q.id}`)}
-                    {counts?.[q.count] !== undefined && (
-                      <span className="text-muted-foreground tabular-nums"> · {counts[q.count]}</span>
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(q) => set({ view: q === 'all' ? undefined : q, sort: undefined })}
+              options={queueOptions}
+            />
           </div>
           <h2 className="sr-only" aria-live="polite">
             {t(`desk.queues.${queue}`)}
@@ -440,32 +440,15 @@ export default function DeskPage() {
                   />
                 }
                 filters={filters}
-                onClearAll={() =>
-                  set({
-                    q: undefined,
-                    type: undefined,
-                    status: undefined,
-                    priority: undefined,
-                    groupId: undefined,
-                    assigneeId: undefined,
-                    categoryId: undefined,
-                    ciId: undefined,
-                  })
-                }
+                onClearAll={clearAll}
                 actions={
-                  <Select value={sort} onValueChange={(s) => set({ sort: s === def.sort ? undefined : s })}>
-                    <SelectTrigger className="w-auto" aria-label={t('filters.sort')}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SORTS[sort] ? null : <SelectItem value={sort}>{t('filters.sortCustom')}</SelectItem>}
-                      {Object.entries(SORTS).map(([value, key]) => (
-                        <SelectItem key={value} value={value}>
-                          {t(`filters.sorts.${key}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Selector
+                    label={t('filters.sort')}
+                    isLabelHidden
+                    value={sort}
+                    onChange={(sv) => set({ sort: sv === def.sort ? undefined : sv })}
+                    options={sortOptions}
+                  />
                 }
               />
             }
@@ -476,23 +459,7 @@ export default function DeskPage() {
                 description={filtered ? t('desk.empty.filteredHint') : undefined}
                 action={
                   filtered ? (
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        set({
-                          q: undefined,
-                          type: undefined,
-                          status: undefined,
-                          priority: undefined,
-                          groupId: undefined,
-                          assigneeId: undefined,
-                          categoryId: undefined,
-                          ciId: undefined,
-                        })
-                      }
-                    >
-                      {tc('clearFilters')}
-                    </Button>
+                    <Button label={tc('clearFilters')} variant="secondary" onClick={clearAll} />
                   ) : undefined
                 }
               />

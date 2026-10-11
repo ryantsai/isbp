@@ -1,9 +1,13 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
@@ -44,16 +48,17 @@ export default function VendorsPage() {
         header: t('fields.name'),
         meta: { sortKey: 'name', className: 'max-w-64' },
         cell: ({ row }) => (
-          <button
-            type="button"
-            className="block max-w-full truncate text-left font-medium outline-none hover:underline focus-visible:underline"
+          <Link
+            color="primary"
+            weight="medium"
+            maxLines={1}
             onClick={(e) => {
               e.stopPropagation();
               set({ vendor: row.original.id });
             }}
           >
             {row.original.name}
-          </button>
+          </Link>
         ),
       },
       {
@@ -61,14 +66,14 @@ export default function VendorsPage() {
         header: t('vendors.contact'),
         meta: { className: 'hidden max-w-56 md:table-cell', headerClassName: 'hidden md:table-cell' },
         cell: ({ row }) => (
-          <div className="min-w-0">
-            <span className="block truncate">{row.original.contactName ?? '—'}</span>
+          <VStack>
+            <Text maxLines={1}>{row.original.contactName ?? '—'}</Text>
             {row.original.contactEmail && (
-              <span className="block truncate text-xs text-muted-foreground">
+              <Text type="supporting" maxLines={1}>
                 {row.original.contactEmail}
-              </span>
+              </Text>
             )}
-          </div>
+          </VStack>
         ),
       },
       {
@@ -101,13 +106,17 @@ export default function VendorsPage() {
         meta: { className: 'hidden sm:table-cell', headerClassName: 'hidden sm:table-cell' },
         cell: ({ row }) =>
           row.original.active ? (
-            <Badge variant="success">
-              <CircleCheckIcon aria-hidden /> {t('vendors.active')}
-            </Badge>
+            <Badge
+              variant="success"
+              label={t('vendors.active')}
+              icon={<Icon icon={CircleCheckIcon} size="xsm" />}
+            />
           ) : (
-            <Badge variant="muted">
-              <CircleMinusIcon aria-hidden /> {t('vendors.inactive')}
-            </Badge>
+            <Badge
+              variant="neutral"
+              label={t('vendors.inactive')}
+              icon={<Icon icon={CircleMinusIcon} size="xsm" />}
+            />
           ),
       },
     ],
@@ -123,9 +132,12 @@ export default function VendorsPage() {
         description={t('vendors.description')}
         actions={
           canEdit && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon /> {t('vendors.new')}
-            </Button>
+            <Button
+              label={t('vendors.new')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setCreating(true)}
+            />
           )
         }
       />
@@ -162,9 +174,12 @@ export default function VendorsPage() {
             action={
               !state.q &&
               canEdit && (
-                <Button onClick={() => setCreating(true)}>
-                  <PlusIcon /> {t('vendors.new')}
-                </Button>
+                <Button
+                  label={t('vendors.new')}
+                  variant="primary"
+                  icon={<Icon icon={PlusIcon} />}
+                  onClick={() => setCreating(true)}
+                />
               )
             }
           />

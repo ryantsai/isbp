@@ -1,7 +1,8 @@
 'use client';
 
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
@@ -97,25 +98,30 @@ function GrantCard({ grant }: { grant: Grant }) {
         <CardFooter className="mt-auto flex flex-wrap gap-2">
           {grant.reveal && (
             <Button
+              label={grant.reveal.available ? t('revealPassword') : t('passwordShown')}
               size="sm"
-              variant={grant.reveal.available ? 'default' : 'outline'}
+              variant={grant.reveal.available ? 'primary' : 'secondary'}
+              icon={<Icon icon={KeyRoundIcon} />}
               onClick={() => setRevealOpen(true)}
-            >
-              <KeyRoundIcon />
-              {grant.reveal.available ? t('revealPassword') : t('passwordShown')}
-            </Button>
+            />
           )}
           {grant.viewer.canExtend && (
-            <Button size="sm" variant="outline" asChild>
-              <Link href={`/dbaccess/request?extend=${grant.id}`}>
-                <RefreshCwIcon /> {t('extend')}
-              </Link>
-            </Button>
+            <Button
+              label={t('extend')}
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={RefreshCwIcon} />}
+              href={`/dbaccess/request?extend=${grant.id}`}
+            />
           )}
           {grant.viewer.canRelinquish && (
-            <Button size="sm" variant="ghost" onClick={() => setGiveBack(true)}>
-              <Undo2Icon /> {t('relinquish')}
-            </Button>
+            <Button
+              label={t('relinquish')}
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={Undo2Icon} />}
+              onClick={() => setGiveBack(true)}
+            />
           )}
         </CardFooter>
       )}
@@ -181,11 +187,12 @@ export default function MyAccessPage() {
         title={t('title')}
         description={t('description')}
         actions={
-          <Button asChild>
-            <Link href="/dbaccess/request">
-              <PlusIcon /> {t('request')}
-            </Link>
-          </Button>
+          <Button
+            label={t('request')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            href="/dbaccess/request"
+          />
         }
       />
       {isLoading || !data ? (
@@ -237,11 +244,12 @@ export default function MyAccessPage() {
                   title={t('empty')}
                   description={t('emptyHint')}
                   action={
-                    <Button asChild variant="outline">
-                      <Link href="/dbaccess/request">
-                        <PlusIcon /> {t('request')}
-                      </Link>
-                    </Button>
+                    <Button
+                      label={t('request')}
+                      variant="secondary"
+                      icon={<Icon icon={PlusIcon} />}
+                      href="/dbaccess/request"
+                    />
                   }
                 />
               </div>
@@ -275,7 +283,7 @@ export default function MyAccessPage() {
                     </span>
                     <span className="flex flex-wrap items-center gap-2">
                       <GrantStatusBadge status={g.viewStatus} />
-                      {g.endReason && <Badge variant="outline">{te(g.endReason)}</Badge>}
+                      {g.endReason && <Badge variant="neutral" label={te(g.endReason)} />}
                       <span className="text-xs text-muted-foreground">
                         <RelativeTime date={g.endedAt} />
                       </span>

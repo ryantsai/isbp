@@ -1,30 +1,28 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { type PersonOption, PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Textarea } from '@isbp/ui/textarea';
 import { BanIcon, ShieldCheckIcon, ShieldQuestionIcon, UserPlusIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import { addDays, type Unmanaged } from '../contracts';
 import { EngineLabel, RiskBadge } from './badges';
 import { ReasonDialog } from './dialogs';
-import { INVALIDATE, useLocalized, useToday } from './lib';
+import { asDay, INVALIDATE, useLocalized, useToday } from './lib';
 
 const keyOf = (u: Unmanaged) => `${u.server.id}|${u.role.id}|${u.memberName}`;
 
@@ -63,40 +61,53 @@ export function UnmanagedList({ serverId }: { serverId?: string }) {
       <ul className="divide-y rounded-xl border bg-card" aria-label={t('title')}>
         {items.map((u) => (
           <li key={keyOf(u)} className="flex min-w-0 flex-col gap-3 px-4 py-3 md:flex-row md:items-center">
-            <ShieldQuestionIcon
-              className="hidden size-5 shrink-0 text-warning-foreground md:block"
-              aria-hidden
-            />
-            <div className="grid min-w-0 flex-1 gap-1">
-              <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="truncate font-mono text-sm font-medium">{u.memberName}</span>
-                <span className="text-sm text-muted-foreground">{t('memberOf')}</span>
-                <span className="truncate text-sm font-medium">{l(u.role.name)}</span>
+            <Icon icon={ShieldQuestionIcon} color="warning" className="hidden shrink-0 md:block" />
+            <VStack gap={1} className="min-w-0 flex-1">
+              <HStack gap={2} wrap="wrap" vAlign="center" className="min-w-0">
+                <Text type="code" weight="medium" maxLines={1}>
+                  {u.memberName}
+                </Text>
+                <Text color="secondary">{t('memberOf')}</Text>
+                <Text weight="medium" maxLines={1}>
+                  {l(u.role.name)}
+                </Text>
                 <RiskBadge risk={u.role.risk} />
-              </p>
-              <p className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span className="truncate">{u.server.displayName}</span>
+              </HStack>
+              <HStack gap={3} wrap="wrap" vAlign="center" className="min-w-0">
+                <Text type="supporting" maxLines={1}>
+                  {u.server.displayName}
+                </Text>
                 <EngineLabel engine={u.server.engine} />
-                <span className="font-mono">
+                <Text type="code" color="secondary">
                   {u.database ? `${u.database}.` : ''}
                   {u.role.roleName}
-                </span>
-                {u.suggested && <span>{t('looksLike', { name: u.suggested.displayName })}</span>}
-                {u.syncedAt && (
-                  <span>
-                    {t('seen')} <RelativeTime date={u.syncedAt} />
-                  </span>
+                </Text>
+                {u.suggested && (
+                  <Text type="supporting">{t('looksLike', { name: u.suggested.displayName })}</Text>
                 )}
-              </p>
-            </div>
+                {u.syncedAt && (
+                  <Text type="supporting">
+                    {t('seen')} <RelativeTime date={u.syncedAt} />
+                  </Text>
+                )}
+              </HStack>
+            </VStack>
             {canManage && (
               <div className="flex shrink-0 flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => setAdopting(u)}>
-                  <UserPlusIcon /> {t('adopt')}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setRevoking(u)}>
-                  <BanIcon /> {t('revoke')}
-                </Button>
+                <Button
+                  label={t('adopt')}
+                  variant="secondary"
+                  size="sm"
+                  icon={<Icon icon={UserPlusIcon} />}
+                  onClick={() => setAdopting(u)}
+                />
+                <Button
+                  label={t('revoke')}
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={BanIcon} />}
+                  onClick={() => setRevoking(u)}
+                />
               </div>
             )}
           </li>
@@ -118,16 +129,16 @@ export function UnmanagedList({ serverId }: { serverId?: string }) {
 
 function AdoptDialog({ item, onClose }: { item: Unmanaged | null; onClose: () => void }) {
   const t = useTranslations('dbaccess.unmanaged');
-  const tc = useTranslations('common');
+  // The form (and its header) mounts after the dialog opens, so name the dialog here: Astryx reads the title at mount.
   return (
-    <Dialog open={Boolean(item)} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('adoptTitle', { account: item?.memberName ?? '' })}</DialogTitle>
-          <DialogDescription>{t('adoptDescription')}</DialogDescription>
-        </DialogHeader>
-        {item && <AdoptForm key={keyOf(item)} item={item} onDone={onClose} />}
-      </DialogContent>
+    <Dialog
+      isOpen={Boolean(item)}
+      onOpenChange={(o) => !o && onClose()}
+      width={512}
+      purpose="form"
+      aria-label={item ? t('adoptTitle', { account: item.memberName }) : undefined}
+    >
+      {item && <AdoptForm key={keyOf(item)} item={item} onDone={onClose} />}
     </Dialog>
   );
 }
@@ -137,7 +148,8 @@ function AdoptForm({ item, onDone }: { item: Unmanaged; onDone: () => void }) {
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const today = useToday();
-  const ids = { person: useId(), until: useId(), note: useId() };
+  const formId = useId();
+  const personId = useId();
   const [person, setPerson] = useState<PersonOption | null>(item.suggested);
   const [until, setUntil] = useState(addDays(today, 30));
   const [note, setNote] = useState('');
@@ -154,58 +166,66 @@ function AdoptForm({ item, onDone }: { item: Unmanaged; onDone: () => void }) {
     { invalidate: INVALIDATE, success: t('adopted'), silent: true, onSuccess: onDone },
   );
   return (
-    <form
-      className="grid gap-4"
-      noValidate
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (person) adopt.mutate(undefined);
-      }}
-    >
-      <div className="grid gap-2">
-        <Label htmlFor={ids.person}>{t('person')}</Label>
-        <PersonPicker id={ids.person} value={person} onChange={setPerson} />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor={ids.until}>{t('until')}</Label>
-        <Input
-          id={ids.until}
-          type="date"
-          className="w-44"
-          min={addDays(today, 1)}
-          value={until}
-          onChange={(e) => setUntil(e.target.value)}
-          aria-describedby={`${ids.until}-hint`}
+    <Layout
+      header={
+        <DialogHeader
+          title={t('adoptTitle', { account: item.memberName })}
+          subtitle={t('adoptDescription')}
+          onOpenChange={(o) => !o && onDone()}
         />
-        <p id={`${ids.until}-hint`} className="text-xs text-muted-foreground">
-          {t('untilHint')}
-        </p>
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor={ids.note}>
-          {t('note')} <span className="font-normal text-muted-foreground">({tc('optional')})</span>
-        </Label>
-        <Textarea
-          id={ids.note}
-          rows={2}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          maxLength={1_000}
-        />
-      </div>
-      {adopt.error && (
-        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {errorText(adopt.error)}
-        </p>
-      )}
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={onDone}>
-          {tc('cancel')}
-        </Button>
-        <Button type="submit" disabled={!person} loading={adopt.isPending}>
-          <UserPlusIcon /> {t('adopt')}
-        </Button>
-      </DialogFooter>
-    </form>
+      }
+      content={
+        <LayoutContent padding={4}>
+          <form
+            id={formId}
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (person) adopt.mutate(undefined);
+            }}
+          >
+            <FormLayout defaultOptionality="optional">
+              <Field label={t('person')} inputID={personId} isRequired>
+                <PersonPicker id={personId} value={person} onChange={setPerson} />
+              </Field>
+              <DateInput
+                label={t('until')}
+                hasClear
+                width={208}
+                min={asDay(addDays(today, 1))}
+                value={asDay(until)}
+                description={t('untilHint')}
+                onChange={(d) => setUntil(d ?? '')}
+              />
+              <TextArea
+                label={t('note')}
+                isOptional
+                rows={2}
+                maxLength={1_000}
+                value={note}
+                onChange={(value) => setNote(value.slice(0, 1_000))}
+              />
+              {adopt.error && <Banner status="error" title={errorText(adopt.error)} collapsible={false} />}
+            </FormLayout>
+          </form>
+        </LayoutContent>
+      }
+      footer={
+        <LayoutFooter hasDivider padding={3}>
+          <HStack gap={2} hAlign="end">
+            <Button label={tc('cancel')} variant="ghost" type="button" onClick={onDone} />
+            <Button
+              label={t('adopt')}
+              variant="primary"
+              icon={<Icon icon={UserPlusIcon} />}
+              isLoading={adopt.isPending}
+              isDisabled={!person}
+              type="submit"
+              form={formId}
+            />
+          </HStack>
+        </LayoutFooter>
+      }
+    />
   );
 }

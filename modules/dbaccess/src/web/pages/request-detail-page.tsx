@@ -4,7 +4,6 @@ import type { WorkflowInstance } from '@isbp/contracts';
 import { evaluateCondition, localize, walkSteps } from '@isbp/sdk';
 import { useCan, usePlatform, type WebPageProps } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { DetailHeader } from '@isbp/ui/page-header';
@@ -22,12 +21,12 @@ import {
   GavelIcon,
   SkipForwardIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import type { AccessRequest } from '../../contracts';
 import { EngineLabel, GrantStatusBadge, RequestStatusBadge, RiskBadge } from '../badges';
 import { INVALIDATE, useDate, useDay, useLocalized } from '../lib';
+import { Button } from '@astryxdesign/core/Button';
 
 type StepView = {
   id: string;
@@ -116,9 +115,13 @@ function ApprovalPath({ instanceId }: { instanceId: string }) {
         })}
       </ol>
       {data.myTaskId && (
-        <Button asChild size="sm" className="justify-self-start">
-          <Link href={`/approvals?task=${data.myTaskId}`}>{t('decide')}</Link>
-        </Button>
+        <Button
+          label={t('decide')}
+          variant="primary"
+          size="sm"
+          href={`/approvals?task=${data.myTaskId}`}
+          className="justify-self-start"
+        />
       )}
     </div>
   );
@@ -150,11 +153,7 @@ export default function RequestDetailPage({ params }: WebPageProps) {
       <EmptyState
         icon={<FileQuestionIcon />}
         title={t('notFound')}
-        action={
-          <Button asChild variant="outline">
-            <Link href="/requests">{ta('backToRequests')}</Link>
-          </Button>
-        }
+        action={<Button label={ta('backToRequests')} variant="secondary" href="/requests" />}
       />
     );
 
@@ -174,11 +173,7 @@ export default function RequestDetailPage({ params }: WebPageProps) {
         status={<RequestStatusBadge status={data.status} />}
         meta={t(`statusHint.${data.status}`)}
         primaryAction={
-          data.grant ? (
-            <Button asChild>
-              <Link href="/dbaccess">{t('openMyAccess')}</Link>
-            </Button>
-          ) : undefined
+          data.grant ? <Button label={t('openMyAccess')} variant="primary" href="/dbaccess" /> : undefined
         }
         menu={
           data.canCancel

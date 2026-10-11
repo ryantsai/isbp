@@ -1,15 +1,20 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import { useCan, usePlatform } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { PageHeader } from '@isbp/ui/page-header';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { KeyRoundIcon, LaptopIcon, LifeBuoyIcon, PackagePlusIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import type { MyAssets } from '../../contracts';
 import { AssetStatusBadge, CategoryIcon, WarrantyEnd } from '../badges';
@@ -37,141 +42,153 @@ export default function MyDevicesPage() {
           ))}
         </div>
       ) : (
-        <div className="space-y-5">
-          <section aria-labelledby="itam-mine-devices" className="space-y-3">
-            <h2 id="itam-mine-devices" className="text-lg font-semibold">
-              {t('devices', { count: data.devices.length })}
-            </h2>
-            {data.devices.length === 0 ? (
-              <EmptyState
-                icon={<LaptopIcon />}
-                title={t('noDevices')}
-                description={t('noDevicesHint')}
-                action={
-                  canReport && (
-                    <Button variant="outline" asChild>
-                      <Link href="/itsm/report">
-                        <LifeBuoyIcon /> {t('tellUs')}
-                      </Link>
-                    </Button>
-                  )
-                }
-              />
-            ) : (
-              <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {data.devices.map((d) => (
-                  <StaggerItem key={d.id} className="min-w-0">
-                    <Card className="h-full">
-                      <CardHeader className="flex flex-row items-start gap-3">
-                        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                          <CategoryIcon category={d.category} className="size-5" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <CardTitle id={`device-${d.id}`} className="text-base wrap-break-word">
-                            {d.model ? modelLabel(d.model) : tt(`category.${d.category}`)}
-                          </CardTitle>
-                          <p className="text-sm wrap-break-word text-muted-foreground">{d.name}</p>
-                        </div>
-                        {d.status !== 'deployed' && <AssetStatusBadge status={d.status} />}
-                      </CardHeader>
-                      <CardContent>
-                        <dl className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
-                          <dt className="text-muted-foreground">{t('tag')}</dt>
-                          <dd className="font-mono text-xs leading-5">{d.tag}</dd>
-                          <dt className="text-muted-foreground">{t('serial')}</dt>
-                          <dd className="font-mono text-xs leading-5 break-all">{d.serialNumber ?? '—'}</dd>
-                          <dt className="text-muted-foreground">{t('since')}</dt>
-                          <dd>
-                            {d.since ? format.dateTime(new Date(d.since), { dateStyle: 'medium' }) : '—'}
-                          </dd>
-                          <dt className="text-muted-foreground">{t('warranty')}</dt>
-                          <dd className="min-w-0">
-                            <WarrantyEnd date={d.warrantyEnd} state={d.warrantyState} />
-                          </dd>
-                        </dl>
-                      </CardContent>
-                      {canReport && (
-                        <CardFooter>
-                          <Button variant="outline" size="sm" asChild>
-                            <Link
+        <VStack gap={5}>
+          <section aria-labelledby="itam-mine-devices">
+            <VStack gap={3}>
+              <Heading level={2} id="itam-mine-devices">
+                {t('devices', { count: data.devices.length })}
+              </Heading>
+              {data.devices.length === 0 ? (
+                <EmptyState
+                  icon={<LaptopIcon />}
+                  title={t('noDevices')}
+                  description={t('noDevicesHint')}
+                  action={
+                    canReport && (
+                      <Button
+                        label={t('tellUs')}
+                        variant="secondary"
+                        icon={<Icon icon={LifeBuoyIcon} />}
+                        href="/itsm/report"
+                      />
+                    )
+                  }
+                />
+              ) : (
+                <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {data.devices.map((d) => (
+                    <StaggerItem key={d.id} className="min-w-0">
+                      <Card className="h-full">
+                        <CardHeader className="flex flex-row items-start gap-3">
+                          <IconTile size="lg" aria-hidden>
+                            <CategoryIcon category={d.category} />
+                          </IconTile>
+                          <div className="min-w-0 flex-1">
+                            <CardTitle id={`device-${d.id}`} className="wrap-break-word">
+                              {d.model ? modelLabel(d.model) : tt(`category.${d.category}`)}
+                            </CardTitle>
+                            <Text as="p" type="supporting">
+                              {d.name}
+                            </Text>
+                          </div>
+                          {d.status !== 'deployed' && <AssetStatusBadge status={d.status} />}
+                        </CardHeader>
+                        <CardContent>
+                          <MetadataList label={{ position: 'start', width: 104 }}>
+                            <MetadataListItem label={t('tag')}>
+                              <Text type="code">{d.tag}</Text>
+                            </MetadataListItem>
+                            <MetadataListItem label={t('serial')}>
+                              <Text type="code">{d.serialNumber ?? '—'}</Text>
+                            </MetadataListItem>
+                            <MetadataListItem label={t('since')}>
+                              {d.since ? format.dateTime(new Date(d.since), { dateStyle: 'medium' }) : '—'}
+                            </MetadataListItem>
+                            <MetadataListItem label={t('warranty')}>
+                              <WarrantyEnd date={d.warrantyEnd} state={d.warrantyState} />
+                            </MetadataListItem>
+                          </MetadataList>
+                        </CardContent>
+                        {canReport && (
+                          <CardFooter>
+                            <Button
+                              label={t('report')}
+                              variant="secondary"
+                              size="sm"
+                              icon={<Icon icon={LifeBuoyIcon} />}
                               href={`/itsm/report?link=${encodeURIComponent(`itam.asset:${d.id}`)}`}
                               aria-label={t('reportFor', { device: d.name })}
-                            >
-                              <LifeBuoyIcon /> {t('report')}
-                            </Link>
-                          </Button>
-                        </CardFooter>
-                      )}
-                    </Card>
-                  </StaggerItem>
-                ))}
-              </Stagger>
-            )}
-          </section>
-          <section aria-labelledby="itam-mine-software" className="space-y-3">
-            <h2 id="itam-mine-software" className="text-lg font-semibold">
-              {t('software', { count: data.software.length })}
-            </h2>
-            {data.software.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('noSoftware')}</p>
-            ) : (
-              <Card>
-                <CardContent>
-                  <ul className="divide-y">
-                    {data.software.map((s) => (
-                      <li
-                        key={`${s.license.id}:${s.device?.id ?? 'me'}`}
-                        className="flex min-w-0 items-center gap-3 py-2.5"
-                      >
-                        <KeyRoundIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium">{s.license.product}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {[s.license.publisher, s.device ? t('onDevice', { tag: s.device.tag }) : null]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </p>
-                        </div>
-                        {s.endDate && (
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            {t('until', { date: day(s.endDate) })}
-                          </span>
+                            />
+                          </CardFooter>
                         )}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
+                      </Card>
+                    </StaggerItem>
+                  ))}
+                </Stagger>
+              )}
+            </VStack>
+          </section>
+          <section aria-labelledby="itam-mine-software">
+            <VStack gap={3}>
+              <Heading level={2} id="itam-mine-software">
+                {t('software', { count: data.software.length })}
+              </Heading>
+              {data.software.length === 0 ? (
+                <Text color="secondary">{t('noSoftware')}</Text>
+              ) : (
+                <Card>
+                  <CardContent>
+                    <List hasDividers density="compact">
+                      {data.software.map((s) => (
+                        <ListItem
+                          key={`${s.license.id}:${s.device?.id ?? 'me'}`}
+                          label={s.license.product}
+                          startContent={<Icon icon={KeyRoundIcon} color="secondary" />}
+                          description={
+                            [s.license.publisher, s.device ? t('onDevice', { tag: s.device.tag }) : null]
+                              .filter(Boolean)
+                              .join(' · ') || undefined
+                          }
+                          endContent={
+                            s.endDate ? (
+                              <Text type="supporting">{t('until', { date: day(s.endDate) })}</Text>
+                            ) : undefined
+                          }
+                        />
+                      ))}
+                    </List>
+                  </CardContent>
+                </Card>
+              )}
+            </VStack>
           </section>
           {data.devices.length > 0 && (
-            <section
-              aria-labelledby="itam-mine-help"
-              className="flex flex-col gap-3 rounded-xl border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0">
-                <h2 id="itam-mine-help" className="text-sm font-semibold">
-                  {t('helpTitle')}
-                </h2>
-                <p className="text-sm text-muted-foreground">{t('helpHint')}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {canReport && (
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href="/itsm/report">
-                      <LifeBuoyIcon /> {t('tellUs')}
-                    </Link>
-                  </Button>
-                )}
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/requests">
-                    <PackagePlusIcon /> {t('requestDevice')}
-                  </Link>
-                </Button>
-              </div>
+            <section aria-labelledby="itam-mine-help">
+              <Card>
+                <CardContent>
+                  <HStack gap={3} wrap="wrap" hAlign="between" vAlign="center">
+                    <StackItem size="fill">
+                      <VStack>
+                        <Heading level={4} accessibilityLevel={2} id="itam-mine-help">
+                          {t('helpTitle')}
+                        </Heading>
+                        <Text color="secondary">{t('helpHint')}</Text>
+                      </VStack>
+                    </StackItem>
+                    <HStack gap={2} wrap="wrap">
+                      {canReport && (
+                        <Button
+                          label={t('tellUs')}
+                          variant="secondary"
+                          size="sm"
+                          icon={<Icon icon={LifeBuoyIcon} />}
+                          href="/itsm/report"
+                        />
+                      )}
+                      <Button
+                        label={t('requestDevice')}
+                        variant="secondary"
+                        size="sm"
+                        icon={<Icon icon={PackagePlusIcon} />}
+                        href="/requests"
+                      />
+                    </HStack>
+                  </HStack>
+                </CardContent>
+              </Card>
             </section>
           )}
-        </div>
+        </VStack>
       )}
     </>
   );

@@ -1,20 +1,20 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, Layout, LayoutContent, LayoutFooter, StackItem, VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { ArrowDownIcon, ArrowUpIcon, GitBranchIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -31,9 +31,9 @@ import {
   type Repository,
   type RepoProvider,
 } from '../contracts';
-import { EnvKindLabel, StageBadge } from './badges';
+import { ENV_ICON, EnvKindLabel, STAGE_META } from './badges';
 import { ConfirmDialog } from './confirm-dialog';
-import { INVALIDATE } from './lib';
+import { asDay, INVALIDATE } from './lib';
 import { CiPicker, NONE } from './pickers';
 
 /** Owners and managers: environments (with order), repositories, stage and lifecycle dates. */
@@ -51,10 +51,29 @@ export function SettingsTab({ app }: { app: AppDetail }) {
 
 function FormError({ message }: { message: string | null }) {
   if (!message) return null;
+  return <Banner status="error" title={message} collapsible={false} />;
+}
+
+/** The footer every dialog form here shares: Cancel and the submit button that belongs to the form `formId`. */
+function FormActions({
+  formId,
+  submitLabel,
+  busy,
+  onCancel,
+}: {
+  formId: string;
+  submitLabel: string;
+  busy: boolean;
+  onCancel: () => void;
+}) {
+  const tc = useTranslations('common');
   return (
-    <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-      {message}
-    </p>
+    <LayoutFooter hasDivider padding={3}>
+      <HStack gap={2} hAlign="end">
+        <Button label={tc('cancel')} variant="ghost" onClick={onCancel} />
+        <Button label={submitLabel} variant="primary" type="submit" form={formId} isLoading={busy} />
+      </HStack>
+    </LayoutFooter>
   );
 }
 
@@ -87,14 +106,18 @@ function EnvironmentsCard({ app }: { app: AppDetail }) {
         <CardTitle>{t('environments')}</CardTitle>
         <CardDescription>{t('environmentsHint')}</CardDescription>
         <CardAction>
-          <Button size="sm" variant="outline" onClick={() => setEditing('new')}>
-            <PlusIcon /> {t('addEnvironment')}
-          </Button>
+          <Button
+            label={t('addEnvironment')}
+            variant="secondary"
+            size="sm"
+            icon={<Icon icon={PlusIcon} />}
+            onClick={() => setEditing('new')}
+          />
         </CardAction>
       </CardHeader>
       <CardContent>
         {app.environments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('noEnvironments')}</p>
+          <Text color="secondary">{t('noEnvironments')}</Text>
         ) : (
           <ol className="divide-y rounded-lg border">
             <AnimatePresence initial={false}>
@@ -105,56 +128,59 @@ function EnvironmentsCard({ app }: { app: AppDetail }) {
                   transition={{ duration: 0.2 }}
                   className="flex min-w-0 items-center gap-2 px-3 py-2"
                 >
-                  <span className="w-5 shrink-0 text-xs text-muted-foreground tabular-nums">{i + 1}.</span>
-                  <div className="grid min-w-0 flex-1">
-                    <span className="truncate text-sm font-medium">{e.name}</span>
-                    <span className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                      <EnvKindLabel kind={e.kind} />
-                      {e.ci && <span className="truncate">· {e.ci.name}</span>}
-                      {e.deploymentCount > 0 && (
-                        <span>· {t('deploymentCount', { count: e.deploymentCount })}</span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 items-center">
-                    <Button
-                      size="icon-sm"
+                  <Text size="xsm" color="secondary" hasTabularNumbers>
+                    {i + 1}.
+                  </Text>
+                  <StackItem size="fill">
+                    <VStack>
+                      <Text weight="medium" maxLines={1}>
+                        {e.name}
+                      </Text>
+                      <Text size="xsm" color="secondary" as="div">
+                        <span className="flex min-w-0 flex-wrap items-center gap-x-2">
+                          <EnvKindLabel kind={e.kind} />
+                          {e.ci && <span className="truncate">· {e.ci.name}</span>}
+                          {e.deploymentCount > 0 && (
+                            <span>· {t('deploymentCount', { count: e.deploymentCount })}</span>
+                          )}
+                        </span>
+                      </Text>
+                    </VStack>
+                  </StackItem>
+                  <HStack>
+                    <IconButton
+                      label={t('moveUp', { name: e.name })}
                       variant="ghost"
-                      disabled={i === 0 || reorder.isPending}
+                      size="sm"
+                      icon={<Icon icon={ArrowUpIcon} />}
+                      isDisabled={i === 0 || reorder.isPending}
                       onClick={() => move(i, -1)}
-                      aria-label={t('moveUp', { name: e.name })}
-                    >
-                      <ArrowUpIcon />
-                    </Button>
-                    <Button
-                      size="icon-sm"
+                    />
+                    <IconButton
+                      label={t('moveDown', { name: e.name })}
                       variant="ghost"
-                      disabled={i === app.environments.length - 1 || reorder.isPending}
+                      size="sm"
+                      icon={<Icon icon={ArrowDownIcon} />}
+                      isDisabled={i === app.environments.length - 1 || reorder.isPending}
                       onClick={() => move(i, 1)}
-                      aria-label={t('moveDown', { name: e.name })}
-                    >
-                      <ArrowDownIcon />
-                    </Button>
-                    <Button
-                      size="icon-sm"
+                    />
+                    <IconButton
+                      label={t('editNamed', { name: e.name })}
                       variant="ghost"
+                      size="sm"
+                      icon={<Icon icon={PencilIcon} />}
                       onClick={() => setEditing(e)}
-                      aria-label={t('editNamed', { name: e.name })}
-                    >
-                      <PencilIcon />
-                    </Button>
-                    <Button
-                      size="icon-sm"
+                    />
+                    <IconButton
+                      label={t('deleteNamed', { name: e.name })}
                       variant="ghost"
-                      className="text-muted-foreground hover:text-destructive"
-                      disabled={e.deploymentCount > 0}
-                      title={e.deploymentCount > 0 ? t('envInUse') : undefined}
+                      size="sm"
+                      icon={<Icon icon={Trash2Icon} />}
+                      isDisabled={e.deploymentCount > 0}
+                      tooltip={e.deploymentCount > 0 ? t('envInUse') : undefined}
                       onClick={() => setDeleting(e)}
-                      aria-label={t('deleteNamed', { name: e.name })}
-                    >
-                      <Trash2Icon />
-                    </Button>
-                  </div>
+                    />
+                  </HStack>
                 </motion.li>
               ))}
             </AnimatePresence>
@@ -186,19 +212,16 @@ function EnvironmentDialog({
   onClose: () => void;
 }) {
   const t = useTranslations('alm.settingsTab');
-  const tc = useTranslations('common');
   const existing = env && env !== 'new' ? env : null;
   return (
-    <Dialog open={Boolean(env)} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>
-            {existing ? t('editEnvironment', { name: existing.name }) : t('addEnvironment')}
-          </DialogTitle>
-          <DialogDescription>{t('environmentDialogHint')}</DialogDescription>
-        </DialogHeader>
-        {env && <EnvironmentForm app={app} env={existing} onDone={onClose} />}
-      </DialogContent>
+    <Dialog
+      isOpen={Boolean(env)}
+      onOpenChange={(o) => !o && onClose()}
+      width={512}
+      purpose="form"
+      aria-label={existing ? t('editEnvironment', { name: existing.name }) : t('addEnvironment')}
+    >
+      {env && <EnvironmentForm app={app} env={existing} onDone={onClose} />}
     </Dialog>
   );
 }
@@ -215,7 +238,7 @@ function EnvironmentForm({
   const t = useTranslations('alm');
   const tc = useTranslations('common');
   const errorText = useErrorText();
-  const ids = { name: useId(), kind: useId(), url: useId(), ci: useId() };
+  const formId = useId();
   const [name, setName] = useState(env?.name ?? '');
   const [kind, setKind] = useState<EnvironmentKind>(env?.kind ?? 'development');
   const [url, setUrl] = useState(env?.url ?? '');
@@ -248,59 +271,54 @@ function EnvironmentForm({
     }
   };
   return (
-    <form onSubmit={submit} className="grid gap-4" noValidate>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid min-w-0 gap-2">
-          <Label htmlFor={ids.name}>{t('fields.name')}</Label>
-          <Input
-            id={ids.name}
-            value={name}
-            maxLength={64}
-            autoFocus
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-        <div className="grid min-w-0 gap-2">
-          <Label htmlFor={ids.kind}>{t('fields.kind')}</Label>
-          <Select value={kind} onValueChange={(v) => setKind(v as EnvironmentKind)}>
-            <SelectTrigger id={ids.kind} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ENVIRONMENT_KINDS.map((k) => (
-                <SelectItem key={k} value={k}>
-                  <EnvKindLabel kind={k} />
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="grid min-w-0 gap-2">
-        <Label htmlFor={ids.url}>{t('fields.url')}</Label>
-        <Input
-          id={ids.url}
-          type="url"
-          placeholder="https://"
-          value={url}
-          maxLength={500}
-          onChange={(e) => setUrl(e.target.value)}
+    <Layout
+      header={
+        <DialogHeader
+          title={env ? t('settingsTab.editEnvironment', { name: env.name }) : t('settingsTab.addEnvironment')}
+          subtitle={t('settingsTab.environmentDialogHint')}
+          onOpenChange={(next) => !next && onDone()}
         />
-      </div>
-      <div className="grid min-w-0 gap-2">
-        <Label htmlFor={ids.ci}>{t('fields.ci')}</Label>
-        <CiPicker id={ids.ci} value={ci} onChange={setCi} />
-      </div>
-      <FormError message={error} />
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={onDone}>
-          {tc('cancel')}
-        </Button>
-        <Button type="submit" loading={save.isPending}>
-          {env ? tc('saveChanges') : tc('create')}
-        </Button>
-      </DialogFooter>
-    </form>
+      }
+      content={
+        <LayoutContent padding={4}>
+          <form id={formId} onSubmit={submit} noValidate>
+            <FormLayout defaultOptionality="optional">
+              <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={4} align="end">
+                <TextInput label={t('fields.name')} isRequired hasAutoFocus value={name} onChange={setName} />
+                <Selector
+                  label={t('fields.kind')}
+                  width="100%"
+                  value={kind}
+                  onChange={(v) => setKind(v as EnvironmentKind)}
+                  options={ENVIRONMENT_KINDS.map((k) => ({
+                    value: k,
+                    label: t(`envKind.${k}`),
+                    icon: ENV_ICON[k],
+                  }))}
+                />
+              </Grid>
+              <TextInput
+                label={t('fields.url')}
+                placeholder="https://"
+                autoComplete="off"
+                value={url}
+                onChange={setUrl}
+              />
+              <CiPicker label={t('fields.ci')} value={ci} onChange={setCi} />
+              <FormError message={error} />
+            </FormLayout>
+          </form>
+        </LayoutContent>
+      }
+      footer={
+        <FormActions
+          formId={formId}
+          submitLabel={env ? tc('saveChanges') : tc('create')}
+          busy={save.isPending}
+          onCancel={onDone}
+        />
+      }
+    />
   );
 }
 
@@ -322,65 +340,68 @@ function RepositoriesCard({ app }: { app: AppDetail }) {
         <CardTitle>{t('repositories')}</CardTitle>
         <CardDescription>{t('repositoriesHint')}</CardDescription>
         <CardAction>
-          <Button size="sm" variant="outline" onClick={() => setEditing('new')}>
-            <PlusIcon /> {t('addRepository')}
-          </Button>
+          <Button
+            label={t('addRepository')}
+            variant="secondary"
+            size="sm"
+            icon={<Icon icon={PlusIcon} />}
+            onClick={() => setEditing('new')}
+          />
         </CardAction>
       </CardHeader>
       <CardContent>
         {app.repositories.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('noRepositories')}</p>
+          <Text color="secondary">{t('noRepositories')}</Text>
         ) : (
           <ul className="divide-y rounded-lg border">
             {app.repositories.map((r) => (
               <li key={r.id} className="flex min-w-0 items-center gap-2 px-3 py-2">
-                <GitBranchIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                <div className="grid min-w-0 flex-1">
-                  <span className="truncate text-sm font-medium">{r.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {tp(r.provider)} · {r.defaultBranch}
-                  </span>
-                </div>
-                <Button
-                  size="icon-sm"
+                <Icon icon={GitBranchIcon} color="secondary" />
+                <StackItem size="fill">
+                  <VStack>
+                    <Text weight="medium" maxLines={1}>
+                      {r.name}
+                    </Text>
+                    <Text size="xsm" color="secondary" maxLines={1}>
+                      {tp(r.provider)} · {r.defaultBranch}
+                    </Text>
+                  </VStack>
+                </StackItem>
+                <IconButton
+                  label={t('editNamed', { name: r.name })}
                   variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={PencilIcon} />}
                   onClick={() => setEditing(r)}
-                  aria-label={t('editNamed', { name: r.name })}
-                >
-                  <PencilIcon />
-                </Button>
-                <Button
-                  size="icon-sm"
+                />
+                <IconButton
+                  label={t('deleteNamed', { name: r.name })}
                   variant="ghost"
-                  className="text-muted-foreground hover:text-destructive"
+                  size="sm"
+                  icon={<Icon icon={Trash2Icon} />}
                   onClick={() => setDeleting(r)}
-                  aria-label={t('deleteNamed', { name: r.name })}
-                >
-                  <Trash2Icon />
-                </Button>
+                />
               </li>
             ))}
           </ul>
         )}
       </CardContent>
-      <Dialog open={Boolean(editing)} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent closeLabel={tc('close')}>
-          <DialogHeader>
-            <DialogTitle>
-              {editing && editing !== 'new'
-                ? t('editRepository', { name: editing.name })
-                : t('addRepository')}
-            </DialogTitle>
-            <DialogDescription>{t('repositoryDialogHint')}</DialogDescription>
-          </DialogHeader>
-          {editing && (
-            <RepositoryForm
-              app={app}
-              repo={editing === 'new' ? null : editing}
-              onDone={() => setEditing(null)}
-            />
-          )}
-        </DialogContent>
+      <Dialog
+        isOpen={Boolean(editing)}
+        onOpenChange={(o) => !o && setEditing(null)}
+        width={512}
+        purpose="form"
+        aria-label={
+          editing && editing !== 'new' ? t('editRepository', { name: editing.name }) : t('addRepository')
+        }
+      >
+        {editing && (
+          <RepositoryForm
+            app={app}
+            repo={editing === 'new' ? null : editing}
+            onDone={() => setEditing(null)}
+          />
+        )}
       </Dialog>
       <ConfirmDialog
         open={Boolean(deleting)}
@@ -408,7 +429,7 @@ function RepositoryForm({
   const t = useTranslations('alm');
   const tc = useTranslations('common');
   const errorText = useErrorText();
-  const ids = { name: useId(), url: useId(), provider: useId(), branch: useId() };
+  const formId = useId();
   const [name, setName] = useState(repo?.name ?? '');
   const [url, setUrl] = useState(repo?.url ?? '');
   const [provider, setProvider] = useState<RepoProvider>(repo?.provider ?? 'azure_devops');
@@ -439,65 +460,51 @@ function RepositoryForm({
     }
   };
   return (
-    <form onSubmit={submit} className="grid gap-4" noValidate>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid min-w-0 gap-2">
-          <Label htmlFor={ids.name}>{t('fields.name')}</Label>
-          <Input
-            id={ids.name}
-            value={name}
-            maxLength={200}
-            autoFocus
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-        <div className="grid min-w-0 gap-2">
-          <Label htmlFor={ids.provider}>{t('fields.provider')}</Label>
-          <Select value={provider} onValueChange={(v) => setProvider(v as RepoProvider)}>
-            <SelectTrigger id={ids.provider} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {REPO_PROVIDERS.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {t(`provider.${p}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="grid min-w-0 gap-2">
-        <Label htmlFor={ids.url}>{t('fields.url')}</Label>
-        <Input
-          id={ids.url}
-          type="url"
-          placeholder="https://devops.example.com/DefaultCollection/Project/_git/repo"
-          value={url}
-          maxLength={500}
-          onChange={(e) => setUrl(e.target.value)}
+    <Layout
+      header={
+        <DialogHeader
+          title={repo ? t('settingsTab.editRepository', { name: repo.name }) : t('settingsTab.addRepository')}
+          subtitle={t('settingsTab.repositoryDialogHint')}
+          onOpenChange={(next) => !next && onDone()}
         />
-      </div>
-      <div className="grid min-w-0 gap-2">
-        <Label htmlFor={ids.branch}>{t('fields.defaultBranch')}</Label>
-        <Input
-          id={ids.branch}
-          className="font-mono"
-          value={branch}
-          maxLength={200}
-          onChange={(e) => setBranch(e.target.value)}
+      }
+      content={
+        <LayoutContent padding={4}>
+          <form id={formId} onSubmit={submit} noValidate>
+            <FormLayout defaultOptionality="optional">
+              <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={4} align="end">
+                <TextInput label={t('fields.name')} isRequired hasAutoFocus value={name} onChange={setName} />
+                <Selector
+                  label={t('fields.provider')}
+                  width="100%"
+                  value={provider}
+                  onChange={(v) => setProvider(v as RepoProvider)}
+                  options={REPO_PROVIDERS.map((p) => ({ value: p, label: t(`provider.${p}`) }))}
+                />
+              </Grid>
+              <TextInput
+                label={t('fields.url')}
+                isRequired
+                placeholder="https://devops.example.com/DefaultCollection/Project/_git/repo"
+                autoComplete="off"
+                value={url}
+                onChange={setUrl}
+              />
+              <TextInput label={t('fields.defaultBranch')} isRequired value={branch} onChange={setBranch} />
+              <FormError message={error} />
+            </FormLayout>
+          </form>
+        </LayoutContent>
+      }
+      footer={
+        <FormActions
+          formId={formId}
+          submitLabel={repo ? tc('saveChanges') : tc('create')}
+          busy={save.isPending}
+          onCancel={onDone}
         />
-      </div>
-      <FormError message={error} />
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={onDone}>
-          {tc('cancel')}
-        </Button>
-        <Button type="submit" loading={save.isPending}>
-          {repo ? tc('saveChanges') : tc('create')}
-        </Button>
-      </DialogFooter>
-    </form>
+      }
+    />
   );
 }
 
@@ -507,7 +514,6 @@ function LifecycleCard({ app }: { app: AppDetail }) {
   const t = useTranslations('alm');
   const tc = useTranslations('common');
   const errorText = useErrorText();
-  const ids = { stage: useId(), disposition: useId(), goLive: useId(), retire: useId() };
   const [stage, setStage] = useState(app.stage);
   const [disposition, setDisposition] = useState<string>(app.disposition ?? NONE);
   const [goLive, setGoLive] = useState(app.goLiveDate ?? '');
@@ -544,56 +550,54 @@ function LifecycleCard({ app }: { app: AppDetail }) {
         <CardDescription>{t('settingsTab.lifecycleHint')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={submit} className="grid gap-4" noValidate>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor={ids.stage}>{t('fields.stage')}</Label>
-              <Select value={stage} onValueChange={(v) => setStage(v as typeof stage)}>
-                <SelectTrigger id={ids.stage} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {APP_STAGES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      <StageBadge stage={s} />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor={ids.disposition}>{t('fields.disposition')}</Label>
-              <Select value={disposition} onValueChange={setDisposition}>
-                <SelectTrigger id={ids.disposition} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>
-                    <span className="text-muted-foreground">{t('form.notDecided')}</span>
-                  </SelectItem>
-                  {DISPOSITIONS.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {t(`disposition.${d}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor={ids.goLive}>{t('fields.goLiveDate')}</Label>
-              <Input id={ids.goLive} type="date" value={goLive} onChange={(e) => setGoLive(e.target.value)} />
-            </div>
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor={ids.retire}>{t('fields.retireDate')}</Label>
-              <Input id={ids.retire} type="date" value={retire} onChange={(e) => setRetire(e.target.value)} />
-            </div>
-          </div>
-          <FormError message={error} />
-          <div className="flex justify-end">
-            <Button type="submit" disabled={!dirty} loading={save.isPending}>
-              {tc('saveChanges')}
-            </Button>
-          </div>
+        <form onSubmit={submit} noValidate>
+          <FormLayout defaultOptionality="optional">
+            <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={4} align="end">
+              <Selector
+                label={t('fields.stage')}
+                width="100%"
+                value={stage}
+                onChange={(v) => setStage(v as typeof stage)}
+                options={APP_STAGES.map((s) => ({
+                  value: s,
+                  label: t(`stage.${s}`),
+                  icon: STAGE_META[s].icon,
+                }))}
+              />
+              <Selector
+                label={t('fields.disposition')}
+                width="100%"
+                value={disposition}
+                onChange={setDisposition}
+                options={[
+                  { value: NONE, label: t('form.notDecided') },
+                  ...DISPOSITIONS.map((d) => ({ value: d, label: t(`disposition.${d}`) })),
+                ]}
+              />
+              <DateInput
+                label={t('fields.goLiveDate')}
+                hasClear
+                value={asDay(goLive)}
+                onChange={(d) => setGoLive(d ?? '')}
+              />
+              <DateInput
+                label={t('fields.retireDate')}
+                hasClear
+                value={asDay(retire)}
+                onChange={(d) => setRetire(d ?? '')}
+              />
+            </Grid>
+            <FormError message={error} />
+            <HStack hAlign="end">
+              <Button
+                label={tc('saveChanges')}
+                variant="primary"
+                isLoading={save.isPending}
+                isDisabled={!dirty}
+                type="submit"
+              />
+            </HStack>
+          </FormLayout>
         </form>
       </CardContent>
     </Card>

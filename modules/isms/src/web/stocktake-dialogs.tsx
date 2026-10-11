@@ -1,31 +1,34 @@
 'use client';
-
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { Collapse } from '@isbp/ui/motion';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
   SheetContent,
   SheetDescription,
   SheetFooter,
+  SheetForm,
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { Textarea } from '@isbp/ui/textarea';
 import { useTimeZone, useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import {
@@ -36,7 +39,7 @@ import {
   type Stocktake,
   type StocktakeItem,
 } from '../contracts';
-import { INVALIDATE, todayLocal, useGroups, useLocalized, useTaxonomy } from './lib';
+import { asDay, INVALIDATE, todayLocal, useGroups, useLocalized, useTaxonomy } from './lib';
 import { PeoplePicker } from './people';
 
 type Editable = (typeof STOCKTAKE_EDITABLE)[number];
@@ -58,18 +61,17 @@ export function RecordItemDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations('isms');
-  const tc = useTranslations('common');
   return (
-    <Dialog open={Boolean(item)} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl" closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{item ? t('record.title', { name: item.snapshot.name }) : ''}</DialogTitle>
-          <DialogDescription>{item?.snapshot.number}</DialogDescription>
-        </DialogHeader>
-        {item && (
-          <RecordForm key={item.id} stocktake={stocktake} item={item} onDone={() => onOpenChange(false)} />
-        )}
-      </DialogContent>
+    <Dialog
+      isOpen={Boolean(item)}
+      onOpenChange={onOpenChange}
+      width={576}
+      purpose="form"
+      aria-label={item ? t('record.title', { name: item.snapshot.name }) : undefined}
+    >
+      {item && (
+        <RecordForm key={item.id} stocktake={stocktake} item={item} onDone={() => onOpenChange(false)} />
+      )}
     </Dialog>
   );
 }
@@ -87,7 +89,6 @@ function RecordForm({
   const tc = useTranslations('common');
   const errorText = useErrorText();
   const name = useId();
-  const noteId = useId();
   const [result, setResult] = useState<Different | null>(
     item.result && item.result !== 'confirmed' ? item.result : null,
   );
@@ -143,83 +144,98 @@ function RecordForm({
     }
   };
   return (
-    <form onSubmit={submit} className="min-w-0 space-y-4" noValidate>
-      <section aria-labelledby={`${name}-register`} className="rounded-lg bg-muted/50 p-3">
-        <h3 id={`${name}-register`} className="mb-2 text-sm font-medium">
-          {t('record.registerSays')}
-        </h3>
-        <dl className="grid grid-cols-1 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-2">
-          {register
-            .filter(([, v]) => v !== null && v !== '')
-            .map(([k, v]) => (
-              <div key={k} className="min-w-0">
-                <dt className="text-xs text-muted-foreground">{k}</dt>
-                <dd className="wrap-break-word">{v}</dd>
-              </div>
-            ))}
-        </dl>
-      </section>
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">{t('record.whatsDifferent')}</legend>
-        <div className="grid grid-cols-1 gap-2">
-          {DIFFERENT.map((r) => (
-            <label
-              key={r}
-              htmlFor={`${name}-${r}`}
-              className="flex cursor-pointer items-start gap-2 rounded-md border p-2.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50"
-            >
-              <input
-                id={`${name}-${r}`}
-                type="radio"
-                name={name}
-                checked={result === r}
-                onChange={() => setResult(r)}
-                className="mt-0.5 size-4 accent-primary"
+    <Layout
+      header={
+        <DialogHeader
+          title={t('record.title', { name: item.snapshot.name })}
+          subtitle={item.snapshot.number}
+          onOpenChange={(o) => !o && onDone()}
+        />
+      }
+      content={
+        <LayoutContent padding={4}>
+          <form id={`${name}-form`} onSubmit={submit} noValidate>
+            <VStack gap={4}>
+              <MetadataList title={<Text weight="medium">{t('record.registerSays')}</Text>} columns={2}>
+                {register
+                  .filter(([, v]) => v !== null && v !== '')
+                  .map(([k, v]) => (
+                    <MetadataListItem key={k} label={k}>
+                      {v}
+                    </MetadataListItem>
+                  ))}
+              </MetadataList>
+              <Divider />
+              <RadioList
+                label={t('record.whatsDifferent')}
+                value={result ?? ''}
+                onChange={(v) => setResult(v as Different)}
+              >
+                {DIFFERENT.map((r) => (
+                  <RadioListItem
+                    key={r}
+                    value={r}
+                    label={t(`record.choices.${r}`)}
+                    description={t(`record.hints.${r}`)}
+                  />
+                ))}
+              </RadioList>
+              <Collapse open={result === 'changed'} id={`${name}-corrections`}>
+                <VStack gap={3}>
+                  <Text type="label">{t('record.corrections')}</Text>
+                  <FormLayout defaultOptionality="optional">
+                    <Grid columns={{ minWidth: 200 }} gap={3}>
+                      {STOCKTAKE_EDITABLE.map((k) =>
+                        k === 'quantity' ? (
+                          <NumberInput
+                            key={k}
+                            label={t(`fields.${k}`)}
+                            isIntegerOnly
+                            min={0}
+                            value={values.quantity === '' ? null : Number(values.quantity)}
+                            onChange={(n) => setValues((v) => ({ ...v, quantity: String(n) }))}
+                          />
+                        ) : (
+                          <TextInput
+                            key={k}
+                            label={t(`fields.${k}`)}
+                            value={values[k]}
+                            onChange={(value) => setValues((v) => ({ ...v, [k]: value }))}
+                          />
+                        ),
+                      )}
+                    </Grid>
+                  </FormLayout>
+                </VStack>
+              </Collapse>
+              <TextArea
+                label={
+                  result === 'missing' || result === 'disposed' ? t('record.noteNeeded') : t('record.note')
+                }
+                rows={2}
+                value={note}
+                onChange={setNote}
               />
-              <span>
-                <span className="font-medium">{t(`record.choices.${r}`)}</span>
-                <span className="block text-xs text-muted-foreground">{t(`record.hints.${r}`)}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <Collapse open={result === 'changed'} id={`${name}-corrections`}>
-        <fieldset className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <legend className="mb-2 text-sm font-medium">{t('record.corrections')}</legend>
-          {STOCKTAKE_EDITABLE.map((k) => (
-            <div key={k} className="grid min-w-0 gap-1.5">
-              <Label htmlFor={`${name}-${k}`}>{t(`fields.${k}`)}</Label>
-              <Input
-                id={`${name}-${k}`}
-                inputMode={k === 'quantity' ? 'numeric' : undefined}
-                value={values[k]}
-                onChange={(e) => setValues((v) => ({ ...v, [k]: e.target.value }))}
-              />
-            </div>
-          ))}
-        </fieldset>
-      </Collapse>
-      <div className="grid gap-1.5">
-        <Label htmlFor={noteId}>
-          {result === 'missing' || result === 'disposed' ? t('record.noteNeeded') : t('record.note')}
-        </Label>
-        <Textarea id={noteId} rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-      </div>
-      {error && (
-        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
-        </p>
-      )}
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={onDone}>
-          {tc('cancel')}
-        </Button>
-        <Button type="submit" loading={save.isPending}>
-          {t('record.submit')}
-        </Button>
-      </DialogFooter>
-    </form>
+              {error && <Banner status="error" title={error} collapsible={false} />}
+            </VStack>
+          </form>
+        </LayoutContent>
+      }
+      footer={
+        <LayoutFooter hasDivider padding={3}>
+          <HStack gap={2} hAlign="end">
+            <Button label={tc('cancel')} variant="ghost" onClick={onDone} />
+            <Button
+              label={t('record.submit')}
+              variant="primary"
+              isLoading={save.isPending}
+              type="submit"
+              form={`${name}-form`}
+            />
+          </HStack>
+        </LayoutFooter>
+      }
+    />
   );
 }
 
@@ -267,25 +283,14 @@ function CheckList({
   value: string[];
   onChange: (v: string[]) => void;
 }) {
-  const base = useId();
   return (
-    <fieldset className="min-w-0">
-      <legend className="mb-2 text-sm font-medium">{legend}</legend>
-      <div className="grid max-h-44 grid-cols-1 gap-1.5 overflow-y-auto rounded-md border p-2 sm:grid-cols-2">
+    <div className="max-h-56 min-w-0 overflow-y-auto">
+      <CheckboxList label={legend} value={value} onChange={onChange} density="compact">
         {items.map((i) => (
-          <div key={i.id} className="flex min-w-0 items-center gap-2 text-sm">
-            <Checkbox
-              id={`${base}-${i.id}`}
-              checked={value.includes(i.id)}
-              onCheckedChange={(v) => onChange(v ? [...value, i.id] : value.filter((x) => x !== i.id))}
-            />
-            <Label htmlFor={`${base}-${i.id}`} className="truncate font-normal">
-              {i.label}
-            </Label>
-          </div>
+          <CheckboxListItem key={i.id} value={i.id} label={i.label} />
         ))}
-      </div>
-    </fieldset>
+      </CheckboxList>
+    </div>
   );
 }
 
@@ -303,7 +308,7 @@ function NewStocktakeForm({
   const timeZone = useTimeZone();
   const { data: taxonomy } = useTaxonomy();
   const { data: groups } = useGroups();
-  const ids = { name: useId(), start: useId(), due: useId(), recurrence: useId(), managers: useId() };
+  const managersId = useId();
   const list = useFieldList();
   const today = todayLocal(timeZone);
   const [name, setName] = useState(t('newStocktake.defaultName', { year: today.slice(0, 4) }));
@@ -349,106 +354,98 @@ function NewStocktakeForm({
     managerGroupIds,
   );
   return (
-    <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col" noValidate>
-      <SheetBody className="space-y-5">
-        <div className="grid gap-1.5">
-          <Label htmlFor={ids.name}>{t('fields.stocktakeName')}</Label>
-          <Input id={ids.name} value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.start}>{t('fields.startOn')}</Label>
-            <Input
-              id={ids.start}
-              type="date"
-              value={startOn}
-              min={today}
-              onChange={(e) => setStartOn(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.due}>{t('fields.dueOn')}</Label>
-            <Input
-              id={ids.due}
-              type="date"
-              value={dueOn}
-              min={startOn || today}
-              onChange={(e) => setDueOn(e.target.value)}
-            />
-          </div>
-        </div>
-        <OptionalFields
-          hint={list([
-            t('fields.recurrence'),
-            t('fields.class'),
-            t('fields.site'),
-            t('newStocktake.managers'),
-            t('fields.managerGroup'),
-          ])}
-          filled={detailsFilled}
-        >
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.recurrence}>{t('fields.recurrence')}</Label>
-            <Select value={recurrence} onValueChange={(v) => setRecurrence(v as typeof recurrence)}>
-              <SelectTrigger id={ids.recurrence} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RECURRENCES.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {t(`recurrence.${r}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <p className="text-xs text-muted-foreground">{t('newStocktake.scopeHint')}</p>
-          <CheckList
-            legend={t('fields.class')}
-            items={(taxonomy?.classes ?? []).map((c) => ({
-              id: c.id,
-              label: `${c.code} · ${localized(c.name)}`,
-            }))}
-            value={classIds}
-            onChange={setClassIds}
+    <SheetForm onSubmit={submit} noValidate>
+      <SheetBody className="py-2">
+        <FormLayout defaultOptionality="optional">
+          <TextInput
+            label={t('fields.stocktakeName')}
+            isRequired
+            value={name}
+            onChange={(value) => setName(value.slice(0, 200))}
           />
-          <CheckList
-            legend={t('fields.site')}
-            items={(taxonomy?.sites ?? []).map((s) => ({ id: s.id, label: `${s.code} · ${s.name}` }))}
-            value={siteIds}
-            onChange={setSiteIds}
-          />
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.managers}>{t('newStocktake.managers')}</Label>
-            <PeoplePicker
-              id={ids.managers}
-              value={managerIds}
-              onChange={setManagerIds}
-              addLabel={t('newStocktake.addManager')}
+          <Grid columns={{ minWidth: 200 }} gap={4}>
+            <DateInput
+              label={t('fields.startOn')}
+              min={asDay(today)}
+              value={asDay(startOn)}
+              onChange={(d) => setStartOn(d ?? '')}
             />
-          </div>
-          <CheckList
-            legend={t('fields.managerGroup')}
-            items={(groups?.items ?? []).map((g) => ({ id: g.id, label: g.name }))}
-            value={managerGroupIds}
-            onChange={setManagerGroupIds}
-          />
-        </OptionalFields>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
+            <DateInput
+              label={t('fields.dueOn')}
+              isRequired
+              min={asDay(startOn || today)}
+              value={asDay(dueOn)}
+              onChange={(d) => setDueOn(d ?? '')}
+            />
+          </Grid>
+          <OptionalFields
+            hint={list([
+              t('fields.recurrence'),
+              t('fields.class'),
+              t('fields.site'),
+              t('newStocktake.managers'),
+              t('fields.managerGroup'),
+            ])}
+            filled={detailsFilled}
+          >
+            <FormLayout defaultOptionality="optional">
+              <Selector
+                label={t('fields.recurrence')}
+                value={recurrence}
+                onChange={(v) => setRecurrence(v as typeof recurrence)}
+                options={RECURRENCES.map((r) => ({ value: r, label: t(`recurrence.${r}`) }))}
+              />
+              <Text as="p" color="secondary">
+                {t('newStocktake.scopeHint')}
+              </Text>
+              <Grid columns={{ minWidth: 220 }} gap={4}>
+                <CheckList
+                  legend={t('fields.class')}
+                  items={(taxonomy?.classes ?? []).map((c) => ({
+                    id: c.id,
+                    label: `${c.code} · ${localized(c.name)}`,
+                  }))}
+                  value={classIds}
+                  onChange={setClassIds}
+                />
+                <CheckList
+                  legend={t('fields.site')}
+                  items={(taxonomy?.sites ?? []).map((s) => ({ id: s.id, label: `${s.code} · ${s.name}` }))}
+                  value={siteIds}
+                  onChange={setSiteIds}
+                />
+                <GridSpan columns="full">
+                  <Field label={t('newStocktake.managers')} inputID={managersId}>
+                    <PeoplePicker
+                      id={managersId}
+                      value={managerIds}
+                      onChange={setManagerIds}
+                      addLabel={t('newStocktake.addManager')}
+                    />
+                  </Field>
+                </GridSpan>
+                <CheckList
+                  legend={t('fields.managerGroup')}
+                  items={(groups?.items ?? []).map((g) => ({ id: g.id, label: g.name }))}
+                  value={managerGroupIds}
+                  onChange={setManagerGroupIds}
+                />
+              </Grid>
+            </FormLayout>
+          </OptionalFields>
+          {error && <Banner status="error" title={error} collapsible={false} />}
+        </FormLayout>
       </SheetBody>
       <SheetFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
-          {tc('cancel')}
-        </Button>
-        <Button type="submit" loading={save.isPending}>
-          {startOn > today ? t('newStocktake.schedule') : t('newStocktake.start')}
-        </Button>
+        <Button label={tc('cancel')} variant="secondary" type="button" onClick={onCancel} />
+        <Button
+          label={startOn > today ? t('newStocktake.schedule') : t('newStocktake.start')}
+          variant="primary"
+          isLoading={save.isPending}
+          type="submit"
+        />
       </SheetFooter>
-    </form>
+    </SheetForm>
   );
 }
 
@@ -470,28 +467,30 @@ export function SignOffDialog({
 }) {
   const t = useTranslations('isms.signOff');
   const tc = useTranslations('common');
-  const id = useId();
   const [note, setNote] = useState('');
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-1.5">
-          <Label htmlFor={id}>{t('note')}</Label>
-          <Textarea id={id} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button type="button" loading={pending} onClick={() => onConfirm(note.trim() || null)}>
-            {t('confirm')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={448} purpose="form">
+      <Layout
+        header={<DialogHeader title={title} subtitle={description} onOpenChange={onOpenChange} />}
+        content={
+          <LayoutContent padding={4}>
+            <TextArea label={t('note')} rows={3} value={note} onChange={setNote} />
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t('confirm')}
+                variant="primary"
+                isLoading={pending}
+                onClick={() => onConfirm(note.trim() || null)}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }

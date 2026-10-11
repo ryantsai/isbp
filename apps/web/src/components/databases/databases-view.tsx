@@ -2,32 +2,13 @@
 
 import type { DbTestResult } from '@isbp/contracts';
 import { ApiError, useCan } from '@isbp/sdk/web';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { PageHeader } from '@isbp/ui/page-header';
 import { SearchInput } from '@isbp/ui/search-input';
 import {
   DatabaseIcon,
   LockIcon,
-  MoreHorizontalIcon,
   PencilIcon,
   PlugZapIcon,
   PlusIcon,
@@ -38,11 +19,15 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@isbp/ui/toast';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { CatalogSheet } from './catalog-sheet';
 import { ConnectionFormSheet, DB_INVALIDATE } from './connection-form-sheet';
 import { ConnectionStatus, type DbConnection, EngineBadge, PurposeBadges } from './parts';
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { MoreMenu } from '@astryxdesign/core/MoreMenu';
 
 /** `/admin/databases`: external database connections (Phase 4). The URL keeps which sheet is open. */
 export function DatabasesView() {
@@ -154,39 +139,47 @@ export function DatabasesView() {
         header: () => <span className="sr-only">{tc('actions')}</span>,
         meta: { className: 'w-10 text-right', headerClassName: 'w-10' },
         cell: ({ row }) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={t('actions.more', { name: row.original.name })}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontalIcon />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-              {canManage && (
-                <DropdownMenuItem onSelect={() => test.mutate(row.original)}>
-                  <PlugZapIcon /> {t('actions.test')}
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onSelect={() => setParam('catalog', row.original.id)}>
-                <TableIcon /> {t('actions.catalog')}
-              </DropdownMenuItem>
-              {canManage && (
-                <>
-                  <DropdownMenuItem onSelect={() => setParam('edit', row.original.id)}>
-                    <PencilIcon /> {t('actions.edit')}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(row.original)}>
-                    <Trash2Icon /> {t('actions.delete')}
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          // The menu opens in a portal, but React events still bubble through it to the row, which would open the
+          // connection: stop them here.
+          <span className="inline-flex" onClick={(e) => e.stopPropagation()}>
+            <MoreMenu
+              label={t('actions.more', { name: row.original.name })}
+              placement="below"
+              alignment="end"
+              items={[
+                ...(canManage
+                  ? [
+                      {
+                        label: t('actions.test'),
+                        icon: PlugZapIcon,
+                        onClick: () => test.mutate(row.original),
+                      },
+                    ]
+                  : []),
+                {
+                  label: t('actions.catalog'),
+                  icon: TableIcon,
+                  onClick: () => setParam('catalog', row.original.id),
+                },
+                ...(canManage
+                  ? [
+                      {
+                        label: t('actions.edit'),
+                        icon: PencilIcon,
+                        onClick: () => setParam('edit', row.original.id),
+                      },
+                      { type: 'divider' as const },
+                      {
+                        label: t('actions.delete'),
+                        icon: Trash2Icon,
+                        variant: 'destructive' as const,
+                        onClick: () => setDeleting(row.original),
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          </span>
         ),
       },
     ],
@@ -215,9 +208,12 @@ export function DatabasesView() {
         description={t('description')}
         actions={
           canManage && (
-            <Button onClick={() => setParam('create', '1')}>
-              <PlusIcon /> {t('add')}
-            </Button>
+            <Button
+              label={t('add')}
+              variant="primary"
+              icon={<Icon icon={PlusIcon} />}
+              onClick={() => setParam('create', '1')}
+            />
           )
         }
       />
@@ -254,9 +250,12 @@ export function DatabasesView() {
               description={t('empty.description')}
               action={
                 canManage && (
-                  <Button variant="outline" onClick={() => setParam('create', '1')}>
-                    <PlusIcon /> {t('add')}
-                  </Button>
+                  <Button
+                    label={t('add')}
+                    variant="secondary"
+                    icon={<Icon icon={PlusIcon} />}
+                    onClick={() => setParam('create', '1')}
+                  />
                 )
               }
             />
@@ -269,26 +268,16 @@ export function DatabasesView() {
         onOpenChange={(open) => !open && setParam('create', null)}
       />
       <CatalogSheet connection={browsing} onOpenChange={(open) => !open && setParam('catalog', null)} />
-      <AlertDialog open={Boolean(deleting)} onOpenChange={(open) => !open && setDeleting(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('delete.title', { name: deleting?.name ?? '' })}</AlertDialogTitle>
-            <AlertDialogDescription>{t('delete.description')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-white hover:bg-destructive/90"
-              onClick={(e) => {
-                e.preventDefault();
-                if (deleting) remove.mutate(deleting);
-              }}
-            >
-              {t('delete.confirm')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AlertDialog
+        isOpen={Boolean(deleting)}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={t('delete.title', { name: deleting?.name ?? '' })}
+        description={t('delete.description')}
+        actionLabel={t('delete.confirm')}
+        cancelLabel={tc('cancel')}
+        isActionLoading={remove.isPending}
+        onAction={() => deleting && remove.mutate(deleting)}
+      />
     </>
   );
 }

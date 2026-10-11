@@ -1,14 +1,16 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Link } from '@astryxdesign/core/Link';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
 import type { Page } from '@isbp/sdk';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { PlusIcon, RocketIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -45,7 +47,7 @@ export function ReleasesTable({ code, onNew }: { code: string; onNew?: () => voi
           <Link
             href={releaseHref(code, row.original.version)}
             onClick={(e) => e.stopPropagation()}
-            className="font-medium hover:underline focus-visible:underline focus-visible:outline-none"
+            weight="medium"
           >
             {row.original.version}
           </Link>
@@ -58,7 +60,7 @@ export function ReleasesTable({ code, onNew }: { code: string; onNew?: () => voi
           className: 'hidden max-w-56 truncate md:table-cell',
           headerClassName: 'hidden md:table-cell',
         },
-        cell: ({ row }) => row.original.name ?? <span className="text-muted-foreground">—</span>,
+        cell: ({ row }) => row.original.name ?? <Text color="secondary">—</Text>,
       },
       {
         id: 'status',
@@ -94,7 +96,9 @@ export function ReleasesTable({ code, onNew }: { code: string; onNew?: () => voi
         meta: { className: 'hidden lg:table-cell', headerClassName: 'hidden lg:table-cell' },
         cell: ({ row }) =>
           row.original.status === 'released' || row.original.status === 'cancelled' ? (
-            <span className="text-xs text-muted-foreground">—</span>
+            <Text size="xsm" color="secondary">
+              —
+            </Text>
           ) : (
             <ReadinessSummary readiness={row.original.readiness} />
           ),
@@ -123,24 +127,27 @@ export function ReleasesTable({ code, onNew }: { code: string; onNew?: () => voi
       onSortChange={(sort) => set({ sort })}
       toolbar={
         <>
-          <Select value={status ?? ALL} onValueChange={(v) => set({ rstatus: v === ALL ? undefined : v })}>
-            <SelectTrigger className="w-full sm:w-48" aria-label={t('fields.status')}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>{t('releases.allStatuses')}</SelectItem>
-              <SelectItem value="planned,in_progress,ready">{t('releases.open')}</SelectItem>
-              {RELEASE_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {t(`releaseStatus.${s}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Selector
+            label={t('fields.status')}
+            isLabelHidden
+            width={192}
+            value={status ?? ALL}
+            onChange={(v) => set({ rstatus: v === ALL ? undefined : v })}
+            options={[
+              { value: ALL, label: t('releases.allStatuses') },
+              { value: 'planned,in_progress,ready', label: t('releases.open') },
+              ...RELEASE_STATUSES.map((st) => ({ value: st, label: t(`releaseStatus.${st}`) })),
+            ]}
+          />
           {onNew && (
-            <Button size="sm" className="ml-auto" onClick={onNew}>
-              <PlusIcon /> {t('app.newRelease')}
-            </Button>
+            <Button
+              label={t('app.newRelease')}
+              variant="primary"
+              size="sm"
+              icon={<Icon icon={PlusIcon} />}
+              className="ml-auto"
+              onClick={onNew}
+            />
           )}
         </>
       }

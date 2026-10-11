@@ -1,8 +1,7 @@
 'use client';
 
 import type { MyRequest } from '@isbp/contracts';
-import { Badge } from '@isbp/ui/badge';
-import { defineStatusMap, MappedStatus } from '@isbp/ui/status';
+import { defineStatusMap, MappedStatus, StatusBadge } from '@isbp/ui/status';
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
@@ -46,9 +45,10 @@ export type RequesterStatus = keyof typeof REQUESTER_STATUS;
 export function ModuleStatus({ statusKey, tone }: { statusKey: string; tone: Tone | null }) {
   const root = useTranslations();
   return (
-    <Badge variant={TONE[tone ?? 'neutral']}>
-      {root.has(statusKey) ? root(statusKey) : statusKey.split('.').pop()}
-    </Badge>
+    <StatusBadge
+      tone={TONE[tone ?? 'neutral']}
+      label={root.has(statusKey) ? root(statusKey) : statusKey.split('.').pop()}
+    />
   );
 }
 

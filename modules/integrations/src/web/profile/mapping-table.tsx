@@ -1,19 +1,23 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Divider } from '@astryxdesign/core/Divider';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { ListPlusIcon, PlusIcon, Rows3Icon, Trash2Icon, WandSparklesIcon } from 'lucide-react';
+  CircleAlertIcon,
+  ListPlusIcon,
+  PlusIcon,
+  Rows3Icon,
+  Trash2Icon,
+  WandSparklesIcon,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import {
@@ -43,6 +47,7 @@ export function useIssueText() {
   };
 }
 
+/** The problems of one field or row, each with an icon and its text (never colour alone). */
 export function IssueList({
   issues,
   id,
@@ -53,11 +58,14 @@ export function IssueList({
   const text = useIssueText();
   if (!issues.length) return null;
   return (
-    <ul id={id} className="grid gap-0.5 text-xs text-destructive">
+    <VStack as="ul" id={id} gap={0.5}>
       {issues.map((i, k) => (
-        <li key={k}>{text(i)}</li>
+        <HStack as="li" key={k} gap={1.5} vAlign="start">
+          <Icon icon={CircleAlertIcon} color="error" />
+          <Text type="supporting">{text(i)}</Text>
+        </HStack>
       ))}
-    </ul>
+    </VStack>
   );
 }
 
@@ -87,6 +95,42 @@ function rowIssues(rows: ValueRow[]): MappingIssue[][] {
     }
     return out;
   });
+}
+
+/** A choice field's value picker (the field's own choices, with the raw value as a hint). */
+function ChoiceSelect({
+  value,
+  choices,
+  onChange,
+  label,
+  invalid,
+  disabled,
+  placeholder,
+}: {
+  value: string;
+  choices: { value: string; label: string }[];
+  onChange: (v: string) => void;
+  label: string;
+  invalid: boolean;
+  disabled: boolean;
+  placeholder: string;
+}) {
+  return (
+    <Selector
+      label={label}
+      isLabelHidden
+      placeholder={placeholder}
+      isDisabled={disabled}
+      options={choices.map((c) => ({
+        value: c.value,
+        label: c.label,
+        description: c.label !== c.value ? c.value : undefined,
+      }))}
+      value={value}
+      onChange={onChange}
+      status={invalid ? { type: 'error' } : undefined}
+    />
+  );
 }
 
 /**
@@ -133,189 +177,176 @@ function ValueMapDialog({
     (c) => !rows.some((r) => r.direction !== 'push' && r.remote.toLowerCase() === c.value.toLowerCase()),
   );
 
-  const choiceSelect = (
-    value: string,
-    choices: { value: string; label: string }[],
-    onChange: (v: string) => void,
-    aria: string,
-    invalid: boolean,
-  ) => (
-    <Select value={value || ''} onValueChange={onChange} disabled={readOnly}>
-      <SelectTrigger className="w-full min-w-0" aria-label={aria} aria-invalid={invalid || undefined}>
-        <SelectValue placeholder={t('chooseValue')} />
-      </SelectTrigger>
-      <SelectContent>
-        {choices.map((c) => (
-          <SelectItem key={c.value} value={c.value}>
-            {c.label}
-            {c.label !== c.value && (
-              <span className="ml-1 font-mono text-xs text-muted-foreground">{c.value}</span>
-            )}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')} className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {t('valuesTitle', { local: label(local.label, local.key), remote: remote.label })}
-          </DialogTitle>
-          <DialogDescription>{t('valuesDescription', { system })}</DialogDescription>
-        </DialogHeader>
-        <div className="grid max-h-[60vh] min-w-0 gap-2 overflow-y-auto pr-1">
-          {rows.length > 0 && (
-            <div
-              aria-hidden
-              className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_9.5rem_2rem] gap-2 text-xs font-medium text-muted-foreground sm:grid"
-            >
-              <span>{t('inSystem', { system })}</span>
-              <span>{t('inIsbp')}</span>
-              <span>{t('direction')}</span>
-            </div>
-          )}
-          <ol className="grid min-w-0 gap-2">
-            {rows.map((r, i) => {
-              const rowErrors = issues[i] ?? [];
-              const n = i + 1;
-              return (
-                <li
-                  key={i}
-                  className="grid min-w-0 grid-cols-1 gap-2 rounded-md border p-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_9.5rem_2rem] sm:border-0 sm:p-0"
-                  aria-describedby={rowErrors.length ? `${id}-row-${i}` : undefined}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={672} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('valuesTitle', { local: label(local.label, local.key), remote: remote.label })}
+            subtitle={t('valuesDescription', { system })}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={3} className="min-w-0">
+              {rows.length > 0 && (
+                <div
+                  aria-hidden
+                  className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_9.5rem_2rem] gap-2 sm:grid"
                 >
-                  {remoteChoices.length ? (
-                    choiceSelect(
-                      r.remote,
-                      remoteChoices,
-                      (v) => update(i, { remote: v }),
-                      t('remoteValue', { n }),
-                      rowErrors.some((e) => e.path === 'remote'),
-                    )
-                  ) : (
-                    <Input
-                      aria-label={t('remoteValue', { n })}
-                      value={r.remote}
-                      disabled={readOnly}
-                      aria-invalid={rowErrors.some((e) => e.path === 'remote') || undefined}
-                      onChange={(e) => update(i, { remote: e.target.value })}
-                    />
-                  )}
-                  {localChoices.length ? (
-                    choiceSelect(
-                      r.local,
-                      localChoices.map((c) => ({ value: c.value, label: label(c.label, c.value) })),
-                      (v) => update(i, { local: v }),
-                      t('localValue', { n }),
-                      rowErrors.some((e) => e.path === 'local'),
-                    )
-                  ) : (
-                    <Input
-                      aria-label={t('localValue', { n })}
-                      value={r.local}
-                      disabled={readOnly}
-                      aria-invalid={rowErrors.some((e) => e.path === 'local') || undefined}
-                      onChange={(e) => update(i, { local: e.target.value })}
-                    />
-                  )}
-                  <Select
-                    value={r.direction}
-                    onValueChange={(v) => update(i, { direction: v as MappingDirection })}
-                    disabled={readOnly}
-                  >
-                    <SelectTrigger className="w-full" aria-label={t('valueDirection', { n })}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MAPPING_DIRECTIONS.map((d) => (
-                        <SelectItem key={d} value={d}>
-                          {t(`dir.${d}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="justify-self-end"
-                    disabled={readOnly}
-                    aria-label={t('removeValue', { n })}
-                    onClick={() => setRows((prev) => prev.filter((_, k) => k !== i))}
-                  >
-                    <Trash2Icon />
-                  </Button>
-                  {rowErrors.length > 0 && (
-                    <div className="sm:col-span-4">
-                      <IssueList id={`${id}-row-${i}`} issues={rowErrors} />
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-          {!readOnly && (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setRows((prev) => [...prev, { remote: '', local: '', direction: 'both' }])}
-              >
-                <ListPlusIcon /> {t('addValue')}
-              </Button>
-              {missing.length > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setRows((prev) => [
-                      ...prev,
-                      ...missing.map((c) => ({
-                        remote: c.value,
-                        local:
-                          localChoices.find((l) => l.value.toLowerCase() === c.value.toLowerCase())?.value ??
-                          '',
-                        direction: 'both' as const,
-                      })),
-                    ])
-                  }
-                >
-                  <PlusIcon /> {t('addMissing', { count: missing.length, system })}
-                </Button>
+                  <Text type="supporting">{t('inSystem', { system })}</Text>
+                  <Text type="supporting">{t('inIsbp')}</Text>
+                  <Text type="supporting">{t('direction')}</Text>
+                </div>
               )}
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground">{t('valuesHint')}</p>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          {!readOnly && (
-            <Button
-              onClick={() => {
-                onSave(
-                  rows
-                    .filter((r) => r.remote.trim() && r.local.trim())
-                    .map((r) => ({
-                      remote: r.remote.trim(),
-                      local: r.local.trim(),
-                      ...(r.direction !== 'both' ? { direction: r.direction } : {}),
-                    })),
-                );
-                onOpenChange(false);
-              }}
-            >
-              {tc('save')}
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
+              <VStack as="ol" gap={2} className="min-w-0">
+                {rows.map((r, i) => {
+                  const rowErrors = issues[i] ?? [];
+                  const n = i + 1;
+                  const remoteInvalid = rowErrors.some((e) => e.path === 'remote');
+                  const localInvalid = rowErrors.some((e) => e.path === 'local');
+                  return (
+                    <li
+                      key={i}
+                      className="grid min-w-0 grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_9.5rem_2rem]"
+                      aria-describedby={rowErrors.length ? `${id}-row-${i}` : undefined}
+                    >
+                      {remoteChoices.length ? (
+                        <ChoiceSelect
+                          value={r.remote}
+                          choices={remoteChoices}
+                          onChange={(v) => update(i, { remote: v })}
+                          label={t('remoteValue', { n })}
+                          invalid={remoteInvalid}
+                          disabled={readOnly}
+                          placeholder={t('chooseValue')}
+                        />
+                      ) : (
+                        <TextInput
+                          label={t('remoteValue', { n })}
+                          isLabelHidden
+                          value={r.remote}
+                          isDisabled={readOnly}
+                          status={remoteInvalid ? { type: 'error' } : undefined}
+                          onChange={(v) => update(i, { remote: v })}
+                        />
+                      )}
+                      {localChoices.length ? (
+                        <ChoiceSelect
+                          value={r.local}
+                          choices={localChoices.map((c) => ({
+                            value: c.value,
+                            label: label(c.label, c.value),
+                          }))}
+                          onChange={(v) => update(i, { local: v })}
+                          label={t('localValue', { n })}
+                          invalid={localInvalid}
+                          disabled={readOnly}
+                          placeholder={t('chooseValue')}
+                        />
+                      ) : (
+                        <TextInput
+                          label={t('localValue', { n })}
+                          isLabelHidden
+                          value={r.local}
+                          isDisabled={readOnly}
+                          status={localInvalid ? { type: 'error' } : undefined}
+                          onChange={(v) => update(i, { local: v })}
+                        />
+                      )}
+                      <Selector
+                        label={t('valueDirection', { n })}
+                        isLabelHidden
+                        isDisabled={readOnly}
+                        options={MAPPING_DIRECTIONS.map((d) => ({
+                          value: d,
+                          label: t(`dir.${d}`, { system }),
+                        }))}
+                        value={r.direction}
+                        onChange={(v) => update(i, { direction: v as MappingDirection })}
+                      />
+                      <IconButton
+                        label={t('removeValue', { n })}
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon={Trash2Icon} />}
+                        isDisabled={readOnly}
+                        type="button"
+                        onClick={() => setRows((prev) => prev.filter((_, k) => k !== i))}
+                      />
+                      {rowErrors.length > 0 && (
+                        <div className="sm:col-span-4">
+                          <IssueList id={`${id}-row-${i}`} issues={rowErrors} />
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </VStack>
+              {!readOnly && (
+                <HStack gap={2} wrap="wrap">
+                  <Button
+                    label={t('addValue')}
+                    variant="secondary"
+                    size="sm"
+                    icon={<Icon icon={ListPlusIcon} />}
+                    type="button"
+                    onClick={() => setRows((prev) => [...prev, { remote: '', local: '', direction: 'both' }])}
+                  />
+                  {missing.length > 0 && (
+                    <Button
+                      label={t('addMissing', { count: missing.length, system })}
+                      variant="secondary"
+                      size="sm"
+                      icon={<Icon icon={PlusIcon} />}
+                      type="button"
+                      onClick={() =>
+                        setRows((prev) => [
+                          ...prev,
+                          ...missing.map((c) => ({
+                            remote: c.value,
+                            local:
+                              localChoices.find((l) => l.value.toLowerCase() === c.value.toLowerCase())
+                                ?.value ?? '',
+                            direction: 'both' as const,
+                          })),
+                        ])
+                      }
+                    />
+                  )}
+                </HStack>
+              )}
+              <Text type="supporting">{t('valuesHint')}</Text>
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              {!readOnly && (
+                <Button
+                  label={tc('save')}
+                  variant="primary"
+                  onClick={() => {
+                    onSave(
+                      rows
+                        .filter((r) => r.remote.trim() && r.local.trim())
+                        .map((r) => ({
+                          remote: r.remote.trim(),
+                          local: r.local.trim(),
+                          ...(r.direction !== 'both' ? { direction: r.direction } : {}),
+                        })),
+                    );
+                    onOpenChange(false);
+                  }}
+                />
+              )}
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -360,44 +391,46 @@ export function MappingTable({
     issues.filter((x) => x.path === `mappings.${i}` || x.path.startsWith(`mappings.${i}.`));
   const allowed = (d: MappingDirection) => direction === 'both' || d === 'both' || d === direction;
   const editing = editingValues !== null ? mappings[editingValues] : undefined;
+  const typeNote = (f: { type: string; readOnly?: boolean }) =>
+    `${tf(f.type)}${f.readOnly ? ` · ${t('readOnly')}` : ''}`;
 
   return (
-    <div className="grid min-w-0 gap-3">
-      <div className="flex flex-wrap gap-2">
+    <VStack gap={3} className="min-w-0">
+      <HStack gap={2} wrap="wrap">
         <Button
-          type="button"
-          variant="outline"
+          label={t('suggest')}
+          variant="secondary"
           size="sm"
+          icon={<Icon icon={WandSparklesIcon} />}
+          isLoading={suggesting}
+          isDisabled={readOnly}
+          type="button"
           onClick={onSuggest}
-          loading={suggesting}
-          disabled={readOnly}
-        >
-          <WandSparklesIcon /> {t('suggest')}
-        </Button>
+        />
         <Button
-          type="button"
-          variant="outline"
+          label={t('add')}
+          variant="secondary"
           size="sm"
-          disabled={readOnly}
+          icon={<Icon icon={PlusIcon} />}
+          isDisabled={readOnly}
+          type="button"
           onClick={() => onChange([...mappings, { local: '', remote: '', direction: 'both' }])}
-        >
-          <PlusIcon /> {t('add')}
-        </Button>
-      </div>
+        />
+      </HStack>
       {mappings.length === 0 ? (
-        <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-          <Rows3Icon className="mx-auto mb-2 size-5" aria-hidden />
-          {t('empty')}
-        </p>
+        <VStack gap={2} padding={4} className="items-center text-center">
+          <Icon icon={Rows3Icon} color="secondary" />
+          <Text color="secondary">{t('empty')}</Text>
+        </VStack>
       ) : (
-        <ol className="grid min-w-0 gap-2">
+        <VStack as="ol" gap={2} className="min-w-0">
           <li
             aria-hidden
-            className="hidden grid-cols-[minmax(0,1fr)_13rem_minmax(0,1fr)_8.5rem] gap-2 px-2 text-xs font-medium text-muted-foreground sm:grid"
+            className="hidden grid-cols-[minmax(0,1fr)_13rem_minmax(0,1fr)_8.5rem] gap-2 sm:grid"
           >
-            <span>{t('inIsbp')}</span>
-            <span>{t('direction')}</span>
-            <span>{t('inRemoteHeader', { system })}</span>
+            <Text type="supporting">{t('inIsbp')}</Text>
+            <Text type="supporting">{t('direction')}</Text>
+            <Text type="supporting">{t('inRemoteHeader', { system })}</Text>
             <span />
           </li>
           {mappings.map((m, i) => {
@@ -405,123 +438,99 @@ export function MappingTable({
             const rf = R.get(m.remote);
             const rowIssues = issuesAt(i);
             const choice = lf?.type === 'choice' || rf?.type === 'choice';
-            const DirIcon = DIRECTION_ICON[m.direction === 'both' ? 'both' : m.direction];
             return (
               <li
                 key={i}
-                className={cn(
-                  'grid min-w-0 grid-cols-1 items-start gap-2 rounded-lg border p-2 sm:grid-cols-[minmax(0,1fr)_13rem_minmax(0,1fr)_8.5rem]',
-                  rowIssues.length > 0 && 'border-destructive/50',
-                )}
+                className="min-w-0"
                 aria-describedby={rowIssues.length ? `${id}-issues-${i}` : undefined}
               >
-                <span className="text-xs font-medium text-muted-foreground sm:hidden" aria-hidden>
-                  {t('inIsbp')}
-                </span>
-                <Select
-                  value={m.local || ''}
-                  onValueChange={(v) => update(i, { local: v })}
-                  disabled={readOnly}
-                >
-                  <SelectTrigger
-                    className="w-full min-w-0"
-                    aria-label={t('localField', { n: i + 1 })}
-                    aria-invalid={rowIssues.some((x) => x.path.endsWith('.local')) || undefined}
-                  >
-                    <SelectValue placeholder={t('chooseLocal')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {localFields.map((f) => (
-                      <SelectItem key={f.key} value={f.key}>
-                        {label(f.label, f.key)}
-                        <span className="ml-1 text-xs text-muted-foreground">
-                          {tf(f.type)}
-                          {f.readOnly ? ` · ${t('readOnly')}` : ''}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-xs font-medium text-muted-foreground sm:hidden" aria-hidden>
-                  {t('direction')}
-                </span>
-                <Select
-                  value={m.direction}
-                  onValueChange={(v) => update(i, { direction: v as MappingDirection })}
-                  disabled={readOnly}
-                >
-                  <SelectTrigger className="w-full" aria-label={t('directionOf', { n: i + 1 })}>
-                    <DirIcon className="size-4 text-primary" aria-hidden />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MAPPING_DIRECTIONS.map((d) => (
-                      <SelectItem key={d} value={d} disabled={!allowed(d)}>
-                        {t(`dir.${d}`, { system })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-xs font-medium text-muted-foreground sm:hidden" aria-hidden>
-                  {t('inRemoteHeader', { system })}
-                </span>
-                <Select
-                  value={m.remote || ''}
-                  onValueChange={(v) => update(i, { remote: v })}
-                  disabled={readOnly}
-                >
-                  <SelectTrigger
-                    className="w-full min-w-0"
-                    aria-label={t('remoteField', { n: i + 1, system })}
-                    aria-invalid={rowIssues.some((x) => x.path.endsWith('.remote')) || undefined}
-                  >
-                    <SelectValue placeholder={t('chooseRemote')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {remoteFields
-                      .filter((f) => !lf || isCompatible(lf.type, f.type) || f.key === m.remote)
-                      .map((f) => (
-                        <SelectItem key={f.key} value={f.key}>
-                          {f.label}
-                          <span className="ml-1 text-xs text-muted-foreground">
-                            {tf(f.type)}
-                            {f.readOnly ? ` · ${t('readOnly')}` : ''}
-                          </span>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center justify-end gap-1">
-                  {choice && lf && rf && (
-                    <Button type="button" variant="outline" size="sm" onClick={() => setEditingValues(i)}>
-                      {t('values')}
-                      {m.values?.length ? (
-                        <Badge variant="secondary" className="ml-1">
-                          {m.values.length}
-                        </Badge>
-                      ) : null}
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={readOnly}
-                    aria-label={t('remove', { n: i + 1 })}
-                    onClick={() => onChange(mappings.filter((_, k) => k !== i))}
-                  >
-                    <Trash2Icon />
-                  </Button>
-                </div>
-                {rowIssues.length > 0 && (
-                  <div className="sm:col-span-4">
-                    <IssueList id={`${id}-issues-${i}`} issues={rowIssues} />
+                <VStack gap={2} className="min-w-0">
+                  {i > 0 && <Divider />}
+                  <div className="grid min-w-0 grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_13rem_minmax(0,1fr)_8.5rem]">
+                    <Text type="supporting" className="sm:hidden" aria-hidden>
+                      {t('inIsbp')}
+                    </Text>
+                    <Selector
+                      label={t('localField', { n: i + 1 })}
+                      isLabelHidden
+                      hasSearch
+                      placeholder={t('chooseLocal')}
+                      isDisabled={readOnly}
+                      options={localFields.map((f) => ({
+                        value: f.key,
+                        label: label(f.label, f.key),
+                        description: typeNote(f),
+                      }))}
+                      value={m.local}
+                      onChange={(v) => update(i, { local: v })}
+                      status={
+                        rowIssues.some((x) => x.path.endsWith('.local')) ? { type: 'error' } : undefined
+                      }
+                    />
+                    <Text type="supporting" className="sm:hidden" aria-hidden>
+                      {t('direction')}
+                    </Text>
+                    <Selector
+                      label={t('directionOf', { n: i + 1 })}
+                      isLabelHidden
+                      isDisabled={readOnly}
+                      startIcon={DIRECTION_ICON[m.direction === 'both' ? 'both' : m.direction]}
+                      options={MAPPING_DIRECTIONS.map((d) => ({
+                        value: d,
+                        label: t(`dir.${d}`, { system }),
+                        disabled: !allowed(d),
+                      }))}
+                      value={m.direction}
+                      onChange={(v) => update(i, { direction: v as MappingDirection })}
+                    />
+                    <Text type="supporting" className="sm:hidden" aria-hidden>
+                      {t('inRemoteHeader', { system })}
+                    </Text>
+                    <Selector
+                      label={t('remoteField', { n: i + 1, system })}
+                      isLabelHidden
+                      hasSearch
+                      placeholder={t('chooseRemote')}
+                      isDisabled={readOnly}
+                      options={remoteFields
+                        .filter((f) => !lf || isCompatible(lf.type, f.type) || f.key === m.remote)
+                        .map((f) => ({ value: f.key, label: f.label, description: typeNote(f) }))}
+                      value={m.remote}
+                      onChange={(v) => update(i, { remote: v })}
+                      status={
+                        rowIssues.some((x) => x.path.endsWith('.remote')) ? { type: 'error' } : undefined
+                      }
+                    />
+                    <HStack gap={1} hAlign="end" vAlign="center">
+                      {choice && lf && rf && (
+                        <Button
+                          label={t('values')}
+                          variant="secondary"
+                          size="sm"
+                          type="button"
+                          endContent={
+                            m.values?.length ? <Badge variant="neutral" label={m.values.length} /> : undefined
+                          }
+                          onClick={() => setEditingValues(i)}
+                        />
+                      )}
+                      <IconButton
+                        label={t('remove', { n: i + 1 })}
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon={Trash2Icon} />}
+                        isDisabled={readOnly}
+                        type="button"
+                        onClick={() => onChange(mappings.filter((_, k) => k !== i))}
+                      />
+                    </HStack>
                   </div>
-                )}
+                  {rowIssues.length > 0 && <IssueList id={`${id}-issues-${i}`} issues={rowIssues} />}
+                </VStack>
               </li>
             );
           })}
-        </ol>
+        </VStack>
       )}
       {editing && editingValues !== null && L.get(editing.local) && R.get(editing.remote) && (
         <ValueMapDialog
@@ -536,6 +545,6 @@ export function MappingTable({
           onSave={(values) => update(editingValues, { values: values.length ? values : undefined })}
         />
       )}
-    </div>
+    </VStack>
   );
 }

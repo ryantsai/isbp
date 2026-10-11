@@ -1,13 +1,12 @@
 'use client';
 
+import { Selector } from '@astryxdesign/core/Selector';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@isbp/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@isbp/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { fieldStatus, Form, FormField } from '@isbp/ui/form';
+import { FormDialog } from '@isbp/ui/form-dialog';
 import { useApiMutation } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -15,6 +14,11 @@ import { type CreateItemInput, createItemSchema, type Item } from '../contracts'
 
 const STATUSES = ['draft', 'active', 'archived'] as const;
 
+/**
+ * A record form of at most 4 fields lives in a `FormDialog` (more than that: a `Sheet`, see docs/ai/ui-guidelines.md).
+ * Every Astryx input draws its own label, hint and error, so a field is one component inside `FormField`; the
+ * `Form` provider wraps the dialog (React context crosses the dialog's portal).
+ */
 export function ItemFormDialog({ open, onOpenChange, item, onSaved }: { open: boolean; onOpenChange: (o: boolean) => void; item?: Item; onSaved?: (item: Item) => void }) {
   const t = useTranslations('__ID__');
   const tc = useTranslations('common');
@@ -37,74 +41,61 @@ export function ItemFormDialog({ open, onOpenChange, item, onSaved }: { open: bo
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{item ? t('editTitle') : t('createTitle')}</DialogTitle>
-          <DialogDescription>{t('formHint')}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((v) => save.mutate(v))} className="space-y-4" noValidate>
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('fields.title')}</FormLabel>
-                  <FormControl>
-                    <Input autoFocus {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+    <Form {...form}>
+      <FormDialog
+        isOpen={open}
+        onOpenChange={onOpenChange}
+        title={item ? t('editTitle') : t('createTitle')}
+        subtitle={t('formHint')}
+        size="sm"
+        onSubmit={form.handleSubmit((v) => save.mutate(v))}
+        submitLabel={item ? tc('saveChanges') : tc('create')}
+        cancelLabel={tc('cancel')}
+        isSubmitting={save.isPending}
+        defaultOptionality="optional"
+      >
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field, fieldState }) => (
+            <TextInput
+              label={t('fields.title')}
+              isRequired
+              hasAutoFocus
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              status={fieldStatus(fieldState)}
             />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('fields.description')}</FormLabel>
-                  <FormControl>
-                    <Textarea rows={5} {...field} value={field.value ?? ''} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field, fieldState }) => (
+            <TextArea
+              label={t('fields.description')}
+              rows={5}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              status={fieldStatus(fieldState)}
             />
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('fields.status')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {STATUSES.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {t(`status.${s}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )}
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <Selector
+              label={t('fields.status')}
+              value={field.value}
+              onChange={field.onChange}
+              options={STATUSES.map((s) => ({ value: s, label: t(`status.${s}`) }))}
             />
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {tc('cancel')}
-              </Button>
-              <Button type="submit" loading={save.isPending}>
-                {item ? tc('saveChanges') : tc('create')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          )}
+        />
+      </FormDialog>
+    </Form>
   );
 }

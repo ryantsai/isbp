@@ -1,7 +1,6 @@
 'use client';
 
 import type { WebPageProps } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
 import { ErrorState } from '@isbp/ui/empty-state';
 import { DetailHeader } from '@isbp/ui/page-header';
@@ -17,7 +16,6 @@ import {
 } from '@isbp/ui/run-detail';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { BanIcon, CircleDotIcon, ExternalLinkIcon, FlagIcon, RotateCwIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useState } from 'react';
@@ -26,6 +24,9 @@ import { RUN_STATUS, RunStatusBadge, RunTriggerLabel, TaskIcon, TEXT_TONE } from
 import { ConfirmDialog } from '../confirm-dialog';
 import { INVALIDATE, jobHref, runHref, useDurationMs, useTypeName } from '../lib';
 import { LogViewer } from '../log-viewer';
+import { Button } from '@astryxdesign/core/Button';
+import { Link } from '@astryxdesign/core/Link';
+import { Icon } from '@astryxdesign/core/Icon';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -116,9 +117,13 @@ function RunView({ run, refetch }: { run: RunDetail; refetch: () => void }) {
   const failed = run.status === 'failed' || run.status === 'timed_out';
   const lastAttempt = run.attempts.at(-1);
   const runAgain = run.viewer.canRetry && (
-    <Button loading={retry.isPending} onClick={() => retry.mutate(undefined)}>
-      <RotateCwIcon /> {t('run.runAgain')}
-    </Button>
+    <Button
+      label={t('run.runAgain')}
+      variant="primary"
+      icon={<Icon icon={RotateCwIcon} />}
+      isLoading={retry.isPending}
+      onClick={() => retry.mutate(undefined)}
+    />
   );
 
   return (
@@ -174,10 +179,7 @@ function RunView({ run, refetch }: { run: RunDetail; refetch: () => void }) {
                         <span className="text-xs text-muted-foreground">{run.triggeredBy.displayName}</span>
                       )}
                       {run.upstreamRun && (
-                        <Link
-                          href={runHref(run.upstreamRun.id)}
-                          className="text-xs text-primary hover:underline"
-                        >
+                        <Link href={runHref(run.upstreamRun.id)} size="xsm">
                           {t('run.after', { job: run.upstreamRun.job.name })}
                         </Link>
                       )}
@@ -195,11 +197,10 @@ function RunView({ run, refetch }: { run: RunDetail; refetch: () => void }) {
                     <span className="flex flex-col gap-0.5">
                       <span>{run.task.label}</span>
                       {run.href && (
-                        <Link
-                          href={run.href}
-                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                        >
-                          <ExternalLinkIcon className="size-3" aria-hidden /> {t('run.openResult')}
+                        <Link href={run.href} size="xsm">
+                          <span className="inline-flex items-center gap-1">
+                            <Icon icon={ExternalLinkIcon} size="xsm" /> {t('run.openResult')}
+                          </span>
                         </Link>
                       )}
                     </span>

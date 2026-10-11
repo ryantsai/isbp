@@ -1,9 +1,11 @@
 'use client';
 
+import { Field } from '@astryxdesign/core/Field';
+import { VStack } from '@astryxdesign/core/Layout';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Selector } from '@astryxdesign/core/Selector';
 import type { FormAssignmentOptions } from '@isbp/contracts';
-import { Label } from '@isbp/ui/label';
 import { PersonPicker, usePeople } from '@isbp/ui/person-picker';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { useTranslations } from 'next-intl';
 
 export interface AssigneeState {
@@ -43,74 +45,46 @@ export function AssigneeFields({
   const userError = errors?.['assignee.userId'] ?? (value.type === 'user' ? errors?.assignee : undefined);
   const groupError = errors?.['assignee.groupKey'] ?? (value.type === 'group' ? errors?.assignee : undefined);
   return (
-    <div className="grid min-w-0 gap-3">
-      <fieldset className="grid gap-2" disabled={disabled}>
-        <legend className="mb-1 text-sm font-medium">{t('assigneeType')}</legend>
-        <div className="flex flex-wrap gap-x-5 gap-y-2">
-          {(['user', 'group'] as const).map((type) => (
-            <label key={type} className="flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name={`${id}-assignee-type`}
-                value={type}
-                checked={value.type === type}
-                onChange={() => onChange({ ...value, type })}
-                className="size-4 accent-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-              />
-              {type === 'user' ? t('person') : t('group')}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+    <VStack gap={3}>
+      <RadioList
+        label={t('assigneeType')}
+        orientation="horizontal"
+        value={value.type}
+        isDisabled={disabled}
+        onChange={(type) => onChange({ ...value, type: type === 'group' ? 'group' : 'user' })}
+      >
+        <RadioListItem value="user" label={t('person')} />
+        <RadioListItem value="group" label={t('group')} />
+      </RadioList>
       {value.type === 'user' ? (
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={`${id}-person`}>{t('personLabel')}</Label>
+        <Field
+          label={t('personLabel')}
+          inputID={`${id}-person`}
+          isDisabled={disabled}
+          status={userError ? { type: 'error', message: userError } : undefined}
+          statusVariant="detached"
+        >
           <PersonPicker
             id={`${id}-person`}
             value={person ?? (value.userId ? { id: value.userId, displayName: '…' } : null)}
             onChange={(p) => onChange({ ...value, userId: p?.id ?? null })}
             placeholder={t('pickPerson')}
             invalid={Boolean(userError)}
-            aria-describedby={userError ? `${id}-person-error` : undefined}
             disabled={disabled}
           />
-          {userError && (
-            <p id={`${id}-person-error`} className="text-xs text-destructive">
-              {userError}
-            </p>
-          )}
-        </div>
+        </Field>
       ) : (
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={`${id}-group`}>{t('groupLabel')}</Label>
-          <Select
-            value={value.groupKey ?? ''}
-            onValueChange={(groupKey) => onChange({ ...value, groupKey })}
-            disabled={disabled}
-          >
-            <SelectTrigger
-              id={`${id}-group`}
-              className="w-full"
-              aria-invalid={Boolean(groupError) || undefined}
-              aria-describedby={groupError ? `${id}-group-error` : undefined}
-            >
-              <SelectValue placeholder={t('pickGroup')} />
-            </SelectTrigger>
-            <SelectContent>
-              {groups.map((g) => (
-                <SelectItem key={g.id} value={g.key}>
-                  {g.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {groupError && (
-            <p id={`${id}-group-error`} className="text-xs text-destructive">
-              {groupError}
-            </p>
-          )}
-        </div>
+        <Selector
+          label={t('groupLabel')}
+          value={value.groupKey ?? undefined}
+          placeholder={t('pickGroup')}
+          options={groups.map((g) => ({ value: g.key, label: g.name }))}
+          hasSearch={groups.length > 15}
+          isDisabled={disabled}
+          status={groupError ? { type: 'error', message: groupError } : undefined}
+          onChange={(groupKey) => onChange({ ...value, groupKey })}
+        />
       )}
-    </div>
+    </VStack>
   );
 }

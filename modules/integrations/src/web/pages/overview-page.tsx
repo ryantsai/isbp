@@ -1,18 +1,23 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Icon } from '@astryxdesign/core/Icon';
+import { HStack, Layout, LayoutContent, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { List, ListItem } from '@astryxdesign/core/List';
+import { Text } from '@astryxdesign/core/Text';
 import { useCan } from '@isbp/sdk/web';
-import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@isbp/ui/dialog';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
+import { IconTile } from '@isbp/ui/icon-tile';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
 import { PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { ArrowLeftRightIcon, ChevronRightIcon, PlusIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -25,37 +30,37 @@ import { connectionHref, useCatalogue, useLabel } from '../lib';
 function Stat({
   label,
   value,
-  tone,
   href,
   action,
 }: {
   label: string;
   value: number;
-  tone?: 'warning' | 'destructive';
   /** Problems are links to where they are dealt with. */
   href?: string;
   action?: string;
 }) {
   const format = useFormatter();
-  const toned =
-    tone && value > 0 ? (tone === 'warning' ? 'text-warning-foreground' : 'text-destructive') : undefined;
   return (
-    <div className="min-w-0">
-      <dt className="truncate text-xs text-muted-foreground">{label}</dt>
-      <dd className={cn('text-lg font-semibold tabular-nums', toned)}>
-        {href && value > 0 ? (
-          <Link
-            href={href}
-            className="relative z-10 inline-flex items-baseline gap-1.5 rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50"
-          >
-            {format.number(value)}
-            {action && <span className="text-xs font-medium">{action} →</span>}
-          </Link>
-        ) : (
-          format.number(value)
-        )}
-      </dd>
-    </div>
+    <VStack gap={0} className="min-w-0">
+      <Text type="supporting" maxLines={1}>
+        {label}
+      </Text>
+      {href && value > 0 ? (
+        <Link href={href} weight="semibold" size="lg" className="relative z-10">
+          {format.number(value)}
+          {action && (
+            <Text type="supporting" weight="medium">
+              {' '}
+              {action} →
+            </Text>
+          )}
+        </Link>
+      ) : (
+        <Text weight="semibold" size="lg" hasTabularNumbers>
+          {format.number(value)}
+        </Text>
+      )}
+    </VStack>
   );
 }
 
@@ -63,62 +68,64 @@ function ConnectionCard({ c }: { c: Connection }) {
   const t = useTranslations('integrations.overview');
   const label = useLabel();
   return (
-    <Card className="h-full min-w-0 transition-shadow hover:shadow-md motion-reduce:transition-none">
+    <Card interactive className="h-full min-w-0">
       <CardHeader className="gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-            <ModuleIcon name={c.connector.icon} className="size-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <CardTitle className="truncate">
+        <HStack gap={3} vAlign="start" className="min-w-0">
+          <IconTile aria-hidden>
+            <ModuleIcon name={c.connector.icon} />
+          </IconTile>
+          <VStack gap={0} className="min-w-0 flex-1">
+            <CardTitle>
               <Link
                 href={connectionHref(c.id)}
-                className="outline-none after:absolute after:inset-0 hover:underline focus-visible:underline"
+                weight="semibold"
+                color="primary"
+                className="after:absolute after:inset-0"
               >
                 {c.name}
               </Link>
             </CardTitle>
-            <p className="truncate text-sm text-muted-foreground">{label(c.connector.name)}</p>
-          </div>
-          <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+            <Text color="secondary" maxLines={1}>
+              {label(c.connector.name)}
+            </Text>
+          </VStack>
+          <Icon icon={ChevronRightIcon} color="secondary" />
+        </HStack>
+        <HStack gap={2} wrap="wrap" vAlign="center">
           <HealthBadge
             health={c.health}
             enabled={c.enabled}
             attention={c.stats.conflicts > 0 || c.stats.errors > 0}
           />
           {c.allowInsecureHttp && <InsecureBadge />}
-          {!c.connector.available && (
-            <span className="text-xs text-muted-foreground">{t('unavailable')}</span>
-          )}
-        </div>
+          {!c.connector.available && <Text type="supporting">{t('unavailable')}</Text>}
+        </HStack>
       </CardHeader>
-      <CardContent className="grid gap-3">
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-          <Stat label={t('profiles')} value={c.stats.profiles} />
-          <Stat label={t('linked')} value={c.stats.links} />
-          <Stat
-            label={t('conflicts')}
-            value={c.stats.conflicts}
-            tone="warning"
-            href={`${connectionHref(c.id)}?tab=conflicts`}
-            action={t('resolve')}
-          />
-          <Stat
-            label={t('errors')}
-            value={c.stats.errors}
-            tone="destructive"
-            href={`${connectionHref(c.id)}?tab=links&state=error`}
-            action={t('view')}
-          />
-        </dl>
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          <span>
-            {t('lastSync')} {c.stats.lastSyncAt ? <RelativeTime date={c.stats.lastSyncAt} /> : t('never')}
-          </span>
-          {c.stats.lastRunStatus && <RunStatusText status={c.stats.lastRunStatus} />}
-        </p>
+      <CardContent>
+        <VStack gap={3}>
+          <Grid columns={2} gap={4}>
+            <Stat label={t('profiles')} value={c.stats.profiles} />
+            <Stat label={t('linked')} value={c.stats.links} />
+            <Stat
+              label={t('conflicts')}
+              value={c.stats.conflicts}
+              href={`${connectionHref(c.id)}?tab=conflicts`}
+              action={t('resolve')}
+            />
+            <Stat
+              label={t('errors')}
+              value={c.stats.errors}
+              href={`${connectionHref(c.id)}?tab=links&state=error`}
+              action={t('view')}
+            />
+          </Grid>
+          <HStack gap={2} wrap="wrap" vAlign="center">
+            <Text type="supporting">
+              {t('lastSync')} {c.stats.lastSyncAt ? <RelativeTime date={c.stats.lastSyncAt} /> : t('never')}
+            </Text>
+            {c.stats.lastRunStatus && <RunStatusText status={c.stats.lastRunStatus} />}
+          </HStack>
+        </VStack>
       </CardContent>
     </Card>
   );
@@ -137,44 +144,42 @@ function ConnectorPicker({
   onPick: (c: ConnectorInfoDto) => void;
 }) {
   const t = useTranslations('integrations.overview');
-  const tc = useTranslations('common');
   const name = useLabel();
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')} className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{t('pickTitle')}</DialogTitle>
-          <DialogDescription>{t('pickDescription')}</DialogDescription>
-        </DialogHeader>
-        {connectors.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('noConnectors')}</p>
-        ) : (
-          <ul className="grid gap-2">
-            {connectors.map((c) => (
-              <li key={c.type}>
-                <button
-                  type="button"
-                  onClick={() => onPick(c)}
-                  className="flex w-full min-w-0 items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none"
-                >
-                  <span className="grid size-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                    <ModuleIcon name={c.icon} className="size-4" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block font-medium">{name(c.name)}</span>
-                    {c.description && (
-                      <span className="block text-sm text-muted-foreground">{name(c.description)}</span>
-                    )}
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      {c.objects.map((o) => name(o.name)).join(' · ')}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={512}>
+      <Layout
+        header={
+          <DialogHeader title={t('pickTitle')} subtitle={t('pickDescription')} onOpenChange={onOpenChange} />
+        }
+        content={
+          <LayoutContent padding={4}>
+            {connectors.length === 0 ? (
+              <Text color="secondary">{t('noConnectors')}</Text>
+            ) : (
+              <List hasDividers>
+                {connectors.map((c) => (
+                  <ListItem
+                    key={c.type}
+                    label={name(c.name)}
+                    description={
+                      <VStack gap={0.5}>
+                        {c.description && <span>{name(c.description)}</span>}
+                        <Text type="supporting">{c.objects.map((o) => name(o.name)).join(' · ')}</Text>
+                      </VStack>
+                    }
+                    startContent={
+                      <IconTile aria-hidden size="sm">
+                        <ModuleIcon name={c.icon} />
+                      </IconTile>
+                    }
+                    onClick={() => onPick(c)}
+                  />
+                ))}
+              </List>
+            )}
+          </LayoutContent>
+        }
+      />
     </Dialog>
   );
 }
@@ -199,9 +204,12 @@ export default function OverviewPage() {
   }));
 
   const add = canManage && (
-    <Button onClick={() => setPicking(true)}>
-      <PlusIcon /> {t('add')}
-    </Button>
+    <Button
+      label={t('add')}
+      variant="primary"
+      icon={<Icon icon={PlusIcon} />}
+      onClick={() => setPicking(true)}
+    />
   );
   const items = data?.items ?? [];
 

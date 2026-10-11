@@ -1,7 +1,6 @@
 'use client';
 
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { useApiQuery } from '@isbp/ui/query';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@isbp/ui/sheet';
 import { MessageCircleQuestionIcon, SparklesIcon } from 'lucide-react';
@@ -9,6 +8,8 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { HelpdeskAiStatus } from '../../contracts';
 import { ChatPanel } from './chat-panel';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /**
  * "Ask IT" invitation on the knowledge home (`knowledge.home.assist`): for the people the desk serves, not for its
@@ -52,9 +53,14 @@ export default function AskItCard() {
             </h2>
             <p className="line-clamp-2 text-xs text-muted-foreground sm:text-sm">{t('askIt.body')}</p>
           </div>
-          <Button size="sm" onClick={() => setOpen(true)} className="shrink-0">
-            <MessageCircleQuestionIcon /> {t('askIt.button')}
-          </Button>
+          <Button
+            label={t('askIt.button')}
+            variant="primary"
+            size="sm"
+            icon={<Icon icon={MessageCircleQuestionIcon} />}
+            onClick={() => setOpen(true)}
+            className="shrink-0"
+          />
         </div>
       </section>
 

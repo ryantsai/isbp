@@ -1,16 +1,15 @@
 'use client';
 
-import { motion } from 'motion/react';
-import Link from 'next/link';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type * as React from 'react';
 import { cn } from '../lib/utils';
-import { spring } from './motion';
 
 export interface SectionTab {
   /** Where the tab goes: a path (`/scheduler/jobs`) or a path with a query (`/itam/software?tab=approved`). */
   href: string;
-  label: React.ReactNode;
+  label: string;
   icon?: React.ReactNode;
   /** A count shown after the label (e.g. open conflicts). */
   count?: number;
@@ -52,8 +51,8 @@ export function activeSectionTab(
 
 /**
  * Link tabs for the sections of one area (Overview | Jobs | Runs), placed right under the `PageHeader`. Each tab is
- * its own URL, so deep links and list state keep working; the indicator slides between tabs. Use instead of header
- * buttons or sidebar entries that lead to sibling pages. For in-page panels use `Tabs`.
+ * its own URL, so deep links and list state keep working. Use instead of header buttons or sidebar entries that lead
+ * to sibling pages. For in-page panels use `TabList` + `Tab`.
  */
 export function SectionTabs({
   items,
@@ -72,39 +71,23 @@ export function SectionTabs({
   const search = useSearchParams();
   const active = value ?? activeSectionTab(items, pathname, new URLSearchParams(search.toString()));
   return (
-    <nav aria-label={label} className={cn('-mt-1 mb-4 border-b', className)}>
-      <ul className="-mb-px flex max-w-full gap-1 overflow-x-auto">
-        {items.map((item) => {
-          const current = item.href === active;
-          return (
-            <li key={item.href} className="shrink-0">
-              <Link
-                href={item.href}
-                aria-current={current ? 'page' : undefined}
-                className={cn(
-                  "relative inline-flex h-9 items-center gap-1.5 px-2.5 text-sm font-medium whitespace-nowrap text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-                  current && 'text-foreground',
-                )}
-              >
-                {item.icon}
-                {item.label}
-                {item.count != null && (
-                  <span className="rounded-full bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">
-                    {item.count}
-                  </span>
-                )}
-                {current && (
-                  <motion.span
-                    layoutId={`section-tabs:${label}`}
-                    className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-primary"
-                    transition={spring.indicator}
-                  />
-                )}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+    <TabList
+      aria-label={label}
+      value={active ?? ''}
+      onChange={() => {}}
+      hasDivider
+      className={cn('-mt-1 mb-4', className)}
+    >
+      {items.map((item) => (
+        <Tab
+          key={item.href}
+          value={item.href}
+          href={item.href}
+          label={item.label}
+          icon={item.icon}
+          endContent={item.count != null ? <Badge label={item.count} /> : undefined}
+        />
+      ))}
+    </TabList>
   );
 }

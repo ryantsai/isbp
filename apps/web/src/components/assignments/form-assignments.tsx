@@ -1,5 +1,19 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
 import {
   FORM_ASSIGNMENT_STATES,
   type FormAssignment,
@@ -10,14 +24,10 @@ import {
 import { localize, type Page } from '@isbp/sdk';
 import { usePlatform } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { DataTable, type DataTableColumn, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { SearchInput } from '@isbp/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
-import { Hint } from '@isbp/ui/tooltip';
 import {
   BanIcon,
   CalendarSyncIcon,
@@ -38,7 +48,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DateTime } from '@/components/relative-time';
 import { useApiMutation, useApiQuery } from '@/lib/api';
 import { AssignDialog } from './assign-dialog';
-import { AssignmentDueBadge, AssignmentStateBadge } from './assignment-badges';
+import { ASSIGNMENT_STATE_ICONS, AssignmentDueBadge, AssignmentStateBadge } from './assignment-badges';
 
 const ALL = '__all__';
 const NO_PERIOD = '—';
@@ -74,11 +84,11 @@ function ComplianceCard({ formId }: { formId: string }) {
   if (!data?.periods.length) return null;
   const sum = (k: 'onTime' | 'late' | 'overdue') => data.periods.reduce((n, p) => n + p[k], 0);
   const cols = [
-    { key: 'onTime', icon: CircleCheckIcon, className: 'text-success' },
-    { key: 'late', icon: ClockAlertIcon, className: 'text-warning-foreground' },
-    { key: 'overdue', icon: TriangleAlertIcon, className: 'text-destructive' },
-    { key: 'open', icon: CircleDotIcon, className: 'text-info' },
-    { key: 'cancelled', icon: BanIcon, className: 'text-muted-foreground' },
+    { key: 'onTime', icon: CircleCheckIcon, color: 'success' },
+    { key: 'late', icon: ClockAlertIcon, color: 'warning' },
+    { key: 'overdue', icon: TriangleAlertIcon, color: 'error' },
+    { key: 'open', icon: CircleDotIcon, color: 'accent' },
+    { key: 'cancelled', icon: BanIcon, color: 'secondary' },
   ] as const;
   return (
     <Card className="min-w-0">
@@ -89,51 +99,55 @@ function ComplianceCard({ formId }: { formId: string }) {
         </CardTitle>
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-3">
-        <p className="text-sm">
-          {t('summary', {
-            periods: data.periods.length,
-            onTime: sum('onTime'),
-            late: sum('late'),
-            overdue: sum('overdue'),
-          })}
-        </p>
-        <Table aria-label={t('title')} scrollable>
-          <TableHeader>
-            <TableRow>
-              <TableHead scope="col">{t('period')}</TableHead>
-              {cols.map((c) => (
-                <TableHead key={c.key} scope="col" className="text-right">
-                  <span className="inline-flex items-center gap-1">
-                    <c.icon className={`size-3.5 ${c.className}`} aria-hidden />
-                    {t(c.key)}
-                  </span>
-                </TableHead>
-              ))}
-              <TableHead scope="col" className="text-right">
-                {t('total')}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.periods.map((p) => (
-              <TableRow key={p.periodKey ?? NO_PERIOD}>
-                <TableHead scope="row" className="font-mono text-xs">
-                  {p.periodKey ?? t('noPeriod')}
-                </TableHead>
+      <CardContent>
+        <VStack gap={3}>
+          <Text>
+            {t('summary', {
+              periods: data.periods.length,
+              onTime: sum('onTime'),
+              late: sum('late'),
+              overdue: sum('overdue'),
+            })}
+          </Text>
+          <Table aria-label={t('title')} density="compact">
+            <TableHeader>
+              <TableRow isHeaderRow>
+                <TableHeaderCell>{t('period')}</TableHeaderCell>
                 {cols.map((c) => (
-                  <TableCell
-                    key={c.key}
-                    className={`text-right tabular-nums ${p[c.key] && c.key === 'overdue' ? 'font-semibold text-destructive' : ''}`}
-                  >
-                    {p[c.key]}
-                  </TableCell>
+                  <TableHeaderCell key={c.key}>
+                    <span className="inline-flex items-center gap-1">
+                      <Icon icon={c.icon} size="sm" color={c.color} />
+                      {t(c.key)}
+                    </span>
+                  </TableHeaderCell>
                 ))}
-                <TableCell className="text-right tabular-nums">{p.total}</TableCell>
+                <TableHeaderCell>{t('total')}</TableHeaderCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {data.periods.map((p) => (
+                <TableRow key={p.periodKey ?? NO_PERIOD}>
+                  <TableCell>
+                    <Text type="code">{p.periodKey ?? t('noPeriod')}</Text>
+                  </TableCell>
+                  {cols.map((c) => (
+                    <TableCell key={c.key}>
+                      <Text
+                        hasTabularNumbers
+                        weight={p[c.key] && c.key === 'overdue' ? 'semibold' : undefined}
+                      >
+                        {p[c.key]}
+                      </Text>
+                    </TableCell>
+                  ))}
+                  <TableCell>
+                    <Text hasTabularNumbers>{p.total}</Text>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </VStack>
       </CardContent>
     </Card>
   );
@@ -145,6 +159,7 @@ function ComplianceCard({ formId }: { formId: string }) {
  */
 export function FormAssignments({ form }: { form: FormDetail }) {
   const t = useTranslations('assignments.admin');
+  const ts = useTranslations('assignments.state');
   const tc = useTranslations('common');
   const locale = useLocale();
   const now = useNow({ updateInterval: 60_000 });
@@ -261,20 +276,15 @@ export function FormAssignments({ form }: { form: FormDetail }) {
         meta: { className: 'w-10 text-right' },
         cell: ({ row }) =>
           row.original.status === 'open' ? (
-            <Hint label={t('cancel')}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                aria-label={`${t('cancel')}: ${row.original.title}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCancelling(row.original);
-                }}
-              >
-                <XIcon />
-              </Button>
-            </Hint>
+            <IconButton
+              label={`${t('cancel')}: ${row.original.title}`}
+              variant="ghost"
+              icon={<Icon icon={XIcon} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCancelling(row.original);
+              }}
+            />
           ) : null,
       },
     ],
@@ -313,17 +323,20 @@ export function FormAssignments({ form }: { form: FormDetail }) {
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           {enabledModules.includes('scheduler') && assignable && (
-            <Button variant="outline" asChild>
-              <Link href={scheduleHref}>
-                <CalendarSyncIcon />
-                {t('schedule')}
-              </Link>
-            </Button>
+            <Button
+              label={t('schedule')}
+              variant="secondary"
+              icon={<Icon icon={CalendarSyncIcon} />}
+              href={scheduleHref}
+            />
           )}
-          <Button onClick={() => setAssigning(true)} disabled={!assignable}>
-            <PlusIcon />
-            {t('assign')}
-          </Button>
+          <Button
+            label={t('assign')}
+            variant="primary"
+            icon={<Icon icon={PlusIcon} />}
+            isDisabled={!assignable}
+            onClick={() => setAssigning(true)}
+          />
         </div>
       </div>
 
@@ -346,45 +359,44 @@ export function FormAssignments({ form }: { form: FormDetail }) {
         toolbar={
           <>
             <SearchInput value={q} onChange={(v) => set({ q: v || undefined })} placeholder={t('search')} />
-            <Select
+            <Selector
+              label={t('stateFilter')}
+              isLabelHidden
+              width={176}
               value={stateFilter ?? ALL}
-              onValueChange={(v) => set({ state: v === ALL ? undefined : v })}
-            >
-              <SelectTrigger className="w-full sm:w-44" aria-label={t('stateFilter')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>{t('allStates')}</SelectItem>
-                {FORM_ASSIGNMENT_STATES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    <AssignmentStateBadge state={s} />
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(v) => set({ state: v === ALL ? undefined : v })}
+              options={[
+                { value: ALL, label: t('allStates') },
+                ...FORM_ASSIGNMENT_STATES.map((s) => ({
+                  value: s,
+                  label: ts(s),
+                  icon: ASSIGNMENT_STATE_ICONS[s],
+                })),
+              ]}
+            />
             {(periods.length > 0 || period) && (
-              <Select value={period ?? ALL} onValueChange={(v) => set({ period: v === ALL ? undefined : v })}>
-                <SelectTrigger className="w-full sm:w-40" aria-label={t('periodFilter')}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>{t('allPeriods')}</SelectItem>
-                  {[...new Set([...(period ? [period] : []), ...periods])].map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Selector
+                label={t('periodFilter')}
+                isLabelHidden
+                width={160}
+                value={period ?? ALL}
+                onChange={(v) => set({ period: v === ALL ? undefined : v })}
+                options={[
+                  { value: ALL, label: t('allPeriods') },
+                  ...[...new Set([...(period ? [period] : []), ...periods])].map((p) => ({
+                    value: p,
+                    label: p,
+                  })),
+                ]}
+              />
             )}
             {filtered && (
               <Button
+                label={tc('clearFilters')}
                 variant="ghost"
                 size="sm"
                 onClick={() => set({ state: undefined, period: undefined, q: undefined })}
-              >
-                {tc('clearFilters')}
-              </Button>
+              />
             )}
           </>
         }

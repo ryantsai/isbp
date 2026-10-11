@@ -1,21 +1,14 @@
 'use client';
 
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Badge } from '@astryxdesign/core/Badge';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
 import type { RecordPanelSlotProps } from '@isbp/contracts';
 import { ApiError, Slot, usePlatform, type WebPageProps } from '@isbp/sdk/web';
 import { cn } from '@isbp/ui';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@isbp/ui/alert-dialog';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent } from '@isbp/ui/card';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { Markdown } from '@isbp/ui/markdown';
@@ -27,8 +20,6 @@ import {
   ArchiveIcon,
   ArchiveRestoreIcon,
   ArrowLeftRightIcon,
-  CalendarClockIcon,
-  ClockIcon,
   FileQuestionIcon,
   GitBranchIcon,
   HistoryIcon,
@@ -36,7 +27,6 @@ import {
   LifeBuoyIcon,
   PencilIcon,
   SendIcon,
-  ShieldAlertIcon,
   SparklesIcon,
   Trash2Icon,
   UndoIcon,
@@ -112,25 +102,22 @@ function Translations({ article }: { article: Article }) {
       <LanguagesIcon className="size-4 text-muted-foreground" aria-hidden />
       {all.map((x) =>
         x.current ? (
-          <span
-            key={x.id}
-            aria-current="page"
-            lang={LOCALE_LANG[x.locale]}
-            className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
-          >
-            {LOCALE_LABEL[x.locale]}
+          <span key={x.id} lang={LOCALE_LANG[x.locale]}>
+            <Badge variant="blue" label={LOCALE_LABEL[x.locale]} aria-current="page" />
           </span>
         ) : (
-          <Link
-            key={x.id}
-            href={x.href}
-            lang={LOCALE_LANG[x.locale]}
-            hrefLang={LOCALE_LANG[x.locale]}
-            className="rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground outline-none transition-colors hover:border-ring/50 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none"
-          >
-            {LOCALE_LABEL[x.locale]}
-            {x.status !== 'published' && <span className="sr-only"> ({ts(x.status)})</span>}
-          </Link>
+          <span key={x.id} lang={LOCALE_LANG[x.locale]}>
+            <Button
+              label={
+                x.status !== 'published'
+                  ? `${LOCALE_LABEL[x.locale]} (${ts(x.status)})`
+                  : LOCALE_LABEL[x.locale]
+              }
+              variant="secondary"
+              size="sm"
+              href={x.href}
+            />
+          </span>
         ),
       )}
     </nav>
@@ -153,21 +140,12 @@ function StateBanner({ article }: { article: Article }) {
             ? 'bannerReviewDue'
             : null;
   if (!key) return null;
-  const tone =
-    article.status === 'in_review' || key === 'bannerReviewDue'
-      ? 'border-warning/40 bg-warning/10'
-      : 'border-border bg-muted/50';
   return (
-    <div className={`flex items-start gap-2 rounded-xl border px-4 py-3 text-sm ${tone}`} role="note">
-      {article.status === 'in_review' ? (
-        <ClockIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      ) : key === 'bannerReviewDue' ? (
-        <CalendarClockIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      ) : (
-        <FileQuestionIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      )}
-      <p>{t(key, { date: article.reviewAt ?? '' })}</p>
-    </div>
+    <Banner
+      status={article.status === 'in_review' || key === 'bannerReviewDue' ? 'warning' : 'info'}
+      title={t(key, { date: article.reviewAt ?? '' })}
+      collapsible={false}
+    />
   );
 }
 
@@ -177,16 +155,11 @@ function ClassificationBanner({ value }: { value: string }) {
   const { label, tone } = useClassifications();
   const strong = tone(value) === 'destructive' || tone(value) === 'warning';
   return (
-    <div
-      role="note"
-      className={cn(
-        'flex items-start gap-2 rounded-xl border px-4 py-3 text-sm',
-        strong ? 'border-destructive/30 bg-destructive/5' : 'border-border bg-muted/50',
-      )}
-    >
-      <ShieldAlertIcon className={cn('mt-0.5 size-4 shrink-0', strong && 'text-destructive')} aria-hidden />
-      <p>{t('banner', { label: label(value) })}</p>
-    </div>
+    <Banner
+      status={strong ? 'warning' : 'info'}
+      title={t('banner', { label: label(value) })}
+      collapsible={false}
+    />
   );
 }
 
@@ -279,11 +252,7 @@ export default function ArticlePage({ params }: WebPageProps) {
       <EmptyState
         icon={<FileQuestionIcon />}
         title={t('article.notFound')}
-        action={
-          <Button variant="outline" asChild>
-            <Link href="/knowledge">{t('article.backHome')}</Link>
-          </Button>
-        }
+        action={<Button label={t('article.backHome')} variant="secondary" href="/knowledge" />}
       />
     ) : (
       <ErrorState error={error} kind="page" onRetry={() => refetch()} />
@@ -301,14 +270,15 @@ export default function ArticlePage({ params }: WebPageProps) {
   const pending = act.isPending;
 
   /* ── actions: the next step is the primary button, then Edit, Translate and History; Retire and Delete in "More" ── */
-  const runButton = (action: ArticleAction, label: string, Icon: typeof SendIcon) => (
+  const runButton = (action: ArticleAction, label: string, icon: typeof SendIcon) => (
     <Button
+      label={label}
+      variant="primary"
+      icon={<AstryxIcon icon={icon} />}
       onClick={() => act.mutate(action)}
-      loading={pending && act.variables === action}
-      disabled={pending}
-    >
-      <Icon aria-hidden /> {label}
-    </Button>
+      isLoading={pending && act.variables === action}
+      isDisabled={pending}
+    />
   );
   const editHref = `/knowledge/${article.reference}/edit`;
   let primary: React.ReactNode = null;
@@ -325,11 +295,7 @@ export default function ArticlePage({ params }: WebPageProps) {
   else if (article.canEdit) {
     primaryIsEdit = true;
     primary = (
-      <Button asChild>
-        <Link href={editHref}>
-          <PencilIcon aria-hidden /> {tc('edit')}
-        </Link>
-      </Button>
+      <Button label={tc('edit')} variant="primary" icon={<AstryxIcon icon={PencilIcon} />} href={editHref} />
     );
   }
   const secondary: DetailAction[] = [];
@@ -523,14 +489,14 @@ export default function ArticlePage({ params }: WebPageProps) {
             {article.reviewAt && article.canEdit && (
               <p className="flex items-center gap-1.5 text-muted-foreground">
                 {t('article.reviewOn', { date: article.reviewAt })}
-                {article.reviewDue && <Badge variant="warning">{t('manage.due')}</Badge>}
+                {article.reviewDue && <Badge variant="warning" label={t('manage.due')} />}
               </p>
             )}
             {article.tags.length > 0 && (
               <ul className="mt-1 flex flex-wrap gap-1.5" aria-label={t('article.tags')}>
                 {article.tags.map((tag) => (
                   <li key={tag}>
-                    <Badge variant="muted">#{tag}</Badge>
+                    <Badge variant="neutral" label={`#${tag}`} />
                   </li>
                 ))}
               </ul>
@@ -540,25 +506,16 @@ export default function ArticlePage({ params }: WebPageProps) {
       </div>
 
       <VersionHistory article={article} open={history} onOpenChange={setHistory} />
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('article.deleteTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('article.deleteDescription', { title: article.title, reference: article.reference })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-white hover:bg-destructive/90"
-              onClick={() => remove.mutate(undefined)}
-            >
-              {tc('delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AlertDialog
+        isOpen={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={t('article.deleteTitle')}
+        description={t('article.deleteDescription', { title: article.title, reference: article.reference })}
+        actionLabel={tc('delete')}
+        cancelLabel={tc('cancel')}
+        isActionLoading={remove.isPending}
+        onAction={() => remove.mutate(undefined, { onSettled: () => setConfirmDelete(false) })}
+      />
     </div>
   );
 }

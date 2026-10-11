@@ -1,22 +1,22 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Link } from '@astryxdesign/core/Link';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
 import type { Page } from '@isbp/sdk';
 import { useCan } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { DataTable, type DataTableColumn, DataTableSummary, useListState } from '@isbp/ui/data-table';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { FilterBar } from '@isbp/ui/filter-bar';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { SearchInput } from '@isbp/ui/search-input';
-import { SelectItem } from '@isbp/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { CalendarClockIcon, PlusIcon, UsersIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { type JobSummary, type JobView, TRIGGER_KINDS } from '../../contracts';
 import { JobStateBadge, RunStatusText, TaskIcon, TRIGGER_ICON } from '../badges';
 import { jobHref, runHref, useRunResult, useTaskTypes, useTypeName } from '../lib';
@@ -37,6 +37,7 @@ export default function JobsPage() {
   const { items: types } = useTaskTypes(true);
   const [state, set] = useListState({ pageSize: 25 });
   const view: JobView = VIEWS.includes(state.view as JobView) ? (state.view as JobView) : 'all';
+  const panelId = useId();
   const str = (k: string) => (state[k] as string | undefined) || undefined;
   const { data, isLoading, isFetching, error, refetch } = useApiQuery<Page<JobSummary>>(
     '/scheduler/jobs',
@@ -64,11 +65,7 @@ export default function JobsPage() {
           return (
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                <Link
-                  href={jobHref(j.id)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="font-medium wrap-anywhere outline-none hover:underline focus-visible:underline"
-                >
+                <Link href={jobHref(j.id)} onClick={(e) => e.stopPropagation()} weight="medium">
                   {j.name}
                 </Link>
                 {/* Enabled is the normal case: only the exceptions get a badge. */}
@@ -93,11 +90,7 @@ export default function JobsPage() {
           return (
             <span className="flex min-w-0 flex-col gap-0.5 text-xs">
               <span className="flex flex-wrap items-center gap-x-2">
-                <Link
-                  href={runHref(r.id)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-fit rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
+                <Link href={runHref(r.id)} onClick={(e) => e.stopPropagation()} size="xsm">
                   <RunStatusText status={r.status} />
                 </Link>
                 <RelativeTime
@@ -121,11 +114,10 @@ export default function JobsPage() {
         meta: { sortKey: 'nextRunAt', className: 'max-w-60', priority: 2 },
         cell: ({ row }) => {
           const j = row.original;
-          const Icon = TRIGGER_ICON[j.trigger.kind];
           return (
             <span className="flex min-w-0 flex-col text-xs">
               <span className="flex min-w-0 items-center gap-1.5">
-                <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                <Icon icon={TRIGGER_ICON[j.trigger.kind]} size="xsm" color="secondary" />
                 <span className="truncate">{triggerText(j.trigger)}</span>
               </span>
               {j.enabled && j.nextRunAt && (
@@ -143,7 +135,7 @@ export default function JobsPage() {
         meta: { className: 'max-w-64', priority: 3 },
         cell: ({ row }) => (
           <span className="flex min-w-0 items-center gap-2">
-            <TaskIcon icon={row.original.task.icon} className="text-muted-foreground" />
+            <TaskIcon icon={row.original.task.icon} color="secondary" />
             <span className="flex min-w-0 flex-col">
               <span className="truncate text-xs font-medium">
                 {typeName(row.original.task.name, row.original.type)}
@@ -170,7 +162,7 @@ export default function JobsPage() {
               )}
               {ownerGroup && (
                 <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
-                  <UsersIcon className="size-3.5 shrink-0" aria-hidden />
+                  <Icon icon={UsersIcon} size="xsm" color="secondary" />
                   <span className="truncate">{ownerGroup.name}</span>
                 </span>
               )}
@@ -225,14 +217,9 @@ export default function JobsPage() {
                   onChange={(v) => set({ type: v })}
                   label={t('fields.taskType')}
                   allLabel={t('jobs.allTypes')}
-                  className="w-full sm:w-48"
-                >
-                  {types.map((ty) => (
-                    <SelectItem key={ty.type} value={ty.type}>
-                      {typeName(ty.name, ty.type)}
-                    </SelectItem>
-                  ))}
-                </FilterSelect>
+                  width={192}
+                  options={types.map((ty) => ({ value: ty.type, label: typeName(ty.name, ty.type) }))}
+                />
               ),
             },
             {
@@ -247,13 +234,8 @@ export default function JobsPage() {
                   onChange={(v) => set({ trigger: v })}
                   label={t('fields.trigger')}
                   allLabel={t('jobs.allTriggers')}
-                >
-                  {TRIGGER_KINDS.map((k) => (
-                    <SelectItem key={k} value={k}>
-                      {t(`triggerKind.${k}`)}
-                    </SelectItem>
-                  ))}
-                </FilterSelect>
+                  options={TRIGGER_KINDS.map((k) => ({ value: k, label: t(`triggerKind.${k}`) }))}
+                />
               ),
             },
           ]}
@@ -274,11 +256,12 @@ export default function JobsPage() {
             action={
               view === 'all' &&
               canCreate && (
-                <Button asChild>
-                  <Link href="/scheduler/jobs/new">
-                    <PlusIcon /> {t('jobs.new')}
-                  </Link>
-                </Button>
+                <Button
+                  label={t('jobs.new')}
+                  variant="primary"
+                  icon={<Icon icon={PlusIcon} />}
+                  href="/scheduler/jobs/new"
+                />
               )
             }
           />
@@ -290,25 +273,15 @@ export default function JobsPage() {
   return (
     <>
       <SchedulerHeader description={t('jobs.description')} />
-      <Tabs
-        value={view}
-        onValueChange={(v) => set({ view: v === 'all' ? undefined : v })}
-        className="min-w-0"
-      >
-        <TabsList className="max-w-full overflow-x-auto">
-          {VIEWS.map((v) => (
-            <TabsTrigger key={v} value={v}>
-              {t(`jobs.views.${v}`)}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {/* Each tab only filters the same list; every tab still has its panel. */}
+      <TabList role="tablist" value={view} onChange={(v) => set({ view: v === 'all' ? undefined : v })}>
         {VIEWS.map((v) => (
-          <TabsContent key={v} value={v} className="min-w-0">
-            {v === view && table}
-          </TabsContent>
+          <Tab key={v} value={v} label={t(`jobs.views.${v}`)} panelId={panelId} />
         ))}
-      </Tabs>
+      </TabList>
+      {/* Each tab only filters the same list, so one panel serves them all. */}
+      <div role="tabpanel" id={panelId} aria-label={t(`jobs.views.${view}`)} className="min-w-0">
+        {table}
+      </div>
       <p className="sr-only" aria-live="polite">
         {data ? t('jobs.liveCount', { count: data.total }) : ''}
       </p>

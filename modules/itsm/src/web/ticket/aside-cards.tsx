@@ -2,31 +2,24 @@
 
 import type { RecordLinkDto, RecordPanelSlotProps, ResolvedRecordInfo } from '@isbp/contracts';
 import { Slot, useCan, usePageRecord, usePlatform } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { DropdownMenu } from '@astryxdesign/core/DropdownMenu';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Switch } from '@astryxdesign/core/Switch';
+import { Text } from '@astryxdesign/core/Text';
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@isbp/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@isbp/ui/dropdown-menu';
-import { Label } from '@isbp/ui/label';
 import { AnimatedItem, AnimatedList, Disclosure } from '@isbp/ui/motion';
 import { PersonPicker } from '@isbp/ui/person-picker';
 import { useApiMutation, useApiQuery } from '@isbp/ui/query';
 import { RecordPicker } from '@isbp/ui/record-picker';
 import { DateTime } from '@isbp/ui/relative-time';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import { StatusBadge, type StatusTone } from '@isbp/ui/status';
-import { Switch } from '@isbp/ui/switch';
 import {
   EyeOffIcon,
   LinkIcon,
@@ -115,14 +108,13 @@ function useChangedFields(ticket: TicketDetail) {
   return flash;
 }
 
+/** One fact of the Details card: its caption on the left, the value or the control (named by `label` too) on the right. */
 function Row({
   label,
-  htmlFor,
   flash,
   children,
 }: {
   label: string;
-  htmlFor?: string;
   /** Restarts the highlight when it changes (the control itself never remounts, so focus stays). */
   flash?: number;
   children: ReactNode;
@@ -136,14 +128,10 @@ function Row({
           className="highlight-flash pointer-events-none absolute inset-0 rounded-md"
         />
       ) : null}
-      {htmlFor ? (
-        <Label htmlFor={htmlFor} className="text-xs leading-tight font-medium text-muted-foreground">
-          {label}
-        </Label>
-      ) : (
-        <span className="text-xs leading-tight font-medium text-muted-foreground">{label}</span>
-      )}
-      <div className="min-w-0 text-sm">{children}</div>
+      <Text size="xsm" weight="medium" color="secondary">
+        {label}
+      </Text>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
@@ -155,7 +143,6 @@ function Row({
 export function DetailsCard({ ticket }: { ticket: TicketDetail }) {
   const t = useTranslations('itsm');
   const td = useTranslations('itsm.details');
-  const id = useId();
   const patch = useTicketPatch(ticket);
   const categoryLabel = useCategoryLabel();
   const flash = useChangedFields(ticket);
@@ -164,7 +151,10 @@ export function DetailsCard({ ticket }: { ticket: TicketDetail }) {
   const overridden = ticket.priority !== matrix;
   const save = (body: UpdateTicketInput) => patch.mutate(body);
   const f = (field: Watched) => (flash.fields.includes(field) ? flash.n : undefined);
-  const htmlFor = (key: string) => (editable ? `${id}-${key}` : undefined);
+  const priorityOptions = [
+    { value: 'auto', label: td('priorityAuto', { priority: t(`priorityShort.${matrix}`) }) },
+    ...[1, 2, 3, 4].map((p) => ({ value: String(p), label: t(`priority.${p}`) })),
+  ];
 
   return (
     <Card className="gap-3 py-4">
@@ -173,11 +163,13 @@ export function DetailsCard({ ticket }: { ticket: TicketDetail }) {
       </CardHeader>
       <CardContent className="px-4">
         <div className="grid gap-1.5" aria-busy={patch.isPending || undefined}>
-          <Row label={td('assignee')} htmlFor={htmlFor('assignee')} flash={f('assignee')}>
+          <Row label={td('assignee')} flash={f('assignee')}>
             {editable ? (
               <AssigneeSelect
-                id={`${id}-assignee`}
+                label={td('assignee')}
+                isLabelHidden
                 size="sm"
+                width="100%"
                 groupId={ticket.assignmentGroup?.id}
                 value={ticket.assignee?.id ?? null}
                 current={ticket.assignee}
@@ -187,74 +179,70 @@ export function DetailsCard({ ticket }: { ticket: TicketDetail }) {
               <PersonChip person={ticket.assignee} className="py-1" />
             )}
           </Row>
-          <Row label={td('group')} htmlFor={htmlFor('group')} flash={f('group')}>
+          <Row label={td('group')} flash={f('group')}>
             {editable ? (
               <GroupSelect
-                id={`${id}-group`}
+                label={td('group')}
+                isLabelHidden
                 size="sm"
+                width="100%"
                 value={ticket.assignmentGroup?.id ?? null}
                 onChange={(assignmentGroupId) => save({ assignmentGroupId })}
               />
             ) : (
-              <span className="block truncate py-1">{ticket.assignmentGroup?.name ?? '—'}</span>
+              <Text as="div" maxLines={1}>
+                {ticket.assignmentGroup?.name ?? '—'}
+              </Text>
             )}
           </Row>
-          <Row label={td('priority')} htmlFor={htmlFor('priority')} flash={f('priority')}>
+          <Row label={td('priority')} flash={f('priority')}>
             {editable ? (
-              <Select
+              <Selector
+                label={td('priority')}
+                isLabelHidden
+                size="sm"
+                width="100%"
+                options={priorityOptions}
                 value={overridden ? String(ticket.priority) : 'auto'}
-                onValueChange={(v) => save({ priority: v === 'auto' ? null : Number(v) })}
-              >
-                <SelectTrigger
-                  id={`${id}-priority`}
-                  size="sm"
-                  className="w-full"
-                  aria-describedby={`${id}-priority-hint`}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">
-                    {td('priorityAuto', { priority: t(`priorityShort.${matrix}`) })}
-                  </SelectItem>
-                  {[1, 2, 3, 4].map((p) => (
-                    <SelectItem key={p} value={String(p)}>
-                      {t(`priority.${p}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(v) => save({ priority: v === 'auto' ? null : Number(v) })}
+              />
             ) : (
               <PriorityBadge priority={ticket.priority} long />
             )}
           </Row>
           {editable && (
-            <p id={`${id}-priority-hint`} className="pl-[7.25rem] text-xs text-muted-foreground">
-              {overridden
-                ? td('priorityOverridden')
-                : td('priorityFrom', {
-                    impact: t(`impactShort.${ticket.impact}`),
-                    urgency: t(`urgencyShort.${ticket.urgency}`),
-                  })}
-            </p>
+            <div className="pl-[7.25rem]">
+              <Text type="supporting" size="xsm">
+                {overridden
+                  ? td('priorityOverridden')
+                  : td('priorityFrom', {
+                      impact: t(`impactShort.${ticket.impact}`),
+                      urgency: t(`urgencyShort.${ticket.urgency}`),
+                    })}
+              </Text>
+            </div>
           )}
-          <Row label={td('category')} htmlFor={htmlFor('category')} flash={f('category')}>
+          <Row label={td('category')} flash={f('category')}>
             {editable ? (
               <CategorySelect
-                id={`${id}-category`}
+                label={td('category')}
+                isLabelHidden
                 size="sm"
+                width="100%"
                 type={ticket.type}
                 value={ticket.category?.id ?? null}
                 onChange={(categoryId) => save({ categoryId })}
               />
             ) : (
-              <span className="block truncate py-1">{categoryLabel(ticket.category) ?? '—'}</span>
+              <Text as="div" maxLines={1}>
+                {categoryLabel(ticket.category) ?? '—'}
+              </Text>
             )}
           </Row>
-          <Row label={td('requester')} htmlFor={htmlFor('requester')} flash={f('requester')}>
+          <Row label={td('requester')} flash={f('requester')}>
             {editable ? (
               <PersonPicker
-                id={`${id}-requester`}
+                aria-label={td('requester')}
                 value={ticket.requester}
                 clearable={false}
                 className="h-8"
@@ -267,73 +255,87 @@ export function DetailsCard({ ticket }: { ticket: TicketDetail }) {
             )}
           </Row>
           {ticket.type === 'incident' && (
-            <Row label={td('majorShort')} htmlFor={`${id}-major`} flash={f('major')}>
-              <span className="flex items-center justify-between gap-2 py-1">
-                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <SirenIcon className="size-3.5 text-destructive" aria-hidden />
-                  {ticket.major ? td('majorOn') : td('majorOff')}
-                </span>
+            <Row label={td('majorShort')} flash={f('major')}>
+              <HStack gap={2} hAlign="between" vAlign="center">
+                <HStack gap={1.5} vAlign="center">
+                  <Icon icon={SirenIcon} size="sm" color="error" />
+                  <Text type="supporting" size="xsm">
+                    {ticket.major ? td('majorOn') : td('majorOff')}
+                  </Text>
+                </HStack>
                 <Switch
-                  id={`${id}-major`}
-                  checked={ticket.major}
-                  disabled={!editable}
-                  onCheckedChange={(major) => save({ major })}
+                  label={td('majorShort')}
+                  isLabelHidden
+                  size="sm"
+                  value={ticket.major}
+                  isDisabled={!editable}
+                  onChange={(major) => save({ major })}
                 />
-              </span>
+              </HStack>
             </Row>
           )}
           <Disclosure
-            summary={<span className="text-xs text-muted-foreground">{td('more')}</span>}
+            summary={
+              <Text type="supporting" size="xsm">
+                {td('more')}
+              </Text>
+            }
             className="mt-1 border-t pt-1"
             contentClassName="grid gap-1.5"
           >
             <div className="grid gap-1.5 pb-1">
-              <Row label={td('impact')} htmlFor={htmlFor('impact')} flash={f('impact')}>
+              <Row label={td('impact')} flash={f('impact')}>
                 {editable ? (
                   <LevelSelect
                     kind="impact"
-                    id={`${id}-impact`}
+                    label={td('impact')}
+                    isLabelHidden
                     size="sm"
+                    width="100%"
                     value={String(ticket.impact)}
                     onChange={(v) => save({ impact: Number(v) })}
                   />
                 ) : (
-                  <span className="py-1">{t(`impactShort.${ticket.impact}`)}</span>
+                  <Text>{t(`impactShort.${ticket.impact}`)}</Text>
                 )}
               </Row>
-              <Row label={td('urgency')} htmlFor={htmlFor('urgency')} flash={f('urgency')}>
+              <Row label={td('urgency')} flash={f('urgency')}>
                 {editable ? (
                   <LevelSelect
                     kind="urgency"
-                    id={`${id}-urgency`}
+                    label={td('urgency')}
+                    isLabelHidden
                     size="sm"
+                    width="100%"
                     value={String(ticket.urgency)}
                     onChange={(v) => save({ urgency: Number(v) })}
                   />
                 ) : (
-                  <span className="py-1">{t(`urgencyShort.${ticket.urgency}`)}</span>
+                  <Text>{t(`urgencyShort.${ticket.urgency}`)}</Text>
                 )}
               </Row>
-              <Row label={td('requestedFor')} htmlFor={htmlFor('for')} flash={f('requestedFor')}>
+              <Row label={td('requestedFor')} flash={f('requestedFor')}>
                 {editable ? (
                   <PersonPicker
-                    id={`${id}-for`}
+                    aria-label={td('requestedFor')}
                     value={ticket.requestedFor}
                     placeholder={td('sameAsRequester')}
                     className="h-8"
                     onChange={(p) => save({ requestedForId: p?.id ?? null })}
                   />
                 ) : (
-                  <span className="block truncate py-1">
+                  <Text as="div" maxLines={1}>
                     {ticket.requestedFor?.displayName ?? td('sameAsRequester')}
-                  </span>
+                  </Text>
                 )}
               </Row>
               <Row label={td('channel')}>
-                <span className="py-1">{t(`channel.${ticket.channel}`)}</span>
+                <Text>{t(`channel.${ticket.channel}`)}</Text>
               </Row>
               <Row label={td('department')}>
-                <span className="block truncate py-1">{ticket.department?.name ?? '—'}</span>
+                <Text as="div" maxLines={1}>
+                  {ticket.department?.name ?? '—'}
+                </Text>
               </Row>
               <Row label={td('created')}>
                 <DateTime date={ticket.createdAt} />
@@ -418,18 +420,16 @@ function CiList({ ticket, canEdit, cmdb }: { ticket: TicketDetail; canEdit: bool
               )}
             </div>
             {canEdit && (
-              <Button
+              <IconButton
+                label={t('remove', { name: ci.name })}
                 variant="ghost"
-                size="icon-sm"
-                className="size-7 shrink-0 text-muted-foreground"
-                aria-label={t('remove', { name: ci.name })}
-                disabled={patch.isPending}
+                size="sm"
+                icon={<Icon icon={XIcon} />}
+                isDisabled={patch.isPending}
                 onClick={() =>
                   patch.mutate({ ciIds: ticket.cis.filter((c) => c.id !== ci.id).map((c) => c.id) })
                 }
-              >
-                <XIcon />
-              </Button>
+              />
             )}
           </div>
         </AnimatedItem>
@@ -481,16 +481,14 @@ function TicketLinks({ ticket, canEdit }: { ticket: TicketDetail; canEdit: boole
                     className="hidden sm:inline-flex xl:hidden 2xl:inline-flex"
                   />
                   {canEdit && (
-                    <Button
+                    <IconButton
+                      label={tl('remove', { reference: l.ticket.reference })}
                       variant="ghost"
-                      size="icon-sm"
-                      className="size-7 shrink-0 text-muted-foreground"
-                      aria-label={tl('remove', { reference: l.ticket.reference })}
+                      size="sm"
+                      icon={<Icon icon={Trash2Icon} />}
+                      isDisabled={remove.isPending && remove.variables?.id === l.id}
                       onClick={() => remove.mutate(l)}
-                      disabled={remove.isPending && remove.variables?.id === l.id}
-                    >
-                      <Trash2Icon />
-                    </Button>
+                    />
                   )}
                 </div>
               </AnimatedItem>
@@ -546,16 +544,14 @@ function RecordRows({
                 />
               )}
               {canEdit && (
-                <Button
+                <IconButton
+                  label={t('removeRecord', { name: l.record.reference ?? l.record.title })}
                   variant="ghost"
-                  size="icon-sm"
-                  className="size-7 shrink-0 text-muted-foreground"
-                  aria-label={t('removeRecord', { name: l.record.reference ?? l.record.title })}
-                  disabled={removing}
+                  size="sm"
+                  icon={<Icon icon={XIcon} />}
+                  isDisabled={removing}
                   onClick={() => onRemove(l.id)}
-                >
-                  <XIcon />
-                </Button>
+                />
               )}
             </div>
           </AnimatedItem>
@@ -580,7 +576,7 @@ function AddTicketDialog({
   const t = useTranslations('itsm');
   const tl = useTranslations('itsm.links');
   const tc = useTranslations('common');
-  const id = useId();
+  const formId = useId();
   // On a problem the useful relation is "causes these incidents".
   const options = relationOptions(ticket);
   const [relation, setRelation] = useState(options[0]!.value);
@@ -606,60 +602,64 @@ function AddTicketDialog({
   );
   const linked = new Set(ticket.links.map((l) => l.ticket.id));
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{tl('addTitle')}</DialogTitle>
-          <DialogDescription>{tl('addHint', { reference: ticket.reference })}</DialogDescription>
-        </DialogHeader>
-        <form
-          noValidate
-          className="grid gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (picked.length) add.mutate(picked);
-          }}
-        >
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-type`}>{tl('relation')}</Label>
-            <Select value={relation} onValueChange={setRelation}>
-              <SelectTrigger id={`${id}-type`} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {options.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {t(`linkType.${o.type}.${o.direction}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-target`}>{tl('targets')}</Label>
-            <TicketPicker
-              id={`${id}-target`}
-              value={picked}
-              onChange={setPicked}
-              exclude={[ticket.id, ...linked]}
-              types={ticket.type === 'problem' ? ['incident', 'service_request'] : undefined}
-              aria-describedby={`${id}-target-hint`}
-            />
-            <p id={`${id}-target-hint`} className="text-xs text-muted-foreground">
-              {tl('targetsHint')}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tc('cancel')}
-            </Button>
-            <Button type="submit" loading={add.isPending} disabled={!picked.length}>
-              <LinkIcon />
-              {tl('addCount', { count: picked.length })}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={512} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={tl('addTitle')}
+            subtitle={tl('addHint', { reference: ticket.reference })}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <form
+              id={formId}
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (picked.length) add.mutate(picked);
+              }}
+            >
+              <FormLayout defaultOptionality="required">
+                <Selector
+                  label={tl('relation')}
+                  value={relation}
+                  onChange={setRelation}
+                  options={options.map((o) => ({
+                    value: o.value,
+                    label: t(`linkType.${o.type}.${o.direction}`),
+                  }))}
+                />
+                <TicketPicker
+                  label={tl('targets')}
+                  description={tl('targetsHint')}
+                  value={picked}
+                  onChange={setPicked}
+                  exclude={[ticket.id, ...linked]}
+                  types={ticket.type === 'problem' ? ['incident', 'service_request'] : undefined}
+                />
+              </FormLayout>
+            </form>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={tl('addCount', { count: picked.length })}
+                variant="primary"
+                icon={<Icon icon={LinkIcon} />}
+                type="submit"
+                form={formId}
+                isLoading={add.isPending}
+                isDisabled={!picked.length}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -700,27 +700,30 @@ function AddCisDialog({
       setDraft(ticket.cis.map((c) => ({ id: c.id, number: c.number, reference: c.reference, name: c.name })));
   }
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('editTitle')}</DialogTitle>
-          <DialogDescription>{t('editHint')}</DialogDescription>
-        </DialogHeader>
-        <CiPicker value={draft} onChange={setDraft} aria-label={t('title')} />
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button
-            loading={patch.isPending}
-            onClick={() =>
-              patch.mutate({ ciIds: draft.map((c) => c.id) }, { onSuccess: () => onOpenChange(false) })
-            }
-          >
-            {tc('save')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={512} purpose="form">
+      <Layout
+        header={<DialogHeader title={t('editTitle')} subtitle={t('editHint')} onOpenChange={onOpenChange} />}
+        content={
+          <LayoutContent padding={4}>
+            <CiPicker label={t('title')} isLabelHidden value={draft} onChange={setDraft} />
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={tc('save')}
+                variant="primary"
+                isLoading={patch.isPending}
+                onClick={() =>
+                  patch.mutate({ ciIds: draft.map((c) => c.id) }, { onSuccess: () => onOpenChange(false) })
+                }
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -766,32 +769,44 @@ function AddRecordDialog({
   );
   const already = new Set(linked);
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('addRecordTitle')}</DialogTitle>
-          <DialogDescription>{t('addRecordHint')}</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-2">
-          <Label htmlFor={`${id}-record`}>{t('record')}</Label>
-          <RecordPicker
-            id={`${id}-record`}
-            multiple
-            types={types}
-            value={picked}
-            onChange={(refs) => setPicked(refs.filter((r) => !already.has(r)))}
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={512} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('addRecordTitle')}
+            subtitle={t('addRecordHint')}
+            onOpenChange={onOpenChange}
           />
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button loading={link.isPending} disabled={!picked.length} onClick={() => link.mutate(picked)}>
-            <LinkIcon />
-            {t('linkRecord')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+        }
+        content={
+          <LayoutContent padding={4}>
+            <Field label={t('record')} inputID={`${id}-record`}>
+              <RecordPicker
+                id={`${id}-record`}
+                multiple
+                types={types}
+                value={picked}
+                onChange={(refs) => setPicked(refs.filter((r) => !already.has(r)))}
+              />
+            </Field>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t('linkRecord')}
+                variant="primary"
+                icon={<Icon icon={LinkIcon} />}
+                isLoading={link.isPending}
+                isDisabled={!picked.length}
+                onClick={() => link.mutate(picked)}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -835,34 +850,23 @@ export function RelatedCard({ ticket }: { ticket: TicketDetail }) {
         <CardTitle id={`${record.id}-related`}>{t('title')}</CardTitle>
         {(canEdit || canLinkRecords) && (
           <CardAction>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <PlusIcon />
-                  {t('add')}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-52">
-                {canEdit && cmdb && (
-                  <DropdownMenuItem onSelect={() => setAdding('ci')}>
-                    <ServerIcon aria-hidden />
-                    {t('addCi')}
-                  </DropdownMenuItem>
-                )}
-                {canEdit && (
-                  <DropdownMenuItem onSelect={() => setAdding('ticket')}>
-                    <TicketIcon aria-hidden />
-                    {t('addTicket')}
-                  </DropdownMenuItem>
-                )}
-                {canLinkRecords && (
-                  <DropdownMenuItem onSelect={() => setAdding('record')}>
-                    <LinkIcon aria-hidden />
-                    {t('addRecord')}
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <DropdownMenu
+              button={{ label: t('add'), variant: 'ghost', size: 'sm', icon: <Icon icon={PlusIcon} /> }}
+              hasChevron={false}
+              alignment="end"
+              menuWidth={208}
+              items={[
+                ...(canEdit && cmdb
+                  ? [{ label: t('addCi'), icon: ServerIcon, onClick: () => setAdding('ci') }]
+                  : []),
+                ...(canEdit
+                  ? [{ label: t('addTicket'), icon: TicketIcon, onClick: () => setAdding('ticket') }]
+                  : []),
+                ...(canLinkRecords
+                  ? [{ label: t('addRecord'), icon: LinkIcon, onClick: () => setAdding('record') }]
+                  : []),
+              ]}
+            />
           </CardAction>
         )}
       </CardHeader>

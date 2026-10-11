@@ -3,29 +3,21 @@
 import { type Me, updateMeSchema } from '@isbp/contracts';
 import { usePlatform } from '@isbp/sdk/web';
 import { UserAvatar } from '@isbp/ui/avatar';
-import { Button } from '@isbp/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@isbp/ui/form';
-import { Input } from '@isbp/ui/input';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { Skeleton } from '@isbp/ui/skeleton';
 import { LockIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { problemResolver, type ValidationText, zodProblems } from '@/components/idp/contract-resolver';
 import { useDepartments } from '@/components/pickers/use-departments';
 import { SourceBadge } from '@/components/status-badge';
 import { useApiMutation, useErrorText } from '@/lib/api';
-
-function ReadOnly({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="min-w-0 space-y-1">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="truncate text-sm">{children}</dd>
-    </div>
-  );
-}
+import { Button } from '@astryxdesign/core/Button';
+import { HStack, StackItem } from '@astryxdesign/core/Layout';
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList';
+import { TextInput } from '@astryxdesign/core/TextInput';
 
 export function ProfileCard({ me }: { me: Me | undefined }) {
   const t = useTranslations('settings.profile');
@@ -84,47 +76,53 @@ export function ProfileCard({ me }: { me: Me | undefined }) {
         </div>
 
         <Form {...form}>
-          <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            <FormField
-              control={form.control}
-              name="displayName"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel>{t('displayName')}</FormLabel>
-                  <FormControl>
-                    <Input {...field} autoComplete="name" maxLength={200} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button
-              type="submit"
-              className="sm:mt-[1.375rem]"
-              loading={save.isPending}
-              disabled={!form.formState.isDirty}
-            >
-              {tc('save')}
-            </Button>
+          <form onSubmit={onSubmit} noValidate>
+            <HStack gap={3} vAlign="end" wrap="wrap">
+              <StackItem size="fill">
+                <FormField
+                  control={form.control}
+                  name="displayName"
+                  render={({ field, fieldState }) => (
+                    <TextInput
+                      label={t('displayName')}
+                      autoComplete="name"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
+                      width="100%"
+                    />
+                  )}
+                />
+              </StackItem>
+              <Button
+                label={tc('save')}
+                variant="primary"
+                isLoading={save.isPending}
+                isDisabled={!form.formState.isDirty}
+                type="submit"
+              />
+            </HStack>
           </form>
         </Form>
 
-        <dl className="grid gap-4 rounded-lg border bg-muted/20 p-4 sm:grid-cols-2">
-          <ReadOnly label={tc('email')}>{user.email}</ReadOnly>
-          <ReadOnly label={t('username')}>
+        <MetadataList columns={2}>
+          <MetadataListItem label={tc('email')}>{user.email}</MetadataListItem>
+          <MetadataListItem label={t('username')}>
             <code className="font-mono text-xs">{user.username}</code>
-          </ReadOnly>
-          <ReadOnly label={tc('department')}>
+          </MetadataListItem>
+          <MetadataListItem label={tc('department')}>
             {departmentId && loadingDepartments ? (
               <Skeleton className="h-4 w-32" />
             ) : (
               (department ?? <span className="text-muted-foreground">{tc('none')}</span>)
             )}
-          </ReadOnly>
-          <ReadOnly label={t('signIn')}>
+          </MetadataListItem>
+          <MetadataListItem label={t('signIn')}>
             {me ? <SourceBadge source={me.authSource} /> : <Skeleton className="h-5 w-16" />}
-          </ReadOnly>
-        </dl>
+          </MetadataListItem>
+        </MetadataList>
         <p className="-mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
           <LockIcon className="size-3.5 shrink-0" aria-hidden />
           {t('managedHint')}

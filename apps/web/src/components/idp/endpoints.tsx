@@ -1,11 +1,10 @@
 'use client';
 
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
 import { cn } from '@isbp/ui';
-import { Button } from '@isbp/ui/button';
-import { toast } from '@isbp/ui/sonner';
-import { Hint } from '@isbp/ui/tooltip';
+import { toast } from '@isbp/ui/toast';
 import { CheckIcon, CopyIcon } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -28,29 +27,13 @@ export function CopyButton({ value, label }: { value: string; label: string }) {
     }
   };
   return (
-    <Hint label={label}>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        onClick={copy}
-        aria-label={label}
-        className="shrink-0 overflow-hidden"
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={copied ? 'done' : 'copy'}
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.6, opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="grid place-items-center"
-          >
-            {copied ? <CheckIcon className="size-4 text-success" /> : <CopyIcon className="size-4" />}
-          </motion.span>
-        </AnimatePresence>
-      </Button>
-    </Hint>
+    <IconButton
+      label={label}
+      variant="ghost"
+      size="sm"
+      icon={<Icon icon={copied ? CheckIcon : CopyIcon} color={copied ? 'success' : 'inherit'} />}
+      onClick={copy}
+    />
   );
 }
 

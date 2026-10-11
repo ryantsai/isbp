@@ -1,5 +1,14 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Icon } from '@astryxdesign/core/Icon';
+import { Grid } from '@astryxdesign/core/Grid';
+import { VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { Selector } from '@astryxdesign/core/Selector';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import {
   ASSIGNMENT_PERIODS,
   type AssignmentPeriod,
@@ -10,12 +19,7 @@ import {
   type TaskConfigSlotProps,
 } from '@isbp/contracts';
 import { localize } from '@isbp/sdk';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
-import { Textarea } from '@isbp/ui/textarea';
 import { ExternalLinkIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useLocale, useNow, useTimeZone, useTranslations } from 'next-intl';
 import { useId } from 'react';
 import { useApiQuery } from '@/lib/api';
@@ -66,17 +70,30 @@ export default function AssignFormTaskConfig({ value, onChange, errors, disabled
           : { type: 'group', groupKey: a.groupKey ?? '' },
     });
 
-  const err = (key: string) => errors?.[key];
+  const err = (key: string) => {
+    const message = errors?.[key];
+    return message ? { type: 'error' as const, message } : undefined;
+  };
   const example = periodKey(now, period, timeZone);
   const exampleDue = format.dateTime(assignmentDueAt(now, period, due, timeZone), { dateStyle: 'medium' });
 
   return (
-    <div className="grid min-w-0 gap-4">
-      <div className="grid min-w-0 gap-1.5">
-        <Label htmlFor={`${id}-form`}>{t('form')}</Label>
-        <Select
-          value={formKey}
-          onValueChange={(key) => {
+    <VStack gap={4}>
+      <VStack gap={2} hAlign="start">
+        <Selector
+          label={t('form')}
+          value={formKey || undefined}
+          placeholder={isLoading ? t('loading') : t('pickForm')}
+          description={t('formHint')}
+          status={err('formKey')}
+          hasSearch={data.forms.length > 15}
+          isDisabled={disabled}
+          options={data.forms.map((f) => ({
+            value: f.key,
+            label: `${localize(f.name, locale)}${f.published ? '' : ` · ${t('unpublished')}`}`,
+            disabled: !f.published,
+          }))}
+          onChange={(key) => {
             const picked = data.forms.find((f) => f.key === key);
             set({
               formKey: key,
@@ -84,38 +101,13 @@ export default function AssignFormTaskConfig({ value, onChange, errors, disabled
               title: title || (picked ? `${localize(picked.name, locale)} ${TOKEN}` : title),
             });
           }}
-          disabled={disabled}
-        >
-          <SelectTrigger
-            id={`${id}-form`}
-            className="w-full"
-            aria-invalid={Boolean(err('formKey')) || undefined}
-            aria-describedby={`${id}-form-hint`}
-          >
-            <SelectValue placeholder={isLoading ? t('loading') : t('pickForm')} />
-          </SelectTrigger>
-          <SelectContent>
-            {data.forms.map((f) => (
-              <SelectItem key={f.id} value={f.key} disabled={!f.published}>
-                {localize(f.name, locale)}
-                {!f.published && ` · ${t('unpublished')}`}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p id={`${id}-form-hint`} className="text-xs text-muted-foreground">
-          {err('formKey') ?? t('formHint')}
-        </p>
+        />
         {form && (
-          <Link
-            href={`/admin/forms/${form.id}?tab=assignments`}
-            className="inline-flex w-fit items-center gap-1 text-sm text-primary hover:underline focus-visible:underline focus-visible:outline-none"
-          >
-            {t('openForm', { name: localize(form.name, locale) })}
-            <ExternalLinkIcon className="size-3.5" aria-hidden />
+          <Link href={`/admin/forms/${form.id}?tab=assignments`}>
+            {t('openForm', { name: localize(form.name, locale) })} <Icon icon={ExternalLinkIcon} size="sm" />
           </Link>
         )}
-      </div>
+      </VStack>
 
       <AssigneeFields
         id={id}
@@ -126,102 +118,66 @@ export default function AssignFormTaskConfig({ value, onChange, errors, disabled
         disabled={disabled}
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={`${id}-period`}>{t('period')}</Label>
-          <Select value={period} onValueChange={(p) => set({ period: p })} disabled={disabled}>
-            <SelectTrigger id={`${id}-period`} className="w-full" aria-describedby={`${id}-period-hint`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ASSIGNMENT_PERIODS.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {t(`periods.${p}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={`${id}-due`}>{t('due')}</Label>
-          <Select
-            value={due.type}
-            onValueChange={(v) =>
-              set({ due: v === 'days' ? { type: 'days', days: 7 } : { type: 'end-of-period' } })
-            }
-            disabled={disabled}
-          >
-            <SelectTrigger id={`${id}-due`} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="end-of-period">{t('dueEnd')}</SelectItem>
-              <SelectItem value="days">{t('dueDays')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <p id={`${id}-period-hint`} className="-mt-2 text-xs text-muted-foreground">
-        {t('periodHint')}
-      </p>
+      <Grid columns={{ minWidth: 200 }} gap={4}>
+        <Selector
+          label={t('period')}
+          value={period}
+          description={t('periodHint')}
+          isDisabled={disabled}
+          options={ASSIGNMENT_PERIODS.map((p) => ({ value: p, label: t(`periods.${p}`) }))}
+          onChange={(p) => set({ period: p })}
+        />
+        <Selector
+          label={t('due')}
+          value={due.type}
+          isDisabled={disabled}
+          options={[
+            { value: 'end-of-period', label: t('dueEnd') },
+            { value: 'days', label: t('dueDays') },
+          ]}
+          onChange={(v) => set({ due: v === 'days' ? { type: 'days', days: 7 } : { type: 'end-of-period' } })}
+        />
+      </Grid>
 
       {due.type === 'days' && (
-        <div className="grid min-w-0 gap-1.5 sm:max-w-48">
-          <Label htmlFor={`${id}-days`}>{t('days')}</Label>
-          <Input
-            id={`${id}-days`}
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={366}
-            value={String(due.days)}
-            onChange={(e) =>
-              set({ due: { type: 'days', days: Math.max(0, Math.round(Number(e.target.value) || 0)) } })
-            }
-            aria-invalid={Boolean(err('due.days')) || undefined}
-            disabled={disabled}
-          />
-          {err('due.days') && <p className="text-xs text-destructive">{err('due.days')}</p>}
-        </div>
+        <NumberInput
+          label={t('days')}
+          value={due.days}
+          min={0}
+          max={366}
+          isIntegerOnly
+          width={192}
+          isDisabled={disabled}
+          status={err('due.days')}
+          onChange={(days) => set({ due: { type: 'days', days: Math.max(0, Math.round(days || 0)) } })}
+        />
       )}
 
-      <div className="grid min-w-0 gap-1.5">
-        <Label htmlFor={`${id}-title`}>{t('title')}</Label>
-        <Input
-          id={`${id}-title`}
-          value={title}
-          maxLength={200}
-          onChange={(e) => set({ title: e.target.value })}
-          aria-invalid={Boolean(err('title')) || undefined}
-          aria-describedby={`${id}-title-hint`}
-          disabled={disabled}
-        />
-        <p id={`${id}-title-hint`} className="text-xs text-muted-foreground">
-          {err('title') ?? t('titleHint', { token: TOKEN, example })}
-        </p>
-      </div>
+      <TextInput
+        label={t('title')}
+        value={title}
+        description={t('titleHint', { token: TOKEN, example })}
+        status={err('title')}
+        isDisabled={disabled}
+        onChange={(v) => set({ title: v.slice(0, 200) })}
+      />
 
-      <div className="grid min-w-0 gap-1.5">
-        <Label htmlFor={`${id}-note`}>{t('note')}</Label>
-        <Textarea
-          id={`${id}-note`}
-          value={note}
-          maxLength={2000}
-          rows={2}
-          onChange={(e) => set({ note: e.target.value || null })}
-          aria-describedby={`${id}-note-hint`}
-          disabled={disabled}
-        />
-        <p id={`${id}-note-hint`} className="text-xs text-muted-foreground">
-          {t('noteHint')}
-        </p>
-      </div>
+      <TextArea
+        label={t('note')}
+        value={note}
+        rows={2}
+        description={t('noteHint')}
+        isDisabled={disabled}
+        onChange={(v) => set({ note: v.slice(0, 2000) || null })}
+      />
 
       {title.trim() && (
-        <p role="status" className="rounded-lg border bg-muted/40 px-3 py-2 text-sm [overflow-wrap:anywhere]">
-          {t('example', { title: assignmentTitle(title, example), due: exampleDue })}
-        </p>
+        <Banner
+          status="info"
+          title={t('example', { title: assignmentTitle(title, example), due: exampleDue })}
+          collapsible={false}
+        />
       )}
-    </div>
+    </VStack>
   );
 }

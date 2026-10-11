@@ -1,13 +1,12 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
 import type { WebPageProps } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { EmptyState } from '@isbp/ui/empty-state';
-import { PageHeader } from '@isbp/ui/page-header';
+import { BackLink, PageHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { ArrowLeftIcon, FileQuestionIcon, LockIcon } from 'lucide-react';
-import Link from 'next/link';
+import { FileQuestionIcon, LockIcon } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { JobDetail } from '../../contracts';
@@ -55,11 +54,7 @@ export default function JobFormPage({ params }: WebPageProps) {
     if (!job.viewer.canEdit) return <EmptyState icon={<LockIcon />} title={t('form.noAccess')} />;
     return (
       <>
-        <Button variant="ghost" size="sm" asChild className="-ml-2 mb-2 text-muted-foreground">
-          <Link href={jobHref(job.id)}>
-            <ArrowLeftIcon /> {job.name}
-          </Link>
-        </Button>
+        <BackLink href={jobHref(job.id)} label={job.name} />
         <PageHeader title={t('form.editTitle', { name: job.name })} description={t('form.editHint')} />
         <JobForm key={job.id} job={job} types={items} sandbox={sandbox} />
       </>
@@ -75,23 +70,19 @@ export default function JobFormPage({ params }: WebPageProps) {
   const unknownType = initial.type && !items.some((x) => x.type === initial.type);
   return (
     <>
-      <Button variant="ghost" size="sm" asChild className="-ml-2 mb-2 text-muted-foreground">
-        <Link href="/scheduler/jobs">
-          <ArrowLeftIcon /> {t('jobs.title')}
-        </Link>
-      </Button>
+      <BackLink href="/scheduler/jobs" label={t('jobs.title')} />
       <PageHeader title={t('form.newTitle')} description={t('form.newHint')} />
       {items.length === 0 ? (
         <EmptyState icon={<LockIcon />} title={t('form.noTypes')} />
       ) : (
         <>
           {unknownType && (
-            <p
+            <Banner
               role="status"
-              className="mb-4 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-foreground"
-            >
-              {t('form.typeNotAvailable', { type: initial.type ?? '' })}
-            </p>
+              status="warning"
+              collapsible={false}
+              title={t('form.typeNotAvailable', { type: initial.type ?? '' })}
+            />
           )}
           <JobForm initial={initial} types={items} sandbox={sandbox} />
         </>

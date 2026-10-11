@@ -1,5 +1,10 @@
-import ReactMarkdown, { type Components } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+'use client';
+
+import { Link } from '@astryxdesign/core/Link';
+import { Markdown as AstryxMarkdown } from '@astryxdesign/core/Markdown';
+import { useOutlineFromMarkdown } from '@astryxdesign/core/Outline';
+import { Heading } from '@astryxdesign/core/Text';
+import { type ComponentProps, useMemo } from 'react';
 import { createSlugger } from '../lib/slug';
 import { cn } from '../lib/utils';
 
@@ -13,81 +18,68 @@ export function safeUrl(url: string): string {
   return '';
 }
 
+type Components = NonNullable<ComponentProps<typeof AstryxMarkdown>['components']>;
+
 const components: Components = {
-  a: ({ href, children, ...props }) => {
-    const external = !!href && /^https?:/i.test(href);
-    return (
-      <a
-        {...props}
-        href={href}
-        className="font-medium text-primary underline underline-offset-4 hover:no-underline"
-        {...(external ? { target: '_blank', rel: 'noopener noreferrer nofollow' } : {})}
-      >
+  // Web links leave the app in a new tab and tell crawlers not to follow them.
+  link: ({ href, children }) =>
+    /^https?:/i.test(href) ? (
+      <Link href={href} target="_blank" rel="nofollow">
         {children}
-      </a>
-    );
-  },
-  table: ({ children }) => (
-    <div className="my-4 w-full overflow-x-auto rounded-lg border">
-      <table className="w-full text-sm break-normal">{children}</table>
-    </div>
-  ),
-  th: ({ children }) => <th className="border-b bg-muted/50 px-3 py-2 text-left font-medium">{children}</th>,
-  td: ({ children }) => <td className="border-b px-3 py-2 align-top last:border-b-0">{children}</td>,
+      </Link>
+    ) : (
+      <Link href={href}>{children}</Link>
+    ),
   // Never render images from arbitrary hosts inline (tracking pixels); show them as links instead. The guide's own
   // screenshots (same origin) are the exception.
-  img: ({ src, alt }) =>
-    typeof src === 'string' && src.startsWith(HELP_IMAGES) && !src.includes('..') ? (
-      <a href={src} target="_blank" rel="noopener" className="my-4 block w-fit">
+  image: ({ src, alt }) =>
+    src.startsWith(HELP_IMAGES) && !src.includes('..') ? (
+      <Link href={src} target="_blank" label={alt || undefined}>
         {/* eslint-disable-next-line @next/next/no-img-element -- static screenshot, sized by the article column */}
         <img
           src={src}
-          alt={alt ?? ''}
+          alt={alt}
           loading="lazy"
-          className="h-auto max-w-full rounded-lg border shadow-sm"
+          className="my-4 block h-auto max-w-full rounded-(--radius-container) border border-(--color-border)"
         />
-      </a>
-    ) : typeof src === 'string' && safeUrl(src) ? (
-      <a
-        href={safeUrl(src)}
-        target="_blank"
-        rel="noopener noreferrer nofollow"
-        className="text-primary underline"
-      >
+      </Link>
+    ) : safeUrl(src) ? (
+      <Link href={safeUrl(src)} target="_blank" rel="nofollow">
         {alt || src}
-      </a>
+      </Link>
     ) : null,
 };
 
-interface MdNode {
-  type: string;
-  value?: string;
-  children?: MdNode[];
-  data?: { hProperties?: Record<string, unknown> };
-}
-
-const textOf = (n: MdNode): string => n.value ?? (n.children ?? []).map(textOf).join('');
-
-/** Gives headings their anchor as `id` (a repeated heading gets `-1`, `-2`…), so `#section` links work. */
-function remarkHeadingIds() {
-  return (tree: MdNode) => {
+/** Markdown whose headings carry the user guide's anchors (`#raise-a-ticket`, also in Chinese and Japanese). */
+function AnchoredMarkdown({ children, className }: { children: string; className?: string }) {
+  // Astryx gives each root heading an ASCII id; the guide's links use GitHub-style anchors (every script kept).
+  const outline = useOutlineFromMarkdown(children);
+  const anchorOf = useMemo(() => {
     const slug = createSlugger();
-    const walk = (n: MdNode) => {
-      if (n.type === 'heading')
-        n.data = { ...n.data, hProperties: { ...n.data?.hProperties, id: slug(textOf(n)) } };
-      n.children?.forEach(walk);
-    };
-    walk(tree);
-  };
+    return new Map(outline.map((h) => [h.id, slug(h.label)]));
+  }, [outline]);
+  const withAnchors = useMemo<Components>(
+    () => ({
+      ...components,
+      heading: ({ level, id, children: label }) => (
+        <Heading level={level} id={(id && anchorOf.get(id)) || id} className="scroll-mt-20">
+          {label}
+        </Heading>
+      ),
+    }),
+    [anchorOf],
+  );
+  return (
+    <AstryxMarkdown contentWidth="100%" className={cn('wrap-anywhere', className)} components={withAnchors}>
+      {children}
+    </AstryxMarkdown>
+  );
 }
-
-const PLUGINS = [remarkGfm];
-const PLUGINS_WITH_ANCHORS = [remarkGfm, remarkHeadingIds];
 
 /**
- * Renders user-authored Markdown (GitHub flavour) safely: raw HTML is never rendered (react-markdown
- * escapes it), URLs are restricted to http(s)/mailto/relative, and images become links (except the guide's
- * screenshots under `/help/`). `anchors` gives headings ids for `#section` links (articles and other long reads).
+ * Renders user-authored Markdown (GitHub flavour) safely with Astryx `Markdown`: raw HTML is never rendered, URLs are
+ * restricted to http(s)/mailto/relative, and images become links (except the guide's screenshots under `/help/`).
+ * `anchors` gives headings ids for `#section` links (articles and other long reads).
  */
 export function Markdown({
   children,
@@ -98,29 +90,10 @@ export function Markdown({
   className?: string;
   anchors?: boolean;
 }) {
+  if (anchors) return <AnchoredMarkdown className={className}>{children}</AnchoredMarkdown>;
   return (
-    <div
-      className={cn(
-        'max-w-none text-sm leading-relaxed wrap-anywhere text-foreground',
-        '[&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:text-xl [&_h1]:font-semibold',
-        '[&_h2]:mt-6 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold',
-        '[&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold',
-        '[&_:is(h1,h2,h3)]:scroll-mt-20',
-        '[&_p]:my-3 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6',
-        '[&_li]:my-1 [&_li>p]:my-1 [&_blockquote]:my-4 [&_blockquote]:border-l-2 [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground',
-        '[&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em]',
-        '[&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-4 [&_pre_code]:bg-transparent [&_pre_code]:p-0',
-        '[&_hr]:my-6 [&_hr]:border-border [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
-        className,
-      )}
-    >
-      <ReactMarkdown
-        remarkPlugins={anchors ? PLUGINS_WITH_ANCHORS : PLUGINS}
-        components={components}
-        urlTransform={safeUrl}
-      >
-        {children}
-      </ReactMarkdown>
-    </div>
+    <AstryxMarkdown contentWidth="100%" className={cn('wrap-anywhere', className)} components={components}>
+      {children}
+    </AstryxMarkdown>
   );
 }

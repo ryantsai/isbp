@@ -1,5 +1,7 @@
 'use client';
 
+import { VStack } from '@astryxdesign/core/Layout';
+import { Text } from '@astryxdesign/core/Text';
 import type { CustomField } from '@isbp/contracts';
 import { defaultFieldValues, type FieldDef, type FormElement, validateFields } from '@isbp/sdk';
 import { ApiError } from '@isbp/sdk/web';
@@ -8,7 +10,7 @@ import { FormAnswers, FormFields, useFieldErrorText, useFieldsRefinement } from 
 import { usePeople } from '@isbp/ui/person-picker';
 import { useApiQuery } from '@isbp/ui/query';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useId, useMemo } from 'react';
 import type { FieldErrors, FieldValues, Resolver, UseFormReturn } from 'react-hook-form';
 
 /** Custom fields admins defined for information assets (Administration → Custom fields). */
@@ -101,12 +103,15 @@ export function CustomFieldsSection({
   form: UseFormReturn<FieldValues>;
 }) {
   const t = useTranslations('fields.entity');
+  const headingId = useId();
   if (!elements.length) return null;
   return (
-    <fieldset className="space-y-4">
-      <legend className="mb-3 text-xs font-semibold text-muted-foreground">{t('sectionTitle')}</legend>
+    <VStack gap={3} role="group" aria-labelledby={headingId}>
+      <Text type="label" color="secondary" id={headingId}>
+        {t('sectionTitle')}
+      </Text>
       <FormFields elements={elements} form={form} namePrefix="attributes" className="-mb-4" />
-    </fieldset>
+    </VStack>
   );
 }
 

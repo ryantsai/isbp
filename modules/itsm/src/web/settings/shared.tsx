@@ -1,86 +1,84 @@
 'use client';
 
-import { cn } from '@isbp/ui';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@isbp/ui/alert-dialog';
-import { Button } from '@isbp/ui/button';
-import { Checkbox } from '@isbp/ui/checkbox';
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Button } from '@astryxdesign/core/Button';
+import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Selector, type SelectorOptionType } from '@astryxdesign/core/Selector';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { localize } from '@isbp/sdk';
 import { useListState } from '@isbp/ui/data-table';
 import { useApiQuery } from '@isbp/ui/query';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@isbp/ui/select';
 import { ArrowDownIcon, ArrowUpIcon, Trash2Icon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { type ReactNode, useCallback, useId, useMemo } from 'react';
-import { localize } from '@isbp/sdk';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { type SlaPolicy, type TicketType, ticketTypeSchema } from '../../contracts';
 import type { CoverageContext, CoveragePolicy } from '../../sla-coverage';
 import { TYPE_ICON } from '../components/badges';
 import { useCategories, useGroups } from '../lib';
 
-/** Checkbox chips for a set of options (ticket types, pause statuses). */
+/** One tab of the settings page: a titled section with a one-line description and its primary action. */
+export function SettingsSection({
+  id,
+  title,
+  description,
+  action,
+  children,
+}: {
+  id: string;
+  title: string;
+  description: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <VStack as="section" gap={4} aria-labelledby={id}>
+      <HStack gap={3} wrap="wrap" hAlign="between" vAlign="end">
+        <VStack gap={0.5}>
+          <Heading level={2} id={id}>
+            {title}
+          </Heading>
+          <Text as="p" type="supporting">
+            {description}
+          </Text>
+        </VStack>
+        {action}
+      </HStack>
+      {children}
+    </VStack>
+  );
+}
+
+/** A short group of checkboxes (ticket types, pause statuses); `error` shows under the group. */
 export function CheckGroup<T extends string>({
   options,
   value,
   onChange,
   label,
   render,
-  invalid,
-  describedBy,
+  error,
 }: {
   options: readonly T[];
   value: readonly T[];
   onChange: (v: T[]) => void;
   label: string;
   render: (o: T) => ReactNode;
-  invalid?: boolean;
-  describedBy?: string;
+  error?: string;
 }) {
-  const id = useId();
   return (
-    <div role="group" aria-labelledby={`${id}-label`} aria-describedby={describedBy} className="grid gap-2">
-      <span id={`${id}-label`} className="text-sm font-medium">
-        {label}
-      </span>
-      <div className="flex flex-wrap gap-2">
-        {options.map((o) => {
-          const checked = value.includes(o);
-          return (
-            <label
-              key={o}
-              className={cn(
-                'flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50',
-                checked ? 'border-primary/50 bg-primary/5' : 'hover:bg-muted/60',
-                invalid && 'border-destructive',
-              )}
-            >
-              <Checkbox
-                checked={checked}
-                aria-invalid={invalid || undefined}
-                onCheckedChange={(c) => onChange(c ? [...value, o] : value.filter((x) => x !== o))}
-              />
-              {render(o)}
-            </label>
-          );
-        })}
-      </div>
-    </div>
+    <CheckboxList
+      label={label}
+      density="compact"
+      value={[...value]}
+      onChange={(next) => onChange(options.filter((o) => next.includes(o)))}
+      status={error ? { type: 'error', message: error } : undefined}
+    >
+      {options.map((o) => (
+        <CheckboxListItem key={o} value={o} label={render(o)} />
+      ))}
+    </CheckboxList>
   );
 }
 
@@ -89,32 +87,27 @@ export function TypeChecks({
   onChange,
   label,
   invalid,
-  describedBy,
 }: {
   value: readonly TicketType[];
   onChange: (v: TicketType[]) => void;
   label: string;
   invalid?: boolean;
-  describedBy?: string;
 }) {
   const t = useTranslations('itsm.typesPlural');
+  const tc = useTranslations('itsm.settingsPage.categories');
   return (
     <CheckGroup
       options={ticketTypeSchema.options}
       value={value}
       onChange={onChange}
       label={label}
-      invalid={invalid}
-      describedBy={describedBy}
-      render={(o) => {
-        const Icon = TYPE_ICON[o];
-        return (
-          <span className="inline-flex items-center gap-1.5">
-            <Icon className="size-3.5 text-muted-foreground" aria-hidden />
-            {t(o)}
-          </span>
-        );
-      }}
+      error={invalid ? tc('typesRequired') : undefined}
+      render={(o) => (
+        <HStack gap={1.5} vAlign="center">
+          <Icon icon={TYPE_ICON[o]} size="sm" color="secondary" />
+          <Text>{t(o)}</Text>
+        </HStack>
+      )}
     />
   );
 }
@@ -132,35 +125,30 @@ export function DeleteButton({
   pending?: boolean;
 }) {
   const tc = useTranslations('common');
+  const [open, setOpen] = useState(false);
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          className="text-destructive hover:text-destructive sm:mr-auto"
-          loading={pending}
-        >
-          <Trash2Icon />
-          {tc('delete')}
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onConfirm}
-            className="bg-destructive text-white hover:bg-destructive/90"
-          >
-            {tc('delete')}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <>
+      <Button
+        label={tc('delete')}
+        variant="ghost"
+        icon={<Icon icon={Trash2Icon} />}
+        isLoading={pending}
+        className="sm:mr-auto"
+        onClick={() => setOpen(true)}
+      />
+      <AlertDialog
+        isOpen={open}
+        onOpenChange={setOpen}
+        title={title}
+        description={description}
+        actionLabel={tc('delete')}
+        cancelLabel={tc('cancel')}
+        onAction={() => {
+          setOpen(false);
+          onConfirm();
+        }}
+      />
+    </>
   );
 }
 
@@ -182,42 +170,43 @@ export function MoveButtons({
   idPrefix: string;
 }) {
   const t = useTranslations('itsm.settingsPage');
+  // `tooltip` makes Astryx disable these with aria-disabled instead of `disabled`, so the focused button keeps focus
+  // while the new order is being saved (a `disabled` button drops it and the keyboard user loses their place).
   return (
-    <span className="inline-flex items-center">
-      <Button
+    <HStack gap={0.5}>
+      <IconButton
+        label={t('moveUp', { name })}
+        variant="ghost"
+        size="sm"
+        icon={<Icon icon={ArrowUpIcon} />}
+        isDisabled={first || pending}
+        tooltip={t('moveUp', { name })}
         id={`${idPrefix}-up`}
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        disabled={first || pending}
-        aria-label={t('moveUp', { name })}
-        title={t('moveUp', { name })}
         onClick={() => onMove(-1)}
-      >
-        <ArrowUpIcon />
-      </Button>
-      <Button
-        id={`${idPrefix}-down`}
-        type="button"
+      />
+      <IconButton
+        label={t('moveDown', { name })}
         variant="ghost"
-        size="icon-sm"
-        disabled={last || pending}
-        aria-label={t('moveDown', { name })}
-        title={t('moveDown', { name })}
+        size="sm"
+        icon={<Icon icon={ArrowDownIcon} />}
+        isDisabled={last || pending}
+        tooltip={t('moveDown', { name })}
+        id={`${idPrefix}-down`}
         onClick={() => onMove(1)}
-      >
-        <ArrowDownIcon />
-      </Button>
-    </span>
+      />
+    </HStack>
   );
 }
+
+const isOff = (el: HTMLElement | null) =>
+  !el || (el as HTMLButtonElement).disabled || el.getAttribute('aria-disabled') === 'true';
 
 /** After a reorder, focus the moved row's button again (or the other one when it reached an end). */
 export function refocus(idPrefix: string, direction: -1 | 1) {
   requestAnimationFrame(() => {
     const preferred = document.getElementById(`${idPrefix}-${direction < 0 ? 'up' : 'down'}`);
     const other = document.getElementById(`${idPrefix}-${direction < 0 ? 'down' : 'up'}`);
-    const target = preferred && !(preferred as HTMLButtonElement).disabled ? preferred : other;
+    const target = !isOff(preferred) ? preferred : other;
     target?.focus();
   });
 }
@@ -233,52 +222,46 @@ export function useSheetParam() {
   return { editing, creating, open: creating || editing !== null, openCreate, openEdit, close };
 }
 
+const NO_GROUP = '__none__';
+
 /** Groups for a default/fulfilment group: service desk groups first, then the others. */
 export function DefaultGroupSelect({
-  id,
+  label,
+  description,
   value,
   onChange,
-  'aria-describedby': describedBy,
 }: {
-  id: string;
+  label: string;
+  description?: string;
   value: string | null;
   onChange: (id: string | null) => void;
-  'aria-describedby'?: string;
 }) {
   const t = useTranslations('itsm.settingsPage');
   const tc = useTranslations('itsm.common');
   const { groups } = useGroups();
   const working = groups.filter((g) => g.worksTickets);
   const others = groups.filter((g) => !g.worksTickets);
+  const options: SelectorOptionType[] = [{ value: NO_GROUP, label: tc('noGroup') }];
+  if (working.length)
+    options.push({
+      type: 'section',
+      title: t('serviceDeskGroups'),
+      options: working.map((g) => ({ value: g.id, label: g.name })),
+    });
+  if (others.length)
+    options.push({
+      type: 'section',
+      title: t('otherGroups'),
+      options: others.map((g) => ({ value: g.id, label: g.name })),
+    });
   return (
-    <Select value={value ?? 'none'} onValueChange={(v) => onChange(v === 'none' ? null : v)}>
-      <SelectTrigger id={id} className="w-full min-w-0" aria-describedby={describedBy}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="none">{tc('noGroup')}</SelectItem>
-        {working.length > 0 && (
-          <SelectGroup>
-            <SelectLabel>{t('serviceDeskGroups')}</SelectLabel>
-            {working.map((g) => (
-              <SelectItem key={g.id} value={g.id}>
-                {g.name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        )}
-        {others.length > 0 && (
-          <SelectGroup>
-            <SelectLabel>{t('otherGroups')}</SelectLabel>
-            {others.map((g) => (
-              <SelectItem key={g.id} value={g.id}>
-                {g.name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        )}
-      </SelectContent>
-    </Select>
+    <Selector
+      label={label}
+      description={description}
+      options={options}
+      value={value ?? NO_GROUP}
+      onChange={(v) => onChange(v === NO_GROUP ? null : v)}
+    />
   );
 }
 

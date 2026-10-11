@@ -1,15 +1,27 @@
 'use client';
 
+import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { Link } from '@astryxdesign/core/Link';
+import { Tab, TabList } from '@astryxdesign/core/TabList';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from '@astryxdesign/core/Table';
+import { Text } from '@astryxdesign/core/Text';
 import { useCan, usePlatform, type WebPageProps } from '@isbp/sdk/web';
-import { Badge } from '@isbp/ui/badge';
-import { Button } from '@isbp/ui/button';
 import { EmptyState } from '@isbp/ui/empty-state';
 import { DetailHeader } from '@isbp/ui/page-header';
 import { useApiQuery } from '@isbp/ui/query';
 import { RelativeTime } from '@isbp/ui/relative-time';
 import { Skeleton } from '@isbp/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@isbp/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@isbp/ui/tabs';
 import { useListState } from '@isbp/ui/data-table';
 import {
   CalendarClockIcon,
@@ -20,9 +32,8 @@ import {
   ServerCogIcon,
   UsersIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { Inventory, RequestableRole, Server } from '../../contracts';
 import { EngineLabel, EnvironmentBadge, RiskBadge, SyncStatus } from '../badges';
 import { useLocalized } from '../lib';
@@ -51,10 +62,15 @@ function RolesTab({ server }: { server: Server }) {
   return (
     <div className="grid min-w-0 gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">{t('rolesHint')}</p>
-        <Button size="sm" onClick={() => setAdding(true)} disabled={!server.lastSyncAt}>
-          <PlusIcon /> {t('addRole')}
-        </Button>
+        <Text color="secondary">{t('rolesHint')}</Text>
+        <Button
+          label={t('addRole')}
+          variant="primary"
+          size="sm"
+          icon={<Icon icon={PlusIcon} />}
+          isDisabled={!server.lastSyncAt}
+          onClick={() => setAdding(true)}
+        />
       </div>
       <div className="min-w-0 overflow-hidden rounded-xl border bg-card">
         {isLoading ? (
@@ -68,59 +84,66 @@ function RolesTab({ server }: { server: Server }) {
         ) : (
           <Table aria-label={t('rolesTable')}>
             <TableHeader>
-              <TableRow>
-                <TableHead>{t('role')}</TableHead>
-                <TableHead>{t('risk')}</TableHead>
-                <TableHead className="hidden md:table-cell">{t('owner')}</TableHead>
-                <TableHead className="hidden lg:table-cell">{t('duration')}</TableHead>
-                <TableHead className="hidden sm:table-cell">{t('liveGrants')}</TableHead>
-                <TableHead>
+              <TableRow isHeaderRow>
+                <TableHeaderCell className="whitespace-nowrap">{t('role')}</TableHeaderCell>
+                <TableHeaderCell className="max-w-none whitespace-nowrap">{t('risk')}</TableHeaderCell>
+                <TableHeaderCell className="hidden md:table-cell max-w-none whitespace-nowrap">
+                  {t('owner')}
+                </TableHeaderCell>
+                <TableHeaderCell className="hidden lg:table-cell max-w-none whitespace-nowrap">
+                  {t('duration')}
+                </TableHeaderCell>
+                <TableHeaderCell className="hidden sm:table-cell max-w-none whitespace-nowrap">
+                  {t('liveGrants')}
+                </TableHeaderCell>
+                <TableHeaderCell className="max-w-none whitespace-nowrap">
                   <span className="sr-only">{t('edit')}</span>
-                </TableHead>
+                </TableHeaderCell>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.items.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="max-w-64">
-                    <span className="grid min-w-0">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate font-medium">{l(r.name)}</span>
-                        {!r.active && <Badge variant="muted">{t('inactive')}</Badge>}
-                      </span>
-                      <span className="truncate font-mono text-xs text-muted-foreground">
+                    <VStack className="min-w-0">
+                      <HStack gap={2} vAlign="center" className="min-w-0">
+                        <Text weight="medium" maxLines={1}>
+                          {l(r.name)}
+                        </Text>
+                        {!r.active && <Badge variant="neutral" label={t('inactive')} />}
+                      </HStack>
+                      <Text type="code" color="secondary" maxLines={1}>
                         {r.database ? `${r.database}.` : ''}
                         {r.roleName}
-                      </span>
-                    </span>
+                      </Text>
+                    </VStack>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="max-w-none whitespace-nowrap">
                     <RiskBadge risk={r.risk} />
                   </TableCell>
-                  <TableCell className="hidden max-w-40 md:table-cell">
-                    <span className="flex min-w-0 items-center gap-1 text-sm">
-                      {r.owner?.kind === 'group' && (
-                        <UsersIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                      )}
-                      <span className="truncate">{r.owner?.name ?? '—'}</span>
-                    </span>
+                  <TableCell className="hidden max-w-48 whitespace-nowrap md:table-cell">
+                    <HStack gap={1} vAlign="center" className="min-w-0">
+                      {r.owner?.kind === 'group' && <Icon icon={UsersIcon} size="sm" color="secondary" />}
+                      <Text maxLines={1}>{r.owner?.name ?? '—'}</Text>
+                    </HStack>
                   </TableCell>
-                  <TableCell className="hidden text-sm lg:table-cell">
-                    <span className="flex items-center gap-1">
-                      <CalendarClockIcon className="size-3.5 text-muted-foreground" aria-hidden />
-                      {duration(r)}
-                    </span>
+                  <TableCell className="hidden max-w-none whitespace-nowrap lg:table-cell">
+                    <HStack gap={1} vAlign="center">
+                      <Icon icon={CalendarClockIcon} size="sm" color="secondary" />
+                      <Text>{duration(r)}</Text>
+                    </HStack>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">{r.liveGrants}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="icon-sm"
+                  <TableCell className="hidden max-w-none whitespace-nowrap sm:table-cell">
+                    {r.liveGrants}
+                  </TableCell>
+                  <TableCell className="max-w-none text-right">
+                    <IconButton
+                      label={t('editRole', { role: r.roleName })}
                       variant="ghost"
-                      aria-label={t('editRole', { role: r.roleName })}
+                      size="sm"
+                      icon={<Icon icon={PencilIcon} />}
                       onClick={() => setEditing(r)}
-                    >
-                      <PencilIcon />
-                    </Button>
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -146,15 +169,10 @@ function InventoryTab({ server }: { server: Server }) {
   const { data, isLoading } = useApiQuery<Inventory>(`/dbaccess/servers/${server.id}/inventory`);
   return (
     <div className="grid min-w-0 gap-3">
-      <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        {t('inventoryHint')}
-        <Link
-          href={`/dbaccess/grants?tab=accounts&server=${server.id}`}
-          className="font-medium text-primary hover:underline"
-        >
-          {t('seeAccounts')}
-        </Link>
-      </p>
+      <HStack gap={2} wrap="wrap" vAlign="center">
+        <Text color="secondary">{t('inventoryHint')}</Text>
+        <Link href={`/dbaccess/grants?tab=accounts&server=${server.id}`}>{t('seeAccounts')}</Link>
+      </HStack>
       <div className="min-w-0 overflow-hidden rounded-xl border bg-card">
         {isLoading ? (
           <Skeleton className="h-40 w-full" />
@@ -163,26 +181,34 @@ function InventoryTab({ server }: { server: Server }) {
         ) : (
           <Table aria-label={t('inventoryTable')}>
             <TableHeader>
-              <TableRow>
-                {server.engine === 'mssql' && <TableHead>{t('database')}</TableHead>}
-                <TableHead>{t('role')}</TableHead>
-                <TableHead>{t('members')}</TableHead>
-                <TableHead>{t('requestable')}</TableHead>
+              <TableRow isHeaderRow>
+                {server.engine === 'mssql' && (
+                  <TableHeaderCell className="max-w-none whitespace-nowrap">{t('database')}</TableHeaderCell>
+                )}
+                <TableHeaderCell className="whitespace-nowrap">{t('role')}</TableHeaderCell>
+                <TableHeaderCell className="max-w-none whitespace-nowrap">{t('members')}</TableHeaderCell>
+                <TableHeaderCell className="max-w-none whitespace-nowrap">{t('requestable')}</TableHeaderCell>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.roles.map((r) => (
                 <TableRow key={`${r.database ?? ''}.${r.name}`}>
                   {server.engine === 'mssql' && (
-                    <TableCell className="font-mono text-xs">{r.database ?? t('serverLevel')}</TableCell>
+                    <TableCell className="max-w-none whitespace-nowrap">
+                      <Text type="code">{r.database ?? t('serverLevel')}</Text>
+                    </TableCell>
                   )}
-                  <TableCell className="max-w-48 truncate font-mono text-sm">{r.name}</TableCell>
-                  <TableCell>{r.members}</TableCell>
-                  <TableCell>
+                  <TableCell className="max-w-48">
+                    <Text type="code" maxLines={1}>
+                      {r.name}
+                    </Text>
+                  </TableCell>
+                  <TableCell className="max-w-none whitespace-nowrap">{r.members}</TableCell>
+                  <TableCell className="max-w-none whitespace-nowrap">
                     {r.requestableRoleId ? (
-                      <Badge variant="info">{t('yes')}</Badge>
+                      <Badge variant="info" label={t('yes')} />
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <Text color="secondary">—</Text>
                     )}
                   </TableCell>
                 </TableRow>
@@ -203,6 +229,7 @@ export default function ServerPage({ params }: WebPageProps) {
   const { user } = usePlatform();
   const [state, set] = useListState();
   const [editing, setEditing] = useState(false);
+  const panelId = useId();
   const tab: Tab = TABS.includes(state.tab as Tab) ? (state.tab as Tab) : 'roles';
   const { data: server, isLoading } = useApiQuery<Server>(`/dbaccess/servers/${params.id}`);
   if (isLoading) return <Skeleton className="h-96 w-full rounded-xl" />;
@@ -211,11 +238,7 @@ export default function ServerPage({ params }: WebPageProps) {
       <EmptyState
         icon={<FileQuestionIcon />}
         title={t('notFound')}
-        action={
-          <Button asChild variant="outline">
-            <Link href="/dbaccess/servers">{t('back')}</Link>
-          </Button>
-        }
+        action={<Button label={t('back')} variant="secondary" href="/dbaccess/servers" />}
       />
     );
   return (
@@ -252,11 +275,11 @@ export default function ServerPage({ params }: WebPageProps) {
           <EngineLabel engine={server.engine} className="text-sm" />
           <EnvironmentBadge environment={server.environment} />
           <SyncStatus status={server.lastSyncStatus} />
-          <span className="text-muted-foreground">
+          <Text color="secondary">
             {t('lastSync')} <RelativeTime date={server.lastSyncAt} />
-          </span>
+          </Text>
           {server.ownerGroup && (
-            <span className="text-muted-foreground">{t('dbaGroup', { group: server.ownerGroup.name })}</span>
+            <Text color="secondary">{t('dbaGroup', { group: server.ownerGroup.name })}</Text>
           )}
           {server.lastSyncStatus === 'error' && server.lastSyncError && (
             <p className="w-full rounded-md bg-destructive/10 px-2 py-1 text-xs break-all text-destructive">
@@ -264,28 +287,27 @@ export default function ServerPage({ params }: WebPageProps) {
             </p>
           )}
         </div>
-        <Tabs
-          value={tab}
-          onValueChange={(v) => set({ tab: v === 'roles' ? undefined : v })}
-          className="min-w-0"
-        >
-          <TabsList>
-            <TabsTrigger value="roles">{t('tabs.roles', { count: server.counts.roles })}</TabsTrigger>
-            <TabsTrigger value="inventory">{t('tabs.inventory')}</TabsTrigger>
-            <TabsTrigger value="unmanaged">
-              {t('tabs.unmanaged', { count: server.counts.unmanaged })}
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="roles" className="min-w-0">
+        <VStack gap={3} className="min-w-0">
+          <TabList
+            role="tablist"
+            value={tab}
+            onChange={(v) => set({ tab: v === 'roles' ? undefined : v })}
+            hasDivider
+          >
+            <Tab value="roles" label={t('tabs.roles', { count: server.counts.roles })} panelId={panelId} />
+            <Tab value="inventory" label={t('tabs.inventory')} panelId={panelId} />
+            <Tab
+              value="unmanaged"
+              label={t('tabs.unmanaged', { count: server.counts.unmanaged })}
+              panelId={panelId}
+            />
+          </TabList>
+          <div role="tabpanel" id={panelId} className="min-w-0">
             {tab === 'roles' && <RolesTab server={server} />}
-          </TabsContent>
-          <TabsContent value="inventory" className="min-w-0">
             {tab === 'inventory' && <InventoryTab server={server} />}
-          </TabsContent>
-          <TabsContent value="unmanaged" className="min-w-0">
             {tab === 'unmanaged' && <UnmanagedList serverId={server.id} />}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </VStack>
       </div>
       <ServerFormDialog
         target={editing ? { kind: 'edit', server } : null}

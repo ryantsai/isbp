@@ -37,9 +37,9 @@ test('the approved software list filters by status, adds an entry and exports th
   await expect(page.getByRole('heading', { name: 'Software', level: 1 })).toBeVisible();
   const table = page.getByRole('table', { name: 'Approved software' });
   await expect(table.getByRole('button', { name: 'Google Chrome' })).toBeVisible();
-  await page.getByRole('tab', { name: 'Blocked' }).click();
+  await page.getByRole('radio', { name: 'Blocked', exact: true }).click();
   await expect(table.getByRole('button', { name: 'uTorrent' })).toBeVisible();
-  await page.getByRole('tab', { name: 'Ending soon' }).click();
+  await page.getByRole('radio', { name: 'Ending soon', exact: true }).click();
   await expect(table.getByRole('button', { name: 'TeamViewer Business' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Add software' }).first().click();
@@ -58,7 +58,7 @@ test('the approved software list filters by status, adds an entry and exports th
   await sheet.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.getByText(`${title} added to the list`)).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Allowed' }).click();
+  await page.getByRole('radio', { name: 'Allowed', exact: true }).click();
   await page.getByRole('searchbox').fill(title);
   await table.getByRole('button', { name: title }).click();
   const edit = page.getByRole('dialog', { name: 'Edit approved software' });

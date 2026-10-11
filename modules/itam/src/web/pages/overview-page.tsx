@@ -1,7 +1,11 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Heading, Text } from '@astryxdesign/core/Text';
+import { Icon as AstryxIcon } from '@astryxdesign/core/Icon';
+import { HStack, VStack } from '@astryxdesign/core/Layout';
+import { List, ListItem } from '@astryxdesign/core/List';
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@isbp/ui/card';
 import { EmptyState, ErrorState } from '@isbp/ui/empty-state';
 import { Stagger, StaggerItem } from '@isbp/ui/motion';
@@ -22,7 +26,6 @@ import {
   WarehouseIcon,
   WrenchIcon,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type ReactNode, useMemo } from 'react';
 import type { AssetStatus, ComplianceSummary, Dashboard } from '../../contracts';
@@ -93,22 +96,25 @@ function AttentionCard({
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
         <CardAction>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={href}>
-              {t('viewAll')}
-              <ArrowRightIcon />
-            </Link>
-          </Button>
+          <Button
+            label={t('viewAll')}
+            variant="ghost"
+            size="sm"
+            endContent={<AstryxIcon icon={ArrowRightIcon} />}
+            href={href}
+          />
         </CardAction>
       </CardHeader>
       <CardContent>
         {empty ? (
-          <p className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-            <CircleCheckIcon className="size-4 text-success" aria-hidden />
-            {t('allClear')}
-          </p>
+          <HStack gap={2} vAlign="center">
+            <AstryxIcon icon={CircleCheckIcon} color="success" />
+            <Text color="secondary">{t('allClear')}</Text>
+          </HStack>
         ) : (
-          <ul className="divide-y">{children}</ul>
+          <List hasDividers density="compact">
+            {children}
+          </List>
         )}
       </CardContent>
     </Card>
@@ -152,16 +158,16 @@ export default function OverviewPage() {
     <>
       <PageHeader title={t('overview.title')} description={t('overview.description')} />
       {isLoading || !d ? (
-        <div className="space-y-5">
+        <VStack gap={5}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 4 }, (_, i) => (
               <Skeleton key={i} className="h-24 rounded-xl" />
             ))}
           </div>
           <Skeleton className="h-72 rounded-xl" />
-        </div>
+        </VStack>
       ) : (
-        <div className="space-y-5">
+        <VStack gap={5}>
           <Stagger className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Kpi
               icon={PackageIcon}
@@ -259,10 +265,10 @@ export default function OverviewPage() {
                     key: r.category,
                     text: t(`category.${r.category}`),
                     label: (
-                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                      <HStack gap={1.5} vAlign="center">
                         <CategoryIcon category={r.category} />
-                        <span className="truncate">{t(`category.${r.category}`)}</span>
-                      </span>
+                        <Text maxLines={1}>{t(`category.${r.category}`)}</Text>
+                      </HStack>
                     ),
                     counts: r.byStatus,
                   }))}
@@ -304,7 +310,7 @@ export default function OverviewPage() {
                       }))}
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground">{t('overview.noSpend')}</p>
+                    <Text color="secondary">{t('overview.noSpend')}</Text>
                   )
                 }
                 table={
@@ -349,86 +355,88 @@ export default function OverviewPage() {
             )}
           </div>
 
-          <section aria-labelledby="itam-attention" className="space-y-3">
-            <h2 id="itam-attention" className="text-lg font-semibold">
-              {t('overview.attention')}
-            </h2>
-            <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-              <AttentionCard
-                title={t('overview.warrantiesTitle')}
-                description={t('overview.warrantiesHint')}
-                href="/itam/hardware?warranty=expiring"
-                empty={!d.attention.warranties.length}
-              >
-                {d.attention.warranties.map((a) => (
-                  <li key={a.id} className="grid min-w-0 gap-0.5 py-2 text-sm">
-                    <Link
+          <section aria-labelledby="itam-attention">
+            <VStack gap={3}>
+              <Heading level={2} id="itam-attention">
+                {t('overview.attention')}
+              </Heading>
+              <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                <AttentionCard
+                  title={t('overview.warrantiesTitle')}
+                  description={t('overview.warrantiesHint')}
+                  href="/itam/hardware?warranty=expiring"
+                  empty={!d.attention.warranties.length}
+                >
+                  {d.attention.warranties.map((a) => (
+                    <ListItem
+                      key={a.id}
+                      label={a.name}
                       href={assetHref(a)}
-                      className="flex min-w-0 items-center gap-2 font-medium hover:underline"
-                    >
-                      <CategoryIcon category={a.category} className="text-muted-foreground" label />
-                      <span className="font-mono text-xs text-muted-foreground">{a.tag}</span>
-                      <span className="truncate">{a.name}</span>
-                    </Link>
-                    <span className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                      <WarrantyEnd date={a.warrantyEnd} state={a.warrantyState} />
-                      {a.assignee && <span className="truncate">· {a.assignee.displayName}</span>}
-                    </span>
-                  </li>
-                ))}
-              </AttentionCard>
-              {d.attention.contracts && (
-                <AttentionCard
-                  title={t('overview.contractsTitle')}
-                  description={t('overview.contractsHint')}
-                  href="/itam/contracts?view=renewing"
-                  empty={!d.attention.contracts.length}
-                >
-                  {d.attention.contracts.map((x) => (
-                    <li key={x.id} className="grid min-w-0 gap-0.5 py-2 text-sm">
-                      <Link
+                      startContent={<CategoryIcon category={a.category} color="secondary" label />}
+                      description={
+                        <HStack gap={2} wrap="wrap" vAlign="center">
+                          <Text type="code" size="xsm" color="secondary">
+                            {a.tag}
+                          </Text>
+                          <WarrantyEnd date={a.warrantyEnd} state={a.warrantyState} />
+                          {a.assignee && <Text type="supporting">· {a.assignee.displayName}</Text>}
+                        </HStack>
+                      }
+                    />
+                  ))}
+                </AttentionCard>
+                {d.attention.contracts && (
+                  <AttentionCard
+                    title={t('overview.contractsTitle')}
+                    description={t('overview.contractsHint')}
+                    href="/itam/contracts?view=renewing"
+                    empty={!d.attention.contracts.length}
+                  >
+                    {d.attention.contracts.map((x) => (
+                      <ListItem
+                        key={x.id}
+                        label={x.title}
                         href={contractHref(x)}
-                        className="flex min-w-0 items-center gap-2 font-medium hover:underline"
-                      >
-                        <span className="font-mono text-xs text-muted-foreground">{x.reference}</span>
-                        <span className="truncate">{x.title}</span>
-                      </Link>
-                      <span className="flex flex-wrap items-center gap-x-2 text-xs">
-                        <RenewsIn c={x} />
-                        <span className="text-muted-foreground">· {money(x.annualCost, x.currency)}</span>
-                      </span>
-                    </li>
-                  ))}
-                </AttentionCard>
-              )}
-              {d.attention.licenses && (
-                <AttentionCard
-                  title={t('overview.licensesTitle')}
-                  description={t('overview.licensesHint')}
-                  href="/itam/software?view=attention"
-                  empty={!d.attention.licenses.length}
-                >
-                  {d.attention.licenses.map((l) => (
-                    <li key={l.id} className="grid min-w-0 gap-1.5 py-2 text-sm">
-                      <span className="flex min-w-0 items-center justify-between gap-2">
-                        <Link href={licenseHref(l)} className="min-w-0 truncate font-medium hover:underline">
-                          {l.product}
-                        </Link>
-                        <ComplianceBadge state={l.complianceState} />
-                      </span>
-                      <UsageMeter used={l.used} quantity={l.quantity} />
-                    </li>
-                  ))}
-                </AttentionCard>
-              )}
-            </div>
+                        description={
+                          <HStack gap={2} wrap="wrap" vAlign="center">
+                            <Text type="code" size="xsm" color="secondary">
+                              {x.reference}
+                            </Text>
+                            <RenewsIn c={x} />
+                            <Text type="supporting">· {money(x.annualCost, x.currency)}</Text>
+                          </HStack>
+                        }
+                      />
+                    ))}
+                  </AttentionCard>
+                )}
+                {d.attention.licenses && (
+                  <AttentionCard
+                    title={t('overview.licensesTitle')}
+                    description={t('overview.licensesHint')}
+                    href="/itam/software?view=attention"
+                    empty={!d.attention.licenses.length}
+                  >
+                    {d.attention.licenses.map((l) => (
+                      <ListItem
+                        key={l.id}
+                        label={l.product}
+                        href={licenseHref(l)}
+                        endContent={<ComplianceBadge state={l.complianceState} />}
+                        description={<UsageMeter used={l.used} quantity={l.quantity} />}
+                      />
+                    ))}
+                  </AttentionCard>
+                )}
+              </div>
+            </VStack>
           </section>
           {d.otherCurrencies > 0 && (
-            <p className="text-xs text-muted-foreground">
+            <Text as="p" type="supporting">
               {t('overview.otherCurrencies', { count: d.otherCurrencies, currency: c })}
-            </p>
+            </Text>
           )}
-        </div>
+        </VStack>
       )}
     </>
   );

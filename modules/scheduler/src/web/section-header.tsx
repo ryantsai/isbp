@@ -1,13 +1,13 @@
 'use client';
 
 import { useCan } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { PageHeader } from '@isbp/ui/page-header';
 import { SectionTabs } from '@isbp/ui/section-tabs';
 import { PlusIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 
 /**
  * The area's header: "Scheduled jobs", what this section shows, "New job", and the sections (Overview | Jobs |
@@ -26,11 +26,12 @@ export function SchedulerHeader({ description, actions }: { description: string;
             <>
               {actions}
               {canCreate && (
-                <Button asChild>
-                  <Link href="/scheduler/jobs/new">
-                    <PlusIcon /> {t('jobs.new')}
-                  </Link>
-                </Button>
+                <Button
+                  label={t('jobs.new')}
+                  variant="primary"
+                  icon={<Icon icon={PlusIcon} />}
+                  href="/scheduler/jobs/new"
+                />
               )}
             </>
           )

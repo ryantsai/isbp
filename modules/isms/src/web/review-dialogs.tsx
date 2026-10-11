@@ -1,31 +1,30 @@
 'use client';
-
-import { Button } from '@isbp/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { DateInput } from '@astryxdesign/core/DateInput';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
+import { HStack, Layout, LayoutContent, LayoutFooter, StackItem } from '@astryxdesign/core/Layout';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
+import { useCan } from '@isbp/sdk/web';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useApiQuery, useErrorText } from '@isbp/ui/query';
 import { RecordPicker } from '@isbp/ui/record-picker';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
   SheetContent,
   SheetDescription,
   SheetFooter,
+  SheetForm,
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
-import { Textarea } from '@isbp/ui/textarea';
-import { useCan } from '@isbp/sdk/web';
 import { useTimeZone, useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import {
@@ -42,7 +41,7 @@ import {
 } from '../contracts';
 import { TARGET_TYPES } from './account-dialogs';
 import { CsvImportDialog } from './import-dialog';
-import { INVALIDATE, todayLocal } from './lib';
+import { asDay, INVALIDATE, todayLocal } from './lib';
 import { PersonField } from './people';
 
 const NONE = '__none__';
@@ -88,15 +87,7 @@ function NewReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
   const today = todayLocal(timeZone);
   const canApps = useCan('isms.reviews.manage');
   const { data: apps } = useApiQuery<{ items: LookupItem[] }>(canApps ? '/isms/lookups/applications' : null);
-  const ids = {
-    target: useId(),
-    ref: useId(),
-    reviewer: useId(),
-    start: useId(),
-    due: useId(),
-    rec: useId(),
-    app: useId(),
-  };
+  const ids = { ref: useId(), reviewer: useId() };
   const list = useFieldList();
   const [target, setTarget] = useState('');
   const [targetRef, setTargetRef] = useState<string | null>(null);
@@ -137,104 +128,81 @@ function NewReviewForm({ onCancel, onCreated }: { onCancel: () => void; onCreate
     applicationId === NONE ? '' : applicationId,
   );
   return (
-    <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col" noValidate>
-      <SheetBody className="space-y-4">
-        <div className="grid gap-1.5">
-          <Label htmlFor={ids.target}>{t('fields.target')}</Label>
-          <Input
-            id={ids.target}
+    <SheetForm onSubmit={submit} noValidate>
+      <SheetBody className="py-2">
+        <FormLayout defaultOptionality="optional">
+          <TextInput
+            label={t('fields.target')}
+            isRequired
             value={target}
-            onChange={(e) => setTarget(e.target.value)}
+            onChange={setTarget}
             placeholder={t('newReview.targetPlaceholder')}
           />
-        </div>
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor={ids.reviewer}>{t('fields.reviewer')}</Label>
-          <PersonField id={ids.reviewer} value={reviewerId} onChange={setReviewerId} clearable={false} />
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.start}>{t('fields.startOn')}</Label>
-            <Input
-              id={ids.start}
-              type="date"
-              min={today}
-              value={startOn}
-              onChange={(e) => setStartOn(e.target.value)}
+          <Field label={t('fields.reviewer')} inputID={ids.reviewer} isRequired>
+            <PersonField id={ids.reviewer} value={reviewerId} onChange={setReviewerId} clearable={false} />
+          </Field>
+          <Grid columns={{ minWidth: 200 }} gap={4}>
+            <DateInput
+              label={t('fields.startOn')}
+              min={asDay(today)}
+              value={asDay(startOn)}
+              onChange={(d) => setStartOn(d ?? '')}
             />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.due}>{t('fields.dueOn')}</Label>
-            <Input
-              id={ids.due}
-              type="date"
-              min={startOn || today}
-              value={dueOn}
-              onChange={(e) => setDueOn(e.target.value)}
+            <DateInput
+              label={t('fields.dueOn')}
+              isRequired
+              min={asDay(startOn || today)}
+              value={asDay(dueOn)}
+              onChange={(d) => setDueOn(d ?? '')}
             />
-          </div>
-        </div>
-        <OptionalFields
-          hint={list([t('fields.targetRecord'), t('fields.recurrence'), t('newReview.source')])}
-          filled={detailsFilled}
-        >
-          <div className="grid min-w-0 gap-1.5">
-            <Label htmlFor={ids.ref}>{t('fields.targetRecord')}</Label>
-            <RecordPicker
-              id={ids.ref}
-              types={TARGET_TYPES}
-              value={targetRef ? [targetRef] : []}
-              onChange={(r: string[]) => setTargetRef(r[0] ?? null)}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.rec}>{t('fields.recurrence')}</Label>
-            <Select value={recurrence} onValueChange={(v) => setRecurrence(v as typeof recurrence)}>
-              <SelectTrigger id={ids.rec} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {RECURRENCES.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {t(`recurrence.${r}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid min-w-0 gap-1.5">
-            <Label htmlFor={ids.app}>{t('newReview.source')}</Label>
-            <Select value={applicationId} onValueChange={setApplicationId}>
-              <SelectTrigger id={ids.app} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>{t('newReview.sourceCsv')}</SelectItem>
-                {(apps?.items ?? []).map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {t('newReview.sourceApp', { name: a.name })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">{t('newReview.sourceHint')}</p>
-          </div>
-        </OptionalFields>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
+          </Grid>
+          <OptionalFields
+            hint={list([t('fields.targetRecord'), t('fields.recurrence'), t('newReview.source')])}
+            filled={detailsFilled}
+          >
+            <FormLayout defaultOptionality="optional">
+              <Field label={t('fields.targetRecord')} inputID={ids.ref}>
+                <RecordPicker
+                  id={ids.ref}
+                  types={TARGET_TYPES}
+                  value={targetRef ? [targetRef] : []}
+                  onChange={(r: string[]) => setTargetRef(r[0] ?? null)}
+                />
+              </Field>
+              <Selector
+                label={t('fields.recurrence')}
+                value={recurrence}
+                onChange={(v) => setRecurrence(v as typeof recurrence)}
+                options={RECURRENCES.map((r) => ({ value: r, label: t(`recurrence.${r}`) }))}
+              />
+              <Selector
+                label={t('newReview.source')}
+                description={t('newReview.sourceHint')}
+                value={applicationId}
+                onChange={setApplicationId}
+                options={[
+                  { value: NONE, label: t('newReview.sourceCsv') },
+                  ...(apps?.items ?? []).map((a) => ({
+                    value: a.id,
+                    label: t('newReview.sourceApp', { name: a.name }),
+                  })),
+                ]}
+              />
+            </FormLayout>
+          </OptionalFields>
+          {error && <Banner status="error" title={error} collapsible={false} />}
+        </FormLayout>
       </SheetBody>
       <SheetFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
-          {tc('cancel')}
-        </Button>
-        <Button type="submit" loading={save.isPending}>
-          {startOn > today ? t('newReview.schedule') : t('newReview.start')}
-        </Button>
+        <Button label={tc('cancel')} variant="secondary" type="button" onClick={onCancel} />
+        <Button
+          label={startOn > today ? t('newReview.schedule') : t('newReview.start')}
+          variant="primary"
+          isLoading={save.isPending}
+          type="submit"
+        />
       </SheetFooter>
-    </form>
+    </SheetForm>
   );
 }
 
@@ -258,7 +226,6 @@ export function DecideDialog({
   const errorText = useErrorText();
   const timeZone = useTimeZone();
   const today = todayLocal(timeZone);
-  const name = useId();
   const first = items[0];
   const [doneOn, setDoneOn] = useState(first?.decision === decision ? (first.doneOn ?? '') : '');
   const [note, setNote] = useState(items.length === 1 ? (first?.note ?? '') : '');
@@ -271,75 +238,72 @@ export function DecideDialog({
     { invalidate: INVALIDATE, success: t('decide.saved', { count: items.length }), silent: true },
   );
   return (
-    <Dialog open={items.length > 0} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>
-            {items.length === 1
-              ? t(`decide.title.${decision}`, { account: first?.accountName ?? '' })
-              : t(`decide.titleMany.${decision}`, { count: items.length })}
-          </DialogTitle>
-          <DialogDescription>
-            {items.length === 1
-              ? (first?.userName ?? first?.user?.displayName ?? t('decide.description'))
-              : t('decide.description')}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${name}-done`}>{t('decide.doneOn')}</Label>
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              id={`${name}-done`}
-              type="date"
-              max={today}
-              value={doneOn}
-              onChange={(e) => setDoneOn(e.target.value)}
-              className="w-auto"
-              aria-describedby={`${name}-done-hint`}
-            />
-            <Button type="button" variant="outline" size="sm" onClick={() => setDoneOn(today)}>
-              {t('decide.today')}
-            </Button>
-          </div>
-          <p id={`${name}-done-hint`} className="text-xs text-muted-foreground">
-            {t('decide.doneHint')}
-          </p>
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${name}-note`}>{t('fields.note')}</Label>
-          <Textarea id={`${name}-note`} rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-        </div>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button
-            type="button"
-            variant={decision === 'delete' ? 'destructive' : 'default'}
-            loading={save.isPending}
-            onClick={async () => {
-              setError(null);
-              try {
-                await save.mutateAsync({
-                  decision,
-                  doneOn: doneOn || null,
-                  ...(items.length === 1 || note.trim() ? { note: note.trim() || null } : {}),
-                });
-                onOpenChange(false);
-              } catch (err) {
-                setError(errorText(err));
-              }
-            }}
-          >
-            {t(`reviewDecision.${decision}`)}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+    <Dialog isOpen={items.length > 0} onOpenChange={onOpenChange} width={448} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={
+              items.length === 1
+                ? t(`decide.title.${decision}`, { account: first?.accountName ?? '' })
+                : t(`decide.titleMany.${decision}`, { count: items.length })
+            }
+            subtitle={
+              items.length === 1
+                ? (first?.userName ?? first?.user?.displayName ?? t('decide.description'))
+                : t('decide.description')
+            }
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <FormLayout defaultOptionality="optional">
+              <HStack gap={2} vAlign="end">
+                <StackItem size="fill">
+                  <DateInput
+                    label={t('decide.doneOn')}
+                    description={t('decide.doneHint')}
+                    hasClear
+                    max={asDay(today)}
+                    value={asDay(doneOn)}
+                    onChange={(d) => setDoneOn(d ?? '')}
+                  />
+                </StackItem>
+                <StackItem>
+                  <Button label={t('decide.today')} variant="secondary" onClick={() => setDoneOn(today)} />
+                </StackItem>
+              </HStack>
+              <TextArea label={t('fields.note')} rows={2} value={note} onChange={setNote} />
+              {error && <Banner status="error" title={error} collapsible={false} />}
+            </FormLayout>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t(`reviewDecision.${decision}`)}
+                variant={decision === 'delete' ? 'destructive' : 'primary'}
+                isLoading={save.isPending}
+                onClick={async () => {
+                  setError(null);
+                  try {
+                    await save.mutateAsync({
+                      decision,
+                      doneOn: doneOn || null,
+                      ...(items.length === 1 || note.trim() ? { note: note.trim() || null } : {}),
+                    });
+                    onOpenChange(false);
+                  } catch (err) {
+                    setError(errorText(err));
+                  }
+                }}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -357,7 +321,7 @@ export function AddAccountDialog({
   const t = useTranslations('isms');
   const tc = useTranslations('common');
   const errorText = useErrorText();
-  const ids = { account: useId(), user: useId(), person: useId(), privilege: useId(), status: useId() };
+  const personId = useId();
   const [accountName, setAccountName] = useState('');
   const [userName, setUserName] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
@@ -376,86 +340,74 @@ export function AddAccountDialog({
     { invalidate: INVALIDATE, success: t('addAccount.saved'), silent: true },
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('addAccount.title')}</DialogTitle>
-          <DialogDescription>{t('addAccount.description')}</DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.account}>{t('fields.account')}</Label>
-            <Input id={ids.account} value={accountName} onChange={(e) => setAccountName(e.target.value)} />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.user}>{t('fields.userName')}</Label>
-            <Input id={ids.user} value={userName} onChange={(e) => setUserName(e.target.value)} />
-          </div>
-          <div className="grid min-w-0 gap-1.5 sm:col-span-2">
-            <Label htmlFor={ids.person}>{t('fields.person')}</Label>
-            <PersonField id={ids.person} value={userId} onChange={setUserId} />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.privilege}>{t('fields.privilege')}</Label>
-            <Select value={privilege} onValueChange={(v) => setPrivilege(v as typeof privilege)}>
-              <SelectTrigger id={ids.privilege} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIVILEGES.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {t(`privilege.${p}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor={ids.status}>{t('fields.accountState')}</Label>
-            <Select value={accountStatus} onValueChange={(v) => setAccountStatus(v as typeof accountStatus)}>
-              <SelectTrigger id={ids.status} className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ACCOUNT_STATES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {t(`accountState.${s}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button
-            type="button"
-            disabled={!accountName.trim()}
-            loading={save.isPending}
-            onClick={async () => {
-              setError(null);
-              try {
-                await save.mutateAsync(undefined);
-                setAccountName('');
-                setUserName('');
-                setUserId(null);
-                onOpenChange(false);
-              } catch (err) {
-                setError(errorText(err));
-              }
-            }}
-          >
-            {tc('add')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+    <Dialog isOpen={open} onOpenChange={onOpenChange} width={512} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('addAccount.title')}
+            subtitle={t('addAccount.description')}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <FormLayout defaultOptionality="optional">
+              <Grid columns={{ minWidth: 200 }} gap={4}>
+                <TextInput
+                  label={t('fields.account')}
+                  isRequired
+                  value={accountName}
+                  onChange={setAccountName}
+                />
+                <TextInput label={t('fields.userName')} value={userName} onChange={setUserName} />
+                <GridSpan columns="full">
+                  <Field label={t('fields.person')} inputID={personId}>
+                    <PersonField id={personId} value={userId} onChange={setUserId} />
+                  </Field>
+                </GridSpan>
+                <Selector
+                  label={t('fields.privilege')}
+                  value={privilege}
+                  onChange={(v) => setPrivilege(v as typeof privilege)}
+                  options={PRIVILEGES.map((p) => ({ value: p, label: t(`privilege.${p}`) }))}
+                />
+                <Selector
+                  label={t('fields.accountState')}
+                  value={accountStatus}
+                  onChange={(v) => setAccountStatus(v as typeof accountStatus)}
+                  options={ACCOUNT_STATES.map((s) => ({ value: s, label: t(`accountState.${s}`) }))}
+                />
+              </Grid>
+              {error && <Banner status="error" title={error} collapsible={false} />}
+            </FormLayout>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={tc('add')}
+                variant="primary"
+                isLoading={save.isPending}
+                isDisabled={!accountName.trim()}
+                onClick={async () => {
+                  setError(null);
+                  try {
+                    await save.mutateAsync(undefined);
+                    setAccountName('');
+                    setUserName('');
+                    setUserId(null);
+                    onOpenChange(false);
+                  } catch (err) {
+                    setError(errorText(err));
+                  }
+                }}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }
@@ -479,8 +431,10 @@ export function ImportAccountsDialog({
       description={t('import.accountsDescription')}
       help={
         <>
-          <p>{t('import.accountsHelp')}</p>
-          <p className="mt-1 text-xs">{REVIEW_COLUMNS.map((c) => t(`reviewColumns.${c}`)).join(' · ')}</p>
+          <Text as="p">{t('import.accountsHelp')}</Text>
+          <Text as="p" type="supporting">
+            {REVIEW_COLUMNS.map((c) => t(`reviewColumns.${c}`)).join(' · ')}
+          </Text>
         </>
       }
       endpoint={`/isms/reviews/${review}/import`}

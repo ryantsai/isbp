@@ -1,41 +1,34 @@
 'use client';
 
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { Field } from '@astryxdesign/core/Field';
+import { FormLayout } from '@astryxdesign/core/FormLayout';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
+import { HStack, Layout, LayoutContent, LayoutFooter, VStack } from '@astryxdesign/core/Layout';
+import { NumberInput } from '@astryxdesign/core/NumberInput';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Text } from '@astryxdesign/core/Text';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@isbp/ui/form';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@isbp/ui/dialog';
-import { Input } from '@isbp/ui/input';
-import { Label } from '@isbp/ui/label';
+import { Form, FormField, fieldStatus } from '@isbp/ui/form';
 import { countFilled, OptionalFields, useFieldList } from '@isbp/ui/optional-fields';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@isbp/ui/select';
 import {
   Sheet,
   SheetBody,
   SheetContent,
   SheetDescription,
   SheetFooter,
+  SheetForm,
   SheetHeader,
   SheetTitle,
 } from '@isbp/ui/sheet';
 import { StatusBadge } from '@isbp/ui/status';
-import { Textarea } from '@isbp/ui/textarea';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { type FieldValues, useForm, type UseFormReturn, useWatch } from 'react-hook-form';
@@ -123,52 +116,27 @@ function CiaChooser({
 }) {
   const localized = useLocalized();
   const t = useTranslations('isms.assetForm');
-  const name = useId();
   return (
-    <fieldset
-      className="min-w-0 space-y-2"
-      aria-describedby={`${name}-hint`}
-      aria-invalid={error ? true : undefined}
+    <RadioList
+      label={label}
+      description={hint}
+      isRequired
+      value={value === null ? '' : String(value)}
+      onChange={(v) => onChange(Number(v))}
+      status={error ? { type: 'error', message: error } : undefined}
     >
-      <legend className="text-sm font-medium">{label}</legend>
-      <p id={`${name}-hint`} className="text-xs text-muted-foreground">
-        {hint}
-      </p>
-      <div className="grid grid-cols-1 gap-2">
-        {[...CIA_LEVELS].reverse().map((level) => {
-          const text = guidance ? localized(guidance[String(level) as '1']) : '';
-          const id = `${name}-${level}`;
-          return (
-            <label
-              key={level}
-              htmlFor={id}
-              className="flex min-w-0 cursor-pointer items-start gap-3 rounded-md border p-2.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50"
-            >
-              <input
-                id={id}
-                type="radio"
-                name={name}
-                value={level}
-                checked={value === level}
-                onChange={() => onChange(level)}
-                className="mt-0.5 size-4 accent-primary"
-              />
-              <span className="min-w-0">
-                <span className="font-medium tabular-nums">{t('level', { level })}</span>
-                <span className="block text-xs text-muted-foreground wrap-anywhere">
-                  {text || t('noGuidance')}
-                </span>
-              </span>
-            </label>
-          );
-        })}
-      </div>
-      {error && (
-        <p role="alert" className="text-xs text-destructive">
-          {error}
-        </p>
-      )}
-    </fieldset>
+      {[...CIA_LEVELS].reverse().map((level) => {
+        const text = guidance ? localized(guidance[String(level) as '1']) : '';
+        return (
+          <RadioListItem
+            key={level}
+            value={String(level)}
+            label={t('level', { level })}
+            description={text || t('noGuidance')}
+          />
+        );
+      })}
+    </RadioList>
   );
 }
 
@@ -189,7 +157,13 @@ function AssetForm({
   const { data: taxonomy } = useTaxonomy();
   const { data: groups } = useGroups();
   const { fields, elements, ready } = useEntityFields('isms.asset');
-  const ids = { manager: useId(), users: useId() };
+  const ids = {
+    manager: useId(),
+    users: useId(),
+    identity: useId(),
+    responsibility: useId(),
+    place: useId(),
+  };
   const list = useFieldList();
 
   const schema = useMemo(
@@ -352,19 +326,26 @@ function AssetForm({
     }
   });
 
-  const text = (name: 'name' | 'location' | 'brand' | 'model' | 'version', label: string, hint?: string) => (
+  const text = (
+    name: 'name' | 'location' | 'brand' | 'model' | 'version' | 'usersText',
+    label: string,
+    opts: { hint?: string; required?: boolean; placeholder?: string } = {},
+  ) => (
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem className="min-w-0">
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <Input {...field} />
-          </FormControl>
-          {hint && <FormDescription>{hint}</FormDescription>}
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <TextInput
+          label={label}
+          description={opts.hint}
+          placeholder={opts.placeholder}
+          isRequired={opts.required}
+          value={field.value}
+          onChange={field.onChange}
+          onBlur={field.onBlur}
+          ref={field.ref}
+          status={fieldStatus(fieldState)}
+        />
       )}
     />
   );
@@ -372,258 +353,266 @@ function AssetForm({
     name: 'classId' | 'subclassId' | 'siteId' | 'managerGroupId' | 'classificationId',
     label: string,
     options: { value: string; label: string }[],
-    opts: { none?: string; onChange?: (v: string) => void; hint?: React.ReactNode } = {},
+    opts: {
+      none?: string;
+      onChange?: (v: string) => void;
+      hint?: string;
+      required?: boolean;
+      hasSearch?: boolean;
+    } = {},
   ) => (
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem className="min-w-0">
-          <FormLabel>{label}</FormLabel>
-          <Select
-            value={field.value || undefined}
-            onValueChange={(v) => {
-              field.onChange(v);
-              opts.onChange?.(v);
-            }}
-          >
-            <FormControl>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('assetForm.choose')} />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              {opts.none && <SelectItem value={NONE}>{opts.none}</SelectItem>}
-              {options.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {opts.hint && <FormDescription>{opts.hint}</FormDescription>}
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <Selector
+          label={label}
+          description={opts.hint}
+          // A searchable Selector is a button: aria-required is not allowed on it.
+          isRequired={opts.required && !opts.hasSearch}
+          hasSearch={opts.hasSearch}
+          placeholder={t('assetForm.choose')}
+          value={field.value || undefined}
+          onChange={(v) => {
+            field.onChange(v);
+            opts.onChange?.(v);
+          }}
+          status={fieldStatus(fieldState)}
+          options={opts.none ? [{ value: NONE, label: opts.none }, ...options] : options}
+        />
       )}
     />
   );
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
-        <SheetBody className="space-y-5">
-          <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <legend className="mb-3 text-xs font-semibold text-muted-foreground">
-              {t('assetForm.identity')}
-            </legend>
-            <div className="sm:col-span-2">{text('name', t('fields.name'), t('assetForm.nameHint'))}</div>
-            {select(
-              'classId',
-              t('fields.class'),
-              (taxonomy?.classes ?? []).map((x) => ({
-                value: x.id,
-                label: `${x.code} · ${localized(x.name)}`,
-              })),
-              { onChange: () => form.setValue('subclassId', NONE) },
-            )}
-            {select(
-              'subclassId',
-              t('fields.subclass'),
-              (klass?.subclasses ?? []).map((x) => ({ value: x.id, label: localized(x.name) })),
-              { none: t('assetForm.noSubclass') },
-            )}
-            <div className="sm:col-span-2">
-              {select(
-                'siteId',
-                t('fields.site'),
-                sites.map((x) => ({ value: x.id, label: `${x.code} · ${x.name}` })),
-                { hint: asset ? t('assetForm.numberKept') : t('assetForm.numberHint') },
-              )}
-            </div>
-          </fieldset>
+      <SheetForm onSubmit={onSubmit} noValidate>
+        <SheetBody className="py-2">
+          <VStack gap={5}>
+            <VStack gap={3} role="group" aria-labelledby={ids.identity}>
+              <Text type="label" color="secondary" id={ids.identity}>
+                {t('assetForm.identity')}
+              </Text>
+              <FormLayout defaultOptionality="optional">
+                {text('name', t('fields.name'), { hint: t('assetForm.nameHint'), required: true })}
+                <Grid columns={{ minWidth: 240 }} gap={4}>
+                  {select(
+                    'classId',
+                    t('fields.class'),
+                    (taxonomy?.classes ?? []).map((x) => ({
+                      value: x.id,
+                      label: `${x.code} · ${localized(x.name)}`,
+                    })),
+                    { required: true, onChange: () => form.setValue('subclassId', NONE) },
+                  )}
+                  {select(
+                    'subclassId',
+                    t('fields.subclass'),
+                    (klass?.subclasses ?? []).map((x) => ({ value: x.id, label: localized(x.name) })),
+                    { none: t('assetForm.noSubclass') },
+                  )}
+                  <GridSpan columns="full">
+                    {select(
+                      'siteId',
+                      t('fields.site'),
+                      sites.map((x) => ({ value: x.id, label: `${x.code} · ${x.name}` })),
+                      {
+                        required: true,
+                        hint: asset ? t('assetForm.numberKept') : t('assetForm.numberHint'),
+                      },
+                    )}
+                  </GridSpan>
+                </Grid>
+              </FormLayout>
+            </VStack>
 
-          <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <legend className="mb-3 text-xs font-semibold text-muted-foreground">
-              {t('assetForm.responsibility')}
-            </legend>
-            <FormField
-              control={form.control}
-              name="managerId"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <Label htmlFor={ids.manager}>{t('fields.manager')}</Label>
-                  <PersonField
-                    id={ids.manager}
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder={t('assetForm.managerPlaceholder')}
+            <VStack gap={3} role="group" aria-labelledby={ids.responsibility}>
+              <Text type="label" color="secondary" id={ids.responsibility}>
+                {t('assetForm.responsibility')}
+              </Text>
+              <FormLayout defaultOptionality="optional">
+                <Grid columns={{ minWidth: 240 }} gap={4}>
+                  <FormField
+                    control={form.control}
+                    name="managerId"
+                    render={({ field, fieldState }) => (
+                      <Field
+                        label={t('fields.manager')}
+                        inputID={ids.manager}
+                        status={fieldStatus(fieldState)}
+                      >
+                        <PersonField
+                          id={ids.manager}
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder={t('assetForm.managerPlaceholder')}
+                        />
+                      </Field>
+                    )}
                   />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {select(
-              'managerGroupId',
-              t('fields.managerGroup'),
-              (groups?.items ?? []).map((g) => ({ value: g.id, label: g.name })),
-              { none: t('assetForm.noGroup') },
-            )}
-          </fieldset>
+                  {select(
+                    'managerGroupId',
+                    t('fields.managerGroup'),
+                    (groups?.items ?? []).map((g) => ({ value: g.id, label: g.name })),
+                    { none: t('assetForm.noGroup'), hasSearch: true },
+                  )}
+                </Grid>
+              </FormLayout>
+            </VStack>
 
-          <section aria-labelledby="isms-cia-heading" className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 id="isms-cia-heading" className="text-xs font-semibold text-muted-foreground">
-                {t('assetForm.cia')}
-              </h3>
-              <p className="flex flex-wrap items-center gap-2 text-sm" aria-live="polite">
-                {t('fields.value')}
-                <StatusBadge
-                  tone={value === null ? 'muted' : value >= 4 ? 'warning' : 'neutral'}
-                  label={value === null ? t('assetForm.notScored') : t('value.badge', { value })}
-                  changeKey={String(value)}
-                />
-                {value !== null && (
-                  <span className="text-xs text-muted-foreground">
-                    {t('assetForm.because', { dimensions: because.join(', '), value })}
-                  </span>
+            <VStack gap={3} role="group" aria-labelledby="isms-cia-heading">
+              <HStack gap={2} hAlign="between" vAlign="center" wrap="wrap">
+                <Text type="label" color="secondary" id="isms-cia-heading">
+                  {t('assetForm.cia')}
+                </Text>
+                <HStack gap={2} vAlign="center" wrap="wrap" aria-live="polite">
+                  <Text>{t('fields.value')}</Text>
+                  <StatusBadge
+                    tone={value === null ? 'muted' : value >= 4 ? 'warning' : 'neutral'}
+                    label={value === null ? t('assetForm.notScored') : t('value.badge', { value })}
+                    changeKey={String(value)}
+                  />
+                  {value !== null && (
+                    <Text type="supporting">
+                      {t('assetForm.because', { dimensions: because.join(', '), value })}
+                    </Text>
+                  )}
+                </HStack>
+              </HStack>
+              <Text as="p" type="supporting">
+                {klass ? t('assetForm.ciaHint') : t('assetForm.ciaPickClass')}
+              </Text>
+              <Grid columns={{ minWidth: 200 }} gap={4}>
+                {DIMENSIONS.map(([name, dim]) => (
+                  <FormField
+                    key={name}
+                    control={form.control}
+                    name={name}
+                    render={({ field, fieldState }) => (
+                      <CiaChooser
+                        label={t(`fields.${name}`)}
+                        hint={t(`assetForm.${name}Hint`)}
+                        value={field.value}
+                        onChange={field.onChange}
+                        guidance={klass?.guidance[dim]}
+                        error={fieldState.error?.message}
+                      />
+                    )}
+                  />
+                ))}
+              </Grid>
+              <FormLayout defaultOptionality="optional">
+                {select(
+                  'classificationId',
+                  t('fields.classification'),
+                  labels.map((x) => ({ value: x.id, label: localized(x.name) })),
+                  {
+                    none: t('assetForm.noClassification'),
+                    onChange: () => setClassificationTouched(true),
+                    hint:
+                      !classificationTouched && suggested
+                        ? t('assetForm.classificationSuggested')
+                        : t('assetForm.classificationHint'),
+                  },
                 )}
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {klass ? t('assetForm.ciaHint') : t('assetForm.ciaPickClass')}
-            </p>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              {DIMENSIONS.map(([name, dim]) => (
+              </FormLayout>
+            </VStack>
+
+            <VStack gap={3} role="group" aria-labelledby={ids.place}>
+              <Text type="label" color="secondary" id={ids.place}>
+                {t('assetForm.usersAndPlace')}
+              </Text>
+              <FormLayout defaultOptionality="optional">
                 <FormField
-                  key={name}
                   control={form.control}
-                  name={name}
+                  name="userIds"
                   render={({ field, fieldState }) => (
-                    <CiaChooser
-                      label={t(`fields.${name}`)}
-                      hint={t(`assetForm.${name}Hint`)}
+                    <Field label={t('fields.users')} inputID={ids.users} status={fieldStatus(fieldState)}>
+                      <PeoplePicker
+                        id={ids.users}
+                        value={field.value}
+                        onChange={field.onChange}
+                        addLabel={t('assetForm.addUser')}
+                      />
+                    </Field>
+                  )}
+                />
+                {text('location', t('fields.location'))}
+              </FormLayout>
+            </VStack>
+
+            <OptionalFields
+              key={detailsOpenByDefault ? 'open' : 'closed'}
+              defaultOpen={detailsOpenByDefault}
+              hint={list([
+                t('fields.usersText'),
+                t('fields.brand'),
+                t('fields.model'),
+                t('fields.version'),
+                t('fields.quantity'),
+                t('fields.notes'),
+              ])}
+              filled={detailsFilled}
+            >
+              <FormLayout defaultOptionality="optional">
+                {text('usersText', t('fields.usersText'), {
+                  hint: t('assetForm.usersTextHint'),
+                  placeholder: t('assetForm.usersTextPlaceholder'),
+                })}
+                <Grid columns={{ minWidth: 200 }} gap={4}>
+                  {text('brand', t('fields.brand'))}
+                  {text('model', t('fields.model'))}
+                  {text('version', t('fields.version'))}
+                  <FormField
+                    control={form.control}
+                    name="quantity"
+                    render={({ field, fieldState }) => (
+                      <NumberInput
+                        label={t('fields.quantity')}
+                        isIntegerOnly
+                        min={0}
+                        value={field.value === '' ? null : Number(field.value)}
+                        onChange={(n) => field.onChange(String(n))}
+                        onBlur={field.onBlur}
+                        status={fieldStatus(fieldState)}
+                      />
+                    )}
+                  />
+                </Grid>
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field, fieldState }) => (
+                    <TextArea
+                      label={t('fields.notes')}
+                      rows={3}
                       value={field.value}
                       onChange={field.onChange}
-                      guidance={klass?.guidance[dim]}
-                      error={fieldState.error?.message}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      status={fieldStatus(fieldState)}
                     />
                   )}
                 />
-              ))}
-            </div>
-            {select(
-              'classificationId',
-              t('fields.classification'),
-              labels.map((x) => ({ value: x.id, label: localized(x.name) })),
-              {
-                none: t('assetForm.noClassification'),
-                onChange: () => setClassificationTouched(true),
-                hint:
-                  !classificationTouched && suggested
-                    ? t('assetForm.classificationSuggested')
-                    : t('assetForm.classificationHint'),
-              },
+              </FormLayout>
+            </OptionalFields>
+
+            <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
+            {form.formState.errors.root && (
+              <Banner status="error" title={form.formState.errors.root.message ?? ''} collapsible={false} />
             )}
-          </section>
-
-          <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <legend className="mb-3 text-xs font-semibold text-muted-foreground">
-              {t('assetForm.usersAndPlace')}
-            </legend>
-            <FormField
-              control={form.control}
-              name="userIds"
-              render={({ field }) => (
-                <FormItem className="min-w-0 sm:col-span-2">
-                  <Label htmlFor={ids.users}>{t('fields.users')}</Label>
-                  <PeoplePicker
-                    id={ids.users}
-                    value={field.value}
-                    onChange={field.onChange}
-                    addLabel={t('assetForm.addUser')}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="sm:col-span-2">{text('location', t('fields.location'))}</div>
-          </fieldset>
-
-          <OptionalFields
-            key={detailsOpenByDefault ? 'open' : 'closed'}
-            defaultOpen={detailsOpenByDefault}
-            hint={list([
-              t('fields.usersText'),
-              t('fields.brand'),
-              t('fields.model'),
-              t('fields.version'),
-              t('fields.quantity'),
-              t('fields.notes'),
-            ])}
-            filled={detailsFilled}
-            contentClassName="grid gap-4 pt-3 sm:grid-cols-2"
-          >
-            <FormField
-              control={form.control}
-              name="usersText"
-              render={({ field }) => (
-                <FormItem className="min-w-0 sm:col-span-2">
-                  <FormLabel>{t('fields.usersText')}</FormLabel>
-                  <FormControl>
-                    <Input placeholder={t('assetForm.usersTextPlaceholder')} {...field} />
-                  </FormControl>
-                  <FormDescription>{t('assetForm.usersTextHint')}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {text('brand', t('fields.brand'))}
-            {text('model', t('fields.model'))}
-            {text('version', t('fields.version'))}
-            <FormField
-              control={form.control}
-              name="quantity"
-              render={({ field }) => (
-                <FormItem className="min-w-0">
-                  <FormLabel>{t('fields.quantity')}</FormLabel>
-                  <FormControl>
-                    <Input inputMode="numeric" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem className="sm:col-span-2">
-                  <FormLabel>{t('fields.notes')}</FormLabel>
-                  <FormControl>
-                    <Textarea rows={3} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </OptionalFields>
-
-          <CustomFieldsSection elements={elements} form={form as unknown as UseFormReturn<FieldValues>} />
-          {form.formState.errors.root && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {form.formState.errors.root.message}
-            </p>
-          )}
+          </VStack>
         </SheetBody>
-        <SheetFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            {tc('cancel')}
-          </Button>
-          <Button type="submit" loading={save.isPending}>
-            {asset ? tc('saveChanges') : t('assetForm.register')}
-          </Button>
+        <SheetFooter>
+          <Button label={tc('cancel')} variant="secondary" type="button" onClick={onCancel} />
+          <Button
+            label={asset ? tc('saveChanges') : t('assetForm.register')}
+            variant="primary"
+            isLoading={save.isPending}
+            type="submit"
+          />
         </SheetFooter>
-      </form>
+      </SheetForm>
     </Form>
   );
 }
@@ -642,7 +631,6 @@ export function ChangeStatusDialog({
   const t = useTranslations('isms');
   const tc = useTranslations('common');
   const errorText = useErrorText();
-  const name = useId();
   const [status, setStatus] = useState<(typeof ASSET_STATUSES)[number]>(
     asset.status === 'active' ? 'missing' : 'active',
   );
@@ -654,70 +642,67 @@ export function ChangeStatusDialog({
   );
   const needsNote = status !== 'active';
   return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={tc('close')}>
-        <DialogHeader>
-          <DialogTitle>{t('asset.changeStatusTitle', { number: asset.number })}</DialogTitle>
-          <DialogDescription>{asset.name}</DialogDescription>
-        </DialogHeader>
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">{t('fields.status')}</legend>
-          {ASSET_STATUSES.map((s) => (
-            <label
-              key={s}
-              htmlFor={`${name}-${s}`}
-              className="flex cursor-pointer items-start gap-2 rounded-md border p-2.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50"
-            >
-              <input
-                id={`${name}-${s}`}
-                type="radio"
-                name={name}
-                checked={status === s}
-                disabled={s === asset.status}
-                onChange={() => setStatus(s)}
-                className="mt-0.5 size-4 accent-primary"
+    <Dialog isOpen onOpenChange={onOpenChange} width={448} purpose="form">
+      <Layout
+        header={
+          <DialogHeader
+            title={t('asset.changeStatusTitle', { number: asset.number })}
+            subtitle={asset.name}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={4}>
+            <VStack gap={4}>
+              <RadioList
+                label={t('fields.status')}
+                value={status}
+                onChange={(v) => setStatus(v as (typeof ASSET_STATUSES)[number])}
+              >
+                {ASSET_STATUSES.map((s) => (
+                  <RadioListItem
+                    key={s}
+                    value={s}
+                    label={t(`assetStatus.${s}`)}
+                    description={t(`asset.statusHints.${s}`)}
+                    isDisabled={s === asset.status}
+                  />
+                ))}
+              </RadioList>
+              <TextArea
+                label={needsNote ? t('asset.statusNoteRequired') : t('asset.statusNote')}
+                rows={2}
+                value={note}
+                onChange={setNote}
               />
-              <span>
-                <span className="font-medium">{t(`assetStatus.${s}`)}</span>
-                <span className="block text-xs text-muted-foreground">{t(`asset.statusHints.${s}`)}</span>
-              </span>
-            </label>
-          ))}
-        </fieldset>
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${name}-note`}>
-            {needsNote ? t('asset.statusNoteRequired') : t('asset.statusNote')}
-          </Label>
-          <Textarea id={`${name}-note`} rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
-        </div>
-        {error && (
-          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {tc('cancel')}
-          </Button>
-          <Button
-            type="button"
-            loading={save.isPending}
-            disabled={status === asset.status}
-            onClick={async () => {
-              setError(null);
-              if (needsNote && !note.trim()) return setError(t('asset.statusNoteMissing'));
-              try {
-                await save.mutateAsync({ status, statusNote: note.trim() || null });
-                onOpenChange(false);
-              } catch (err) {
-                setError(errorText(err));
-              }
-            }}
-          >
-            {t('asset.changeStatusSubmit')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+              {error && <Banner status="error" title={error} collapsible={false} />}
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={3}>
+            <HStack gap={2} hAlign="end">
+              <Button label={tc('cancel')} variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button
+                label={t('asset.changeStatusSubmit')}
+                variant="primary"
+                isLoading={save.isPending}
+                isDisabled={status === asset.status}
+                onClick={async () => {
+                  setError(null);
+                  if (needsNote && !note.trim()) return setError(t('asset.statusNoteMissing'));
+                  try {
+                    await save.mutateAsync({ status, statusNote: note.trim() || null });
+                    onOpenChange(false);
+                  } catch (err) {
+                    setError(errorText(err));
+                  }
+                }}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   );
 }

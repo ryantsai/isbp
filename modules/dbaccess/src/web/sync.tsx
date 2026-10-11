@@ -1,9 +1,10 @@
 'use client';
 
+import { Button } from '@astryxdesign/core/Button';
+import { Icon } from '@astryxdesign/core/Icon';
 import { ApiError } from '@isbp/sdk/web';
-import { Button } from '@isbp/ui/button';
 import { useApiMutation, useErrorText } from '@isbp/ui/query';
-import { toast } from '@isbp/ui/sonner';
+import { toast } from '@isbp/ui/toast';
 import { RefreshCwIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { SyncResult } from '../contracts';
@@ -29,10 +30,11 @@ export function SyncButton({
   });
   return (
     <Button
-      size={size}
-      variant="outline"
-      loading={sync.isPending}
-      aria-label={t('nowFor', { name })}
+      size={size === 'sm' ? 'sm' : 'md'}
+      variant="secondary"
+      isLoading={sync.isPending}
+      icon={<Icon icon={RefreshCwIcon} />}
+      label={t('nowFor', { name })}
       onClick={() =>
         sync.mutate(undefined, {
           onError: (err) => {
@@ -45,7 +47,7 @@ export function SyncButton({
         })
       }
     >
-      <RefreshCwIcon /> {t('now')}
+      {t('now')}
     </Button>
   );
 }
